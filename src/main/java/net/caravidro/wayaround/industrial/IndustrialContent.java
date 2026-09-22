@@ -51,6 +51,7 @@ public final class IndustrialContent {
                         output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
                         output.accept(PowerContent.FIREBOX_ITEM.get());
                         output.accept(PowerContent.BOILER_ITEM.get());
+                        output.accept(PowerContent.HEAT_CONDUIT_ITEM.get());
                         output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
                     }).build());
 

@@ -1,1 +1,6 @@
-{"parent":"wayaround:block/firebox"}
+{
+  "parent": "wayaround:block/firebox",
+  "textures": {
+    "front": "minecraft:block/blast_furnace_front_on"
+  }
+}

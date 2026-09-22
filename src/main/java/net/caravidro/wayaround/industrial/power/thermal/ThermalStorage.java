@@ -1,6 +1,6 @@
 package net.caravidro.wayaround.industrial.power.thermal;
 
-/** Deterministic heat storage above ambient. Steam is intentionally not modeled here. */
+/** Deterministic heat storage above ambient. */
 public final class ThermalStorage {
     private final int thermalMassHuPerC;
     private final int maxTemperatureC;
@@ -28,6 +28,12 @@ public final class ThermalStorage {
         int accepted = Math.min(capacityHu - storedHu, Math.max(0, offeredHu));
         if (!simulate) storedHu += accepted;
         return accepted;
+    }
+
+    public int extract(int requestedHu, boolean simulate) {
+        int extracted = Math.min(storedHu, Math.max(0, requestedHu));
+        if (!simulate) storedHu -= extracted;
+        return extracted;
     }
 
     public int coolOneTick() {

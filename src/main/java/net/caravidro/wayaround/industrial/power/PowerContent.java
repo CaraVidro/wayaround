@@ -51,7 +51,7 @@ public final class PowerContent {
     public static final DeferredBlock<net.caravidro.wayaround.industrial.power.thermal.FireboxBlock> FIREBOX =
         BLOCKS.register("firebox", () -> new net.caravidro.wayaround.industrial.power.thermal.FireboxBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY)
-                .strength(3.5F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()
+                .strength(3.5F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops().noOcclusion()
                 .lightLevel(state -> state.getValue(net.caravidro.wayaround.industrial.power.thermal.FireboxBlock.LIT) ? 8 : 0)));
     public static final DeferredItem<BlockItem> FIREBOX_ITEM = ITEMS.register("firebox",
         () -> new BlockItem(FIREBOX.get(), new Item.Properties()));
@@ -62,12 +62,19 @@ public final class PowerContent {
     public static final DeferredBlock<net.caravidro.wayaround.industrial.power.thermal.BoilerBlock> BOILER =
         BLOCKS.register("boiler", () -> new net.caravidro.wayaround.industrial.power.thermal.BoilerBlock(
             BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
-                .strength(4.0F, 8.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()));
+                .strength(4.0F, 8.0F).sound(SoundType.METAL).requiresCorrectToolForDrops().noOcclusion()));
     public static final DeferredItem<BlockItem> BOILER_ITEM = ITEMS.register("boiler",
         () -> new BlockItem(BOILER.get(), new Item.Properties()));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<net.caravidro.wayaround.industrial.power.thermal.BoilerBlockEntity>> BOILER_ENTITY =
         BLOCK_ENTITIES.register("boiler", () -> BlockEntityType.Builder.of(
             net.caravidro.wayaround.industrial.power.thermal.BoilerBlockEntity::new, BOILER.get()).build(null));
+
+    public static final DeferredBlock<net.caravidro.wayaround.industrial.power.thermal.HeatConduitBlock> HEAT_CONDUIT =
+        BLOCKS.register("heat_conduit", () -> new net.caravidro.wayaround.industrial.power.thermal.HeatConduitBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_ORANGE)
+                .strength(1.2F, 4.0F).sound(SoundType.COPPER).noOcclusion()));
+    public static final DeferredItem<BlockItem> HEAT_CONDUIT_ITEM = ITEMS.register("heat_conduit",
+        () -> new BlockItem(HEAT_CONDUIT.get(), new Item.Properties()));
 
     public static void register(IEventBus bus) {
         BLOCKS.register(bus);

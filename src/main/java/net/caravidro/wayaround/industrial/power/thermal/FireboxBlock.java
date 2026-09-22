@@ -3,9 +3,12 @@ package net.caravidro.wayaround.industrial.power.thermal;
 import com.mojang.serialization.MapCodec;
 import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -45,9 +48,20 @@ public final class FireboxBlock extends BaseEntityBlock {
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level,
             BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!stack.is(Items.COAL)) return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        if (!stack.is(Items.COAL) && !stack.is(Items.FLINT_AND_STEEL))
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof FireboxBlockEntity firebox) {
-            if (firebox.addCoal()) stack.consume(1, player);
+            if (stack.is(Items.COAL)) {
+                if (firebox.addCoal()) stack.consume(1, player);
+            } else if (firebox.ignite()) {
+                level.playSound(null, pos, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1.0F,
+                    0.9F + level.random.nextFloat() * 0.2F);
+                stack.hurtAndBreak(1, player,
+                    hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND);
+            } else if (!firebox.isBurning() && firebox.storedCoal() == 0) {
+                player.displayClientMessage(Component.translatable("message.wayaround.firebox.no_fuel"), true);
+            }
             player.displayClientMessage(firebox.status(), true);
         }
         return ItemInteractionResult.sidedSuccess(level.isClientSide);

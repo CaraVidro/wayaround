@@ -1,1 +1,59 @@
-{"parent":"minecraft:block/cube_all","textures":{"all":"minecraft:block/iron_block"}}
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/copper_block",
+    "tank": "minecraft:block/copper_block",
+    "band": "minecraft:block/iron_block",
+    "cap": "minecraft:block/cut_copper"
+  },
+  "elements": [
+    {
+      "from": [3, 0, 3],
+      "to": [13, 13, 13],
+      "faces": {
+        "down": {"texture":"#cap"},
+        "up": {"texture":"#cap"},
+        "north": {"texture":"#tank"},
+        "south": {"texture":"#tank"},
+        "west": {"texture":"#tank"},
+        "east": {"texture":"#tank"}
+      }
+    },
+    {
+      "from": [2, 3, 2],
+      "to": [14, 5, 14],
+      "faces": {
+        "down": {"texture":"#band"}, "up": {"texture":"#band"},
+        "north": {"texture":"#band"}, "south": {"texture":"#band"},
+        "west": {"texture":"#band"}, "east": {"texture":"#band"}
+      }
+    },
+    {
+      "from": [2, 9, 2],
+      "to": [14, 11, 14],
+      "faces": {
+        "down": {"texture":"#band"}, "up": {"texture":"#band"},
+        "north": {"texture":"#band"}, "south": {"texture":"#band"},
+        "west": {"texture":"#band"}, "east": {"texture":"#band"}
+      }
+    },
+    {
+      "from": [5, 13, 5],
+      "to": [11, 14, 11],
+      "faces": {
+        "down": {"texture":"#cap"}, "up": {"texture":"#cap"},
+        "north": {"texture":"#cap"}, "south": {"texture":"#cap"},
+        "west": {"texture":"#cap"}, "east": {"texture":"#cap"}
+      }
+    },
+    {
+      "from": [6, 14, 6],
+      "to": [10, 16, 10],
+      "faces": {
+        "down": {"texture":"#band"}, "up": {"texture":"#band"},
+        "north": {"texture":"#band"}, "south": {"texture":"#band"},
+        "west": {"texture":"#band"}, "east": {"texture":"#band"}
+      }
+    }
+  ]
+}
