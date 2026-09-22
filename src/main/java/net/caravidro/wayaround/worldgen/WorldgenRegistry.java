@@ -1,0 +1,139 @@
+package net.caravidro.wayaround.worldgen;
+
+import com.mojang.serialization.MapCodec;
+
+import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldgen.feature.AntarcticIcebergFeature;
+import net.caravidro.wayaround.worldgen.terrain.AntarcticDensityFunction;
+
+import net.minecraft.core.registries.Registries;
+
+import net.minecraft.world.level.levelgen.DensityFunction;
+
+import net.minecraft.world.level.levelgen.feature.Feature;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
+
+import net.neoforged.bus.api.IEventBus;
+
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
+
+import java.util.function.Supplier;
+
+
+public final class WorldgenRegistry {
+
+    /*
+     * =========================================================
+     * DENSITY FUNCTIONS
+     * =========================================================
+     */
+
+    public static final DeferredRegister<
+            MapCodec<? extends DensityFunction>
+    > DENSITY_FUNCTION_TYPES =
+            DeferredRegister.create(
+                    Registries.DENSITY_FUNCTION_TYPE,
+                    WayAround.MODID
+            );
+
+
+    public static final Supplier<
+            MapCodec<? extends DensityFunction>
+    > ANTARCTIC_DENSITY =
+            DENSITY_FUNCTION_TYPES.register(
+                    "antarctic_density",
+
+                    () ->
+                            AntarcticDensityFunction.DATA_CODEC
+            );
+
+
+    /*
+     * =========================================================
+     * FEATURES
+     * =========================================================
+     *
+     * Aqui registramos nossos tipos de Feature.
+     *
+     * O JSON configured_feature depois aponta para:
+     *
+     * wayaround:antarctic_iceberg
+     */
+
+    public static final DeferredRegister<
+            Feature<?>
+    > FEATURES =
+            DeferredRegister.create(
+                    Registries.FEATURE,
+                    WayAround.MODID
+            );
+
+
+    /*
+     * =========================================================
+     * ANTARCTIC ICEBERG
+     * =========================================================
+     */
+
+    public static final DeferredHolder<
+            Feature<?>,
+            AntarcticIcebergFeature
+    > ANTARCTIC_ICEBERG =
+
+            FEATURES.register(
+                    "antarctic_iceberg",
+
+                    () ->
+                            new AntarcticIcebergFeature(
+                                    NoneFeatureConfiguration.CODEC
+                            )
+            );
+
+
+    /*
+     * =========================================================
+     * CONSTRUCTOR
+     * =========================================================
+     */
+
+    private WorldgenRegistry() {
+    }
+
+
+    /*
+     * =========================================================
+     * REGISTER
+     * =========================================================
+     */
+
+    public static void register(
+            IEventBus bus
+    ) {
+
+        /*
+         * Density Function customizada.
+         */
+
+        DENSITY_FUNCTION_TYPES.register(
+                bus
+        );
+
+
+        /*
+         * Features customizadas.
+         *
+         * MUITO IMPORTANTE:
+         *
+         * sem isso, o JSON:
+         *
+         * "type": "wayaround:antarctic_iceberg"
+         *
+         * não vai encontrar nossa feature.
+         */
+
+        FEATURES.register(
+                bus
+        );
+    }
+}

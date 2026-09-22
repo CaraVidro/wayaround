@@ -1,0 +1,6 @@
+{
+  "parent": "wayaround:block/reforced_blaster",
+  "textures": {
+    "front": "minecraft:block/blast_furnace_front_on"
+  }
+}

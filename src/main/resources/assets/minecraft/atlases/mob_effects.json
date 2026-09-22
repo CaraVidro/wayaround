@@ -1,0 +1,6 @@
+{
+  "sources": [
+    { "type": "single", "resource": "minecraft:mob_effect/slowness", "sprite": "wayaround:frostbite" },
+    { "type": "single", "resource": "minecraft:mob_effect/weakness", "sprite": "wayaround:shivering" }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "variants": {
+    "facing=north,lit=false": {
+      "model": "wayaround:block/reforced_blaster",
+      "uvlock": true
+    },
+    "facing=north,lit=true": {
+      "model": "wayaround:block/reforced_blaster_on",
+      "uvlock": true
+    },
+    "facing=east,lit=false": {
+      "model": "wayaround:block/reforced_blaster",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=east,lit=true": {
+      "model": "wayaround:block/reforced_blaster_on",
+      "y": 90,
+      "uvlock": true
+    },
+    "facing=south,lit=false": {
+      "model": "wayaround:block/reforced_blaster",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=south,lit=true": {
+      "model": "wayaround:block/reforced_blaster_on",
+      "y": 180,
+      "uvlock": true
+    },
+    "facing=west,lit=false": {
+      "model": "wayaround:block/reforced_blaster",
+      "y": 270,
+      "uvlock": true
+    },
+    "facing=west,lit=true": {
+      "model": "wayaround:block/reforced_blaster_on",
+      "y": 270,
+      "uvlock": true
+    }
+  }
+}

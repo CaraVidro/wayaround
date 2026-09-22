@@ -1,0 +1,10 @@
+{
+  "blizzard_wind": {
+    "sounds": [
+      {
+        "name": "wayaround:blizzard_wind",
+        "stream": true
+      }
+    ]
+  }
+}

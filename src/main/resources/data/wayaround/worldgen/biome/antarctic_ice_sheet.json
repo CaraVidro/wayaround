@@ -1,0 +1,43 @@
+{
+  "has_precipitation": true,
+  "temperature": -0.8,
+  "downfall": 0.7,
+
+  "effects": {
+    "fog_color": 12638463,
+    "sky_color": 8103167,
+    "water_color": 4020182,
+    "water_fog_color": 329011
+  },
+
+  "carvers": {
+    "air": [
+      "minecraft:cave",
+      "minecraft:cave_extra_underground",
+      "minecraft:canyon"
+    ]
+  },
+
+"features": [
+    [],
+    [],
+    [
+      "wayaround:antarctic_glacial_body",
+      "wayaround:antarctic_crevasse"
+    ],
+    [],
+    [],
+    [],
+    [
+      "wayaround:antarctic_rich_ores"
+    ],
+    [],
+    [],
+    [],
+    [
+      "wayaround:priorite_crater"
+    ]
+  ],
+  "spawners": {},
+  "spawn_costs": {}
+} 

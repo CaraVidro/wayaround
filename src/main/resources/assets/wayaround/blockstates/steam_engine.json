@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "wayaround:block/steam_engine"
+    },
+    "lit=true": {
+      "model": "wayaround:block/steam_engine_on"
+    }
+  }
+}

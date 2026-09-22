@@ -1,0 +1,10 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": [
+    "wayaround:antarctic_ice_sheet"
+  ],
+  "features": [
+    "wayaround:antarctic_snow_mounds"
+  ],
+  "step": "top_layer_modification"
+}   

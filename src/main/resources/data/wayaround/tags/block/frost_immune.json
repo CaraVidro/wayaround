@@ -1,0 +1,29 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:base_stone_overworld",
+    "#minecraft:base_stone_nether",
+    "#minecraft:dirt",
+    "#minecraft:sand",
+    "#minecraft:logs",
+    "#minecraft:leaves",
+    "#minecraft:flowers",
+    "#minecraft:saplings",
+    "#minecraft:crops",
+    { "id": "#c:ores", "required": false },
+    "#minecraft:ice",
+    "#minecraft:snow",
+    "minecraft:gravel",
+    "minecraft:clay",
+    "minecraft:bedrock",
+    "minecraft:calcite",
+    "minecraft:dripstone_block",
+    "minecraft:bone_block",
+    "minecraft:moss_block",
+    "minecraft:moss_carpet",
+    "minecraft:obsidian",
+    "minecraft:crying_obsidian",
+    "minecraft:glowstone",
+    "wayaround:priorite"
+  ]
+}

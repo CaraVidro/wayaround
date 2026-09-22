@@ -1,0 +1,12 @@
+{
+  "feature": "wayaround:priorite_crater",
+  "placement": [
+    {
+      "type": "minecraft:rarity_filter",
+      "chance": 100
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

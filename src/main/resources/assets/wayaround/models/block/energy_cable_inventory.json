@@ -1,0 +1,74 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/copper_block",
+    "conductor": "minecraft:block/copper_block",
+    "insulation": "minecraft:block/gray_concrete"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        6,
+        6
+      ],
+      "to": [
+        15,
+        10,
+        10
+      ],
+      "faces": {
+        "down": {
+          "texture": "#insulation"
+        },
+        "up": {
+          "texture": "#insulation"
+        },
+        "north": {
+          "texture": "#insulation"
+        },
+        "south": {
+          "texture": "#insulation"
+        },
+        "west": {
+          "texture": "#insulation"
+        },
+        "east": {
+          "texture": "#insulation"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        5.75,
+        5.75
+      ],
+      "to": [
+        10,
+        10.25,
+        10.25
+      ],
+      "faces": {
+        "down": {
+          "texture": "#conductor"
+        },
+        "up": {
+          "texture": "#conductor"
+        },
+        "north": {
+          "texture": "#conductor"
+        },
+        "south": {
+          "texture": "#conductor"
+        },
+        "west": {
+          "texture": "#conductor"
+        },
+        "east": {
+          "texture": "#conductor"
+        }
+      }
+    }
+  ]
+}

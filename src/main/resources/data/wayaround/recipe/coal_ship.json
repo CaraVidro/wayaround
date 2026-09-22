@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["IPI", "BFC", "III"],
+  "key": {
+    "I": {"item": "minecraft:iron_ingot"},
+    "P": {"item": "minecraft:piston"},
+    "B": {"tag": "minecraft:boats"},
+    "F": {"item": "minecraft:furnace"},
+    "C": {"item": "minecraft:chest"}
+  },
+  "result": {"id": "wayaround:coal_ship", "count": 1}
+}

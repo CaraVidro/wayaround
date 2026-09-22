@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "amount=1": { "model": "wayaround:block/priorite" },
+    "amount=2": { "model": "wayaround:block/priorite" },
+    "amount=3": { "model": "wayaround:block/priorite" },
+    "amount=4": { "model": "wayaround:block/priorite" }
+  }
+}

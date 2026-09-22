@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "WCW",
+    "ITI",
+    "BHB"
+  ],
+  "key": {
+    "W": {
+      "item": "minecraft:white_wool"
+    },
+    "C": {
+      "item": "wayaround:caravel"
+    },
+    "I": {
+      "item": "minecraft:iron_block"
+    },
+    "T": {
+      "item": "minecraft:crafting_table"
+    },
+    "B": {
+      "item": "minecraft:barrel"
+    },
+    "H": {
+      "item": "minecraft:red_bed"
+    }
+  },
+  "result": {
+    "id": "wayaround:great_ship",
+    "count": 1
+  }
+}

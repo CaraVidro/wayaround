@@ -1,0 +1,226 @@
+package net.caravidro.wayaround.mixin;
+
+import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldgen.WayAroundBiomes;
+import net.caravidro.wayaround.worldgen.geography.AntarcticField;
+
+import net.minecraft.core.Holder;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+
+import org.spongepowered.asm.mixin.Mixin;
+
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+@Mixin(MultiNoiseBiomeSource.class)
+public abstract class OverworldBiomeMixin {
+
+    /*
+     * =========================================================
+     * DEBUG
+     * =========================================================
+     *
+     * Só usamos isso para não lotar o log.
+     */
+
+    private static boolean wayaround$loggedAntarctica =
+            false;
+
+    private static boolean wayaround$loggedSouthernOcean =
+            false;
+
+
+    /*
+     * =========================================================
+     * BIOME SELECTION
+     * =========================================================
+     *
+     * Interceptamos a escolha de bioma feita pelo
+     * MultiNoiseBiomeSource.
+     *
+     * A ordem é:
+     *
+     * 1. Antártida
+     * 2. Southern Ocean
+     * 3. Caso contrário, deixa o Minecraft escolher normalmente.
+     */
+
+    @Inject(
+            method = "getNoiseBiome(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void wayaround$selectPolarBiome(
+            int quartX,
+            int quartY,
+            int quartZ,
+            Climate.Sampler sampler,
+            CallbackInfoReturnable<Holder<Biome>> cir
+    ) {
+
+        /*
+         * Os Holders só existem depois que
+         * o registry real do servidor foi carregado.
+         */
+
+        if (
+                !WayAroundBiomes.isReady()
+        ) {
+            return;
+        }
+
+
+        /*
+         * =====================================================
+         * QUART -> BLOCK COORDINATES
+         * =====================================================
+         *
+         * getNoiseBiome trabalha em quart coordinates.
+         *
+         * 1 quart = 4 blocos.
+         */
+
+        int blockX =
+                quartX << 2;
+
+        int blockZ =
+                quartZ << 2;
+
+
+        /*
+         * =====================================================
+         * ANTÁRTIDA
+         * =====================================================
+         *
+         * Ela vem PRIMEIRO.
+         *
+         * Assim, quando Southern Ocean e continente
+         * se encontram na costa, a Antártida possui
+         * prioridade.
+         */
+
+        if (
+                AntarcticField.isAntarctic(
+                        blockX,
+                        blockZ
+                )
+        ) {
+
+            Holder<Biome> antarctic =
+                    WayAroundBiomes
+                            .getAntarcticIceSheet();
+
+
+            cir.setReturnValue(
+                    antarctic
+            );
+
+
+            /*
+             * Debug apenas na primeira vez.
+             */
+
+            if (
+                    !wayaround$loggedAntarctica
+            ) {
+
+                wayaround$loggedAntarctica =
+                        true;
+
+
+                WayAround.LOGGER.info(
+                        "WayAround selecionou Antarctic Ice Sheet!"
+                );
+
+
+                WayAround.LOGGER.info(
+                        "Primeira coordenada Antarctic: X={} Z={}",
+                        blockX,
+                        blockZ
+                );
+            }
+
+
+            /*
+             * MUITO IMPORTANTE:
+             *
+             * Já escolhemos o bioma.
+             * Não queremos continuar para
+             * Southern Ocean.
+             */
+
+            return;
+        }
+
+
+        /*
+         * =====================================================
+         * SOUTHERN OCEAN
+         * =====================================================
+         *
+         * Se não estamos no continente, verificamos
+         * se estamos dentro da região oceânica polar.
+         */
+
+        if (
+                AntarcticField.isSouthernOcean(
+                        blockX,
+                        blockZ
+                )
+        ) {
+
+            Holder<Biome> southernOcean =
+                    WayAroundBiomes
+                            .getSouthernOcean();
+
+
+            cir.setReturnValue(
+                    southernOcean
+            );
+
+
+            /*
+             * Debug apenas na primeira vez.
+             */
+
+            if (
+                    !wayaround$loggedSouthernOcean
+            ) {
+
+                wayaround$loggedSouthernOcean =
+                        true;
+
+
+                WayAround.LOGGER.info(
+                        "WayAround selecionou Southern Ocean!"
+                );
+
+
+                WayAround.LOGGER.info(
+                        "Primeira coordenada Southern Ocean: X={} Z={}",
+                        blockX,
+                        blockZ
+                );
+            }
+
+
+            return;
+        }
+
+
+        /*
+         * =====================================================
+         * MUNDO NORMAL
+         * =====================================================
+         *
+         * Não chamamos cir.setReturnValue().
+         *
+         * Portanto o método vanilla continua
+         * normalmente e escolhe plains, forest,
+         * ocean, desert etc.
+         */
+    }
+}

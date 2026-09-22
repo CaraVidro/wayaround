@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+build/
+
+# Minecraft / NeoForge runtime
+run/
+runs/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java
+*.class
+
+# Logs
+*.log
+logs/
+
+# Crash reports
+crash-reports/
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# VS Code / Java caches
+bin/
+.settings/
+
+# Local generated files
+out/
