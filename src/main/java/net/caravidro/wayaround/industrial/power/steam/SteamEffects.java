@@ -29,7 +29,7 @@ public final class SteamEffects {
         level.sendParticles(ParticleTypes.CLOUD,
             pos.getX() + 0.5, pos.getY() + 0.55, pos.getZ() + 0.5,
             particles, 0.45, 0.45, 0.45, 0.12);
-        level.playSound(null, pos, SoundEvents.GENERIC_EXPLODE,
+        level.playSound(null, pos, SoundEvents.GENERIC_EXPLODE.value(),
             SoundSource.BLOCKS, 0.9F, 1.25F);
 
         Vec3 center = Vec3.atCenterOf(pos);
