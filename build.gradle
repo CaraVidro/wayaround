@@ -204,7 +204,14 @@ tasks.register('checkSteam', JavaExec) {
     mainClass = 'net.caravidro.wayaround.industrial.power.SteamCycleTest'
 }
 
+tasks.register('checkThermal', JavaExec) {
+    dependsOn tasks.named('frostTestClasses')
+    classpath = sourceSets.frostTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.power.thermal.ThermalStorageTest'
+}
+
 tasks.named('check') {
+    dependsOn tasks.named('checkThermal')
     dependsOn tasks.named('checkSteam')
     dependsOn tasks.named('checkCalving')
     dependsOn tasks.named('checkFrost')
