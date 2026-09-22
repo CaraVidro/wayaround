@@ -1,0 +1,47 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/blast_furnace_side",
+    "metal": "minecraft:block/blast_furnace_side",
+    "top": "minecraft:block/blast_furnace_top",
+    "rim": "minecraft:block/deepslate_tiles"
+  },
+  "elements": [
+    {
+      "from": [1, 0, 1],
+      "to": [15, 10, 15],
+      "faces": {
+        "down": {"texture":"#rim"},
+        "up": {"texture":"#metal"},
+        "north": {"texture":"#metal"},
+        "south": {"texture":"#metal"},
+        "west": {"texture":"#metal"},
+        "east": {"texture":"#metal"}
+      }
+    },
+    {
+      "from": [1, 10, 1],
+      "to": [15, 12, 15],
+      "faces": {
+        "down": {"texture":"#rim"},
+        "up": {"texture":"#top"},
+        "north": {"texture":"#rim"},
+        "south": {"texture":"#rim"},
+        "west": {"texture":"#rim"},
+        "east": {"texture":"#rim"}
+      }
+    },
+    {
+      "from": [6, 12, 6],
+      "to": [10, 15, 10],
+      "faces": {
+        "down": {"texture":"#metal"},
+        "up": {"texture":"#top"},
+        "north": {"texture":"#metal"},
+        "south": {"texture":"#metal"},
+        "west": {"texture":"#metal"},
+        "east": {"texture":"#metal"}
+      }
+    }
+  ]
+}

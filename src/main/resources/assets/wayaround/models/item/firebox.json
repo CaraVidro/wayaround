@@ -1,1 +1,3 @@
-{"parent":"wayaround:block/firebox"}
+{
+  "parent": "wayaround:block/firebox_closed"
+}
