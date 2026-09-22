@@ -5,6 +5,8 @@
     "block.wayaround.firebox":  "Fornalha de combustão",
     "block.wayaround.boiler":  "Caldeira",
     "block.wayaround.heat_conduit":  "Conduto térmico",
+    "block.wayaround.steam_pipe":  "Tubo de vapor",
+    "block.wayaround.safety_valve":  "Válvula de segurança",
     "message.wayaround.firebox.status":  "Combustível: %s | Estado: %s",
     "message.wayaround.firebox.fuel_empty":  "vazio",
     "message.wayaround.firebox.fuel_low":  "pouco",

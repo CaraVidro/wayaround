@@ -1,0 +1,7 @@
+{
+  "parent":"wayaround:block/safety_valve",
+  "elements":[
+    {"from":[4,8,4],"to":[12,10,12],"faces":{"down":{"texture":"#cap"},"up":{"texture":"#cap"},"north":{"texture":"#cap"},"south":{"texture":"#cap"},"west":{"texture":"#cap"},"east":{"texture":"#cap"}}},
+    {"from":[6,12,6],"to":[10,16,10],"faces":{"down":{"texture":"#metal"},"up":{"texture":"#cap"},"north":{"texture":"#metal"},"south":{"texture":"#metal"},"west":{"texture":"#metal"},"east":{"texture":"#metal"}}}
+  ]
+}

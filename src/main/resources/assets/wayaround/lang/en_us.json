@@ -5,6 +5,8 @@
     "block.wayaround.firebox":  "Firebox",
     "block.wayaround.boiler":  "Boiler",
     "block.wayaround.heat_conduit":  "Heat Conduit",
+    "block.wayaround.steam_pipe":  "Steam Pipe",
+    "block.wayaround.safety_valve":  "Safety Valve",
     "message.wayaround.firebox.status":  "Fuel: %s | State: %s",
     "message.wayaround.firebox.fuel_empty":  "empty",
     "message.wayaround.firebox.fuel_low":  "low",

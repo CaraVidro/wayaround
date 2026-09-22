@@ -76,6 +76,26 @@ public final class PowerContent {
     public static final DeferredItem<BlockItem> HEAT_CONDUIT_ITEM = ITEMS.register("heat_conduit",
         () -> new BlockItem(HEAT_CONDUIT.get(), new Item.Properties()));
 
+    public static final DeferredBlock<net.caravidro.wayaround.industrial.power.steam.SteamPipeBlock> STEAM_PIPE =
+        BLOCKS.register("steam_pipe", () -> new net.caravidro.wayaround.industrial.power.steam.SteamPipeBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+                .strength(1.5F, 5.0F).sound(SoundType.COPPER).noOcclusion()));
+    public static final DeferredItem<BlockItem> STEAM_PIPE_ITEM = ITEMS.register("steam_pipe",
+        () -> new BlockItem(STEAM_PIPE.get(), new Item.Properties()));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<net.caravidro.wayaround.industrial.power.steam.SteamPipeBlockEntity>> STEAM_PIPE_ENTITY =
+        BLOCK_ENTITIES.register("steam_pipe", () -> BlockEntityType.Builder.of(
+            net.caravidro.wayaround.industrial.power.steam.SteamPipeBlockEntity::new, STEAM_PIPE.get()).build(null));
+
+    public static final DeferredBlock<net.caravidro.wayaround.industrial.power.steam.SafetyValveBlock> SAFETY_VALVE =
+        BLOCKS.register("safety_valve", () -> new net.caravidro.wayaround.industrial.power.steam.SafetyValveBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+                .strength(2.0F, 6.0F).sound(SoundType.COPPER).noOcclusion()));
+    public static final DeferredItem<BlockItem> SAFETY_VALVE_ITEM = ITEMS.register("safety_valve",
+        () -> new BlockItem(SAFETY_VALVE.get(), new Item.Properties()));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<net.caravidro.wayaround.industrial.power.steam.SafetyValveBlockEntity>> SAFETY_VALVE_ENTITY =
+        BLOCK_ENTITIES.register("safety_valve", () -> BlockEntityType.Builder.of(
+            net.caravidro.wayaround.industrial.power.steam.SafetyValveBlockEntity::new, SAFETY_VALVE.get()).build(null));
+
     public static void register(IEventBus bus) {
         BLOCKS.register(bus);
         ITEMS.register(bus);
