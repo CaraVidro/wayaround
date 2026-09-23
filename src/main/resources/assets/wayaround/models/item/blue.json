@@ -1,3 +1,4 @@
 {
-  "parent": "minecraft:block/blue_stained_glass"
+  "gui_light": "front",
+  "elements": []
 }
