@@ -2,7 +2,9 @@ package net.caravidro.wayaround.client;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.particle.BlizzardCloudParticle;
+import net.caravidro.wayaround.particle.LivingCloudParticle;
 import net.caravidro.wayaround.particle.PrioriteBubbleParticle;
+import net.caravidro.wayaround.particle.WindLeafParticle;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 
 import net.neoforged.api.distmarker.Dist;
@@ -36,6 +38,16 @@ public final class WayAroundClientParticles {
 
                 BlizzardCloudParticle
                         .Provider::new
+        );
+
+        event.registerSpriteSet(
+                WayAroundParticles.LIVING_CLOUD.get(),
+                LivingCloudParticle.Provider::new
+        );
+
+        event.registerSpriteSet(
+                WayAroundParticles.WIND_LEAF.get(),
+                WindLeafParticle.Provider::new
         );
     }
 }
