@@ -111,6 +111,18 @@ public final class WaterWheelHubBlockEntity
         long time =
                 level.getGameTime();
 
+        if (!WaterWheelHubBlock.hasSupport(
+                server,
+                pos,
+                state
+        )) {
+            server.destroyBlock(
+                    pos,
+                    true
+            );
+            return;
+        }
+
         /*
          * This is physical state only. The client renderer no longer uses
          * every network update as its visual angle anchor.
