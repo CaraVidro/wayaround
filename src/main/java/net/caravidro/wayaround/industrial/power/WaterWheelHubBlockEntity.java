@@ -144,8 +144,14 @@ public final class WaterWheelHubBlockEntity
                 || Math.abs(
                         oldTorque - hub.torque
                 ) > 0.02F
-                || oldWet != hub.wetContacts) {
+                || oldWet != hub.wetContacts
+                || Math.abs(hub.rpm) > 0.02F) {
 
+            /*
+             * While moving, keep the client supplied with a fresh physical
+             * rotation anchor. Five updates per second is enough for the
+             * renderer to interpolate the rest locally.
+             */
             hub.sync();
         }
     }
