@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:stick" }
+  ],
+  "result": {
+    "id": "wayaround:wooden_nail",
+    "count": 4
+  }
+}
