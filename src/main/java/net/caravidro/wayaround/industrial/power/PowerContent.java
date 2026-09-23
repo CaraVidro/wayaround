@@ -79,6 +79,20 @@ public final class PowerContent {
     public static final DeferredItem<BlockItem> MECHANICAL_SHAFT_ITEM = ITEMS.register("mechanical_shaft",
         () -> new BlockItem(MECHANICAL_SHAFT.get(), new Item.Properties()));
 
+    public static final DeferredBlock<MechanicalGearboxBlock> MECHANICAL_GEARBOX = BLOCKS.register("mechanical_gearbox",
+        () -> new MechanicalGearboxBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+            .strength(2.8F, 6.0F).sound(SoundType.METAL).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> MECHANICAL_GEARBOX_ITEM = ITEMS.register("mechanical_gearbox",
+        () -> new BlockItem(MECHANICAL_GEARBOX.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MechanicalTransmissionBlockEntity>> MECHANICAL_TRANSMISSION_ENTITY =
+        BLOCK_ENTITIES.register("mechanical_transmission", () -> BlockEntityType.Builder.of(
+            MechanicalTransmissionBlockEntity::new,
+            MECHANICAL_SHAFT.get(),
+            MECHANICAL_GEARBOX.get()
+        ).build(null));
+
     public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
         () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
             .strength(3.0F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()));
