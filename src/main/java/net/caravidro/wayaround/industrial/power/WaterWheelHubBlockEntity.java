@@ -63,6 +63,17 @@ public final class WaterWheelHubBlockEntity
     private boolean unstableFlow;
     private boolean jammed;
 
+    private float pendingMechanicalLoad;
+    private float lastMechanicalLoad;
+    private float availableMechanicalBudget;
+    private float previousRpm;
+
+    private int failureCountdown =
+            -1;
+
+    private int collisionSoundCooldown;
+    private int looseSoundCooldown;
+
     private final List<Plate> plates =
             new ArrayList<>();
 
@@ -87,6 +98,31 @@ public final class WaterWheelHubBlockEntity
         @Override
         public Direction.Axis axis() {
             return axleAxis();
+        }
+
+        @Override
+        public float consumePower(
+                float requestedPower
+        ) {
+            float granted =
+                    Math.min(
+                            Math.max(
+                                    0.0F,
+                                    requestedPower
+                            ),
+                            Math.max(
+                                    0.0F,
+                                    availableMechanicalBudget
+                            )
+                    );
+
+            availableMechanicalBudget -=
+                    granted;
+
+            pendingMechanicalLoad +=
+                    granted;
+
+            return granted;
         }
 
         @Override
@@ -137,6 +173,14 @@ public final class WaterWheelHubBlockEntity
         long time =
                 level.getGameTime();
 
+        if (hub.collisionSoundCooldown > 0) {
+            hub.collisionSoundCooldown--;
+        }
+
+        if (hub.looseSoundCooldown > 0) {
+            hub.looseSoundCooldown--;
+        }
+
         hub.simulate(
                 server,
                 state
@@ -173,6 +217,10 @@ public final class WaterWheelHubBlockEntity
             );
         }
 
+        hub.updateCriticalFailure(
+                server
+        );
+
         if (Math.floorMod(
                 time + pos.asLong(),
                 40
@@ -199,6 +247,18 @@ public final class WaterWheelHubBlockEntity
             ServerLevel level,
             BlockState state
     ) {
+        float appliedMechanicalLoad =
+                pendingMechanicalLoad;
+
+        pendingMechanicalLoad =
+                0.0F;
+
+        lastMechanicalLoad =
+                appliedMechanicalLoad;
+
+        previousRpm =
+                rpm;
+
         if (plates.isEmpty()) {
             rpm *=
                     0.92F;
@@ -215,6 +275,9 @@ public final class WaterWheelHubBlockEntity
                     0.0F;
 
             mechanicalPower =
+                    0.0F;
+
+            availableMechanicalBudget =
                     0.0F;
 
             wetContacts =
@@ -313,6 +376,11 @@ public final class WaterWheelHubBlockEntity
                 wet++;
             }
 
+            updateLoosePlate(
+                    plate,
+                    worldAngle
+            );
+
             if (!plate.nailed) {
                 continue;
             }
@@ -377,7 +445,7 @@ public final class WaterWheelHubBlockEntity
 
             double tilt =
                     Math.toRadians(
-                            plate.tiltDegrees
+                            plate.effectiveTilt()
                     );
 
             Vec3 normal =
@@ -509,6 +577,42 @@ public final class WaterWheelHubBlockEntity
                         * 0.012
                 );
 
+        if (appliedMechanicalLoad > 0.001F) {
+            double direction =
+                    Math.abs(rpm) > 0.05F
+                            ? Math.signum(
+                                    rpm
+                            )
+                            : Math.signum(
+                                    totalTorque
+                            );
+
+            if (direction == 0.0) {
+                direction =
+                        1.0;
+            }
+
+            double omega =
+                    Math.max(
+                            0.40,
+                            Math.abs(rpm)
+                            * Math.PI
+                            * 2.0
+                            / 60.0
+                    );
+
+            double loadTorque =
+                    Math.min(
+                            7.5,
+                            appliedMechanicalLoad
+                            / omega
+                    );
+
+            totalTorque -=
+                    direction
+                    * loadTorque;
+        }
+
         torque =
                 (float) totalTorque;
 
@@ -558,15 +662,32 @@ public final class WaterWheelHubBlockEntity
                         proposedRotation
                 )) {
 
-            /*
-             * No clipping through terrain. The first board/frame contact
-             * arrests the assembly. If later torque reverses, it can move away
-             * from the obstacle naturally.
-             */
+            emitBoardCollision(
+                    level,
+                    Math.abs(
+                            rpm
+                    )
+            );
+
+            for (Plate plate :
+                    plates) {
+                if (!plate.nailed) {
+                    plate.looseSwingVelocity +=
+                            Mth.clamp(
+                                    previousRpm * 0.55F,
+                                    -9.0F,
+                                    9.0F
+                            );
+                }
+            }
+
             rpm =
                     0.0F;
 
             mechanicalPower =
+                    0.0F;
+
+            availableMechanicalBudget =
                     0.0F;
 
             jammed =
@@ -587,6 +708,9 @@ public final class WaterWheelHubBlockEntity
                     0.0F;
 
             mechanicalPower =
+                    0.0F;
+
+            availableMechanicalBudget =
                     0.0F;
 
             return;
@@ -623,6 +747,9 @@ public final class WaterWheelHubBlockEntity
                         * 0.0174533
                         * efficiency
                 );
+
+        availableMechanicalBudget =
+                mechanicalPower;
     }
 
     private boolean wouldCollide(
