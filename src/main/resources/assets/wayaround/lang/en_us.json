@@ -41,7 +41,8 @@
     "message.wayaround.water_wheel.double_body": "Second body installed: the wheel now has two hexagonal frames.",
     "message.wayaround.water_wheel.plate_added": "Plate added. Total: %s",
     "message.wayaround.water_wheel.plate_limit": "Plate limit reached: %s",
-    "message.wayaround.water_wheel.plate_angle": "Plate %s: tilt %s° | current efficiency %s%%",
+    "message.wayaround.water_wheel.plate_angle": "Plate %s: angle %s°",
     "message.wayaround.water_wheel.status_v2": "Bodies: %s | Plates: %s | RPM: %s | Torque: %s | Efficiency: %s%% | Mechanical power: %s",
-    "item.wayaround.water_wheel_blade": "Water Wheel Plate"
+    "item.wayaround.water_wheel_blade": "Water Wheel Plate",
+    "block.wayaround.water_wheel_support": "Water Wheel Support"
 }
