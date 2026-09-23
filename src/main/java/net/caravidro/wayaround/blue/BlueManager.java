@@ -885,7 +885,7 @@ public final class BlueManager {
     ) {
         COOLDOWN.put(
                 owner,
-                server.getTickCount()
+                (long) server.getTickCount()
                         + COOLDOWN_TICKS
         );
     }
