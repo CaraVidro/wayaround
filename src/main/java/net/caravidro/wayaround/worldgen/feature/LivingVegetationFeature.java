@@ -9,6 +9,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -395,9 +396,20 @@ public final class LivingVegetationFeature
                 || state.canBeReplaced()
                 || state.getBlock() == leaves) {
 
+            BlockState leafState =
+                    leaves.defaultBlockState();
+
+            if (leafState.hasProperty(LeavesBlock.DISTANCE)) {
+                leafState =
+                        leafState.setValue(
+                                LeavesBlock.DISTANCE,
+                                3
+                        );
+            }
+
             level.setBlock(
                     pos,
-                    leaves.defaultBlockState(),
+                    leafState,
                     2
             );
         }
