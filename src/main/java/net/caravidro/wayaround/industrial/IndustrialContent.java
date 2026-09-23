@@ -53,6 +53,9 @@ public final class IndustrialContent {
                         output.accept(PowerContent.WATER_WHEEL_HUB_ITEM.get());
                         output.accept(PowerContent.WATER_WHEEL_SUPPORT_ITEM.get());
                         output.accept(PowerContent.WATER_WHEEL_BLADE_ITEM.get());
+                        output.accept(PowerContent.WOODEN_NAIL.get());
+                        output.accept(PowerContent.IRON_NAIL.get());
+                        output.accept(PowerContent.DIAMOND_NAIL.get());
                         output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
                     }).build());
 
