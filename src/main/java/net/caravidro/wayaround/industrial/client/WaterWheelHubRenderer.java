@@ -93,7 +93,7 @@ public final class WaterWheelHubRenderer
                 == Direction.Axis.X) {
             poseStack.mulPose(
                     Axis.YP.rotationDegrees(
-                            90.0F
+                            -90.0F
                     )
             );
         }
