@@ -42,5 +42,6 @@
     "message.wayaround.water_wheel.plate_added": "Placa adicionada. Total: %s",
     "message.wayaround.water_wheel.plate_limit": "Limite de placas atingido: %s",
     "message.wayaround.water_wheel.plate_angle": "Placa %s: inclinação %s° | eficiência atual %s%%",
-    "message.wayaround.water_wheel.status_v2": "Corpos: %s | Placas: %s | RPM: %s | Torque: %s | Eficiência: %s%% | Potência mecânica: %s"
+    "message.wayaround.water_wheel.status_v2": "Corpos: %s | Placas: %s | RPM: %s | Torque: %s | Eficiência: %s%% | Potência mecânica: %s",
+    "item.wayaround.water_wheel_blade": "Placa da roda d'água"
 }
