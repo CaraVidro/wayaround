@@ -390,7 +390,9 @@ public final class WaterWheelHubRenderer
                 );
 
         double radius =
-                WaterWheelHubBlockEntity.PADDLE_RADIUS;
+                hub.plateRadius(
+                        index
+                );
 
         double x =
                 Math.cos(angle)
