@@ -71,6 +71,24 @@ public final class LivingCloudRenderer {
         Vec3 camera = event.getCamera().getPosition();
         long time = minecraft.level.getGameTime();
 
+        Vec3 skyColor =
+                minecraft.level.getSkyColor(
+                        camera,
+                        1.0F
+                );
+
+        float worldShade =
+                Mth.clamp(
+                        (float) (
+                                skyColor.x * 0.2126
+                                + skyColor.y * 0.7152
+                                + skyColor.z * 0.0722
+                        )
+                        * 1.35F,
+                        0.10F,
+                        1.0F
+                );
+
         List<LocalWeatherField.CloudCell> cells =
                 LocalWeatherField.nearbyCells(
                         camera.x,
@@ -134,21 +152,38 @@ public final class LivingCloudRenderer {
 
             int brightness =
                     Mth.clamp(
-                            Math.round(245.0F - cell.storm() * 150.0F),
-                            72,
+                            Math.round(
+                                    (
+                                            245.0F
+                                            - cell.storm() * 150.0F
+                                    )
+                                    * worldShade
+                            ),
+                            18,
                             245
                     );
 
-            int red = brightness;
+            int red =
+                    brightness;
+
             int green =
                     Mth.clamp(
-                            brightness + 4,
+                            Math.round(
+                                    brightness
+                                    + 4.0F
+                                    * worldShade
+                            ),
                             0,
                             255
                     );
+
             int blue =
                     Mth.clamp(
-                            brightness + 10,
+                            Math.round(
+                                    brightness
+                                    + 10.0F
+                                    * worldShade
+                            ),
                             0,
                             255
                     );
