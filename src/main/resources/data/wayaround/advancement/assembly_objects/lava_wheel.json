@@ -1,5 +1,5 @@
 {
-  "parent": "wayaround:assembly_objects/water_wheel",
+  "parent": "wayaround:assembly_objects/root",
   "display": {
     "icon": {
       "id": "minecraft:lava_bucket"
