@@ -77,7 +77,7 @@
     "guide.wayaround.assembly.diagnostics.4": "Still or chaotic water produces no mechanical power. The wheel needs a coherent current.",
     "guide.wayaround.assembly.diagnostics.5": "Wood and nails wear out. Creaking and visible cracks mean it is time to disassemble, inspect and replace parts.",
     "block.wayaround.mechanical_shaft": "Mechanical Shaft",
-    "guide.wayaround.assembly.7": "Connect a Mechanical Shaft along the wheel axle and carry rotation to a generator or another machine.",
+    "guide.wayaround.assembly.7": "Connect a Mechanical Shaft along the wheel axle. Use a Mechanical Gearbox to turn or split rotation into other directions, then carry the network to the generator.",
     "message.wayaround.assembly.inspect": "Board %s | %s | Wood: %s | Fastener: %s",
     "message.wayaround.assembly.inspect_missing": "That board no longer exists.",
     "message.wayaround.assembly.fixed": "Fixed",
@@ -90,5 +90,6 @@
     "guide.wayaround.assembly.diagnostics.6": "Deep cracks and splitting wood mean structural failure is imminent. Remove the wheel from load or current to halt the failure progression.",
     "message.wayaround.assembly.inspect_frame": "Frame | Wood: %s | Structure: %s",
     "message.wayaround.assembly.failure_imminent": "IMMINENT FAILURE",
-    "message.wayaround.assembly.structure_stable": "Stable"
+    "message.wayaround.assembly.structure_stable": "Stable",
+    "block.wayaround.mechanical_gearbox": "Mechanical Gearbox"
 }
