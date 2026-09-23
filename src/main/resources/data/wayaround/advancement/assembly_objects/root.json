@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "id": "wayaround:water_wheel_support"
+    },
+    "title": {
+      "translate": "advancements.wayaround.assembly_objects.root.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.assembly_objects.root.description"
+    },
+    "background": "minecraft:textures/gui/advancements/backgrounds/stone.png",
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "opened": {
+      "trigger": "minecraft:tick"
+    }
+  }
+}
