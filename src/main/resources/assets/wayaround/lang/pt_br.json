@@ -86,5 +86,6 @@
     "message.wayaround.assembly.wear_good": "Boa",
     "message.wayaround.assembly.wear_used": "Usada",
     "message.wayaround.assembly.wear_worn": "Muito gasta",
-    "message.wayaround.assembly.wear_critical": "Crítica"
+    "message.wayaround.assembly.wear_critical": "Crítica",
+    "guide.wayaround.assembly.diagnostics.6": "Estalos graves e madeira rachando indicam falha estrutural iminente. Tire a roda da carga ou da corrente para interromper a progressão da quebra."
 }
