@@ -49,8 +49,8 @@ public final class PowerContent {
         () -> new WaterWheelBladeBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
             .strength(1.2F, 2.0F).sound(SoundType.WOOD).noOcclusion()));
 
-    public static final DeferredItem<BlockItem> WATER_WHEEL_BLADE_ITEM = ITEMS.register("water_wheel_blade",
-        () -> new BlockItem(WATER_WHEEL_BLADE.get(), new Item.Properties()));
+    public static final DeferredItem<Item> WATER_WHEEL_BLADE_ITEM = ITEMS.register("water_wheel_blade",
+        () -> new Item(new Item.Properties()));
 
     public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
         () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
