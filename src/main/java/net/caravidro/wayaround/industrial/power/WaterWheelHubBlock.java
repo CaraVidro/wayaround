@@ -90,14 +90,6 @@ public final class WaterWheelHubBlock
             return null;
         }
 
-        if (!hasWheelClearance(
-                context.getLevel(),
-                context.getClickedPos(),
-                state
-        )) {
-            return null;
-        }
-
         return state;
     }
 
