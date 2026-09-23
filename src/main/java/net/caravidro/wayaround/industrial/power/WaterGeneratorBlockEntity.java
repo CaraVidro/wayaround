@@ -2,6 +2,8 @@ package net.caravidro.wayaround.industrial.power;
 
 import java.util.Locale;
 
+import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalCapabilities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -121,19 +123,27 @@ public final class WaterGeneratorBlockEntity
                             direction
                     );
 
-            if (!(level.getBlockEntity(neighbor)
-                    instanceof WaterWheelHubBlockEntity hub)) {
+            IRotationalPower rotation =
+                    level.getCapability(
+                            MechanicalCapabilities.ROTATION,
+                            neighbor,
+                            direction.getOpposite()
+                    );
+
+            if (rotation == null
+                    || !rotation.active()
+                    || rotation.axis()
+                    != direction.getAxis()) {
                 continue;
             }
 
-            if (!hub.axleMatches(
-                    direction.getAxis()
-            )) {
-                continue;
-            }
-
+            /*
+             * The generator only knows about generic mechanical power.
+             * It does not know or care whether the source is a water wheel,
+             * wind turbine, crank, steam shaft, or a future mod integration.
+             */
             mechanical +=
-                    hub.mechanicalPower();
+                    rotation.power();
         }
 
         generator.generationPerTick =
