@@ -29,15 +29,45 @@ public final class BlueItem extends Item {
             Player player,
             InteractionHand hand
     ) {
-        player.startUsingItem(hand);
+        ItemStack stack =
+                player.getItemInHand(
+                        hand
+                );
 
         if (!level.isClientSide
                 && player instanceof ServerPlayer serverPlayer) {
-            BlueManager.begin(serverPlayer);
+
+            /*
+             * Second click dismisses an already summoned Blue. It does not
+             * enter item-use/charge again.
+             */
+            if (BlueManager.hasControllableBlue(
+                    serverPlayer
+            )) {
+                BlueManager.releaseActive(
+                        serverPlayer
+                );
+
+                return InteractionResultHolder.success(
+                        stack
+                );
+            }
+
+            if (!BlueManager.beginCharge(
+                    serverPlayer
+            )) {
+                return InteractionResultHolder.fail(
+                        stack
+                );
+            }
         }
 
+        player.startUsingItem(
+                hand
+        );
+
         return InteractionResultHolder.consume(
-                player.getItemInHand(hand)
+                stack
         );
     }
 
@@ -53,7 +83,11 @@ public final class BlueItem extends Item {
     public UseAnim getUseAnimation(
             ItemStack stack
     ) {
-        return UseAnim.BOW;
+        /*
+         * The item itself is invisible and should not force the bow/block
+         * pose. Hand motion is driven by explicit vanilla swing gestures.
+         */
+        return UseAnim.NONE;
     }
 
     @Override
@@ -65,7 +99,9 @@ public final class BlueItem extends Item {
     ) {
         if (!level.isClientSide
                 && livingEntity instanceof ServerPlayer player) {
-            BlueManager.tickHeld(player);
+            BlueManager.tickCharge(
+                    player
+            );
         }
     }
 
@@ -78,7 +114,9 @@ public final class BlueItem extends Item {
     ) {
         if (!level.isClientSide
                 && livingEntity instanceof ServerPlayer player) {
-            BlueManager.release(player);
+            BlueManager.finishCharge(
+                    player
+            );
         }
     }
 
