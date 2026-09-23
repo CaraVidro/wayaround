@@ -31,6 +31,12 @@ public final class WayAroundParticles {
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> PRIORITE_BUBBLE =
             PARTICLES.register("priorite_bubble", () -> new SimpleParticleType(false));
 
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> LIVING_CLOUD =
+            PARTICLES.register("living_cloud", () -> new SimpleParticleType(true));
+
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> WIND_LEAF =
+            PARTICLES.register("wind_leaf", () -> new SimpleParticleType(false));
+
     private WayAroundParticles() {
     }
 
