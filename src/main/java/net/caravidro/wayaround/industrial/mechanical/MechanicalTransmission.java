@@ -1,8 +1,14 @@
 package net.caravidro.wayaround.industrial.mechanical;
 
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.Set;
+
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.industrial.power.MechanicalGearboxBlock;
 import net.caravidro.wayaround.industrial.power.MechanicalShaftBlock;
+import net.caravidro.wayaround.industrial.power.WaterWheelHubBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -10,65 +16,304 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public final class MechanicalTransmission {
 
-    private static final int MAX_SHAFT_LENGTH =
-            32;
+    private static final int MAX_NETWORK_NODES =
+            192;
 
     private MechanicalTransmission() {
     }
 
+    /**
+     * Resolves a mechanical source through shafts and 1:1 gearboxes.
+     *
+     * Shafts only transmit along their own axis. Gearboxes connect every face,
+     * so a line can turn or split without inventing a second source.
+     */
     @Nullable
     public static IRotationalPower findSource(
             Level level,
             BlockPos consumerPos,
             Direction direction
     ) {
-        BlockPos cursor =
+        BlockPos start =
                 consumerPos.relative(
                         direction
                 );
 
-        for (int distance = 0;
-                distance <= MAX_SHAFT_LENGTH;
-                distance++) {
+        IRotationalPower direct =
+                sourceAt(
+                        level,
+                        start,
+                        direction.getOpposite()
+                );
 
-            BlockState state =
-                    level.getBlockState(
-                            cursor
-                    );
+        if (direct != null
+                && direct.axis()
+                == direction.getAxis()) {
+            return direct;
+        }
 
-            if (state.getBlock()
-                    instanceof MechanicalShaftBlock) {
+        BlockState startState =
+                level.getBlockState(
+                        start
+                );
 
-                if (state.getValue(
-                        MechanicalShaftBlock.AXIS
-                ) != direction.getAxis()) {
-                    return null;
-                }
+        if (!canEnterTransmission(
+                startState,
+                direction.getOpposite()
+        )) {
+            return null;
+        }
 
-                cursor =
-                        cursor.relative(
-                                direction
-                        );
+        return searchSource(
+                level,
+                start
+        );
+    }
 
+    @Nullable
+    private static IRotationalPower searchSource(
+            Level level,
+            BlockPos start
+    ) {
+        ArrayDeque<BlockPos> queue =
+                new ArrayDeque<>();
+
+        Set<BlockPos> visited =
+                new HashSet<>();
+
+        queue.add(
+                start
+        );
+
+        while (!queue.isEmpty()
+                && visited.size() < MAX_NETWORK_NODES) {
+
+            BlockPos pos =
+                    queue.removeFirst();
+
+            if (!visited.add(
+                    pos
+            )) {
                 continue;
             }
 
-            IRotationalPower source =
-                    level.getCapability(
-                            MechanicalCapabilities.ROTATION,
-                            cursor,
-                            direction.getOpposite()
+            BlockState state =
+                    level.getBlockState(
+                            pos
                     );
 
-            if (source == null
-                    || source.axis()
-                    != direction.getAxis()) {
-                return null;
+            if (!isTransmission(
+                    state
+            )) {
+                continue;
             }
 
-            return source;
+            for (Direction direction :
+                    exits(
+                            state
+                    )) {
+
+                BlockPos neighbor =
+                        pos.relative(
+                                direction
+                        );
+
+                IRotationalPower source =
+                        sourceAt(
+                                level,
+                                neighbor,
+                                direction.getOpposite()
+                        );
+
+                if (source != null
+                        && source.axis()
+                        == direction.getAxis()) {
+                    return source;
+                }
+
+                BlockState neighborState =
+                        level.getBlockState(
+                                neighbor
+                        );
+
+                if (canEnterTransmission(
+                        neighborState,
+                        direction.getOpposite()
+                )
+                        && !visited.contains(
+                                neighbor
+                        )) {
+                    queue.addLast(
+                            neighbor
+                    );
+                }
+            }
         }
 
         return null;
+    }
+
+    /**
+     * Client-side visual lookup. The shaft renderer uses the authoritative
+     * water-wheel angle/RPM already synced by the wheel itself, so shafts do
+     * not need ticking block entities or their own network packets.
+     */
+    @Nullable
+    public static WaterWheelHubBlockEntity findVisualWheel(
+            Level level,
+            BlockPos transmissionPos
+    ) {
+        BlockState initial =
+                level.getBlockState(
+                        transmissionPos
+                );
+
+        if (!isTransmission(
+                initial
+        )) {
+            return null;
+        }
+
+        ArrayDeque<BlockPos> queue =
+                new ArrayDeque<>();
+
+        Set<BlockPos> visited =
+                new HashSet<>();
+
+        queue.add(
+                transmissionPos
+        );
+
+        while (!queue.isEmpty()
+                && visited.size() < MAX_NETWORK_NODES) {
+
+            BlockPos pos =
+                    queue.removeFirst();
+
+            if (!visited.add(
+                    pos
+            )) {
+                continue;
+            }
+
+            BlockState state =
+                    level.getBlockState(
+                            pos
+                    );
+
+            if (!isTransmission(
+                    state
+            )) {
+                continue;
+            }
+
+            for (Direction direction :
+                    exits(
+                            state
+                    )) {
+
+                BlockPos neighbor =
+                        pos.relative(
+                                direction
+                        );
+
+                if (level.getBlockEntity(
+                        neighbor
+                ) instanceof WaterWheelHubBlockEntity hub
+                        && hub.axleAxis()
+                        == direction.getAxis()) {
+                    return hub;
+                }
+
+                BlockState neighborState =
+                        level.getBlockState(
+                                neighbor
+                        );
+
+                if (canEnterTransmission(
+                        neighborState,
+                        direction.getOpposite()
+                )
+                        && !visited.contains(
+                                neighbor
+                        )) {
+                    queue.addLast(
+                            neighbor
+                    );
+                }
+            }
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private static IRotationalPower sourceAt(
+            Level level,
+            BlockPos pos,
+            Direction side
+    ) {
+        return level.getCapability(
+                MechanicalCapabilities.ROTATION,
+                pos,
+                side
+        );
+    }
+
+    private static boolean isTransmission(
+            BlockState state
+    ) {
+        return state.getBlock()
+                instanceof MechanicalShaftBlock
+                || state.getBlock()
+                instanceof MechanicalGearboxBlock;
+    }
+
+    private static boolean canEnterTransmission(
+            BlockState state,
+            Direction face
+    ) {
+        if (state.getBlock()
+                instanceof MechanicalGearboxBlock) {
+            return true;
+        }
+
+        if (state.getBlock()
+                instanceof MechanicalShaftBlock) {
+            return state.getValue(
+                    MechanicalShaftBlock.AXIS
+            ) == face.getAxis();
+        }
+
+        return false;
+    }
+
+    private static Direction[] exits(
+            BlockState state
+    ) {
+        if (state.getBlock()
+                instanceof MechanicalGearboxBlock) {
+            return Direction.values();
+        }
+
+        Direction.Axis axis =
+                state.getValue(
+                        MechanicalShaftBlock.AXIS
+                );
+
+        return switch (axis) {
+            case X -> new Direction[] {
+                    Direction.WEST,
+                    Direction.EAST
+            };
+            case Y -> new Direction[] {
+                    Direction.DOWN,
+                    Direction.UP
+            };
+            case Z -> new Direction[] {
+                    Direction.NORTH,
+                    Direction.SOUTH
+            };
+        };
     }
 }
