@@ -50,6 +50,9 @@ public final class IndustrialContent {
                         output.accept(PowerContent.SOLAR_PANEL_ITEM.get());
                         output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
                         output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
+                        output.accept(PowerContent.WATER_WHEEL_HUB_ITEM.get());
+                        output.accept(PowerContent.WATER_WHEEL_BLADE_ITEM.get());
+                        output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
                     }).build());
 
     private IndustrialContent() {}
