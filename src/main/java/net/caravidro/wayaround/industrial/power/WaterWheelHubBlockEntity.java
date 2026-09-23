@@ -2,6 +2,9 @@ package net.caravidro.wayaround.industrial.power;
 
 import java.util.Locale;
 
+import javax.annotation.Nullable;
+
+import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -13,7 +16,9 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -21,11 +26,61 @@ import net.minecraft.world.phys.Vec3;
 public final class WaterWheelHubBlockEntity
         extends BlockEntity {
 
+    public static final int MAX_PLATES =
+            16;
+
+    public static final float PLATE_TILT_STEP =
+            15.0F;
+
+    public static final double WHEEL_RADIUS =
+            2.65;
+
     private float rpm;
+    private float torque;
     private float efficiency;
     private float mechanicalPower;
-    private int bladeCount;
-    private int wetBladeCount;
+    private float rotationDegrees;
+
+    private int plateCount;
+    private int wetContacts;
+
+    private final byte[] plateTilt =
+            new byte[MAX_PLATES];
+
+    private final IRotationalPower rotationOutput =
+            new IRotationalPower() {
+
+        @Override
+        public float rpm() {
+            return WaterWheelHubBlockEntity.this.rpm;
+        }
+
+        @Override
+        public float torque() {
+            return WaterWheelHubBlockEntity.this.torque;
+        }
+
+        @Override
+        public float power() {
+            return WaterWheelHubBlockEntity.this.mechanicalPower;
+        }
+
+        @Override
+        public Direction.Axis axis() {
+            return axleAxis();
+        }
+
+        @Override
+        public int rotationDirection() {
+            if (Math.abs(rpm) < 0.01F) {
+                return 0;
+            }
+
+            return rpm > 0.0F
+                    ? 1
+                    : -1;
+        }
+    };
 
     public WaterWheelHubBlockEntity(
             BlockPos pos,
@@ -48,10 +103,17 @@ public final class WaterWheelHubBlockEntity
             return;
         }
 
+        hub.rotationDegrees =
+                wrapDegrees(
+                        hub.rotationDegrees
+                        + hub.rpm
+                        * 0.30F
+                );
+
         if (Math.floorMod(
                 level.getGameTime()
                 + pos.asLong(),
-                5
+                4
         ) != 0) {
             return;
         }
@@ -62,8 +124,11 @@ public final class WaterWheelHubBlockEntity
         float oldEfficiency =
                 hub.efficiency;
 
-        int oldBlades =
-                hub.bladeCount;
+        float oldTorque =
+                hub.torque;
+
+        int oldWet =
+                hub.wetContacts;
 
         hub.sampleWheel(
                 server,
@@ -72,187 +137,33 @@ public final class WaterWheelHubBlockEntity
 
         if (Math.abs(
                 oldRpm - hub.rpm
-        ) > 0.05F
+        ) > 0.03F
                 || Math.abs(
                         oldEfficiency - hub.efficiency
                 ) > 0.01F
-                || oldBlades != hub.bladeCount) {
+                || Math.abs(
+                        oldTorque - hub.torque
+                ) > 0.02F
+                || oldWet != hub.wetContacts) {
 
-            hub.setChanged();
-
-            server.sendBlockUpdated(
-                    pos,
-                    state,
-                    state,
-                    net.minecraft.world.level.block.Block.UPDATE_CLIENTS
-            );
+            hub.sync();
         }
     }
 
     private void sampleWheel(
             ServerLevel level,
-            BlockState hubState
+            BlockState state
     ) {
-        Direction.Axis axle =
-                hubState.getValue(
-                        WaterWheelHubBlock.FACING
-                ).getAxis();
-
-        int found =
-                0;
-
-        int wet =
-                0;
-
-        double signedTorque =
-                0.0;
-
-        double usefulAlignment =
-                0.0;
-
-        for (int a = -4;
-                a <= 4;
-                a++) {
-
-            for (int b = -4;
-                    b <= 4;
-                    b++) {
-
-                if (a == 0
-                        && b == 0) {
-                    continue;
-                }
-
-                double radius =
-                        Math.sqrt(
-                                a * a
-                                + b * b
-                        );
-
-                if (radius < 1.45
-                        || radius > 4.25) {
-                    continue;
-                }
-
-                BlockPos bladePos;
-
-                if (axle == Direction.Axis.X) {
-                    bladePos =
-                            worldPosition.offset(
-                                    0,
-                                    a,
-                                    b
-                            );
-                } else {
-                    bladePos =
-                            worldPosition.offset(
-                                    b,
-                                    a,
-                                    0
-                            );
-                }
-
-                BlockState bladeState =
-                        level.getBlockState(
-                                bladePos
-                        );
-
-                if (!(bladeState.getBlock()
-                        instanceof WaterWheelBladeBlock)) {
-                    continue;
-                }
-
-                found++;
-
-                Vec3 current =
-                        WaterDynamics.currentAround(
-                                level,
-                                bladePos
-                        );
-
-                double speed =
-                        WaterDynamics.speed(
-                                current
-                        );
-
-                if (speed < 0.008) {
-                    continue;
-                }
-
-                wet++;
-
-                Direction bladeFacing =
-                        bladeState.getValue(
-                                WaterWheelBladeBlock.FACING
-                        );
-
-                double alignment =
-                        Math.abs(
-                                current.x
-                                        * bladeFacing.getStepX()
-                                + current.z
-                                        * bladeFacing.getStepZ()
-                        ) / Math.max(
-                                speed,
-                                0.0001
-                        );
-
-                alignment =
-                        Mth.clamp(
-                                alignment,
-                                0.0,
-                                1.0
-                        );
-
-                double radiusFactor =
-                        Mth.clamp(
-                                radius / 3.2,
-                                0.35,
-                                1.25
-                        );
-
-                /*
-                 * r x F projected onto the axle. With horizontal current,
-                 * the vertical lever arm is what creates most of the torque.
-                 */
-                double torqueContribution;
-
-                if (axle == Direction.Axis.X) {
-                    torqueContribution =
-                            a
-                            * current.z;
-                } else {
-                    torqueContribution =
-                            -a
-                            * current.x;
-                }
-
-                signedTorque +=
-                        torqueContribution
-                        * alignment
-                        * radiusFactor;
-
-                usefulAlignment +=
-                        alignment
-                        * radiusFactor;
-            }
-        }
-
-        bladeCount =
-                found;
-
-        wetBladeCount =
-                wet;
-
-        if (found == 0
-                || wet == 0) {
-
+        if (plateCount <= 0) {
             rpm =
                     Mth.lerp(
-                            0.32F,
+                            0.20F,
                             rpm,
                             0.0F
                     );
+
+            torque =
+                    0.0F;
 
             efficiency =
                     0.0F;
@@ -260,29 +171,161 @@ public final class WaterWheelHubBlockEntity
             mechanicalPower =
                     0.0F;
 
+            wetContacts =
+                    0;
+
             return;
         }
 
-        float coverage =
-                Mth.clamp(
-                        found / 8.0F,
-                        0.15F,
-                        1.0F
+        Direction.Axis axis =
+                axleAxis();
+
+        boolean doubleBody =
+                state.getValue(
+                        WaterWheelHubBlock.DOUBLE
+                );
+
+        double signedTorque =
+                0.0;
+
+        double alignmentTotal =
+                0.0;
+
+        double speedTotal =
+                0.0;
+
+        int contacts =
+                0;
+
+        int wet =
+                0;
+
+        double rotation =
+                Math.toRadians(
+                        rotationDegrees
+                );
+
+        for (int i = 0;
+                i < plateCount;
+                i++) {
+
+            double baseAngle =
+                    plateBaseAngle(
+                            i,
+                            doubleBody
+                    );
+
+            if (doubleBody) {
+                ContactResult result =
+                        sampleContact(
+                                level,
+                                axis,
+                                baseAngle + rotation,
+                                plateTiltDegrees(i),
+                                1.35
+                        );
+
+                signedTorque +=
+                        result.torque();
+
+                alignmentTotal +=
+                        result.alignment();
+
+                speedTotal +=
+                        result.speed();
+
+                contacts++;
+
+                if (result.wet()) {
+                    wet++;
+                }
+            } else {
+                /*
+                 * A single body uses each plate as a complete diameter:
+                 * one plate looks like a line through the center, two become
+                 * an X, and more lines progressively fill the wheel.
+                 */
+                for (int side = 0;
+                        side < 2;
+                        side++) {
+
+                    ContactResult result =
+                            sampleContact(
+                                    level,
+                                    axis,
+                                    baseAngle
+                                    + rotation
+                                    + side * Math.PI,
+                                    plateTiltDegrees(i),
+                                    0.72
+                            );
+
+                    signedTorque +=
+                            result.torque();
+
+                    alignmentTotal +=
+                            result.alignment();
+
+                    speedTotal +=
+                            result.speed();
+
+                    contacts++;
+
+                    if (result.wet()) {
+                        wet++;
+                    }
+                }
+            }
+        }
+
+        wetContacts =
+                wet;
+
+        if (wet == 0) {
+            rpm =
+                    Mth.lerp(
+                            0.16F,
+                            rpm,
+                            0.0F
+                    );
+
+            torque =
+                    0.0F;
+
+            efficiency =
+                    Mth.lerp(
+                            0.25F,
+                            efficiency,
+                            0.0F
+                    );
+
+            mechanicalPower =
+                    0.0F;
+
+            return;
+        }
+
+        float plateCoverage =
+                1.0F
+                - (float) Math.exp(
+                        -plateCount
+                        / (
+                                doubleBody
+                                        ? 5.0
+                                        : 4.0
+                        )
                 );
 
         float waterContact =
-                Mth.clamp(
-                        wet / (float) Math.max(
-                                1,
-                                found
-                        ),
-                        0.0F,
-                        1.0F
+                wet
+                / (float) Math.max(
+                        1,
+                        contacts
                 );
 
-        float alignmentEfficiency =
+        float alignment =
                 (float) Mth.clamp(
-                        usefulAlignment
+                        alignmentTotal
                         / Math.max(
                                 1,
                                 wet
@@ -291,46 +334,512 @@ public final class WaterWheelHubBlockEntity
                         1.0
                 );
 
-        float newEfficiency =
+        float speedFactor =
+                (float) Mth.clamp(
+                        speedTotal
+                        / Math.max(
+                                1,
+                                wet
+                        )
+                        * 1.5,
+                        0.12,
+                        1.0
+                );
+
+        float targetEfficiency =
                 Mth.clamp(
-                        coverage
-                        * waterContact
-                        * alignmentEfficiency,
+                        plateCoverage
+                        * (
+                                0.35F
+                                + waterContact
+                                * 0.65F
+                        )
+                        * alignment
+                        * speedFactor,
                         0.0F,
                         1.0F
                 );
 
+        /*
+         * signedTorque already includes current direction. A waterfall can
+         * therefore reverse the wheel when it hits the opposite side.
+         */
         float targetRpm =
                 (float) Mth.clamp(
-                        Math.abs(
-                                signedTorque
-                        ) * 42.0,
-                        0.0,
-                        36.0
+                        signedTorque
+                        * 78.0,
+                        -42.0,
+                        42.0
                 );
 
         rpm =
                 Mth.lerp(
-                        0.28F,
+                        0.24F,
                         rpm,
                         targetRpm
                 );
 
+        torque =
+                Mth.lerp(
+                        0.28F,
+                        torque,
+                        (float) signedTorque
+                        * 9.0F
+                );
+
         efficiency =
                 Mth.lerp(
-                        0.24F,
+                        0.22F,
                         efficiency,
-                        newEfficiency
+                        targetEfficiency
                 );
 
         mechanicalPower =
-                rpm
-                * efficiency
-                * 4.0F;
+                Math.abs(
+                        rpm
+                        * torque
+                )
+                * 0.10472F
+                * efficiency;
+    }
+
+    private ContactResult sampleContact(
+            ServerLevel level,
+            Direction.Axis axis,
+            double angle,
+            float tiltDegrees,
+            double area
+    ) {
+        double sin =
+                Math.sin(
+                        angle
+                );
+
+        double cos =
+                Math.cos(
+                        angle
+                );
+
+        Vec3 radial;
+
+        Vec3 tangent;
+
+        if (axis == Direction.Axis.X) {
+            radial =
+                    new Vec3(
+                            0.0,
+                            sin,
+                            cos
+                    );
+
+            tangent =
+                    new Vec3(
+                            0.0,
+                            cos,
+                            -sin
+                    );
+        } else {
+            radial =
+                    new Vec3(
+                            cos,
+                            sin,
+                            0.0
+                    );
+
+            tangent =
+                    new Vec3(
+                            -sin,
+                            cos,
+                            0.0
+                    );
+        }
+
+        Vec3 center =
+                Vec3.atCenterOf(
+                        worldPosition
+                );
+
+        Vec3 contact =
+                center.add(
+                        radial.scale(
+                                WHEEL_RADIUS
+                        )
+                );
+
+        BlockPos samplePos =
+                BlockPos.containing(
+                        contact
+                );
+
+        Vec3 current =
+                WaterDynamics.currentAround(
+                        level,
+                        samplePos
+                );
+
+        double speed =
+                current.length();
+
+        boolean wet =
+                hasWaterAround(
+                        level,
+                        samplePos
+                );
+
+        if (!wet
+                || speed < 0.008) {
+            return new ContactResult(
+                    0.0,
+                    0.0,
+                    0.0,
+                    false
+            );
+        }
+
+        Vec3 flow =
+                current.scale(
+                        1.0 / speed
+                );
+
+        double tilt =
+                Math.toRadians(
+                        tiltDegrees
+                );
+
+        /*
+         * The plate's effective face can be turned from tangential toward
+         * radial. This makes orientation genuinely dependent on the local
+         * direction of the water rather than giving every plate one universal
+         * best angle.
+         */
+        Vec3 normal =
+                tangent.scale(
+                        Math.cos(
+                                tilt
+                        )
+                ).add(
+                        radial.scale(
+                                Math.sin(
+                                        tilt
+                                )
+                        )
+                ).normalize();
+
+        double alignment =
+                Math.abs(
+                        flow.dot(
+                                normal
+                        )
+                );
+
+        double tangentialFlow =
+                current.dot(
+                        tangent
+                );
+
+        double torqueContribution =
+                tangentialFlow
+                * alignment
+                * WHEEL_RADIUS
+                * area;
+
+        return new ContactResult(
+                torqueContribution,
+                alignment,
+                speed,
+                true
+        );
+    }
+
+    private static boolean hasWaterAround(
+            Level level,
+            BlockPos pos
+    ) {
+        if (level.getFluidState(pos)
+                .is(net.minecraft.tags.FluidTags.WATER)) {
+            return true;
+        }
+
+        for (Direction direction :
+                Direction.values()) {
+
+            if (level.getFluidState(
+                    pos.relative(
+                            direction
+                    )
+            ).is(
+                    net.minecraft.tags.FluidTags.WATER
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public boolean addPlate() {
+        if (plateCount >= MAX_PLATES) {
+            return false;
+        }
+
+        plateTilt[plateCount] =
+                0;
+
+        plateCount++;
+
+        configurationChanged();
+
+        return true;
+    }
+
+    public int rotateNearestPlate(
+            Player player,
+            int direction
+    ) {
+        if (plateCount <= 0) {
+            return -1;
+        }
+
+        boolean doubleBody =
+                getBlockState().getValue(
+                        WaterWheelHubBlock.DOUBLE
+                );
+
+        double playerAngle =
+                playerAngle(
+                        player
+                );
+
+        double wheelRotation =
+                Math.toRadians(
+                        rotationDegrees
+                );
+
+        int nearest =
+                0;
+
+        double nearestDistance =
+                Double.MAX_VALUE;
+
+        for (int i = 0;
+                i < plateCount;
+                i++) {
+
+            double angle =
+                    plateBaseAngle(
+                            i,
+                            doubleBody
+                    )
+                    + wheelRotation;
+
+            double distance =
+                    angleDistance(
+                            playerAngle,
+                            angle
+                    );
+
+            if (!doubleBody) {
+                distance =
+                        Math.min(
+                                distance,
+                                angleDistance(
+                                        playerAngle,
+                                        angle
+                                        + Math.PI
+                                )
+                        );
+            }
+
+            if (distance < nearestDistance) {
+                nearestDistance =
+                        distance;
+
+                nearest =
+                        i;
+            }
+        }
+
+        int next =
+                plateTilt[nearest]
+                + Integer.signum(
+                        direction
+                );
+
+        if (next > 4) {
+            next =
+                    -4;
+        }
+
+        if (next < -4) {
+            next =
+                    4;
+        }
+
+        plateTilt[nearest] =
+                (byte) next;
+
+        configurationChanged();
+
+        return nearest;
+    }
+
+    private double playerAngle(
+            Player player
+    ) {
+        Vec3 center =
+                Vec3.atCenterOf(
+                        worldPosition
+                );
+
+        double vertical =
+                player.getEyeY()
+                - center.y;
+
+        if (axleAxis()
+                == Direction.Axis.X) {
+
+            return normalizeAngle(
+                    Math.atan2(
+                            vertical,
+                            player.getZ()
+                            - center.z
+                    )
+            );
+        }
+
+        return normalizeAngle(
+                Math.atan2(
+                        vertical,
+                        player.getX()
+                        - center.x
+                )
+        );
+    }
+
+    public double plateBaseAngle(
+            int index,
+            boolean doubleBody
+    ) {
+        if (plateCount <= 0) {
+            return 0.0;
+        }
+
+        if (doubleBody) {
+            return index
+                    * (
+                            Math.PI * 2.0
+                            / plateCount
+                    );
+        }
+
+        /*
+         * 45 degree offset makes two diameter plates visually form an X.
+         */
+        return Math.PI * 0.25
+                + index
+                * (
+                        Math.PI
+                        / plateCount
+                );
+    }
+
+    private static double angleDistance(
+            double a,
+            double b
+    ) {
+        double difference =
+                normalizeAngle(
+                        a - b
+                );
+
+        if (difference > Math.PI) {
+            difference =
+                    Math.PI * 2.0
+                    - difference;
+        }
+
+        return Math.abs(
+                difference
+        );
+    }
+
+    private static double normalizeAngle(
+            double angle
+    ) {
+        double full =
+                Math.PI * 2.0;
+
+        angle %=
+                full;
+
+        if (angle < 0.0) {
+            angle +=
+                    full;
+        }
+
+        return angle;
+    }
+
+    private static float wrapDegrees(
+            float degrees
+    ) {
+        degrees %=
+                360.0F;
+
+        if (degrees < 0.0F) {
+            degrees +=
+                    360.0F;
+        }
+
+        return degrees;
+    }
+
+    public void configurationChanged() {
+        sync();
+    }
+
+    private void sync() {
+        setChanged();
+
+        if (level instanceof ServerLevel server) {
+            BlockState state =
+                    getBlockState();
+
+            server.sendBlockUpdated(
+                    worldPosition,
+                    state,
+                    state,
+                    Block.UPDATE_CLIENTS
+            );
+        }
+    }
+
+    @Nullable
+    public IRotationalPower rotationOutput(
+            @Nullable Direction side
+    ) {
+        if (side != null
+                && side.getAxis()
+                != axleAxis()) {
+            return null;
+        }
+
+        return rotationOutput;
+    }
+
+    public Direction.Axis axleAxis() {
+        return getBlockState()
+                .getValue(
+                        WaterWheelHubBlock.FACING
+                ).getAxis();
     }
 
     public float rpm() {
         return rpm;
+    }
+
+    public float torque() {
+        return torque;
     }
 
     public float efficiency() {
@@ -341,40 +850,61 @@ public final class WaterWheelHubBlockEntity
         return mechanicalPower;
     }
 
-    public int bladeCount() {
-        return bladeCount;
+    public float rotationDegrees() {
+        return rotationDegrees;
     }
 
-    public int wetBladeCount() {
-        return wetBladeCount;
+    public int plateCount() {
+        return plateCount;
     }
 
-    public boolean axleMatches(
-            Direction.Axis axis
+    public int wetContacts() {
+        return wetContacts;
+    }
+
+    public float plateTiltDegrees(
+            int index
     ) {
+        if (index < 0
+                || index >= plateCount) {
+            return 0.0F;
+        }
+
+        return plateTilt[index]
+                * PLATE_TILT_STEP;
+    }
+
+    public boolean doubleBody() {
         return getBlockState()
                 .getValue(
-                        WaterWheelHubBlock.FACING
-                ).getAxis()
-                == axis;
+                        WaterWheelHubBlock.DOUBLE
+                );
     }
 
     public Component status() {
         return Component.translatable(
-                "message.wayaround.water_wheel.status",
+                "message.wayaround.water_wheel.status_v2",
+                doubleBody()
+                        ? 2
+                        : 1,
+                plateCount,
                 String.format(
                         Locale.ROOT,
                         "%.1f",
                         rpm
                 ),
-                Math.round(
-                        efficiency * 100.0F
-                ),
-                wetBladeCount,
-                bladeCount,
                 String.format(
                         Locale.ROOT,
-                        "%.1f",
+                        "%.2f",
+                        torque
+                ),
+                Math.round(
+                        efficiency
+                        * 100.0F
+                ),
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
                         mechanicalPower
                 )
         );
@@ -410,6 +940,11 @@ public final class WaterWheelHubBlockEntity
                         "Rpm"
                 );
 
+        torque =
+                tag.getFloat(
+                        "Torque"
+                );
+
         efficiency =
                 tag.getFloat(
                         "Efficiency"
@@ -420,15 +955,46 @@ public final class WaterWheelHubBlockEntity
                         "MechanicalPower"
                 );
 
-        bladeCount =
-                tag.getInt(
-                        "BladeCount"
+        rotationDegrees =
+                tag.getFloat(
+                        "Rotation"
                 );
 
-        wetBladeCount =
-                tag.getInt(
-                        "WetBladeCount"
+        plateCount =
+                Mth.clamp(
+                        tag.getInt(
+                                "PlateCount"
+                        ),
+                        0,
+                        MAX_PLATES
                 );
+
+        wetContacts =
+                Math.max(
+                        0,
+                        tag.getInt(
+                                "WetContacts"
+                        )
+                );
+
+        byte[] savedTilt =
+                tag.getByteArray(
+                        "PlateTilt"
+                );
+
+        int length =
+                Math.min(
+                        savedTilt.length,
+                        plateTilt.length
+                );
+
+        System.arraycopy(
+                savedTilt,
+                0,
+                plateTilt,
+                0,
+                length
+        );
     }
 
     @Override
@@ -464,6 +1030,11 @@ public final class WaterWheelHubBlockEntity
         );
 
         tag.putFloat(
+                "Torque",
+                torque
+        );
+
+        tag.putFloat(
                 "Efficiency",
                 efficiency
         );
@@ -473,14 +1044,32 @@ public final class WaterWheelHubBlockEntity
                 mechanicalPower
         );
 
-        tag.putInt(
-                "BladeCount",
-                bladeCount
+        tag.putFloat(
+                "Rotation",
+                rotationDegrees
         );
 
         tag.putInt(
-                "WetBladeCount",
-                wetBladeCount
+                "PlateCount",
+                plateCount
         );
+
+        tag.putInt(
+                "WetContacts",
+                wetContacts
+        );
+
+        tag.putByteArray(
+                "PlateTilt",
+                plateTilt
+        );
+    }
+
+    private record ContactResult(
+            double torque,
+            double alignment,
+            double speed,
+            boolean wet
+    ) {
     }
 }
