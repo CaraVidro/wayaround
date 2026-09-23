@@ -251,11 +251,8 @@ public final class WaterWheelHubBlock
 
             if (hub.plateCount() > 0) {
                 int index =
-                        hub.rotateNearestPlate(
-                                player,
+                        hub.adjustSelectedPlate(
                                 player.isShiftKeyDown()
-                                        ? -1
-                                        : 1
                         );
 
                 player.displayClientMessage(
@@ -266,10 +263,6 @@ public final class WaterWheelHubBlock
                                         hub.plateTiltDegrees(
                                                 index
                                         )
-                                ),
-                                Math.round(
-                                        hub.efficiency()
-                                        * 100.0F
                                 )
                         ),
                         true
