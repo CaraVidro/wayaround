@@ -22,5 +22,9 @@ public final class IndustrialClient {
                 net.caravidro.wayaround.industrial.power.PowerContent.WATER_WHEEL_HUB_ENTITY.get(),
                 WaterWheelHubRenderer::new
         );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_TRANSMISSION_ENTITY.get(),
+                MechanicalTransmissionRenderer::new
+        );
     }
 }
