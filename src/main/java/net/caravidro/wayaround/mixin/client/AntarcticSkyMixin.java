@@ -2,11 +2,13 @@ package net.caravidro.wayaround.mixin.client;
 
 import net.caravidro.wayaround.client.AntarcticClientLighting;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
+import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 
 import net.minecraft.core.BlockPos;
 
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 import org.spongepowered.asm.mixin.Mixin;
@@ -44,19 +46,56 @@ public abstract class AntarcticSkyMixin {
                         cameraPosition
                 );
 
-        if (
-                !level.getBiome(
+        boolean antarctic =
+                level.getBiome(
                         cameraBlock
                 ).is(
                         WayAroundBiomes
                                 .ANTARCTIC_ICE_SHEET
-                )
-        ) {
-            return;
-        }
+                );
 
         Vec3 vanilla =
                 cir.getReturnValue();
+
+        if (!antarctic) {
+            if (!level.dimension().equals(Level.OVERWORLD)) {
+                return;
+            }
+
+            LocalWeatherField.Sample weather =
+                    LocalWeatherField.sample(
+                            cameraPosition.x,
+                            cameraPosition.z,
+                            level.getGameTime()
+                    );
+
+            float shade =
+                    Math.min(
+                            0.58F,
+                            weather.cloud() * 0.12F
+                            + weather.rain() * 0.46F
+                    );
+
+            if (shade <= 0.001F) {
+                return;
+            }
+
+            Vec3 stormSky =
+                    new Vec3(
+                            0.36,
+                            0.42,
+                            0.46
+                    );
+
+            cir.setReturnValue(
+                    lerp(
+                            vanilla,
+                            stormSky,
+                            shade
+                    )
+            );
+            return;
+        }
 
         float night =
                 AntarcticClientLighting
