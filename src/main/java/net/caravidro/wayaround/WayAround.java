@@ -59,6 +59,11 @@ public class WayAround {
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
         NeoForge.EVENT_BUS.addListener(BlizzardCommand::register);
+
+        // Assembly objects: procedural interaction against moving machine parts.
+        NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);
+        NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickItem);
+        NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickEmpty);
     }
 
     private void onServerStopped(ServerStoppedEvent event) {
