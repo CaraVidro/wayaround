@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.power;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.assembly.AssemblyGuideItem;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalCapabilities;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
@@ -67,6 +68,9 @@ public final class PowerContent {
 
     public static final DeferredItem<Item> DIAMOND_NAIL = ITEMS.register("diamond_nail",
         () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> ASSEMBLY_GUIDE = ITEMS.register("assembly_guide",
+        () -> new AssemblyGuideItem(new Item.Properties().stacksTo(1)));
 
     public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
         () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
