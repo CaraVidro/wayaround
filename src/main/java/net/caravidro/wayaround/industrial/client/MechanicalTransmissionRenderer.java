@@ -145,7 +145,7 @@ public final class MechanicalTransmissionRenderer
                     packedLight,
                     packedOverlay,
                     Direction.Axis.Y,
-                    -angle,
+                    angle,
                     1.06F,
                     0.22F
             );
