@@ -28,5 +28,11 @@ public final class WayAroundNetwork {
                 AssemblyEmptyHandPayload.STREAM_CODEC,
                 AssemblyEmptyHandPayload::handle
         );
+
+        registrar.playToServer(
+                BlueScrollPayload.TYPE,
+                BlueScrollPayload.STREAM_CODEC,
+                BlueScrollPayload::handle
+        );
     }
 }
