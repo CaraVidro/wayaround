@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "metal": "minecraft:block/iron_block",
+    "coil": "minecraft:block/copper_block",
+    "dark": "minecraft:block/deepslate_tiles",
+    "particle": "minecraft:block/iron_block"
+  },
+  "elements": [
+    {
+      "from": [1, 1, 1],
+      "to": [15, 15, 15],
+      "faces": {
+        "down": { "texture": "#dark" },
+        "up": { "texture": "#metal" },
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#metal" }
+      }
+    },
+    {
+      "from": [0, 5, 5],
+      "to": [16, 11, 11],
+      "faces": {
+        "down": { "texture": "#coil" },
+        "up": { "texture": "#coil" },
+        "north": { "texture": "#coil" },
+        "south": { "texture": "#coil" },
+        "west": { "texture": "#coil" },
+        "east": { "texture": "#coil" }
+      }
+    }
+  ]
+}
