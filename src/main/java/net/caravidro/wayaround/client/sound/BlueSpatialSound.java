@@ -11,9 +11,9 @@ import net.minecraft.sounds.SoundSource;
 /**
  * Moving music source attached to a synced Blue.
  *
- * The OGG is streamed and loop-capable so a launched Blue can keep carrying
- * the theme even if its lifetime extends past the original file duration.
- * BlueClientEffects decides when the source is finally allowed to stop.
+ * One sound instance follows the Blue from summon through launch. Keeping
+ * that same instance avoids pitch/time discontinuities and keeps nearby
+ * clients aligned with the owner's playback.
  */
 public final class BlueSpatialSound
         extends AbstractTickableSoundInstance {
@@ -32,11 +32,6 @@ public final class BlueSpatialSound
         this.owner =
                 owner;
 
-        /*
-         * Do not loop the 55 s track during an ordinary controlled Blue.
-         * A slingshot launch explicitly starts a fresh moving instance so the
-         * projectile always carries music for its whole flight.
-         */
         this.looping =
                 false;
 
