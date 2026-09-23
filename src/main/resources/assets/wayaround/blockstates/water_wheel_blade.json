@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,waterlogged=false": { "model": "wayaround:block/water_wheel_blade" },
+    "facing=north,waterlogged=true":  { "model": "wayaround:block/water_wheel_blade" },
+    "facing=east,waterlogged=false":  { "model": "wayaround:block/water_wheel_blade", "y": 90 },
+    "facing=east,waterlogged=true":   { "model": "wayaround:block/water_wheel_blade", "y": 90 },
+    "facing=south,waterlogged=false": { "model": "wayaround:block/water_wheel_blade", "y": 180 },
+    "facing=south,waterlogged=true":  { "model": "wayaround:block/water_wheel_blade", "y": 180 },
+    "facing=west,waterlogged=false":  { "model": "wayaround:block/water_wheel_blade", "y": 270 },
+    "facing=west,waterlogged=true":   { "model": "wayaround:block/water_wheel_blade", "y": 270 }
+  }
+}
