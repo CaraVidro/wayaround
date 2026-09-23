@@ -1224,6 +1224,52 @@ public final class BlueManager {
                     velocity.z,
                     1.0
             );
+
+            /*
+             * Destruction now throws a real dust cloud, not just block chips.
+             * Most of it hangs/rises, while a smaller share is visibly pulled
+             * toward Blue so the smoke participates in the gravity field.
+             */
+            level.sendParticles(
+                    ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                    source.x,
+                    source.y,
+                    source.z,
+                    2,
+                    0.45,
+                    0.22,
+                    0.45,
+                    0.008
+            );
+
+            if (level.random.nextFloat()
+                    < 0.48F) {
+                Vec3 smokeInward =
+                        center.subtract(
+                                source
+                        );
+
+                if (smokeInward.lengthSqr()
+                        > 0.001) {
+                    smokeInward =
+                            smokeInward.normalize();
+
+                    level.sendParticles(
+                            ParticleTypes.LARGE_SMOKE,
+                            source.x,
+                            source.y,
+                            source.z,
+                            0,
+                            smokeInward.x,
+                            smokeInward.y
+                                    * 0.72,
+                            smokeInward.z,
+                            0.22
+                                    + power
+                                            * 0.08
+                    );
+                }
+            }
         }
     }
 
@@ -1607,44 +1653,77 @@ public final class BlueManager {
                     power
                             + (
                                     launched
-                                            ? 0.55F
+                                            ? 0.75F
                                             : releasing
-                                                    ? 0.85F
-                                                    : 0.20F
+                                                    ? 1.05F
+                                                    : 0.35F
                             )
             );
 
             return;
         }
 
-        int campfire =
+        double spread =
                 releasing
-                        ? 6
+                        ? 5.8
                         : launched
-                                ? 2
-                                : 1;
+                                ? 4.8
+                                : 3.8;
+
+        int cosy =
+                releasing
+                        ? 18
+                        : launched
+                                ? 10
+                                : 6;
+
+        int signal =
+                releasing
+                        ? 8
+                        : launched
+                                ? 4
+                                : 2;
 
         int large =
                 releasing
-                        ? 10
+                        ? 24
                         : launched
-                                ? 5
-                                : 2;
+                                ? 14
+                                : 8;
 
+        /*
+         * This is meant to read as the dust of the surrounding destruction.
+         * Signal smoke gives the trail very long-lived columns; cosy and large
+         * smoke fill the lower volume so looking back reveals a wall of haze.
+         */
         level.sendParticles(
                 ParticleTypes.CAMPFIRE_COSY_SMOKE,
                 center.x,
                 center.y,
                 center.z,
-                campfire,
-                0.16
+                cosy,
+                spread,
+                1.2
                         + power
-                                * 0.22,
-                0.08,
-                0.16
+                                * 0.8,
+                spread,
+                0.006
+        );
+
+        level.sendParticles(
+                ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                center.x,
+                center.y,
+                center.z,
+                signal,
+                spread
+                        * 0.78,
+                0.9
                         + power
-                                * 0.22,
-                0.003
+                                * 0.6,
+                spread
+                        * 0.78,
+                0.004
         );
 
         level.sendParticles(
@@ -1653,15 +1732,92 @@ public final class BlueManager {
                 center.y,
                 center.z,
                 large,
-                0.28
+                spread
+                        * 0.86,
+                0.75
                         + power
-                                * 0.26,
-                0.18,
-                0.28
-                        + power
-                                * 0.26,
-                0.010
+                                * 0.45,
+                spread
+                        * 0.86,
+                0.014
         );
+
+        /*
+         * Only a fraction of nearby smoke is sucked inward. Most of the cloud
+         * remains suspended as a persistent trail while these strands visibly
+         * spiral/fall toward the Blue.
+         */
+        int sucked =
+                3
+                        + Math.round(
+                                power
+                                        * 4.0F
+                        );
+
+        for (int i = 0;
+                i < sucked;
+                i++) {
+            double angle =
+                    level.random.nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            double distance =
+                    3.5
+                            + level.random.nextDouble()
+                                    * (
+                                            5.0
+                                                    + power
+                                                            * 4.0
+                                    );
+
+            Vec3 source =
+                    center.add(
+                            Math.cos(
+                                    angle
+                            )
+                                    * distance,
+                            (
+                                    level.random.nextDouble()
+                                            - 0.35
+                            )
+                                    * 4.5,
+                            Math.sin(
+                                    angle
+                            )
+                                    * distance
+                    );
+
+            Vec3 inward =
+                    center.subtract(
+                            source
+                    );
+
+            if (inward.lengthSqr()
+                    < 0.001) {
+                continue;
+            }
+
+            inward =
+                    inward.normalize();
+
+            level.sendParticles(
+                    i % 3 == 0
+                            ? ParticleTypes.CAMPFIRE_COSY_SMOKE
+                            : ParticleTypes.LARGE_SMOKE,
+                    source.x,
+                    source.y,
+                    source.z,
+                    0,
+                    inward.x,
+                    inward.y
+                            * 0.65,
+                    inward.z,
+                    0.20
+                            + power
+                                    * 0.09
+            );
+        }
     }
 
     private static void waterBurst(
@@ -1670,10 +1826,10 @@ public final class BlueManager {
             float power
     ) {
         int amount =
-                14
+                26
                         + Math.round(
                                 power
-                                        * 28.0F
+                                        * 42.0F
                         );
 
         level.sendParticles(
@@ -1682,14 +1838,16 @@ public final class BlueManager {
                 center.y,
                 center.z,
                 amount,
-                1.0
-                        + power,
-                0.7
+                1.8
                         + power
-                                * 0.55,
-                1.0
-                        + power,
-                0.20
+                                * 1.35,
+                1.2
+                        + power
+                                * 0.85,
+                1.8
+                        + power
+                                * 1.35,
+                0.24
         );
 
         level.sendParticles(
