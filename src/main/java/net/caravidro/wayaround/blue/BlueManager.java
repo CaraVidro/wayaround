@@ -74,7 +74,7 @@ public final class BlueManager {
                 .playSound(
                         null,
                         player.blockPosition(),
-                        WayAroundSounds.BLUE_THEME.get().value(),
+                        WayAroundSounds.BLUE_THEME.get(),
                         SoundSource.PLAYERS,
                         1.25F,
                         1.0F
@@ -1448,7 +1448,7 @@ public final class BlueManager {
                 BlockPos.containing(
                         center
                 ),
-                SoundEvents.GENERIC_EXPLODE,
+                SoundEvents.GENERIC_EXPLODE.value(),
                 SoundSource.PLAYERS,
                 1.0F,
                 1.45F
