@@ -9,6 +9,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -192,47 +193,6 @@ public final class WaterWheelHubBlock
             );
         }
 
-        /*
-         * The old blade BlockItem is now used as a construction plate when
-         * clicked on a wheel body. It can still exist as a legacy block, but
-         * wheel construction itself is stored inside this block entity.
-         */
-        if (stack.is(
-                PowerContent.WATER_WHEEL_BLADE_ITEM.get()
-        )) {
-            if (!level.isClientSide
-                    && level.getBlockEntity(pos)
-                    instanceof WaterWheelHubBlockEntity hub) {
-
-                if (hub.addPlate()) {
-                    stack.consume(
-                            1,
-                            player
-                    );
-
-                    player.displayClientMessage(
-                            net.minecraft.network.chat.Component.translatable(
-                                    "message.wayaround.water_wheel.plate_added",
-                                    hub.plateCount()
-                            ),
-                            true
-                    );
-                } else {
-                    player.displayClientMessage(
-                            net.minecraft.network.chat.Component.translatable(
-                                    "message.wayaround.water_wheel.plate_limit",
-                                    WaterWheelHubBlockEntity.MAX_PLATES
-                            ),
-                            true
-                    );
-                }
-            }
-
-            return ItemInteractionResult.sidedSuccess(
-                    level.isClientSide
-            );
-        }
-
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
@@ -248,30 +208,10 @@ public final class WaterWheelHubBlock
                 && level.getBlockEntity(pos)
                 instanceof WaterWheelHubBlockEntity hub) {
 
-            if (hub.plateCount() > 0) {
-                int index =
-                        hub.adjustSelectedPlate(
-                                player.isShiftKeyDown()
-                        );
-
-                player.displayClientMessage(
-                        net.minecraft.network.chat.Component.translatable(
-                                "message.wayaround.water_wheel.plate_angle",
-                                index + 1,
-                                Math.round(
-                                        hub.plateTiltDegrees(
-                                                index
-                                        )
-                                )
-                        ),
-                        true
-                );
-            } else {
-                player.displayClientMessage(
-                        hub.status(),
-                        true
-                );
-            }
+            player.displayClientMessage(
+                    hub.status(),
+                    true
+            );
         }
 
         return InteractionResult.sidedSuccess(
@@ -437,6 +377,31 @@ public final class WaterWheelHubBlock
     }
 
     @Override
+    public void setPlacedBy(
+            Level level,
+            BlockPos pos,
+            BlockState state,
+            @Nullable LivingEntity placer,
+            ItemStack stack
+    ) {
+        super.setPlacedBy(
+                level,
+                pos,
+                state,
+                placer,
+                stack
+        );
+
+        if (!level.isClientSide
+                && level.getBlockEntity(pos)
+                instanceof WaterWheelHubBlockEntity hub) {
+            hub.restoreFrameWear(
+                    stack
+            );
+        }
+    }
+
+    @Override
     protected void onRemove(
             BlockState state,
             Level level,
@@ -448,34 +413,14 @@ public final class WaterWheelHubBlock
                 replacement.getBlock()
         )
                 && !level.isClientSide
+                && level instanceof net.minecraft.server.level.ServerLevel server
                 && level.getBlockEntity(pos)
                 instanceof WaterWheelHubBlockEntity hub) {
 
-            /*
-             * The block's normal loot returns the first body. The second
-             * consumed body and all internally installed plates are returned
-             * here so configuration never becomes a resource black hole.
-             */
-            if (state.getValue(DOUBLE)) {
-                popResource(
-                        level,
-                        pos,
-                        new ItemStack(
-                                PowerContent.WATER_WHEEL_HUB_ITEM.get()
-                        )
-                );
-            }
-
-            if (hub.plateCount() > 0) {
-                popResource(
-                        level,
-                        pos,
-                        new ItemStack(
-                                PowerContent.WATER_WHEEL_BLADE_ITEM.get(),
-                                hub.plateCount()
-                        )
-                );
-            }
+            hub.dropAssembly(
+                    server,
+                    state
+            );
         }
 
         super.onRemove(
