@@ -165,7 +165,7 @@ public final class WaterWheelHubBlockEntity
                 found++;
 
                 Vec3 current =
-                        WaterDynamics.current(
+                        WaterDynamics.currentAround(
                                 level,
                                 bladePos
                         );
