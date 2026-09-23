@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ISI",
+    "SIS",
+    "ISI"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "S": { "item": "wayaround:mechanical_shaft" }
+  },
+  "result": {
+    "id": "wayaround:mechanical_gearbox",
+    "count": 1
+  }
+}
