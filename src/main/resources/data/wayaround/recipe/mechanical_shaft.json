@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    " S ",
+    " I "
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_nugget" },
+    "S": { "item": "minecraft:stick" }
+  },
+  "result": {
+    "id": "wayaround:mechanical_shaft",
+    "count": 4
+  }
+}
