@@ -417,7 +417,7 @@ public final class DomainManager {
     ) {
         switch (consequence) {
             case IGNITE ->
-                    target.setSecondsOnFire(
+                    target.igniteForSeconds(
                             2
                     );
 
