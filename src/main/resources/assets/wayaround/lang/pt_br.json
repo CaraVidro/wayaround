@@ -77,7 +77,7 @@
     "guide.wayaround.assembly.diagnostics.4": "Água parada ou caótica não gera potência. A roda precisa encontrar uma corrente coerente.",
     "guide.wayaround.assembly.diagnostics.5": "Madeira e pregos se desgastam. Rangidos e rachaduras são sinais para desmontar, revisar e substituir peças.",
     "block.wayaround.mechanical_shaft": "Eixo mecânico",
-    "guide.wayaround.assembly.7": "Conecte um Eixo mecânico na direção do eixo da roda e leve a rotação até um gerador ou outra máquina.",
+    "guide.wayaround.assembly.7": "Conecte um Eixo mecânico na direção do eixo da roda. Use uma Caixa de engrenagens para virar ou dividir a rotação para outras direções, e leve a rede até o gerador.",
     "message.wayaround.assembly.inspect": "Tábua %s | %s | Madeira: %s | Fixação: %s",
     "message.wayaround.assembly.inspect_missing": "Essa tábua não existe mais.",
     "message.wayaround.assembly.fixed": "Fixada",
@@ -90,5 +90,6 @@
     "guide.wayaround.assembly.diagnostics.6": "Estalos graves e madeira rachando indicam falha estrutural iminente. Tire a roda da carga ou da corrente para interromper a progressão da quebra.",
     "message.wayaround.assembly.inspect_frame": "Frame | Madeira: %s | Estrutura: %s",
     "message.wayaround.assembly.failure_imminent": "FALHA IMINENTE",
-    "message.wayaround.assembly.structure_stable": "Estável"
+    "message.wayaround.assembly.structure_stable": "Estável",
+    "block.wayaround.mechanical_gearbox": "Caixa de engrenagens"
 }
