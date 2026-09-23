@@ -16,7 +16,7 @@
     "hidden": false
   },
   "criteria": {
-    "assembled": {
+    "functional": {
       "trigger": "minecraft:impossible"
     }
   }
