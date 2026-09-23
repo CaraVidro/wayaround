@@ -284,7 +284,7 @@ public final class WaterWheelHubBlockEntity
 
             Vec3 radiusVector =
                     radial.scale(
-                            PADDLE_RADIUS
+                            plate.anchorRadius
                     );
 
             Vec3 contact =
@@ -487,8 +487,8 @@ public final class WaterWheelHubBlockEntity
             if (plate.nailed) {
                 inertia +=
                         plate.mass()
-                        * PADDLE_RADIUS
-                        * PADDLE_RADIUS;
+                        * plate.anchorRadius
+                        * plate.anchorRadius;
             }
         }
 
@@ -660,7 +660,7 @@ public final class WaterWheelHubBlockEntity
                             worldPosition
                     ).add(
                             radial.scale(
-                                    PADDLE_RADIUS
+                                    plate.anchorRadius
                             )
                     );
 
@@ -797,6 +797,15 @@ public final class WaterWheelHubBlockEntity
 
         plate.anchorAngle =
                 normalized;
+
+        plate.anchorRadius =
+                Math.max(
+                        0.35,
+                        hexRadiusAt(
+                                normalized
+                        )
+                        - 0.08
+                );
 
         plate.tiltDegrees =
                 0.0F;
@@ -1056,8 +1065,8 @@ public final class WaterWheelHubBlockEntity
             double angle,
             double radius
     ) {
-        if (radius < 1.72
-                || radius > 2.92) {
+        if (radius < 1.55
+                || radius > 2.95) {
             return -1;
         }
 
@@ -1098,7 +1107,14 @@ public final class WaterWheelHubBlockEntity
                             * 0.62
                     );
 
+            double radialDistance =
+                    Math.abs(
+                            radius
+                            - plate.anchorRadius
+                    );
+
             if (distance <= allowance
+                    && radialDistance <= 0.52
                     && distance < bestDistance) {
 
                 best =
@@ -1113,12 +1129,45 @@ public final class WaterWheelHubBlockEntity
     }
 
     public boolean frameHit(
+            double localAngle,
             double radius
     ) {
         return Math.abs(
                 radius
-                - FRAME_RADIUS
-        ) <= 0.42;
+                - hexRadiusAt(
+                        localAngle
+                )
+        ) <= 0.30;
+    }
+
+    public static double hexRadiusAt(
+            double localAngle
+    ) {
+        double sector =
+                Math.PI
+                / 3.0;
+
+        double wrapped =
+                localAngle
+                % sector;
+
+        if (wrapped < 0.0) {
+            wrapped +=
+                    sector;
+        }
+
+        double delta =
+                wrapped
+                - sector * 0.5;
+
+        double apothem =
+                FRAME_RADIUS
+                * 0.8660254037844386;
+
+        return apothem
+                / Math.cos(
+                        delta
+                );
     }
 
     private void applyWear(
@@ -1338,7 +1387,7 @@ public final class WaterWheelHubBlockEntity
                                     plate.anchorAngle
                                     + rotation
                             ).scale(
-                                    PADDLE_RADIUS
+                                    plate.anchorRadius
                             )
                     );
 
@@ -1891,6 +1940,18 @@ public final class WaterWheelHubBlockEntity
                 / (float) AssemblyItemData.MAX_COMPONENT_WEAR;
     }
 
+    public double plateRadius(
+            int index
+    ) {
+        return validPlate(
+                index
+        )
+                ? plates.get(
+                        index
+                ).anchorRadius
+                : PADDLE_RADIUS;
+    }
+
     public float plateWidth(
             int index
     ) {
@@ -2079,6 +2140,25 @@ public final class WaterWheelHubBlockEntity
                             )
                     );
 
+            plate.anchorRadius =
+                    plateTag.contains(
+                            "AnchorRadius"
+                    )
+                            ? Mth.clamp(
+                                    plateTag.getDouble(
+                                            "AnchorRadius"
+                                    ),
+                                    0.35,
+                                    3.2
+                            )
+                            : Math.max(
+                                    0.35,
+                                    hexRadiusAt(
+                                            plate.anchorAngle
+                                    )
+                                    - 0.08
+                            );
+
             plate.tiltDegrees =
                     Mth.clamp(
                             plateTag.getFloat(
@@ -2240,6 +2320,11 @@ public final class WaterWheelHubBlockEntity
                     plate.anchorAngle
             );
 
+            plateTag.putDouble(
+                    "AnchorRadius",
+                    plate.anchorRadius
+            );
+
             plateTag.putFloat(
                     "Tilt",
                     plate.tiltDegrees
@@ -2345,6 +2430,9 @@ public final class WaterWheelHubBlockEntity
     private static final class Plate {
 
         private double anchorAngle;
+
+        private double anchorRadius =
+                PADDLE_RADIUS;
 
         private float tiltDegrees;
 
