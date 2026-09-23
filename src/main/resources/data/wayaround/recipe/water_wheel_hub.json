@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "IPI",
+    "PLP",
+    "IPI"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "P": { "item": "minecraft:oak_planks" },
+    "L": { "item": "minecraft:stripped_oak_log" }
+  },
+  "result": {
+    "id": "wayaround:water_wheel_hub",
+    "count": 1
+  }
+}
