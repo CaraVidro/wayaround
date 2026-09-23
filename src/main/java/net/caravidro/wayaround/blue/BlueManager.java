@@ -7,14 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.joml.Vector3f;
-
 import net.caravidro.wayaround.content.WayAroundContent;
-import net.caravidro.wayaround.sounds.WayAroundSounds;
+import net.caravidro.wayaround.network.BlueVisualPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,105 +20,165 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Deliberately over-the-top prototype ability.
+ * Server-authoritative Blue ability.
  *
- * Blue is not a physical projectile with collision. Its center is a pure
- * server-side point, which means it can be aimed through terrain and can keep
- * carving/pulling from underground.
+ * Flow:
+ *  1. hold use -> charge only;
+ *  2. release -> summon a controllable Blue;
+ *  3. mouse wheel changes its distance;
+ *  4. a fast inward/outward wheel gesture launches it;
+ *  5. use the item again -> dismiss it into a shrinking smoky collapse.
+ *
+ * The Blue center has no collision. It can move through terrain while its
+ * local destruction/pull field remains fully server-side.
  */
 public final class BlueManager {
 
     private static final double MIN_DISTANCE = 2.0;
-    private static final double MAX_DISTANCE = 34.0;
-    private static final double SCROLL_STEP = 2.2;
-    private static final int MAX_HOLD_TICKS = 55 * 20;
-    private static final double RELEASE_CORE_RADIUS = 2.25;
-    private static final int COLLAPSE_TICKS = 12;
+    private static final double MAX_DISTANCE = 48.0;
+    private static final double SCROLL_STEP = 2.5;
 
-    private static final Map<UUID, HeldBlue> HELD =
+    private static final int MAX_ACTIVE_TICKS = 55 * 20;
+    private static final int RELEASE_TICKS = 50;
+    private static final int LAUNCHED_TICKS = 20 * 20;
+    private static final int COOLDOWN_TICKS = 5 * 20;
+    private static final int COLLAPSE_ENTITY_TICKS = 16;
+
+    private static final double CORE_COLLAPSE_RADIUS = 2.65;
+    private static final double VISUAL_RANGE = 96.0;
+
+    private static final Map<UUID, ChargeState> CHARGING =
+            new HashMap<>();
+
+    private static final Map<UUID, ActiveBlue> ACTIVE =
             new HashMap<>();
 
     private static final List<LaunchedBlue> LAUNCHED =
             new ArrayList<>();
 
+    private static final List<ReleasingBlue> RELEASING =
+            new ArrayList<>();
+
     private static final List<CollapsingEntity> COLLAPSING =
             new ArrayList<>();
+
+    private static final Map<UUID, Long> COOLDOWN =
+            new HashMap<>();
 
     private BlueManager() {
     }
 
-    public static void begin(
+    public static boolean beginCharge(
             ServerPlayer player
     ) {
         long tick =
                 player.server.getTickCount();
 
-        HELD.put(
+        if (isBusy(
+                player.getUUID()
+        )) {
+            return false;
+        }
+
+        long ready =
+                COOLDOWN.getOrDefault(
+                        player.getUUID(),
+                        0L
+                );
+
+        if (tick < ready) {
+            return false;
+        }
+
+        CHARGING.put(
                 player.getUUID(),
-                new HeldBlue(
-                        tick,
-                        player.serverLevel()
-                                .random
-                                .nextBoolean()
-                                ? 1.0
-                                : -1.0
+                new ChargeState(
+                        tick
                 )
         );
 
-        player.serverLevel()
-                .playSound(
-                        null,
-                        player.blockPosition(),
-                        WayAroundSounds.BLUE_THEME.get(),
-                        SoundSource.PLAYERS,
-                        1.25F,
-                        1.0F
-                );
+        player.swing(
+                InteractionHand.MAIN_HAND,
+                true
+        );
 
-        player.serverLevel()
-                .playSound(
-                        null,
-                        player.blockPosition(),
-                        SoundEvents.ENDERMAN_TELEPORT,
-                        SoundSource.PLAYERS,
-                        0.55F,
-                        0.52F
-                );
+        return true;
     }
 
-    public static void tickHeld(
+    public static void tickCharge(
             ServerPlayer player
     ) {
-        if (!isUsingBlue(player)) {
+        ChargeState charge =
+                CHARGING.get(
+                        player.getUUID()
+                );
+
+        if (charge == null) {
             return;
         }
 
-        HeldBlue state =
-                HELD.computeIfAbsent(
-                        player.getUUID(),
-                        id ->
-                                new HeldBlue(
-                                        player.server.getTickCount(),
-                                        player.serverLevel()
-                                                .random
-                                                .nextBoolean()
-                                                ? 1.0
-                                                : -1.0
-                                )
+        charge.ticks++;
+
+        /*
+         * Vanilla arm swings are intentionally used instead of a bespoke
+         * player animation system for this prototype. With the item model
+         * invisible, alternating swings read like hand control gestures.
+         */
+        if (charge.ticks % 18 == 0) {
+            player.swing(
+                    (charge.ticks / 18) % 2 == 0
+                            ? InteractionHand.MAIN_HAND
+                            : InteractionHand.OFF_HAND,
+                    true
+            );
+        }
+    }
+
+    public static void finishCharge(
+            ServerPlayer player
+    ) {
+        ChargeState charge =
+                CHARGING.remove(
+                        player.getUUID()
                 );
 
-        state.chargeTicks++;
+        if (charge == null
+                || isBusy(
+                        player.getUUID()
+                )) {
+            return;
+        }
+
+        float power =
+                Mth.clamp(
+                        0.35F
+                                + charge.ticks
+                                        / 58.0F,
+                        0.42F,
+                        1.35F
+                );
+
+        double distance =
+                8.0;
 
         Vec3 look =
                 player.getLookAngle()
@@ -130,178 +188,188 @@ public final class BlueManager {
                 player.getEyePosition()
                         .add(
                                 look.scale(
-                                        state.distance
+                                        distance
                                 )
                         );
 
-        state.lastCenter = center;
-        state.lastLook = look;
-
-        float charge =
-                Mth.clamp(
-                        state.chargeTicks
-                                / 42.0F,
-                        0.18F,
-                        1.0F
+        ActiveBlue blue =
+                new ActiveBlue(
+                        player.getUUID(),
+                        player.serverLevel()
+                                .dimension(),
+                        center,
+                        look,
+                        distance,
+                        power,
+                        player.serverLevel()
+                                .random
+                                .nextBoolean()
+                                ? 1.0
+                                : -1.0,
+                        player.server.getTickCount()
                 );
 
-        double radius =
-                4.2
-                        + charge
-                        * 5.8;
-
-        applyBlue(
-                player.serverLevel(),
-                player,
-                center,
-                radius,
-                charge,
-                state.spinDirection,
-                2
-                        + Math.round(
-                                charge
-                                        * 6.0F
-                        ),
-                false
+        ACTIVE.put(
+                player.getUUID(),
+                blue
         );
 
-        renderBlue(
-                player.serverLevel(),
-                center,
-                0.75
-                        + charge
-                        * 0.72,
-                charge,
-                state.spinDirection,
-                player.server.getTickCount()
+        player.swing(
+                InteractionHand.OFF_HAND,
+                true
         );
 
-        environmentTrail(
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.ENDERMAN_TELEPORT,
+                        SoundSource.PLAYERS,
+                        0.65F,
+                        0.48F
+                );
+
+        burst(
                 player.serverLevel(),
                 center,
-                charge,
-                false
+                52,
+                1.15F
         );
 
-        if (state.chargeTicks >= MAX_HOLD_TICKS) {
-            release(player);
-            player.stopUsingItem();
+        sendVisual(
+                player.serverLevel(),
+                blue.owner,
+                center,
+                power,
+                attractionRadius(
+                        power
+                ),
+                BlueVisualPayload.ACTIVE
+        );
+    }
+
+    public static boolean hasControllableBlue(
+            ServerPlayer player
+    ) {
+        return ACTIVE.containsKey(
+                player.getUUID()
+        );
+    }
+
+    public static boolean releaseActive(
+            ServerPlayer player
+    ) {
+        ActiveBlue blue =
+                ACTIVE.remove(
+                        player.getUUID()
+                );
+
+        if (blue == null) {
+            return false;
         }
+
+        beginRelease(
+                player.serverLevel(),
+                blue.owner,
+                blue.center,
+                blue.power,
+                blue.spinDirection
+        );
+
+        player.swing(
+                InteractionHand.MAIN_HAND,
+                true
+        );
+
+        player.swing(
+                InteractionHand.OFF_HAND,
+                true
+        );
+
+        return true;
     }
 
     public static void scroll(
             ServerPlayer player,
             double amount
     ) {
-        if (!isUsingBlue(player)
-                || !Double.isFinite(amount)
-                || Math.abs(amount) > 16.0) {
+        if (!Double.isFinite(
+                amount
+        )
+                || Math.abs(
+                        amount
+                ) > 16.0) {
             return;
         }
 
-        HeldBlue state =
-                HELD.get(
+        ActiveBlue blue =
+                ACTIVE.get(
                         player.getUUID()
                 );
 
-        if (state == null) {
-            begin(player);
-            state =
-                    HELD.get(
-                            player.getUUID()
-                    );
+        if (blue == null) {
+            return;
         }
 
         long tick =
                 player.server.getTickCount();
 
         double previous =
-                state.distance;
+                blue.distance;
 
-        state.distance =
+        blue.distance =
                 Mth.clamp(
-                        state.distance
+                        blue.distance
                                 + amount
-                                * SCROLL_STEP,
+                                        * SCROLL_STEP,
                         MIN_DISTANCE,
                         MAX_DISTANCE
                 );
 
-        state.lastScrollDelta =
-                state.distance
+        double delta =
+                blue.distance
                         - previous;
 
-        state.lastScrollTick =
-                tick;
+        if (delta < -0.1) {
+            blue.inwardWheel +=
+                    Math.abs(
+                            amount
+                    );
 
-        if (state.distance <= 3.6) {
-            state.pulledBack = true;
-            state.pulledBackTick = tick;
-            state.slingReady = false;
+            blue.lastInwardTick =
+                    tick;
+
+            if (tick - blue.lastOutwardTick > 5L) {
+                blue.outwardWheel = 0.0;
+            }
+        } else if (delta > 0.1) {
+            if (tick - blue.lastInwardTick <= 12L) {
+                blue.outwardWheel +=
+                        Math.abs(
+                                amount
+                        );
+            } else {
+                blue.inwardWheel = 0.0;
+                blue.outwardWheel = 0.0;
+            }
+
+            blue.lastOutwardTick =
+                    tick;
         }
 
-        if (state.pulledBack
-                && tick - state.pulledBackTick <= 16L
-                && state.distance >= 8.5
-                && state.distance > previous) {
-            state.slingReady = true;
-            state.slingReadyTick = tick;
-        }
-    }
-
-    public static void release(
-            ServerPlayer player
-    ) {
-        HeldBlue state =
-                HELD.remove(
-                        player.getUUID()
-                );
-
-        if (state == null) {
-            return;
-        }
-
-        long tick =
-                player.server.getTickCount();
-
-        long heldTicks =
-                tick
-                        - state.startedAt;
-
-        queueCoreCollapse(
-                player.serverLevel(),
-                player,
-                state.lastCenter,
-                RELEASE_CORE_RADIUS
-        );
-
-        if (state.slingReady
-                && tick - state.slingReadyTick <= 12L) {
-            launch(
+        /*
+         * A quick inward -> outward snap becomes the slingshot gesture.
+         * It launches immediately; no extra release click is needed.
+         */
+        if (tick - blue.lastInwardTick <= 12L
+                && blue.inwardWheel >= 2.0
+                && blue.outwardWheel >= 3.0
+                && blue.distance >= 10.0) {
+            launchActive(
                     player,
-                    state
+                    blue
             );
-            return;
         }
-
-        if (heldTicks <= 14L) {
-            scatterRelease(
-                    player.serverLevel(),
-                    player,
-                    state.lastCenter,
-                    8.5,
-                    state.spinDirection,
-                    1.0F
-            );
-            return;
-        }
-
-        implosionRelease(
-                player.serverLevel(),
-                player,
-                state.lastCenter,
-                state.spinDirection
-        );
     }
 
     public static void onServerTick(
@@ -310,25 +378,20 @@ public final class BlueManager {
         MinecraftServer server =
                 event.getServer();
 
-        cleanupHeld(server);
+        long tick =
+                server.getTickCount();
+
+        cleanupCharges(server);
         tickCollapsing(server);
 
-        Iterator<LaunchedBlue> iterator =
-                LAUNCHED.iterator();
+        Iterator<Map.Entry<UUID, ActiveBlue>> activeIterator =
+                ACTIVE.entrySet()
+                        .iterator();
 
-        while (iterator.hasNext()) {
-            LaunchedBlue blue =
-                    iterator.next();
-
-            ServerLevel level =
-                    server.getLevel(
-                            blue.dimension
-                    );
-
-            if (level == null) {
-                iterator.remove();
-                continue;
-            }
+        while (activeIterator.hasNext()) {
+            ActiveBlue blue =
+                    activeIterator.next()
+                            .getValue();
 
             ServerPlayer owner =
                     server.getPlayerList()
@@ -336,16 +399,155 @@ public final class BlueManager {
                                     blue.owner
                             );
 
+            ServerLevel level =
+                    server.getLevel(
+                            blue.dimension
+                    );
+
+            if (owner == null
+                    || level == null
+                    || !owner.isAlive()
+                    || owner.serverLevel() != level) {
+                if (level != null) {
+                    beginRelease(
+                            level,
+                            blue.owner,
+                            blue.center,
+                            blue.power,
+                            blue.spinDirection
+                    );
+                }
+
+                activeIterator.remove();
+                continue;
+            }
+
+            if (tick - blue.startedAt
+                    >= MAX_ACTIVE_TICKS) {
+                beginRelease(
+                        level,
+                        blue.owner,
+                        blue.center,
+                        blue.power,
+                        blue.spinDirection
+                );
+
+                owner.swing(
+                        InteractionHand.MAIN_HAND,
+                        true
+                );
+
+                activeIterator.remove();
+                continue;
+            }
+
+            blue.look =
+                    owner.getLookAngle()
+                            .normalize();
+
+            blue.center =
+                    owner.getEyePosition()
+                            .add(
+                                    blue.look.scale(
+                                            blue.distance
+                                    )
+                            );
+
+            double radius =
+                    attractionRadius(
+                            blue.power
+                    );
+
+            applyBlue(
+                    level,
+                    owner,
+                    blue.center,
+                    radius,
+                    blue.power,
+                    blue.spinDirection,
+                    3
+                            + Math.round(
+                                    blue.power
+                                            * 4.0F
+                            )
+            );
+
+            disturbEnvironment(
+                    level,
+                    blue.center,
+                    blue.power,
+                    tick
+            );
+
+            environmentTrail(
+                    level,
+                    blue.center,
+                    blue.power,
+                    false,
+                    false
+            );
+
+            if (tick % 22L == 0L) {
+                owner.swing(
+                        (tick / 22L) % 2L == 0L
+                                ? InteractionHand.MAIN_HAND
+                                : InteractionHand.OFF_HAND,
+                        true
+                );
+            }
+
+            sendVisual(
+                    level,
+                    blue.owner,
+                    blue.center,
+                    blue.power,
+                    radius,
+                    BlueVisualPayload.ACTIVE
+            );
+        }
+
+        Iterator<LaunchedBlue> launchedIterator =
+                LAUNCHED.iterator();
+
+        while (launchedIterator.hasNext()) {
+            LaunchedBlue blue =
+                    launchedIterator.next();
+
+            ServerLevel level =
+                    server.getLevel(
+                            blue.dimension
+                    );
+
+            if (level == null) {
+                launchedIterator.remove();
+                continue;
+            }
+
             blue.life--;
 
             if (blue.life <= 0) {
-                collapseLaunched(
+                queueCoreCollapse(
                         level,
-                        owner,
-                        blue
+                        server.getPlayerList()
+                                .getPlayer(
+                                        blue.owner
+                                ),
+                        blue.position,
+                        3.4
                 );
 
-                iterator.remove();
+                smokeCollapse(
+                        level,
+                        blue.position,
+                        blue.power
+                );
+
+                finishAbility(
+                        server,
+                        blue.owner
+                );
+
+                launchedIterator.remove();
                 continue;
             }
 
@@ -356,16 +558,8 @@ public final class BlueManager {
 
             blue.velocity =
                     blue.velocity.scale(
-                            0.994
+                            0.997
                     );
-
-            if (!level.hasChunkAt(
-                    BlockPos.containing(
-                            blue.position
-                    )
-            )) {
-                continue;
-            }
 
             float fade =
                     Mth.clamp(
@@ -376,66 +570,202 @@ public final class BlueManager {
                     );
 
             float power =
-                    fade
-                            * blue.initialPower;
+                    Math.max(
+                            0.16F,
+                            blue.power
+                                    * (
+                                            0.30F
+                                                    + fade
+                                                            * 0.70F
+                                    )
+                    );
 
             double radius =
-                    3.6
-                            + 6.4
-                            * power;
+                    attractionRadius(
+                            power
+                    );
 
-            applyBlue(
+            if (level.hasChunkAt(
+                    BlockPos.containing(
+                            blue.position
+                    )
+            )) {
+                applyBlue(
+                        level,
+                        server.getPlayerList()
+                                .getPlayer(
+                                        blue.owner
+                                ),
+                        blue.position,
+                        radius,
+                        power,
+                        blue.spinDirection,
+                        Math.max(
+                                1,
+                                Math.round(
+                                        5.0F
+                                                * power
+                                )
+                        )
+                );
+
+                disturbEnvironment(
+                        level,
+                        blue.position,
+                        power,
+                        tick
+                );
+
+                environmentTrail(
+                        level,
+                        blue.position,
+                        power,
+                        true,
+                        false
+                );
+            }
+
+            sendVisual(
                     level,
-                    owner,
+                    blue.owner,
                     blue.position,
+                    power,
                     radius,
-                    power,
-                    blue.spinDirection,
-                    Math.max(
-                            1,
-                            Math.round(
-                                    6.0F
-                                            * power
-                            )
-                    ),
-                    false
+                    BlueVisualPayload.LAUNCHED
             );
+        }
 
-            renderBlue(
-                    level,
-                    blue.position,
-                    0.35
-                            + power
-                            * 1.25,
-                    power,
-                    blue.spinDirection,
-                    server.getTickCount()
-            );
+        Iterator<ReleasingBlue> releaseIterator =
+                RELEASING.iterator();
+
+        while (releaseIterator.hasNext()) {
+            ReleasingBlue blue =
+                    releaseIterator.next();
+
+            ServerLevel level =
+                    server.getLevel(
+                            blue.dimension
+                    );
+
+            if (level == null) {
+                releaseIterator.remove();
+                continue;
+            }
+
+            blue.life--;
+
+            float fade =
+                    Mth.clamp(
+                            blue.life
+                                    / (float) blue.maxLife,
+                            0.0F,
+                            1.0F
+                    );
+
+            float visualPower =
+                    Math.max(
+                            0.05F,
+                            blue.power
+                                    * fade
+                    );
 
             environmentTrail(
                     level,
                     blue.position,
-                    power,
+                    Math.max(
+                            0.7F,
+                            blue.power
+                    ),
+                    false,
                     true
             );
+
+            if (blue.life % 4 == 0) {
+                drawIncomingMatter(
+                        level,
+                        blue.position,
+                        4.0
+                                + visualPower
+                                        * 4.0,
+                        visualPower,
+                        blue.spinDirection
+                );
+            }
+
+            sendVisual(
+                    level,
+                    blue.owner,
+                    blue.position,
+                    visualPower,
+                    4.0
+                            + visualPower
+                                    * 6.0,
+                    BlueVisualPayload.COLLAPSING
+            );
+
+            if (blue.life <= 0) {
+                smokeCollapse(
+                        level,
+                        blue.position,
+                        blue.power
+                );
+
+                finishAbility(
+                        server,
+                        blue.owner
+                );
+
+                releaseIterator.remove();
+            }
         }
     }
 
     public static void clearAll() {
-        HELD.clear();
+        CHARGING.clear();
+        ACTIVE.clear();
         LAUNCHED.clear();
+        RELEASING.clear();
         COLLAPSING.clear();
+        COOLDOWN.clear();
     }
 
-    private static void cleanupHeld(
+    private static boolean isBusy(
+            UUID owner
+    ) {
+        if (ACTIVE.containsKey(
+                owner
+        )) {
+            return true;
+        }
+
+        for (LaunchedBlue blue : LAUNCHED) {
+            if (blue.owner.equals(
+                    owner
+            )) {
+                return true;
+            }
+        }
+
+        for (ReleasingBlue blue : RELEASING) {
+            if (blue.owner.equals(
+                    owner
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void cleanupCharges(
             MinecraftServer server
     ) {
-        Iterator<Map.Entry<UUID, HeldBlue>> iterator =
-                HELD.entrySet()
+        Iterator<Map.Entry<UUID, ChargeState>> iterator =
+                CHARGING.entrySet()
                         .iterator();
 
         while (iterator.hasNext()) {
-            Map.Entry<UUID, HeldBlue> entry =
+            Map.Entry<UUID, ChargeState> entry =
                     iterator.next();
 
             ServerPlayer player =
@@ -445,89 +775,127 @@ public final class BlueManager {
                             );
 
             if (player == null
-                    || !player.isAlive()
-                    || !isUsingBlue(player)) {
+                    || !player.isAlive()) {
                 iterator.remove();
             }
         }
     }
 
-    private static boolean isUsingBlue(
-            ServerPlayer player
-    ) {
-        return player.isUsingItem()
-                && player.getUseItem()
-                        .is(
-                                WayAroundContent.BLUE.get()
-                        );
-    }
-
-    private static void launch(
+    private static void launchActive(
             ServerPlayer player,
-            HeldBlue state
+            ActiveBlue blue
     ) {
-        Vec3 look =
-                state.lastLook.lengthSqr() < 0.001
+        if (ACTIVE.remove(
+                player.getUUID()
+        ) == null) {
+            return;
+        }
+
+        Vec3 direction =
+                blue.look.lengthSqr() < 0.001
                         ? player.getLookAngle()
                                 .normalize()
-                        : state.lastLook
+                        : blue.look
                                 .normalize();
-
-        double outwardKick =
-                Math.abs(
-                        state.lastScrollDelta
-                );
-
-        double speed =
-                0.42
-                        + Math.min(
-                                0.28,
-                                outwardKick
-                                        * 0.035
-                        );
-
-        float power =
-                Mth.clamp(
-                        0.82F
-                                + state.chargeTicks
-                                / 90.0F,
-                        0.9F,
-                        1.45F
-                );
 
         LAUNCHED.add(
                 new LaunchedBlue(
-                        player.getUUID(),
-                        player.serverLevel()
-                                .dimension(),
-                        state.lastCenter,
-                        look.scale(
-                                speed
+                        blue.owner,
+                        blue.dimension,
+                        blue.center,
+                        direction.scale(
+                                0.47
                         ),
-                        power,
-                        state.spinDirection,
-                        100
+                        blue.power,
+                        blue.spinDirection,
+                        LAUNCHED_TICKS
                 )
+        );
+
+        player.swing(
+                InteractionHand.MAIN_HAND,
+                true
+        );
+
+        player.swing(
+                InteractionHand.OFF_HAND,
+                true
         );
 
         player.serverLevel()
                 .playSound(
                         null,
                         BlockPos.containing(
-                                state.lastCenter
+                                blue.center
                         ),
                         SoundEvents.END_PORTAL_SPAWN,
                         SoundSource.PLAYERS,
-                        1.25F,
-                        1.65F
+                        1.15F,
+                        1.6F
                 );
 
         burst(
                 player.serverLevel(),
-                state.lastCenter,
-                44,
+                blue.center,
+                62,
+                1.30F
+        );
+    }
+
+    private static void beginRelease(
+            ServerLevel level,
+            UUID owner,
+            Vec3 center,
+            float power,
+            double spinDirection
+    ) {
+        queueCoreCollapse(
+                level,
+                level.getServer()
+                        .getPlayerList()
+                        .getPlayer(
+                                owner
+                        ),
+                center,
+                CORE_COLLAPSE_RADIUS
+        );
+
+        RELEASING.add(
+                new ReleasingBlue(
+                        owner,
+                        level.dimension(),
+                        center,
+                        power,
+                        spinDirection,
+                        RELEASE_TICKS
+                )
+        );
+
+        burst(
+                level,
+                center,
+                52,
                 1.0F
         );
+    }
+
+    private static void finishAbility(
+            MinecraftServer server,
+            UUID owner
+    ) {
+        COOLDOWN.put(
+                owner,
+                server.getTickCount()
+                        + COOLDOWN_TICKS
+        );
+    }
+
+    private static double attractionRadius(
+            float power
+    ) {
+        return 18.0
+                + power
+                        * 20.0;
     }
 
     private static void applyBlue(
@@ -537,8 +905,7 @@ public final class BlueManager {
             double radius,
             float power,
             double spinDirection,
-            int blockBudget,
-            boolean eraseCore
+            int blockBudget
     ) {
         pullEntities(
                 level,
@@ -546,13 +913,11 @@ public final class BlueManager {
                 center,
                 radius,
                 power,
-                spinDirection,
-                eraseCore
+                spinDirection
         );
 
         consumeBlocks(
                 level,
-                owner,
                 center,
                 power,
                 blockBudget
@@ -573,8 +938,7 @@ public final class BlueManager {
             Vec3 center,
             double radius,
             float power,
-            double spinDirection,
-            boolean eraseCore
+            double spinDirection
     ) {
         AABB box =
                 new AABB(
@@ -601,13 +965,13 @@ public final class BlueManager {
                         * radius;
 
         for (Entity entity : entities) {
-            Vec3 entityCenter =
+            Vec3 body =
                     entity.getBoundingBox()
                             .getCenter();
 
             Vec3 toCenter =
                     center.subtract(
-                            entityCenter
+                            body
                     );
 
             double distanceSquared =
@@ -623,12 +987,7 @@ public final class BlueManager {
                             distanceSquared
                     );
 
-            /*
-             * While Blue exists, the core no longer deletes entities.
-             * Anything that reaches it is trapped in an increasingly tight
-             * orbit. The actual shrink-and-vanish happens only on release.
-             */
-            Vec3 radial =
+            Vec3 inward =
                     toCenter.scale(
                             1.0
                                     / distance
@@ -636,15 +995,15 @@ public final class BlueManager {
 
             Vec3 tangent =
                     new Vec3(
-                            -radial.z,
-                            0.18
+                            -inward.z,
+                            0.10
                                     * Math.sin(
                                             entity.getId()
-                                                    * 0.71
+                                                    * 0.73
                                                     + level.getGameTime()
-                                                            * 0.18
+                                                            * 0.17
                                     ),
-                            radial.x
+                            inward.x
                     )
                     .normalize()
                     .scale(
@@ -652,35 +1011,60 @@ public final class BlueManager {
                     );
 
             double proximity =
-                    1.0
-                            - distance
-                                    / radius;
+                    Mth.clamp(
+                            1.0
+                                    - distance
+                                            / radius,
+                            0.0,
+                            1.0
+                    );
 
+            /*
+             * Wider reach than the first prototype, but deliberately softer
+             * acceleration. Far-away entities feel the field long before
+             * they are violently captured.
+             */
             double pull =
-                    0.075
+                    0.012
                             + power
                                     * (
-                                            0.10
+                                            0.018
                                                     + proximity
-                                                    * 0.24
+                                                            * proximity
+                                                            * 0.095
                                     );
 
             double orbit =
-                    0.035
+                    0.010
                             + power
                                     * (
-                                            0.035
+                                            0.018
                                                     + proximity
-                                                    * 0.10
+                                                            * 0.075
                                     );
+
+            if (distance < 2.1) {
+                /*
+                 * Do not let the living target sit at mathematical zero.
+                 * A tiny outward pressure plus strong tangent motion creates
+                 * the visible "trapped orbit" until release.
+                 */
+                pull =
+                        -0.018;
+
+                orbit *=
+                        1.65;
+            }
 
             Vec3 next =
                     entity.getDeltaMovement()
                             .scale(
-                                    0.74
+                                    distance < 4.0
+                                            ? 0.80
+                                            : 0.91
                             )
                             .add(
-                                    radial.scale(
+                                    inward.scale(
                                             pull
                                     )
                             )
@@ -698,39 +1082,8 @@ public final class BlueManager {
         }
     }
 
-    private static void eraseEntity(
-            ServerLevel level,
-            Entity entity
-    ) {
-        if (entity instanceof ServerPlayer player) {
-            player.hurt(
-                    level.damageSources()
-                            .genericKill(),
-                    Float.MAX_VALUE
-            );
-            return;
-        }
-
-        entity.discard();
-
-        level.sendParticles(
-                ParticleTypes.PORTAL,
-                entity.getX(),
-                entity.getY()
-                        + entity.getBbHeight()
-                                * 0.5,
-                entity.getZ(),
-                18,
-                0.22,
-                0.22,
-                0.22,
-                0.5
-        );
-    }
-
     private static void consumeBlocks(
             ServerLevel level,
-            Player owner,
             Vec3 center,
             float power,
             int blockBudget
@@ -740,14 +1093,16 @@ public final class BlueManager {
         }
 
         double digRadius =
-                1.9
+                2.2
                         + power
-                                * 2.25;
+                                * 2.75;
 
-        int removed = 0;
+        int removed =
+                0;
+
         int attempts =
                 blockBudget
-                        * 5;
+                        * 6;
 
         for (int i = 0;
                 i < attempts
@@ -760,7 +1115,7 @@ public final class BlueManager {
                                     * 2.0
                             - 1.0
                     )
-                    * digRadius;
+                            * digRadius;
 
             double dy =
                     (
@@ -768,7 +1123,7 @@ public final class BlueManager {
                                     * 2.0
                             - 1.0
                     )
-                    * digRadius;
+                            * digRadius;
 
             double dz =
                     (
@@ -776,7 +1131,7 @@ public final class BlueManager {
                                     * 2.0
                             - 1.0
                     )
-                    * digRadius;
+                            * digRadius;
 
             if (dx * dx
                     + dy * dy
@@ -802,23 +1157,20 @@ public final class BlueManager {
                 continue;
             }
 
-            if (!state.getFluidState()
-                    .isEmpty()) {
-                if (state.getFluidState()
-                        .is(
-                                FluidTags.WATER
-                        )) {
-                    waterBurst(
-                            level,
-                            Vec3.atCenterOf(
-                                    pos
-                            ),
-                            Math.max(
-                                    0.4F,
-                                    power
-                            )
-                    );
-                }
+            if (state.getFluidState()
+                    .is(
+                            FluidTags.WATER
+                    )) {
+                waterBurst(
+                        level,
+                        Vec3.atCenterOf(
+                                pos
+                        ),
+                        Math.max(
+                                0.45F,
+                                power
+                        )
+                );
             }
 
             float hardness =
@@ -848,14 +1200,13 @@ public final class BlueManager {
                             source
                     );
 
-            if (velocity.lengthSqr()
-                    > 0.0001) {
+            if (velocity.lengthSqr() > 0.0001) {
                 velocity =
                         velocity.normalize()
                                 .scale(
-                                        0.32
+                                        0.20
                                                 + power
-                                                        * 0.34
+                                                        * 0.24
                                 );
             }
 
@@ -876,6 +1227,239 @@ public final class BlueManager {
         }
     }
 
+    private static void disturbEnvironment(
+            ServerLevel level,
+            Vec3 center,
+            float power,
+            long tick
+    ) {
+        if (tick % 4L == 0L) {
+            int attempts =
+                    58
+                            + Math.round(
+                                    power
+                                            * 34.0F
+                            );
+
+            for (int i = 0;
+                    i < attempts;
+                    i++) {
+
+                double radius =
+                        55.0;
+
+                double dx =
+                        (
+                                level.random.nextDouble()
+                                        * 2.0
+                                - 1.0
+                        )
+                                * radius;
+
+                double dy =
+                        (
+                                level.random.nextDouble()
+                                        * 2.0
+                                - 1.0
+                        )
+                                * 24.0;
+
+                double dz =
+                        (
+                                level.random.nextDouble()
+                                        * 2.0
+                                - 1.0
+                        )
+                                * radius;
+
+                BlockPos pos =
+                        BlockPos.containing(
+                                center.x + dx,
+                                center.y + dy,
+                                center.z + dz
+                        );
+
+                BlockState state =
+                        level.getBlockState(
+                                pos
+                        );
+
+                if (state.isAir()) {
+                    continue;
+                }
+
+                double distance =
+                        Vec3.atCenterOf(
+                                pos
+                        )
+                                .distanceTo(
+                                        center
+                                );
+
+                if (distance > radius) {
+                    continue;
+                }
+
+                String blockPath =
+                        BuiltInRegistries.BLOCK
+                                .getKey(
+                                        state.getBlock()
+                                )
+                                .getPath();
+
+                if (blockPath.contains(
+                        "glass"
+                )) {
+                    double chance =
+                            0.10
+                                    + (
+                                            1.0
+                                                    - distance
+                                                            / radius
+                                    )
+                                            * 0.62;
+
+                    if (level.random.nextDouble()
+                            < chance) {
+                        level.levelEvent(
+                                2001,
+                                pos,
+                                Block.getId(
+                                        state
+                                )
+                        );
+
+                        level.removeBlock(
+                                pos,
+                                false
+                        );
+                    }
+
+                    continue;
+                }
+
+                if (isTorch(
+                        state
+                )
+                        && distance <= 38.0
+                        && level.random.nextDouble()
+                                < 0.22
+                                        + (
+                                                1.0
+                                                        - distance
+                                                                / 38.0
+                                        )
+                                                * 0.62) {
+                    level.destroyBlock(
+                            pos,
+                            true
+                    );
+                }
+            }
+        }
+
+        if (tick % 10L == 0L) {
+            double fearRadius =
+                    44.0;
+
+            AABB fearBox =
+                    new AABB(
+                            center.x - fearRadius,
+                            center.y - 20.0,
+                            center.z - fearRadius,
+                            center.x + fearRadius,
+                            center.y + 20.0,
+                            center.z + fearRadius
+                    );
+
+            for (Animal animal :
+                    level.getEntitiesOfClass(
+                            Animal.class,
+                            fearBox,
+                            animal ->
+                                    animal.isAlive()
+                    )) {
+
+                Vec3 away =
+                        animal.position()
+                                .subtract(
+                                        center
+                                );
+
+                double distance =
+                        away.length();
+
+                if (distance < 0.001
+                        || distance > fearRadius) {
+                    continue;
+                }
+
+                away =
+                        away.scale(
+                                1.0
+                                        / distance
+                        );
+
+                double panic =
+                        0.06
+                                + (
+                                        1.0
+                                                - distance
+                                                        / fearRadius
+                                )
+                                        * 0.24;
+
+                animal.setDeltaMovement(
+                        animal.getDeltaMovement()
+                                .add(
+                                        away.x
+                                                * panic,
+                                        0.06,
+                                        away.z
+                                                * panic
+                                )
+                );
+
+                animal.getNavigation()
+                        .moveTo(
+                                animal.getX()
+                                        + away.x
+                                                * 14.0,
+                                animal.getY(),
+                                animal.getZ()
+                                        + away.z
+                                                * 14.0,
+                                1.35
+                                        + power
+                                                * 0.20
+                        );
+            }
+        }
+    }
+
+    private static boolean isTorch(
+            BlockState state
+    ) {
+        return state.is(
+                Blocks.TORCH
+        )
+                || state.is(
+                        Blocks.WALL_TORCH
+                )
+                || state.is(
+                        Blocks.SOUL_TORCH
+                )
+                || state.is(
+                        Blocks.SOUL_WALL_TORCH
+                )
+                || state.is(
+                        Blocks.REDSTONE_TORCH
+                )
+                || state.is(
+                        Blocks.REDSTONE_WALL_TORCH
+                );
+    }
+
     private static void drawIncomingMatter(
             ServerLevel level,
             Vec3 center,
@@ -884,10 +1468,10 @@ public final class BlueManager {
             double spinDirection
     ) {
         int count =
-                6
+                8
                         + Math.round(
                                 power
-                                        * 9.0F
+                                        * 12.0F
                         );
 
         for (int i = 0;
@@ -902,9 +1486,9 @@ public final class BlueManager {
             double distance =
                     radius
                             * (
-                                    0.45
+                                    0.28
                                             + level.random.nextDouble()
-                                                    * 0.75
+                                                    * 0.72
                             );
 
             double y =
@@ -912,15 +1496,22 @@ public final class BlueManager {
                             level.random.nextDouble()
                                     - 0.5
                     )
-                    * radius
-                    * 0.75;
+                            * Math.min(
+                                    radius
+                                            * 0.55,
+                                    10.0
+                            );
 
             Vec3 source =
                     center.add(
-                            Math.cos(angle)
+                            Math.cos(
+                                    angle
+                            )
                                     * distance,
                             y,
-                            Math.sin(angle)
+                            Math.sin(
+                                    angle
+                            )
                                     * distance
                     );
 
@@ -929,8 +1520,7 @@ public final class BlueManager {
                             source
                     );
 
-            if (inward.lengthSqr()
-                    < 0.001) {
+            if (inward.lengthSqr() < 0.001) {
                 continue;
             }
 
@@ -943,20 +1533,20 @@ public final class BlueManager {
                             0.0,
                             inward.x
                     )
-                    .scale(
-                            spinDirection
-                                    * 0.12
-                    );
+                            .scale(
+                                    spinDirection
+                                            * 0.08
+                            );
 
             Vec3 velocity =
                     inward.scale(
-                            0.16
+                            0.10
                                     + power
-                                            * 0.16
+                                            * 0.10
                     )
-                    .add(
-                            tangent
-                    );
+                            .add(
+                                    tangent
+                            );
 
             level.sendParticles(
                     ParticleTypes.ELECTRIC_SPARK,
@@ -970,258 +1560,27 @@ public final class BlueManager {
                     1.0
             );
         }
-    }
-
-    private static void renderBlue(
-            ServerLevel level,
-            Vec3 center,
-            double size,
-            float power,
-            double spinDirection,
-            long tick
-    ) {
-        for (int layer = 0;
-                layer < 3;
-                layer++) {
-
-            double layerSize =
-                    size
-                            * (
-                                    1.0
-                                            + layer
-                                                    * 0.46
-                            );
-
-            double rotation =
-                    tick
-                            * (
-                                    0.075
-                                            + layer
-                                                    * 0.018
-                            )
-                            * spinDirection
-                            + layer
-                                    * 0.72;
-
-            float phase =
-                    (float) (
-                            tick
-                                    * 0.13
-                                    + layer
-                                            * 1.7
-                    );
-
-            float red =
-                    Mth.clamp(
-                            0.04F
-                                    + 0.09F
-                                            * (
-                                                    0.5F
-                                                            + 0.5F
-                                                                    * Mth.sin(
-                                                                            phase
-                                                                    )
-                                            ),
-                            0.0F,
-                            1.0F
-                    );
-
-            float green =
-                    Mth.clamp(
-                            0.28F
-                                    + 0.48F
-                                            * (
-                                                    0.5F
-                                                            + 0.5F
-                                                                    * Mth.sin(
-                                                                            phase
-                                                                                    + 1.4F
-                                                                    )
-                                            ),
-                            0.0F,
-                            1.0F
-                    );
-
-            float blue =
-                    Mth.clamp(
-                            0.78F
-                                    + 0.22F
-                                            * (
-                                                    0.5F
-                                                            + 0.5F
-                                                                    * Mth.sin(
-                                                                            phase
-                                                                                    + 2.8F
-                                                                    )
-                                            ),
-                            0.0F,
-                            1.0F
-                    );
-
-            DustParticleOptions dust =
-                    new DustParticleOptions(
-                            new Vector3f(
-                                    red,
-                                    green,
-                                    blue
-                            ),
-                            0.82F
-                                    + layer
-                                            * 0.12F
-                    );
-
-            int points =
-                    18
-                            + layer
-                                    * 6;
-
-            for (int i = 0;
-                    i < points;
-                    i++) {
-
-                double t =
-                        (
-                                i
-                                        % 6
-                        )
-                                / 5.0
-                                * 2.0
-                                - 1.0;
-
-                int edge =
-                        (
-                                i
-                                        / 6
-                                + layer
-                        )
-                                % 3;
-
-                double sx =
-                        (
-                                (
-                                        i
-                                                & 1
-                                )
-                                        == 0
-                        )
-                                ? -1.0
-                                : 1.0;
-
-                double sy =
-                        (
-                                (
-                                        i
-                                                & 2
-                                )
-                                        == 0
-                        )
-                                ? -1.0
-                                : 1.0;
-
-                double sz =
-                        (
-                                (
-                                        i
-                                                & 4
-                                )
-                                        == 0
-                        )
-                                ? -1.0
-                                : 1.0;
-
-                Vec3 local =
-                        switch (edge) {
-                            case 0 ->
-                                    new Vec3(
-                                            t,
-                                            sy,
-                                            sz
-                                    );
-                            case 1 ->
-                                    new Vec3(
-                                            sx,
-                                            t,
-                                            sz
-                                    );
-                            default ->
-                                    new Vec3(
-                                            sx,
-                                            sy,
-                                            t
-                                    );
-                        };
-
-                local =
-                        local.scale(
-                                layerSize
-                        );
-
-                double cos =
-                        Math.cos(
-                                rotation
-                        );
-
-                double sin =
-                        Math.sin(
-                                rotation
-                        );
-
-                Vec3 rotated =
-                        new Vec3(
-                                local.x
-                                        * cos
-                                        - local.z
-                                                * sin,
-                                local.y
-                                        + Math.sin(
-                                                rotation
-                                                        * 0.7
-                                                        + local.x
-                                        )
-                                                * 0.08
-                                                * layer,
-                                local.x
-                                        * sin
-                                        + local.z
-                                                * cos
-                        );
-
-                Vec3 point =
-                        center.add(
-                                rotated
-                        );
-
-                level.sendParticles(
-                        dust,
-                        point.x,
-                        point.y,
-                        point.z,
-                        1,
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0
-                );
-            }
-        }
 
         level.sendParticles(
                 ParticleTypes.PORTAL,
                 center.x,
                 center.y,
                 center.z,
-                6
+                4
                         + Math.round(
                                 power
-                                        * 8.0F
+                                        * 6.0F
                         ),
-                size
-                        * 0.32,
-                size
-                        * 0.32,
-                size
-                        * 0.32,
-                0.34
+                0.55
+                        + power
+                                * 0.45,
+                0.55
+                        + power
+                                * 0.45,
+                0.55
+                        + power
+                                * 0.45,
+                0.26
         );
     }
 
@@ -1229,7 +1588,8 @@ public final class BlueManager {
             ServerLevel level,
             Vec3 center,
             float power,
-            boolean launched
+            boolean launched,
+            boolean releasing
     ) {
         BlockPos pos =
                 BlockPos.containing(
@@ -1248,37 +1608,43 @@ public final class BlueManager {
                             + (
                                     launched
                                             ? 0.55F
-                                            : 0.15F
+                                            : releasing
+                                                    ? 0.85F
+                                                    : 0.20F
                             )
             );
 
             return;
         }
 
-        int amount =
-                launched
-                        ? 7
-                        : 3;
+        int campfire =
+                releasing
+                        ? 6
+                        : launched
+                                ? 2
+                                : 1;
 
-        /*
-         * Use Minecraft's actual smoke sprites rather than generic cloud
-         * puffs. Campfire smoke hangs around for a long time and slowly rises,
-         * so a straight Blue pass leaves a visible cinematic trail behind.
-         */
+        int large =
+                releasing
+                        ? 10
+                        : launched
+                                ? 5
+                                : 2;
+
         level.sendParticles(
                 ParticleTypes.CAMPFIRE_COSY_SMOKE,
                 center.x,
                 center.y,
                 center.z,
-                1,
-                0.18
+                campfire,
+                0.16
                         + power
-                                * 0.18,
+                                * 0.22,
                 0.08,
-                0.18
+                0.16
                         + power
-                                * 0.18,
-                0.004
+                                * 0.22,
+                0.003
         );
 
         level.sendParticles(
@@ -1286,17 +1652,15 @@ public final class BlueManager {
                 center.x,
                 center.y,
                 center.z,
-                launched
-                        ? 4
-                        : 2,
-                0.30
+                large,
+                0.28
                         + power
-                                * 0.22,
-                0.16,
-                0.30
+                                * 0.26,
+                0.18,
+                0.28
                         + power
-                                * 0.22,
-                0.012
+                                * 0.26,
+                0.010
         );
     }
 
@@ -1306,10 +1670,10 @@ public final class BlueManager {
             float power
     ) {
         int amount =
-                12
+                14
                         + Math.round(
                                 power
-                                        * 22.0F
+                                        * 28.0F
                         );
 
         level.sendParticles(
@@ -1319,15 +1683,13 @@ public final class BlueManager {
                 center.z,
                 amount,
                 1.0
-                        + power
-                                * 0.9,
+                        + power,
                 0.7
                         + power
-                                * 0.5,
+                                * 0.55,
                 1.0
-                        + power
-                                * 0.9,
-                0.18
+                        + power,
+                0.20
         );
 
         level.sendParticles(
@@ -1336,215 +1698,10 @@ public final class BlueManager {
                 center.y,
                 center.z,
                 amount,
-                0.8,
-                0.8,
-                0.8,
-                0.24
-        );
-    }
-
-    private static void scatterRelease(
-            ServerLevel level,
-            Player owner,
-            Vec3 center,
-            double radius,
-            double spinDirection,
-            float power
-    ) {
-        AABB box =
-                new AABB(
-                        center.x - radius,
-                        center.y - radius,
-                        center.z - radius,
-                        center.x + radius,
-                        center.y + radius,
-                        center.z + radius
-                );
-
-        for (Entity entity :
-                level.getEntities(
-                        owner,
-                        box,
-                        other ->
-                                other.isAlive()
-                                        && other != owner
-                                        && !other.isSpectator()
-                )) {
-
-            Vec3 relative =
-                    entity.getBoundingBox()
-                            .getCenter()
-                            .subtract(
-                                    center
-                            );
-
-            double relativeDistanceSquared =
-                    relative.lengthSqr();
-
-            if (relativeDistanceSquared
-                    > radius
-                            * radius
-                    || relativeDistanceSquared
-                            <= RELEASE_CORE_RADIUS
-                                    * RELEASE_CORE_RADIUS) {
-                continue;
-            }
-
-            Vec3 radial =
-                    relative.lengthSqr()
-                                    < 0.001
-                            ? new Vec3(
-                                    level.random.nextDouble()
-                                            - 0.5,
-                                    0.25,
-                                    level.random.nextDouble()
-                                            - 0.5
-                            )
-                            .normalize()
-                            : relative.normalize();
-
-            Vec3 tangent =
-                    new Vec3(
-                            -radial.z,
-                            0.0,
-                            radial.x
-                    )
-                    .scale(
-                            spinDirection
-                    );
-
-            Vec3 random =
-                    new Vec3(
-                            (
-                                    level.random.nextDouble()
-                                            - 0.5
-                            )
-                                    * 0.72,
-                            level.random.nextDouble()
-                                    * 0.62,
-                            (
-                                    level.random.nextDouble()
-                                            - 0.5
-                            )
-                                    * 0.72
-                    );
-
-            Vec3 launch =
-                    radial.scale(
-                            0.95
-                                    + level.random.nextDouble()
-                                            * 0.85
-                    )
-                    .add(
-                            tangent.scale(
-                                    0.7
-                                            + level.random.nextDouble()
-                                                    * 0.8
-                            )
-                    )
-                    .add(
-                            random
-                    )
-                    .add(
-                            0.0,
-                            0.32
-                                    + level.random.nextDouble()
-                                            * 0.5,
-                            0.0
-                    )
-                    .scale(
-                            power
-                    );
-
-            entity.setDeltaMovement(
-                    launch
-            );
-
-            entity.hurtMarked = true;
-        }
-
-        burst(
-                level,
-                center,
-                74,
-                1.35F
-        );
-
-        level.playSound(
-                null,
-                BlockPos.containing(
-                        center
-                ),
-                SoundEvents.GENERIC_EXPLODE.value(),
-                SoundSource.PLAYERS,
-                1.0F,
-                1.45F
-        );
-    }
-
-    private static void implosionRelease(
-            ServerLevel level,
-            Player owner,
-            Vec3 center,
-            double spinDirection
-    ) {
-        applyBlue(
-                level,
-                owner,
-                center,
-                7.0,
-                1.25F,
-                spinDirection,
-                10,
-                false
-        );
-
-        burst(
-                level,
-                center,
-                58,
-                1.0F
-        );
-    }
-
-    private static void collapseLaunched(
-            ServerLevel level,
-            Player owner,
-            LaunchedBlue blue
-    ) {
-        AABB box =
-                new AABB(
-                        blue.position.x - 3.6,
-                        blue.position.y - 3.6,
-                        blue.position.z - 3.6,
-                        blue.position.x + 3.6,
-                        blue.position.y + 3.6,
-                        blue.position.z + 3.6
-                );
-
-        queueCoreCollapse(
-                level,
-                owner,
-                blue.position,
-                3.6
-        );
-
-        burst(
-                level,
-                blue.position,
-                82,
-                1.55F
-        );
-
-        level.playSound(
-                null,
-                BlockPos.containing(
-                        blue.position
-                ),
-                SoundEvents.ENDERMAN_TELEPORT,
-                SoundSource.PLAYERS,
-                1.35F,
-                0.38F
+                0.9,
+                0.9,
+                0.9,
+                0.28
         );
     }
 
@@ -1587,7 +1744,7 @@ public final class BlueManager {
                 continue;
             }
 
-            boolean alreadyCollapsing =
+            boolean duplicate =
                     COLLAPSING.stream()
                             .anyMatch(
                                     collapse ->
@@ -1596,7 +1753,7 @@ public final class BlueManager {
                                             )
                             );
 
-            if (alreadyCollapsing) {
+            if (duplicate) {
                 continue;
             }
 
@@ -1621,7 +1778,7 @@ public final class BlueManager {
                             level.dimension(),
                             center,
                             originalScale,
-                            COLLAPSE_TICKS
+                            COLLAPSE_ENTITY_TICKS
                     )
             );
         }
@@ -1692,15 +1849,18 @@ public final class BlueManager {
                                     angle
                                             * 0.63
                             )
-                                    * 0.22,
+                                    * 0.16,
                             Math.sin(
                                     angle
                             )
                     )
-                    .scale(
-                            (1.0 - progress)
-                                    * 0.28
-                    );
+                            .scale(
+                                    (
+                                            1.0
+                                                    - progress
+                                    )
+                                            * 0.24
+                            );
 
             entity.setDeltaMovement(
                     inward.scale(
@@ -1708,12 +1868,13 @@ public final class BlueManager {
                                     + progress
                                             * 0.42
                     )
-                    .add(
-                            orbit
-                    )
+                            .add(
+                                    orbit
+                            )
             );
 
-            entity.hurtMarked = true;
+            entity.hurtMarked =
+                    true;
 
             if (entity instanceof LivingEntity living) {
                 var scale =
@@ -1729,7 +1890,7 @@ public final class BlueManager {
                                             * (
                                                     1.0
                                                             - progress
-                                                            * 0.95
+                                                                    * 0.95
                                             )
                             )
                     );
@@ -1748,8 +1909,15 @@ public final class BlueManager {
                     0.08
             );
 
-            if (collapse.age
-                    >= collapse.duration) {
+            if (collapse.age >= collapse.duration) {
+                if (shieldSaves(
+                        entity,
+                        collapse
+                )) {
+                    iterator.remove();
+                    continue;
+                }
+
                 eraseEntity(
                         level,
                         entity
@@ -1760,55 +1928,334 @@ public final class BlueManager {
         }
     }
 
+    private static boolean shieldSaves(
+            Entity entity,
+            CollapsingEntity collapse
+    ) {
+        if (!(entity instanceof LivingEntity living)
+                || !living.isBlocking()) {
+            return false;
+        }
+
+        ItemStack shield =
+                living.getUseItem();
+
+        if (!shield.is(
+                Items.SHIELD
+        )) {
+            return false;
+        }
+
+        InteractionHand hand =
+                living.getUsedItemHand();
+
+        EquipmentSlot slot =
+                hand == InteractionHand.OFF_HAND
+                        ? EquipmentSlot.OFFHAND
+                        : EquipmentSlot.MAINHAND;
+
+        shield.hurtAndBreak(
+                72,
+                living,
+                slot
+        );
+
+        var scale =
+                living.getAttribute(
+                        Attributes.SCALE
+                );
+
+        if (scale != null) {
+            scale.setBaseValue(
+                    collapse.originalScale
+            );
+        }
+
+        Vec3 away =
+                living.position()
+                        .subtract(
+                                collapse.center
+                        );
+
+        if (away.lengthSqr() < 0.001) {
+            away =
+                    new Vec3(
+                            1.0,
+                            0.0,
+                            0.0
+                    );
+        } else {
+            away =
+                    away.normalize();
+        }
+
+        living.setDeltaMovement(
+                away.scale(
+                        1.05
+                )
+                        .add(
+                                0.0,
+                                0.28,
+                                0.0
+                        )
+        );
+
+        living.hurtMarked =
+                true;
+
+        return true;
+    }
+
+    private static void eraseEntity(
+            ServerLevel level,
+            Entity entity
+    ) {
+        if (entity instanceof ServerPlayer player) {
+            player.hurt(
+                    level.damageSources()
+                            .genericKill(),
+                    Float.MAX_VALUE
+            );
+
+            return;
+        }
+
+        entity.discard();
+
+        level.sendParticles(
+                ParticleTypes.PORTAL,
+                entity.getX(),
+                entity.getY()
+                        + entity.getBbHeight()
+                                * 0.5,
+                entity.getZ(),
+                22,
+                0.24,
+                0.24,
+                0.24,
+                0.52
+        );
+    }
+
+    private static void smokeCollapse(
+            ServerLevel level,
+            Vec3 center,
+            float power
+    ) {
+        level.sendParticles(
+                ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                center.x,
+                center.y,
+                center.z,
+                28,
+                1.2
+                        + power,
+                0.65,
+                1.2
+                        + power,
+                0.012
+        );
+
+        level.sendParticles(
+                ParticleTypes.LARGE_SMOKE,
+                center.x,
+                center.y,
+                center.z,
+                46,
+                1.45
+                        + power,
+                0.8,
+                1.45
+                        + power,
+                0.035
+        );
+
+        burst(
+                level,
+                center,
+                58,
+                1.2F
+        );
+    }
+
     private static void burst(
             ServerLevel level,
             Vec3 center,
             int count,
             float scale
     ) {
-        DustParticleOptions dust =
-                new DustParticleOptions(
-                        new Vector3f(
-                                0.05F,
-                                0.52F,
-                                1.0F
-                        ),
-                        1.35F
-                );
-
-        level.sendParticles(
-                dust,
-                center.x,
-                center.y,
-                center.z,
-                count,
-                1.0
-                        * scale,
-                1.0
-                        * scale,
-                1.0
-                        * scale,
-                0.26
-        );
-
         level.sendParticles(
                 ParticleTypes.ELECTRIC_SPARK,
                 center.x,
                 center.y,
                 center.z,
+                count,
+                1.25
+                        * scale,
+                1.25
+                        * scale,
+                1.25
+                        * scale,
+                0.46
+        );
+
+        level.sendParticles(
+                ParticleTypes.PORTAL,
+                center.x,
+                center.y,
+                center.z,
                 Math.max(
                         12,
-                        count
-                                / 2
+                        count / 2
                 ),
-                1.5
+                1.0
                         * scale,
-                1.5
+                1.0
                         * scale,
-                1.5
+                1.0
                         * scale,
-                0.48
+                0.38
         );
+    }
+
+    private static void sendVisual(
+            ServerLevel level,
+            UUID owner,
+            Vec3 center,
+            float power,
+            double radius,
+            byte mode
+    ) {
+        PacketDistributor.sendToPlayersNear(
+                level,
+                null,
+                center.x,
+                center.y,
+                center.z,
+                VISUAL_RANGE,
+                new BlueVisualPayload(
+                        owner,
+                        center.x,
+                        center.y,
+                        center.z,
+                        power,
+                        (float) radius,
+                        mode
+                )
+        );
+    }
+
+    private static final class ChargeState {
+
+        private final long startedAt;
+        private int ticks;
+
+        private ChargeState(
+                long startedAt
+        ) {
+            this.startedAt = startedAt;
+        }
+    }
+
+    private static final class ActiveBlue {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private final float power;
+        private final double spinDirection;
+        private final long startedAt;
+
+        private Vec3 center;
+        private Vec3 look;
+        private double distance;
+
+        private double inwardWheel;
+        private double outwardWheel;
+        private long lastInwardTick =
+                Long.MIN_VALUE;
+        private long lastOutwardTick =
+                Long.MIN_VALUE;
+
+        private ActiveBlue(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 center,
+                Vec3 look,
+                double distance,
+                float power,
+                double spinDirection,
+                long startedAt
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.center = center;
+            this.look = look;
+            this.distance = distance;
+            this.power = power;
+            this.spinDirection = spinDirection;
+            this.startedAt = startedAt;
+        }
+    }
+
+    private static final class LaunchedBlue {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private final float power;
+        private final double spinDirection;
+        private final int maxLife;
+
+        private Vec3 position;
+        private Vec3 velocity;
+        private int life;
+
+        private LaunchedBlue(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 position,
+                Vec3 velocity,
+                float power,
+                double spinDirection,
+                int life
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.position = position;
+            this.velocity = velocity;
+            this.power = power;
+            this.spinDirection = spinDirection;
+            this.life = life;
+            this.maxLife = life;
+        }
+    }
+
+    private static final class ReleasingBlue {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private final Vec3 position;
+        private final float power;
+        private final double spinDirection;
+        private final int maxLife;
+
+        private int life;
+
+        private ReleasingBlue(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 position,
+                float power,
+                double spinDirection,
+                int life
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.position = position;
+            this.power = power;
+            this.spinDirection = spinDirection;
+            this.life = life;
+            this.maxLife = life;
+        }
     }
 
     private static final class CollapsingEntity {
@@ -1833,67 +2280,6 @@ public final class BlueManager {
             this.center = center;
             this.originalScale = originalScale;
             this.duration = duration;
-        }
-    }
-
-    private static final class HeldBlue {
-
-        private final long startedAt;
-        private final double spinDirection;
-
-        private double distance = 7.0;
-        private int chargeTicks;
-
-        private Vec3 lastCenter = Vec3.ZERO;
-        private Vec3 lastLook = new Vec3(0.0, 0.0, 1.0);
-
-        private double lastScrollDelta;
-        private long lastScrollTick = Long.MIN_VALUE;
-
-        private boolean pulledBack;
-        private long pulledBackTick = Long.MIN_VALUE;
-
-        private boolean slingReady;
-        private long slingReadyTick = Long.MIN_VALUE;
-
-        private HeldBlue(
-                long startedAt,
-                double spinDirection
-        ) {
-            this.startedAt = startedAt;
-            this.spinDirection = spinDirection;
-        }
-    }
-
-    private static final class LaunchedBlue {
-
-        private final UUID owner;
-        private final net.minecraft.resources.ResourceKey<Level> dimension;
-        private final float initialPower;
-        private final double spinDirection;
-        private final int maxLife;
-
-        private Vec3 position;
-        private Vec3 velocity;
-        private int life;
-
-        private LaunchedBlue(
-                UUID owner,
-                net.minecraft.resources.ResourceKey<Level> dimension,
-                Vec3 position,
-                Vec3 velocity,
-                float initialPower,
-                double spinDirection,
-                int life
-        ) {
-            this.owner = owner;
-            this.dimension = dimension;
-            this.position = position;
-            this.velocity = velocity;
-            this.initialPower = initialPower;
-            this.spinDirection = spinDirection;
-            this.life = life;
-            this.maxLife = life;
         }
     }
 }
