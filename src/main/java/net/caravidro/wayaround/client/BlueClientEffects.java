@@ -104,6 +104,18 @@ public final class BlueClientEffects {
         state.mode =
                 payload.mode();
 
+        if (minecraft.player != null
+                && minecraft.player
+                        .getUUID()
+                        .equals(
+                                payload.owner()
+                        )
+                && payload.mode()
+                        != BlueVisualPayload.ACTIVE) {
+            minecraft.player
+                    .stopUsingItem();
+        }
+
         state.lastSeen =
                 tick;
 
