@@ -6,5 +6,13 @@
         "stream": true
       }
     ]
+  },
+  "blue_theme": {
+    "sounds": [
+      {
+        "name": "wayaround:blue_theme",
+        "stream": true
+      }
+    ]
   }
 }
