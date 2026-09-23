@@ -58,7 +58,7 @@ public final class BlueManager {
     private static final double SCROLL_STEP = 2.5;
 
     private static final int MAX_ACTIVE_TICKS = 55 * 20;
-    private static final int RELEASE_TICKS = 50;
+    private static final int RELEASE_TICKS = 60;
     private static final int LAUNCHED_TICKS = 20 * 20;
     private static final int COOLDOWN_TICKS = 5 * 20;
     private static final int COLLAPSE_ENTITY_TICKS = 16;
