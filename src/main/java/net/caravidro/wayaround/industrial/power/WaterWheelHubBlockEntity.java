@@ -1822,6 +1822,35 @@ public final class WaterWheelHubBlockEntity
                 ).nailed;
     }
 
+    public ItemStack plateNail(
+            int index
+    ) {
+        if (!validPlate(
+                index
+        )) {
+            return ItemStack.EMPTY;
+        }
+
+        return plates.get(
+                index
+        ).nail.copy();
+    }
+
+    public float plateWearRatio(
+            int index
+    ) {
+        if (!validPlate(
+                index
+        )) {
+            return 0.0F;
+        }
+
+        return plates.get(
+                index
+        ).wear
+                / (float) AssemblyItemData.MAX_COMPONENT_WEAR;
+    }
+
     public float plateWidth(
             int index
     ) {
