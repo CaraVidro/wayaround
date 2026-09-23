@@ -84,6 +84,53 @@ public final class WaterDynamics {
         return result;
     }
 
+    public static Vec3 currentAround(
+            Level level,
+            BlockPos center
+    ) {
+        Vec3 total =
+                current(
+                        level,
+                        center
+                );
+
+        int samples =
+                level.getFluidState(center)
+                        .is(FluidTags.WATER)
+                        ? 1
+                        : 0;
+
+        for (Direction direction :
+                Direction.values()) {
+
+            BlockPos neighbor =
+                    center.relative(
+                            direction
+                    );
+
+            if (!level.getFluidState(neighbor)
+                    .is(FluidTags.WATER)) {
+                continue;
+            }
+
+            total =
+                    total.add(
+                            current(
+                                    level,
+                                    neighbor
+                            )
+                    );
+
+            samples++;
+        }
+
+        return samples == 0
+                ? Vec3.ZERO
+                : total.scale(
+                        1.0 / samples
+                );
+    }
+
     public static boolean hitsObstacle(
             Level level,
             BlockPos waterPos,
