@@ -19,6 +19,24 @@ public interface IRotationalPower {
     Direction.Axis axis();
 
     /**
+     * Consume mechanical power from this source. Sources that model load
+     * feedback can override this and convert the draw into opposing torque.
+     * The default keeps third-party/simple sources compatible.
+     */
+    default float consumePower(float requestedPower) {
+        return Math.min(
+                Math.max(
+                        0.0F,
+                        requestedPower
+                ),
+                Math.max(
+                        0.0F,
+                        power()
+                )
+        );
+    }
+
+    /**
      * -1 or +1 while rotating, 0 while stopped.
      */
     int rotationDirection();
