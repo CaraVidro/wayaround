@@ -3,7 +3,7 @@ package net.caravidro.wayaround.industrial.power;
 import java.util.Locale;
 
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
-import net.caravidro.wayaround.industrial.mechanical.MechanicalCapabilities;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -115,35 +115,54 @@ public final class WaterGeneratorBlockEntity
         float mechanical =
                 0.0F;
 
+        int room =
+                generator.buffer.capacity()
+                - generator.buffer.stored();
+
+        float requestedMechanical =
+                Math.min(
+                        640.0F / 2.2F,
+                        Math.max(
+                                0,
+                                room
+                        ) / 2.2F
+                );
+
         for (Direction direction :
                 Direction.values()) {
 
-            BlockPos neighbor =
-                    pos.relative(
+            if (requestedMechanical <= 0.001F) {
+                break;
+            }
+
+            IRotationalPower rotation =
+                    MechanicalTransmission.findSource(
+                            level,
+                            pos,
                             direction
                     );
 
-            IRotationalPower rotation =
-                    level.getCapability(
-                            MechanicalCapabilities.ROTATION,
-                            neighbor,
-                            direction.getOpposite()
-                    );
-
             if (rotation == null
-                    || !rotation.active()
-                    || rotation.axis()
-                    != direction.getAxis()) {
+                    || !rotation.active()) {
                 continue;
             }
 
             /*
-             * The generator only knows about generic mechanical power.
-             * It does not know or care whether the source is a water wheel,
-             * wind turbine, crank, steam shaft, or a future mod integration.
+             * Mechanical power can arrive directly from a machine or through
+             * a straight line of shafts. consumePower() also lets physical
+             * sources feel the generator as resistance instead of producing
+             * free FE with zero load.
              */
+            float accepted =
+                    rotation.consumePower(
+                            requestedMechanical
+                    );
+
             mechanical +=
-                    rotation.power();
+                    accepted;
+
+            requestedMechanical -=
+                    accepted;
         }
 
         generator.generationPerTick =
@@ -152,7 +171,10 @@ public final class WaterGeneratorBlockEntity
                                 mechanical * 2.2F
                         ),
                         0,
-                        640
+                        Math.min(
+                                640,
+                                room
+                        )
                 );
 
         if (generator.generationPerTick > 0) {
