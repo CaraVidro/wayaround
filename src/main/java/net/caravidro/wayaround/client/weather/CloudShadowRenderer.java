@@ -55,6 +55,31 @@ public final class CloudShadowRenderer {
         Vec3 camera = event.getCamera().getPosition();
         long time = minecraft.level.getGameTime();
 
+        Vec3 skyColor =
+                minecraft.level.getSkyColor(
+                        camera,
+                        1.0F
+                );
+
+        float skyLuminance =
+                (float) (
+                        skyColor.x * 0.2126
+                        + skyColor.y * 0.7152
+                        + skyColor.z * 0.0722
+                );
+
+        float sunlight =
+                net.minecraft.util.Mth.clamp(
+                        (skyLuminance - 0.08F)
+                        / 0.72F,
+                        0.0F,
+                        1.0F
+                );
+
+        if (sunlight <= 0.02F) {
+            return;
+        }
+
         PoseStack stack = event.getPoseStack();
         stack.pushPose();
         stack.translate(-camera.x, -camera.y, -camera.z);
@@ -161,6 +186,7 @@ public final class CloudShadowRenderer {
                                                     + cell.storm()
                                                     * 42.0F
                                             )
+                                            * sunlight
                                     )
                             );
 
