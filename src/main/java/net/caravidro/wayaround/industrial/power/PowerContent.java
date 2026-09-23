@@ -32,6 +32,35 @@ public final class PowerContent {
         () -> new BlockItem(SOLAR_PANEL.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> ENERGY_CABLE_ITEM = ITEMS.register("energy_cable",
         () -> new BlockItem(ENERGY_CABLE.get(), new Item.Properties()));
+
+    public static final DeferredBlock<WaterWheelHubBlock> WATER_WHEEL_HUB = BLOCKS.register("water_wheel_hub",
+        () -> new WaterWheelHubBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
+            .strength(2.0F, 3.0F).sound(SoundType.WOOD).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> WATER_WHEEL_HUB_ITEM = ITEMS.register("water_wheel_hub",
+        () -> new BlockItem(WATER_WHEEL_HUB.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WaterWheelHubBlockEntity>> WATER_WHEEL_HUB_ENTITY =
+        BLOCK_ENTITIES.register("water_wheel_hub", () -> BlockEntityType.Builder.of(
+            WaterWheelHubBlockEntity::new, WATER_WHEEL_HUB.get()).build(null));
+
+    public static final DeferredBlock<WaterWheelBladeBlock> WATER_WHEEL_BLADE = BLOCKS.register("water_wheel_blade",
+        () -> new WaterWheelBladeBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
+            .strength(1.2F, 2.0F).sound(SoundType.WOOD).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> WATER_WHEEL_BLADE_ITEM = ITEMS.register("water_wheel_blade",
+        () -> new BlockItem(WATER_WHEEL_BLADE.get(), new Item.Properties()));
+
+    public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
+        () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+            .strength(3.0F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()));
+
+    public static final DeferredItem<BlockItem> WATER_GENERATOR_ITEM = ITEMS.register("water_generator",
+        () -> new BlockItem(WATER_GENERATOR.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WaterGeneratorBlockEntity>> WATER_GENERATOR_ENTITY =
+        BLOCK_ENTITIES.register("water_generator", () -> BlockEntityType.Builder.of(
+            WaterGeneratorBlockEntity::new, WATER_GENERATOR.get()).build(null));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SolarPanelBlockEntity>> SOLAR_PANEL_ENTITY =
         BLOCK_ENTITIES.register("solar_panel", () -> BlockEntityType.Builder.of(
             SolarPanelBlockEntity::new, SOLAR_PANEL.get()).build(null));
@@ -60,5 +89,7 @@ public final class PowerContent {
             (engine, side) -> engine.energyOutput());
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, SOLAR_PANEL_ENTITY.get(),
             (panel, side) -> panel.energyOutput());
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, WATER_GENERATOR_ENTITY.get(),
+            (generator, side) -> generator.energyOutput());
     }
 }
