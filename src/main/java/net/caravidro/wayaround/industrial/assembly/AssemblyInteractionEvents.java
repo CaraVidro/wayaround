@@ -17,19 +17,35 @@ public final class AssemblyInteractionEvents {
     public static void onRightClickBlock(
             PlayerInteractEvent.RightClickBlock event
     ) {
-        handleHeldInteraction(
+        if (handleHeldInteraction(
                 event,
                 event.getItemStack()
-        );
+        )) {
+            event.setCanceled(
+                    true
+            );
+
+            event.setCancellationResult(
+                    InteractionResult.SUCCESS
+            );
+        }
     }
 
     public static void onRightClickItem(
             PlayerInteractEvent.RightClickItem event
     ) {
-        handleHeldInteraction(
+        if (handleHeldInteraction(
                 event,
                 event.getItemStack()
-        );
+        )) {
+            event.setCanceled(
+                    true
+            );
+
+            event.setCancellationResult(
+                    InteractionResult.SUCCESS
+            );
+        }
     }
 
     public static void onRightClickEmpty(
@@ -56,7 +72,7 @@ public final class AssemblyInteractionEvents {
         );
     }
 
-    private static void handleHeldInteraction(
+    private static boolean handleHeldInteraction(
             PlayerInteractEvent event,
             ItemStack held
     ) {
@@ -67,7 +83,7 @@ public final class AssemblyInteractionEvents {
                 );
 
         if (hit == null) {
-            return;
+            return false;
         }
 
         boolean plateItem =
@@ -89,24 +105,16 @@ public final class AssemblyInteractionEvents {
         if (!plateItem
                 && !nailItem
                 && !emptyPlate) {
-            return;
+            return false;
         }
 
-        event.setCanceled(
-                true
-        );
-
-        event.setCancellationResult(
-                InteractionResult.SUCCESS
-        );
-
         if (event.getLevel().isClientSide) {
-            return;
+            return true;
         }
 
         if (!(event.getEntity()
                 instanceof ServerPlayer player)) {
-            return;
+            return false;
         }
 
         if (plateItem) {
@@ -126,7 +134,7 @@ public final class AssemblyInteractionEvents {
                     true
             );
 
-            return;
+            return true;
         }
 
         if (nailItem) {
@@ -146,12 +154,14 @@ public final class AssemblyInteractionEvents {
                 );
             }
 
-            return;
+            return true;
         }
 
         handleEmptyHand(
                 player
         );
+
+        return true;
     }
 
     public static void handleEmptyHand(
