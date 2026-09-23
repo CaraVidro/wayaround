@@ -32,10 +32,15 @@
     "message.wayaround.ship.bed_anchor": "Ancore a nau e deixe a cama livre para dormir.",
     "tooltip.wayaround.caravel.controls": "WASD para navegar. Agache e interaja para âncora e carga.",
     "tooltip.wayaround.coal_ship.controls": "WASD para pilotar. Agache e interaja sem carvão para âncora e carga.",
-    "block.wayaround.water_wheel_hub": "Eixo da roda d'água",
-    "block.wayaround.water_wheel_blade": "Pá da roda d'água",
+    "block.wayaround.water_wheel_hub": "Corpo da roda d'água",
+    "block.wayaround.water_wheel_blade": "Placa da roda d'água",
     "block.wayaround.water_generator": "Gerador hidráulico",
     "message.wayaround.water_wheel_blade.angle": "Orientação da pá: %s",
     "message.wayaround.water_wheel.status": "RPM: %s | Eficiência: %s%% | Pás na água: %s/%s | Potência mecânica: %s",
-    "message.wayaround.water_generator.status": "Geração: %s FE/t | Buffer: %s/%s FE"
+    "message.wayaround.water_generator.status": "Geração: %s FE/t | Buffer: %s/%s FE",
+    "message.wayaround.water_wheel.double_body": "Segundo corpo instalado: agora a roda tem dois hexágonos.",
+    "message.wayaround.water_wheel.plate_added": "Placa adicionada. Total: %s",
+    "message.wayaround.water_wheel.plate_limit": "Limite de placas atingido: %s",
+    "message.wayaround.water_wheel.plate_angle": "Placa %s: inclinação %s° | eficiência atual %s%%",
+    "message.wayaround.water_wheel.status_v2": "Corpos: %s | Placas: %s | RPM: %s | Torque: %s | Eficiência: %s%% | Potência mecânica: %s"
 }
