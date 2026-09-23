@@ -23,6 +23,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -42,11 +44,17 @@ public final class BlueManager {
     private static final double MIN_DISTANCE = 2.0;
     private static final double MAX_DISTANCE = 34.0;
     private static final double SCROLL_STEP = 2.2;
+    private static final int MAX_HOLD_TICKS = 55 * 20;
+    private static final double RELEASE_CORE_RADIUS = 2.25;
+    private static final int COLLAPSE_TICKS = 12;
 
     private static final Map<UUID, HeldBlue> HELD =
             new HashMap<>();
 
     private static final List<LaunchedBlue> LAUNCHED =
+            new ArrayList<>();
+
+    private static final List<CollapsingEntity> COLLAPSING =
             new ArrayList<>();
 
     private BlueManager() {
@@ -154,7 +162,7 @@ public final class BlueManager {
                                 charge
                                         * 6.0F
                         ),
-                true
+                false
         );
 
         renderBlue(
@@ -174,6 +182,11 @@ public final class BlueManager {
                 charge,
                 false
         );
+
+        if (state.chargeTicks >= MAX_HOLD_TICKS) {
+            release(player);
+            player.stopUsingItem();
+        }
     }
 
     public static void scroll(
@@ -255,6 +268,13 @@ public final class BlueManager {
                 tick
                         - state.startedAt;
 
+        queueCoreCollapse(
+                player.serverLevel(),
+                player,
+                state.lastCenter,
+                RELEASE_CORE_RADIUS
+        );
+
         if (state.slingReady
                 && tick - state.slingReadyTick <= 12L) {
             launch(
@@ -291,6 +311,7 @@ public final class BlueManager {
                 event.getServer();
 
         cleanupHeld(server);
+        tickCollapsing(server);
 
         Iterator<LaunchedBlue> iterator =
                 LAUNCHED.iterator();
@@ -377,7 +398,7 @@ public final class BlueManager {
                                             * power
                             )
                     ),
-                    true
+                    false
             );
 
             renderBlue(
@@ -403,6 +424,7 @@ public final class BlueManager {
     public static void clearAll() {
         HELD.clear();
         LAUNCHED.clear();
+        COLLAPSING.clear();
     }
 
     private static void cleanupHeld(
@@ -601,19 +623,11 @@ public final class BlueManager {
                             distanceSquared
                     );
 
-            if (eraseCore
-                    && distance
-                            < 0.78
-                                    + power
-                                    * 0.62) {
-                eraseEntity(
-                        level,
-                        entity
-                );
-
-                continue;
-            }
-
+            /*
+             * While Blue exists, the core no longer deletes entities.
+             * Anything that reaches it is trapped in an increasingly tight
+             * orbit. The actual shrink-and-vanish happens only on release.
+             */
             Vec3 radial =
                     toCenter.scale(
                             1.0
@@ -1246,37 +1260,44 @@ public final class BlueManager {
                         ? 7
                         : 3;
 
+        /*
+         * Use Minecraft's actual smoke sprites rather than generic cloud
+         * puffs. Campfire smoke hangs around for a long time and slowly rises,
+         * so a straight Blue pass leaves a visible cinematic trail behind.
+         */
         level.sendParticles(
-                ParticleTypes.CLOUD,
+                ParticleTypes.CAMPFIRE_COSY_SMOKE,
                 center.x,
                 center.y,
                 center.z,
-                amount,
-                0.35
+                1,
+                0.18
                         + power
-                                * 0.4,
-                0.24
+                                * 0.18,
+                0.08,
+                0.18
                         + power
-                                * 0.25,
-                0.35
-                        + power
-                                * 0.4,
-                0.018
+                                * 0.18,
+                0.004
         );
 
-        if (launched) {
-            level.sendParticles(
-                    ParticleTypes.SMOKE,
-                    center.x,
-                    center.y,
-                    center.z,
-                    6,
-                    0.38,
-                    0.30,
-                    0.38,
-                    0.025
-            );
-        }
+        level.sendParticles(
+                ParticleTypes.LARGE_SMOKE,
+                center.x,
+                center.y,
+                center.z,
+                launched
+                        ? 4
+                        : 2,
+                0.30
+                        + power
+                                * 0.22,
+                0.16,
+                0.30
+                        + power
+                                * 0.22,
+                0.012
+        );
     }
 
     private static void waterBurst(
@@ -1357,9 +1378,15 @@ public final class BlueManager {
                                     center
                             );
 
-            if (relative.lengthSqr()
+            double relativeDistanceSquared =
+                    relative.lengthSqr();
+
+            if (relativeDistanceSquared
                     > radius
-                            * radius) {
+                            * radius
+                    || relativeDistanceSquared
+                            <= RELEASE_CORE_RADIUS
+                                    * RELEASE_CORE_RADIUS) {
                 continue;
             }
 
@@ -1469,7 +1496,7 @@ public final class BlueManager {
                 1.25F,
                 spinDirection,
                 10,
-                true
+                false
         );
 
         burst(
@@ -1495,20 +1522,12 @@ public final class BlueManager {
                         blue.position.z + 3.6
                 );
 
-        for (Entity entity :
-                level.getEntities(
-                        owner,
-                        box,
-                        other ->
-                                other.isAlive()
-                                        && other != owner
-                                        && !other.isSpectator()
-                )) {
-            eraseEntity(
-                    level,
-                    entity
-            );
-        }
+        queueCoreCollapse(
+                level,
+                owner,
+                blue.position,
+                3.6
+        );
 
         burst(
                 level,
@@ -1527,6 +1546,218 @@ public final class BlueManager {
                 1.35F,
                 0.38F
         );
+    }
+
+    private static void queueCoreCollapse(
+            ServerLevel level,
+            Player owner,
+            Vec3 center,
+            double radius
+    ) {
+        AABB box =
+                new AABB(
+                        center.x - radius,
+                        center.y - radius,
+                        center.z - radius,
+                        center.x + radius,
+                        center.y + radius,
+                        center.z + radius
+                );
+
+        double radiusSquared =
+                radius
+                        * radius;
+
+        for (Entity entity :
+                level.getEntities(
+                        owner,
+                        box,
+                        other ->
+                                other.isAlive()
+                                        && other != owner
+                                        && !other.isSpectator()
+                )) {
+
+            if (entity.getBoundingBox()
+                    .getCenter()
+                    .distanceToSqr(
+                            center
+                    )
+                    > radiusSquared) {
+                continue;
+            }
+
+            boolean alreadyCollapsing =
+                    COLLAPSING.stream()
+                            .anyMatch(
+                                    collapse ->
+                                            collapse.entityId.equals(
+                                                    entity.getUUID()
+                                            )
+                            );
+
+            if (alreadyCollapsing) {
+                continue;
+            }
+
+            double originalScale =
+                    1.0;
+
+            if (entity instanceof LivingEntity living) {
+                var scale =
+                        living.getAttribute(
+                                Attributes.SCALE
+                        );
+
+                if (scale != null) {
+                    originalScale =
+                            scale.getBaseValue();
+                }
+            }
+
+            COLLAPSING.add(
+                    new CollapsingEntity(
+                            entity.getUUID(),
+                            level.dimension(),
+                            center,
+                            originalScale,
+                            COLLAPSE_TICKS
+                    )
+            );
+        }
+    }
+
+    private static void tickCollapsing(
+            MinecraftServer server
+    ) {
+        Iterator<CollapsingEntity> iterator =
+                COLLAPSING.iterator();
+
+        while (iterator.hasNext()) {
+            CollapsingEntity collapse =
+                    iterator.next();
+
+            ServerLevel level =
+                    server.getLevel(
+                            collapse.dimension
+                    );
+
+            if (level == null) {
+                iterator.remove();
+                continue;
+            }
+
+            Entity entity =
+                    level.getEntity(
+                            collapse.entityId
+                    );
+
+            if (entity == null
+                    || !entity.isAlive()) {
+                iterator.remove();
+                continue;
+            }
+
+            collapse.age++;
+
+            double progress =
+                    Mth.clamp(
+                            collapse.age
+                                    / (double) collapse.duration,
+                            0.0,
+                            1.0
+                    );
+
+            Vec3 current =
+                    entity.getBoundingBox()
+                            .getCenter();
+
+            Vec3 inward =
+                    collapse.center.subtract(
+                            current
+                    );
+
+            double angle =
+                    server.getTickCount()
+                            * 0.48
+                            + entity.getId()
+                                    * 0.71;
+
+            Vec3 orbit =
+                    new Vec3(
+                            Math.cos(
+                                    angle
+                            ),
+                            Math.sin(
+                                    angle
+                                            * 0.63
+                            )
+                                    * 0.22,
+                            Math.sin(
+                                    angle
+                            )
+                    )
+                    .scale(
+                            (1.0 - progress)
+                                    * 0.28
+                    );
+
+            entity.setDeltaMovement(
+                    inward.scale(
+                            0.22
+                                    + progress
+                                            * 0.42
+                    )
+                    .add(
+                            orbit
+                    )
+            );
+
+            entity.hurtMarked = true;
+
+            if (entity instanceof LivingEntity living) {
+                var scale =
+                        living.getAttribute(
+                                Attributes.SCALE
+                        );
+
+                if (scale != null) {
+                    scale.setBaseValue(
+                            Math.max(
+                                    0.05,
+                                    collapse.originalScale
+                                            * (
+                                                    1.0
+                                                            - progress
+                                                            * 0.95
+                                            )
+                            )
+                    );
+                }
+            }
+
+            level.sendParticles(
+                    ParticleTypes.PORTAL,
+                    current.x,
+                    current.y,
+                    current.z,
+                    4,
+                    0.12,
+                    0.12,
+                    0.12,
+                    0.08
+            );
+
+            if (collapse.age
+                    >= collapse.duration) {
+                eraseEntity(
+                        level,
+                        entity
+                );
+
+                iterator.remove();
+            }
+        }
     }
 
     private static void burst(
@@ -1578,6 +1809,31 @@ public final class BlueManager {
                         * scale,
                 0.48
         );
+    }
+
+    private static final class CollapsingEntity {
+
+        private final UUID entityId;
+        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private final Vec3 center;
+        private final double originalScale;
+        private final int duration;
+
+        private int age;
+
+        private CollapsingEntity(
+                UUID entityId,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 center,
+                double originalScale,
+                int duration
+        ) {
+            this.entityId = entityId;
+            this.dimension = dimension;
+            this.center = center;
+            this.originalScale = originalScale;
+            this.duration = duration;
+        }
     }
 
     private static final class HeldBlue {
