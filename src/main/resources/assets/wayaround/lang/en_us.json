@@ -64,7 +64,7 @@
     "advancements.wayaround.assembly_objects.failed_water_wheel.description": "Successfully assemble a non-functional water wheel.",
     "guide.wayaround.assembly.header": "Assembly Manual — Water Wheel",
     "guide.wayaround.assembly.1": "Place a Water Wheel Support attached to a structure.",
-    "guide.wayaround.assembly.2": "Install the Water Wheel Body on the support. The axle and spokes need enough room to rotate.",
+    "guide.wayaround.assembly.2": "Install the Water Wheel Body on the support. The body may sit close to construction; reserve clearance mainly for the boards' path.",
     "guide.wayaround.assembly.3": "Hold a Water Wheel Plate, aim directly at the hexagonal frame and click to fit it at that exact point.",
     "guide.wayaround.assembly.4": "With an empty hand, click a loose board to rotate it in small steps. Shift + click removes it.",
     "guide.wayaround.assembly.5": "Use any item recognized as a nail to lock the board through its mounting hole. An empty hand removes the nail again.",
