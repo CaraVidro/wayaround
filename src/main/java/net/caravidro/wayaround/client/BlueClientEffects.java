@@ -85,9 +85,6 @@ public final class BlueClientEffects {
                                 )
                 );
 
-        byte previousMode =
-                state.mode;
-
         state.position =
                 new Vec3(
                         payload.x(),
@@ -124,20 +121,6 @@ public final class BlueClientEffects {
 
         state.lingerTicks =
                 0;
-
-        if (payload.mode()
-                == BlueVisualPayload.LAUNCHED
-                && previousMode
-                        != BlueVisualPayload.LAUNCHED
-                && state.sound != null) {
-            minecraft.getSoundManager()
-                    .stop(
-                            state.sound
-                    );
-
-            state.sound =
-                    null;
-        }
 
         if (state.sound == null) {
             state.sound =
@@ -619,10 +602,7 @@ public final class BlueClientEffects {
         return new SoundSample(
                 state.position,
                 volume,
-                state.mode
-                        == BlueVisualPayload.LAUNCHED
-                                ? 0.97F
-                                : 1.0F
+                1.0F
         );
     }
 
