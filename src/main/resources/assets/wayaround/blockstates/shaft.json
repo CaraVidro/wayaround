@@ -1,0 +1,7 @@
+{
+  "variants":{
+    "axis=z":{"model":"wayaround:block/shaft"},
+    "axis=x":{"model":"wayaround:block/shaft","y":90},
+    "axis=y":{"model":"wayaround:block/shaft","x":90}
+  }
+}

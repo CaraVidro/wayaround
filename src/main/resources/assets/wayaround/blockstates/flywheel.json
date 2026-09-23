@@ -1,0 +1,10 @@
+{
+  "variants":{
+    "axis=z,phase=false":{"model":"wayaround:block/flywheel_a"},
+    "axis=z,phase=true":{"model":"wayaround:block/flywheel_b"},
+    "axis=x,phase=false":{"model":"wayaround:block/flywheel_a","y":90},
+    "axis=x,phase=true":{"model":"wayaround:block/flywheel_b","y":90},
+    "axis=y,phase=false":{"model":"wayaround:block/flywheel_a","x":90},
+    "axis=y,phase=true":{"model":"wayaround:block/flywheel_b","x":90}
+  }
+}
