@@ -86,5 +86,6 @@
     "message.wayaround.assembly.wear_good": "Good",
     "message.wayaround.assembly.wear_used": "Used",
     "message.wayaround.assembly.wear_worn": "Heavily worn",
-    "message.wayaround.assembly.wear_critical": "Critical"
+    "message.wayaround.assembly.wear_critical": "Critical",
+    "guide.wayaround.assembly.diagnostics.6": "Deep cracks and splitting wood mean structural failure is imminent. Remove the wheel from load or current to halt the failure progression."
 }
