@@ -195,6 +195,10 @@ public final class WaterWheelHubBlockEntity
             );
         }
 
+        hub.emitLooseBoardRattle(
+                server
+        );
+
         int creakInterval =
                 hub.creakInterval();
 
@@ -1729,24 +1733,52 @@ public final class WaterWheelHubBlockEntity
             }
         }
 
-        if (frameWear
-                >= AssemblyItemData.MAX_COMPONENT_WEAR
-                && (
-                        motion > 4.0
-                        || load > 0.75
-                )
-                && level.random.nextFloat()
-                < 0.006F) {
+        if (changed) {
+            setChanged();
+        }
+    }
+
+    private void updateCriticalFailure(
+            ServerLevel level
+    ) {
+        boolean stressed =
+                Math.abs(rpm) > 2.5F
+                || Math.abs(torque) > 0.65F
+                || lastMechanicalLoad > 0.25F;
+
+        if (frameWear < 9_150) {
+            failureCountdown =
+                    -1;
+            return;
+        }
+
+        if (!stressed) {
+            return;
+        }
+
+        if (failureCountdown < 0) {
+            failureCountdown =
+                    100
+                    + level.random.nextInt(
+                            121
+                    );
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.WOODEN_DOOR_OPEN,
+                    SoundSource.BLOCKS,
+                    0.82F,
+                    0.48F
+            );
 
             level.playSound(
                     null,
                     worldPosition,
                     SoundEvents.WOOD_BREAK,
                     SoundSource.BLOCKS,
-                    1.0F,
-                    0.58F
-                    + level.random.nextFloat()
-                    * 0.12F
+                    0.95F,
+                    0.62F
             );
 
             level.sendParticles(
@@ -1754,24 +1786,133 @@ public final class WaterWheelHubBlockEntity
                     worldPosition.getX() + 0.5,
                     worldPosition.getY() + 0.5,
                     worldPosition.getZ() + 0.5,
-                    14,
-                    1.2,
-                    1.2,
-                    1.2,
-                    0.05
+                    7,
+                    0.75,
+                    0.75,
+                    0.75,
+                    0.025
             );
 
-            level.destroyBlock(
-                    worldPosition,
-                    false
-            );
-
+            sync();
             return;
         }
 
-        if (changed) {
-            setChanged();
+        int stressStep =
+                1
+                + (Math.abs(rpm) > 14.0F
+                        ? 1
+                        : 0)
+                + (Math.abs(torque) > 1.8F
+                        ? 1
+                        : 0)
+                + (lastMechanicalLoad > 1.0F
+                        ? 1
+                        : 0);
+
+        failureCountdown -=
+                stressStep;
+
+        if (failureCountdown > 0
+                && failureCountdown % 38 < stressStep) {
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.WOOD_BREAK,
+                    SoundSource.BLOCKS,
+                    0.58F,
+                    0.72F
+                    + level.random.nextFloat()
+                    * 0.12F
+            );
         }
+
+        if (failureCountdown > 0) {
+            return;
+        }
+
+        level.playSound(
+                null,
+                worldPosition,
+                SoundEvents.WOOD_BREAK,
+                SoundSource.BLOCKS,
+                1.25F,
+                0.48F
+        );
+
+        level.sendParticles(
+                ParticleTypes.CLOUD,
+                worldPosition.getX() + 0.5,
+                worldPosition.getY() + 0.5,
+                worldPosition.getZ() + 0.5,
+                22,
+                1.35,
+                1.35,
+                1.35,
+                0.07
+        );
+
+        level.destroyBlock(
+                worldPosition,
+                false
+        );
+    }
+
+    private void emitLooseBoardRattle(
+            ServerLevel level
+    ) {
+        if (looseSoundCooldown > 0
+                || Math.abs(rpm) < 1.25F) {
+            return;
+        }
+
+        int loose =
+                0;
+
+        float swing =
+                0.0F;
+
+        for (Plate plate :
+                plates) {
+            if (!plate.nailed) {
+                loose++;
+                swing =
+                        Math.max(
+                                swing,
+                                Math.abs(
+                                        plate.looseSwingVelocity
+                                )
+                        );
+            }
+        }
+
+        if (loose <= 0
+                || swing < 0.22F) {
+            return;
+        }
+
+        looseSoundCooldown =
+                12
+                + level.random.nextInt(
+                        10
+                );
+
+        level.playSound(
+                null,
+                worldPosition,
+                SoundEvents.WOOD_HIT,
+                SoundSource.BLOCKS,
+                Mth.clamp(
+                        0.12F
+                        + loose * 0.035F
+                        + swing * 0.018F,
+                        0.12F,
+                        0.52F
+                ),
+                0.92F
+                + level.random.nextFloat()
+                * 0.18F
+        );
     }
 
     private void emitWaterFeedback(
@@ -2537,6 +2678,15 @@ public final class WaterWheelHubBlockEntity
                         "Jammed"
                 );
 
+        failureCountdown =
+                tag.contains(
+                        "FailureCountdown"
+                )
+                        ? tag.getInt(
+                                "FailureCountdown"
+                        )
+                        : -1;
+
         plates.clear();
 
         ListTag plateList =
@@ -2729,6 +2879,11 @@ public final class WaterWheelHubBlockEntity
         tag.putBoolean(
                 "Jammed",
                 jammed
+        );
+
+        tag.putInt(
+                "FailureCountdown",
+                failureCountdown
         );
 
         ListTag plateList =
