@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
 import net.minecraft.core.registries.Registries;
@@ -47,6 +48,7 @@ public final class IndustrialContent {
                     .withTabsBefore(CreativeModeTabs.SPAWN_EGGS).icon(() -> REFORCED_BLASTER_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
                         output.accept(REFORCED_BLASTER_ITEM.get());
+                        output.accept(WayAroundContent.BLUE.get());
                         output.accept(PowerContent.SOLAR_PANEL_ITEM.get());
                         output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
                         output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
