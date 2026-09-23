@@ -185,10 +185,15 @@ public final class BlueWorldRenderer {
                         1.35F
                 );
 
+        /*
+         * The old prototype read too much like a particle marker. Blue is now
+         * physically imposing: at full charge the core alone is several
+         * blocks across, with the translucent shells extending even farther.
+         */
         float coreHalf =
-                0.28F
+                0.62F
                         + visiblePower
-                                * 0.68F;
+                                * 1.28F;
 
         if (collapsing) {
             coreHalf *=
@@ -198,14 +203,14 @@ public final class BlueWorldRenderer {
         float shellHalf =
                 coreHalf
                         * (
-                                1.38F
+                                1.48F
                                         + pulse
-                                                * 0.05F
+                                                * 0.07F
                         );
 
         float shell2Half =
                 shellHalf
-                        * 1.13F;
+                        * 1.22F;
 
         var matrix =
                 poseStack.last()
