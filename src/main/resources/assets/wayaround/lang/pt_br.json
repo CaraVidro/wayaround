@@ -91,5 +91,8 @@
     "message.wayaround.assembly.inspect_frame": "Frame | Madeira: %s | Estrutura: %s",
     "message.wayaround.assembly.failure_imminent": "FALHA IMINENTE",
     "message.wayaround.assembly.structure_stable": "Estável",
-    "block.wayaround.mechanical_gearbox": "Caixa de engrenagens"
+    "block.wayaround.mechanical_gearbox": "Caixa de engrenagens",
+    "item.wayaround.blue": "Blue",
+    "tooltip.wayaround.blue.control": "Segure para condensar. Use a rodinha para aproximar ou afastar.",
+    "tooltip.wayaround.blue.sling": "Puxe para perto, empurre para longe rapidamente e solte para lançar."
 }
