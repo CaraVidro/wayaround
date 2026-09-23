@@ -1,0 +1,13 @@
+{
+  "variants":{
+    "axis=z,ratio=0":{"model":"wayaround:block/gearbox_direct"},
+    "axis=z,ratio=1":{"model":"wayaround:block/gearbox_speed"},
+    "axis=z,ratio=2":{"model":"wayaround:block/gearbox_torque"},
+    "axis=x,ratio=0":{"model":"wayaround:block/gearbox_direct","y":90},
+    "axis=x,ratio=1":{"model":"wayaround:block/gearbox_speed","y":90},
+    "axis=x,ratio=2":{"model":"wayaround:block/gearbox_torque","y":90},
+    "axis=y,ratio=0":{"model":"wayaround:block/gearbox_direct","x":90},
+    "axis=y,ratio=1":{"model":"wayaround:block/gearbox_speed","x":90},
+    "axis=y,ratio=2":{"model":"wayaround:block/gearbox_torque","x":90}
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/copper_block",
+    "metal": "minecraft:block/copper_block",
+    "band": "minecraft:block/cut_copper"
+  },
+  "elements": [
+    {
+      "from": [1, 5, 5],
+      "to": [15, 11, 11],
+      "faces": {
+        "down": {"texture":"#band"}, "up": {"texture":"#band"},
+        "north": {"texture":"#band"}, "south": {"texture":"#band"},
+        "west": {"texture":"#metal"}, "east": {"texture":"#metal"}
+      }
+    }
+  ]
+}

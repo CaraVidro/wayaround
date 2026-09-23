@@ -1,0 +1,26 @@
+{
+  "parent":"minecraft:block/block",
+  "textures":{
+    "particle":"minecraft:block/iron_block",
+    "body":"minecraft:block/iron_block",
+    "band":"minecraft:block/copper_block",
+    "rod":"minecraft:block/smooth_stone"
+  },
+  "elements":[
+    {"from":[1,1,6],"to":[15,15,15],"faces":{
+      "down":{"texture":"#body"},"up":{"texture":"#body"},
+      "north":{"texture":"#band"},"south":{"texture":"#body"},
+      "west":{"texture":"#body"},"east":{"texture":"#body"}
+    }},
+    {"from":[0.5,3,5],"to":[15.5,13,7],"faces":{
+      "down":{"texture":"#band"},"up":{"texture":"#band"},
+      "north":{"texture":"#band"},"south":{"texture":"#band"},
+      "west":{"texture":"#band"},"east":{"texture":"#band"}
+    }},
+    {"from":[6,6,3],"to":[10,10,6],"faces":{
+      "down":{"texture":"#rod"},"up":{"texture":"#rod"},
+      "north":{"texture":"#rod"},"south":{"texture":"#rod"},
+      "west":{"texture":"#rod"},"east":{"texture":"#rod"}
+    }}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "parent":"minecraft:block/block",
+  "textures":{"particle":"minecraft:block/copper_block","metal":"minecraft:block/copper_block","cap":"minecraft:block/iron_block"},
+  "elements":[
+    {"from":[5,0,5],"to":[11,10,11],"faces":{"down":{"texture":"#metal"},"up":{"texture":"#metal"},"north":{"texture":"#metal"},"south":{"texture":"#metal"},"west":{"texture":"#metal"},"east":{"texture":"#metal"}}},
+    {"from":[3,8,3],"to":[13,11,13],"faces":{"down":{"texture":"#cap"},"up":{"texture":"#cap"},"north":{"texture":"#cap"},"south":{"texture":"#cap"},"west":{"texture":"#cap"},"east":{"texture":"#cap"}}},
+    {"from":[6,11,6],"to":[10,15,10],"faces":{"down":{"texture":"#metal"},"up":{"texture":"#cap"},"north":{"texture":"#metal"},"south":{"texture":"#metal"},"west":{"texture":"#metal"},"east":{"texture":"#metal"}}}
+  ]
+}

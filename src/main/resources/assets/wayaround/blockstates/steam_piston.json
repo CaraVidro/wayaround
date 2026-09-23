@@ -1,0 +1,23 @@
+{
+  "variants": {
+    "facing=north,running=false,phase=false": {"model":"wayaround:block/steam_piston_idle"},
+    "facing=north,running=false,phase=true": {"model":"wayaround:block/steam_piston_idle"},
+    "facing=north,running=true,phase=false": {"model":"wayaround:block/steam_piston_idle"},
+    "facing=north,running=true,phase=true": {"model":"wayaround:block/steam_piston_extended"},
+
+    "facing=east,running=false,phase=false": {"model":"wayaround:block/steam_piston_idle","y":90},
+    "facing=east,running=false,phase=true": {"model":"wayaround:block/steam_piston_idle","y":90},
+    "facing=east,running=true,phase=false": {"model":"wayaround:block/steam_piston_idle","y":90},
+    "facing=east,running=true,phase=true": {"model":"wayaround:block/steam_piston_extended","y":90},
+
+    "facing=south,running=false,phase=false": {"model":"wayaround:block/steam_piston_idle","y":180},
+    "facing=south,running=false,phase=true": {"model":"wayaround:block/steam_piston_idle","y":180},
+    "facing=south,running=true,phase=false": {"model":"wayaround:block/steam_piston_idle","y":180},
+    "facing=south,running=true,phase=true": {"model":"wayaround:block/steam_piston_extended","y":180},
+
+    "facing=west,running=false,phase=false": {"model":"wayaround:block/steam_piston_idle","y":270},
+    "facing=west,running=false,phase=true": {"model":"wayaround:block/steam_piston_idle","y":270},
+    "facing=west,running=true,phase=false": {"model":"wayaround:block/steam_piston_idle","y":270},
+    "facing=west,running=true,phase=true": {"model":"wayaround:block/steam_piston_extended","y":270}
+  }
+}

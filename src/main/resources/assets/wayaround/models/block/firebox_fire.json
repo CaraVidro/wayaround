@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {"particle":"minecraft:block/magma","fire":"minecraft:block/magma"},
+  "elements": [
+    {
+      "from": [4, 3.0, 4],
+      "to": [12, 4.0, 12],
+      "faces": {
+        "down":{"texture":"#fire"},"up":{"texture":"#fire"},
+        "north":{"texture":"#fire"},"south":{"texture":"#fire"},
+        "west":{"texture":"#fire"},"east":{"texture":"#fire"}
+      }
+    }
+  ]
+}

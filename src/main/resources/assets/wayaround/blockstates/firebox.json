@@ -1,0 +1,32 @@
+{
+  "multipart": [
+    {
+      "when": { "open": "false" },
+      "apply": { "model": "wayaround:block/firebox_closed" }
+    },
+    {
+      "when": { "open": "true" },
+      "apply": { "model": "wayaround:block/firebox_open" }
+    },
+    {
+      "when": { "open": "true", "fuel_level": "1" },
+      "apply": { "model": "wayaround:block/firebox_coal_low" }
+    },
+    {
+      "when": { "open": "true", "fuel_level": "2" },
+      "apply": { "model": "wayaround:block/firebox_coal_medium" }
+    },
+    {
+      "when": { "open": "true", "fuel_level": "3" },
+      "apply": { "model": "wayaround:block/firebox_coal_high" }
+    },
+    {
+      "when": { "open": "true", "lit": "true" },
+      "apply": { "model": "wayaround:block/firebox_fire" }
+    },
+    {
+      "when": { "open": "false", "lit": "true" },
+      "apply": { "model": "wayaround:block/firebox_glow" }
+    }
+  ]
+}

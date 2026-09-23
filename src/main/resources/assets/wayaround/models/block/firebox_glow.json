@@ -1,0 +1,13 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {"particle":"minecraft:block/blast_furnace_front_on","glow":"minecraft:block/blast_furnace_front_on"},
+  "elements": [
+    {
+      "from": [4, 3, 0.8],
+      "to": [12, 8, 1.05],
+      "faces": {
+        "north":{"texture":"#glow"}
+      }
+    }
+  ]
+}
