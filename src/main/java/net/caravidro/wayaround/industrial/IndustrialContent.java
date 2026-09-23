@@ -56,6 +56,7 @@ public final class IndustrialContent {
                         output.accept(PowerContent.WOODEN_NAIL.get());
                         output.accept(PowerContent.IRON_NAIL.get());
                         output.accept(PowerContent.DIAMOND_NAIL.get());
+                        output.accept(PowerContent.ASSEMBLY_GUIDE.get());
                         output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
                     }).build());
 
