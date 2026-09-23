@@ -34,5 +34,11 @@ public final class WayAroundNetwork {
                 BlueScrollPayload.STREAM_CODEC,
                 BlueScrollPayload::handle
         );
+
+        registrar.playToClient(
+                BlueVisualPayload.TYPE,
+                BlueVisualPayload.STREAM_CODEC,
+                BlueVisualPayload::handle
+        );
     }
 }
