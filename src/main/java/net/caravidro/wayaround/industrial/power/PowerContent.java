@@ -36,7 +36,7 @@ public final class PowerContent {
 
     public static final DeferredBlock<WaterWheelHubBlock> WATER_WHEEL_HUB = BLOCKS.register("water_wheel_hub",
         () -> new WaterWheelHubBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
-            .strength(2.0F, 3.0F).sound(SoundType.WOOD).noOcclusion()));
+            .strength(2.0F, 3.0F).sound(SoundType.WOOD).noOcclusion().noLootTable()));
 
     public static final DeferredItem<BlockItem> WATER_WHEEL_HUB_ITEM = ITEMS.register("water_wheel_hub",
         () -> new BlockItem(WATER_WHEEL_HUB.get(), new Item.Properties()));
@@ -57,7 +57,16 @@ public final class PowerContent {
             .strength(1.2F, 2.0F).sound(SoundType.WOOD).noOcclusion()));
 
     public static final DeferredItem<Item> WATER_WHEEL_BLADE_ITEM = ITEMS.register("water_wheel_blade",
-        () -> new Item(new Item.Properties()));
+        () -> new Item(new Item.Properties().stacksTo(16)));
+
+    public static final DeferredItem<Item> WOODEN_NAIL = ITEMS.register("wooden_nail",
+        () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> IRON_NAIL = ITEMS.register("iron_nail",
+        () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> DIAMOND_NAIL = ITEMS.register("diamond_nail",
+        () -> new Item(new Item.Properties().stacksTo(64)));
 
     public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
         () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
