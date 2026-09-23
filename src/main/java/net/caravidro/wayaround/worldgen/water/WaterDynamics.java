@@ -131,6 +131,262 @@ public final class WaterDynamics {
                 );
     }
 
+    public static MechanicalFlow mechanicalFlow(
+            Level level,
+            BlockPos center
+    ) {
+        Vec3 sum =
+                Vec3.ZERO;
+
+        double sumMagnitude =
+                0.0;
+
+        int waterSamples =
+                0;
+
+        int movingSamples =
+                0;
+
+        BlockPos[] samples =
+                new BlockPos[] {
+                        center,
+                        center.north(),
+                        center.south(),
+                        center.east(),
+                        center.west(),
+                        center.above(),
+                        center.below()
+                };
+
+        for (BlockPos sample :
+                samples) {
+
+            FluidState state =
+                    level.getFluidState(sample);
+
+            if (!state.is(FluidTags.WATER)) {
+                continue;
+            }
+
+            waterSamples++;
+
+            Vec3 raw =
+                    state.getFlow(
+                            level,
+                            sample
+                    );
+
+            double magnitude =
+                    raw.length();
+
+            if (magnitude < 0.008) {
+                continue;
+            }
+
+            movingSamples++;
+
+            sum =
+                    sum.add(raw);
+
+            sumMagnitude +=
+                    magnitude;
+        }
+
+        if (movingSamples > 0
+                && sumMagnitude > 0.0) {
+
+            double resultMagnitude =
+                    sum.length();
+
+            float coherence =
+                    (float) Math.max(
+                            0.0,
+                            Math.min(
+                                    1.0,
+                                    resultMagnitude
+                                    / sumMagnitude
+                            )
+                    );
+
+            double averageSpeed =
+                    sumMagnitude
+                    / movingSamples;
+
+            if (coherence >= 0.52F
+                    && averageSpeed >= 0.025) {
+
+                Vec3 direction =
+                        resultMagnitude > 0.0001
+                                ? sum.scale(
+                                        1.0 / resultMagnitude
+                                )
+                                : Vec3.ZERO;
+
+                return new MechanicalFlow(
+                        direction.scale(
+                                averageSpeed
+                        ),
+                        coherence,
+                        true,
+                        waterSamples
+                );
+            }
+        }
+
+        /*
+         * Natural Minecraft rivers are often made of source blocks and have
+         * no vanilla flow vector at all. In that case, infer a directed
+         * channel only when the surrounding water geometry is clearly longer
+         * along one horizontal axis than the other. Open lakes therefore do
+         * not become free generators.
+         */
+        int east =
+                waterRun(
+                        level,
+                        center,
+                        Direction.EAST,
+                        5
+                );
+
+        int west =
+                waterRun(
+                        level,
+                        center,
+                        Direction.WEST,
+                        5
+                );
+
+        int north =
+                waterRun(
+                        level,
+                        center,
+                        Direction.NORTH,
+                        5
+                );
+
+        int south =
+                waterRun(
+                        level,
+                        center,
+                        Direction.SOUTH,
+                        5
+                );
+
+        int eastWest =
+                east + west;
+
+        int northSouth =
+                north + south;
+
+        int longest =
+                Math.max(
+                        eastWest,
+                        northSouth
+                );
+
+        int shortest =
+                Math.min(
+                        eastWest,
+                        northSouth
+                );
+
+        if (longest >= 4) {
+            float anisotropy =
+                    (longest - shortest)
+                    / (float) Math.max(
+                            1,
+                            longest
+                    );
+
+            if (anisotropy >= 0.30F) {
+                Vec3 ambient =
+                        current(
+                                level,
+                                center
+                        );
+
+                boolean xAxis =
+                        eastWest > northSouth;
+
+                double sign;
+
+                if (xAxis) {
+                    sign =
+                            Math.abs(ambient.x) > 0.001
+                                    ? Math.signum(ambient.x)
+                                    : 1.0;
+                } else {
+                    sign =
+                            Math.abs(ambient.z) > 0.001
+                                    ? Math.signum(ambient.z)
+                                    : 1.0;
+                }
+
+                double inferredSpeed =
+                        0.075
+                        + anisotropy
+                        * 0.105;
+
+                Vec3 inferred =
+                        xAxis
+                                ? new Vec3(
+                                        sign * inferredSpeed,
+                                        0.0,
+                                        0.0
+                                )
+                                : new Vec3(
+                                        0.0,
+                                        0.0,
+                                        sign * inferredSpeed
+                                );
+
+                return new MechanicalFlow(
+                        inferred,
+                        anisotropy,
+                        true,
+                        waterSamples
+                );
+            }
+        }
+
+        return new MechanicalFlow(
+                Vec3.ZERO,
+                0.0F,
+                false,
+                waterSamples
+        );
+    }
+
+    private static int waterRun(
+            Level level,
+            BlockPos center,
+            Direction direction,
+            int maxDistance
+    ) {
+        int count =
+                0;
+
+        for (int distance = 1;
+                distance <= maxDistance;
+                distance++) {
+
+            BlockPos pos =
+                    center.relative(
+                            direction,
+                            distance
+                    );
+
+            if (!level.getFluidState(pos)
+                    .is(FluidTags.WATER)) {
+                break;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
     public static float turbulence(
             Level level,
             BlockPos pos
@@ -286,7 +542,16 @@ public final class WaterDynamics {
     ) {
         return Math.sqrt(
                 current.x * current.x
+                + current.y * current.y
                 + current.z * current.z
         );
+    }
+
+    public record MechanicalFlow(
+            Vec3 vector,
+            float coherence,
+            boolean stable,
+            int waterSamples
+    ) {
     }
 }
