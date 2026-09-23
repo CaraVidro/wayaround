@@ -42,7 +42,21 @@
     "message.wayaround.water_wheel.plate_added": "Placa adicionada. Total: %s",
     "message.wayaround.water_wheel.plate_limit": "Limite de placas atingido: %s",
     "message.wayaround.water_wheel.plate_angle": "Placa %s: ângulo %s°",
-    "message.wayaround.water_wheel.status_v2": "Corpos: %s | Placas: %s | RPM: %s | Torque: %s | Eficiência: %s%% | Potência mecânica: %s",
+    "message.wayaround.water_wheel.status_v2": "Corpos: %s | Tábuas: %s | RPM: %s | Torque: %s | Potência mecânica: %s",
     "item.wayaround.water_wheel_blade": "Placa da roda d'água",
-    "block.wayaround.water_wheel_support": "Suporte da roda d'água"
+    "block.wayaround.water_wheel_support": "Suporte da roda d'água",
+    "item.wayaround.wooden_nail": "Prego de madeira",
+    "item.wayaround.iron_nail": "Prego de ferro",
+    "item.wayaround.diamond_nail": "Prego de diamante",
+    "message.wayaround.assembly.plate_installed": "Tábua encaixada no frame. Ajuste e pregue para fixar.",
+    "message.wayaround.assembly.plate_blocked": "Não há espaço suficiente para encaixar a tábua aí.",
+    "message.wayaround.assembly.nailed": "TAC — tábua fixada.",
+    "message.wayaround.assembly.nail_removed": "Prego removido. A tábua está solta novamente.",
+    "message.wayaround.assembly.plate_removed": "Tábua removida da assembly.",
+    "advancements.wayaround.assembly_objects.root.title": "Assembly Objects",
+    "advancements.wayaround.assembly_objects.root.description": "Construa máquinas peça por peça.",
+    "advancements.wayaround.assembly_objects.water_wheel.title": "O Mais Velho... e Confiável Amigo",
+    "advancements.wayaround.assembly_objects.water_wheel.description": "Faça seu primeiro assembly de uma roda d'água.",
+    "advancements.wayaround.assembly_objects.lava_wheel.title": "Isso Não É Água",
+    "advancements.wayaround.assembly_objects.lava_wheel.description": "Faça uma roda d'água conhecer lava."
 }
