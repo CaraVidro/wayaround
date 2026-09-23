@@ -119,35 +119,35 @@ public final class AssemblyItemData {
                         : id.getPath();
 
         if (path.contains("netherite")) {
-            return 1800;
+            return 60000;
         }
 
         if (path.contains("diamond")) {
-            return 1200;
+            return 40000;
         }
 
         if (path.contains("steel")) {
-            return 620;
+            return 18000;
         }
 
         if (path.contains("iron")) {
-            return 420;
+            return 12000;
         }
 
         if (path.contains("copper")) {
-            return 260;
+            return 7000;
         }
 
         if (path.contains("gold")) {
-            return 180;
+            return 4000;
         }
 
         if (path.contains("wood")
                 || path.contains("oak")) {
-            return 110;
+            return 2400;
         }
 
-        return 300;
+        return 9000;
     }
 
     public static int nailWear(
