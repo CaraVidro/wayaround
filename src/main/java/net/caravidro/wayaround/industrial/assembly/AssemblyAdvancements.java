@@ -13,6 +13,12 @@ public final class AssemblyAdvancements {
                     "assembly_objects/water_wheel"
             );
 
+    private static final ResourceLocation FAILED_WHEEL =
+            ResourceLocation.fromNamespaceAndPath(
+                    WayAround.MODID,
+                    "assembly_objects/failed_water_wheel"
+            );
+
     private static final ResourceLocation LAVA_WHEEL =
             ResourceLocation.fromNamespaceAndPath(
                     WayAround.MODID,
@@ -22,12 +28,34 @@ public final class AssemblyAdvancements {
     private AssemblyAdvancements() {
     }
 
-    public static void waterWheel(ServerPlayer player) {
-        award(player, WATER_WHEEL, "assembled");
+    public static void waterWheel(
+            ServerPlayer player
+    ) {
+        award(
+                player,
+                WATER_WHEEL,
+                "functional"
+        );
     }
 
-    public static void lavaWheel(ServerPlayer player) {
-        award(player, LAVA_WHEEL, "lava");
+    public static void failedWaterWheel(
+            ServerPlayer player
+    ) {
+        award(
+                player,
+                FAILED_WHEEL,
+                "failed"
+        );
+    }
+
+    public static void lavaWheel(
+            ServerPlayer player
+    ) {
+        award(
+                player,
+                LAVA_WHEEL,
+                "lava"
+        );
     }
 
     private static void award(
