@@ -6,11 +6,11 @@ continuam funcionando. As faces precisam ter acesso ao exterior: a neve pode
 passar sob um beiral curto seguindo uma trajetória inclinada, mas não atravessa
 paredes, vidro nem abrigos profundos. Faces inferiores ficam protegidas.
 
-Materiais naturais, vegetação, neve, gelo e blocos já brancos não recebem a
-cobertura. Tábuas, tijolos, concretos coloridos e outros materiais de construção
-podem receber. As exceções podem ser ajustadas pela tag
-`wayaround:frost_immune`. O reconhecimento de material natural é por tipo de
-bloco, não por quem o colocou.
+A cobertura agora pode atingir praticamente qualquer bloco físico: madeira,
+folhas, pedra, vidro, minérios, quartzo e até blocos já brancos. As exceções são
+os materiais naturais polares, como neve e a família do gelo (incluindo packed
+ice e blue ice), além da priorita. As exceções ficam centralizadas na tag
+`wayaround:frost_immune`.
 
 Com nevasca local acima de 15%, a varredura cobre a área de 49 × 49 colunas ao
 redor de um jogador parado em até 8 segundos de jogo. Cada passagem acrescenta
@@ -32,8 +32,8 @@ A priorita continua protegida contra esse acúmulo.
 
 Conferência no jogo: monte uma parede de tábuas/tijolos e outra de concreto
 branco, com um trecho coberto por um telhado. Durante uma nevasca, confira que
-as faces externas da primeira embranquecem, as protegidas permanecem limpas e
-o concreto branco é ignorado. Limpe faces com papel, lave com água corrente e
+as faces externas embranquecem, as protegidas permanecem limpas e até o
+concreto branco recebe cobertura. Neve e gelo devem continuar sem overlay. Limpe faces com papel, lave com água corrente e
 reabra o mundo para conferir a persistência. Verifique também um segundo jogador
 e uma construção com escadas, lajes e baús.
 
