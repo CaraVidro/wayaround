@@ -5,6 +5,8 @@ import net.caravidro.wayaround.client.weather.LivingCloudRenderer;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.BlueScrollPayload;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -32,6 +34,7 @@ public final class BlueClientEffects {
     private static final double SCROLL_STEP = 2.2;
 
     private static boolean wasHolding;
+    private static int heldTicks;
     private static double distance = 7.0;
     private static boolean pulledBack;
     private static long pulledBackTick = Long.MIN_VALUE;
@@ -126,12 +129,15 @@ public final class BlueClientEffects {
 
         if (holding) {
             if (!wasHolding) {
+                heldTicks = 0;
                 distance = 7.0;
                 pulledBack = false;
                 slingReady = false;
                 pulledBackTick = Long.MIN_VALUE;
                 slingReadyTick = Long.MIN_VALUE;
             }
+
+            heldTicks++;
 
             lastLook =
                     minecraft.player
@@ -152,6 +158,10 @@ public final class BlueClientEffects {
                     12.5
             );
         } else if (wasHolding) {
+            stopBlueTheme(
+                    minecraft
+            );
+
             if (slingReady
                     && tick - slingReadyTick <= 12L) {
                 projectilePosition =
@@ -193,6 +203,53 @@ public final class BlueClientEffects {
 
             projectileLife--;
         }
+    }
+
+    public static boolean heldVisualActive() {
+        return wasHolding;
+    }
+
+    public static Vec3 heldVisualCenter() {
+        return lastCenter;
+    }
+
+    public static float heldVisualPower() {
+        return Mth.clamp(
+                heldTicks
+                        / 42.0F,
+                0.18F,
+                1.0F
+        );
+    }
+
+    public static boolean projectileVisualActive() {
+        return projectileLife > 0;
+    }
+
+    public static Vec3 projectileVisualCenter() {
+        return projectilePosition;
+    }
+
+    public static float projectileVisualPower() {
+        return Mth.clamp(
+                projectileLife
+                        / 100.0F,
+                0.0F,
+                1.0F
+        );
+    }
+
+    private static void stopBlueTheme(
+            Minecraft minecraft
+    ) {
+        minecraft.getSoundManager()
+                .stop(
+                        ResourceLocation.fromNamespaceAndPath(
+                                WayAround.MODID,
+                                "blue_theme"
+                        ),
+                        SoundSource.PLAYERS
+                );
     }
 
     private static boolean isHoldingBlue(
