@@ -764,6 +764,19 @@ public final class WaterWheelHubBlockEntity
                         nextRotationDegrees
                 );
 
+        Vec3 axleDepth =
+                axis == Direction.Axis.X
+                        ? new Vec3(
+                                1.0,
+                                0.0,
+                                0.0
+                        )
+                        : new Vec3(
+                                0.0,
+                                0.0,
+                                1.0
+                        );
+
         for (Plate plate :
                 plates) {
 
@@ -783,6 +796,24 @@ public final class WaterWheelHubBlockEntity
                             angle
                     );
 
+            double tilt =
+                    Math.toRadians(
+                            plate.effectiveTilt()
+                    );
+
+            Vec3 boardAxis =
+                    radial.scale(
+                            Math.cos(
+                                    tilt
+                            )
+                    ).add(
+                            tangent.scale(
+                                    Math.sin(
+                                            tilt
+                                    )
+                            )
+                    ).normalize();
+
             Vec3 center =
                     Vec3.atCenterOf(
                             worldPosition
@@ -792,78 +823,178 @@ public final class WaterWheelHubBlockEntity
                             )
                     );
 
-            double halfWidth =
-                    Math.max(
-                            0.22,
-                            plate.width * 0.52
-                    );
-
-            Vec3[] checks =
-                    new Vec3[] {
-                            center,
-                            center.add(
-                                    tangent.scale(
-                                            halfWidth
-                                    )
-                            ),
-                            center.subtract(
-                                    tangent.scale(
-                                            halfWidth
-                                    )
+            double depth =
+                    getBlockState()
+                            .getValue(
+                                    WaterWheelHubBlock.DOUBLE
                             )
+                                    ? Math.max(
+                                            1.34,
+                                            plate.depth
+                                    )
+                                    : plate.depth;
+
+            double[] along =
+                    new double[] {
+                            -0.50,
+                            -0.25,
+                            0.0,
+                            0.25,
+                            0.50
                     };
 
-            for (Vec3 check :
-                    checks) {
-                if (solidAssemblyObstacle(
-                        level,
-                        BlockPos.containing(
-                                check
-                        )
-                )) {
-                    return true;
+            double[] across =
+                    new double[] {
+                            -0.50,
+                            0.0,
+                            0.50
+                    };
+
+            for (double u :
+                    along) {
+
+                for (double v :
+                        across) {
+
+                    Vec3 check =
+                            center.add(
+                                    boardAxis.scale(
+                                            plate.width
+                                            * u
+                                    )
+                            ).add(
+                                    axleDepth.scale(
+                                            depth
+                                            * v
+                                    )
+                            );
+
+                    if (solidAssemblyObstacle(
+                            level,
+                            BlockPos.containing(
+                                    check
+                            )
+                    )) {
+                        return true;
+                    }
                 }
             }
         }
 
         /*
-         * The frame itself is physical too. Twelve samples are enough for the
-         * rotating hexagonal rim/spokes without turning this into voxel-CAD.
+         * Only the boards are operational collision pieces. The body/frame
+         * may overlap decorative construction around the axle; if a paddle
+         * hits something, however, the entire assembly jams.
          */
-        for (int sample = 0;
-                sample < 12;
-                sample++) {
+        return false;
+    }
 
-            double angle =
-                    rotation
-                    + sample
-                    * Math.PI
-                    * 2.0
-                    / 12.0;
-
-            Vec3 check =
-                    Vec3.atCenterOf(
-                            worldPosition
-                    ).add(
-                            radialVector(
-                                    axis,
-                                    angle
-                            ).scale(
-                                    FRAME_RADIUS
-                            )
-                    );
-
-            if (solidAssemblyObstacle(
-                    level,
-                    BlockPos.containing(
-                            check
-                    )
-            )) {
-                return true;
-            }
+    private void emitBoardCollision(
+            ServerLevel level,
+            float impactRpm
+    ) {
+        if (collisionSoundCooldown > 0) {
+            return;
         }
 
-        return false;
+        collisionSoundCooldown =
+                7;
+
+        level.playSound(
+                null,
+                worldPosition,
+                impactRpm > 8.0F
+                        ? SoundEvents.WOOD_BREAK
+                        : SoundEvents.WOOD_HIT,
+                SoundSource.BLOCKS,
+                Mth.clamp(
+                        0.35F
+                        + impactRpm / 30.0F,
+                        0.35F,
+                        1.0F
+                ),
+                Mth.clamp(
+                        1.15F
+                        - impactRpm / 55.0F,
+                        0.58F,
+                        1.12F
+                )
+        );
+    }
+
+    private void updateLoosePlate(
+            Plate plate,
+            double worldAngle
+    ) {
+        if (plate.nailed) {
+            plate.looseSwingDegrees =
+                    0.0F;
+
+            plate.looseSwingVelocity =
+                    0.0F;
+
+            return;
+        }
+
+        float speed =
+                Math.abs(
+                        rpm
+                );
+
+        float target =
+                speed < 0.08F
+                        ? 0.0F
+                        : Mth.clamp(
+                                (float) (
+                                        -Math.sin(
+                                                worldAngle
+                                        )
+                                        * Math.min(
+                                                58.0,
+                                                10.0
+                                                + speed * 1.9
+                                        )
+                                ),
+                                -65.0F,
+                                65.0F
+                        );
+
+        plate.looseSwingVelocity +=
+                (
+                        target
+                        - plate.looseSwingDegrees
+                )
+                * (
+                        speed < 0.08F
+                                ? 0.055F
+                                : 0.082F
+                );
+
+        plate.looseSwingVelocity +=
+                Mth.clamp(
+                        (
+                                rpm
+                                - previousRpm
+                        )
+                        * 0.42F,
+                        -4.5F,
+                        4.5F
+                );
+
+        plate.looseSwingVelocity *=
+                speed < 0.08F
+                        ? 0.72F
+                        : 0.91F;
+
+        plate.looseSwingDegrees +=
+                plate.looseSwingVelocity;
+
+        plate.looseSwingDegrees =
+                Mth.clamp(
+                        plate.looseSwingDegrees,
+                        -72.0F,
+                        72.0F
+                );
     }
 
     private boolean solidAssemblyObstacle(
@@ -1001,6 +1132,15 @@ public final class WaterWheelHubBlockEntity
         plate.tiltDegrees +=
                 amountDegrees;
 
+        if (Math.abs(rpm) > 0.25F) {
+            plate.looseSwingVelocity +=
+                    Mth.clamp(
+                            rpm * 0.11F,
+                            -3.0F,
+                            3.0F
+                    );
+        }
+
         while (plate.tiltDegrees > 85.0F) {
             plate.tiltDegrees -=
                     170.0F;
@@ -1038,6 +1178,19 @@ public final class WaterWheelHubBlockEntity
         if (plate.nailed) {
             return false;
         }
+
+        plate.tiltDegrees =
+                Mth.clamp(
+                        plate.effectiveTilt(),
+                        -85.0F,
+                        85.0F
+                );
+
+        plate.looseSwingDegrees =
+                0.0F;
+
+        plate.looseSwingVelocity =
+                0.0F;
 
         plate.nailed =
                 true;
@@ -2155,7 +2308,7 @@ public final class WaterWheelHubBlockEntity
 
         return plates.get(
                 index
-        ).tiltDegrees;
+        ).effectiveTilt();
     }
 
     public int plateWear(
@@ -2708,6 +2861,10 @@ public final class WaterWheelHubBlockEntity
 
         private float tiltDegrees;
 
+        private float looseSwingDegrees;
+
+        private float looseSwingVelocity;
+
         private int wear;
 
         private boolean nailed;
@@ -2726,6 +2883,15 @@ public final class WaterWheelHubBlockEntity
         private boolean wet;
 
         private float lastWaterTorque;
+
+        private float effectiveTilt() {
+            return Mth.clamp(
+                    tiltDegrees
+                    + looseSwingDegrees,
+                    -88.0F,
+                    88.0F
+            );
+        }
 
         private double mass() {
             double wearMass =
