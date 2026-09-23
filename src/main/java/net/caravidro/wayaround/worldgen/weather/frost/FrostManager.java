@@ -28,7 +28,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -77,7 +76,7 @@ public final class FrostManager {
         if (apply) {
             if (!accepts || mask == 0) {
                 source.sendFailure(Component.literal(!accepts
-                        ? "Esse material e natural, branco ou nao aceita cobertura. Teste tabuas ou tijolos."
+                        ? "Esse bloco e imune ao frost, contem fluido ou nao possui forma de colisao."
                         : "Nenhuma face exposta: o gelo nao atravessa paredes ou vidro."));
                 return 0;
             }
@@ -99,12 +98,17 @@ public final class FrostManager {
     }
 
     public static boolean eligible(Level level, BlockPos pos, BlockState state) {
-        if (state.isAir() || state.is(IMMUNE) || !state.getFluidState().isEmpty()
-                || state.getShape(level, pos).isEmpty()) return false;
-        String name = BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
-        MapColor color = state.getMapColor(level, pos);
-        return !name.startsWith("white_") && color != MapColor.SNOW && color != MapColor.QUARTZ
-                && color != MapColor.PLANT;
+        /*
+         * Frost now applies to every physical block unless it is explicitly
+         * immune. This intentionally includes wood, leaves, ores, white
+         * blocks, quartz, glass, etc.
+         *
+         * Natural polar terrain is kept out through #wayaround:frost_immune.
+         */
+        return !state.isAir()
+                && !state.is(IMMUNE)
+                && state.getFluidState().isEmpty()
+                && !state.getShape(level, pos).isEmpty();
     }
 
     public static boolean exposed(Level level, BlockPos pos, Direction face) {
