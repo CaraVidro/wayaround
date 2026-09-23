@@ -2647,6 +2647,36 @@ public final class WaterWheelHubBlockEntity
                 && index < plates.size();
     }
 
+    public Component inspectFrame() {
+        float wear =
+                frameWear
+                / (float) AssemblyItemData.MAX_COMPONENT_WEAR;
+
+        Component wearText =
+                Component.translatable(
+                        wear < 0.25F
+                                ? "message.wayaround.assembly.wear_good"
+                                : wear < 0.55F
+                                        ? "message.wayaround.assembly.wear_used"
+                                        : wear < 0.82F
+                                                ? "message.wayaround.assembly.wear_worn"
+                                                : "message.wayaround.assembly.wear_critical"
+                );
+
+        Component state =
+                Component.translatable(
+                        failureCountdown >= 0
+                                ? "message.wayaround.assembly.failure_imminent"
+                                : "message.wayaround.assembly.structure_stable"
+                );
+
+        return Component.translatable(
+                "message.wayaround.assembly.inspect_frame",
+                wearText,
+                state
+        );
+    }
+
     public Component inspectPlate(
             int index
     ) {
