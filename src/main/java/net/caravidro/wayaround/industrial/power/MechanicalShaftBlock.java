@@ -1,19 +1,24 @@
 package net.caravidro.wayaround.industrial.power;
 
+import javax.annotation.Nullable;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public final class MechanicalShaftBlock
-        extends RotatedPillarBlock {
+        extends RotatedPillarBlock
+        implements EntityBlock {
 
     private static final VoxelShape SHAFT_Y =
-            Block.box(
+            box(
                     5.0,
                     0.0,
                     5.0,
@@ -23,7 +28,7 @@ public final class MechanicalShaftBlock
             );
 
     private static final VoxelShape SHAFT_X =
-            Block.box(
+            box(
                     0.0,
                     5.0,
                     5.0,
@@ -33,7 +38,7 @@ public final class MechanicalShaftBlock
             );
 
     private static final VoxelShape SHAFT_Z =
-            Block.box(
+            box(
                     5.0,
                     5.0,
                     0.0,
@@ -46,6 +51,25 @@ public final class MechanicalShaftBlock
             Properties properties
     ) {
         super(properties);
+    }
+
+    @Override
+    protected RenderShape getRenderShape(
+            BlockState state
+    ) {
+        return RenderShape.INVISIBLE;
+    }
+
+    @Nullable
+    @Override
+    public BlockEntity newBlockEntity(
+            BlockPos pos,
+            BlockState state
+    ) {
+        return new MechanicalTransmissionBlockEntity(
+                pos,
+                state
+        );
     }
 
     @Override
