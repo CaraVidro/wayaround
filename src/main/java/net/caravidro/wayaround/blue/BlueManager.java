@@ -465,10 +465,10 @@ public final class BlueManager {
                     radius,
                     blue.power,
                     blue.spinDirection,
-                    3
+                    6
                             + Math.round(
                                     blue.power
-                                            * 4.0F
+                                            * 7.0F
                             )
             );
 
@@ -603,7 +603,7 @@ public final class BlueManager {
                         Math.max(
                                 1,
                                 Math.round(
-                                        5.0F
+                                        8.0F
                                                 * power
                                 )
                         )
@@ -893,9 +893,9 @@ public final class BlueManager {
     private static double attractionRadius(
             float power
     ) {
-        return 18.0
+        return 28.0
                 + power
-                        * 20.0;
+                        * 32.0;
     }
 
     private static void applyBlue(
@@ -1093,9 +1093,9 @@ public final class BlueManager {
         }
 
         double digRadius =
-                2.2
+                3.4
                         + power
-                                * 2.75;
+                                * 4.6;
 
         int removed =
                 0;
@@ -1235,10 +1235,10 @@ public final class BlueManager {
     ) {
         if (tick % 4L == 0L) {
             int attempts =
-                    58
+                    96
                             + Math.round(
                                     power
-                                            * 34.0F
+                                            * 56.0F
                             );
 
             for (int i = 0;
@@ -1246,7 +1246,7 @@ public final class BlueManager {
                     i++) {
 
                 double radius =
-                        55.0;
+                        72.0;
 
                 double dx =
                         (
@@ -1341,15 +1341,15 @@ public final class BlueManager {
                 if (isTorch(
                         state
                 )
-                        && distance <= 38.0
+                        && distance <= 52.0
                         && level.random.nextDouble()
                                 < 0.22
                                         + (
                                                 1.0
                                                         - distance
-                                                                / 38.0
+                                                                / 52.0
                                         )
-                                                * 0.62) {
+                                                * 0.68) {
                     level.destroyBlock(
                             pos,
                             true
@@ -1360,7 +1360,7 @@ public final class BlueManager {
 
         if (tick % 10L == 0L) {
             double fearRadius =
-                    44.0;
+                    60.0;
 
             AABB fearBox =
                     new AABB(
@@ -1468,10 +1468,10 @@ public final class BlueManager {
             double spinDirection
     ) {
         int count =
-                8
+                18
                         + Math.round(
                                 power
-                                        * 12.0F
+                                        * 28.0F
                         );
 
         for (int i = 0;
@@ -1498,8 +1498,8 @@ public final class BlueManager {
                     )
                             * Math.min(
                                     radius
-                                            * 0.55,
-                                    10.0
+                                            * 0.72,
+                                    18.0
                             );
 
             Vec3 source =
@@ -1535,14 +1535,14 @@ public final class BlueManager {
                     )
                             .scale(
                                     spinDirection
-                                            * 0.08
+                                            * 0.11
                             );
 
             Vec3 velocity =
                     inward.scale(
-                            0.10
+                            0.13
                                     + power
-                                            * 0.10
+                                            * 0.14
                     )
                             .add(
                                     tangent
@@ -1566,21 +1566,21 @@ public final class BlueManager {
                 center.x,
                 center.y,
                 center.z,
-                4
+                12
                         + Math.round(
                                 power
-                                        * 6.0F
+                                        * 14.0F
                         ),
-                0.55
+                1.25
                         + power
-                                * 0.45,
-                0.55
+                                * 1.10,
+                1.25
                         + power
-                                * 0.45,
-                0.55
+                                * 1.10,
+                1.25
                         + power
-                                * 0.45,
-                0.26
+                                * 1.10,
+                0.34
         );
     }
 
