@@ -1,3 +1,6 @@
 {
-  "parent": "wayaround:block/water_wheel_blade"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:block/oak_planks"
+  }
 }
