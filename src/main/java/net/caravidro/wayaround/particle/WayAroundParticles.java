@@ -37,6 +37,9 @@ public final class WayAroundParticles {
     public static final DeferredHolder<ParticleType<?>, SimpleParticleType> WIND_LEAF =
             PARTICLES.register("wind_leaf", () -> new SimpleParticleType(false));
 
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> AIR_BUBBLE =
+            PARTICLES.register("air_bubble", () -> new SimpleParticleType(false));
+
     private WayAroundParticles() {
     }
 
