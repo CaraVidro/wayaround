@@ -10,6 +10,7 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.network.BlueVisualPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.util.Mth;
@@ -20,11 +21,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 /**
- * Actual 3D visual for Blue.
- *
- * The destructive mechanic remains a point in server space. This renderer
- * gives that point a physical-looking body: a dense blue core wrapped by
- * larger translucent cubic shells, all rotating slowly.
+ * Full-bright-looking procedural 3D cube for every synced Blue.
  */
 @EventBusSubscriber(
         modid = WayAround.MODID,
@@ -52,14 +49,14 @@ public final class BlueWorldRenderer {
             return;
         }
 
-        boolean held =
-                BlueClientEffects.heldVisualActive();
+        boolean charge =
+                BlueClientEffects.chargeVisualActive();
 
-        boolean projectile =
-                BlueClientEffects.projectileVisualActive();
+        var blues =
+                BlueClientEffects.visualBlues();
 
-        if (!held
-                && !projectile) {
+        if (!charge
+                && blues.isEmpty()) {
             return;
         }
 
@@ -81,39 +78,34 @@ public final class BlueWorldRenderer {
                                 DefaultVertexFormat.POSITION_COLOR
                         );
 
-        boolean any =
-                false;
-
-        if (held) {
+        if (charge) {
             emitBlue(
                     buffer,
                     poseStack,
                     camera,
-                    BlueClientEffects.heldVisualCenter(),
-                    BlueClientEffects.heldVisualPower(),
+                    BlueClientEffects.chargeVisualCenter(),
+                    BlueClientEffects.chargeVisualPower(),
                     time,
-                    0.0F
+                    0.0F,
+                    false
             );
-
-            any = true;
         }
 
-        if (projectile) {
+        for (BlueClientEffects.VisualBlue blue :
+                blues) {
             emitBlue(
                     buffer,
                     poseStack,
                     camera,
-                    BlueClientEffects.projectileVisualCenter(),
-                    BlueClientEffects.projectileVisualPower(),
+                    blue.position(),
+                    blue.power(),
                     time,
-                    71.0F
+                    blue.owner()
+                            .hashCode()
+                            * 0.017F,
+                    blue.mode()
+                            == BlueVisualPayload.COLLAPSING
             );
-
-            any = true;
-        }
-
-        if (!any) {
-            return;
         }
 
         RenderSystem.enableBlend();
@@ -141,7 +133,8 @@ public final class BlueWorldRenderer {
             Vec3 center,
             float power,
             long time,
-            float phaseOffset
+            float phaseOffset,
+            boolean collapsing
     ) {
         poseStack.pushPose();
 
@@ -153,7 +146,7 @@ public final class BlueWorldRenderer {
 
         float slowRotation =
                 (float) time
-                        * 1.35F
+                        * 1.15F
                         + phaseOffset;
 
         poseStack.mulPose(
@@ -165,14 +158,14 @@ public final class BlueWorldRenderer {
         poseStack.mulPose(
                 Axis.XP.rotationDegrees(
                         slowRotation
-                                * 0.43F
+                                * 0.39F
                 )
         );
 
         poseStack.mulPose(
                 Axis.ZP.rotationDegrees(
                         slowRotation
-                                * 0.21F
+                                * 0.18F
                 )
         );
 
@@ -181,77 +174,88 @@ public final class BlueWorldRenderer {
                         + 0.5F
                                 * Mth.sin(
                                         time
-                                                * 0.12F
+                                                * 0.13F
                                                 + phaseOffset
-                                                        * 0.03F
                                 );
 
+        float visiblePower =
+                Mth.clamp(
+                        power,
+                        0.03F,
+                        1.35F
+                );
+
         float coreHalf =
-                0.52F
-                        + power
-                                * 0.52F;
+                0.28F
+                        + visiblePower
+                                * 0.68F;
+
+        if (collapsing) {
+            coreHalf *=
+                    0.82F;
+        }
 
         float shellHalf =
                 coreHalf
                         * (
-                                1.34F
+                                1.38F
                                         + pulse
-                                                * 0.045F
+                                                * 0.05F
                         );
 
         float shell2Half =
                 shellHalf
-                        * 1.12F;
+                        * 1.13F;
 
         var matrix =
                 poseStack.last()
                         .pose();
 
-        /*
-         * Far transparent halo first, then the more readable shell and core.
-         * The outer cubes are deliberately translucent so the center reads
-         * like a dense object suspended inside a slime-like boundary.
-         */
         cube(
                 buffer,
                 matrix,
                 shell2Half,
-                24,
-                126,
+                20,
+                112,
                 255,
-                18
+                24
         );
 
         cube(
                 buffer,
                 matrix,
                 shellHalf,
-                18,
-                150
+                12,
+                155
                         + Math.round(
                                 pulse
-                                        * 38.0F
+                                        * 45.0F
                         ),
                 255,
-                52
+                64
         );
 
+        /*
+         * The core intentionally stays saturated and opaque even when the
+         * nearby world is darkened by the client effect. This makes Blue read
+         * like a violent light source without placing fake light blocks.
+         */
         cube(
                 buffer,
                 matrix,
                 coreHalf,
-                6,
-                74
+                4,
+                82
                         + Math.round(
                                 pulse
-                                        * 35.0F
+                                        * 42.0F
                         ),
-                230
+                240
                         + Math.round(
                                 pulse
-                                        * 25.0F
+                                        * 15.0F
                         ),
-                190
+                224
         );
 
         poseStack.popPose();
@@ -272,37 +276,31 @@ public final class BlueWorldRenderer {
         float max =
                 half;
 
-        // DOWN
         vertex(buffer, matrix, min, min, max, red, green, blue, alpha);
         vertex(buffer, matrix, max, min, max, red, green, blue, alpha);
         vertex(buffer, matrix, max, min, min, red, green, blue, alpha);
         vertex(buffer, matrix, min, min, min, red, green, blue, alpha);
 
-        // UP
         vertex(buffer, matrix, min, max, min, red, green, blue, alpha);
         vertex(buffer, matrix, max, max, min, red, green, blue, alpha);
         vertex(buffer, matrix, max, max, max, red, green, blue, alpha);
         vertex(buffer, matrix, min, max, max, red, green, blue, alpha);
 
-        // NORTH
         vertex(buffer, matrix, min, min, min, red, green, blue, alpha);
         vertex(buffer, matrix, max, min, min, red, green, blue, alpha);
         vertex(buffer, matrix, max, max, min, red, green, blue, alpha);
         vertex(buffer, matrix, min, max, min, red, green, blue, alpha);
 
-        // SOUTH
         vertex(buffer, matrix, min, max, max, red, green, blue, alpha);
         vertex(buffer, matrix, max, max, max, red, green, blue, alpha);
         vertex(buffer, matrix, max, min, max, red, green, blue, alpha);
         vertex(buffer, matrix, min, min, max, red, green, blue, alpha);
 
-        // WEST
         vertex(buffer, matrix, min, min, max, red, green, blue, alpha);
         vertex(buffer, matrix, min, min, min, red, green, blue, alpha);
         vertex(buffer, matrix, min, max, min, red, green, blue, alpha);
         vertex(buffer, matrix, min, max, max, red, green, blue, alpha);
 
-        // EAST
         vertex(buffer, matrix, max, min, min, red, green, blue, alpha);
         vertex(buffer, matrix, max, min, max, red, green, blue, alpha);
         vertex(buffer, matrix, max, max, max, red, green, blue, alpha);
