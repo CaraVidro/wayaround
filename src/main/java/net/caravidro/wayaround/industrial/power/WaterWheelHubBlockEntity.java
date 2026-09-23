@@ -67,6 +67,7 @@ public final class WaterWheelHubBlockEntity
     private float lastMechanicalLoad;
     private float availableMechanicalBudget;
     private float previousRpm;
+    private float rpmDelta;
 
     private int failureCountdown =
             -1;
@@ -259,6 +260,10 @@ public final class WaterWheelHubBlockEntity
 
         lastMechanicalLoad =
                 appliedMechanicalLoad;
+
+        rpmDelta =
+                rpm
+                - previousRpm;
 
         previousRpm =
                 rpm;
@@ -678,7 +683,7 @@ public final class WaterWheelHubBlockEntity
                 if (!plate.nailed) {
                     plate.looseSwingVelocity +=
                             Mth.clamp(
-                                    previousRpm * 0.55F,
+                                    rpm * 0.55F,
                                     -9.0F,
                                     9.0F
                             );
@@ -977,8 +982,7 @@ public final class WaterWheelHubBlockEntity
         plate.looseSwingVelocity +=
                 Mth.clamp(
                         (
-                                rpm
-                                - previousRpm
+                                rpmDelta
                         )
                         * 0.42F,
                         -4.5F,
