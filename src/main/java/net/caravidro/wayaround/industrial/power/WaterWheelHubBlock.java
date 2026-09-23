@@ -19,7 +19,6 @@ import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -289,14 +288,6 @@ public final class WaterWheelHubBlock
             BlockPos pos,
             BlockPos neighborPos
     ) {
-        if (!hasSupport(
-                level,
-                pos,
-                state
-        )) {
-            return Blocks.AIR.defaultBlockState();
-        }
-
         return super.updateShape(
                 state,
                 direction,
@@ -307,7 +298,7 @@ public final class WaterWheelHubBlock
         );
     }
 
-    private static boolean hasSupport(
+    static boolean hasSupport(
             LevelReader level,
             BlockPos pos,
             BlockState state
