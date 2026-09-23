@@ -131,6 +131,103 @@ public final class WaterDynamics {
                 );
     }
 
+    public static float turbulence(
+            Level level,
+            BlockPos pos
+    ) {
+        if (!level.getFluidState(pos).is(FluidTags.WATER)) {
+            return 0.0F;
+        }
+
+        Vec3 local =
+                current(
+                        level,
+                        pos
+                );
+
+        double localSpeed =
+                speed(
+                        local
+                );
+
+        if (localSpeed < 0.015) {
+            return 0.0F;
+        }
+
+        float impact =
+                hitsObstacle(
+                        level,
+                        pos,
+                        local
+                )
+                        ? 1.0F
+                        : 0.0F;
+
+        double bend =
+                0.0;
+
+        for (Direction direction :
+                Direction.Plane.HORIZONTAL) {
+
+            BlockPos neighbor =
+                    pos.relative(
+                            direction
+                    );
+
+            if (!level.getFluidState(neighbor)
+                    .is(FluidTags.WATER)) {
+                continue;
+            }
+
+            Vec3 other =
+                    current(
+                            level,
+                            neighbor
+                    );
+
+            double otherSpeed =
+                    speed(
+                            other
+                    );
+
+            if (otherSpeed < 0.015) {
+                continue;
+            }
+
+            double dot =
+                    (
+                            local.x * other.x
+                            + local.z * other.z
+                    )
+                    / (
+                            localSpeed
+                            * otherSpeed
+                    );
+
+            dot =
+                    Math.max(
+                            -1.0,
+                            Math.min(
+                                    1.0,
+                                    dot
+                            )
+                    );
+
+            bend =
+                    Math.max(
+                            bend,
+                            1.0 - dot
+                    );
+        }
+
+        return (float) Math.min(
+                1.0,
+                localSpeed * 1.25
+                + impact * 0.52
+                + bend * 0.48
+        );
+    }
+
     public static boolean hitsObstacle(
             Level level,
             BlockPos waterPos,
