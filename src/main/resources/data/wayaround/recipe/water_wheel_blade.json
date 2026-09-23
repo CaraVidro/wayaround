@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PPP",
+    " S ",
+    " S "
+  ],
+  "key": {
+    "P": { "item": "minecraft:oak_planks" },
+    "S": { "item": "minecraft:stick" }
+  },
+  "result": {
+    "id": "wayaround:water_wheel_blade",
+    "count": 4
+  }
+}
