@@ -296,7 +296,7 @@ public final class BlizzardClientEvents {
          * caverna
          * túnel
          *
-         * o fog quase desaparece.
+         * o fog desaparece de verdade.
          *
          * Então continua existindo aquela cena:
          *
@@ -314,9 +314,7 @@ public final class BlizzardClientEvents {
                 );
 
         if (!sky) {
-
-            return storm
-                    * 0.035F;
+            return 0.0F;
         }
 
         return storm;
