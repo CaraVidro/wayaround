@@ -390,16 +390,11 @@ public final class WaterWheelHubBlockEntity
                     worldAngle
             );
 
-            if (!plate.nailed) {
-                continue;
-            }
-
-            nailedCount++;
-
             /*
-             * Every fixed board has real mass. An asymmetric build therefore
-             * rotates under gravity until its center of mass hangs below the
-             * axle.
+             * Even a loose board is still hanging from its mounting hole, so
+             * its mass remains part of the assembly and can unbalance the
+             * wheel. What the nail changes is whether hydraulic force is
+             * transmitted rigidly into the shaft.
              */
             double mass =
                     plate.mass();
@@ -417,6 +412,67 @@ public final class WaterWheelHubBlockEntity
                     ).dot(
                             axle
                     );
+
+            if (!plate.nailed) {
+                if (wetNow) {
+                    WaterDynamics.MechanicalFlow looseFlow =
+                            WaterDynamics.mechanicalFlow(
+                                    level,
+                                    samplePos
+                            );
+
+                    if (looseFlow.stable()
+                            && looseFlow.vector()
+                                    .lengthSqr() >= 0.0001) {
+
+                        Vec3 tangent =
+                                tangentVector(
+                                        axis,
+                                        worldAngle
+                                );
+
+                        double looseTilt =
+                                Math.toRadians(
+                                        plate.effectiveTilt()
+                                );
+
+                        Vec3 looseNormal =
+                                tangent.scale(
+                                        Math.cos(
+                                                looseTilt
+                                        )
+                                ).add(
+                                        radial.scale(
+                                                Math.sin(
+                                                        looseTilt
+                                                )
+                                        )
+                                ).normalize();
+
+                        double flowHit =
+                                looseFlow.vector()
+                                        .scale(
+                                                4.0
+                                        ).dot(
+                                                looseNormal
+                                        );
+
+                        plate.looseSwingVelocity +=
+                                Mth.clamp(
+                                        (float) (
+                                                flowHit
+                                                * 0.42
+                                        ),
+                                        -3.2F,
+                                        3.2F
+                                );
+                    }
+                }
+
+                continue;
+            }
+
+            nailedCount++;
 
             if (!wetNow) {
                 continue;
@@ -562,12 +618,15 @@ public final class WaterWheelHubBlockEntity
 
         for (Plate plate :
                 plates) {
-            if (plate.nailed) {
-                inertia +=
-                        plate.mass()
-                        * plate.anchorRadius
-                        * plate.anchorRadius;
-            }
+            inertia +=
+                    plate.mass()
+                    * plate.anchorRadius
+                    * plate.anchorRadius
+                    * (
+                            plate.nailed
+                                    ? 1.0
+                                    : 0.72
+                    );
         }
 
         /*
