@@ -16,6 +16,10 @@ public final class WayAroundSounds {
             SOUNDS.register("blizzard_wind", () -> SoundEvent.createVariableRangeEvent(
                     ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "blizzard_wind")));
 
+    public static final DeferredHolder<SoundEvent, SoundEvent> BLUE_THEME =
+            SOUNDS.register("blue_theme", () -> SoundEvent.createVariableRangeEvent(
+                    ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "blue_theme")));
+
     private WayAroundSounds() {
     }
 
