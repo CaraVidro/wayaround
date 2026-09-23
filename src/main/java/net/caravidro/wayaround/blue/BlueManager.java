@@ -2200,18 +2200,38 @@ public final class BlueManager {
             Vec3 center,
             float power
     ) {
+        double spread =
+                5.4
+                        + power
+                                * 3.4;
+
         level.sendParticles(
                 ParticleTypes.CAMPFIRE_COSY_SMOKE,
                 center.x,
                 center.y,
                 center.z,
-                28,
-                1.2
+                92,
+                spread,
+                2.4
                         + power,
-                0.65,
-                1.2
-                        + power,
-                0.012
+                spread,
+                0.010
+        );
+
+        level.sendParticles(
+                ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                center.x,
+                center.y,
+                center.z,
+                44,
+                spread
+                        * 0.86,
+                2.0
+                        + power
+                                * 0.8,
+                spread
+                        * 0.86,
+                0.005
         );
 
         level.sendParticles(
@@ -2219,20 +2239,21 @@ public final class BlueManager {
                 center.x,
                 center.y,
                 center.z,
-                46,
-                1.45
+                138,
+                spread
+                        * 1.10,
+                2.0
                         + power,
-                0.8,
-                1.45
-                        + power,
-                0.035
+                spread
+                        * 1.10,
+                0.028
         );
 
         burst(
                 level,
                 center,
-                58,
-                1.2F
+                96,
+                2.0F
         );
     }
 
@@ -2248,13 +2269,13 @@ public final class BlueManager {
                 center.y,
                 center.z,
                 count,
-                1.25
+                2.15
                         * scale,
-                1.25
+                2.15
                         * scale,
-                1.25
+                2.15
                         * scale,
-                0.46
+                0.52
         );
 
         level.sendParticles(
@@ -2266,13 +2287,13 @@ public final class BlueManager {
                         12,
                         count / 2
                 ),
-                1.0
+                1.85
                         * scale,
-                1.0
+                1.85
                         * scale,
-                1.0
+                1.85
                         * scale,
-                0.38
+                0.44
         );
     }
 
