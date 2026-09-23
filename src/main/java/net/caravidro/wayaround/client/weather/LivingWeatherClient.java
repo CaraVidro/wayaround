@@ -20,14 +20,15 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 /**
  * Client presentation for the lightweight local-weather field.
  *
- * Clouds are intentionally made from large soft particle billboards. They are
- * much cheaper and more Minecraft-like than a full volumetric ray-march, while
- * still producing actual moving cloud masses and localized rain.
+ * Local weather presentation that is not part of the main cloud geometry.
+ *
+ * LivingCloudRenderer owns the actual voxel cloud mesh. This class keeps
+ * foliage response and the close-range fog/smoke that appears while the
+ * camera is physically inside a cloud.
  */
 @EventBusSubscriber(modid = WayAround.MODID, value = Dist.CLIENT)
 public final class LivingWeatherClient {
 
-    private static final double CLOUD_RENDER_RANGE = 620.0;
     private static int ticks;
 
     private LivingWeatherClient() {
@@ -54,8 +55,8 @@ public final class LivingWeatherClient {
 
         ticks++;
 
-        if (ticks % 5 == 0) {
-            spawnCloudMass(minecraft);
+        if (ticks % 2 == 0) {
+            spawnInsideCloudFog(minecraft);
         }
 
         if (ticks % 3 == 0) {
@@ -63,62 +64,44 @@ public final class LivingWeatherClient {
         }
     }
 
-    private static void spawnCloudMass(Minecraft minecraft) {
+    private static void spawnInsideCloudFog(Minecraft minecraft) {
         var level = minecraft.level;
         var player = minecraft.player;
 
-        long time = level.getGameTime();
-        double px = player.getX();
-        double pz = player.getZ();
+        if (!LivingCloudRenderer.isInsideCloud(player.getEyePosition())) {
+            return;
+        }
 
-        LocalWeatherField.Sample weather =
-                LocalWeatherField.sample(px, pz, time);
+        /*
+         * The mesh shell becomes transparent when entered. These local
+         * particles make the interior read as wet suspended fog/smoke.
+         */
+        int amount =
+                2
+                + level.random.nextInt(3);
 
-        for (LocalWeatherField.CloudCell cell :
-                LocalWeatherField.nearbyCells(px, pz, time, CLOUD_RENDER_RANGE)) {
+        for (int i = 0; i < amount; i++) {
+            double x =
+                    player.getX()
+                    + (level.random.nextDouble() - 0.5) * 7.0;
 
-            double dx = cell.x() - px;
-            double dz = cell.z() - pz;
-            double distance = Math.sqrt(dx * dx + dz * dz);
+            double y =
+                    player.getEyeY()
+                    + (level.random.nextDouble() - 0.5) * 4.0;
 
-            /*
-             * Fewer puffs far away, more when the cloud dominates the sky.
-             */
-            int puffs = distance < 260.0 ? 7 : 4;
+            double z =
+                    player.getZ()
+                    + (level.random.nextDouble() - 0.5) * 7.0;
 
-            if (cell.storm() > 0.62F) {
-                puffs += 2;
-            }
-
-            for (int i = 0; i < puffs; i++) {
-                double angle = level.random.nextDouble() * Math.PI * 2.0;
-                double radial =
-                        Math.sqrt(level.random.nextDouble())
-                        * cell.radius()
-                        * 0.86;
-
-                double x = cell.x() + Math.cos(angle) * radial;
-                double z = cell.z() + Math.sin(angle) * radial;
-
-                /*
-                 * Flatten the bottom slightly and let the top be messier.
-                 */
-                double y =
-                        cell.y()
-                        - 4.0
-                        + level.random.nextDouble() * 13.0
-                        + (1.0 - radial / cell.radius()) * 4.0;
-
-                minecraft.particleEngine.createParticle(
-                        WayAroundParticles.LIVING_CLOUD.get(),
-                        x,
-                        y,
-                        z,
-                        weather.windX() * 0.024,
-                        cell.storm(),
-                        weather.windZ() * 0.024
-                );
-            }
+            level.addParticle(
+                    net.minecraft.core.particles.ParticleTypes.CLOUD,
+                    x,
+                    y,
+                    z,
+                    (level.random.nextDouble() - 0.5) * 0.012,
+                    (level.random.nextDouble() - 0.5) * 0.006,
+                    (level.random.nextDouble() - 0.5) * 0.012
+            );
         }
     }
 
