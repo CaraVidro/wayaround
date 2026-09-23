@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.power;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalCapabilities;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -91,5 +92,11 @@ public final class PowerContent {
             (panel, side) -> panel.energyOutput());
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, WATER_GENERATOR_ENTITY.get(),
             (generator, side) -> generator.energyOutput());
+
+        event.registerBlockEntity(
+            MechanicalCapabilities.ROTATION,
+            WATER_WHEEL_HUB_ENTITY.get(),
+            (hub, side) -> hub.rotationOutput(side)
+        );
     }
 }
