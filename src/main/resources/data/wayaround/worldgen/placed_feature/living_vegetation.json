@@ -1,0 +1,8 @@
+{
+  "feature": "wayaround:living_vegetation",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}
