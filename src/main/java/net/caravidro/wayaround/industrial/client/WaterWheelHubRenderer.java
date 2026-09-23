@@ -1,5 +1,8 @@
 package net.caravidro.wayaround.industrial.client;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
@@ -33,6 +36,12 @@ public final class WaterWheelHubRenderer
             FRAME_RADIUS
             * 0.8660254037844386;
 
+    private static final Map<
+            WaterWheelHubBlockEntity,
+            VisualState
+    > VISUAL_STATES =
+            new WeakHashMap<>();
+
     private final BlockRenderDispatcher blockRenderer;
 
     public WaterWheelHubRenderer(
@@ -58,11 +67,40 @@ public final class WaterWheelHubRenderer
         Direction.Axis axle =
                 hub.axleAxis();
 
+        VisualState visual =
+                VISUAL_STATES.computeIfAbsent(
+                        hub,
+                        key -> new VisualState(
+                                hub.rotationDegrees()
+                        )
+                );
+
+        double renderTime =
+                hub.getLevel().getGameTime()
+                + partialTick;
+
         float rotation =
-                hub.rotationDegrees()
-                + hub.rpm()
-                * 0.30F
-                * partialTick;
+                visual.update(
+                        renderTime,
+                        hub.rpm()
+                );
+
+        if (hub.unstableFlow()
+                && Math.abs(hub.rpm()) < 0.30F) {
+
+            double wobblePhase =
+                    renderTime * 0.22
+                    + (
+                            hub.getBlockPos().asLong()
+                            & 31L
+                    ) * 0.17;
+
+            rotation +=
+                    (float) Math.sin(
+                            wobblePhase
+                    )
+                    * 3.25F;
+        }
 
         poseStack.pushPose();
 
@@ -440,5 +478,81 @@ public final class WaterWheelHubRenderer
             WaterWheelHubBlockEntity blockEntity
     ) {
         return true;
+    }
+
+    private static final class VisualState {
+
+        private double lastRenderTime =
+                Double.NaN;
+
+        private float angle;
+
+        private float smoothedRpm;
+
+        private VisualState(
+                float initialAngle
+        ) {
+            this.angle =
+                    initialAngle;
+        }
+
+        private float update(
+                double renderTime,
+                float targetRpm
+        ) {
+            if (!Double.isFinite(
+                    lastRenderTime
+            )) {
+                lastRenderTime =
+                        renderTime;
+
+                smoothedRpm =
+                        targetRpm;
+
+                return angle;
+            }
+
+            double delta =
+                    Math.max(
+                            0.0,
+                            Math.min(
+                                    2.0,
+                                    renderTime
+                                    - lastRenderTime
+                            )
+                    );
+
+            lastRenderTime =
+                    renderTime;
+
+            float response =
+                    1.0F
+                    - (float) Math.exp(
+                            -delta
+                            * 0.22
+                    );
+
+            smoothedRpm +=
+                    (
+                            targetRpm
+                            - smoothedRpm
+                    )
+                    * response;
+
+            angle +=
+                    smoothedRpm
+                    * 0.30F
+                    * (float) delta;
+
+            angle %=
+                    360.0F;
+
+            if (angle < 0.0F) {
+                angle +=
+                        360.0F;
+            }
+
+            return angle;
+        }
     }
 }
