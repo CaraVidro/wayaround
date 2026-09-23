@@ -42,7 +42,21 @@
     "message.wayaround.water_wheel.plate_added": "Plate added. Total: %s",
     "message.wayaround.water_wheel.plate_limit": "Plate limit reached: %s",
     "message.wayaround.water_wheel.plate_angle": "Plate %s: angle %s°",
-    "message.wayaround.water_wheel.status_v2": "Bodies: %s | Plates: %s | RPM: %s | Torque: %s | Efficiency: %s%% | Mechanical power: %s",
+    "message.wayaround.water_wheel.status_v2": "Bodies: %s | Boards: %s | RPM: %s | Torque: %s | Mechanical power: %s",
     "item.wayaround.water_wheel_blade": "Water Wheel Plate",
-    "block.wayaround.water_wheel_support": "Water Wheel Support"
+    "block.wayaround.water_wheel_support": "Water Wheel Support",
+    "item.wayaround.wooden_nail": "Wooden Nail",
+    "item.wayaround.iron_nail": "Iron Nail",
+    "item.wayaround.diamond_nail": "Diamond Nail",
+    "message.wayaround.assembly.plate_installed": "Board fitted to the frame. Adjust it and nail it to lock it.",
+    "message.wayaround.assembly.plate_blocked": "There is not enough room to fit a board there.",
+    "message.wayaround.assembly.nailed": "TACK — board locked in place.",
+    "message.wayaround.assembly.nail_removed": "Nail removed. The board is loose again.",
+    "message.wayaround.assembly.plate_removed": "Board removed from the assembly.",
+    "advancements.wayaround.assembly_objects.root.title": "Assembly Objects",
+    "advancements.wayaround.assembly_objects.root.description": "Build machines one piece at a time.",
+    "advancements.wayaround.assembly_objects.water_wheel.title": "The Oldest... and Trustiest Friend",
+    "advancements.wayaround.assembly_objects.water_wheel.description": "Build your first water wheel assembly.",
+    "advancements.wayaround.assembly_objects.lava_wheel.title": "That Is Not Water",
+    "advancements.wayaround.assembly_objects.lava_wheel.description": "Introduce a water wheel to lava."
 }
