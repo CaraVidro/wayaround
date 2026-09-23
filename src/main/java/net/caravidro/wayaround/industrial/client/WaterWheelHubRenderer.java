@@ -12,25 +12,24 @@ import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Procedural water-wheel model.
+ * Procedural renderer for the water-wheel assembly.
  *
- * The world contains only the central body block. The large wheel geometry is
- * assembled from the block entity's configuration:
- *
- * - one body -> one rotating hexagonal side frame;
- * - two bodies -> two parallel hexagonal frames with a gap;
- * - single body plates make structural diameter lines plus paddles;
- * - double body plates span the rim gap like a classic water wheel.
+ * The center, spokes, frame, boards, holes and nails are all rendered from
+ * assembly data stored by the hub block entity. Nothing visible is a magic
+ * floating cube anymore.
  */
 public final class WaterWheelHubRenderer
         implements BlockEntityRenderer<WaterWheelHubBlockEntity> {
 
     private static final double FRAME_RADIUS =
-            2.42;
+            WaterWheelHubBlockEntity.FRAME_RADIUS;
 
     private static final double FRAME_APOTHEM =
             FRAME_RADIUS
@@ -64,9 +63,6 @@ public final class WaterWheelHubRenderer
             return;
         }
 
-        Direction.Axis axle =
-                hub.axleAxis();
-
         VisualState visual =
                 VISUAL_STATES.computeIfAbsent(
                         hub,
@@ -85,41 +81,16 @@ public final class WaterWheelHubRenderer
                         hub.rpm()
                 );
 
-        if (hub.unstableFlow()
-                && Math.abs(hub.rpm()) < 0.30F) {
-
-            double wobblePhase =
-                    renderTime * 0.22
-                    + (
-                            hub.getBlockPos().asLong()
-                            & 31L
-                    ) * 0.17;
-
-            rotation +=
-                    (float) Math.sin(
-                            wobblePhase
-                    )
-                    * 3.25F;
-        }
-
         poseStack.pushPose();
 
-        /*
-         * Local renderer coordinates:
-         *
-         * X/Y = wheel plane
-         * Z   = axle
-         */
         poseStack.translate(
                 0.5,
                 0.5,
                 0.5
         );
 
-        if (axle == Direction.Axis.X) {
-            /*
-             * Rotate local Z axle onto world X.
-             */
+        if (hub.axleAxis()
+                == Direction.Axis.X) {
             poseStack.mulPose(
                     Axis.YP.rotationDegrees(
                             90.0F
@@ -134,28 +105,31 @@ public final class WaterWheelHubRenderer
         );
 
         if (hub.doubleBody()) {
-            renderHexFrame(
+            renderBody(
                     poseStack,
                     bufferSource,
                     packedLight,
                     packedOverlay,
-                    -0.62
+                    -0.62,
+                    hub.frameWearRatio()
             );
 
-            renderHexFrame(
+            renderBody(
                     poseStack,
                     bufferSource,
                     packedLight,
                     packedOverlay,
-                    0.62
+                    0.62,
+                    hub.frameWearRatio()
             );
         } else {
-            renderHexFrame(
+            renderBody(
                     poseStack,
                     bufferSource,
                     packedLight,
                     packedOverlay,
-                    0.0
+                    0.0,
+                    hub.frameWearRatio()
             );
         }
 
@@ -167,27 +141,91 @@ public final class WaterWheelHubRenderer
                 packedOverlay
         );
 
-        if (hub.plateCount() > 0) {
-            if (hub.doubleBody()) {
-                renderDoubleBodyPlates(
-                        hub,
-                        poseStack,
-                        bufferSource,
-                        packedLight,
-                        packedOverlay
-                );
-            } else {
-                renderSingleBodyPlates(
-                        hub,
-                        poseStack,
-                        bufferSource,
-                        packedLight,
-                        packedOverlay
-                );
-            }
+        for (int i = 0;
+                i < hub.plateCount();
+                i++) {
+            renderPlate(
+                    hub,
+                    i,
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
         }
 
         poseStack.popPose();
+    }
+
+    private void renderBody(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay,
+            double z,
+            float wear
+    ) {
+        renderHexFrame(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                z
+        );
+
+        renderSpokes(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                z
+        );
+
+        /*
+         * Old assemblies visibly crack first around structural spokes and the
+         * rim joints. These are deliberately simple Minecraft-y overlays.
+         */
+        if (wear >= 0.35F) {
+            renderCrack(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    0.72,
+                    0.0,
+                    z + 0.115,
+                    0.62,
+                    18.0F
+            );
+        }
+
+        if (wear >= 0.62F) {
+            renderCrack(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    -0.52,
+                    0.82,
+                    z + 0.115,
+                    0.54,
+                    112.0F
+            );
+        }
+
+        if (wear >= 0.84F) {
+            renderCrack(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    -1.28,
+                    -0.74,
+                    z + 0.115,
+                    0.68,
+                    204.0F
+            );
+        }
     }
 
     private void renderHexFrame(
@@ -214,12 +252,6 @@ public final class WaterWheelHubRenderer
                     Math.sin(angle)
                     * FRAME_APOTHEM;
 
-            float segmentRotation =
-                    (float) Math.toDegrees(
-                            angle
-                    )
-                    + 90.0F;
-
             renderCuboid(
                     poseStack,
                     bufferSource,
@@ -232,7 +264,51 @@ public final class WaterWheelHubRenderer
                     FRAME_RADIUS,
                     0.20,
                     0.22,
-                    segmentRotation
+                    (float) Math.toDegrees(angle)
+                            + 90.0F
+            );
+        }
+    }
+
+    private void renderSpokes(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay,
+            double z
+    ) {
+        /*
+         * Six real structural spokes connect the bearing/axle to the six
+         * corners of the hexagon. This is the visible torque path.
+         */
+        for (int i = 0;
+                i < 6;
+                i++) {
+
+            double angle =
+                    Math.toRadians(
+                            30.0
+                            + i * 60.0
+                    );
+
+            double radius =
+                    FRAME_RADIUS * 0.51;
+
+            renderCuboid(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    Blocks.STRIPPED_OAK_LOG.defaultBlockState(),
+                    Math.cos(angle) * radius,
+                    Math.sin(angle) * radius,
+                    z,
+                    FRAME_RADIUS * 0.91,
+                    0.15,
+                    0.16,
+                    (float) Math.toDegrees(
+                            angle
+                    )
             );
         }
     }
@@ -246,8 +322,8 @@ public final class WaterWheelHubRenderer
     ) {
         double width =
                 hub.doubleBody()
-                        ? 1.58
-                        : 0.62;
+                        ? 1.72
+                        : 0.82;
 
         renderCuboid(
                 poseStack,
@@ -258,163 +334,296 @@ public final class WaterWheelHubRenderer
                 0.0,
                 0.0,
                 0.0,
-                0.52,
-                0.52,
+                0.54,
+                0.54,
                 width,
+                0.0F
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                0.0,
+                0.0,
+                hub.doubleBody()
+                        ? -0.90
+                        : -0.46,
+                0.68,
+                0.68,
+                0.12,
+                0.0F
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                0.0,
+                0.0,
+                hub.doubleBody()
+                        ? 0.90
+                        : 0.46,
+                0.68,
+                0.68,
+                0.12,
                 0.0F
         );
     }
 
-    private void renderSingleBodyPlates(
+    private void renderPlate(
             WaterWheelHubBlockEntity hub,
+            int index,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
             int packedOverlay
     ) {
-        for (int i = 0;
-                i < hub.plateCount();
-                i++) {
-
-            double base =
-                    hub.plateBaseAngle(
-                            i,
-                            false
-                    );
-
-            float baseDegrees =
-                    (float) Math.toDegrees(
-                            base
-                    );
-
-            /*
-             * Structural line through the center. One plate = one line.
-             * Two lines are spaced by 90 degrees and read as an X.
-             */
-            renderCuboid(
-                    poseStack,
-                    bufferSource,
-                    packedLight,
-                    packedOverlay,
-                    Blocks.STRIPPED_OAK_LOG.defaultBlockState(),
-                    0.0,
-                    0.0,
-                    0.0,
-                    FRAME_RADIUS * 1.86,
-                    0.13,
-                    0.15,
-                    baseDegrees
-            );
-
-            float tilt =
-                    hub.plateTiltDegrees(
-                            i
-                    );
-
-            for (int side = 0;
-                    side < 2;
-                    side++) {
-
-                double angle =
-                        base
-                        + side * Math.PI;
-
-                double radius =
-                        FRAME_RADIUS * 0.86;
-
-                double x =
-                        Math.cos(angle)
-                        * radius;
-
-                double y =
-                        Math.sin(angle)
-                        * radius;
-
-                /*
-                 * Plate orientation is independent of its radial position.
-                 * Turning it changes how its face catches the local flow.
-                 */
-                float plateRotation =
-                        (float) Math.toDegrees(
-                                angle
-                        )
-                        + tilt;
-
-                renderCuboid(
-                        poseStack,
-                        bufferSource,
-                        packedLight,
-                        packedOverlay,
-                        Blocks.OAK_PLANKS.defaultBlockState(),
-                        x,
-                        y,
-                        0.0,
-                        0.78,
-                        0.16,
-                        0.56,
-                        plateRotation
+        double angle =
+                hub.plateBaseAngle(
+                        index,
+                        hub.doubleBody()
                 );
-            }
-        }
-    }
 
-    private void renderDoubleBodyPlates(
-            WaterWheelHubBlockEntity hub,
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            int packedLight,
-            int packedOverlay
-    ) {
-        for (int i = 0;
-                i < hub.plateCount();
-                i++) {
+        double radius =
+                WaterWheelHubBlockEntity.PADDLE_RADIUS;
 
-            double angle =
-                    hub.plateBaseAngle(
-                            i,
-                            true
-                    );
+        double x =
+                Math.cos(angle)
+                * radius;
 
-            double radius =
-                    FRAME_RADIUS * 0.93;
+        double y =
+                Math.sin(angle)
+                * radius;
 
-            double x =
-                    Math.cos(angle)
-                    * radius;
+        float tilt =
+                hub.plateTiltDegrees(
+                        index
+                );
 
-            double y =
-                    Math.sin(angle)
-                    * radius;
+        float plateRotation =
+                (float) Math.toDegrees(
+                        angle
+                )
+                + tilt;
 
-            float tilt =
-                    hub.plateTiltDegrees(
-                            i
-                    );
+        double width =
+                hub.plateWidth(
+                        index
+                );
 
-            float plateRotation =
-                    (float) Math.toDegrees(
-                            angle
-                    )
-                    + tilt;
+        double depth =
+                hub.doubleBody()
+                        ? Math.max(
+                                1.34,
+                                hub.plateDepth(
+                                        index
+                                )
+                        )
+                        : hub.plateDepth(
+                                index
+                        );
 
-            /*
-             * These boards span the gap between both hexagonal side frames.
-             */
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.OAK_PLANKS.defaultBlockState(),
+                x,
+                y,
+                0.0,
+                width,
+                0.18,
+                depth,
+                plateRotation
+        );
+
+        /*
+         * Mounting hole / nail head. The board already has the hole; the nail
+         * merely locks its current transform.
+         */
+        if (hub.plateNailed(index)) {
             renderCuboid(
                     poseStack,
                     bufferSource,
                     packedLight,
                     packedOverlay,
-                    Blocks.OAK_PLANKS.defaultBlockState(),
+                    nailMaterial(
+                            hub.plateNail(
+                                    index
+                            )
+                    ),
                     x,
                     y,
-                    0.0,
-                    0.76,
-                    0.16,
-                    1.34,
+                    depth * 0.5 + 0.025,
+                    0.14,
+                    0.14,
+                    0.07,
+                    plateRotation
+            );
+        } else {
+            renderCuboid(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    Blocks.BLACKSTONE.defaultBlockState(),
+                    x,
+                    y,
+                    depth * 0.5 + 0.022,
+                    0.095,
+                    0.095,
+                    0.035,
                     plateRotation
             );
         }
+
+        float wear =
+                hub.plateWearRatio(
+                        index
+                );
+
+        if (wear >= 0.30F) {
+            renderPlateCrack(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    x,
+                    y,
+                    depth * 0.5 + 0.026,
+                    width * 0.48,
+                    plateRotation + 11.0F
+            );
+        }
+
+        if (wear >= 0.58F) {
+            renderPlateCrack(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    x,
+                    y,
+                    depth * 0.5 + 0.030,
+                    width * 0.34,
+                    plateRotation - 17.0F
+            );
+        }
+
+        if (wear >= 0.82F) {
+            renderPlateCrack(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    x,
+                    y,
+                    depth * 0.5 + 0.034,
+                    width * 0.58,
+                    plateRotation + 31.0F
+            );
+        }
+    }
+
+    private BlockState nailMaterial(
+            ItemStack nail
+    ) {
+        if (nail.isEmpty()) {
+            return Blocks.IRON_BLOCK.defaultBlockState();
+        }
+
+        ResourceLocation id =
+                BuiltInRegistries.ITEM.getKey(
+                        nail.getItem()
+                );
+
+        String path =
+                id == null
+                        ? ""
+                        : id.getPath();
+
+        if (path.contains("netherite")) {
+            return Blocks.NETHERITE_BLOCK.defaultBlockState();
+        }
+
+        if (path.contains("diamond")) {
+            return Blocks.DIAMOND_BLOCK.defaultBlockState();
+        }
+
+        if (path.contains("gold")) {
+            return Blocks.GOLD_BLOCK.defaultBlockState();
+        }
+
+        if (path.contains("copper")) {
+            return Blocks.COPPER_BLOCK.defaultBlockState();
+        }
+
+        if (path.contains("wood")
+                || path.contains("oak")) {
+            return Blocks.OAK_PLANKS.defaultBlockState();
+        }
+
+        return Blocks.IRON_BLOCK.defaultBlockState();
+    }
+
+    private void renderPlateCrack(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay,
+            double x,
+            double y,
+            double z,
+            double length,
+            float rotation
+    ) {
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.DARK_OAK_PLANKS.defaultBlockState(),
+                x,
+                y,
+                z,
+                length,
+                0.035,
+                0.025,
+                rotation
+        );
+    }
+
+    private void renderCrack(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay,
+            double x,
+            double y,
+            double z,
+            double length,
+            float rotation
+    ) {
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.BLACKSTONE.defaultBlockState(),
+                x,
+                y,
+                z,
+                length,
+                0.04,
+                0.028,
+                rotation
+        );
     }
 
     private void renderCuboid(
@@ -529,7 +738,7 @@ public final class WaterWheelHubRenderer
                     1.0F
                     - (float) Math.exp(
                             -delta
-                            * 0.22
+                            * 0.24
                     );
 
             smoothedRpm +=
