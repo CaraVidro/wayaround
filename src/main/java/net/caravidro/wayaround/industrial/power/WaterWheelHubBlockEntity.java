@@ -2085,6 +2085,78 @@ public final class WaterWheelHubBlockEntity
                     serverPlayer
             );
         }
+
+        /*
+         * Lava is an achievement, not an alternative working fluid. It cooks
+         * wooden parts rapidly and makes the joke mechanically honest.
+         */
+        frameWear =
+                Math.min(
+                        AssemblyItemData.MAX_COMPONENT_WEAR,
+                        frameWear + 120
+                );
+
+        Direction.Axis axis =
+                axleAxis();
+
+        double rotation =
+                Math.toRadians(
+                        rotationDegrees
+                );
+
+        for (Plate plate :
+                plates) {
+
+            Vec3 point =
+                    Vec3.atCenterOf(
+                            worldPosition
+                    ).add(
+                            radialVector(
+                                    axis,
+                                    plate.anchorAngle
+                                    + rotation
+                            ).scale(
+                                    plate.anchorRadius
+                            )
+                    );
+
+            if (level.getFluidState(
+                    BlockPos.containing(
+                            point
+                    )
+            ).is(
+                    FluidTags.LAVA
+            )) {
+                plate.wear =
+                        Math.min(
+                                AssemblyItemData.MAX_COMPONENT_WEAR,
+                                plate.wear + 320
+                        );
+            }
+        }
+
+        level.playSound(
+                null,
+                worldPosition,
+                SoundEvents.FIRE_EXTINGUISH,
+                SoundSource.BLOCKS,
+                0.28F,
+                0.82F
+        );
+
+        level.sendParticles(
+                ParticleTypes.SMOKE,
+                worldPosition.getX() + 0.5,
+                worldPosition.getY() + 0.5,
+                worldPosition.getZ() + 0.5,
+                7,
+                1.1,
+                1.1,
+                1.1,
+                0.025
+        );
+
+        setChanged();
     }
 
     private boolean touchesLava(
@@ -2573,6 +2645,60 @@ public final class WaterWheelHubBlockEntity
     ) {
         return index >= 0
                 && index < plates.size();
+    }
+
+    public Component inspectPlate(
+            int index
+    ) {
+        if (!validPlate(
+                index
+        )) {
+            return Component.translatable(
+                    "message.wayaround.assembly.inspect_missing"
+            );
+        }
+
+        Plate plate =
+                plates.get(
+                        index
+                );
+
+        float wear =
+                plate.wear
+                / (float) AssemblyItemData.MAX_COMPONENT_WEAR;
+
+        Component wearText =
+                Component.translatable(
+                        wear < 0.25F
+                                ? "message.wayaround.assembly.wear_good"
+                                : wear < 0.55F
+                                        ? "message.wayaround.assembly.wear_used"
+                                        : wear < 0.82F
+                                                ? "message.wayaround.assembly.wear_worn"
+                                                : "message.wayaround.assembly.wear_critical"
+                );
+
+        Component fixing =
+                Component.translatable(
+                        plate.nailed
+                                ? "message.wayaround.assembly.fixed"
+                                : "message.wayaround.assembly.loose"
+                );
+
+        Component nail =
+                plate.nail.isEmpty()
+                        ? Component.translatable(
+                                "message.wayaround.assembly.no_nail"
+                        )
+                        : plate.nail.getHoverName();
+
+        return Component.translatable(
+                "message.wayaround.assembly.inspect",
+                index + 1,
+                fixing,
+                wearText,
+                nail
+        );
     }
 
     public Component status() {
