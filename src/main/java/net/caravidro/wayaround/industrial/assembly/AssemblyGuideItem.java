@@ -139,6 +139,11 @@ public final class AssemblyGuideItem
                 player,
                 "guide.wayaround.assembly.diagnostics.5"
         );
+
+        send(
+                player,
+                "guide.wayaround.assembly.diagnostics.6"
+        );
     }
 
     private static void send(
