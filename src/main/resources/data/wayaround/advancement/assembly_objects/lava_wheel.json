@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:assembly_objects/water_wheel",
+  "display": {
+    "icon": {
+      "id": "minecraft:lava_bucket"
+    },
+    "title": {
+      "translate": "advancements.wayaround.assembly_objects.lava_wheel.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.assembly_objects.lava_wheel.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "lava": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
