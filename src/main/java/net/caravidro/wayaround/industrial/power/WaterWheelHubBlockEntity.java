@@ -1255,6 +1255,46 @@ public final class WaterWheelHubBlockEntity
             }
         }
 
+        if (frameWear
+                >= AssemblyItemData.MAX_COMPONENT_WEAR
+                && (
+                        motion > 4.0
+                        || load > 0.75
+                )
+                && level.random.nextFloat()
+                < 0.006F) {
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.WOOD_BREAK,
+                    SoundSource.BLOCKS,
+                    1.0F,
+                    0.58F
+                    + level.random.nextFloat()
+                    * 0.12F
+            );
+
+            level.sendParticles(
+                    ParticleTypes.CLOUD,
+                    worldPosition.getX() + 0.5,
+                    worldPosition.getY() + 0.5,
+                    worldPosition.getZ() + 0.5,
+                    14,
+                    1.2,
+                    1.2,
+                    1.2,
+                    0.05
+            );
+
+            level.destroyBlock(
+                    worldPosition,
+                    false
+            );
+
+            return;
+        }
+
         if (changed) {
             setChanged();
         }
