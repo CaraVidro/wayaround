@@ -1103,7 +1103,10 @@ public final class WaterWheelHubBlockEntity
                                     5.0
                             ),
                             plate.width
-                            / PADDLE_RADIUS
+                            / Math.max(
+                                    0.35,
+                                    plate.anchorRadius
+                            )
                             * 0.62
                     );
 
@@ -1544,7 +1547,7 @@ public final class WaterWheelHubBlockEntity
                                     plate.anchorAngle
                                     + rotation
                             ).scale(
-                                    PADDLE_RADIUS
+                                    plate.anchorRadius
                             )
                     );
 
