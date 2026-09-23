@@ -9,14 +9,16 @@ import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -43,6 +45,9 @@ public final class WaterWheelHubBlockEntity
 
     private int plateCount;
     private int wetContacts;
+    private int selectedPlate;
+
+    private boolean unstableFlow;
 
     private final byte[] plateTilt =
             new byte[MAX_PLATES];
@@ -103,6 +108,13 @@ public final class WaterWheelHubBlockEntity
             return;
         }
 
+        long time =
+                level.getGameTime();
+
+        /*
+         * This is physical state only. The client renderer no longer uses
+         * every network update as its visual angle anchor.
+         */
         hub.rotationDegrees =
                 wrapDegrees(
                         hub.rotationDegrees
@@ -111,48 +123,63 @@ public final class WaterWheelHubBlockEntity
                 );
 
         if (Math.floorMod(
-                level.getGameTime()
-                + pos.asLong(),
+                time + pos.asLong(),
                 4
-        ) != 0) {
-            return;
+        ) == 0) {
+
+            float oldRpm =
+                    hub.rpm;
+
+            float oldEfficiency =
+                    hub.efficiency;
+
+            float oldTorque =
+                    hub.torque;
+
+            int oldWet =
+                    hub.wetContacts;
+
+            boolean oldUnstable =
+                    hub.unstableFlow;
+
+            hub.sampleWheel(
+                    server,
+                    state
+            );
+
+            if (Math.abs(
+                    oldRpm - hub.rpm
+            ) > 0.12F
+                    || Math.abs(
+                            oldEfficiency - hub.efficiency
+                    ) > 0.035F
+                    || Math.abs(
+                            oldTorque - hub.torque
+                    ) > 0.075F
+                    || oldWet != hub.wetContacts
+                    || oldUnstable != hub.unstableFlow) {
+
+                hub.sync();
+            }
         }
 
-        float oldRpm =
-                hub.rpm;
+        if (Math.floorMod(
+                time + pos.asLong(),
+                8
+        ) == 0) {
+            hub.emitWaterFeedback(
+                    server,
+                    state
+            );
+        }
 
-        float oldEfficiency =
-                hub.efficiency;
-
-        float oldTorque =
-                hub.torque;
-
-        int oldWet =
-                hub.wetContacts;
-
-        hub.sampleWheel(
-                server,
-                state
-        );
-
-        if (Math.abs(
-                oldRpm - hub.rpm
-        ) > 0.03F
-                || Math.abs(
-                        oldEfficiency - hub.efficiency
-                ) > 0.01F
-                || Math.abs(
-                        oldTorque - hub.torque
-                ) > 0.02F
-                || oldWet != hub.wetContacts
-                || Math.abs(hub.rpm) > 0.02F) {
-
-            /*
-             * While moving, keep the client supplied with a fresh physical
-             * rotation anchor. Five updates per second is enough for the
-             * renderer to interpolate the rest locally.
-             */
-            hub.sync();
+        if (Math.floorMod(
+                time + pos.asLong(),
+                27
+        ) == 0) {
+            hub.emitWoodCreak(
+                    server
+            );
         }
     }
 
@@ -180,6 +207,9 @@ public final class WaterWheelHubBlockEntity
             wetContacts =
                     0;
 
+            unstableFlow =
+                    false;
+
             return;
         }
 
@@ -204,6 +234,9 @@ public final class WaterWheelHubBlockEntity
                 0;
 
         int wet =
+                0;
+
+        int directed =
                 0;
 
         double rotation =
@@ -231,26 +264,22 @@ public final class WaterWheelHubBlockEntity
                                 1.35
                         );
 
-                signedTorque +=
-                        result.torque();
-
-                alignmentTotal +=
-                        result.alignment();
-
-                speedTotal +=
-                        result.speed();
-
                 contacts++;
 
                 if (result.wet()) {
                     wet++;
                 }
+
+                if (result.directed()) {
+                    directed++;
+                    signedTorque +=
+                            result.torque();
+                    alignmentTotal +=
+                            result.alignment();
+                    speedTotal +=
+                            result.speed();
+                }
             } else {
-                /*
-                 * A single body uses each plate as a complete diameter:
-                 * one plate looks like a line through the center, two become
-                 * an X, and more lines progressively fill the wheel.
-                 */
                 for (int side = 0;
                         side < 2;
                         side++) {
@@ -266,19 +295,20 @@ public final class WaterWheelHubBlockEntity
                                     0.72
                             );
 
-                    signedTorque +=
-                            result.torque();
-
-                    alignmentTotal +=
-                            result.alignment();
-
-                    speedTotal +=
-                            result.speed();
-
                     contacts++;
 
                     if (result.wet()) {
                         wet++;
+                    }
+
+                    if (result.directed()) {
+                        directed++;
+                        signedTorque +=
+                                result.torque();
+                        alignmentTotal +=
+                                result.alignment();
+                        speedTotal +=
+                                result.speed();
                     }
                 }
             }
@@ -288,9 +318,12 @@ public final class WaterWheelHubBlockEntity
                 wet;
 
         if (wet == 0) {
+            unstableFlow =
+                    false;
+
             rpm =
                     Mth.lerp(
-                            0.16F,
+                            0.18F,
                             rpm,
                             0.0F
                     );
@@ -300,7 +333,7 @@ public final class WaterWheelHubBlockEntity
 
             efficiency =
                     Mth.lerp(
-                            0.25F,
+                            0.24F,
                             efficiency,
                             0.0F
                     );
@@ -310,6 +343,37 @@ public final class WaterWheelHubBlockEntity
 
             return;
         }
+
+        /*
+         * Water is physically touching the wheel, but none of it forms a
+         * coherent directional stream. This is a lake / confused eddy case.
+         * It may wobble visually, but it produces no mechanical output.
+         */
+        if (directed == 0) {
+            unstableFlow =
+                    true;
+
+            rpm =
+                    Mth.lerp(
+                            0.34F,
+                            rpm,
+                            0.0F
+                    );
+
+            torque =
+                    0.0F;
+
+            efficiency =
+                    0.0F;
+
+            mechanicalPower =
+                    0.0F;
+
+            return;
+        }
+
+        unstableFlow =
+                false;
 
         float plateCoverage =
                 1.0F
@@ -323,7 +387,7 @@ public final class WaterWheelHubBlockEntity
                 );
 
         float waterContact =
-                wet
+                directed
                 / (float) Math.max(
                         1,
                         contacts
@@ -334,7 +398,7 @@ public final class WaterWheelHubBlockEntity
                         alignmentTotal
                         / Math.max(
                                 1,
-                                wet
+                                directed
                         ),
                         0.0,
                         1.0
@@ -345,10 +409,10 @@ public final class WaterWheelHubBlockEntity
                         speedTotal
                         / Math.max(
                                 1,
-                                wet
+                                directed
                         )
-                        * 1.5,
-                        0.12,
+                        * 1.55,
+                        0.10,
                         1.0
                 );
 
@@ -356,9 +420,9 @@ public final class WaterWheelHubBlockEntity
                 Mth.clamp(
                         plateCoverage
                         * (
-                                0.35F
+                                0.28F
                                 + waterContact
-                                * 0.65F
+                                * 0.72F
                         )
                         * alignment
                         * speedFactor,
@@ -366,10 +430,6 @@ public final class WaterWheelHubBlockEntity
                         1.0F
                 );
 
-        /*
-         * signedTorque already includes current direction. A waterfall can
-         * therefore reverse the wheel when it hits the opposite side.
-         */
         float targetRpm =
                 (float) Mth.clamp(
                         signedTorque
@@ -380,14 +440,14 @@ public final class WaterWheelHubBlockEntity
 
         rpm =
                 Mth.lerp(
-                        0.24F,
+                        0.20F,
                         rpm,
                         targetRpm
                 );
 
         torque =
                 Mth.lerp(
-                        0.28F,
+                        0.24F,
                         torque,
                         (float) signedTorque
                         * 9.0F
@@ -395,7 +455,7 @@ public final class WaterWheelHubBlockEntity
 
         efficiency =
                 Mth.lerp(
-                        0.22F,
+                        0.20F,
                         efficiency,
                         targetEfficiency
                 );
@@ -416,57 +476,22 @@ public final class WaterWheelHubBlockEntity
             float tiltDegrees,
             double area
     ) {
-        double sin =
-                Math.sin(
+        Vec3 radial =
+                radialVector(
+                        axis,
                         angle
                 );
 
-        double cos =
-                Math.cos(
+        Vec3 tangent =
+                tangentVector(
+                        axis,
                         angle
-                );
-
-        Vec3 radial;
-
-        Vec3 tangent;
-
-        if (axis == Direction.Axis.X) {
-            radial =
-                    new Vec3(
-                            0.0,
-                            sin,
-                            cos
-                    );
-
-            tangent =
-                    new Vec3(
-                            0.0,
-                            cos,
-                            -sin
-                    );
-        } else {
-            radial =
-                    new Vec3(
-                            cos,
-                            sin,
-                            0.0
-                    );
-
-            tangent =
-                    new Vec3(
-                            -sin,
-                            cos,
-                            0.0
-                    );
-        }
-
-        Vec3 center =
-                Vec3.atCenterOf(
-                        worldPosition
                 );
 
         Vec3 contact =
-                center.add(
+                Vec3.atCenterOf(
+                        worldPosition
+                ).add(
                         radial.scale(
                                 WHEEL_RADIUS
                         )
@@ -477,27 +502,42 @@ public final class WaterWheelHubBlockEntity
                         contact
                 );
 
-        Vec3 current =
-                WaterDynamics.currentAround(
-                        level,
-                        samplePos
-                );
-
-        double speed =
-                current.length();
-
         boolean wet =
                 hasWaterAround(
                         level,
                         samplePos
                 );
 
-        if (!wet
-                || speed < 0.008) {
+        if (!wet) {
             return new ContactResult(
                     0.0,
                     0.0,
                     0.0,
+                    false,
+                    false
+            );
+        }
+
+        WaterDynamics.MechanicalFlow mechanical =
+                WaterDynamics.mechanicalFlow(
+                        level,
+                        samplePos
+                );
+
+        Vec3 current =
+                mechanical.vector();
+
+        double speed =
+                current.length();
+
+        if (!mechanical.stable()
+                || speed < 0.012) {
+
+            return new ContactResult(
+                    0.0,
+                    0.0,
+                    0.0,
+                    true,
                     false
             );
         }
@@ -512,12 +552,6 @@ public final class WaterWheelHubBlockEntity
                         tiltDegrees
                 );
 
-        /*
-         * The plate's effective face can be turned from tangential toward
-         * radial. This makes orientation genuinely dependent on the local
-         * direction of the water rather than giving every plate one universal
-         * best angle.
-         */
         Vec3 normal =
                 tangent.scale(
                         Math.cos(
@@ -547,13 +581,263 @@ public final class WaterWheelHubBlockEntity
                 tangentialFlow
                 * alignment
                 * WHEEL_RADIUS
-                * area;
+                * area
+                * mechanical.coherence();
 
         return new ContactResult(
                 torqueContribution,
                 alignment,
                 speed,
+                true,
                 true
+        );
+    }
+
+    private void emitWaterFeedback(
+            ServerLevel level,
+            BlockState state
+    ) {
+        if (plateCount <= 0
+                || wetContacts <= 0) {
+            return;
+        }
+
+        boolean doubleBody =
+                state.getValue(
+                        WaterWheelHubBlock.DOUBLE
+                );
+
+        Direction.Axis axis =
+                axleAxis();
+
+        double rotation =
+                Math.toRadians(
+                        rotationDegrees
+                );
+
+        int emitted =
+                0;
+
+        for (int i = 0;
+                i < plateCount
+                && emitted < 7;
+                i++) {
+
+            int sides =
+                    doubleBody
+                            ? 1
+                            : 2;
+
+            for (int side = 0;
+                    side < sides
+                    && emitted < 7;
+                    side++) {
+
+                double angle =
+                        plateBaseAngle(
+                                i,
+                                doubleBody
+                        )
+                        + rotation
+                        + (
+                                doubleBody
+                                        ? 0.0
+                                        : side * Math.PI
+                        );
+
+                Vec3 contact =
+                        contactPosition(
+                                axis,
+                                angle
+                        );
+
+                BlockPos samplePos =
+                        BlockPos.containing(
+                                contact
+                        );
+
+                if (!hasWaterAround(
+                        level,
+                        samplePos
+                )) {
+                    continue;
+                }
+
+                WaterDynamics.MechanicalFlow flow =
+                        WaterDynamics.mechanicalFlow(
+                                level,
+                                samplePos
+                        );
+
+                if (!flow.stable()) {
+                    continue;
+                }
+
+                Vec3 velocity =
+                        flow.vector();
+
+                double speed =
+                        velocity.length();
+
+                int count =
+                        speed > 0.18
+                                ? 2
+                                : 1;
+
+                level.sendParticles(
+                        ParticleTypes.SPLASH,
+                        contact.x,
+                        contact.y,
+                        contact.z,
+                        count,
+                        0.10,
+                        0.08,
+                        0.10,
+                        0.025
+                );
+
+                emitted++;
+            }
+        }
+
+        if (emitted > 0
+                && Math.floorMod(
+                        level.getGameTime()
+                                + worldPosition.asLong(),
+                        16
+                ) == 0) {
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.GENERIC_SPLASH,
+                    SoundSource.BLOCKS,
+                    0.20F
+                            + Math.min(
+                                    0.28F,
+                                    Math.abs(rpm)
+                                    / 90.0F
+                            ),
+                    0.88F
+                            + level.random.nextFloat()
+                            * 0.16F
+            );
+        }
+    }
+
+    private void emitWoodCreak(
+            ServerLevel level
+    ) {
+        float motion =
+                Math.abs(
+                        rpm
+                );
+
+        if (motion < 0.25F
+                && !unstableFlow) {
+            return;
+        }
+
+        float volume =
+                unstableFlow
+                        ? 0.12F
+                        : Mth.clamp(
+                                0.10F
+                                + motion / 85.0F,
+                                0.10F,
+                                0.34F
+                        );
+
+        float pitch =
+                unstableFlow
+                        ? 0.55F
+                        + level.random.nextFloat()
+                        * 0.08F
+                        : 0.54F
+                        + level.random.nextFloat()
+                        * 0.16F;
+
+        level.playSound(
+                null,
+                worldPosition,
+                SoundEvents.WOODEN_DOOR_OPEN,
+                SoundSource.BLOCKS,
+                volume,
+                pitch
+        );
+    }
+
+    private Vec3 contactPosition(
+            Direction.Axis axis,
+            double angle
+    ) {
+        return Vec3.atCenterOf(
+                worldPosition
+        ).add(
+                radialVector(
+                        axis,
+                        angle
+                ).scale(
+                        WHEEL_RADIUS
+                )
+        );
+    }
+
+    private static Vec3 radialVector(
+            Direction.Axis axis,
+            double angle
+    ) {
+        double sin =
+                Math.sin(
+                        angle
+                );
+
+        double cos =
+                Math.cos(
+                        angle
+                );
+
+        if (axis == Direction.Axis.X) {
+            return new Vec3(
+                    0.0,
+                    sin,
+                    cos
+            );
+        }
+
+        return new Vec3(
+                cos,
+                sin,
+                0.0
+        );
+    }
+
+    private static Vec3 tangentVector(
+            Direction.Axis axis,
+            double angle
+    ) {
+        double sin =
+                Math.sin(
+                        angle
+                );
+
+        double cos =
+                Math.cos(
+                        angle
+                );
+
+        if (axis == Direction.Axis.X) {
+            return new Vec3(
+                    0.0,
+                    cos,
+                    -sin
+            );
+        }
+
+        return new Vec3(
+                -sin,
+                cos,
+                0.0
         );
     }
 
@@ -593,133 +877,53 @@ public final class WaterWheelHubBlockEntity
 
         plateCount++;
 
+        if (plateCount == 1) {
+            selectedPlate =
+                    0;
+        }
+
         configurationChanged();
 
         return true;
     }
 
-    public int rotateNearestPlate(
-            Player player,
-            int direction
+    public int adjustSelectedPlate(
+            boolean selectNext
     ) {
         if (plateCount <= 0) {
             return -1;
         }
 
-        boolean doubleBody =
-                getBlockState().getValue(
-                        WaterWheelHubBlock.DOUBLE
+        selectedPlate =
+                Math.floorMod(
+                        selectedPlate,
+                        plateCount
                 );
 
-        double playerAngle =
-                playerAngle(
-                        player
-                );
-
-        double wheelRotation =
-                Math.toRadians(
-                        rotationDegrees
-                );
-
-        int nearest =
-                0;
-
-        double nearestDistance =
-                Double.MAX_VALUE;
-
-        for (int i = 0;
-                i < plateCount;
-                i++) {
-
-            double angle =
-                    plateBaseAngle(
-                            i,
-                            doubleBody
+        if (selectNext) {
+            selectedPlate =
+                    (
+                            selectedPlate
+                            + 1
                     )
-                    + wheelRotation;
-
-            double distance =
-                    angleDistance(
-                            playerAngle,
-                            angle
-                    );
-
-            if (!doubleBody) {
-                distance =
-                        Math.min(
-                                distance,
-                                angleDistance(
-                                        playerAngle,
-                                        angle
-                                        + Math.PI
-                                )
-                        );
-            }
-
-            if (distance < nearestDistance) {
-                nearestDistance =
-                        distance;
-
-                nearest =
-                        i;
-            }
+                    % plateCount;
         }
 
         int next =
-                plateTilt[nearest]
-                + Integer.signum(
-                        direction
-                );
+                plateTilt[selectedPlate]
+                + 1;
 
         if (next > 4) {
             next =
                     -4;
         }
 
-        if (next < -4) {
-            next =
-                    4;
-        }
-
-        plateTilt[nearest] =
+        plateTilt[selectedPlate] =
                 (byte) next;
 
         configurationChanged();
 
-        return nearest;
-    }
-
-    private double playerAngle(
-            Player player
-    ) {
-        Vec3 center =
-                Vec3.atCenterOf(
-                        worldPosition
-                );
-
-        double vertical =
-                player.getEyeY()
-                - center.y;
-
-        if (axleAxis()
-                == Direction.Axis.X) {
-
-            return normalizeAngle(
-                    Math.atan2(
-                            vertical,
-                            player.getZ()
-                            - center.z
-                    )
-            );
-        }
-
-        return normalizeAngle(
-                Math.atan2(
-                        vertical,
-                        player.getX()
-                        - center.x
-                )
-        );
+        return selectedPlate;
     }
 
     public double plateBaseAngle(
@@ -738,52 +942,12 @@ public final class WaterWheelHubBlockEntity
                     );
         }
 
-        /*
-         * 45 degree offset makes two diameter plates visually form an X.
-         */
         return Math.PI * 0.25
                 + index
                 * (
                         Math.PI
                         / plateCount
                 );
-    }
-
-    private static double angleDistance(
-            double a,
-            double b
-    ) {
-        double difference =
-                normalizeAngle(
-                        a - b
-                );
-
-        if (difference > Math.PI) {
-            difference =
-                    Math.PI * 2.0
-                    - difference;
-        }
-
-        return Math.abs(
-                difference
-        );
-    }
-
-    private static double normalizeAngle(
-            double angle
-    ) {
-        double full =
-                Math.PI * 2.0;
-
-        angle %=
-                full;
-
-        if (angle < 0.0) {
-            angle +=
-                    full;
-        }
-
-        return angle;
     }
 
     private static float wrapDegrees(
@@ -866,6 +1030,21 @@ public final class WaterWheelHubBlockEntity
 
     public int wetContacts() {
         return wetContacts;
+    }
+
+    public boolean unstableFlow() {
+        return unstableFlow;
+    }
+
+    public int selectedPlate() {
+        if (plateCount <= 0) {
+            return -1;
+        }
+
+        return Math.floorMod(
+                selectedPlate,
+                plateCount
+        );
     }
 
     public float plateTiltDegrees(
@@ -983,6 +1162,21 @@ public final class WaterWheelHubBlockEntity
                         )
                 );
 
+        selectedPlate =
+                plateCount <= 0
+                        ? 0
+                        : Math.floorMod(
+                                tag.getInt(
+                                        "SelectedPlate"
+                                ),
+                                plateCount
+                        );
+
+        unstableFlow =
+                tag.getBoolean(
+                        "UnstableFlow"
+                );
+
         byte[] savedTilt =
                 tag.getByteArray(
                         "PlateTilt"
@@ -1065,6 +1259,16 @@ public final class WaterWheelHubBlockEntity
                 wetContacts
         );
 
+        tag.putInt(
+                "SelectedPlate",
+                selectedPlate
+        );
+
+        tag.putBoolean(
+                "UnstableFlow",
+                unstableFlow
+        );
+
         tag.putByteArray(
                 "PlateTilt",
                 plateTilt
@@ -1075,7 +1279,8 @@ public final class WaterWheelHubBlockEntity
             double torque,
             double alignment,
             double speed,
-            boolean wet
+            boolean wet,
+            boolean directed
     ) {
     }
 }
