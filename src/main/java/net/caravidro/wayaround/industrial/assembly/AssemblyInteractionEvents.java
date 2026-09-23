@@ -102,9 +102,16 @@ public final class AssemblyInteractionEvents {
                 held.isEmpty()
                 && hit.plateIndex() >= 0;
 
+        boolean guideItem =
+                held.is(
+                        PowerContent.ASSEMBLY_GUIDE.get()
+                )
+                && hit.plateIndex() >= 0;
+
         if (!plateItem
                 && !nailItem
-                && !emptyPlate) {
+                && !emptyPlate
+                && !guideItem) {
             return false;
         }
 
@@ -115,6 +122,17 @@ public final class AssemblyInteractionEvents {
         if (!(event.getEntity()
                 instanceof ServerPlayer player)) {
             return false;
+        }
+
+        if (guideItem) {
+            player.displayClientMessage(
+                    hit.hub().inspectPlate(
+                            hit.plateIndex()
+                    ),
+                    true
+            );
+
+            return true;
         }
 
         if (plateItem) {
