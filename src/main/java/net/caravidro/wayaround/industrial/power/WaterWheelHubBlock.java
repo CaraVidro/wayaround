@@ -261,6 +261,57 @@ public final class WaterWheelHubBlock
     }
 
     @Override
+    protected void onRemove(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            BlockState replacement,
+            boolean moving
+    ) {
+        if (!state.is(
+                replacement.getBlock()
+        )
+                && !level.isClientSide
+                && level.getBlockEntity(pos)
+                instanceof WaterWheelHubBlockEntity hub) {
+
+            /*
+             * The block's normal loot returns the first body. The second
+             * consumed body and all internally installed plates are returned
+             * here so configuration never becomes a resource black hole.
+             */
+            if (state.getValue(DOUBLE)) {
+                popResource(
+                        level,
+                        pos,
+                        new ItemStack(
+                                PowerContent.WATER_WHEEL_HUB_ITEM.get()
+                        )
+                );
+            }
+
+            if (hub.plateCount() > 0) {
+                popResource(
+                        level,
+                        pos,
+                        new ItemStack(
+                                PowerContent.WATER_WHEEL_BLADE_ITEM.get(),
+                                hub.plateCount()
+                        )
+                );
+            }
+        }
+
+        super.onRemove(
+                state,
+                level,
+                pos,
+                replacement,
+                moving
+        );
+    }
+
+    @Override
     protected void createBlockStateDefinition(
             StateDefinition.Builder<Block, BlockState> builder
     ) {
