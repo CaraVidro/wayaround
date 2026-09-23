@@ -72,6 +72,13 @@ public final class PowerContent {
     public static final DeferredItem<Item> ASSEMBLY_GUIDE = ITEMS.register("assembly_guide",
         () -> new AssemblyGuideItem(new Item.Properties().stacksTo(1)));
 
+    public static final DeferredBlock<MechanicalShaftBlock> MECHANICAL_SHAFT = BLOCKS.register("mechanical_shaft",
+        () -> new MechanicalShaftBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+            .strength(2.2F, 5.0F).sound(SoundType.METAL).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> MECHANICAL_SHAFT_ITEM = ITEMS.register("mechanical_shaft",
+        () -> new BlockItem(MECHANICAL_SHAFT.get(), new Item.Properties()));
+
     public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
         () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
             .strength(3.0F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()));
