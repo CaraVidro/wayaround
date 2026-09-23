@@ -1,7 +1,7 @@
 {
   "display": {
     "icon": {
-      "id": "wayaround:water_wheel_support"
+      "id": "wayaround:assembly_guide"
     },
     "title": {
       "translate": "advancements.wayaround.assembly_objects.root.title"
