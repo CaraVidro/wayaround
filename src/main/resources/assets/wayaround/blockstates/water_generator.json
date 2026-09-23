@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "wayaround:block/water_generator" }
+  }
+}
