@@ -89,6 +89,11 @@ public final class AssemblyGuideItem
                 "guide.wayaround.assembly.6"
         );
 
+        send(
+                player,
+                "guide.wayaround.assembly.7"
+        );
+
         player.sendSystemMessage(
                 Component.translatable(
                         "guide.wayaround.assembly.more"
