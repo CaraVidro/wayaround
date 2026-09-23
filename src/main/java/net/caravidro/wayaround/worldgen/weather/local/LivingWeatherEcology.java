@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
@@ -40,6 +41,11 @@ public final class LivingWeatherEcology {
             Set<UUID> touched = new HashSet<>();
 
             for (var player : level.players()) {
+                if (level.getBiome(player.blockPosition())
+                        .is(WayAroundBiomes.ANTARCTIC_ICE_SHEET)) {
+                    continue;
+                }
+
                 LocalWeatherField.Sample weather =
                         LocalWeatherField.sample(
                                 player.getX(),
