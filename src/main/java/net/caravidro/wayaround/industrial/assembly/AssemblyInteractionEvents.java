@@ -106,7 +106,10 @@ public final class AssemblyInteractionEvents {
                 held.is(
                         PowerContent.ASSEMBLY_GUIDE.get()
                 )
-                && hit.plateIndex() >= 0;
+                && (
+                        hit.plateIndex() >= 0
+                        || hit.frame()
+                );
 
         if (!plateItem
                 && !nailItem
@@ -126,9 +129,11 @@ public final class AssemblyInteractionEvents {
 
         if (guideItem) {
             player.displayClientMessage(
-                    hit.hub().inspectPlate(
-                            hit.plateIndex()
-                    ),
+                    hit.plateIndex() >= 0
+                            ? hit.hub().inspectPlate(
+                                    hit.plateIndex()
+                            )
+                            : hit.hub().inspectFrame(),
                     true
             );
 
