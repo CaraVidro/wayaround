@@ -13,9 +13,9 @@ import net.minecraft.util.Mth;
  */
 public final class LocalWeatherField {
 
-    private static final double CELL_SPACING = 430.0;
+    private static final double CELL_SPACING = 520.0;
     private static final double DRIFT_SPEED = 0.024;
-    private static final double MAX_RADIUS = 205.0;
+    private static final double MAX_RADIUS = 320.0;
 
     private LocalWeatherField() {
     }
@@ -170,8 +170,40 @@ public final class LocalWeatherField {
         double jitterX = signed01(seed ^ 0x6A09E667F3BCC909L) * 92.0;
         double jitterZ = signed01(seed ^ 0xBB67AE8584CAA73BL) * 92.0;
 
-        double radius = 105.0
-                + unit01(seed ^ 0x3C6EF372FE94F82BL) * 100.0;
+        double sizeRoll =
+                unit01(
+                        seed
+                        ^ 0x3C6EF372FE94F82BL
+                );
+
+        double radius;
+
+        if (sizeRoll < 0.24) {
+            /*
+             * Small wandering cloud chunks.
+             */
+            radius =
+                    52.0
+                    + sizeRoll / 0.24 * 58.0;
+        } else if (sizeRoll < 0.90) {
+            /*
+             * Most clouds live here.
+             */
+            radius =
+                    110.0
+                    + (
+                            sizeRoll - 0.24
+                    ) / 0.66 * 118.0;
+        } else {
+            /*
+             * Rare giant fronts.
+             */
+            radius =
+                    228.0
+                    + (
+                            sizeRoll - 0.90
+                    ) / 0.10 * 92.0;
+        }
 
         float storm = (float) unit01(seed ^ 0xA54FF53A5F1D36F1L);
 
