@@ -93,6 +93,6 @@
     "message.wayaround.assembly.structure_stable": "Estável",
     "block.wayaround.mechanical_gearbox": "Caixa de engrenagens",
     "item.wayaround.blue": "Blue",
-    "tooltip.wayaround.blue.control": "Segure para condensar. Use a rodinha para aproximar ou afastar.",
-    "tooltip.wayaround.blue.sling": "Puxe para perto, empurre para longe rapidamente e solte para lançar."
+    "tooltip.wayaround.blue.control": "Segure para carregar, solte para invocar. Clique de novo para dispensar.",
+    "tooltip.wayaround.blue.sling": "Com a Blue ativa, use a rodinha para controlar a distância. Um gesto rápido para perto e para longe a lança."
 }
