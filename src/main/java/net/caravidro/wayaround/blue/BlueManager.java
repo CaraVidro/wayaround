@@ -74,7 +74,7 @@ public final class BlueManager {
                 .playSound(
                         null,
                         player.blockPosition(),
-                        WayAroundSounds.BLUE_THEME.get(),
+                        WayAroundSounds.BLUE_THEME.get().value(),
                         SoundSource.PLAYERS,
                         1.25F,
                         1.0F
