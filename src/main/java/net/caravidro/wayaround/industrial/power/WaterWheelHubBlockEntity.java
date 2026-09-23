@@ -1925,10 +1925,6 @@ public final class WaterWheelHubBlockEntity
                         "%.2f",
                         torque
                 ),
-                Math.round(
-                        efficiency
-                        * 100.0F
-                ),
                 String.format(
                         Locale.ROOT,
                         "%.2f",
