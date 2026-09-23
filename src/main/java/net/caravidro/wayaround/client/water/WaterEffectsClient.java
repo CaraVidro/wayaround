@@ -1,6 +1,9 @@
 package net.caravidro.wayaround.client.water;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.caravidro.wayaround.WayAround;
@@ -10,7 +13,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -30,8 +36,16 @@ public final class WaterEffectsClient {
             FALLING_BLOCKS_IN_WATER =
             new HashSet<>();
 
+    private static final List<TurbulenceEmitter>
+            TURBULENCE =
+            new ArrayList<>();
+
     private static boolean wasInWater;
     private static int ticks;
+    private static int turbulenceCenterX =
+            Integer.MIN_VALUE;
+    private static int turbulenceCenterZ =
+            Integer.MIN_VALUE;
 
     private WaterEffectsClient() {
     }
@@ -46,7 +60,9 @@ public final class WaterEffectsClient {
         if (minecraft.level == null
                 || minecraft.player == null
                 || minecraft.isPaused()) {
+
             FALLING_BLOCKS_IN_WATER.clear();
+            TURBULENCE.clear();
             wasInWater = false;
             return;
         }
@@ -66,8 +82,16 @@ public final class WaterEffectsClient {
                 minecraft
         );
 
+        if (needsTurbulenceRebuild(
+                minecraft
+        )) {
+            rebuildTurbulence(
+                    minecraft
+            );
+        }
+
         if (ticks % 2 == 0) {
-            currentImpacts(
+            emitTurbulence(
                     minecraft
             );
         }
@@ -144,9 +168,9 @@ public final class WaterEffectsClient {
                 minecraft.player
                         .getBoundingBox()
                         .inflate(
-                                24.0,
-                                16.0,
-                                24.0
+                                28.0,
+                                20.0,
+                                28.0
                         );
 
         Set<Integer> active =
@@ -180,8 +204,55 @@ public final class WaterEffectsClient {
             Vec3 movement =
                     falling.getDeltaMovement();
 
+            double impactSpeed =
+                    movement.length();
+
+            float volume =
+                    Mth.clamp(
+                            (float) (
+                                    0.34
+                                    + impactSpeed * 0.48
+                            ),
+                            0.34F,
+                            1.35F
+                    );
+
+            float pitch =
+                    Mth.clamp(
+                            1.12F
+                            - (float) impactSpeed
+                            * 0.16F
+                            + (
+                                    minecraft.level.random.nextFloat()
+                                    - 0.5F
+                            ) * 0.12F,
+                            0.72F,
+                            1.22F
+                    );
+
+            minecraft.level.playLocalSound(
+                    falling.getX(),
+                    falling.getY(),
+                    falling.getZ(),
+                    SoundEvents.GENERIC_SPLASH,
+                    SoundSource.BLOCKS,
+                    volume,
+                    pitch,
+                    false
+            );
+
+            int splashAmount =
+                    Mth.clamp(
+                            12
+                            + (int) Math.round(
+                                    impactSpeed * 12.0
+                            ),
+                            12,
+                            30
+                    );
+
             for (int i = 0;
-                    i < 18;
+                    i < splashAmount;
                     i++) {
 
                 minecraft.level.addParticle(
@@ -242,53 +313,163 @@ public final class WaterEffectsClient {
                 .retainAll(active);
     }
 
-    private static void currentImpacts(
+    private static boolean needsTurbulenceRebuild(
             Minecraft minecraft
     ) {
-        int attempts =
-                8;
+        int x =
+                minecraft.player.getBlockX();
 
-        for (int i = 0;
-                i < attempts;
-                i++) {
+        int z =
+                minecraft.player.getBlockZ();
 
-            int x =
-                    minecraft.player.getBlockX()
-                    + minecraft.level.random.nextInt(29)
-                    - 14;
+        if (turbulenceCenterX
+                == Integer.MIN_VALUE) {
+            return true;
+        }
 
-            int z =
-                    minecraft.player.getBlockZ()
-                    + minecraft.level.random.nextInt(29)
-                    - 14;
+        int dx =
+                x - turbulenceCenterX;
 
-            int centerY =
-                    minecraft.player.getBlockY();
+        int dz =
+                z - turbulenceCenterZ;
 
-            BlockPos water =
-                    findWater(
-                            minecraft,
-                            x,
-                            z,
-                            centerY - 5,
-                            centerY + 5
-                    );
+        return ticks % 20 == 0
+                || dx * dx
+                + dz * dz
+                >= 36;
+    }
 
-            if (water == null) {
+    private static void rebuildTurbulence(
+            Minecraft minecraft
+    ) {
+        TURBULENCE.clear();
+
+        int centerX =
+                minecraft.player.getBlockX();
+
+        int centerY =
+                minecraft.player.getBlockY();
+
+        int centerZ =
+                minecraft.player.getBlockZ();
+
+        int radius =
+                22;
+
+        for (int x = centerX - radius;
+                x <= centerX + radius;
+                x++) {
+
+            for (int z = centerZ - radius;
+                    z <= centerZ + radius;
+                    z++) {
+
+                int dx =
+                        x - centerX;
+
+                int dz =
+                        z - centerZ;
+
+                if (dx * dx
+                        + dz * dz
+                        > radius * radius) {
+                    continue;
+                }
+
+                BlockPos water =
+                        findWater(
+                                minecraft,
+                                x,
+                                z,
+                                centerY - 7,
+                                centerY + 7
+                        );
+
+                if (water == null) {
+                    continue;
+                }
+
+                float turbulence =
+                        WaterDynamics.turbulence(
+                                minecraft.level,
+                                water
+                        );
+
+                if (turbulence < 0.16F) {
+                    continue;
+                }
+
+                Vec3 current =
+                        WaterDynamics.currentAround(
+                                minecraft.level,
+                                water
+                        );
+
+                boolean impact =
+                        WaterDynamics.hitsObstacle(
+                                minecraft.level,
+                                water,
+                                current
+                        );
+
+                TURBULENCE.add(
+                        new TurbulenceEmitter(
+                                water,
+                                turbulence,
+                                current,
+                                impact
+                        )
+                );
+            }
+        }
+
+        TURBULENCE.sort(
+                Comparator.comparingDouble(
+                        TurbulenceEmitter::intensity
+                ).reversed()
+        );
+
+        if (TURBULENCE.size() > 48) {
+            TURBULENCE.subList(
+                    48,
+                    TURBULENCE.size()
+            ).clear();
+        }
+
+        turbulenceCenterX =
+                centerX;
+
+        turbulenceCenterZ =
+                centerZ;
+    }
+
+    private static void emitTurbulence(
+            Minecraft minecraft
+    ) {
+        for (TurbulenceEmitter emitter :
+                TURBULENCE) {
+
+            if (!minecraft.level
+                    .getFluidState(
+                            emitter.pos()
+                    )
+                    .is(FluidTags.WATER)) {
                 continue;
             }
 
             Vec3 current =
-                    WaterDynamics.current(
+                    WaterDynamics.currentAround(
                             minecraft.level,
-                            water
+                            emitter.pos()
                     );
 
-            if (!WaterDynamics.hitsObstacle(
-                    minecraft.level,
-                    water,
-                    current
-            )) {
+            float liveTurbulence =
+                    WaterDynamics.turbulence(
+                            minecraft.level,
+                            emitter.pos()
+                    );
+
+            if (liveTurbulence < 0.13F) {
                 continue;
             }
 
@@ -297,67 +478,92 @@ public final class WaterEffectsClient {
                             current
                     );
 
-            if (direction == null) {
-                continue;
+            double offsetX =
+                    0.0;
+
+            double offsetZ =
+                    0.0;
+
+            if (emitter.impact()
+                    && direction != null) {
+
+                offsetX =
+                        direction.getStepX()
+                        * 0.38;
+
+                offsetZ =
+                        direction.getStepZ()
+                        * 0.38;
             }
 
-            double speed =
-                    WaterDynamics.speed(
-                            current
-                    );
-
-            double px =
-                    water.getX()
-                    + 0.5
-                    + direction.getStepX()
-                    * 0.43;
-
-            double pz =
-                    water.getZ()
-                    + 0.5
-                    + direction.getStepZ()
-                    * 0.43;
-
-            double py =
-                    water.getY()
-                    + 0.78;
-
             int count =
-                    speed > 0.18
-                            ? 3
+                    liveTurbulence > 0.65F
+                            ? 2
                             : 1;
 
             for (int p = 0;
                     p < count;
                     p++) {
 
+                double x =
+                        emitter.pos().getX()
+                        + 0.5
+                        + offsetX
+                        + (
+                                minecraft.level.random.nextDouble()
+                                - 0.5
+                        ) * 0.32;
+
+                double y =
+                        emitter.pos().getY()
+                        + 0.77
+                        + minecraft.level.random.nextDouble()
+                        * 0.08;
+
+                double z =
+                        emitter.pos().getZ()
+                        + 0.5
+                        + offsetZ
+                        + (
+                                minecraft.level.random.nextDouble()
+                                - 0.5
+                        ) * 0.32;
+
                 minecraft.level.addParticle(
                         ParticleTypes.SPLASH,
-                        px
+                        x,
+                        y,
+                        z,
+                        -current.x * 0.045
                                 + (
                                         minecraft.level.random.nextDouble()
                                         - 0.5
-                                ) * 0.35,
-                        py,
-                        pz
-                                + (
-                                        minecraft.level.random.nextDouble()
-                                        - 0.5
-                                ) * 0.35,
-                        -current.x * 0.05
-                                + (
-                                        minecraft.level.random.nextDouble()
-                                        - 0.5
-                                ) * 0.035,
-                        0.025
+                                ) * 0.028,
+                        0.022
+                                + liveTurbulence * 0.055
                                 + minecraft.level.random.nextDouble()
-                                * 0.055,
-                        -current.z * 0.05
+                                * 0.025,
+                        -current.z * 0.045
                                 + (
                                         minecraft.level.random.nextDouble()
                                         - 0.5
-                                ) * 0.035
+                                ) * 0.028
                 );
+
+                if (liveTurbulence > 0.48F
+                        && minecraft.level.random.nextFloat()
+                        < 0.28F) {
+
+                    minecraft.level.addParticle(
+                            ParticleTypes.BUBBLE_POP,
+                            x,
+                            y - 0.05,
+                            z,
+                            current.x * 0.02,
+                            0.012,
+                            current.z * 0.02
+                    );
+                }
             }
         }
     }
@@ -424,5 +630,13 @@ public final class WaterEffectsClient {
         }
 
         return null;
+    }
+
+    private record TurbulenceEmitter(
+            BlockPos pos,
+            float intensity,
+            Vec3 current,
+            boolean impact
+    ) {
     }
 }
