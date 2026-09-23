@@ -1,0 +1,233 @@
+package net.caravidro.wayaround.worldgen.weather.local;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.util.Mth;
+
+/**
+ * Lightweight deterministic weather field shared by client and server.
+ *
+ * It is intentionally stylized rather than meteorologically realistic:
+ * large cloud cells drift across the world and carry their own rain.
+ */
+public final class LocalWeatherField {
+
+    private static final double CELL_SPACING = 430.0;
+    private static final double DRIFT_SPEED = 0.024;
+    private static final double MAX_RADIUS = 205.0;
+
+    private LocalWeatherField() {
+    }
+
+    public record Sample(
+            float cloud,
+            float rain,
+            float warning,
+            float windX,
+            float windZ
+    ) {
+    }
+
+    public record CloudCell(
+            long id,
+            double x,
+            double z,
+            double y,
+            double radius,
+            float storm
+    ) {
+        public float densityAt(double px, double pz) {
+            double dx = px - x;
+            double dz = pz - z;
+            double distance = Math.sqrt(dx * dx + dz * dz);
+            double value = 1.0 - distance / radius;
+            return smooth((float) Mth.clamp(value, 0.0, 1.0));
+        }
+
+        public float rainAt(double px, double pz) {
+            float density = densityAt(px, pz);
+            float raininess = Mth.clamp((storm - 0.56F) / 0.44F, 0.0F, 1.0F);
+            return density * raininess;
+        }
+    }
+
+    public static Sample sample(double x, double z, long gameTime) {
+        float windX = windX(gameTime);
+        float windZ = windZ(gameTime);
+
+        float cloud = 0.0F;
+        float rain = 0.0F;
+        float warning = 0.0F;
+
+        for (CloudCell cell : nearbyCells(x, z, gameTime, MAX_RADIUS + 260.0)) {
+            float density = cell.densityAt(x, z);
+            float localRain = cell.rainAt(x, z);
+
+            cloud = Math.max(cloud, density);
+            rain = Math.max(rain, localRain);
+
+            double dx = x - cell.x;
+            double dz = z - cell.z;
+            double distance = Math.sqrt(dx * dx + dz * dz);
+            double warningRadius = cell.radius + 235.0;
+
+            if (distance < warningRadius && cell.storm > 0.48F) {
+                float proximity = (float) (1.0 - distance / warningRadius);
+                float stormWeight = Mth.clamp((cell.storm - 0.48F) / 0.52F, 0.0F, 1.0F);
+
+                /*
+                 * A storm is more threatening when it is upwind of the observer.
+                 * Positive approach means the cloud is behind the wind vector and
+                 * therefore drifting toward this point.
+                 */
+                double approach = -(dx * windX + dz * windZ);
+                float approachWeight = approach > -cell.radius * 0.25 ? 1.0F : 0.45F;
+
+                warning = Math.max(
+                        warning,
+                        smooth(proximity) * stormWeight * approachWeight
+                );
+            }
+        }
+
+        warning = Math.max(warning, rain);
+
+        return new Sample(
+                Mth.clamp(cloud, 0.0F, 1.0F),
+                Mth.clamp(rain, 0.0F, 1.0F),
+                Mth.clamp(warning, 0.0F, 1.0F),
+                windX,
+                windZ
+        );
+    }
+
+    public static List<CloudCell> nearbyCells(
+            double x,
+            double z,
+            long gameTime,
+            double range
+    ) {
+        float wx = windX(gameTime);
+        float wz = windZ(gameTime);
+        double drift = gameTime * DRIFT_SPEED;
+
+        double staticX = x - wx * drift;
+        double staticZ = z - wz * drift;
+
+        int centerX = floorCell(staticX);
+        int centerZ = floorCell(staticZ);
+
+        int reach = Math.max(
+                2,
+                (int) Math.ceil((range + MAX_RADIUS) / CELL_SPACING) + 1
+        );
+
+        List<CloudCell> result = new ArrayList<>();
+
+        for (int gx = centerX - reach; gx <= centerX + reach; gx++) {
+            for (int gz = centerZ - reach; gz <= centerZ + reach; gz++) {
+                CloudCell cell = cell(gx, gz, gameTime, wx, wz, drift);
+
+                double dx = x - cell.x;
+                double dz = z - cell.z;
+                double maxDistance = range + cell.radius;
+
+                if (dx * dx + dz * dz <= maxDistance * maxDistance) {
+                    result.add(cell);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static float windX(long gameTime) {
+        return (float) Math.cos(windAngle(gameTime));
+    }
+
+    public static float windZ(long gameTime) {
+        return (float) Math.sin(windAngle(gameTime));
+    }
+
+    private static double windAngle(long gameTime) {
+        double slow = gameTime / 36000.0;
+        return 0.72
+                + Math.sin(slow) * 0.34
+                + Math.sin(slow * 0.37 + 1.8) * 0.16;
+    }
+
+    private static CloudCell cell(
+            int gx,
+            int gz,
+            long gameTime,
+            float windX,
+            float windZ,
+            double drift
+    ) {
+        long seed = hash(gx, gz);
+
+        double jitterX = signed01(seed ^ 0x6A09E667F3BCC909L) * 92.0;
+        double jitterZ = signed01(seed ^ 0xBB67AE8584CAA73BL) * 92.0;
+
+        double radius = 105.0
+                + unit01(seed ^ 0x3C6EF372FE94F82BL) * 100.0;
+
+        float storm = (float) unit01(seed ^ 0xA54FF53A5F1D36F1L);
+
+        /*
+         * Keep a good amount of fair clouds. Only the wetter cells become
+         * dark rain clouds.
+         */
+        storm = Mth.clamp((storm - 0.12F) / 0.88F, 0.0F, 1.0F);
+
+        double height = 158.0
+                + unit01(seed ^ 0x510E527FADE682D1L) * 28.0;
+
+        return new CloudCell(
+                seed,
+                gx * CELL_SPACING + jitterX + windX * drift,
+                gz * CELL_SPACING + jitterZ + windZ * drift,
+                height,
+                radius,
+                storm
+        );
+    }
+
+    private static int floorCell(double value) {
+        return (int) Math.floor(value / CELL_SPACING);
+    }
+
+    private static float smooth(float value) {
+        value = Mth.clamp(value, 0.0F, 1.0F);
+        return value * value * (3.0F - 2.0F * value);
+    }
+
+    private static long hash(int x, int z) {
+        long value = x * 341873128712L ^ z * 132897987541L;
+        value ^= value >>> 33;
+        value *= 0xff51afd7ed558ccdL;
+        value ^= value >>> 33;
+        value *= 0xc4ceb9fe1a85ec53L;
+        value ^= value >>> 33;
+        return value;
+    }
+
+    private static double unit01(long value) {
+        long bits = mix64(value) >>> 11;
+        return bits * 0x1.0p-53;
+    }
+
+    private static double signed01(long value) {
+        return unit01(value) * 2.0 - 1.0;
+    }
+
+    private static long mix64(long value) {
+        value ^= value >>> 30;
+        value *= 0xbf58476d1ce4e5b9L;
+        value ^= value >>> 27;
+        value *= 0x94d049bb133111ebL;
+        value ^= value >>> 31;
+        return value;
+    }
+}
