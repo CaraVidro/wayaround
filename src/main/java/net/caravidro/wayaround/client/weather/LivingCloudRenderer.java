@@ -49,6 +49,14 @@ public final class LivingCloudRenderer {
     private static final int REBUILD_INTERVAL = 10;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
 
+    /*
+     * Temporary holes cut by the Blue prototype. Clouds are generated and
+     * rendered client-side, so the cut belongs here rather than in world data.
+     * The revision number forces cached cloud meshes to rebuild immediately.
+     */
+    private static final List<CloudHole> HOLES = new ArrayList<>();
+    private static long holeRevision;
+
     private LivingCloudRenderer() {
     }
 
@@ -70,6 +78,8 @@ public final class LivingCloudRenderer {
 
         Vec3 camera = event.getCamera().getPosition();
         long time = minecraft.level.getGameTime();
+
+        pruneHoles(time);
 
         Vec3 skyColor =
                 minecraft.level.getSkyColor(
@@ -290,6 +300,117 @@ public final class LivingCloudRenderer {
         return false;
     }
 
+    public static void punchHole(
+            Vec3 center,
+            double radius
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.level == null
+                || !minecraft.level.dimension().equals(Level.OVERWORLD)) {
+            return;
+        }
+
+        long time =
+                minecraft.level.getGameTime();
+
+        pruneHoles(time);
+
+        /*
+         * Merge samples from a moving Blue so a tunnel does not become
+         * hundreds of tiny allocations. Nearby samples simply refresh and
+         * slightly enlarge the previous cut.
+         */
+        for (int i = 0;
+                i < HOLES.size();
+                i++) {
+            CloudHole hole =
+                    HOLES.get(i);
+
+            double mergeDistance =
+                    Math.max(
+                            5.0,
+                            Math.min(
+                                    radius,
+                                    hole.radius
+                            )
+                                    * 0.58
+                    );
+
+            if (hole.center.distanceToSqr(center)
+                    <= mergeDistance
+                            * mergeDistance) {
+                HOLES.set(
+                        i,
+                        new CloudHole(
+                                center,
+                                Math.max(
+                                        radius,
+                                        hole.radius
+                                ),
+                                time + 260L
+                        )
+                );
+
+                holeRevision++;
+                return;
+            }
+        }
+
+        HOLES.add(
+                new CloudHole(
+                        center,
+                        radius,
+                        time + 260L
+                )
+        );
+
+        while (HOLES.size() > 96) {
+            HOLES.remove(0);
+        }
+
+        holeRevision++;
+    }
+
+    private static void pruneHoles(
+            long time
+    ) {
+        if (HOLES.removeIf(
+                hole ->
+                        time >= hole.expiresAt
+        )) {
+            holeRevision++;
+        }
+    }
+
+    private static boolean cutByBlue(
+            double x,
+            double y,
+            double z
+    ) {
+        for (CloudHole hole : HOLES) {
+            double dx =
+                    x - hole.center.x;
+
+            double dy =
+                    y - hole.center.y;
+
+            double dz =
+                    z - hole.center.z;
+
+            if (dx * dx
+                    + dy * dy
+                    + dz * dz
+                    <= hole.radius
+                            * hole.radius) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static final class CloudMesh {
 
         private final Set<Voxel> occupied =
@@ -304,6 +425,9 @@ public final class LivingCloudRenderer {
         private double builtRadius =
                 -1.0;
 
+        private long builtHoleRevision =
+                Long.MIN_VALUE;
+
         private boolean needsRebuild(
                 long time,
                 LocalWeatherField.CloudCell cell
@@ -312,6 +436,7 @@ public final class LivingCloudRenderer {
 
             return builtAt == Long.MIN_VALUE
                     || time - builtAt >= REBUILD_INTERVAL
+                    || builtHoleRevision != holeRevision
                     || Math.abs(builtRadius - cell.radius()) > 0.01;
         }
 
@@ -369,7 +494,12 @@ public final class LivingCloudRenderer {
                                 wx,
                                 wy,
                                 wz
-                        )) {
+                        )
+                                && !cutByBlue(
+                                        cell.x() + wx,
+                                        cell.y() + wy,
+                                        cell.z() + wz
+                                )) {
                             occupied.add(
                                     new Voxel(
                                             x,
@@ -384,6 +514,7 @@ public final class LivingCloudRenderer {
 
             builtAt = time;
             builtRadius = radius;
+            builtHoleRevision = holeRevision;
             lastUsed = time;
         }
 
@@ -875,6 +1006,13 @@ public final class LivingCloudRenderer {
         value *= 0x94d049bb133111ebL;
         value ^= value >>> 31;
         return value;
+    }
+
+    private record CloudHole(
+            Vec3 center,
+            double radius,
+            long expiresAt
+    ) {
     }
 
     private record Voxel(
