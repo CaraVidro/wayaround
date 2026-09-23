@@ -56,7 +56,7 @@
     "advancements.wayaround.assembly_objects.root.title": "Assembly Objects",
     "advancements.wayaround.assembly_objects.root.description": "Build machines one piece at a time.",
     "advancements.wayaround.assembly_objects.water_wheel.title": "The Oldest... and Trustiest Friend",
-    "advancements.wayaround.assembly_objects.water_wheel.description": "Build your first water wheel assembly.",
+    "advancements.wayaround.assembly_objects.water_wheel.description": "Build a balanced, unobstructed water wheel capable of completing a functional revolution.",
     "advancements.wayaround.assembly_objects.lava_wheel.title": "That Is Not Water",
     "advancements.wayaround.assembly_objects.lava_wheel.description": "Introduce a water wheel to lava.",
     "item.wayaround.assembly_guide": "Assembly Manual",
