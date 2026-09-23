@@ -216,7 +216,14 @@ tasks.register('checkSteamPressure', JavaExec) {
     mainClass = 'net.caravidro.wayaround.industrial.power.steam.SteamStorageTest'
 }
 
+tasks.register('checkMechanical', JavaExec) {
+    dependsOn tasks.named('frostTestClasses')
+    classpath = sourceSets.frostTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.power.mechanical.MechanicalMathTest'
+}
+
 tasks.named('check') {
+    dependsOn tasks.named('checkMechanical')
     dependsOn tasks.named('checkSteamPressure')
     dependsOn tasks.named('checkThermal')
     dependsOn tasks.named('checkSteam')

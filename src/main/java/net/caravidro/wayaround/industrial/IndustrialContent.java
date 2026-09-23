@@ -54,6 +54,10 @@ public final class IndustrialContent {
                         output.accept(PowerContent.HEAT_CONDUIT_ITEM.get());
                         output.accept(PowerContent.STEAM_PIPE_ITEM.get());
                         output.accept(PowerContent.SAFETY_VALVE_ITEM.get());
+                        output.accept(PowerContent.STEAM_PISTON_ITEM.get());
+                        output.accept(PowerContent.SHAFT_ITEM.get());
+                        output.accept(PowerContent.FLYWHEEL_ITEM.get());
+                        output.accept(PowerContent.GEARBOX_ITEM.get());
                         output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
                     }).build());
 
