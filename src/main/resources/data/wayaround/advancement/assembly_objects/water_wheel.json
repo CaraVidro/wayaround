@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:assembly_objects/root",
+  "display": {
+    "icon": {
+      "id": "wayaround:water_wheel_hub"
+    },
+    "title": {
+      "translate": "advancements.wayaround.assembly_objects.water_wheel.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.assembly_objects.water_wheel.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "assembled": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
