@@ -41,6 +41,13 @@ public final class PowerContent {
     public static final DeferredItem<BlockItem> WATER_WHEEL_HUB_ITEM = ITEMS.register("water_wheel_hub",
         () -> new BlockItem(WATER_WHEEL_HUB.get(), new Item.Properties()));
 
+    public static final DeferredBlock<WaterWheelSupportBlock> WATER_WHEEL_SUPPORT = BLOCKS.register("water_wheel_support",
+        () -> new WaterWheelSupportBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+            .strength(2.5F, 5.0F).sound(SoundType.METAL).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> WATER_WHEEL_SUPPORT_ITEM = ITEMS.register("water_wheel_support",
+        () -> new BlockItem(WATER_WHEEL_SUPPORT.get(), new Item.Properties()));
+
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<WaterWheelHubBlockEntity>> WATER_WHEEL_HUB_ENTITY =
         BLOCK_ENTITIES.register("water_wheel_hub", () -> BlockEntityType.Builder.of(
             WaterWheelHubBlockEntity::new, WATER_WHEEL_HUB.get()).build(null));
