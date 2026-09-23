@@ -22,5 +22,11 @@ public final class WayAroundNetwork {
                 BlizzardStatePayload.STREAM_CODEC,
                 BlizzardStatePayload::handle
         );
+
+        registrar.playToServer(
+                AssemblyEmptyHandPayload.TYPE,
+                AssemblyEmptyHandPayload.STREAM_CODEC,
+                AssemblyEmptyHandPayload::handle
+        );
     }
 }
