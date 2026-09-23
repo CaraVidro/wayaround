@@ -137,16 +137,6 @@ public final class AssemblyInteraction {
                             radius
                     );
 
-            boolean frame =
-                    hub.frameHit(
-                            radius
-                    );
-
-            if (plateIndex < 0
-                    && !frame) {
-                continue;
-            }
-
             double localAngle =
                     normalizeAngle(
                             worldAngle
@@ -154,6 +144,17 @@ public final class AssemblyInteraction {
                                     hub.rotationDegrees()
                             )
                     );
+
+            boolean frame =
+                    hub.frameHit(
+                            localAngle,
+                            radius
+                    );
+
+            if (plateIndex < 0
+                    && !frame) {
+                continue;
+            }
 
             best =
                     new WheelHit(
