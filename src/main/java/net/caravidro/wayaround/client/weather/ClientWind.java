@@ -8,9 +8,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.caravidro.wayaround.client.ClientBlizzardState;
-import net.caravidro.wayaround.worldgen.WayAroundBiomes;
-import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 import net.caravidro.wayaround.worldgen.weather.BlizzardWind;
+import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -117,10 +116,34 @@ public final class ClientWind {
         }
         if (minecraft.isPaused()) return;
 
-        double angle = BlizzardWind.angle(minecraft.level.getGameTime());
-        set((float) Math.cos(angle), (float) Math.sin(angle),
-                minecraft.level.dimension().equals(Level.OVERWORLD)
-                        ? ClientBlizzardState.getIntensity() : 0);
+        if (minecraft.level.dimension().equals(Level.OVERWORLD)) {
+            float blizzard = ClientBlizzardState.getIntensity();
+
+            if (blizzard > 0.02F) {
+                double angle = BlizzardWind.angle(minecraft.level.getGameTime());
+
+                set(
+                        (float) Math.cos(angle),
+                        (float) Math.sin(angle),
+                        blizzard
+                );
+            } else {
+                LocalWeatherField.Sample weather =
+                        LocalWeatherField.sample(
+                                minecraft.player.getX(),
+                                minecraft.player.getZ(),
+                                minecraft.level.getGameTime()
+                        );
+
+                set(
+                        weather.windX(),
+                        weather.windZ(),
+                        weather.warning() * 0.86F
+                );
+            }
+        } else {
+            stop();
+        }
 
         /*
          * Direção muda lentamente.
@@ -201,9 +224,7 @@ public final class ClientWind {
         boolean open = level.hasChunkAt(pos)
                 && level.getHeight(Heightmap.Types.WORLD_SURFACE, pos.getX(), pos.getZ()) <= pos.getY()
                 && level.getFluidState(pos).isEmpty()
-                && level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()
-                && (AntarcticField.isAntarctic(pos.getX(), pos.getZ())
-                    || level.getBiome(pos).is(WayAroundBiomes.ANTARCTIC_ICE_SHEET));
+                && level.getBlockState(pos).getCollisionShape(level, pos).isEmpty();
         exposure.put(key, (byte) (open ? 1 : 2));
         return open;
     }
