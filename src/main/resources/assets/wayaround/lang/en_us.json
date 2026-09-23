@@ -91,5 +91,8 @@
     "message.wayaround.assembly.inspect_frame": "Frame | Wood: %s | Structure: %s",
     "message.wayaround.assembly.failure_imminent": "IMMINENT FAILURE",
     "message.wayaround.assembly.structure_stable": "Stable",
-    "block.wayaround.mechanical_gearbox": "Mechanical Gearbox"
+    "block.wayaround.mechanical_gearbox": "Mechanical Gearbox",
+    "item.wayaround.blue": "Blue",
+    "tooltip.wayaround.blue.control": "Hold to condense it. Use the mouse wheel to move it closer or farther.",
+    "tooltip.wayaround.blue.sling": "Pull it close, shove it away quickly, then release to launch."
 }
