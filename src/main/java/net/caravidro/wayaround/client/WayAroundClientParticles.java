@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.client;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.particle.AirBubbleParticle;
 import net.caravidro.wayaround.particle.BlizzardCloudParticle;
 import net.caravidro.wayaround.particle.LivingCloudParticle;
 import net.caravidro.wayaround.particle.PrioriteBubbleParticle;
@@ -48,6 +49,11 @@ public final class WayAroundClientParticles {
         event.registerSpriteSet(
                 WayAroundParticles.WIND_LEAF.get(),
                 WindLeafParticle.Provider::new
+        );
+
+        event.registerSpriteSet(
+                WayAroundParticles.AIR_BUBBLE.get(),
+                AirBubbleParticle.Provider::new
         );
     }
 }
