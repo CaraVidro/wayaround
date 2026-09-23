@@ -64,7 +64,7 @@
     "advancements.wayaround.assembly_objects.failed_water_wheel.description": "Monte com sucesso uma roda d'água que não funciona.",
     "guide.wayaround.assembly.header": "Manual de Assembly — Roda d'água",
     "guide.wayaround.assembly.1": "Coloque um Suporte da roda d'água preso a uma estrutura.",
-    "guide.wayaround.assembly.2": "Instale o Corpo da roda d'água no suporte. O eixo e os raios precisam ter espaço para girar.",
+    "guide.wayaround.assembly.2": "Instale o Corpo da roda d'água no suporte. O body pode ficar perto da construção; reserve espaço principalmente para o caminho das tábuas.",
     "guide.wayaround.assembly.3": "Com uma Placa da roda d'água na mão, mire diretamente no hexágono e clique para encaixá-la naquele ponto.",
     "guide.wayaround.assembly.4": "Com a mão vazia, clique numa tábua solta para girá-la em pequenos passos. Shift + clique remove a tábua.",
     "guide.wayaround.assembly.5": "Use qualquer item reconhecido como nail para travar a tábua no furo. Mão vazia remove o prego novamente.",
