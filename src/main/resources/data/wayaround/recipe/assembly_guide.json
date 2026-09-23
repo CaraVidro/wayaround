@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "minecraft:book" },
+    { "item": "minecraft:oak_planks" },
+    { "item": "minecraft:iron_nugget" }
+  ],
+  "result": {
+    "id": "wayaround:assembly_guide",
+    "count": 1
+  }
+}
