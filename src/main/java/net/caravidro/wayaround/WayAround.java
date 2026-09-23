@@ -4,6 +4,8 @@ import com.mojang.logging.LogUtils;
 
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.IndustrialContent;
+import net.caravidro.wayaround.domain.DomainCommands;
+import net.caravidro.wayaround.domain.DomainManager;
 import net.caravidro.wayaround.network.WayAroundNetwork;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.sounds.WayAroundSounds;
@@ -55,10 +57,12 @@ public class WayAround {
         // Atualizacao das mecanicas do servidor.
         NeoForge.EVENT_BUS.addListener(AntarcticAvalanche::onServerTick);
         NeoForge.EVENT_BUS.addListener(AntarcticBlizzard::onServerTick);
+        NeoForge.EVENT_BUS.addListener(DomainManager::onServerTick);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
         NeoForge.EVENT_BUS.addListener(BlizzardCommand::register);
+        NeoForge.EVENT_BUS.addListener(DomainCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);
@@ -71,6 +75,7 @@ public class WayAround {
         WayAroundBiomes.clear();
         BlizzardManager.clearAll();
         BlizzardChunkTracker.clear();
+        DomainManager.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }
 }
