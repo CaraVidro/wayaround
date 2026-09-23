@@ -2,6 +2,7 @@ package net.caravidro.wayaround.content;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.block.PrioriteBlock;
+import net.caravidro.wayaround.content.item.BlueItem;
 import net.caravidro.wayaround.content.item.PrioriteBottleItem;
 import net.caravidro.wayaround.content.item.PrioriteBucketItem;
 
@@ -63,6 +64,15 @@ public final class WayAroundContent {
      * ITENS
      * =========================================================
      */
+
+    public static final DeferredItem<Item> BLUE =
+            ITEMS.register(
+                    "blue",
+                    () -> new BlueItem(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                    )
+            );
 
     public static final DeferredItem<Item> PRIORITE_BUCKET =
             ITEMS.register(
