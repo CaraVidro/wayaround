@@ -32,8 +32,13 @@ public final class BlueSpatialSound
         this.owner =
                 owner;
 
+        /*
+         * Do not loop the 55 s track during an ordinary controlled Blue.
+         * A slingshot launch explicitly starts a fresh moving instance so the
+         * projectile always carries music for its whole flight.
+         */
         this.looping =
-                true;
+                false;
 
         this.delay =
                 0;
