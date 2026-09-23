@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "wayaround:block/mechanical_gearbox" }
+  }
+}
