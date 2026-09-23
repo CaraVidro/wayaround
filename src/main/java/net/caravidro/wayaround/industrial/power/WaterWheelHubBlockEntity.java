@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.power;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -941,13 +942,154 @@ public final class WaterWheelHubBlockEntity
                         1.25F
                 );
 
-        AssemblyAdvancements.waterWheel(
+        configurationChanged();
+
+        judgeCompletedAssembly(
                 player
         );
 
-        configurationChanged();
-
         return true;
+    }
+
+    private void judgeCompletedAssembly(
+            ServerPlayer player
+    ) {
+        if (!(player.level()
+                instanceof ServerLevel level)) {
+            return;
+        }
+
+        if (plates.size() < 6) {
+            return;
+        }
+
+        for (Plate plate :
+                plates) {
+            if (!plate.nailed) {
+                return;
+            }
+        }
+
+        double weightedX =
+                0.0;
+
+        double weightedY =
+                0.0;
+
+        double totalWeight =
+                0.0;
+
+        double[] angles =
+                new double[plates.size()];
+
+        for (int i = 0;
+                i < plates.size();
+                i++) {
+
+            Plate plate =
+                    plates.get(i);
+
+            double weight =
+                    plate.mass()
+                    * plate.anchorRadius;
+
+            weightedX +=
+                    Math.cos(
+                            plate.anchorAngle
+                    )
+                    * weight;
+
+            weightedY +=
+                    Math.sin(
+                            plate.anchorAngle
+                    )
+                    * weight;
+
+            totalWeight +=
+                    weight;
+
+            angles[i] =
+                    normalizeAngle(
+                            plate.anchorAngle
+                    );
+        }
+
+        double imbalance =
+                totalWeight <= 0.0001
+                        ? 1.0
+                        : Math.sqrt(
+                                weightedX * weightedX
+                                + weightedY * weightedY
+                        )
+                        / totalWeight;
+
+        Arrays.sort(
+                angles
+        );
+
+        double largestGap =
+                0.0;
+
+        for (int i = 0;
+                i < angles.length;
+                i++) {
+
+            double current =
+                    angles[i];
+
+            double next =
+                    i + 1 < angles.length
+                            ? angles[i + 1]
+                            : angles[0]
+                            + Math.PI * 2.0;
+
+            largestGap =
+                    Math.max(
+                            largestGap,
+                            next - current
+                    );
+        }
+
+        boolean clearsFullRotation =
+                true;
+
+        for (int step = 0;
+                step < 24;
+                step++) {
+
+            float testedAngle =
+                    step
+                    * 15.0F;
+
+            if (wouldCollide(
+                    level,
+                    testedAngle
+            )) {
+                clearsFullRotation =
+                        false;
+                break;
+            }
+        }
+
+        boolean balanced =
+                imbalance <= 0.16;
+
+        boolean covered =
+                largestGap <= Math.toRadians(
+                        95.0
+                );
+
+        if (balanced
+                && covered
+                && clearsFullRotation) {
+            AssemblyAdvancements.waterWheel(
+                    player
+            );
+        } else {
+            AssemblyAdvancements.failedWaterWheel(
+                    player
+            );
+        }
     }
 
     public boolean removeNail(
