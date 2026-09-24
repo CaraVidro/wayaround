@@ -29,6 +29,7 @@ public final class WaterGeneratorBlockEntity
 
     private int generationPerTick;
     private int nextReceiver;
+    private boolean mechanicalConnected;
 
     private final IEnergyStorage output =
             new IEnergyStorage() {
@@ -115,6 +116,9 @@ public final class WaterGeneratorBlockEntity
         float mechanical =
                 0.0F;
 
+        generator.mechanicalConnected =
+                false;
+
         int room =
                 generator.buffer.capacity()
                 - generator.buffer.stored();
@@ -142,8 +146,14 @@ public final class WaterGeneratorBlockEntity
                             direction
                     );
 
-            if (rotation == null
-                    || !rotation.active()) {
+            if (rotation == null) {
+                continue;
+            }
+
+            generator.mechanicalConnected =
+                    true;
+
+            if (!rotation.active()) {
                 continue;
             }
 
@@ -207,7 +217,14 @@ public final class WaterGeneratorBlockEntity
 
     public Component status() {
         return Component.translatable(
-                "message.wayaround.water_generator.status",
+                "message.wayaround.water_generator.status_v1",
+                mechanicalConnected
+                        ? Component.translatable(
+                                "message.wayaround.mechanical.connected"
+                        )
+                        : Component.translatable(
+                                "message.wayaround.mechanical.disconnected"
+                        ),
                 generationPerTick,
                 buffer.stored(),
                 CAPACITY
