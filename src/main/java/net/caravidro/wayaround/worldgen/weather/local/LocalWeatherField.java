@@ -15,7 +15,7 @@ public final class LocalWeatherField {
 
     private static final double CELL_SPACING = 520.0;
     private static final double DRIFT_SPEED = 0.024;
-    private static final double MAX_RADIUS = 320.0;
+    private static final double MAX_RADIUS = 240.0;
 
     private LocalWeatherField() {
     }
@@ -190,19 +190,19 @@ public final class LocalWeatherField {
              * Most clouds live here.
              */
             radius =
-                    110.0
+                    105.0
                     + (
                             sizeRoll - 0.24
-                    ) / 0.66 * 118.0;
+                    ) / 0.66 * 90.0;
         } else {
             /*
              * Rare giant fronts.
              */
             radius =
-                    228.0
+                    195.0
                     + (
                             sizeRoll - 0.90
-                    ) / 0.10 * 92.0;
+                    ) / 0.10 * 45.0;
         }
 
         float storm = (float) unit01(seed ^ 0xA54FF53A5F1D36F1L);
