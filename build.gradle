@@ -119,28 +119,23 @@ configurations {
 dependencies {
     // Free/offline speech-to-text.
     //
-    // On Minecraft/NeoForge 1.21.1 ordinary Java libraries are not exposed
-    // to the mod classloader in development runs automatically.
-    // additionalRuntimeClasspath fixes runClient/runServer.
-    //
-    // jarJar embeds the libraries into the exported Way Around JAR so users
-    // do not need to install Vosk or JNA separately.
-    jarJar(implementation("net.java.dev.jna:jna:5.7.0")) {
-        version {
-            strictly "[5.7.0]"
-            prefer "5.7.0"
-        }
-    }
-
-    jarJar(implementation("com.alphacephei:vosk:0.3.45")) {
+    // NeoForge 1.21.1 needs Vosk explicitly on the mod runtime classpath.
+    // Vosk normally pulls JNA 5.7.0 transitively, but Minecraft already ships
+    // a newer JNA used by OSHI. Bundling the old one shadows Minecraft's copy
+    // and breaks calls such as Memory.close(), so Vosk is intentionally
+    // packaged WITHOUT its transitive JNA dependency.
+    jarJar(implementation("com.alphacephei:vosk:0.3.45") {
+        transitive = false
+    }) {
         version {
             strictly "[0.3.45]"
             prefer "0.3.45"
         }
     }
 
-    additionalRuntimeClasspath "net.java.dev.jna:jna:5.7.0"
-    additionalRuntimeClasspath "com.alphacephei:vosk:0.3.45"
+    additionalRuntimeClasspath("com.alphacephei:vosk:0.3.45") {
+        transitive = false
+    }
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
