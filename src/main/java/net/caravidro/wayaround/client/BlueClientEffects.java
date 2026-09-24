@@ -42,7 +42,7 @@ public final class BlueClientEffects {
     private static final double SHAKE_RANGE = 75.0;
     private static final double DARK_RANGE = 50.0;
     private static final int SNAPSHOT_TIMEOUT = 8;
-    private static final int OWNER_SOUND_LINGER = 20;
+    private static final int SOUND_LINGER_TICKS = 100;
 
     private static final Map<UUID, ClientBlue> BLUES =
             new HashMap<>();
@@ -81,7 +81,8 @@ public final class BlueClientEffects {
                                                 payload.x(),
                                                 payload.y(),
                                                 payload.z()
-                                        )
+                                        ),
+                                        tick
                                 )
                 );
 
@@ -273,15 +274,8 @@ public final class BlueClientEffects {
             state.gone =
                     true;
 
-            boolean localOwner =
-                    minecraft.player.getUUID()
-                            .equals(
-                                    state.owner
-                            );
-
-            if (localOwner
-                    && state.lingerTicks
-                            < OWNER_SOUND_LINGER) {
+            if (state.lingerTicks
+                    < SOUND_LINGER_TICKS) {
                 state.lingerTicks++;
                 continue;
             }
@@ -509,12 +503,16 @@ public final class BlueClientEffects {
 
     public static float chargeVisualPower() {
         return Mth.clamp(
-                0.08F
+                0.025F
                         + chargeTicks
-                                / 58.0F,
-                0.08F,
+                                / 62.0F,
+                0.04F,
                 1.35F
         );
+    }
+
+    public static int chargeVisualTicks() {
+        return chargeTicks;
     }
 
     public static List<VisualBlue> visualBlues() {
@@ -546,7 +544,12 @@ public final class BlueClientEffects {
                             state.position,
                             state.power,
                             state.radius,
-                            state.mode
+                            state.mode,
+                            (int) Math.max(
+                                    0L,
+                                    tick
+                                            - state.firstSeen
+                            )
                     )
             );
         }
@@ -574,18 +577,10 @@ public final class BlueClientEffects {
                 4.0F;
 
         if (state.gone) {
-            if (!minecraft.player
-                    .getUUID()
-                    .equals(
-                            owner
-                    )) {
-                return null;
-            }
-
             float remaining =
                     1.0F
                             - state.lingerTicks
-                                    / (float) OWNER_SOUND_LINGER;
+                                    / (float) SOUND_LINGER_TICKS;
 
             if (remaining <= 0.0F) {
                 return null;
@@ -800,7 +795,8 @@ public final class BlueClientEffects {
             Vec3 position,
             float power,
             float radius,
-            byte mode
+            byte mode,
+            int musicTicks
     ) {
     }
 
@@ -814,6 +810,7 @@ public final class BlueClientEffects {
     private static final class ClientBlue {
 
         private final UUID owner;
+        private final long firstSeen;
 
         private Vec3 position;
 
@@ -829,10 +826,12 @@ public final class BlueClientEffects {
 
         private ClientBlue(
                 UUID owner,
-                Vec3 position
+                Vec3 position,
+                long firstSeen
         ) {
             this.owner = owner;
             this.position = position;
+            this.firstSeen = firstSeen;
         }
     }
 }
