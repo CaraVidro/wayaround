@@ -1,25 +1,65 @@
+# Way Around — V1
 
-Installation information
-=======
+Way Around is an experimental NeoForge mod for **Minecraft 1.21.1** built around
+systems that interact instead of isolated content.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+## V1 pillars
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+### World & atmosphere
+- Local drifting weather cells.
+- Volumetric voxel clouds with day/night shading.
+- Local rain, wind and cloud shadows.
+- Antarctic weather, frost and avalanche systems.
+- Dynamic water feedback and environmental particles.
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+### Assembly & mechanics
+- A water wheel assembled physically, board by board.
+- Adjustable loose boards, nails, wear, balance and structural failure.
+- Real hydraulic torque, inertia, collision and generator load feedback.
+- Mechanical shafts and 1:1 gearboxes.
+- Mechanical-to-FE water generator.
+- In-game assembly manual and diagnostics.
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+### Industrial
+- Steam power.
+- Solar generation.
+- Energy cables.
+- Reforced Blaster and supporting machine systems.
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+### Navigation
+- Caravel, coal ship and great ship systems.
+- Cargo, anchors, seats and vessel controls.
+
+### Otherworld powers
+- Priorite experiments.
+- Experimental ability framework.
+- **Blue**: a chargeable gravitational anomaly with block destruction,
+  entity capture, atmospheric effects, cloud interaction and spatial audio.
+
+## Philosophy
+
+Way Around V1 is less about adding a long list of items and more about making
+systems affect one another: weather affects the world, water drives machines,
+machines experience load and wear, and unusual powers physically disturb the
+environment.
+
+## Development
+
+- Minecraft: **1.21.1**
+- NeoForge: **21.1.250**
+- Java: **21**
+
+Build with:
+
+```bash
+./gradlew build
+```
+
+On Windows:
+
+```powershell
+.\gradlew.bat build
+```
+
+V0 served its purpose. V1 is the first version intended to feel like a coherent
+mod rather than a collection of prototypes.
