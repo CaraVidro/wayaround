@@ -988,6 +988,12 @@ public final class BlueManager {
                 spinDirection
         );
 
+        consumeBlueBody(
+                level,
+                center,
+                power
+        );
+
         consumeBlocks(
                 level,
                 center,
@@ -1154,6 +1160,84 @@ public final class BlueManager {
         }
     }
 
+    private static void consumeBlueBody(
+            ServerLevel level,
+            Vec3 center,
+            float power
+    ) {
+        double half =
+                physicalOuterHalf(
+                        power
+                );
+
+        BlockPos min =
+                BlockPos.containing(
+                        center.x - half,
+                        center.y - half,
+                        center.z - half
+                );
+
+        BlockPos max =
+                BlockPos.containing(
+                        center.x + half,
+                        center.y + half,
+                        center.z + half
+                );
+
+        for (BlockPos pos :
+                BlockPos.betweenClosed(
+                        min,
+                        max
+                )) {
+
+            if (!level.hasChunkAt(
+                    pos
+            )) {
+                continue;
+            }
+
+            /*
+             * The renderer rotates the cube, while this server volume uses a
+             * slightly conservative AABB around the translucent outer shell.
+             * Result: if the visible Blue touches a breakable block, that block
+             * cannot survive the pass.
+             */
+            destroyBlueBlock(
+                    level,
+                    pos,
+                    center,
+                    power,
+                    true
+            );
+        }
+    }
+
+    private static double physicalOuterHalf(
+            float power
+    ) {
+        double normalized =
+                Mth.clamp(
+                        power / 1.35F,
+                        0.0F,
+                        1.0F
+                );
+
+        double coreHalf =
+                0.14
+                        + Math.pow(
+                                normalized,
+                                1.50
+                        )
+                                * 2.31;
+
+        /*
+         * Matches the renderer's two translucent shells at approximately
+         * their widest pulse.
+         */
+        return coreHalf
+                * 1.90;
+    }
+
     private static void consumeBlocks(
             ServerLevel level,
             Vec3 center,
@@ -1171,57 +1255,89 @@ public final class BlueManager {
                         1.0F
                 );
 
+        double bodyHalf =
+                physicalOuterHalf(
+                        power
+                );
+
         double digRadius =
-                1.1
+                bodyHalf
+                        + 1.5
                         + Math.pow(
                                 normalized,
-                                1.40
+                                1.35
                         )
-                                * 14.0;
+                                * 13.0;
 
         int removed =
                 0;
 
         int attempts =
-                blockBudget
-                        * 6;
+                Math.max(
+                        18,
+                        blockBudget
+                                * 8
+                );
 
         for (int i = 0;
                 i < attempts
                         && removed < blockBudget;
                 i++) {
 
+            /*
+             * Bias destruction heavily toward the visible cube. pow(random,2.5)
+             * makes close samples far more common while still allowing the
+             * larger destructive field to chew irregular chunks farther out.
+             */
+            double distance =
+                    bodyHalf
+                            + Math.pow(
+                                    level.random.nextDouble(),
+                                    2.5
+                            )
+                                    * Math.max(
+                                            0.0,
+                                            digRadius
+                                                    - bodyHalf
+                                    );
+
+            double azimuth =
+                    level.random.nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            double yDirection =
+                    level.random.nextDouble()
+                            * 2.0
+                            - 1.0;
+
+            double horizontal =
+                    Math.sqrt(
+                            Math.max(
+                                    0.0,
+                                    1.0
+                                            - yDirection
+                                                    * yDirection
+                            )
+                    );
+
             double dx =
-                    (
-                            level.random.nextDouble()
-                                    * 2.0
-                            - 1.0
+                    Math.cos(
+                            azimuth
                     )
-                            * digRadius;
+                            * horizontal
+                            * distance;
 
             double dy =
-                    (
-                            level.random.nextDouble()
-                                    * 2.0
-                            - 1.0
-                    )
-                            * digRadius;
+                    yDirection
+                            * distance;
 
             double dz =
-                    (
-                            level.random.nextDouble()
-                                    * 2.0
-                            - 1.0
+                    Math.sin(
+                            azimuth
                     )
-                            * digRadius;
-
-            if (dx * dx
-                    + dy * dy
-                    + dz * dz
-                    > digRadius
-                            * digRadius) {
-                continue;
-            }
+                            * horizontal
+                            * distance;
 
             BlockPos pos =
                     BlockPos.containing(
@@ -1230,73 +1346,194 @@ public final class BlueManager {
                             center.z + dz
                     );
 
-            BlockState state =
-                    level.getBlockState(
-                            pos
-                    );
-
-            if (state.isAir()) {
-                continue;
-            }
-
-            if (state.getFluidState()
-                    .is(
-                            FluidTags.WATER
-                    )) {
-                waterBurst(
-                        level,
-                        Vec3.atCenterOf(
-                                pos
-                        ),
-                        Math.max(
-                                0.45F,
-                                power
-                        )
-                );
-            }
-
-            float hardness =
-                    state.getDestroySpeed(
-                            level,
-                            pos
-                    );
-
-            if (hardness < 0.0F) {
-                continue;
-            }
-
-            level.removeBlock(
+            if (destroyBlueBlock(
+                    level,
                     pos,
+                    center,
+                    power,
                     false
-            );
+            )) {
+                removed++;
+            }
+        }
+    }
 
-            removed++;
+    private static boolean destroyBlueBlock(
+            ServerLevel level,
+            BlockPos pos,
+            Vec3 center,
+            float power,
+            boolean bodyContact
+    ) {
+        BlockState state =
+                level.getBlockState(
+                        pos
+                );
 
-            Vec3 source =
+        if (state.isAir()) {
+            return false;
+        }
+
+        float hardness =
+                state.getDestroySpeed(
+                        level,
+                        pos
+                );
+
+        if (hardness < 0.0F) {
+            return false;
+        }
+
+        if (state.getFluidState()
+                .is(
+                        FluidTags.WATER
+                )) {
+            waterBurst(
+                    level,
                     Vec3.atCenterOf(
                             pos
-                    );
+                    ),
+                    Math.max(
+                            0.45F,
+                            power
+                    )
+            );
+        }
 
-            Vec3 velocity =
-                    center.subtract(
-                            source
-                    );
+        level.removeBlock(
+                pos,
+                false
+        );
 
-            if (velocity.lengthSqr() > 0.0001) {
-                velocity =
-                        velocity.normalize()
-                                .scale(
-                                        0.20
-                                                + power
-                                                        * 0.24
-                                );
+        Vec3 source =
+                Vec3.atCenterOf(
+                        pos
+                );
+
+        Vec3 inward =
+                center.subtract(
+                        source
+                );
+
+        if (inward.lengthSqr()
+                > 0.0001) {
+            inward =
+                    inward.normalize();
+        } else {
+            inward =
+                    Vec3.ZERO;
+        }
+
+        level.sendParticles(
+                new BlockParticleOption(
+                        ParticleTypes.BLOCK,
+                        state
+                ),
+                source.x,
+                source.y,
+                source.z,
+                bodyContact
+                        ? 3
+                        : 1,
+                bodyContact
+                        ? 0.34
+                        : 0.18,
+                bodyContact
+                        ? 0.34
+                        : 0.18,
+                bodyContact
+                        ? 0.34
+                        : 0.18,
+                0.18
+        );
+
+        /*
+         * More destruction dust than before. Every destroyed block produces
+         * 4-9 smoke particles; blocks physically touched by the Blue body are
+         * even dirtier because they are being erased at point-blank range.
+         */
+        int smokeCount =
+                4
+                        + level.random.nextInt(
+                                6
+                        )
+                        + (
+                                bodyContact
+                                        ? 2
+                                        : 0
+                        );
+
+        int sucked =
+                Math.min(
+                        smokeCount / 3,
+                        bodyContact
+                                ? 3
+                                : 2
+                );
+
+        int hanging =
+                smokeCount
+                        - sucked;
+
+        level.sendParticles(
+                ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                source.x,
+                source.y,
+                source.z,
+                hanging,
+                bodyContact
+                        ? 0.88
+                        : 0.66,
+                bodyContact
+                        ? 0.46
+                        : 0.34,
+                bodyContact
+                        ? 0.88
+                        : 0.66,
+                0.009
+        );
+
+        for (int i = 0;
+                i < sucked;
+                i++) {
+            if (inward.lengthSqr()
+                    < 0.0001) {
+                break;
             }
 
+            Vec3 tangent =
+                    new Vec3(
+                            -inward.z,
+                            (
+                                    level.random.nextDouble()
+                                            - 0.5
+                            )
+                                    * 0.16,
+                            inward.x
+                    )
+                            .scale(
+                                    (
+                                            level.random.nextBoolean()
+                                                    ? 1.0
+                                                    : -1.0
+                                    )
+                                            * 0.18
+                            );
+
+            Vec3 velocity =
+                    inward.scale(
+                            0.30
+                                    + power
+                                            * 0.10
+                    )
+                            .add(
+                                    tangent
+                            );
+
             level.sendParticles(
-                    new BlockParticleOption(
-                            ParticleTypes.BLOCK,
-                            state
-                    ),
+                    i == 0
+                            ? ParticleTypes.CAMPFIRE_COSY_SMOKE
+                            : ParticleTypes.LARGE_SMOKE,
                     source.x,
                     source.y,
                     source.z,
@@ -1304,85 +1541,11 @@ public final class BlueManager {
                     velocity.x,
                     velocity.y,
                     velocity.z,
-                    1.0
+                    0.24
             );
-
-            /*
-             * Smoke is born from destruction now: every removed block creates
-             * exactly 2-5 smoke particles. Most stay and rise as dust; at most
-             * one of them is converted into a strand pulled toward Blue.
-             */
-            int smokeCount =
-                    2
-                            + level.random.nextInt(
-                                    4
-                            );
-
-            boolean suckOne =
-                    smokeCount >= 3
-                            && level.random.nextFloat()
-                                    < 0.42F;
-
-            int hangingSmoke =
-                    smokeCount
-                            - (
-                                    suckOne
-                                            ? 1
-                                            : 0
-                            );
-
-            level.sendParticles(
-                    ParticleTypes.CAMPFIRE_COSY_SMOKE,
-                    source.x,
-                    source.y,
-                    source.z,
-                    hangingSmoke,
-                    0.72,
-                    0.38,
-                    0.72,
-                    0.009
-            );
-
-            if (suckOne) {
-                Vec3 smokeInward =
-                        center.subtract(
-                                source
-                        );
-
-                if (smokeInward.lengthSqr()
-                        > 0.001) {
-                    smokeInward =
-                            smokeInward.normalize();
-
-                    level.sendParticles(
-                            ParticleTypes.LARGE_SMOKE,
-                            source.x,
-                            source.y,
-                            source.z,
-                            0,
-                            smokeInward.x,
-                            smokeInward.y
-                                    * 0.72,
-                            smokeInward.z,
-                            0.24
-                                    + power
-                                            * 0.10
-                    );
-                } else {
-                    level.sendParticles(
-                            ParticleTypes.CAMPFIRE_COSY_SMOKE,
-                            source.x,
-                            source.y,
-                            source.z,
-                            1,
-                            0.16,
-                            0.12,
-                            0.16,
-                            0.006
-                    );
-                }
-            }
         }
+
+        return true;
     }
 
     private static void disturbEnvironment(
