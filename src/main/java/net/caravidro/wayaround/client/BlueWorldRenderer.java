@@ -87,7 +87,8 @@ public final class BlueWorldRenderer {
                     BlueClientEffects.chargeVisualPower(),
                     BlueClientEffects.chargeVisualTicks(),
                     0.0F,
-                    false
+                    false,
+                    0.0F
             );
         }
 
@@ -104,7 +105,10 @@ public final class BlueWorldRenderer {
                             .hashCode()
                             * 0.017F,
                     blue.mode()
-                            == BlueVisualPayload.COLLAPSING
+                            == BlueVisualPayload.COLLAPSING,
+                    BetaTechniqueClientEffects.fusionStrength(
+                            blue.owner()
+                    )
             );
         }
 
@@ -134,7 +138,8 @@ public final class BlueWorldRenderer {
             float power,
             float musicTicks,
             float phaseOffset,
-            boolean collapsing
+            boolean collapsing,
+            float fusionStrength
     ) {
         poseStack.pushPose();
 
@@ -157,13 +162,27 @@ public final class BlueWorldRenderer {
                         1.0F
                 );
 
+        float fusion =
+                Mth.clamp(
+                        fusionStrength,
+                        0.0F,
+                        1.0F
+                );
+
         float slowRotation =
                 musicTicks
                         * 0.42F
                         + musicTicks
                                 * musicTicks
                                 * 0.0043F
-                        + phaseOffset;
+                        + phaseOffset
+                        + musicTicks
+                                * fusion
+                                * 10.0F
+                        + musicTicks
+                                * musicTicks
+                                * fusion
+                                * 0.012F;
 
         poseStack.mulPose(
                 Axis.YP.rotationDegrees(

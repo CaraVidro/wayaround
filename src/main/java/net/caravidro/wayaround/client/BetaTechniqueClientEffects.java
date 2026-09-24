@@ -549,9 +549,14 @@ public final class BetaTechniqueClientEffects {
         }
 
         /*
-         * Visually replaces the previous inward/accretion motion with one
-         * violent outward impulse on the exact blast frame.
+         * The blast is a visual reset: all old particles disappear on the
+         * exact frame, then a new radial shockwave replaces them.
          */
+        minecraft.particleEngine
+                .setLevel(
+                        minecraft.level
+                );
+
         for (int index = 0;
              index < 220;
              index++) {
