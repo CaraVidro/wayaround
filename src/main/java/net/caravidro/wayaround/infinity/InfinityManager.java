@@ -27,9 +27,10 @@ import net.neoforged.neoforge.network.PacketDistributor;
 /**
  * Experimental "Infinity" field.
  *
- * Speech never flips it from 0 -> 100 in one keyword. Every semantically
- * relevant sentence adds confidence. Confidence directly drives the radius,
- * visual distortion and how aggressively motion converges toward zero.
+ * Natural speech accumulates confidence progressively. Explicit speech such
+ * as "infinidade ativar" is the deliberate override and sets the field to
+ * maximum immediately. Confidence drives radius, distortion and how
+ * aggressively motion converges toward zero.
  */
 public final class InfinityManager {
 
@@ -48,6 +49,56 @@ public final class InfinityManager {
 
     private static final float MIN_ACTIVE_CONFIDENCE =
             0.08F;
+
+    public static boolean activateMax(
+            ServerPlayer player
+    ) {
+        if (!hasSpectrum(
+                player
+        )) {
+            return false;
+        }
+
+        InfinityState state =
+                ACTIVE.computeIfAbsent(
+                        player.getUUID(),
+                        ignored ->
+                                new InfinityState(
+                                        player.getUUID(),
+                                        player.serverLevel()
+                                                .dimension()
+                                )
+                );
+
+        state.dimension =
+                player.serverLevel()
+                        .dimension();
+
+        state.confidence =
+                1.0F;
+
+        state.lastReinforcedTick =
+                player.server
+                        .getTickCount();
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.AMETHYST_BLOCK_RESONATE,
+                        SoundSource.PLAYERS,
+                        0.82F,
+                        1.34F
+                );
+
+        WayAround.LOGGER.info(
+                "[Infinity] owner={} ATIVADA NO MAXIMO",
+                player.getGameProfile()
+                        .getName()
+        );
+
+        return true;
+    }
 
     public static boolean reinforce(
             ServerPlayer player,

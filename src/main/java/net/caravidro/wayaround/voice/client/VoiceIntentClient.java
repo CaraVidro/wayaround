@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.voice.client;
 
+import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,8 @@ public final class VoiceIntentClient {
     private static float deferredPostSummonOutput =
             -1.0F;
     private static long deferredPostSummonOutputExpiresAt;
+
+    private static long dualPreparedUntil;
 
     public static boolean isEnabled() {
         return ENABLED;
@@ -225,6 +228,18 @@ public final class VoiceIntentClient {
             return;
         }
 
+        if (infinity.maxOn()) {
+            dispatch(
+                    VoiceIntentC2SPayload.INFINITY_ON,
+                    1.0F,
+                    (float) globalUrgency,
+                    "INFINIDADE / MAXIMO"
+            );
+
+            clearContext();
+            return;
+        }
+
         if (infinity.evidence() > 0.001F) {
             dispatch(
                     VoiceIntentC2SPayload.INFINITY_REINFORCE,
@@ -250,15 +265,24 @@ public final class VoiceIntentClient {
         if (looksLikePurpleVoid(
                 currentWords
         )) {
-            dispatch(
-                    VoiceIntentC2SPayload.PURPLE_VOID,
-                    -1.0F,
-                    (float) globalUrgency,
-                    "VAZIO ROXO"
-            );
+            if (now <= dualPreparedUntil) {
+                dispatch(
+                        VoiceIntentC2SPayload.PURPLE_VOID,
+                        -1.0F,
+                        (float) globalUrgency,
+                        "VAZIO ROXO"
+                );
 
-            clearContext();
-            return;
+                dualPreparedUntil =
+                        0L;
+
+                clearContext();
+                return;
+            }
+
+            WayAround.LOGGER.info(
+                    "[Voice/Intent] VAZIO ROXO ignorado: nenhum BLUE+RED preparado recentemente"
+            );
         }
 
         TechniqueMatch dualBlue =
@@ -289,6 +313,9 @@ public final class VoiceIntentClient {
                     "BLUE + RED / AGUARDANDO VAZIO ROXO"
             );
 
+            dualPreparedUntil =
+                    now + 7_000L;
+
             pendingOutput =
                     -1.0F;
 
@@ -306,6 +333,83 @@ public final class VoiceIntentClient {
          */
         boolean controllingBlue =
                 BlueClientEffects.hasLocalControllableBlue();
+
+        /*
+         * Vosk normally drops punctuation, so "azul, pare" becomes
+         * "azul pare". Treat the technique name itself as an address/vocative
+         * and route the following semantics as a control command. This does
+         * not depend on the local BLUE snapshot; the server remains
+         * authoritative and simply ignores the command if no BLUE exists.
+         */
+        boolean blueAddressed =
+                findBlue(
+                        currentWords,
+                        0
+                ) >= 0;
+
+        if (blueAddressed
+                && looksLikeFinish(
+                currentWords
+        )) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_STOP,
+                    -1.0F,
+                    0.0F,
+                    "BLUE / ENCERRAR"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (blueAddressed
+                && looksLikeHold(
+                currentWords
+        )) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_HOLD,
+                    -1.0F,
+                    0.0F,
+                    "BLUE / PARAR"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (blueAddressed
+                && looksLikeLaunch(
+                currentWords
+        )) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_LAUNCH,
+                    -1.0F,
+                    0.0F,
+                    "BLUE / LANCAR"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (blueAddressed
+                && looksLikeOrbit(
+                currentWords
+        )) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_ORBIT,
+                    -1.0F,
+                    0.0F,
+                    "BLUE / ORBITA"
+            );
+
+            clearContext();
+            return;
+        }
 
         /*
          * "Técnica imaginária: azul" followed immediately by
@@ -791,6 +895,7 @@ public final class VoiceIntentClient {
             return new InfinityEvidence(
                     0.0F,
                     true,
+                    false,
                     "desativacao explicita"
             );
         }
@@ -799,6 +904,7 @@ public final class VoiceIntentClient {
             return new InfinityEvidence(
                     1.0F,
                     false,
+                    true,
                     "ativacao maxima explicita"
             );
         }
@@ -924,6 +1030,7 @@ public final class VoiceIntentClient {
                         evidence
                 ),
                 false,
+                false,
                 reason.toString()
         );
     }
@@ -947,21 +1054,36 @@ public final class VoiceIntentClient {
                         1
                 );
 
-        return (
+        boolean portuguesePair =
                 voidIndex >= 0
                         && purpleIndex >= 0
-        )
-                || (
-                containsAny(
+                        && Math.abs(
+                        voidIndex
+                                - purpleIndex
+                ) <= 2;
+
+        int englishVoid =
+                indexOfAny(
+                        words,
+                        "void"
+                );
+
+        int englishPurple =
+                indexOfAny(
                         words,
                         "purple"
-                )
-                        && containsAny(
-                        words,
-                        "vazio",
-                        "void"
-                )
-        );
+                );
+
+        boolean englishPair =
+                englishVoid >= 0
+                        && englishPurple >= 0
+                        && Math.abs(
+                        englishVoid
+                                - englishPurple
+                ) <= 2;
+
+        return portuguesePair
+                || englishPair;
     }
 
     private static boolean looksLikeOrbit(
@@ -1368,10 +1490,22 @@ public final class VoiceIntentClient {
             if (word.equals(
                     "red"
             )
-                    || distance(
-                    word,
+                    || word.equals(
                     "vermelho"
-            ) <= 2) {
+            )
+                    || word.equals(
+                    "vermelha"
+            )
+                    || word.equals(
+                    "vermeio"
+            )
+                    || (
+                    word.length() >= 7
+                            && distance(
+                            word,
+                            "vermelho"
+                    ) <= 1
+            )) {
 
                 return index;
             }
@@ -1418,6 +1552,33 @@ public final class VoiceIntentClient {
                 "cancelar",
                 "cancele"
         );
+    }
+
+    private static int indexOfAny(
+            List<String> words,
+            String... candidates
+    ) {
+        for (int index = 0;
+             index < words.size();
+             index++) {
+
+            String word =
+                    words.get(
+                            index
+                    );
+
+            for (String candidate :
+                    candidates) {
+
+                if (word.equals(
+                        candidate
+                )) {
+                    return index;
+                }
+            }
+        }
+
+        return -1;
     }
 
     private static boolean containsAny(
@@ -1614,9 +1775,14 @@ public final class VoiceIntentClient {
     private static String normalize(
             String text
     ) {
+        String repaired =
+                repairCommonMojibake(
+                        text
+                );
+
         String decomposed =
                 Normalizer.normalize(
-                        text,
+                        repaired,
                         Normalizer.Form.NFD
                 );
 
@@ -1639,14 +1805,48 @@ public final class VoiceIntentClient {
                 );
     }
 
+    private static String repairCommonMojibake(
+            String text
+    ) {
+        if (text == null
+                || (
+                text.indexOf('Ã') < 0
+                        && text.indexOf('Â') < 0
+        )) {
+
+            return text;
+        }
+
+        try {
+            String repaired =
+                    new String(
+                            text.getBytes(
+                                    StandardCharsets.ISO_8859_1
+                            ),
+                            StandardCharsets.UTF_8
+                    );
+
+            return repaired.indexOf(
+                    '\uFFFD'
+            ) >= 0
+                    ? text
+                    : repaired;
+
+        } catch (Exception ignored) {
+            return text;
+        }
+    }
+
     private record InfinityEvidence(
             float evidence,
             boolean off,
+            boolean maxOn,
             String reason
     ) {
         private static final InfinityEvidence NONE =
                 new InfinityEvidence(
                         0.0F,
+                        false,
                         false,
                         "none"
                 );

@@ -41,6 +41,7 @@ public record VoiceIntentC2SPayload(
     public static final byte INFINITY_OFF = 9;
     public static final byte DUAL_PREPARE = 10;
     public static final byte PURPLE_VOID = 11;
+    public static final byte INFINITY_ON = 12;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -150,6 +151,16 @@ public record VoiceIntentC2SPayload(
                                     player
                             )) {
                                 InfinityManager.deactivate(
+                                        player
+                                );
+                            }
+                        }
+
+                        case INFINITY_ON -> {
+                            if (hasInfinityAccess(
+                                    player
+                            )) {
+                                InfinityManager.activateMax(
                                         player
                                 );
                             }
