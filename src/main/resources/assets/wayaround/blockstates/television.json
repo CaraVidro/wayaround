@@ -1,19 +1,13 @@
 {
   "variants": {
-    "facing=north": {
-      "model": "wayaround:block/television"
-    },
-    "facing=east": {
-      "model": "wayaround:block/television",
-      "y": 90
-    },
-    "facing=south": {
-      "model": "wayaround:block/television",
-      "y": 180
-    },
-    "facing=west": {
-      "model": "wayaround:block/television",
-      "y": 270
-    }
+    "ejected=false,facing=north": { "model": "wayaround:block/television" },
+    "ejected=false,facing=east": { "model": "wayaround:block/television", "y": 90 },
+    "ejected=false,facing=south": { "model": "wayaround:block/television", "y": 180 },
+    "ejected=false,facing=west": { "model": "wayaround:block/television", "y": 270 },
+
+    "ejected=true,facing=north": { "model": "wayaround:block/television_ejected" },
+    "ejected=true,facing=east": { "model": "wayaround:block/television_ejected", "y": 90 },
+    "ejected=true,facing=south": { "model": "wayaround:block/television_ejected", "y": 180 },
+    "ejected=true,facing=west": { "model": "wayaround:block/television_ejected", "y": 270 }
   }
 }

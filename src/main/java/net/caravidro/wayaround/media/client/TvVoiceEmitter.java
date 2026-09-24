@@ -50,7 +50,8 @@ public final class TvVoiceEmitter {
                 )
                         .orElse(null);
 
-        if (info == null) {
+        if (info == null
+                || !television.isPlaying()) {
             stop(
                     key
             );

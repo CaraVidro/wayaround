@@ -58,7 +58,8 @@ public final class TelevisionRenderer
                 )
                         .orElse(null);
 
-        if (info == null) {
+        if (info == null
+                || !television.isPlaying()) {
             release(
                     television.getBlockPos()
             );

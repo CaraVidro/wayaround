@@ -23,6 +23,8 @@ public final class TelevisionBlockEntity
     private long playbackStartGameTime =
             -1L;
 
+    private boolean ejected;
+
     public TelevisionBlockEntity(
             BlockPos pos,
             BlockState state
@@ -42,6 +44,18 @@ public final class TelevisionBlockEntity
         return playbackStartGameTime;
     }
 
+    public boolean isEjected() {
+        return ejected
+                && !tape.isEmpty();
+    }
+
+    public boolean isPlaying() {
+        return !tape.isEmpty()
+                && !ejected
+                && playbackStartGameTime
+                >= 0L;
+    }
+
     public boolean insert(
             ItemStack source
     ) {
@@ -59,17 +73,50 @@ public final class TelevisionBlockEntity
         tape =
                 source.split(1);
 
+        ejected =
+                false;
+
         playbackStartGameTime =
                 level == null
                         ? 0L
                         : level.getGameTime();
+
+        updateEjectedBlockState(
+                false
+        );
 
         sync();
 
         return true;
     }
 
-    public void eject() {
+    public ItemStack takeEjected() {
+        if (!isEjected()) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack result =
+                tape;
+
+        tape =
+                ItemStack.EMPTY;
+
+        ejected =
+                false;
+
+        playbackStartGameTime =
+                -1L;
+
+        updateEjectedBlockState(
+                false
+        );
+
+        sync();
+
+        return result;
+    }
+
+    public void dropTape() {
         if (level == null
                 || level.isClientSide
                 || tape.isEmpty()) {
@@ -83,45 +130,41 @@ public final class TelevisionBlockEntity
         tape =
                 ItemStack.EMPTY;
 
+        ejected =
+                false;
+
         playbackStartGameTime =
                 -1L;
 
-        double x =
-                worldPosition.getX()
-                        + 0.5;
-
-        double y =
-                worldPosition.getY()
-                        + 0.35;
-
-        double z =
-                worldPosition.getZ()
-                        + 0.5;
-
-        if (getBlockState()
-                .hasProperty(
-                        TelevisionBlock.FACING
-                )) {
-
-            var facing =
-                    getBlockState()
-                            .getValue(
-                                    TelevisionBlock.FACING
-                            );
-
-            x += facing.getStepX()
-                    * 0.70;
-
-            z += facing.getStepZ()
-                    * 0.70;
-        }
-
         Containers.dropItemStack(
                 level,
-                x,
-                y,
-                z,
+                worldPosition.getX()
+                        + 0.5,
+                worldPosition.getY()
+                        + 0.35,
+                worldPosition.getZ()
+                        + 0.5,
                 released
+        );
+
+        sync();
+    }
+
+    private void finishPlayback() {
+        if (tape.isEmpty()
+                || ejected) {
+
+            return;
+        }
+
+        ejected =
+                true;
+
+        playbackStartGameTime =
+                -1L;
+
+        updateEjectedBlockState(
+                true
         );
 
         sync();
@@ -133,11 +176,7 @@ public final class TelevisionBlockEntity
             BlockState state,
             TelevisionBlockEntity television
     ) {
-        if (television.tape
-                .isEmpty()
-                || television.playbackStartGameTime
-                < 0L) {
-
+        if (!television.isPlaying()) {
             return;
         }
 
@@ -148,7 +187,7 @@ public final class TelevisionBlockEntity
                         .orElse(null);
 
         if (info == null) {
-            television.eject();
+            television.finishPlayback();
             return;
         }
 
@@ -164,7 +203,7 @@ public final class TelevisionBlockEntity
                 - television.playbackStartGameTime
                 >= durationTicks) {
 
-            television.eject();
+            television.finishPlayback();
         }
     }
 
@@ -202,6 +241,11 @@ public final class TelevisionBlockEntity
                 "PlaybackStart",
                 playbackStartGameTime
         );
+
+        tag.putBoolean(
+                "Ejected",
+                ejected
+        );
     }
 
     @Override
@@ -235,6 +279,11 @@ public final class TelevisionBlockEntity
                                 "PlaybackStart"
                         )
                         : -1L;
+
+        ejected =
+                tag.getBoolean(
+                        "Ejected"
+                );
     }
 
     @Override
@@ -260,6 +309,11 @@ public final class TelevisionBlockEntity
                 playbackStartGameTime
         );
 
+        tag.putBoolean(
+                "Ejected",
+                ejected
+        );
+
         return tag;
     }
 
@@ -269,6 +323,35 @@ public final class TelevisionBlockEntity
         return ClientboundBlockEntityDataPacket.create(
                 this
         );
+    }
+
+    private void updateEjectedBlockState(
+            boolean value
+    ) {
+        if (level == null) {
+            return;
+        }
+
+        BlockState state =
+                getBlockState();
+
+        if (state.hasProperty(
+                TelevisionBlock.EJECTED
+        )
+                && state.getValue(
+                        TelevisionBlock.EJECTED
+                )
+                != value) {
+
+            level.setBlock(
+                    worldPosition,
+                    state.setValue(
+                            TelevisionBlock.EJECTED,
+                            value
+                    ),
+                    Block.UPDATE_ALL
+            );
+        }
     }
 
     private void sync() {
