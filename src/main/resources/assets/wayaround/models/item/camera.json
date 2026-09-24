@@ -1,6 +1,76 @@
 {
-  "parent": "minecraft:item/handheld",
+  "parent": "minecraft:block/block",
   "textures": {
-    "layer0": "minecraft:item/spyglass"
-  }
+    "body": "minecraft:block/black_concrete",
+    "metal": "minecraft:block/iron_block",
+    "lens": "minecraft:block/black_stained_glass",
+    "glass": "minecraft:block/light_blue_stained_glass",
+    "red": "minecraft:block/redstone_block",
+    "particle": "minecraft:block/black_concrete"
+  },
+  "elements": [
+    {
+      "from": [2, 4, 4],
+      "to": [13, 12, 12],
+      "faces": {
+        "north": { "texture": "#body" },
+        "south": { "texture": "#body" },
+        "west": { "texture": "#body" },
+        "east": { "texture": "#body" },
+        "up": { "texture": "#body" },
+        "down": { "texture": "#body" }
+      }
+    },
+    {
+      "from": [13, 6, 6],
+      "to": [15, 10, 10],
+      "faces": {
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#lens" },
+        "up": { "texture": "#metal" },
+        "down": { "texture": "#metal" }
+      }
+    },
+    {
+      "from": [14.7, 6.6, 6.6],
+      "to": [15.5, 9.4, 9.4],
+      "faces": {
+        "east": { "texture": "#glass" }
+      }
+    },
+    {
+      "from": [4, 12, 6],
+      "to": [9, 14, 10],
+      "faces": {
+        "north": { "texture": "#body" },
+        "south": { "texture": "#body" },
+        "west": { "texture": "#body" },
+        "east": { "texture": "#body" },
+        "up": { "texture": "#glass" },
+        "down": { "texture": "#body" }
+      }
+    },
+    {
+      "from": [2.5, 11.8, 4.5],
+      "to": [3.5, 12.8, 5.5],
+      "faces": {
+        "up": { "texture": "#red" },
+        "north": { "texture": "#red" }
+      }
+    },
+    {
+      "from": [0.5, 5, 5],
+      "to": [2, 11, 11],
+      "faces": {
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#body" },
+        "up": { "texture": "#metal" },
+        "down": { "texture": "#metal" }
+      }
+    }
+  ]
 }

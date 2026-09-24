@@ -114,5 +114,17 @@
     "message.wayaround.media.camera_dropped": "Câmera derrubada. Gravando os últimos segundos...",
     "message.wayaround.media.vhs_inserted": "VHS inserida.",
     "message.wayaround.media.tv_busy": "Já existe uma VHS dentro da televisão.",
-    "message.wayaround.media.invalid_vhs": "Esta VHS não possui uma gravação válida."
+    "message.wayaround.media.invalid_vhs": "Esta VHS não possui uma gravação válida.",
+    "item.wayaround.photo_paper": "Papel Fotográfico",
+    "item.wayaround.film_roll": "Rolo de Filme",
+    "item.wayaround.exposed_film_roll": "Rolo de Filme Exposto",
+    "item.wayaround.blank_vhs": "Fita VHS Vazia",
+    "item.wayaround.photo": "Fotografia",
+    "tooltip.wayaround.vhs.title": "%s",
+    "tooltip.wayaround.vhs.coords": "Coordenadas: %s, %s, %s",
+    "tooltip.wayaround.vhs.datetime": "Gravado em: %s",
+    "tooltip.wayaround.film.exposed": "Contém uma gravação. Use com uma VHS vazia no inventário para transferir.",
+    "tooltip.wayaround.photo.taken": "Fotografia: %s",
+    "message.wayaround.media.need_blank_vhs": "Você precisa de uma VHS vazia para transferir esse rolo.",
+    "message.wayaround.media.film_transferred": "Rolo transferido para uma VHS."
 }

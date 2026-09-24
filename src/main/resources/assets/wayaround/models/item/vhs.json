@@ -1,44 +1,61 @@
 {
   "parent": "minecraft:block/block",
   "textures": {
-    "casing": "minecraft:block/black_concrete",
+    "case": "minecraft:block/black_concrete",
+    "edge": "minecraft:block/polished_blackstone",
     "label": "minecraft:block/quartz_block",
+    "window": "minecraft:block/gray_stained_glass",
     "reel": "minecraft:block/iron_block",
+    "tape": "minecraft:block/brown_concrete",
     "particle": "minecraft:block/black_concrete"
   },
   "elements": [
     {
-      "from": [1, 5, 3],
-      "to": [15, 11, 13],
+      "from": [1, 5, 2],
+      "to": [15, 10, 14],
       "faces": {
-        "north": { "texture": "#casing" },
-        "south": { "texture": "#casing" },
-        "west": { "texture": "#casing" },
-        "east": { "texture": "#casing" },
-        "up": { "texture": "#casing" },
-        "down": { "texture": "#casing" }
+        "north": { "texture": "#edge" },
+        "south": { "texture": "#edge" },
+        "west": { "texture": "#case" },
+        "east": { "texture": "#case" },
+        "up": { "texture": "#case" },
+        "down": { "texture": "#case" }
       }
     },
     {
-      "from": [3, 10.9, 5],
-      "to": [13, 11.15, 11],
-      "faces": {
-        "up": { "texture": "#label" }
-      }
+      "from": [2, 9.85, 4],
+      "to": [14, 10.08, 12],
+      "faces": { "up": { "texture": "#label" } }
     },
     {
-      "from": [3, 4.85, 5],
-      "to": [6, 5.05, 8],
-      "faces": {
-        "down": { "texture": "#reel" }
-      }
+      "from": [2.5, 4.9, 4],
+      "to": [7, 5.1, 10],
+      "faces": { "down": { "texture": "#window" } }
     },
     {
-      "from": [10, 4.85, 5],
-      "to": [13, 5.05, 8],
-      "faces": {
-        "down": { "texture": "#reel" }
-      }
+      "from": [9, 4.9, 4],
+      "to": [13.5, 5.1, 10],
+      "faces": { "down": { "texture": "#window" } }
+    },
+    {
+      "from": [3.4, 4.75, 5],
+      "to": [6.1, 4.95, 7.7],
+      "faces": { "down": { "texture": "#reel" } }
+    },
+    {
+      "from": [9.9, 4.75, 5],
+      "to": [12.6, 4.95, 7.7],
+      "faces": { "down": { "texture": "#reel" } }
+    },
+    {
+      "from": [6.1, 4.7, 5.7],
+      "to": [9.9, 4.9, 7],
+      "faces": { "down": { "texture": "#tape" } }
+    },
+    {
+      "from": [2, 6, 1.7],
+      "to": [14, 9, 2.05],
+      "faces": { "north": { "texture": "#label" } }
     }
   ]
 }

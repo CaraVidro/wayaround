@@ -2,6 +2,8 @@ package net.caravidro.wayaround.media;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.item.CameraItem;
+import net.caravidro.wayaround.media.item.ExposedFilmRollItem;
+import net.caravidro.wayaround.media.item.PhotoItem;
 import net.caravidro.wayaround.media.item.VhsItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -57,10 +59,56 @@ public final class MediaContent {
                     )
             );
 
+    public static final DeferredItem<Item> PHOTO_PAPER =
+            ITEMS.register(
+                    "photo_paper",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .stacksTo(64)
+                    )
+            );
+
+    public static final DeferredItem<Item> FILM_ROLL =
+            ITEMS.register(
+                    "film_roll",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .stacksTo(16)
+                    )
+            );
+
+    public static final DeferredItem<ExposedFilmRollItem>
+            EXPOSED_FILM_ROLL =
+            ITEMS.register(
+                    "exposed_film_roll",
+                    () -> new ExposedFilmRollItem(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<Item> BLANK_VHS =
+            ITEMS.register(
+                    "blank_vhs",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .stacksTo(16)
+                    )
+            );
+
     public static final DeferredItem<VhsItem> VHS =
             ITEMS.register(
                     "vhs",
                     () -> new VhsItem(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<PhotoItem> PHOTO =
+            ITEMS.register(
+                    "photo",
+                    () -> new PhotoItem(
                             new Item.Properties()
                                     .stacksTo(1)
                     )
@@ -72,14 +120,14 @@ public final class MediaContent {
                     () -> new TelevisionBlock(
                             BlockBehaviour.Properties.of()
                                     .mapColor(
-                                            MapColor.COLOR_BLACK
+                                            MapColor.WOOD
                                     )
                                     .strength(
                                             2.0F,
                                             4.0F
                                     )
                                     .sound(
-                                            SoundType.METAL
+                                            SoundType.WOOD
                                     )
                                     .noOcclusion()
                     )
@@ -128,17 +176,14 @@ public final class MediaContent {
                             )
                             .displayItems(
                                     (parameters, output) -> {
-                                        output.accept(
-                                                CAMERA.get()
-                                        );
-
-                                        output.accept(
-                                                VHS.get()
-                                        );
-
-                                        output.accept(
-                                                TELEVISION_ITEM.get()
-                                        );
+                                        output.accept(CAMERA.get());
+                                        output.accept(PHOTO_PAPER.get());
+                                        output.accept(FILM_ROLL.get());
+                                        output.accept(EXPOSED_FILM_ROLL.get());
+                                        output.accept(BLANK_VHS.get());
+                                        output.accept(VHS.get());
+                                        output.accept(PHOTO.get());
+                                        output.accept(TELEVISION_ITEM.get());
                                     }
                             )
                             .build()
