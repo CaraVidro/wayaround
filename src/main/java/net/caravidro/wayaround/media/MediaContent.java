@@ -114,6 +114,39 @@ public final class MediaContent {
                     )
             );
 
+    public static final DeferredBlock<PlacedCameraBlock> PLACED_CAMERA =
+            BLOCKS.register(
+                    "placed_camera",
+                    () -> new PlacedCameraBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.COLOR_BLACK)
+                                    .strength(1.2F, 2.0F)
+                                    .sound(SoundType.METAL)
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredBlock<WoodenChairBlock> WOODEN_CHAIR =
+            BLOCKS.register(
+                    "wooden_chair",
+                    () -> new WoodenChairBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.WOOD)
+                                    .strength(1.5F, 2.0F)
+                                    .sound(SoundType.WOOD)
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> WOODEN_CHAIR_ITEM =
+            ITEMS.register(
+                    "wooden_chair",
+                    () -> new BlockItem(
+                            WOODEN_CHAIR.get(),
+                            new Item.Properties()
+                    )
+            );
+
     public static final DeferredBlock<TelevisionBlock> TELEVISION =
             BLOCKS.register(
                     "television",
@@ -140,6 +173,32 @@ public final class MediaContent {
                             TELEVISION.get(),
                             new Item.Properties()
                     )
+            );
+
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<PlacedCameraBlockEntity>
+            > PLACED_CAMERA_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "placed_camera",
+                    () -> BlockEntityType.Builder.of(
+                                    PlacedCameraBlockEntity::new,
+                                    PLACED_CAMERA.get()
+                            )
+                            .build(null)
+            );
+
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<ChairBlockEntity>
+            > CHAIR_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "wooden_chair",
+                    () -> BlockEntityType.Builder.of(
+                                    ChairBlockEntity::new,
+                                    WOODEN_CHAIR.get()
+                            )
+                            .build(null)
             );
 
     public static final DeferredHolder<
@@ -183,6 +242,7 @@ public final class MediaContent {
                                         output.accept(BLANK_VHS.get());
                                         output.accept(VHS.get());
                                         output.accept(PHOTO.get());
+                                        output.accept(WOODEN_CHAIR_ITEM.get());
                                         output.accept(TELEVISION_ITEM.get());
                                     }
                             )

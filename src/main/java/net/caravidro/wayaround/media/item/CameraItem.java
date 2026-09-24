@@ -1,14 +1,24 @@
 package net.caravidro.wayaround.media.item;
 
 import net.caravidro.wayaround.media.MediaClientBridge;
+import net.caravidro.wayaround.media.MediaContent;
+import net.caravidro.wayaround.media.MediaInventory;
+import net.caravidro.wayaround.media.PlacedCameraBlock;
+import net.caravidro.wayaround.media.PlacedCameraBlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 
 public final class CameraItem
         extends Item {
@@ -23,6 +33,92 @@ public final class CameraItem
             Properties properties
     ) {
         super(properties);
+    }
+
+    @Override
+    public InteractionResult useOn(
+            UseOnContext context
+    ) {
+        Player player =
+                context.getPlayer();
+
+        if (player == null
+                || !player.isShiftKeyDown()) {
+
+            return super.useOn(
+                    context
+            );
+        }
+
+        Level level =
+                context.getLevel();
+
+        BlockPos target =
+                context.getClickedPos()
+                        .relative(
+                                context.getClickedFace()
+                        );
+
+        if (!level.getBlockState(
+                target
+        )
+                .canBeReplaced()) {
+
+            return InteractionResult.FAIL;
+        }
+
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
+
+        if (!MediaInventory.consumeOne(
+                player,
+                MediaContent.FILM_ROLL.get()
+        )) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.media.need_film_roll"
+                    ),
+                    true
+            );
+
+            return InteractionResult.FAIL;
+        }
+
+        Direction facing =
+                player.getDirection();
+
+        level.setBlock(
+                target,
+                MediaContent.PLACED_CAMERA
+                        .get()
+                        .defaultBlockState()
+                        .setValue(
+                                PlacedCameraBlock.FACING,
+                                facing
+                        ),
+                Block.UPDATE_ALL
+        );
+
+        if (level.getBlockEntity(
+                target
+        )
+                instanceof PlacedCameraBlockEntity camera) {
+
+            camera.arm(
+                    player.getUUID(),
+                    facing
+            );
+        }
+
+        if (!player.getAbilities()
+                .instabuild) {
+
+            context.getItemInHand()
+                    .shrink(1);
+        }
+
+        return InteractionResult.CONSUME;
     }
 
     @Override
