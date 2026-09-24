@@ -97,5 +97,8 @@
     "tooltip.wayaround.blue.sling": "While Blue is active, use the wheel to control distance. A fast in-and-out gesture launches it.",
     "itemGroup.wayaround.industrialization": "Industrial",
     "itemGroup.wayaround.assembly": "Assembly & Mechanics",
-    "itemGroup.wayaround.otherworld_powers": "Otherworld Powers"
+    "itemGroup.wayaround.otherworld_powers": "Otherworld Powers",
+    "message.wayaround.water_generator.status_v1": "Mechanical: %s | Generation: %s FE/t | Buffer: %s/%s FE",
+    "message.wayaround.mechanical.connected": "Connected",
+    "message.wayaround.mechanical.disconnected": "Disconnected"
 }
