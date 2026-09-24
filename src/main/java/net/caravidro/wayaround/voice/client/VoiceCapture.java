@@ -67,11 +67,12 @@ public final class VoiceCapture {
     private static void captureLoop() {
         TargetDataLine line = null;
 
-        boolean debugThisUtterance =
-                VoiceConfig.isDebugSpeechEnabled();
+        boolean transcribeThisUtterance =
+                VoiceConfig.isDebugSpeechEnabled()
+                        || VoiceIntentClient.isEnabled();
 
         ByteArrayOutputStream debugAudio =
-                debugThisUtterance
+                transcribeThisUtterance
                         ? new ByteArrayOutputStream()
                         : null;
 
@@ -225,7 +226,10 @@ public final class VoiceCapture {
             if (debugAudio != null
                     && debugAudio.size()
                     >= VoiceConstants.FRAME_BYTES * 3
-                    && VoiceConfig.isDebugSpeechEnabled()) {
+                    && (
+                    VoiceConfig.isDebugSpeechEnabled()
+                            || VoiceIntentClient.isEnabled()
+            )) {
 
                 VoiceSpeechDebug.submit(
                         debugAudio.toByteArray()

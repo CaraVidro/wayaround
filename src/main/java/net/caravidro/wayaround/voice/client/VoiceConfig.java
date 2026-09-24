@@ -19,6 +19,7 @@ public final class VoiceConfig {
     private static boolean enabled = false;
     private static boolean debugSpeechEnabled = false;
     private static String microphoneId = "";
+    private static String speakerId = "";
 
     private static Path file() {
         return FMLPaths.CONFIGDIR
@@ -66,6 +67,12 @@ public final class VoiceConfig {
                             ""
                     );
 
+            speakerId =
+                    properties.getProperty(
+                            "speaker",
+                            ""
+                    );
+
         } catch (IOException exception) {
             System.err.println(
                     "[WayAround Voice] Nao foi possivel ler a configuracao: "
@@ -105,6 +112,22 @@ public final class VoiceConfig {
         save();
     }
 
+    public static String getSpeakerId() {
+        ensureLoaded();
+        return speakerId;
+    }
+
+    public static synchronized void setSpeakerId(
+            String value
+    ) {
+        ensureLoaded();
+        speakerId =
+                value == null
+                        ? ""
+                        : value;
+        save();
+    }
+
     public static synchronized void setMicrophoneId(
             String value
     ) {
@@ -132,6 +155,11 @@ public final class VoiceConfig {
         properties.setProperty(
                 "microphone",
                 microphoneId
+        );
+
+        properties.setProperty(
+                "speaker",
+                speakerId
         );
 
         try {

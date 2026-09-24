@@ -85,13 +85,12 @@ public final class VoiceSpeechDebug {
 
         minecraft.execute(
                 () -> {
-                    if (!VoiceConfig
-                            .isDebugSpeechEnabled()) {
-
-                        return;
-                    }
-
                     if (!recognition.success()) {
+                        if (!VoiceConfig
+                                .isDebugSpeechEnabled()) {
+
+                            return;
+                        }
                         minecraft.gui
                                 .getChat()
                                 .addMessage(
@@ -113,6 +112,10 @@ public final class VoiceSpeechDebug {
 
                         return;
                     }
+
+                    VoiceIntentClient.handleTranscript(
+                            recognition.text()
+                    );
 
                     String expressive =
                             VoiceToneAnalyzer.applyExpression(
@@ -138,6 +141,12 @@ public final class VoiceSpeechDebug {
                                                     )
                                             )
                             );
+
+                    if (!VoiceConfig
+                            .isDebugSpeechEnabled()) {
+
+                        return;
+                    }
 
                     String metrics =
                             String.format(

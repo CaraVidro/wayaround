@@ -130,6 +130,42 @@ public final class BlueManager {
         return true;
     }
 
+    public static boolean invokeFromVoice(
+            ServerPlayer player
+    ) {
+        if (!beginCharge(
+                player
+        )) {
+            return false;
+        }
+
+        ChargeState charge =
+                CHARGING.get(
+                        player.getUUID()
+                );
+
+        if (charge != null) {
+            /*
+             * A voice invocation should create a useful but not maximum Blue.
+             * It reuses the normal charge/finish path so cooldowns and state
+             * stay identical to item activation.
+             */
+            charge.ticks =
+                    Math.max(
+                            charge.ticks,
+                            18
+                    );
+        }
+
+        finishCharge(
+                player
+        );
+
+        return ACTIVE.containsKey(
+                player.getUUID()
+        );
+    }
+
     public static void tickCharge(
             ServerPlayer player
     ) {
@@ -566,6 +602,24 @@ public final class BlueManager {
             blue.life--;
 
             if (blue.life <= 0) {
+                float explosionPower =
+                        Mth.clamp(
+                                2.5F
+                                        + blue.power
+                                                * 3.0F,
+                                2.5F,
+                                6.5F
+                        );
+
+                level.explode(
+                        null,
+                        blue.position.x,
+                        blue.position.y,
+                        blue.position.z,
+                        explosionPower,
+                        Level.ExplosionInteraction.TNT
+                );
+
                 queueCoreCollapse(
                         level,
                         server.getPlayerList()

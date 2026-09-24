@@ -16,11 +16,16 @@ public final class VoiceSettingsScreen
     private List<VoiceDevices.InputDevice>
             microphones;
 
+    private List<VoiceDevices.OutputDevice>
+            outputs;
+
     private int microphoneIndex;
+    private int outputIndex;
 
     private Button enabledButton;
     private Button debugButton;
     private Button microphoneButton;
+    private Button outputButton;
 
     public VoiceSettingsScreen(
             Screen parent
@@ -39,6 +44,7 @@ public final class VoiceSettingsScreen
         super.init();
 
         reloadMicrophones();
+        reloadOutputs();
 
         int buttonWidth = 260;
         int buttonHeight = 20;
@@ -138,23 +144,67 @@ public final class VoiceSettingsScreen
                                 .build()
                 );
 
+        outputButton =
+                this.addRenderableWidget(
+                        Button.builder(
+                                        outputLabel(),
+                                        button -> {
+                                            if (outputs.isEmpty()) {
+                                                return;
+                                            }
+
+                                            outputIndex =
+                                                    (outputIndex + 1)
+                                                            % outputs.size();
+
+                                            VoiceDevices.OutputDevice device =
+                                                    outputs.get(
+                                                            outputIndex
+                                                    );
+
+                                            VoiceConfig.setSpeakerId(
+                                                    device.id()
+                                            );
+
+                                            VoicePlayback.restartOutput();
+
+                                            button.setMessage(
+                                                    outputLabel()
+                                            );
+                                        }
+                                )
+                                .bounds(
+                                        x,
+                                        y + 78,
+                                        buttonWidth,
+                                        buttonHeight
+                                )
+                                .build()
+                );
+
         this.addRenderableWidget(
                 Button.builder(
                                 Component.literal(
-                                        "Atualizar microfones"
+                                        "Atualizar dispositivos"
                                 ),
                                 button -> {
                                     reloadMicrophones();
+                                    reloadOutputs();
 
                                     microphoneButton
                                             .setMessage(
                                                     microphoneLabel()
                                             );
+
+                                    outputButton
+                                            .setMessage(
+                                                    outputLabel()
+                                            );
                                 }
                         )
                         .bounds(
                                 x,
-                                y + 78,
+                                y + 104,
                                 buttonWidth,
                                 buttonHeight
                         )
@@ -170,7 +220,7 @@ public final class VoiceSettingsScreen
                         )
                         .bounds(
                                 x,
-                                y + 120,
+                                y + 138,
                                 buttonWidth,
                                 buttonHeight
                         )
@@ -185,6 +235,16 @@ public final class VoiceSettingsScreen
         microphoneIndex =
                 VoiceDevices.indexOfSelected(
                         microphones
+                );
+    }
+
+    private void reloadOutputs() {
+        outputs =
+                VoiceDevices.listOutputs();
+
+        outputIndex =
+                VoiceDevices.indexOfSelectedOutput(
+                        outputs
                 );
     }
 
@@ -235,6 +295,34 @@ public final class VoiceSettingsScreen
 
         return Component.literal(
                 "Microfone: " + name
+        );
+    }
+
+    private Component outputLabel() {
+        if (outputs == null
+                || outputs.isEmpty()) {
+
+            return Component.literal(
+                    "Saida: nenhuma encontrada"
+            );
+        }
+
+        String name =
+                outputs.get(
+                        outputIndex
+                ).displayName();
+
+        if (name.length() > 34) {
+            name =
+                    name.substring(
+                            0,
+                            31
+                    )
+                            + "...";
+        }
+
+        return Component.literal(
+                "Saida: " + name
         );
     }
 

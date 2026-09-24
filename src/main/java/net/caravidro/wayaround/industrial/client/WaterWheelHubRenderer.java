@@ -78,7 +78,8 @@ public final class WaterWheelHubRenderer
         float rotation =
                 visual.update(
                         renderTime,
-                        hub.rpm()
+                        hub.rpm(),
+                        hub.rotationDegrees()
                 );
 
         poseStack.pushPose();
@@ -709,7 +710,8 @@ public final class WaterWheelHubRenderer
 
         private float update(
                 double renderTime,
-                float targetRpm
+                float targetRpm,
+                float authoritativeAngle
         ) {
             if (!Double.isFinite(
                     lastRenderTime
@@ -755,15 +757,70 @@ public final class WaterWheelHubRenderer
                     * 0.30F
                     * (float) delta;
 
-            angle %=
-                    360.0F;
+            angle =
+                    wrap(angle);
 
-            if (angle < 0.0F) {
-                angle +=
-                        360.0F;
+            float correction =
+                    shortestDelta(
+                            angle,
+                            authoritativeAngle
+                    );
+
+            /*
+             * Rendering is predicted locally for smooth motion, but the
+             * server remains authoritative. Without this correction clients
+             * that watched the wheel for different lengths of time could
+             * slowly drift into visibly different board positions.
+             */
+            if (Math.abs(correction)
+                    > 18.0F) {
+
+                angle =
+                        wrap(
+                                authoritativeAngle
+                        );
+
+            } else {
+                angle =
+                        wrap(
+                                angle
+                                        + correction
+                                                * 0.16F
+                        );
             }
 
             return angle;
+        }
+
+        private static float wrap(
+                float value
+        ) {
+            value %= 360.0F;
+
+            if (value < 0.0F) {
+                value += 360.0F;
+            }
+
+            return value;
+        }
+
+        private static float shortestDelta(
+                float from,
+                float to
+        ) {
+            float delta =
+                    wrap(to)
+                            - wrap(from);
+
+            if (delta > 180.0F) {
+                delta -= 360.0F;
+            }
+
+            if (delta < -180.0F) {
+                delta += 360.0F;
+            }
+
+            return delta;
         }
     }
 }

@@ -54,6 +54,12 @@ public final class WayAroundNetwork {
         );
 
         registrar.playToServer(
+                VoiceIntentC2SPayload.TYPE,
+                VoiceIntentC2SPayload.STREAM_CODEC,
+                VoiceIntentC2SPayload::handle
+        );
+
+        registrar.playToServer(
                 RecordingFinishedC2SPayload.TYPE,
                 RecordingFinishedC2SPayload.STREAM_CODEC,
                 RecordingFinishedC2SPayload::handle
