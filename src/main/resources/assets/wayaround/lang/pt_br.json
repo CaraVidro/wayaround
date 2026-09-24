@@ -100,5 +100,13 @@
     "itemGroup.wayaround.otherworld_powers": "Poderes do Outro Mundo",
     "message.wayaround.water_generator.status_v1": "Mecânica: %s | Geração: %s FE/t | Buffer: %s/%s FE",
     "message.wayaround.mechanical.connected": "Conectada",
-    "message.wayaround.mechanical.disconnected": "Desconectada"
+    "message.wayaround.mechanical.disconnected": "Desconectada",
+    "itemGroup.wayaround.media": "Mídia",
+    "item.wayaround.camera": "Câmera",
+    "block.wayaround.television": "Televisão",
+    "message.wayaround.media.recording_started": "Gravação iniciada.",
+    "message.wayaround.media.recording_stopped": "Gravação salva: %s",
+    "message.wayaround.media.recording_failed": "Falha na gravação: %s",
+    "message.wayaround.media.no_recording": "Ainda não existe nenhuma gravação para reproduzir.",
+    "message.wayaround.media.camera_required": "A gravação parou porque a câmera não está mais na sua mão."
 }

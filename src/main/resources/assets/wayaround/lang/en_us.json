@@ -100,5 +100,13 @@
     "itemGroup.wayaround.otherworld_powers": "Otherworld Powers",
     "message.wayaround.water_generator.status_v1": "Mechanical: %s | Generation: %s FE/t | Buffer: %s/%s FE",
     "message.wayaround.mechanical.connected": "Connected",
-    "message.wayaround.mechanical.disconnected": "Disconnected"
+    "message.wayaround.mechanical.disconnected": "Disconnected",
+    "itemGroup.wayaround.media": "Media",
+    "item.wayaround.camera": "Camera",
+    "block.wayaround.television": "Television",
+    "message.wayaround.media.recording_started": "Recording started.",
+    "message.wayaround.media.recording_stopped": "Recording saved: %s",
+    "message.wayaround.media.recording_failed": "Recording failed: %s",
+    "message.wayaround.media.no_recording": "There is no recording to play yet.",
+    "message.wayaround.media.camera_required": "Recording stopped because the camera is no longer in your hand."
 }

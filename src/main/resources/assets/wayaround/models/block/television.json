@@ -1,0 +1,54 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "casing": "minecraft:block/black_concrete",
+    "screen": "minecraft:block/black_stained_glass",
+    "metal": "minecraft:block/iron_block",
+    "particle": "minecraft:block/black_concrete"
+  },
+  "elements": [
+    {
+      "from": [1, 2, 2],
+      "to": [15, 14, 14],
+      "faces": {
+        "north": { "texture": "#casing" },
+        "south": { "texture": "#casing" },
+        "west": { "texture": "#casing" },
+        "east": { "texture": "#casing" },
+        "up": { "texture": "#casing" },
+        "down": { "texture": "#casing" }
+      }
+    },
+    {
+      "from": [2, 3, 1.75],
+      "to": [14, 13, 2.05],
+      "faces": {
+        "north": { "texture": "#screen" }
+      }
+    },
+    {
+      "from": [3, 0, 5],
+      "to": [6, 2, 11],
+      "faces": {
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#metal" },
+        "up": { "texture": "#metal" },
+        "down": { "texture": "#metal" }
+      }
+    },
+    {
+      "from": [10, 0, 5],
+      "to": [13, 2, 11],
+      "faces": {
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#metal" },
+        "up": { "texture": "#metal" },
+        "down": { "texture": "#metal" }
+      }
+    }
+  ]
+}

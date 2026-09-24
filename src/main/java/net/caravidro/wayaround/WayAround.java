@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
 import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.IndustrialContent;
+import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.domain.DomainCommands;
 import net.caravidro.wayaround.domain.DomainManager;
 import net.caravidro.wayaround.network.WayAroundNetwork;
@@ -38,6 +39,7 @@ public class WayAround {
         // Registros do mod.
         WayAroundContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
+        MediaContent.register(modEventBus);
         net.caravidro.wayaround.dream.DreamContent.register(modEventBus);
         net.neoforged.fml.ModLoadingContext.get().getActiveContainer().registerConfig(
                 net.neoforged.fml.config.ModConfig.Type.SERVER, net.caravidro.wayaround.dream.DreamConfig.SPEC);
