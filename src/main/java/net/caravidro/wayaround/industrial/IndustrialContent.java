@@ -43,26 +43,128 @@ public final class IndustrialContent {
                     ReforcedBlasterBlockEntity::new, REFORCED_BLASTER.get()).build(null));
     public static final DeferredHolder<MenuType<?>, MenuType<ReforcedBlasterMenu>> BLASTER_MENU = MENUS.register("reforced_blaster",
             () -> new MenuType<>(ReforcedBlasterMenu::new, FeatureFlags.VANILLA_SET));
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> INDUSTRIALIZATION = TABS.register("industrialization",
-            () -> CreativeModeTab.builder().title(Component.translatable("itemGroup.wayaround.industrialization"))
-                    .withTabsBefore(CreativeModeTabs.SPAWN_EGGS).icon(() -> REFORCED_BLASTER_ITEM.get().getDefaultInstance())
-                    .displayItems((parameters, output) -> {
-                        output.accept(REFORCED_BLASTER_ITEM.get());
-                        output.accept(WayAroundContent.BLUE.get());
-                        output.accept(PowerContent.SOLAR_PANEL_ITEM.get());
-                        output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
-                        output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
-                        output.accept(PowerContent.WATER_WHEEL_HUB_ITEM.get());
-                        output.accept(PowerContent.WATER_WHEEL_SUPPORT_ITEM.get());
-                        output.accept(PowerContent.WATER_WHEEL_BLADE_ITEM.get());
-                        output.accept(PowerContent.WOODEN_NAIL.get());
-                        output.accept(PowerContent.IRON_NAIL.get());
-                        output.accept(PowerContent.DIAMOND_NAIL.get());
-                        output.accept(PowerContent.ASSEMBLY_GUIDE.get());
-                        output.accept(PowerContent.MECHANICAL_SHAFT_ITEM.get());
-                        output.accept(PowerContent.MECHANICAL_GEARBOX_ITEM.get());
-                        output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
-                    }).build());
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> INDUSTRIALIZATION =
+            TABS.register(
+                    "industrialization",
+                    () -> CreativeModeTab.builder()
+                            .title(
+                                    Component.translatable(
+                                            "itemGroup.wayaround.industrialization"
+                                    )
+                            )
+                            .withTabsBefore(
+                                    CreativeModeTabs.SPAWN_EGGS
+                            )
+                            .icon(
+                                    () -> REFORCED_BLASTER_ITEM.get()
+                                            .getDefaultInstance()
+                            )
+                            .displayItems(
+                                    (parameters, output) -> {
+                                        output.accept(
+                                                REFORCED_BLASTER_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.SOLAR_PANEL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.STEAM_ENGINE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.ENERGY_CABLE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.WATER_GENERATOR_ITEM.get()
+                                        );
+                                    }
+                            )
+                            .build()
+            );
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> ASSEMBLY =
+            TABS.register(
+                    "assembly",
+                    () -> CreativeModeTab.builder()
+                            .title(
+                                    Component.translatable(
+                                            "itemGroup.wayaround.assembly"
+                                    )
+                            )
+                            .withTabsBefore(
+                                    CreativeModeTabs.SPAWN_EGGS
+                            )
+                            .icon(
+                                    () -> PowerContent.ASSEMBLY_GUIDE.get()
+                                            .getDefaultInstance()
+                            )
+                            .displayItems(
+                                    (parameters, output) -> {
+                                        output.accept(
+                                                PowerContent.WATER_WHEEL_SUPPORT_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.WATER_WHEEL_HUB_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.WATER_WHEEL_BLADE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.WOODEN_NAIL.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.IRON_NAIL.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.DIAMOND_NAIL.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.ASSEMBLY_GUIDE.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_SHAFT_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_GEARBOX_ITEM.get()
+                                        );
+                                    }
+                            )
+                            .build()
+            );
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> OTHERWORLD_POWERS =
+            TABS.register(
+                    "otherworld_powers",
+                    () -> CreativeModeTab.builder()
+                            .title(
+                                    Component.translatable(
+                                            "itemGroup.wayaround.otherworld_powers"
+                                    )
+                            )
+                            .withTabsBefore(
+                                    CreativeModeTabs.SPAWN_EGGS
+                            )
+                            .icon(
+                                    () -> WayAroundContent.PRIORITE_BOTTLE.get()
+                                            .getDefaultInstance()
+                            )
+                            .displayItems(
+                                    (parameters, output) -> {
+                                        output.accept(
+                                                WayAroundContent.BLUE.get()
+                                        );
+                                        output.accept(
+                                                WayAroundContent.PRIORITE_BLOCK_ITEM.get()
+                                        );
+                                        output.accept(
+                                                WayAroundContent.PRIORITE_BUCKET.get()
+                                        );
+                                        output.accept(
+                                                WayAroundContent.PRIORITE_BOTTLE.get()
+                                        );
+                                    }
+                            )
+                            .build()
+            );
 
     private IndustrialContent() {}
 
