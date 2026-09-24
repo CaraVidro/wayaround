@@ -58,7 +58,7 @@ public final class BlueManager {
     private static final double SCROLL_STEP = 2.5;
 
     private static final int MAX_ACTIVE_TICKS = 55 * 20;
-    private static final int RELEASE_TICKS = 60;
+    private static final int RELEASE_TICKS = 100;
     private static final int LAUNCHED_TICKS = 20 * 20;
     private static final int COOLDOWN_TICKS = 5 * 20;
     private static final int COLLAPSE_ENTITY_TICKS = 16;
@@ -168,12 +168,16 @@ public final class BlueManager {
             return;
         }
 
+        /*
+         * A tap can create a genuinely tiny Blue. It still exerts gravity,
+         * but destructive capacity climbs on a steep curve with charge.
+         */
         float power =
                 Mth.clamp(
-                        0.35F
+                        0.025F
                                 + charge.ticks
-                                        / 58.0F,
-                        0.42F,
+                                        / 62.0F,
+                        0.04F,
                         1.35F
                 );
 
@@ -225,16 +229,46 @@ public final class BlueManager {
                         player.blockPosition(),
                         SoundEvents.ENDERMAN_TELEPORT,
                         SoundSource.PLAYERS,
-                        0.65F,
-                        0.48F
+                        0.72F,
+                        0.58F
+                );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        BlockPos.containing(
+                                center
+                        ),
+                        SoundEvents.GENERIC_EXPLODE.value(),
+                        SoundSource.PLAYERS,
+                        1.15F,
+                        1.28F
                 );
 
         burst(
                 player.serverLevel(),
                 center,
-                52,
-                1.15F
+                82,
+                1.55F
         );
+
+        player.serverLevel()
+                .sendParticles(
+                        ParticleTypes.EXPLOSION,
+                        center.x,
+                        center.y,
+                        center.z,
+                        7,
+                        1.0
+                                + power
+                                        * 1.6,
+                        0.8
+                                + power,
+                        1.0
+                                + power
+                                        * 1.6,
+                        0.06
+                );
 
         sendVisual(
                 player.serverLevel(),
@@ -465,11 +499,10 @@ public final class BlueManager {
                     radius,
                     blue.power,
                     blue.spinDirection,
-                    6
-                            + Math.round(
-                                    blue.power
-                                            * 7.0F
-                            )
+                    destructionBudget(
+                            blue.power,
+                            false
+                    )
             );
 
             disturbEnvironment(
@@ -600,12 +633,9 @@ public final class BlueManager {
                         radius,
                         power,
                         blue.spinDirection,
-                        Math.max(
-                                1,
-                                Math.round(
-                                        8.0F
-                                                * power
-                                )
+                        destructionBudget(
+                                power,
+                                true
                         )
                 );
 
@@ -893,9 +923,51 @@ public final class BlueManager {
     private static double attractionRadius(
             float power
     ) {
-        return 28.0
-                + power
-                        * 32.0;
+        double normalized =
+                Mth.clamp(
+                        power / 1.35F,
+                        0.0F,
+                        1.0F
+                );
+
+        /*
+         * Tiny Blues still tug from a useful distance, while fully charged
+         * ones influence an enormous volume.
+         */
+        return 6.0
+                + Math.pow(
+                        normalized,
+                        0.85
+                )
+                        * 68.0;
+    }
+
+    private static int destructionBudget(
+            float power,
+            boolean launched
+    ) {
+        double normalized =
+                Mth.clamp(
+                        power / 1.35F,
+                        0.0F,
+                        1.0F
+                );
+
+        double curve =
+                normalized
+                        * normalized
+                        * normalized;
+
+        return Math.round(
+                (float) (
+                        curve
+                                * (
+                                        launched
+                                                ? 48.0
+                                                : 40.0
+                                )
+                )
+        );
     }
 
     private static void applyBlue(
@@ -1092,10 +1164,20 @@ public final class BlueManager {
             return;
         }
 
+        double normalized =
+                Mth.clamp(
+                        power / 1.35F,
+                        0.0F,
+                        1.0F
+                );
+
         double digRadius =
-                3.4
-                        + power
-                                * 4.6;
+                1.1
+                        + Math.pow(
+                                normalized,
+                                1.40
+                        )
+                                * 14.0;
 
         int removed =
                 0;
@@ -1226,24 +1308,42 @@ public final class BlueManager {
             );
 
             /*
-             * Destruction now throws a real dust cloud, not just block chips.
-             * Most of it hangs/rises, while a smaller share is visibly pulled
-             * toward Blue so the smoke participates in the gravity field.
+             * Smoke is born from destruction now: every removed block creates
+             * exactly 2-5 smoke particles. Most stay and rise as dust; at most
+             * one of them is converted into a strand pulled toward Blue.
              */
+            int smokeCount =
+                    2
+                            + level.random.nextInt(
+                                    4
+                            );
+
+            boolean suckOne =
+                    smokeCount >= 3
+                            && level.random.nextFloat()
+                                    < 0.42F;
+
+            int hangingSmoke =
+                    smokeCount
+                            - (
+                                    suckOne
+                                            ? 1
+                                            : 0
+                            );
+
             level.sendParticles(
                     ParticleTypes.CAMPFIRE_COSY_SMOKE,
                     source.x,
                     source.y,
                     source.z,
-                    2,
-                    0.45,
-                    0.22,
-                    0.45,
-                    0.008
+                    hangingSmoke,
+                    0.72,
+                    0.38,
+                    0.72,
+                    0.009
             );
 
-            if (level.random.nextFloat()
-                    < 0.48F) {
+            if (suckOne) {
                 Vec3 smokeInward =
                         center.subtract(
                                 source
@@ -1264,9 +1364,21 @@ public final class BlueManager {
                             smokeInward.y
                                     * 0.72,
                             smokeInward.z,
-                            0.22
+                            0.24
                                     + power
-                                            * 0.08
+                                            * 0.10
+                    );
+                } else {
+                    level.sendParticles(
+                            ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                            source.x,
+                            source.y,
+                            source.z,
+                            1,
+                            0.16,
+                            0.12,
+                            0.16,
+                            0.006
                     );
                 }
             }
