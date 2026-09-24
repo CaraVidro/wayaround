@@ -85,7 +85,7 @@ public final class BlueWorldRenderer {
                     camera,
                     BlueClientEffects.chargeVisualCenter(),
                     BlueClientEffects.chargeVisualPower(),
-                    time,
+                    BlueClientEffects.chargeVisualTicks(),
                     0.0F,
                     false
             );
@@ -99,7 +99,7 @@ public final class BlueWorldRenderer {
                     camera,
                     blue.position(),
                     blue.power(),
-                    time,
+                    blue.musicTicks(),
                     blue.owner()
                             .hashCode()
                             * 0.017F,
@@ -132,7 +132,7 @@ public final class BlueWorldRenderer {
             Vec3 camera,
             Vec3 center,
             float power,
-            long time,
+            float musicTicks,
             float phaseOffset,
             boolean collapsing
     ) {
@@ -144,9 +144,25 @@ public final class BlueWorldRenderer {
                 center.z - camera.z
         );
 
+        /*
+         * Rotation accelerates with the same timeline as the 55 s theme.
+         * The quadratic term means it begins almost calm and becomes
+         * increasingly violent as the music approaches its end.
+         */
+        float songProgress =
+                Mth.clamp(
+                        musicTicks
+                                / (55.0F * 20.0F),
+                        0.0F,
+                        1.0F
+                );
+
         float slowRotation =
-                (float) time
-                        * 1.15F
+                musicTicks
+                        * 0.42F
+                        + musicTicks
+                                * musicTicks
+                                * 0.0043F
                         + phaseOffset;
 
         poseStack.mulPose(
@@ -173,8 +189,12 @@ public final class BlueWorldRenderer {
                 0.5F
                         + 0.5F
                                 * Mth.sin(
-                                        time
-                                                * 0.13F
+                                        musicTicks
+                                                * (
+                                                        0.10F
+                                                                + songProgress
+                                                                        * 0.18F
+                                                )
                                                 + phaseOffset
                                 );
 
@@ -186,14 +206,23 @@ public final class BlueWorldRenderer {
                 );
 
         /*
-         * The old prototype read too much like a particle marker. Blue is now
-         * physically imposing: at full charge the core alone is several
-         * blocks across, with the translucent shells extending even farther.
+         * A freshly tapped Blue can be about slab-height. Size then rises
+         * non-linearly with charge, while a fully charged Blue remains huge.
          */
+        float normalizedPower =
+                Mth.clamp(
+                        visiblePower / 1.35F,
+                        0.0F,
+                        1.0F
+                );
+
         float coreHalf =
-                0.62F
-                        + visiblePower
-                                * 1.28F;
+                0.25F
+                        + (float) Math.pow(
+                                normalizedPower,
+                                1.12
+                        )
+                                * 2.20F;
 
         if (collapsing) {
             coreHalf *=
