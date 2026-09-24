@@ -341,7 +341,7 @@ public final class TelevisionRenderer
         float right = 0.720F;
         float bottom = 0.205F;
         float top = 0.790F;
-        float z = 0.064F;
+        float z = 0.055F;
 
         vertex(
                 consumer,
