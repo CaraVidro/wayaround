@@ -26,5 +26,13 @@ public final class IndustrialClient {
                 net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_TRANSMISSION_ENTITY.get(),
                 MechanicalTransmissionRenderer::new
         );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.PULLEY_WHEEL_ENTITY.get(),
+                PulleyWheelRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.SAWMILL_ENTITY.get(),
+                SawmillRenderer::new
+        );
     }
 }

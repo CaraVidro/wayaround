@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/pulley_wheel"
+    },
+    "facing=east": {
+      "model": "wayaround:block/pulley_wheel",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/pulley_wheel",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/pulley_wheel",
+      "y": 270
+    }
+  }
+}
