@@ -70,6 +70,11 @@ public final class VoiceClientGameEvents {
 
             lastMode =
                     mode;
+
+            if (connected) {
+                VoskSpeechRecognizer
+                        .warmUpAsync();
+            }
         }
 
         if (!connected) {

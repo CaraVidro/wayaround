@@ -12,6 +12,8 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import net.caravidro.wayaround.WayAround;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -45,6 +47,9 @@ public final class VoskSpeechRecognizer {
     private static final AtomicBoolean PREPARING =
             new AtomicBoolean(false);
 
+    private static final AtomicBoolean WARMUP_STARTED =
+            new AtomicBoolean(false);
+
     private static volatile Model model;
     private static volatile String lastError = "";
 
@@ -66,6 +71,61 @@ public final class VoskSpeechRecognizer {
 
     public static boolean isPreparing() {
         return PREPARING.get();
+    }
+
+    public static void warmUpAsync() {
+        if (model != null
+                || !WARMUP_STARTED.compareAndSet(
+                        false,
+                        true
+                )) {
+
+            return;
+        }
+
+        Thread thread =
+                new Thread(
+                        () -> {
+                            long started =
+                                    System.nanoTime();
+
+                            WayAround.LOGGER.info(
+                                    "[Voice/Vosk] warmup iniciado; modelDir={}",
+                                    modelDirectory()
+                                            .toAbsolutePath()
+                            );
+
+                            try {
+                                ensureModel();
+
+                                WayAround.LOGGER.info(
+                                        "[Voice/Vosk] warmup pronto em {} ms",
+                                        (
+                                                System.nanoTime()
+                                                        - started
+                                        )
+                                                / 1_000_000L
+                                );
+
+                            } catch (Exception exception) {
+                                WayAround.LOGGER.warn(
+                                        "[Voice/Vosk] warmup falhou: {}: {}",
+                                        exception.getClass()
+                                                .getSimpleName(),
+                                        exception.getMessage()
+                                );
+
+                            } finally {
+                                WARMUP_STARTED.set(
+                                        false
+                                );
+                            }
+                        },
+                        "WayAround-VoskWarmup"
+                );
+
+        thread.setDaemon(true);
+        thread.start();
     }
 
     public static String statusText() {
@@ -105,8 +165,14 @@ public final class VoskSpeechRecognizer {
         }
 
         try {
+            long started =
+                    System.nanoTime();
+
             Model localModel =
                     ensureModel();
+
+            long modelReady =
+                    System.nanoTime();
 
             byte[] pcm16k =
                     preprocessForRecognition(
@@ -114,6 +180,19 @@ public final class VoskSpeechRecognizer {
                                     pcm48k
                             )
                     );
+
+            long preprocessed =
+                    System.nanoTime();
+
+            WayAround.LOGGER.info(
+                    "[Voice/Vosk] model={}ms preprocess={}ms input48={} bytes input16={} bytes",
+                    (modelReady - started)
+                            / 1_000_000L,
+                    (preprocessed - modelReady)
+                            / 1_000_000L,
+                    pcm48k.length,
+                    pcm16k.length
+            );
 
             if (pcm16k.length < 2) {
                 return new Result(
@@ -130,13 +209,48 @@ public final class VoskSpeechRecognizer {
 
                 recognizer.setWords(true);
 
-                recognizer.acceptWaveForm(
-                        pcm16k,
-                        pcm16k.length
-                );
+                final int chunkBytes =
+                        8_000;
+
+                for (int offset = 0;
+                     offset < pcm16k.length;
+                     offset += chunkBytes) {
+
+                    int length =
+                            Math.min(
+                                    chunkBytes,
+                                    pcm16k.length
+                                            - offset
+                            );
+
+                    byte[] chunk =
+                            java.util.Arrays.copyOfRange(
+                                    pcm16k,
+                                    offset,
+                                    offset + length
+                            );
+
+                    recognizer.acceptWaveForm(
+                            chunk,
+                            chunk.length
+                    );
+                }
 
                 String jsonText =
                         recognizer.getFinalResult();
+
+                WayAround.LOGGER.info(
+                    "[Voice/Vosk] decode finalizado em {} ms; json={}",
+                    (
+                            System.nanoTime()
+                                    - preprocessed
+                    )
+                            / 1_000_000L,
+                    shorten(
+                            jsonText,
+                            180
+                    )
+                );
 
                 JsonObject json =
                         JsonParser
@@ -679,9 +793,6 @@ public final class VoskSpeechRecognizer {
                         outputSamples * 2
                         ];
 
-        int previous =
-                0;
-
         for (int out = 0;
              out < outputSamples;
              out++) {
@@ -693,23 +804,12 @@ public final class VoskSpeechRecognizer {
                             ];
 
             /*
-             * Tiny first-order high-pass removes desk rumble / DC-like slow
-             * movement while keeping speech formants intact enough for Vosk.
+             * DC was already removed above. Preserve the speech waveform here:
+             * a derivative-like filter made consonants brittle and hurt Vosk.
              */
-            int highPassed =
-                    centered
-                            - previous
-                            + (int) (
-                            previous
-                                    * 0.18
-                    );
-
-            previous =
-                    centered;
-
             int amplified =
                     (int) Math.round(
-                            highPassed
+                            centered
                                     * gain
                     );
 
