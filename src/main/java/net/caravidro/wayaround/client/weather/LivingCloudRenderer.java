@@ -44,10 +44,10 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 @EventBusSubscriber(modid = WayAround.MODID, value = Dist.CLIENT)
 public final class LivingCloudRenderer {
 
-    private static final double RENDER_RANGE = 920.0;
+    private static final double RENDER_RANGE = 760.0;
     private static final double VOXEL = 9.0;
-    private static final double MAX_VISUAL_RADIUS = 240.0;
-    private static final int MAX_HORIZONTAL_VOXELS = 28;
+    private static final double MAX_VISUAL_RADIUS = 156.0;
+    private static final int MAX_HORIZONTAL_VOXELS = 19;
     private static final int MAX_VERTICAL_VOXELS = 7;
     private static final int REBUILD_INTERVAL = 10;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
@@ -749,8 +749,8 @@ public final class LivingCloudRenderer {
                         0.0,
                         0.0,
                         0.0,
-                        radius * 0.60,
-                        17.0 + radius * 0.045
+                        radius * 0.48,
+                        14.0 + radius * 0.035
                 )
         );
 
@@ -779,11 +779,11 @@ public final class LivingCloudRenderer {
             double radialBase =
                     radius
                     * (
-                            0.18
+                            0.16
                             + random01(
                                     lobeSeed
                                     ^ 0xBF58476D1CE4E5B9L
-                            ) * 0.62
+                            ) * 0.48
                     );
 
             /*
@@ -855,21 +855,21 @@ public final class LivingCloudRenderer {
             double horizontalRadius =
                     radius
                     * (
-                            0.18
+                            0.16
                             + random01(
                                     lobeSeed
                                     ^ 0xA24BAED4963EE407L
-                            ) * 0.27
+                            ) * 0.22
                     )
                     * pulse;
 
             double verticalRadius =
                     (
-                            11.0
+                            9.0
                             + random01(
                                     lobeSeed
                                     ^ 0x9FB21C651E98DF25L
-                            ) * 18.0
+                            ) * 13.0
                     )
                     * (
                             0.82
