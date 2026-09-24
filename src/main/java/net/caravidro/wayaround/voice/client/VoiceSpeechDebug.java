@@ -117,6 +117,12 @@ public final class VoiceSpeechDebug {
                             recognition.text()
                     );
 
+                    if (!VoiceConfig
+                            .isDebugSpeechEnabled()) {
+
+                        return;
+                    }
+
                     String expressive =
                             VoiceToneAnalyzer.applyExpression(
                                     recognition.text(),
@@ -141,12 +147,6 @@ public final class VoiceSpeechDebug {
                                                     )
                                             )
                             );
-
-                    if (!VoiceConfig
-                            .isDebugSpeechEnabled()) {
-
-                        return;
-                    }
 
                     String metrics =
                             String.format(

@@ -11,6 +11,17 @@ import net.neoforged.fml.loading.FMLPaths;
 
 public final class VoiceConfig {
 
+    public enum ActivationMode {
+        PUSH_TO_TALK,
+        VOICE_ACTIVATION;
+
+        public ActivationMode next() {
+            return this == PUSH_TO_TALK
+                    ? VOICE_ACTIVATION
+                    : PUSH_TO_TALK;
+        }
+    }
+
     private VoiceConfig() {
     }
 
@@ -20,6 +31,8 @@ public final class VoiceConfig {
     private static boolean debugSpeechEnabled = false;
     private static String microphoneId = "";
     private static String speakerId = "";
+    private static ActivationMode activationMode =
+            ActivationMode.PUSH_TO_TALK;
 
     private static Path file() {
         return FMLPaths.CONFIGDIR
@@ -40,26 +53,29 @@ public final class VoiceConfig {
             return;
         }
 
-        Properties properties = new Properties();
+        Properties properties =
+                new Properties();
 
         try (InputStream input =
                      Files.newInputStream(path)) {
 
             properties.load(input);
 
-            enabled = Boolean.parseBoolean(
-                    properties.getProperty(
-                            "enabled",
-                            "false"
-                    )
-            );
+            enabled =
+                    Boolean.parseBoolean(
+                            properties.getProperty(
+                                    "enabled",
+                                    "false"
+                            )
+                    );
 
-            debugSpeechEnabled = Boolean.parseBoolean(
-                    properties.getProperty(
-                            "debugSpeech",
-                            "false"
-                    )
-            );
+            debugSpeechEnabled =
+                    Boolean.parseBoolean(
+                            properties.getProperty(
+                                    "debugSpeech",
+                                    "false"
+                            )
+                    );
 
             microphoneId =
                     properties.getProperty(
@@ -72,6 +88,22 @@ public final class VoiceConfig {
                             "speaker",
                             ""
                     );
+
+            try {
+                activationMode =
+                        ActivationMode.valueOf(
+                                properties.getProperty(
+                                                "activationMode",
+                                                "PUSH_TO_TALK"
+                                        )
+                                        .trim()
+                                        .toUpperCase()
+                        );
+
+            } catch (Exception ignored) {
+                activationMode =
+                        ActivationMode.PUSH_TO_TALK;
+            }
 
         } catch (IOException exception) {
             System.err.println(
@@ -91,9 +123,24 @@ public final class VoiceConfig {
         return debugSpeechEnabled;
     }
 
+    public static ActivationMode getActivationMode() {
+        ensureLoaded();
+        return activationMode;
+    }
+
+    public static boolean isVoiceActivation() {
+        return getActivationMode()
+                == ActivationMode.VOICE_ACTIVATION;
+    }
+
     public static String getMicrophoneId() {
         ensureLoaded();
         return microphoneId;
+    }
+
+    public static String getSpeakerId() {
+        ensureLoaded();
+        return speakerId;
     }
 
     public static synchronized void setEnabled(
@@ -112,9 +159,15 @@ public final class VoiceConfig {
         save();
     }
 
-    public static String getSpeakerId() {
+    public static synchronized void setActivationMode(
+            ActivationMode value
+    ) {
         ensureLoaded();
-        return speakerId;
+        activationMode =
+                value == null
+                        ? ActivationMode.PUSH_TO_TALK
+                        : value;
+        save();
     }
 
     public static synchronized void setSpeakerId(
@@ -133,23 +186,35 @@ public final class VoiceConfig {
     ) {
         ensureLoaded();
         microphoneId =
-                value == null ? "" : value;
+                value == null
+                        ? ""
+                        : value;
         save();
     }
 
     public static synchronized void save() {
         ensureLoaded();
 
-        Properties properties = new Properties();
+        Properties properties =
+                new Properties();
 
         properties.setProperty(
                 "enabled",
-                Boolean.toString(enabled)
+                Boolean.toString(
+                        enabled
+                )
         );
 
         properties.setProperty(
                 "debugSpeech",
-                Boolean.toString(debugSpeechEnabled)
+                Boolean.toString(
+                        debugSpeechEnabled
+                )
+        );
+
+        properties.setProperty(
+                "activationMode",
+                activationMode.name()
         );
 
         properties.setProperty(
@@ -168,7 +233,9 @@ public final class VoiceConfig {
             );
 
             try (OutputStream output =
-                         Files.newOutputStream(file())) {
+                         Files.newOutputStream(
+                                 file()
+                         )) {
 
                 properties.store(
                         output,

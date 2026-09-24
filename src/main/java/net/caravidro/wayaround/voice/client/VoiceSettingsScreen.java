@@ -23,6 +23,7 @@ public final class VoiceSettingsScreen
     private int outputIndex;
 
     private Button enabledButton;
+    private Button modeButton;
     private Button debugButton;
     private Button microphoneButton;
     private Button outputButton;
@@ -74,6 +75,33 @@ public final class VoiceSettingsScreen
                                 .bounds(
                                         x,
                                         y,
+                                        buttonWidth,
+                                        buttonHeight
+                                )
+                                .build()
+                );
+
+        modeButton =
+                this.addRenderableWidget(
+                        Button.builder(
+                                        modeLabel(),
+                                        button -> {
+                                            VoiceConfig.setActivationMode(
+                                                    VoiceConfig
+                                                            .getActivationMode()
+                                                            .next()
+                                            );
+
+                                            VoiceCapture.stop();
+
+                                            button.setMessage(
+                                                    modeLabel()
+                                            );
+                                        }
+                                )
+                                .bounds(
+                                        x,
+                                        y + 104,
                                         buttonWidth,
                                         buttonHeight
                                 )
@@ -204,7 +232,7 @@ public final class VoiceSettingsScreen
                         )
                         .bounds(
                                 x,
-                                y + 104,
+                                y + 130,
                                 buttonWidth,
                                 buttonHeight
                         )
@@ -220,7 +248,7 @@ public final class VoiceSettingsScreen
                         )
                         .bounds(
                                 x,
-                                y + 138,
+                                y + 164,
                                 buttonWidth,
                                 buttonHeight
                         )
@@ -255,6 +283,17 @@ public final class VoiceSettingsScreen
                         VoiceConfig.isEnabled()
                                 ? "LIGADO"
                                 : "DESLIGADO"
+                )
+        );
+    }
+
+    private Component modeLabel() {
+        return Component.literal(
+                "Modo: "
+                        + (
+                        VoiceConfig.isVoiceActivation()
+                                ? "VOICE ACTIVATION"
+                                : "PUSH TO TALK"
                 )
         );
     }
@@ -358,7 +397,9 @@ public final class VoiceSettingsScreen
         graphics.drawCenteredString(
                 this.font,
                 Component.literal(
-                        "Segure V para falar"
+                        VoiceConfig.isVoiceActivation()
+                                ? "Voice Activation: fala detectada automaticamente"
+                                : "Push to Talk: segure V para falar"
                 ),
                 this.width / 2,
                 38,

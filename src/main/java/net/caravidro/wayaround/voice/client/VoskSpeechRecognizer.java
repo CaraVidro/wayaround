@@ -109,8 +109,10 @@ public final class VoskSpeechRecognizer {
                     ensureModel();
 
             byte[] pcm16k =
-                    downsample48kTo16k(
-                            pcm48k
+                    preprocessForRecognition(
+                            downsample48kTo16k(
+                                    pcm48k
+                            )
                     );
 
             if (pcm16k.length < 2) {
@@ -489,6 +491,251 @@ public final class VoskSpeechRecognizer {
                 zip.closeEntry();
             }
         }
+    }
+
+    private static byte[] preprocessForRecognition(
+            byte[] pcm
+    ) {
+        int sampleCount =
+                pcm.length / 2;
+
+        if (sampleCount < 160) {
+            return pcm;
+        }
+
+        int[] samples =
+                new int[
+                        sampleCount
+                        ];
+
+        long sum =
+                0L;
+
+        for (int index = 0;
+             index < sampleCount;
+             index++) {
+
+            int sample =
+                    readSample(
+                            pcm,
+                            index
+                    );
+
+            samples[index] =
+                    sample;
+
+            sum +=
+                    sample;
+        }
+
+        double dc =
+                sum
+                        / (double) sampleCount;
+
+        double square =
+                0.0;
+
+        for (int index = 0;
+             index < sampleCount;
+             index++) {
+
+            int centered =
+                    (int) Math.round(
+                            samples[index]
+                                    - dc
+                    );
+
+            samples[index] =
+                    centered;
+
+            square +=
+                    (double) centered
+                            * centered;
+        }
+
+        double rms =
+                Math.sqrt(
+                        square
+                                / sampleCount
+                );
+
+        /*
+         * Vosk suffers badly when a quiet Windows input is fed almost raw.
+         * Keep the gain bounded so a hissy microphone does not become a wall
+         * of noise.
+         */
+        double gain =
+                rms <= 1.0
+                        ? 1.0
+                        : Math.max(
+                                0.80,
+                                Math.min(
+                                        4.0,
+                                        6200.0 / rms
+                                )
+                        );
+
+        final int frameSamples =
+                320;
+
+        double activityThreshold =
+                Math.max(
+                        260.0,
+                        Math.min(
+                                1500.0,
+                                rms * 0.20
+                        )
+                );
+
+        int firstActive =
+                0;
+
+        int lastActive =
+                sampleCount;
+
+        boolean found =
+                false;
+
+        for (int start = 0;
+             start < sampleCount;
+             start += frameSamples) {
+
+            int end =
+                    Math.min(
+                            sampleCount,
+                            start + frameSamples
+                    );
+
+            double frameSquare =
+                    0.0;
+
+            for (int index = start;
+                 index < end;
+                 index++) {
+
+                frameSquare +=
+                        (double) samples[index]
+                                * samples[index];
+            }
+
+            double frameRms =
+                    Math.sqrt(
+                            frameSquare
+                                    / Math.max(
+                                            1,
+                                            end - start
+                                    )
+                    );
+
+            if (frameRms
+                    >= activityThreshold) {
+
+                if (!found) {
+                    firstActive =
+                            start;
+                    found =
+                            true;
+                }
+
+                lastActive =
+                        end;
+            }
+        }
+
+        if (found) {
+            int padding =
+                    1600;
+
+            firstActive =
+                    Math.max(
+                            0,
+                            firstActive
+                                    - padding
+                    );
+
+            lastActive =
+                    Math.min(
+                            sampleCount,
+                            lastActive
+                                    + padding
+                    );
+
+        } else {
+            firstActive =
+                    0;
+            lastActive =
+                    sampleCount;
+        }
+
+        int outputSamples =
+                Math.max(
+                        0,
+                        lastActive
+                                - firstActive
+                );
+
+        byte[] output =
+                new byte[
+                        outputSamples * 2
+                        ];
+
+        int previous =
+                0;
+
+        for (int out = 0;
+             out < outputSamples;
+             out++) {
+
+            int centered =
+                    samples[
+                            firstActive
+                                    + out
+                            ];
+
+            /*
+             * Tiny first-order high-pass removes desk rumble / DC-like slow
+             * movement while keeping speech formants intact enough for Vosk.
+             */
+            int highPassed =
+                    centered
+                            - previous
+                            + (int) (
+                            previous
+                                    * 0.18
+                    );
+
+            previous =
+                    centered;
+
+            int amplified =
+                    (int) Math.round(
+                            highPassed
+                                    * gain
+                    );
+
+            amplified =
+                    Math.max(
+                            Short.MIN_VALUE,
+                            Math.min(
+                                    Short.MAX_VALUE,
+                                    amplified
+                            )
+                    );
+
+            output[out * 2] =
+                    (byte) (
+                            amplified
+                                    & 0xFF
+                    );
+
+            output[out * 2 + 1] =
+                    (byte) (
+                            (amplified >> 8)
+                                    & 0xFF
+                    );
+        }
+
+        return output;
     }
 
     private static byte[] downsample48kTo16k(

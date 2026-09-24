@@ -29,21 +29,56 @@ public final class VoiceClientGameEvents {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        boolean canTalk =
+        VoiceIntentClient.tick();
+
+        boolean connected =
                 VoiceConfig.isEnabled()
                         && minecraft.player != null
-                        && minecraft.getConnection() != null
-                        && VoiceClientModEvents
+                        && minecraft.getConnection()
+                        != null;
+
+        if (!connected) {
+            if (VoiceCapture.isRunning()) {
+                VoiceCapture.stop();
+            }
+
+            return;
+        }
+
+        if (VoiceConfig.isVoiceActivation()) {
+            if (!VoiceCapture
+                    .isVoiceActivationSession()) {
+
+                if (VoiceCapture.isRunning()) {
+                    VoiceCapture.stop();
+
+                } else {
+                    VoiceCapture.startVoiceActivation();
+                }
+            }
+
+            return;
+        }
+
+        if (VoiceCapture
+                .isVoiceActivationSession()) {
+
+            VoiceCapture.stop();
+            return;
+        }
+
+        boolean keyDown =
+                VoiceClientModEvents
                         .PUSH_TO_TALK
                         .isDown();
 
-        if (canTalk
+        if (keyDown
                 && !VoiceCapture.isRunning()) {
 
-            VoiceCapture.start();
+            VoiceCapture.startPushToTalk();
         }
 
-        if (!canTalk
+        if (!keyDown
                 && VoiceCapture.isRunning()) {
 
             VoiceCapture.stop();
@@ -73,8 +108,11 @@ public final class VoiceClientGameEvents {
                         - 8;
 
         int top = 8;
-        int iconX = right - 68;
+        int iconX = right - 88;
         int iconY = top + 2;
+
+        boolean talking =
+                VoiceCapture.isTransmitting();
 
         graphics.fill(
                 iconX - 6,
@@ -84,36 +122,47 @@ public final class VoiceClientGameEvents {
                 0xB0000000
         );
 
-        // Corpo do microfone.
+        int color =
+                talking
+                        ? 0xFFFF5555
+                        : 0xFF888888;
+
         graphics.fill(
                 iconX,
                 iconY,
                 iconX + 6,
                 iconY + 9,
-                0xFFFF5555
+                color
         );
 
-        // Haste.
         graphics.fill(
                 iconX + 2,
                 iconY + 9,
                 iconX + 4,
                 iconY + 13,
-                0xFFFF5555
+                color
         );
 
-        // Base.
         graphics.fill(
                 iconX,
                 iconY + 13,
                 iconX + 6,
                 iconY + 15,
-                0xFFFF5555
+                color
         );
+
+        String label =
+                VoiceConfig.isVoiceActivation()
+                        ? (
+                        talking
+                                ? "AUTO: FALANDO"
+                                : "AUTO: OUVINDO"
+                )
+                        : "PTT: OUVINDO";
 
         graphics.drawString(
                 minecraft.font,
-                "OUVINDO",
+                label,
                 iconX + 11,
                 top + 5,
                 0xFFFFFFFF,
@@ -159,6 +208,8 @@ public final class VoiceClientGameEvents {
                         )
                         .build();
 
-        event.addListener(voiceButton);
+        event.addListener(
+                voiceButton
+        );
     }
 }
