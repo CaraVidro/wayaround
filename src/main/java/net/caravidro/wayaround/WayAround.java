@@ -34,7 +34,7 @@ public class WayAround {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public WayAround(IEventBus modEventBus) {
-        LOGGER.info("WayAround iniciando!");
+        LOGGER.info("Way Around V1 iniciando!");
         // Registros do mod.
         WayAroundContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
