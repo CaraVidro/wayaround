@@ -356,10 +356,12 @@ public final class ImaginaryBetaManager {
             ServerPlayer owner,
             BlueManager.FusionSeed blue
     ) {
-        REDS.remove(
-                owner.getUUID()
-        );
-
+        /*
+         * IMPORTANT: tickReds() is already iterating REDS with an Iterator.
+         * Removing from the backing map here invalidates that iterator and
+         * caused the PURPLE fusion crash (ConcurrentModificationException).
+         * The caller removes the fused RED through iterator.remove().
+         */
         PurpleFusion fusion =
                 new PurpleFusion(
                         owner.getUUID(),

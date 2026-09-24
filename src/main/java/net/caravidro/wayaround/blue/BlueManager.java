@@ -219,13 +219,15 @@ public final class BlueManager {
                 );
 
         int emergenceTicks =
-                normalizedUrgency >= 0.72F
-                        ? 2
-                        : normalizedUrgency >= 0.52F
-                                ? 9
-                                : normalizedUrgency >= 0.34F
-                                        ? 17
-                                        : 30;
+                normalizedUrgency >= 0.86F
+                        ? 0
+                        : normalizedUrgency >= 0.68F
+                                ? 3
+                                : normalizedUrgency >= 0.50F
+                                        ? 9
+                                        : normalizedUrgency >= 0.32F
+                                                ? 22
+                                                : 42;
 
         finishCharge(
                 player,
@@ -476,15 +478,15 @@ public final class BlueManager {
         float initialPower =
                 spawnTicks > 3
                         ? Math.max(
-                        0.04F,
+                        0.025F,
                         targetPower
-                                * 0.08F
+                                * 0.035F
                 )
                         : targetPower;
 
         double initialDistance =
                 spawnTicks > 3
-                        ? 0.72
+                        ? 0.34
                         : distance;
 
         Vec3 center =
@@ -837,18 +839,18 @@ public final class BlueManager {
                         Mth.lerp(
                                 progress,
                                 Math.max(
-                                        0.04F,
+                                        0.025F,
                                         blue.targetPower
-                                                * 0.08F
+                                                * 0.035F
                                 ),
                                 blue.targetPower
                         );
 
                 double emergingDistance =
-                        0.72
+                        0.34
                                 + (
                                 blue.distance
-                                        - 0.72
+                                        - 0.34
                         )
                                         * progress;
 

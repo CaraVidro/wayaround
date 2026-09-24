@@ -49,6 +49,11 @@ public final class VoiceIntentClient {
 
     private static long outputExpiresAt;
 
+    private static long lastBlueSummonDispatchAt;
+    private static float deferredPostSummonOutput =
+            -1.0F;
+    private static long deferredPostSummonOutputExpiresAt;
+
     public static boolean isEnabled() {
         return ENABLED;
     }
@@ -210,6 +215,32 @@ public final class VoiceIntentClient {
         boolean controllingBlue =
                 BlueClientEffects.hasLocalControllableBlue();
 
+        /*
+         * "Técnica imaginária: azul" followed immediately by
+         * "output máximo" can arrive before the first BLUE snapshot reaches
+         * the client. Keep the modifier briefly and apply it as soon as the
+         * spawned BLUE becomes visible/controllable.
+         */
+        if (!controllingBlue
+                && output != OutputModifier.NONE
+                && now - lastBlueSummonDispatchAt
+                <= 4_000L) {
+
+            deferredPostSummonOutput =
+                    pendingOutput;
+
+            deferredPostSummonOutputExpiresAt =
+                    now + 4_000L;
+
+            WayAround.LOGGER.info(
+                    "[Voice/Intent] OUTPUT pós-summon aguardando BLUE ativo: {}",
+                    deferredPostSummonOutput
+            );
+
+            clearContext();
+            return;
+        }
+
         if (controllingBlue
                 && output != OutputModifier.NONE) {
 
@@ -227,6 +258,9 @@ public final class VoiceIntentClient {
 
             outputExpiresAt =
                     0L;
+
+            lastBlueSummonDispatchAt =
+                    now;
 
             clearContext();
             return;
@@ -303,7 +337,7 @@ public final class VoiceIntentClient {
                     VoiceIntentC2SPayload.RED_FIRE;
 
             pendingUrgency =
-                    (float) Math.max(
+                    effectiveUrgency(
                             globalUrgency,
                             redEmphasis
                     );
@@ -343,7 +377,7 @@ public final class VoiceIntentClient {
                     VoiceIntentC2SPayload.BLUE_SUMMON;
 
             pendingUrgency =
-                    (float) Math.max(
+                    effectiveUrgency(
                             globalUrgency,
                             blueEmphasis
                     );
@@ -387,15 +421,46 @@ public final class VoiceIntentClient {
     }
 
     public static void tick() {
-        if (!ENABLED
-                || pendingAt <= 0L
-                || pendingIntent == 0) {
-
+        if (!ENABLED) {
             return;
         }
 
         long now =
                 System.currentTimeMillis();
+
+        if (deferredPostSummonOutput >= 0.0F) {
+            if (now > deferredPostSummonOutputExpiresAt) {
+                deferredPostSummonOutput =
+                        -1.0F;
+
+                deferredPostSummonOutputExpiresAt =
+                        0L;
+
+            } else if (BlueClientEffects
+                    .hasLocalControllableBlue()) {
+
+                dispatch(
+                        VoiceIntentC2SPayload.BLUE_OUTPUT,
+                        deferredPostSummonOutput,
+                        0.0F,
+                        deferredPostSummonOutput >= 0.5F
+                                ? "BLUE / OUTPUT MAXIMO"
+                                : "BLUE / OUTPUT MINIMO"
+                );
+
+                deferredPostSummonOutput =
+                        -1.0F;
+
+                deferredPostSummonOutputExpiresAt =
+                        0L;
+            }
+        }
+
+        if (pendingAt <= 0L
+                || pendingIntent == 0) {
+
+            return;
+        }
 
         if (now < pendingAt) {
             return;
@@ -451,25 +516,61 @@ public final class VoiceIntentClient {
         clearContext();
     }
 
+    private static float effectiveUrgency(
+            double globalUrgency,
+            double keywordEmphasis
+    ) {
+        /*
+         * Strong emphasis on the technique's COLOR is treated as deliberate
+         * commitment even when the rest of the sentence is calm.
+         */
+        double emphasisBoost =
+                keywordEmphasis >= 0.78
+                        ? 1.0
+                        : keywordEmphasis >= 0.60
+                                ? 0.86
+                                : keywordEmphasis >= 0.42
+                                        ? 0.64
+                                        : keywordEmphasis;
+
+        return (float) Math.max(
+                0.0,
+                Math.min(
+                        1.0,
+                        Math.max(
+                                globalUrgency,
+                                emphasisBoost
+                        )
+                )
+        );
+    }
+
     private static long decisionDelay(
             double urgency,
             long calmDelay
     ) {
-        if (urgency >= 0.72) {
-            return 35L;
+        if (urgency >= 0.86) {
+            return 10L;
         }
 
-        if (urgency >= 0.52) {
+        if (urgency >= 0.68) {
             return Math.min(
                     calmDelay,
-                    170L
+                    45L
             );
         }
 
-        if (urgency >= 0.34) {
+        if (urgency >= 0.50) {
             return Math.min(
                     calmDelay,
-                    360L
+                    130L
+            );
+        }
+
+        if (urgency >= 0.32) {
+            return Math.min(
+                    calmDelay,
+                    300L
             );
         }
 
