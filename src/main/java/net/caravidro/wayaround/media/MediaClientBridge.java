@@ -7,7 +7,11 @@ public final class MediaClientBridge {
     private MediaClientBridge() {
     }
 
-    private static Runnable toggleRecording =
+    private static Runnable cameraShortPress =
+            () -> {
+            };
+
+    private static Runnable cameraLongPress =
             () -> {
             };
 
@@ -17,14 +21,21 @@ public final class MediaClientBridge {
             };
 
     public static void install(
-            Runnable recordingToggle,
+            Runnable shortPress,
+            Runnable longPress,
             Consumer<TelevisionBlockEntity> tvTick
     ) {
-        toggleRecording =
-                recordingToggle == null
+        cameraShortPress =
+                shortPress == null
                         ? () -> {
                         }
-                        : recordingToggle;
+                        : shortPress;
+
+        cameraLongPress =
+                longPress == null
+                        ? () -> {
+                        }
+                        : longPress;
 
         televisionTick =
                 tvTick == null
@@ -33,8 +44,12 @@ public final class MediaClientBridge {
                         : tvTick;
     }
 
-    public static void toggleRecording() {
-        toggleRecording.run();
+    public static void cameraShortPress() {
+        cameraShortPress.run();
+    }
+
+    public static void cameraLongPress() {
+        cameraLongPress.run();
     }
 
     public static void televisionTick(

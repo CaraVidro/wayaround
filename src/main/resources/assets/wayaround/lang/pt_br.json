@@ -126,5 +126,22 @@
     "tooltip.wayaround.film.exposed": "Contém uma gravação. Use com uma VHS vazia no inventário para transferir.",
     "tooltip.wayaround.photo.taken": "Fotografia: %s",
     "message.wayaround.media.need_blank_vhs": "Você precisa de uma VHS vazia para transferir esse rolo.",
-    "message.wayaround.media.film_transferred": "Rolo transferido para uma VHS."
+    "message.wayaround.media.film_transferred": "Rolo transferido para uma VHS.",
+    "message.wayaround.media.need_film_roll": "Você precisa de um rolo de filme para começar a gravar.",
+    "message.wayaround.media.need_photo_paper": "Você precisa de papel fotográfico.",
+    "message.wayaround.media.photo_taken": "Foto revelada.",
+    "message.wayaround.media.photo_failed": "Falha ao tirar foto: %s",
+    "screen.wayaround.media.label_title": "Rotular gravação",
+    "screen.wayaround.media.label_name": "Nome da fita",
+    "screen.wayaround.media.show_coords": "Coordenadas: %s",
+    "screen.wayaround.media.show_datetime": "Data/hora: %s",
+    "screen.wayaround.media.done": "Concluir",
+    "screen.wayaround.media.yes": "SIM",
+    "screen.wayaround.media.no": "NÃO",
+    "hud.wayaround.camera.idle": "NOT RECORDING",
+    "hud.wayaround.camera.rec": "● REC %s",
+    "hud.wayaround.camera.photo": "Clique: foto",
+    "hud.wayaround.camera.video": "Segure: gravar",
+    "hud.wayaround.camera.stop": "Segure: parar",
+    "hud.wayaround.camera.media": "Papel %s | Filme %s"
 }

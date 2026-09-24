@@ -58,5 +58,35 @@ public final class WayAroundNetwork {
                 RecordingFinishedC2SPayload.STREAM_CODEC,
                 RecordingFinishedC2SPayload::handle
         );
+
+        registrar.playToServer(
+                StartRecordingC2SPayload.TYPE,
+                StartRecordingC2SPayload.STREAM_CODEC,
+                StartRecordingC2SPayload::handle
+        );
+
+        registrar.playToClient(
+                RecordingStartResultS2CPayload.TYPE,
+                RecordingStartResultS2CPayload.STREAM_CODEC,
+                RecordingStartResultS2CPayload::handle
+        );
+
+        registrar.playToServer(
+                PhotoTakenC2SPayload.TYPE,
+                PhotoTakenC2SPayload.STREAM_CODEC,
+                PhotoTakenC2SPayload::handle
+        );
+
+        registrar.playToClient(
+                RecordingReadyS2CPayload.TYPE,
+                RecordingReadyS2CPayload.STREAM_CODEC,
+                RecordingReadyS2CPayload::handle
+        );
+
+        registrar.playToServer(
+                LabelRecordingC2SPayload.TYPE,
+                LabelRecordingC2SPayload.STREAM_CODEC,
+                LabelRecordingC2SPayload::handle
+        );
     }
 }

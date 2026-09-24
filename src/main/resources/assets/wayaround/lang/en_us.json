@@ -126,5 +126,22 @@
     "tooltip.wayaround.film.exposed": "Contains a recording. Use it with a blank VHS in your inventory to transfer it.",
     "tooltip.wayaround.photo.taken": "Photograph: %s",
     "message.wayaround.media.need_blank_vhs": "You need a blank VHS to transfer this roll.",
-    "message.wayaround.media.film_transferred": "Film transferred to a VHS."
+    "message.wayaround.media.film_transferred": "Film transferred to a VHS.",
+    "message.wayaround.media.need_film_roll": "You need a film roll to start recording.",
+    "message.wayaround.media.need_photo_paper": "You need photo paper.",
+    "message.wayaround.media.photo_taken": "Photo developed.",
+    "message.wayaround.media.photo_failed": "Photo failed: %s",
+    "screen.wayaround.media.label_title": "Label recording",
+    "screen.wayaround.media.label_name": "Tape name",
+    "screen.wayaround.media.show_coords": "Coordinates: %s",
+    "screen.wayaround.media.show_datetime": "Date/time: %s",
+    "screen.wayaround.media.done": "Done",
+    "screen.wayaround.media.yes": "YES",
+    "screen.wayaround.media.no": "NO",
+    "hud.wayaround.camera.idle": "NOT RECORDING",
+    "hud.wayaround.camera.rec": "● REC %s",
+    "hud.wayaround.camera.photo": "Click: photo",
+    "hud.wayaround.camera.video": "Hold: record",
+    "hud.wayaround.camera.stop": "Hold: stop",
+    "hud.wayaround.camera.media": "Paper %s | Film %s"
 }

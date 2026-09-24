@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.MediaContent;
+import net.caravidro.wayaround.media.MediaInventory;
 import net.caravidro.wayaround.media.VhsData;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -11,17 +12,20 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record RecordingFinishedC2SPayload(
         String recordingId,
         long durationMillis,
         long startedAtMillis,
-        boolean dropOnGround
+        boolean dropOnGround,
+        int x,
+        int y,
+        int z
 ) implements CustomPacketPayload {
 
-    public static final Type<RecordingFinishedC2SPayload>
-            TYPE =
+    public static final Type<RecordingFinishedC2SPayload> TYPE =
             new Type<>(
                     ResourceLocation.fromNamespaceAndPath(
                             WayAround.MODID,
@@ -35,35 +39,28 @@ public record RecordingFinishedC2SPayload(
             > STREAM_CODEC =
             StreamCodec.of(
                     (buf, payload) -> {
-                        buf.writeUtf(
-                                payload.recordingId(),
-                                64
-                        );
-
-                        buf.writeLong(
-                                payload.durationMillis()
-                        );
-
-                        buf.writeLong(
-                                payload.startedAtMillis()
-                        );
-
-                        buf.writeBoolean(
-                                payload.dropOnGround()
-                        );
+                        buf.writeUtf(payload.recordingId(), 64);
+                        buf.writeLong(payload.durationMillis());
+                        buf.writeLong(payload.startedAtMillis());
+                        buf.writeBoolean(payload.dropOnGround());
+                        buf.writeInt(payload.x());
+                        buf.writeInt(payload.y());
+                        buf.writeInt(payload.z());
                     },
                     buf ->
                             new RecordingFinishedC2SPayload(
                                     buf.readUtf(64),
                                     buf.readLong(),
                                     buf.readLong(),
-                                    buf.readBoolean()
+                                    buf.readBoolean(),
+                                    buf.readInt(),
+                                    buf.readInt(),
+                                    buf.readInt()
                             )
             );
 
     @Override
-    public Type<? extends CustomPacketPayload>
-    type() {
+    public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 
@@ -74,43 +71,68 @@ public record RecordingFinishedC2SPayload(
         context.enqueueWork(
                 () -> {
                     if (!(context.player()
-                            instanceof ServerPlayer player)) {
+                            instanceof ServerPlayer player)
+                            || !valid(payload)) {
 
                         return;
                     }
 
-                    if (!valid(
-                            payload
-                    )) {
-                        return;
-                    }
+                    int serial =
+                            MediaInventory
+                                    .nextTapeSerial(
+                                            player
+                                    );
 
-                    ItemStack tape =
+                    String defaultTitle =
+                            "Fita #"
+                                    + serial;
+
+                    boolean madeVhs =
+                            MediaInventory.consumeOne(
+                                    player,
+                                    MediaContent.BLANK_VHS.get()
+                            );
+
+                    ItemStack medium =
                             new ItemStack(
-                                    MediaContent.VHS.get()
+                                    madeVhs
+                                            ? MediaContent.VHS.get()
+                                            : MediaContent.EXPOSED_FILM_ROLL.get()
                             );
 
                     VhsData.write(
-                            tape,
+                            medium,
                             payload.recordingId(),
                             payload.durationMillis(),
-                            payload.startedAtMillis()
+                            payload.startedAtMillis(),
+                            defaultTitle,
+                            serial,
+                            payload.x(),
+                            payload.y(),
+                            payload.z()
                     );
 
                     if (payload.dropOnGround()) {
                         player.drop(
-                                tape,
+                                medium,
                                 false
                         );
                         return;
                     }
 
-                    if (!player.addItem(tape)) {
-                        player.drop(
-                                tape,
-                                false
-                        );
-                    }
+                    MediaInventory.giveOrDrop(
+                            player,
+                            medium
+                    );
+
+                    PacketDistributor.sendToPlayer(
+                            player,
+                            new RecordingReadyS2CPayload(
+                                    payload.recordingId(),
+                                    defaultTitle,
+                                    madeVhs
+                            )
+                    );
                 }
         );
     }
