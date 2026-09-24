@@ -54,6 +54,18 @@ public final class InfinityWorldRenderer {
             return;
         }
 
+        boolean renderable =
+                fields.stream()
+                        .anyMatch(
+                                field ->
+                                        field.confidence()
+                                                >= 0.18F
+                        );
+
+        if (!renderable) {
+            return;
+        }
+
         Vec3 camera =
                 event.getCamera()
                         .getPosition();
