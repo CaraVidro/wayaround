@@ -98,6 +98,7 @@ public final class CoalShipContent {
     public static final DeferredHolder<net.minecraft.world.item.CreativeModeTab, net.minecraft.world.item.CreativeModeTab> NAVIGATION =
             TABS.register("great_navigations", () -> net.minecraft.world.item.CreativeModeTab.builder()
                     .title(net.minecraft.network.chat.Component.translatable("itemGroup.wayaround.great_navigations"))
+                    .withTabsBefore(net.minecraft.world.item.CreativeModeTabs.SPAWN_EGGS)
                     .icon(() -> CARAVEL_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
                         output.accept(COAL_SHIP_ITEM.get());
