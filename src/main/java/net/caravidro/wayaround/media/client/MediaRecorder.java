@@ -31,6 +31,7 @@ public final class MediaRecorder {
     private static RecordingWriter writer;
 
     private static boolean startRequestPending;
+    private static boolean placedCameraRecording;
 
     private static long nextCaptureNanos;
     private static long cameraMissingSinceNanos;
@@ -60,8 +61,13 @@ public final class MediaRecorder {
 
     public static boolean useArmCameraOffset() {
         return isRecording()
+                && !placedCameraRecording
                 && detachedCameraPosition == null
                 && isCameraHeld();
+    }
+
+    public static boolean isPlacedCameraRecording() {
+        return placedCameraRecording;
     }
 
     public static Vec3 detachedCameraPosition() {
@@ -109,6 +115,12 @@ public final class MediaRecorder {
         }
 
         if (isRecording()) {
+            if (placedCameraRecording
+                    && !isCameraHeld()) {
+
+                return;
+            }
+
             finishRecording(false);
             playCameraBeep(
                     0.82F
@@ -145,6 +157,116 @@ public final class MediaRecorder {
         }
 
         startApproved();
+    }
+
+    public static void startPlaced(
+            BlockPos position,
+            net.minecraft.core.Direction facing
+    ) {
+        if (isRecording()) {
+            return;
+        }
+
+        try {
+            RecordingStore.Target target =
+                    RecordingStore
+                            .createTarget();
+
+            writer =
+                    new RecordingWriter(
+                            target.id(),
+                            target.path()
+                    );
+
+            placedCameraRecording =
+                    false;
+
+            nextCaptureNanos = 0L;
+            cameraMissingSinceNanos = 0L;
+            recordingStartedNanos =
+                    System.nanoTime();
+
+            placedCameraRecording =
+                    true;
+
+            recordingStartBlock =
+                    position.immutable();
+
+            detachedCameraPosition =
+                    new Vec3(
+                            position.getX()
+                                    + 0.5
+                                    + facing.getStepX()
+                                    * 0.36,
+                            position.getY()
+                                    + 0.67,
+                            position.getZ()
+                                    + 0.5
+                                    + facing.getStepZ()
+                                    * 0.36
+                    );
+
+            detachedCameraYaw =
+                    facing.toYRot();
+
+            detachedCameraPitch =
+                    0.0F;
+
+            Minecraft minecraft =
+                    Minecraft.getInstance();
+
+            previousCameraType =
+                    minecraft.options
+                            .getCameraType();
+
+            minecraft.options
+                    .setCameraType(
+                            CameraType.FIRST_PERSON
+                    );
+
+            clientMessage(
+                    Component.translatable(
+                                    "message.wayaround.media.recording_started"
+                            )
+                            .withStyle(
+                                    ChatFormatting.RED
+                            )
+            );
+
+        } catch (Exception exception) {
+            writer = null;
+            placedCameraRecording = false;
+            detachedCameraPosition = null;
+
+            restoreCameraType();
+
+            clientMessage(
+                    Component.translatable(
+                                    "message.wayaround.media.recording_failed",
+                                    exception.getMessage()
+                            )
+                            .withStyle(
+                                    ChatFormatting.RED
+                            )
+            );
+        }
+    }
+
+    public static void resumeFromPlacedCamera() {
+        if (!isRecording()
+                || !placedCameraRecording) {
+
+            return;
+        }
+
+        placedCameraRecording =
+                false;
+
+        detachedCameraPosition =
+                null;
+
+        cameraMissingSinceNanos =
+                0L;
     }
 
     private static void startApproved() {
@@ -235,6 +357,10 @@ public final class MediaRecorder {
             finishRecording(
                     false
             );
+            return;
+        }
+
+        if (placedCameraRecording) {
             return;
         }
 
@@ -468,6 +594,7 @@ public final class MediaRecorder {
 
         writer = null;
 
+        placedCameraRecording = false;
         cameraMissingSinceNanos = 0L;
         detachedCameraPosition = null;
         recordingStartedNanos = 0L;

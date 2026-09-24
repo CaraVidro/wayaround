@@ -2,6 +2,8 @@ package net.caravidro.wayaround.media;
 
 import java.util.function.Consumer;
 
+import net.minecraft.world.item.ItemStack;
+
 public final class MediaClientBridge {
 
     private MediaClientBridge() {
@@ -15,6 +17,11 @@ public final class MediaClientBridge {
             () -> {
             };
 
+    private static Consumer<ItemStack>
+            openPhoto =
+            stack -> {
+            };
+
     private static Consumer<TelevisionBlockEntity>
             televisionTick =
             television -> {
@@ -23,6 +30,7 @@ public final class MediaClientBridge {
     public static void install(
             Runnable shortPress,
             Runnable longPress,
+            Consumer<ItemStack> photoOpen,
             Consumer<TelevisionBlockEntity> tvTick
     ) {
         cameraShortPress =
@@ -37,6 +45,12 @@ public final class MediaClientBridge {
                         }
                         : longPress;
 
+        openPhoto =
+                photoOpen == null
+                        ? stack -> {
+                        }
+                        : photoOpen;
+
         televisionTick =
                 tvTick == null
                         ? television -> {
@@ -50,6 +64,14 @@ public final class MediaClientBridge {
 
     public static void cameraLongPress() {
         cameraLongPress.run();
+    }
+
+    public static void openPhoto(
+            ItemStack stack
+    ) {
+        openPhoto.accept(
+                stack
+        );
     }
 
     public static void televisionTick(

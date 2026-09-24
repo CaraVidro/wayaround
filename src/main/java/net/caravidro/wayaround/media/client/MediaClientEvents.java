@@ -38,6 +38,7 @@ public final class MediaClientEvents {
         MediaClientBridge.install(
                 MediaRecorder::handleShortPress,
                 MediaRecorder::handleLongPress,
+                PhotoViewerScreen::open,
                 TvVoiceEmitter::tick
         );
     }
