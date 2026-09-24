@@ -117,10 +117,30 @@ configurations {
 }
 
 dependencies {
-    // Free/offline speech-to-text used by the experimental voice debug.
-    // Keep JNA explicit because Vosk's desktop binding loads a native DLL through it.
-    implementation "net.java.dev.jna:jna:5.7.0"
-    implementation "com.alphacephei:vosk:0.3.45"
+    // Free/offline speech-to-text.
+    //
+    // On Minecraft/NeoForge 1.21.1 ordinary Java libraries are not exposed
+    // to the mod classloader in development runs automatically.
+    // additionalRuntimeClasspath fixes runClient/runServer.
+    //
+    // jarJar embeds the libraries into the exported Way Around JAR so users
+    // do not need to install Vosk or JNA separately.
+    jarJar(implementation("net.java.dev.jna:jna:5.7.0")) {
+        version {
+            strictly "[5.7.0]"
+            prefer "5.7.0"
+        }
+    }
+
+    jarJar(implementation("com.alphacephei:vosk:0.3.45")) {
+        version {
+            strictly "[0.3.45]"
+            prefer "0.3.45"
+        }
+    }
+
+    additionalRuntimeClasspath "net.java.dev.jna:jna:5.7.0"
+    additionalRuntimeClasspath "com.alphacephei:vosk:0.3.45"
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
