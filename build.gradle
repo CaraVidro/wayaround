@@ -118,6 +118,8 @@ configurations {
 
 dependencies {
     // Free/offline speech-to-text used by the experimental voice debug.
+    // Keep JNA explicit because Vosk's desktop binding loads a native DLL through it.
+    implementation "net.java.dev.jna:jna:5.7.0"
     implementation "com.alphacephei:vosk:0.3.45"
 
     // Example optional mod dependency with JEI

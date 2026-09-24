@@ -97,10 +97,25 @@ public final class VoiceSpeechDebug {
          * Recognition comes first. Intent should never wait for the much more
          * expensive pitch/tone analysis.
          */
-        VoskSpeechRecognizer.Result recognition =
-                VoskSpeechRecognizer.recognize(
-                        pcm
-                );
+        VoskSpeechRecognizer.Result recognition;
+
+        try {
+            recognition =
+                    VoskSpeechRecognizer.recognize(
+                            pcm
+                    );
+
+        } catch (Throwable throwable) {
+            WayAround.LOGGER.error(
+                    "[Voice/STT] worker morreu fora do recognizer: {}: {}",
+                    throwable.getClass()
+                            .getName(),
+                    throwable.getMessage(),
+                    throwable
+            );
+
+            return;
+        }
 
         long recognizedAt =
                 System.nanoTime();

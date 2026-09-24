@@ -107,12 +107,10 @@ public final class VoskSpeechRecognizer {
                                                 / 1_000_000L
                                 );
 
-                            } catch (Exception exception) {
-                                WayAround.LOGGER.warn(
-                                        "[Voice/Vosk] warmup falhou: {}: {}",
-                                        exception.getClass()
-                                                .getSimpleName(),
-                                        exception.getMessage()
+                            } catch (Throwable throwable) {
+                                logNativeFailure(
+                                        "warmup",
+                                        throwable
                                 );
 
                             } finally {
@@ -289,14 +287,18 @@ public final class VoskSpeechRecognizer {
                 );
             }
 
-        } catch (Exception exception) {
+        } catch (Throwable throwable) {
             String message =
-                    exception.getClass()
-                            .getSimpleName()
-                            + ": "
-                            + exception.getMessage();
+                    describeThrowable(
+                            throwable
+                    );
 
             lastError = message;
+
+            logNativeFailure(
+                    "recognize",
+                    throwable
+            );
 
             return new Result(
                     "",
@@ -980,6 +982,88 @@ public final class VoskSpeechRecognizer {
 
             throw exception;
         }
+    }
+
+    private static void logNativeFailure(
+            String stage,
+            Throwable throwable
+    ) {
+        WayAround.LOGGER.error(
+                "[Voice/Vosk] FALHA NATIVA stage={} os={} arch={} java={} java.library.path={} error={}",
+                stage,
+                System.getProperty(
+                        "os.name"
+                ),
+                System.getProperty(
+                        "os.arch"
+                ),
+                System.getProperty(
+                        "java.version"
+                ),
+                System.getProperty(
+                        "java.library.path"
+                ),
+                describeThrowable(
+                        throwable
+                ),
+                throwable
+        );
+    }
+
+    private static String describeThrowable(
+            Throwable throwable
+    ) {
+        if (throwable == null) {
+            return "erro desconhecido";
+        }
+
+        StringBuilder builder =
+                new StringBuilder();
+
+        Throwable current =
+                throwable;
+
+        int depth = 0;
+
+        while (current != null
+                && depth < 6) {
+
+            if (depth > 0) {
+                builder.append(
+                        " <- "
+                );
+            }
+
+            builder.append(
+                    current.getClass()
+                            .getName()
+            );
+
+            String message =
+                    current.getMessage();
+
+            if (message != null
+                    && !message.isBlank()) {
+
+                builder.append(
+                        ": "
+                );
+
+                builder.append(
+                        message
+                );
+            }
+
+            current =
+                    current.getCause();
+
+            depth++;
+        }
+
+        return shorten(
+                builder.toString(),
+                800
+        );
     }
 
     private static String shorten(
