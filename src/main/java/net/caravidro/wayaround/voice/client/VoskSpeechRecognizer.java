@@ -324,6 +324,104 @@ public final class VoskSpeechRecognizer {
         deleteTree(staging);
     }
 
+    private static Path findExtractedModelRoot(
+            Path staging
+    ) throws Exception {
+
+        Path named =
+                staging.resolve(
+                        MODEL_NAME
+                );
+
+        if (isValidModelRoot(
+                named
+        )) {
+            return named;
+        }
+
+        if (isValidModelRoot(
+                staging
+        )) {
+            return staging;
+        }
+
+        try (var children =
+                     Files.list(
+                             staging
+                     )) {
+
+            return children
+                    .filter(
+                            Files::isDirectory
+                    )
+                    .filter(
+                            VoskSpeechRecognizer
+                                    ::isValidModelRoot
+                    )
+                    .findFirst()
+                    .orElse(null);
+        }
+    }
+
+    private static boolean isValidModelRoot(
+            Path root
+    ) {
+        if (root == null
+                || !Files.isDirectory(
+                        root
+                )) {
+
+            return false;
+        }
+
+        boolean v2 =
+                Files.isRegularFile(
+                        root.resolve("am")
+                                .resolve(
+                                        "final.mdl"
+                                )
+                )
+                        && Files.isRegularFile(
+                                root.resolve("conf")
+                                        .resolve(
+                                                "model.conf"
+                                        )
+                        );
+
+        boolean v1 =
+                Files.isRegularFile(
+                        root.resolve(
+                                "final.mdl"
+                        )
+                )
+                        && Files.isRegularFile(
+                                root.resolve(
+                                        "mfcc.conf"
+                                )
+                        )
+                        && (
+                        Files.isRegularFile(
+                                root.resolve(
+                                        "HCLG.fst"
+                                )
+                        )
+                                || (
+                                Files.isRegularFile(
+                                        root.resolve(
+                                                "HCLr.fst"
+                                        )
+                                )
+                                        && Files.isRegularFile(
+                                                root.resolve(
+                                                        "Gr.fst"
+                                                )
+                                        )
+                        )
+                );
+
+        return v1 || v2;
+    }
+
     private static void unzipSecurely(
             Path archive,
             Path destination
