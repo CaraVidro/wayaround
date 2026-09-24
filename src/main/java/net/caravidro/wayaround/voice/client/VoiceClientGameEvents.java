@@ -2,6 +2,7 @@ package net.caravidro.wayaround.voice.client;
 
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.options.VideoSettingsScreen;
 import net.minecraft.network.chat.Component;
@@ -9,6 +10,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 
 @EventBusSubscriber(
@@ -46,6 +48,77 @@ public final class VoiceClientGameEvents {
 
             VoiceCapture.stop();
         }
+    }
+
+    @SubscribeEvent
+    public static void onRenderGui(
+            RenderGuiEvent.Post event
+    ) {
+        if (!VoiceConfig
+                .isDebugSpeechEnabled()
+                || !VoiceCapture.isRunning()) {
+
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        GuiGraphics graphics =
+                event.getGuiGraphics();
+
+        int right =
+                minecraft.getWindow()
+                        .getGuiScaledWidth()
+                        - 8;
+
+        int top = 8;
+        int iconX = right - 68;
+        int iconY = top + 2;
+
+        graphics.fill(
+                iconX - 6,
+                top,
+                right,
+                top + 18,
+                0xB0000000
+        );
+
+        // Corpo do microfone.
+        graphics.fill(
+                iconX,
+                iconY,
+                iconX + 6,
+                iconY + 9,
+                0xFFFF5555
+        );
+
+        // Haste.
+        graphics.fill(
+                iconX + 2,
+                iconY + 9,
+                iconX + 4,
+                iconY + 13,
+                0xFFFF5555
+        );
+
+        // Base.
+        graphics.fill(
+                iconX,
+                iconY + 13,
+                iconX + 6,
+                iconY + 15,
+                0xFFFF5555
+        );
+
+        graphics.drawString(
+                minecraft.font,
+                "OUVINDO",
+                iconX + 11,
+                top + 5,
+                0xFFFFFFFF,
+                false
+        );
     }
 
     @SubscribeEvent

@@ -17,6 +17,7 @@ public final class VoiceConfig {
     private static boolean loaded = false;
 
     private static boolean enabled = false;
+    private static boolean debugSpeechEnabled = false;
     private static String microphoneId = "";
 
     private static Path file() {
@@ -52,6 +53,13 @@ public final class VoiceConfig {
                     )
             );
 
+            debugSpeechEnabled = Boolean.parseBoolean(
+                    properties.getProperty(
+                            "debugSpeech",
+                            "false"
+                    )
+            );
+
             microphoneId =
                     properties.getProperty(
                             "microphone",
@@ -71,6 +79,11 @@ public final class VoiceConfig {
         return enabled;
     }
 
+    public static boolean isDebugSpeechEnabled() {
+        ensureLoaded();
+        return debugSpeechEnabled;
+    }
+
     public static String getMicrophoneId() {
         ensureLoaded();
         return microphoneId;
@@ -81,6 +94,14 @@ public final class VoiceConfig {
     ) {
         ensureLoaded();
         enabled = value;
+        save();
+    }
+
+    public static synchronized void setDebugSpeechEnabled(
+            boolean value
+    ) {
+        ensureLoaded();
+        debugSpeechEnabled = value;
         save();
     }
 
@@ -101,6 +122,11 @@ public final class VoiceConfig {
         properties.setProperty(
                 "enabled",
                 Boolean.toString(enabled)
+        );
+
+        properties.setProperty(
+                "debugSpeech",
+                Boolean.toString(debugSpeechEnabled)
         );
 
         properties.setProperty(

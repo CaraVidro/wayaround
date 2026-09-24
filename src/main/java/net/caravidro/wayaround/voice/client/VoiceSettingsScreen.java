@@ -19,6 +19,7 @@ public final class VoiceSettingsScreen
     private int microphoneIndex;
 
     private Button enabledButton;
+    private Button debugButton;
     private Button microphoneButton;
 
     public VoiceSettingsScreen(
@@ -44,7 +45,7 @@ public final class VoiceSettingsScreen
         int x =
                 (this.width - buttonWidth) / 2;
         int y =
-                this.height / 2 - 55;
+                this.height / 2 - 68;
 
         enabledButton =
                 this.addRenderableWidget(
@@ -67,6 +68,31 @@ public final class VoiceSettingsScreen
                                 .bounds(
                                         x,
                                         y,
+                                        buttonWidth,
+                                        buttonHeight
+                                )
+                                .build()
+                );
+
+        debugButton =
+                this.addRenderableWidget(
+                        Button.builder(
+                                        debugLabel(),
+                                        button -> {
+                                            VoiceConfig
+                                                    .setDebugSpeechEnabled(
+                                                            !VoiceConfig
+                                                                    .isDebugSpeechEnabled()
+                                                    );
+
+                                            button.setMessage(
+                                                    debugLabel()
+                                            );
+                                        }
+                                )
+                                .bounds(
+                                        x,
+                                        y + 26,
                                         buttonWidth,
                                         buttonHeight
                                 )
@@ -105,7 +131,7 @@ public final class VoiceSettingsScreen
                                 )
                                 .bounds(
                                         x,
-                                        y + 26,
+                                        y + 52,
                                         buttonWidth,
                                         buttonHeight
                                 )
@@ -128,7 +154,7 @@ public final class VoiceSettingsScreen
                         )
                         .bounds(
                                 x,
-                                y + 52,
+                                y + 78,
                                 buttonWidth,
                                 buttonHeight
                         )
@@ -144,7 +170,7 @@ public final class VoiceSettingsScreen
                         )
                         .bounds(
                                 x,
-                                y + 94,
+                                y + 120,
                                 buttonWidth,
                                 buttonHeight
                         )
@@ -167,6 +193,17 @@ public final class VoiceSettingsScreen
                 "Voice Chat: "
                         + (
                         VoiceConfig.isEnabled()
+                                ? "LIGADO"
+                                : "DESLIGADO"
+                )
+        );
+    }
+
+    private Component debugLabel() {
+        return Component.literal(
+                "Debug de fala: "
+                        + (
+                        VoiceConfig.isDebugSpeechEnabled()
                                 ? "LIGADO"
                                 : "DESLIGADO"
                 )
@@ -226,7 +263,7 @@ public final class VoiceSettingsScreen
                 this.font,
                 this.title,
                 this.width / 2,
-                28,
+                25,
                 0xFFFFFF
         );
 
@@ -236,8 +273,18 @@ public final class VoiceSettingsScreen
                         "Segure V para falar"
                 ),
                 this.width / 2,
-                48,
+                43,
                 0xA0A0A0
+        );
+
+        graphics.drawCenteredString(
+                this.font,
+                Component.literal(
+                        "Debug: texto local + volume + pitch + alongamento de vogal"
+                ),
+                this.width / 2,
+                55,
+                0x777777
         );
 
         graphics.drawCenteredString(
@@ -250,7 +297,7 @@ public final class VoiceSettingsScreen
                                 + " blocos"
                 ),
                 this.width / 2,
-                60,
+                67,
                 0x777777
         );
 

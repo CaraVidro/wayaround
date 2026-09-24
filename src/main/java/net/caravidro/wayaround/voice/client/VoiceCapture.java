@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.voice.client;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
 import javax.sound.sampled.AudioSystem;
@@ -65,6 +66,14 @@ public final class VoiceCapture {
     private static void captureLoop() {
         TargetDataLine line = null;
 
+        boolean debugThisUtterance =
+                VoiceConfig.isDebugSpeechEnabled();
+
+        ByteArrayOutputStream debugAudio =
+                debugThisUtterance
+                        ? new ByteArrayOutputStream()
+                        : null;
+
         try {
             DataLine.Info lineInfo =
                     new DataLine.Info(
@@ -124,6 +133,14 @@ public final class VoiceCapture {
                                 buffer,
                                 read
                         );
+
+                if (debugAudio != null) {
+                    debugAudio.write(
+                            frame,
+                            0,
+                            frame.length
+                    );
+                }
 
                 Minecraft minecraft =
                         Minecraft.getInstance();
@@ -198,6 +215,16 @@ public final class VoiceCapture {
                     line.close();
                 } catch (Exception ignored) {
                 }
+            }
+
+            if (debugAudio != null
+                    && debugAudio.size()
+                    >= VoiceConstants.FRAME_BYTES * 3
+                    && VoiceConfig.isDebugSpeechEnabled()) {
+
+                VoiceSpeechDebug.submit(
+                        debugAudio.toByteArray()
+                );
             }
         }
     }
