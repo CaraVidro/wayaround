@@ -16,6 +16,8 @@ public record BlueGestureS2CPayload(
     public static final byte ORBIT = 2;
     public static final byte LAUNCH = 3;
     public static final byte STOP = 4;
+    public static final byte HOLD = 5;
+    public static final byte FUSION = 6;
 
     public static final Type<BlueGestureS2CPayload> TYPE =
             new Type<>(

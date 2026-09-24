@@ -77,6 +77,8 @@ public final class BlueClientEffects {
                     case BlueGestureS2CPayload.ORBIT -> 34;
                     case BlueGestureS2CPayload.LAUNCH -> 18;
                     case BlueGestureS2CPayload.STOP -> 16;
+                    case BlueGestureS2CPayload.HOLD -> 18;
+                    case BlueGestureS2CPayload.FUSION -> 52;
                     default -> 28;
                 };
     }
@@ -342,11 +344,25 @@ public final class BlueClientEffects {
                             : gestureAge % (interval * 2)
                                     >= interval;
 
+            InteractionHand hand =
+                    offHand
+                            ? InteractionHand.OFF_HAND
+                            : InteractionHand.MAIN_HAND;
+
             minecraft.player
                     .swing(
-                            offHand
-                                    ? InteractionHand.OFF_HAND
-                                    : InteractionHand.MAIN_HAND
+                            hand
+                    );
+
+            /*
+             * Force the first-person hand renderer to acknowledge the gesture
+             * too. Server-side swing packets alone were visible in third
+             * person but could be imperceptible to the caster.
+             */
+            minecraft.gameRenderer
+                    .itemInHandRenderer
+                    .itemUsed(
+                            hand
                     );
         }
     }

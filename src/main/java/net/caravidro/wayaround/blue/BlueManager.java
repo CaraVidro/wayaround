@@ -206,6 +206,44 @@ public final class BlueManager {
         );
     }
 
+    public static boolean holdActive(
+            ServerPlayer player
+    ) {
+        ActiveBlue blue =
+                ACTIVE.get(
+                        player.getUUID()
+                );
+
+        if (blue == null) {
+            return false;
+        }
+
+        blue.orbiting =
+                false;
+
+        blue.held =
+                true;
+
+        sendGesture(
+                player,
+                BlueGestureS2CPayload.HOLD
+        );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        BlockPos.containing(
+                                blue.center
+                        ),
+                        SoundEvents.AMETHYST_BLOCK_RESONATE,
+                        SoundSource.PLAYERS,
+                        0.48F,
+                        0.82F
+                );
+
+        return true;
+    }
+
     public static boolean orbitActive(
             ServerPlayer player
     ) {
@@ -231,6 +269,9 @@ public final class BlueManager {
                         relative.z,
                         relative.x
                 );
+
+        blue.held =
+                false;
 
         blue.orbiting =
                 true;
@@ -634,7 +675,12 @@ public final class BlueManager {
                     owner.getLookAngle()
                             .normalize();
 
-            if (blue.orbiting) {
+            if (blue.held) {
+                /*
+                 * Voice command "pare/fique parado": keep the exact world
+                 * position while the field remains fully active.
+                 */
+            } else if (blue.orbiting) {
                 blue.orbitAngle +=
                         0.42
                                 * blue.spinDirection;
@@ -1120,6 +1166,92 @@ public final class BlueManager {
                 center,
                 52,
                 1.0F
+        );
+    }
+
+    public static FusionSeed consumeHeldBlueForFusion(
+            ServerPlayer player,
+            Vec3 redPosition,
+            double redRadius
+    ) {
+        ActiveBlue blue =
+                ACTIVE.get(
+                        player.getUUID()
+                );
+
+        if (blue == null
+                || !blue.held
+                || blue.dimension
+                != player.serverLevel()
+                        .dimension()) {
+
+            return null;
+        }
+
+        double collision =
+                physicalOuterHalf(
+                        blue.power
+                )
+                        + Math.max(
+                                0.20,
+                                redRadius
+                        );
+
+        if (blue.center
+                .distanceToSqr(
+                        redPosition
+                )
+                > collision * collision) {
+
+            return null;
+        }
+
+        if (!ACTIVE.remove(
+                player.getUUID(),
+                blue
+        )) {
+            return null;
+        }
+
+        sendGesture(
+                player,
+                BlueGestureS2CPayload.FUSION
+        );
+
+        return new FusionSeed(
+                blue.owner,
+                blue.dimension,
+                blue.center,
+                blue.power,
+                blue.spinDirection
+        );
+    }
+
+    public static void keepFusionBlueVisible(
+            ServerLevel level,
+            UUID owner,
+            Vec3 center,
+            float power
+    ) {
+        sendVisual(
+                level,
+                owner,
+                center,
+                power,
+                attractionRadius(
+                        power
+                ),
+                BlueVisualPayload.ACTIVE
+        );
+    }
+
+    public static void finishFusion(
+            MinecraftServer server,
+            UUID owner
+    ) {
+        finishAbility(
+                server,
+                owner
         );
     }
 
@@ -3335,6 +3467,15 @@ public final class BlueManager {
         );
     }
 
+    public record FusionSeed(
+            UUID owner,
+            net.minecraft.resources.ResourceKey<Level> dimension,
+            Vec3 center,
+            float power,
+            double spinDirection
+    ) {
+    }
+
     private record BlueAnchor(
             Vec3 position
     ) {
@@ -3398,6 +3539,7 @@ public final class BlueManager {
         private Vec3 look;
         private double distance;
 
+        private boolean held;
         private boolean orbiting;
         private double orbitAngle;
 

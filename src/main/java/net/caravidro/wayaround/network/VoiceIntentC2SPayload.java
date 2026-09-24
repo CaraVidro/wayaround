@@ -2,6 +2,7 @@ package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.blue.BlueManager;
+import net.caravidro.wayaround.blue.ImaginaryBetaManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -20,6 +21,8 @@ public record VoiceIntentC2SPayload(
     public static final byte BLUE_ORBIT = 2;
     public static final byte BLUE_LAUNCH = 3;
     public static final byte BLUE_STOP = 4;
+    public static final byte BLUE_HOLD = 5;
+    public static final byte RED_FIRE = 6;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -62,7 +65,7 @@ public record VoiceIntentC2SPayload(
                 () -> {
                     if (!(context.player()
                             instanceof ServerPlayer player)
-                            || !hasBlue(
+                            || !hasTechniqueAccess(
                                     player
                             )) {
 
@@ -91,6 +94,16 @@ public record VoiceIntentC2SPayload(
                                         player
                                 );
 
+                        case BLUE_HOLD ->
+                                BlueManager.holdActive(
+                                        player
+                                );
+
+                        case RED_FIRE ->
+                                ImaginaryBetaManager.fireRed(
+                                        player
+                                );
+
                         default -> {
                         }
                     }
@@ -98,7 +111,7 @@ public record VoiceIntentC2SPayload(
         );
     }
 
-    private static boolean hasBlue(
+    private static boolean hasTechniqueAccess(
             ServerPlayer player
     ) {
         for (int slot = 0;
