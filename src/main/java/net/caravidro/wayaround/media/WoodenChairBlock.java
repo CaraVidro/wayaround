@@ -25,6 +25,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 public final class WoodenChairBlock
         extends BaseEntityBlock {
@@ -37,6 +40,50 @@ public final class WoodenChairBlock
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty
             FACING =
             HorizontalDirectionalBlock.FACING;
+
+    private static final VoxelShape SHAPE =
+            Shapes.or(
+                    Block.box(
+                            2.0,
+                            6.0,
+                            2.0,
+                            14.0,
+                            8.0,
+                            14.0
+                    ),
+                    Block.box(
+                            2.0,
+                            0.0,
+                            2.0,
+                            4.0,
+                            6.0,
+                            4.0
+                    ),
+                    Block.box(
+                            12.0,
+                            0.0,
+                            2.0,
+                            14.0,
+                            6.0,
+                            4.0
+                    ),
+                    Block.box(
+                            2.0,
+                            0.0,
+                            12.0,
+                            4.0,
+                            6.0,
+                            14.0
+                    ),
+                    Block.box(
+                            12.0,
+                            0.0,
+                            12.0,
+                            14.0,
+                            6.0,
+                            14.0
+                    )
+            );
 
     public WoodenChairBlock(
             Properties properties
@@ -68,6 +115,16 @@ public final class WoodenChairBlock
                         context.getHorizontalDirection()
                                 .getOpposite()
                 );
+    }
+
+    @Override
+    protected VoxelShape getShape(
+            BlockState state,
+            net.minecraft.world.level.BlockGetter level,
+            BlockPos pos,
+            CollisionContext context
+    ) {
+        return SHAPE;
     }
 
     @Override

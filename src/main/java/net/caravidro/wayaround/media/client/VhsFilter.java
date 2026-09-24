@@ -184,6 +184,24 @@ public final class VhsFilter {
                                 + average)
                                 / 10;
 
+                /*
+                 * Slight aged/warm bias. The recording on disk stays clean;
+                 * this only lives in the playback path.
+                 */
+                red =
+                        red * 108
+                                / 100
+                                + 6;
+
+                green =
+                        green * 103
+                                / 100
+                                + 3;
+
+                blue =
+                        blue * 83
+                                / 100;
+
                 int pixelHash =
                         hash(
                                 lineHash,

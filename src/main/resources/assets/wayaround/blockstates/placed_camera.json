@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "wayaround:block/placed_camera" },
+    "facing=east": { "model": "wayaround:block/placed_camera", "y": 90 },
+    "facing=south": { "model": "wayaround:block/placed_camera", "y": 180 },
+    "facing=west": { "model": "wayaround:block/placed_camera", "y": 270 }
+  }
+}

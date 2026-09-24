@@ -143,5 +143,8 @@
     "hud.wayaround.camera.photo": "Click: photo",
     "hud.wayaround.camera.video": "Hold: record",
     "hud.wayaround.camera.stop": "Hold: stop",
-    "hud.wayaround.camera.media": "Paper %s | Film %s"
+    "hud.wayaround.camera.media": "Paper %s | Film %s",
+    "block.wayaround.placed_camera": "Camera",
+    "block.wayaround.wooden_chair": "Wooden Chair",
+    "message.wayaround.media.placed_camera_armed": "Camera placed. Preparing recording..."
 }

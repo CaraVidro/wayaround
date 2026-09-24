@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "wayaround:block/wooden_chair" },
+    "facing=east": { "model": "wayaround:block/wooden_chair", "y": 90 },
+    "facing=south": { "model": "wayaround:block/wooden_chair", "y": 180 },
+    "facing=west": { "model": "wayaround:block/wooden_chair", "y": 270 }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "body": "minecraft:block/black_concrete",
+    "metal": "minecraft:block/iron_block",
+    "lens": "minecraft:block/light_blue_stained_glass",
+    "red": "minecraft:block/redstone_block",
+    "particle": "minecraft:block/black_concrete"
+  },
+  "elements": [
+    {
+      "from": [4, 4, 5],
+      "to": [12, 10, 13],
+      "faces": {
+        "north": { "texture": "#body" },
+        "south": { "texture": "#body" },
+        "west": { "texture": "#body" },
+        "east": { "texture": "#body" },
+        "up": { "texture": "#body" },
+        "down": { "texture": "#body" }
+      }
+    },
+    {
+      "from": [6, 5.5, 3],
+      "to": [10, 8.5, 5.2],
+      "faces": {
+        "north": { "texture": "#lens" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#metal" },
+        "up": { "texture": "#metal" },
+        "down": { "texture": "#metal" }
+      }
+    },
+    {
+      "from": [5.5, 10, 7],
+      "to": [9.5, 11.5, 11],
+      "faces": {
+        "north": { "texture": "#body" },
+        "south": { "texture": "#body" },
+        "west": { "texture": "#body" },
+        "east": { "texture": "#body" },
+        "up": { "texture": "#red" },
+        "down": { "texture": "#body" }
+      }
+    },
+    {
+      "from": [6.8, 1, 7],
+      "to": [9.2, 4, 11],
+      "faces": {
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#metal" },
+        "up": { "texture": "#metal" },
+        "down": { "texture": "#metal" }
+      }
+    },
+    {
+      "from": [4, 0, 5],
+      "to": [12, 1, 13],
+      "faces": {
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "west": { "texture": "#metal" },
+        "east": { "texture": "#metal" },
+        "up": { "texture": "#metal" },
+        "down": { "texture": "#metal" }
+      }
+    }
+  ]
+}

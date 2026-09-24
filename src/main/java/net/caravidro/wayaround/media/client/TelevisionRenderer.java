@@ -385,10 +385,15 @@ public final class TelevisionRenderer
                 pose
         );
 
+        /*
+         * Text is rotated 180 degrees below, so local +X travels left.
+         * Anchor it at the RIGHT edge of the CRT so it grows inward instead
+         * of escaping through the wooden cabinet.
+         */
         pose.translate(
-                0.115,
-                0.765,
-                0.050
+                0.705,
+                0.748,
+                0.052
         );
 
         pose.mulPose(
@@ -398,15 +403,15 @@ public final class TelevisionRenderer
         );
 
         pose.scale(
-                0.0032F,
-                -0.0032F,
-                0.0032F
+                0.00235F,
+                -0.00235F,
+                0.00235F
         );
 
         String title =
                 trim(
                         info.title(),
-                        27
+                        31
                 );
 
         drawText(
