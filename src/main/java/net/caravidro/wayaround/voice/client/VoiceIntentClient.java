@@ -23,7 +23,7 @@ public final class VoiceIntentClient {
             3_000L;
 
     private static final long DECISION_DELAY_MS =
-            800L;
+            600L;
 
     private static final long TRIGGER_COOLDOWN_MS =
             1_800L;
@@ -319,8 +319,7 @@ public final class VoiceIntentClient {
 
             if (word.equals("cancela")
                     || word.equals("cancelar")
-                    || word.equals("cancele")
-                    || word.equals("nao")) {
+                    || word.equals("cancele")) {
 
                 return true;
             }

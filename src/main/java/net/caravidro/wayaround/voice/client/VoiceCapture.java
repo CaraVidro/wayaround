@@ -26,7 +26,7 @@ public final class VoiceCapture {
             5;
 
     private static final int SILENCE_FRAMES_TO_CLOSE =
-            18;
+            14;
 
     private static final double ABSOLUTE_START_THRESHOLD =
             0.0115;
