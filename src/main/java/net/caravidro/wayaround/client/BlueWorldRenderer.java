@@ -217,12 +217,12 @@ public final class BlueWorldRenderer {
                 );
 
         float coreHalf =
-                0.25F
+                0.14F
                         + (float) Math.pow(
                                 normalizedPower,
-                                1.12
+                                1.50
                         )
-                                * 2.20F;
+                                * 2.31F;
 
         if (collapsing) {
             coreHalf *=
