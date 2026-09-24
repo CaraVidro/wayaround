@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.client;
 
+import com.mojang.math.Axis;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -17,6 +18,7 @@ import net.caravidro.wayaround.network.BlueVisualPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -24,6 +26,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.event.RenderHandEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -58,6 +61,7 @@ public final class BlueClientEffects {
 
     private static int gestureTicks;
     private static int gestureAge;
+    private static int gestureDuration;
     private static byte gestureType;
 
     private BlueClientEffects() {
@@ -72,7 +76,7 @@ public final class BlueClientEffects {
         gestureAge =
                 0;
 
-        gestureTicks =
+        gestureDuration =
                 switch (gesture) {
                     case BlueGestureS2CPayload.ORBIT -> 34;
                     case BlueGestureS2CPayload.LAUNCH -> 18;
@@ -81,6 +85,9 @@ public final class BlueClientEffects {
                     case BlueGestureS2CPayload.FUSION -> 52;
                     default -> 28;
                 };
+
+        gestureTicks =
+                gestureDuration;
     }
 
     public static void receive(
@@ -92,10 +99,6 @@ public final class BlueClientEffects {
         if (minecraft.level == null) {
             return;
         }
-
-        tickGesture(
-                minecraft
-        );
 
         long tick =
                 minecraft.level
@@ -223,6 +226,10 @@ public final class BlueClientEffects {
         }
 
         hadLevel = true;
+
+        tickGesture(
+                minecraft
+        );
 
         if (minecraft.isPaused()) {
             return;
@@ -364,6 +371,250 @@ public final class BlueClientEffects {
                     .itemUsed(
                             hand
                     );
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRenderHand(
+            RenderHandEvent event
+    ) {
+        if (gestureTicks <= 0
+                || gestureDuration <= 0) {
+
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return;
+        }
+
+        HumanoidArm renderedArm =
+                event.getHand()
+                        == InteractionHand.MAIN_HAND
+                        ? minecraft.player
+                                .getMainArm()
+                        : minecraft.player
+                                .getMainArm()
+                                .getOpposite();
+
+        float side =
+                renderedArm
+                        == HumanoidArm.RIGHT
+                        ? 1.0F
+                        : -1.0F;
+
+        float age =
+                gestureAge
+                        + event.getPartialTick();
+
+        float progress =
+                Mth.clamp(
+                        age
+                                / Math.max(
+                                        1.0F,
+                                        gestureDuration
+                                ),
+                        0.0F,
+                        1.0F
+                );
+
+        float envelope =
+                Mth.sin(
+                        progress
+                                * (float) Math.PI
+                );
+
+        var pose =
+                event.getPoseStack();
+
+        switch (gestureType) {
+            case BlueGestureS2CPayload.SUMMON -> {
+                pose.translate(
+                        -0.06F * side * envelope,
+                        -0.10F * envelope,
+                        -0.18F * envelope
+                );
+
+                pose.mulPose(
+                        Axis.XP.rotationDegrees(
+                                -28.0F
+                                        * envelope
+                        )
+                );
+
+                pose.mulPose(
+                        Axis.YP.rotationDegrees(
+                                -18.0F
+                                        * side
+                                        * envelope
+                        )
+                );
+
+                pose.mulPose(
+                        Axis.ZP.rotationDegrees(
+                                15.0F
+                                        * side
+                                        * envelope
+                        )
+                );
+            }
+
+            case BlueGestureS2CPayload.ORBIT -> {
+                float phase =
+                        age
+                                * 0.78F
+                                + (
+                                renderedArm
+                                        == HumanoidArm.RIGHT
+                                        ? 0.0F
+                                        : (float) Math.PI
+                        );
+
+                pose.translate(
+                        Mth.sin(
+                                phase
+                        )
+                                * 0.12F
+                                * envelope,
+                        Mth.cos(
+                                phase
+                        )
+                                * 0.085F
+                                * envelope
+                                - 0.05F
+                                        * envelope,
+                        -0.14F
+                                * envelope
+                );
+
+                pose.mulPose(
+                        Axis.ZP.rotationDegrees(
+                                Mth.sin(
+                                        phase
+                                )
+                                        * 42.0F
+                                        * envelope
+                        )
+                );
+
+                pose.mulPose(
+                        Axis.XP.rotationDegrees(
+                                -18.0F
+                                        * envelope
+                                + Mth.cos(
+                                        phase
+                                )
+                                        * 12.0F
+                                        * envelope
+                        )
+                );
+            }
+
+            case BlueGestureS2CPayload.LAUNCH -> {
+                float thrust =
+                        Mth.sin(
+                                Math.min(
+                                        1.0F,
+                                        progress * 1.35F
+                                )
+                                        * (float) Math.PI
+                        );
+
+                pose.translate(
+                        0.0F,
+                        -0.03F
+                                * envelope,
+                        -0.42F
+                                * thrust
+                );
+
+                pose.mulPose(
+                        Axis.XP.rotationDegrees(
+                                -34.0F
+                                        * thrust
+                        )
+                );
+            }
+
+            case BlueGestureS2CPayload.STOP -> {
+                pose.translate(
+                        0.10F
+                                * side
+                                * envelope,
+                        0.08F
+                                * envelope,
+                        0.12F
+                                * envelope
+                );
+
+                pose.mulPose(
+                        Axis.ZP.rotationDegrees(
+                                34.0F
+                                        * side
+                                        * envelope
+                        )
+                );
+            }
+
+            case BlueGestureS2CPayload.HOLD -> {
+                pose.translate(
+                        -0.04F
+                                * side
+                                * envelope,
+                        -0.08F
+                                * envelope,
+                        -0.12F
+                                * envelope
+                );
+
+                pose.mulPose(
+                        Axis.XP.rotationDegrees(
+                                -22.0F
+                                        * envelope
+                        )
+                );
+
+                pose.mulPose(
+                        Axis.ZP.rotationDegrees(
+                                10.0F
+                                        * side
+                                        * envelope
+                        )
+                );
+            }
+
+            case BlueGestureS2CPayload.FUSION -> {
+                pose.translate(
+                        -0.08F
+                                * side
+                                * envelope,
+                        -0.15F
+                                * envelope,
+                        -0.22F
+                                * envelope
+                );
+
+                pose.mulPose(
+                        Axis.YP.rotationDegrees(
+                                28.0F
+                                        * side
+                                        * envelope
+                        )
+                );
+
+                pose.mulPose(
+                        Axis.XP.rotationDegrees(
+                                -26.0F
+                                        * envelope
+                        )
+                );
+            }
+
+            default -> {
+            }
         }
     }
 
@@ -867,6 +1118,17 @@ public final class BlueClientEffects {
                 0.0F,
                 0.78F
         );
+    }
+
+    public static boolean hasLocalControllableBlue() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        return minecraft.player != null
+                && hasOwnedControllableBlue(
+                        minecraft.player
+                                .getUUID()
+                );
     }
 
     private static boolean hasOwnedControllableBlue(
