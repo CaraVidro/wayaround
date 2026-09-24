@@ -81,6 +81,36 @@ public final class BetaTechniqueWorldRenderer {
         PoseStack pose =
                 event.getPoseStack();
 
+        boolean hasRenderableGeometry =
+                false;
+
+        for (BetaTechniqueClientEffects.VisualTechnique state :
+                states) {
+
+            if (state.mode()
+                    == BetaTechniqueVisualPayload.RED
+                    || state.mode()
+                    != BetaTechniqueVisualPayload.AFTERMATH
+                    || state.progress()
+                    <= 0.78F) {
+
+                hasRenderableGeometry =
+                        true;
+
+                break;
+            }
+        }
+
+        /*
+         * AFTERMATH intentionally stops drawing the PURPLE core near the end.
+         * In that window the state list is still non-empty, but no vertices
+         * are emitted. Calling buildOrThrow() on an empty BufferBuilder crashes
+         * the render thread, so simply skip the draw pass.
+         */
+        if (!hasRenderableGeometry) {
+            return;
+        }
+
         BufferBuilder buffer =
                 Tesselator.getInstance()
                         .begin(
