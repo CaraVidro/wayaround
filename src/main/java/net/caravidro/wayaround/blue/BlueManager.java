@@ -10,6 +10,7 @@ import java.util.UUID;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.BlueGestureS2CPayload;
 import net.caravidro.wayaround.network.BlueVisualPayload;
+import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -19,6 +20,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -1812,88 +1814,179 @@ public final class BlueManager {
                 0.18
         );
 
-        /*
-         * V1 destruction dust: every erased block creates a large persistent
-         * cloud. Most smoke stays behind and floats upward; a smaller share is
-         * promoted into tracked accretion smoke that spirals toward and around
-         * the moving Blue until it fades.
-         */
-        int smokeCount =
-                7
-                        + level.random.nextInt(
-                                7
-                        )
-                        + (
-                                bodyContact
-                                        ? 3
-                                        : 0
-                        );
+        boolean vegetation =
+                isVegetationBlock(
+                        state
+                );
 
-        int accretionCount =
-                ownerId == null
-                        ? 0
-                        : Math.min(
-                                bodyContact
-                                        ? 4
-                                        : 3,
-                                Math.max(
-                                        1,
-                                        smokeCount / 4
-                                )
-                        );
+        if (vegetation) {
+            int leaves =
+                    bodyContact
+                            ? 9
+                            : 5;
 
-        int hanging =
-                smokeCount
-                        - accretionCount;
-
-        level.sendParticles(
-                ParticleTypes.CAMPFIRE_COSY_SMOKE,
-                source.x,
-                source.y,
-                source.z,
-                hanging,
-                bodyContact
-                        ? 1.05
-                        : 0.82,
-                bodyContact
-                        ? 0.58
-                        : 0.42,
-                bodyContact
-                        ? 1.05
-                        : 0.82,
-                0.008
-        );
-
-        if (bodyContact
-                && level.random.nextFloat()
-                        < 0.45F) {
             level.sendParticles(
-                    ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                    WayAroundParticles.WIND_LEAF.get(),
                     source.x,
                     source.y,
                     source.z,
-                    1,
-                    0.42,
-                    0.34,
-                    0.42,
-                    0.004
+                    leaves,
+                    bodyContact
+                            ? 0.72
+                            : 0.42,
+                    bodyContact
+                            ? 0.54
+                            : 0.30,
+                    bodyContact
+                            ? 0.72
+                            : 0.42,
+                    0.11
             );
         }
 
-        for (int i = 0;
-                i < accretionCount;
-                i++) {
-            addAccretionSmoke(
-                    level,
-                    ownerId,
-                    source,
-                    center,
-                    power,
-                    spinDirection
+        /*
+         * Smoke now belongs to mineral destruction instead of every erased
+         * block. Leaves/grass use green wind debris, while wood/glass/etc.
+         * mainly expose their own BLOCK fragments.
+         */
+        if (isSmokyMineralBlock(
+                state
+        )) {
+            int smokeCount =
+                    7
+                            + level.random.nextInt(
+                                    7
+                            )
+                            + (
+                                    bodyContact
+                                            ? 3
+                                            : 0
+                            );
+
+            int accretionCount =
+                    ownerId == null
+                            ? 0
+                            : Math.min(
+                                    bodyContact
+                                            ? 4
+                                            : 3,
+                                    Math.max(
+                                            1,
+                                            smokeCount / 4
+                                    )
+                            );
+
+            int hanging =
+                    smokeCount
+                            - accretionCount;
+
+            level.sendParticles(
+                    ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                    source.x,
+                    source.y,
+                    source.z,
+                    hanging,
+                    bodyContact
+                            ? 1.05
+                            : 0.82,
+                    bodyContact
+                            ? 0.58
+                            : 0.42,
+                    bodyContact
+                            ? 1.05
+                            : 0.82,
+                    0.008
             );
+
+            if (bodyContact
+                    && level.random.nextFloat()
+                            < 0.45F) {
+
+                level.sendParticles(
+                        ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                        source.x,
+                        source.y,
+                        source.z,
+                        1,
+                        0.42,
+                        0.34,
+                        0.42,
+                        0.004
+                );
+            }
+
+            for (int i = 0;
+                 i < accretionCount;
+                 i++) {
+
+                addAccretionSmoke(
+                        level,
+                        ownerId,
+                        source,
+                        center,
+                        power,
+                        spinDirection
+                );
+            }
         }
 
         return true;
+    }
+
+    private static boolean isVegetationBlock(
+            BlockState state
+    ) {
+        if (state.is(
+                BlockTags.LEAVES
+        )) {
+            return true;
+        }
+
+        String path =
+                BuiltInRegistries.BLOCK
+                        .getKey(
+                                state.getBlock()
+                        )
+                        .getPath();
+
+        return path.contains("grass")
+                || path.contains("fern")
+                || path.contains("leaves")
+                || path.contains("leaf")
+                || path.contains("vine")
+                || path.contains("moss")
+                || path.contains("flower")
+                || path.contains("sapling")
+                || path.contains("bush");
+    }
+
+    private static boolean isSmokyMineralBlock(
+            BlockState state
+    ) {
+        String path =
+                BuiltInRegistries.BLOCK
+                        .getKey(
+                                state.getBlock()
+                        )
+                        .getPath();
+
+        return path.contains("stone")
+                || path.contains("deepslate")
+                || path.contains("cobble")
+                || path.contains("ore")
+                || path.contains("brick")
+                || path.contains("concrete")
+                || path.contains("terracotta")
+                || path.contains("sandstone")
+                || path.contains("netherrack")
+                || path.contains("basalt")
+                || path.contains("blackstone")
+                || path.contains("tuff")
+                || path.contains("calcite")
+                || path.contains("granite")
+                || path.contains("diorite")
+                || path.contains("andesite")
+                || path.contains("obsidian");
     }
 
     private static void disturbEnvironment(
