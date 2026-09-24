@@ -135,7 +135,7 @@ public final class VoiceCapture {
                                 read
                         );
 
-                MediaVoiceTap.capture(
+                MediaVoiceTap.captureLocal(
                         frame
                 );
 

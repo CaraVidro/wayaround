@@ -20,6 +20,7 @@ public final class MediaClientEvents {
     }
 
     private static boolean bridgeInstalled;
+    private static boolean ambientListenerInstalled;
 
     private static void installBridge() {
         if (bridgeInstalled) {
@@ -34,11 +35,30 @@ public final class MediaClientEvents {
         );
     }
 
+    private static void installAmbientListener() {
+        if (ambientListenerInstalled) {
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        minecraft.getSoundManager()
+                .addListener(
+                        MediaAmbientRecorder.INSTANCE
+                );
+
+        ambientListenerInstalled =
+                true;
+    }
+
     @SubscribeEvent
     public static void onClientTick(
             ClientTickEvent.Post event
     ) {
         installBridge();
+
+        installAmbientListener();
 
         MediaRecorder.tick();
         TvVoiceEmitter.advanceTick();

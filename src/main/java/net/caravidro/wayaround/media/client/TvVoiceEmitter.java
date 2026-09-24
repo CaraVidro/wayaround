@@ -3,6 +3,7 @@ package net.caravidro.wayaround.media.client;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import javax.sound.sampled.AudioFormat;
@@ -15,6 +16,8 @@ import net.caravidro.wayaround.media.TelevisionBlockEntity;
 import net.caravidro.wayaround.media.VhsData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
 
 public final class TvVoiceEmitter {
 
@@ -50,9 +53,8 @@ public final class TvVoiceEmitter {
 
         if (info == null
                 || !television.isPlaying()) {
-            stop(
-                    key
-            );
+
+            stop(key);
             return;
         }
 
@@ -63,65 +65,75 @@ public final class TvVoiceEmitter {
                         .orElse(null);
 
         if (path == null) {
-            stop(
-                    key
-            );
+            stop(key);
             return;
         }
 
-        Session session =
-                SESSIONS.get(
-                        key
+        long elapsedMillis =
+                Math.max(
+                        0L,
+                        (
+                                television.getLevel()
+                                        .getGameTime()
+                                        - television
+                                        .playbackStartGameTime()
+                        )
+                                * 50L
                 );
+
+        Session session =
+                SESSIONS.get(key);
 
         if (session == null
                 || !session.recordingId
-                .equals(
-                        info.recordingId()
-                )
+                        .equals(
+                                info.recordingId()
+                        )
                 || session.playbackStart
-                != television
-                .playbackStartGameTime()) {
+                != television.playbackStartGameTime()) {
 
-            stop(
-                    key
-            );
+            stop(key);
 
-            long elapsedMillis =
-                    Math.max(
-                            0L,
-                            (
-                                    television.getLevel()
-                                            .getGameTime()
-                                            - television
-                                            .playbackStartGameTime()
-                            )
-                                    * 50L
-                    );
+            try (
+                    RecordingReader reader =
+                            new RecordingReader(path)
+            ) {
+                session =
+                        new Session(
+                                info.recordingId(),
+                                television
+                                        .playbackStartGameTime(),
+                                path,
+                                television
+                                        .getBlockPos(),
+                                elapsedMillis,
+                                reader.ambientSounds()
+                        );
 
-            session =
-                    new Session(
-                            info.recordingId(),
-                            television
-                                    .playbackStartGameTime(),
-                            path,
-                            television
-                                    .getBlockPos(),
-                            elapsedMillis
-                    );
+            } catch (Exception exception) {
+                System.err.println(
+                        "[WayAround Media] Falha lendo audio/eventos da VHS: "
+                                + exception.getMessage()
+                );
+
+                return;
+            }
 
             SESSIONS.put(
                     key,
                     session
             );
 
-            session.start();
+            session.startVoice();
         }
 
         session.lastSeenTick =
                 clientTick;
 
         session.updateDistance();
+        session.playAmbientDue(
+                elapsedMillis
+        );
     }
 
     public static void advanceTick() {
@@ -141,8 +153,7 @@ public final class TvVoiceEmitter {
 
             if (clientTick
                     - session.lastSeenTick
-                    > 60L
-                    || session.finished) {
+                    > 60L) {
 
                 session.stop();
                 iterator.remove();
@@ -154,9 +165,7 @@ public final class TvVoiceEmitter {
             String key
     ) {
         Session old =
-                SESSIONS.remove(
-                        key
-                );
+                SESSIONS.remove(key);
 
         if (old != null) {
             old.stop();
@@ -170,20 +179,24 @@ public final class TvVoiceEmitter {
         private final Path path;
         private final BlockPos pos;
         private final long startMillis;
+        private final List<RecordedAmbientSound>
+                ambientSounds;
 
         private volatile boolean stopped;
-        private volatile boolean finished;
         private volatile float gainDb =
                 -80.0F;
 
         private volatile long lastSeenTick;
+
+        private int nextAmbientIndex;
 
         private Session(
                 String recordingId,
                 long playbackStart,
                 Path path,
                 BlockPos pos,
-                long startMillis
+                long startMillis,
+                List<RecordedAmbientSound> ambientSounds
         ) {
             this.recordingId =
                     recordingId;
@@ -199,20 +212,30 @@ public final class TvVoiceEmitter {
 
             this.startMillis =
                     startMillis;
+
+            this.ambientSounds =
+                    ambientSounds;
+
+            while (nextAmbientIndex
+                    < ambientSounds.size()
+                    && ambientSounds
+                    .get(nextAmbientIndex)
+                    .timeMillis()
+                    < startMillis) {
+
+                nextAmbientIndex++;
+            }
         }
 
-        private void start() {
+        private void startVoice() {
             Thread thread =
                     new Thread(
-                            this::play,
+                            this::playVoice,
                             "WayAround-TVVoice-"
                                     + pos.asLong()
                     );
 
-            thread.setDaemon(
-                    true
-            );
-
+            thread.setDaemon(true);
             thread.start();
         }
 
@@ -254,19 +277,78 @@ public final class TvVoiceEmitter {
             }
         }
 
-        private void play() {
+        private void playAmbientDue(
+                long elapsedMillis
+        ) {
+            Minecraft minecraft =
+                    Minecraft.getInstance();
+
+            while (nextAmbientIndex
+                    < ambientSounds.size()) {
+
+                RecordedAmbientSound sound =
+                        ambientSounds.get(
+                                nextAmbientIndex
+                        );
+
+                if (sound.timeMillis()
+                        > elapsedMillis) {
+
+                    break;
+                }
+
+                nextAmbientIndex++;
+
+                ResourceLocation location =
+                        ResourceLocation.tryParse(
+                                sound.soundId()
+                        );
+
+                if (location == null) {
+                    continue;
+                }
+
+                SoundSource source;
+
+                try {
+                    source =
+                            SoundSource.valueOf(
+                                    sound.source()
+                            );
+                } catch (Exception exception) {
+                    source =
+                            SoundSource.AMBIENT;
+                }
+
+                minecraft.getSoundManager()
+                        .play(
+                                new RecordedWorldSound(
+                                        location,
+                                        source,
+                                        sound.volume(),
+                                        sound.pitch(),
+                                        pos.getX()
+                                                + 0.5,
+                                        pos.getY()
+                                                + 0.55,
+                                        pos.getZ()
+                                                + 0.5
+                                )
+                        );
+            }
+        }
+
+        private void playVoice() {
             SourceDataLine line = null;
 
             try (
                     RecordingReader reader =
-                            new RecordingReader(
-                                    path
-                            )
+                            new RecordingReader(path)
             ) {
-                if (reader.audioSamples()
-                        <= 0) {
+                byte[] audio =
+                        reader.readAllAudio();
 
-                    finished = true;
+                if (audio.length == 0) {
                     return;
                 }
 
@@ -287,14 +369,16 @@ public final class TvVoiceEmitter {
 
                 line =
                         (SourceDataLine)
-                                AudioSystem.getLine(
-                                        info
-                                );
+                                AudioSystem.getLine(info);
 
+                /*
+                 * A full second of output buffering gives the JVM plenty of
+                 * room to absorb scheduler hiccups. The previous 200 ms buffer
+                 * plus tiny reads could underrun and sound chopped on the TV.
+                 */
                 line.open(
                         format,
                         reader.sampleRate()
-                                / 5
                                 * 2
                 );
 
@@ -305,22 +389,26 @@ public final class TvVoiceEmitter {
                                 FloatControl.Type.MASTER_GAIN
                         )
                                 ? (FloatControl)
-                                        line.getControl(
-                                                FloatControl.Type.MASTER_GAIN
-                                        )
+                                line.getControl(
+                                        FloatControl.Type.MASTER_GAIN
+                                )
                                 : null;
 
-                int sample =
+                int offset =
                         (int) Math.min(
-                                reader.audioSamples(),
+                                audio.length,
                                 startMillis
                                         * reader.sampleRate()
                                         / 1000L
+                                        * 2L
                         );
 
+                final int chunkBytes =
+                        16_384;
+
                 while (!stopped
-                        && sample
-                        < reader.audioSamples()) {
+                        && offset
+                        < audio.length) {
 
                     if (gain != null) {
                         float clamped =
@@ -337,35 +425,42 @@ public final class TvVoiceEmitter {
                         );
                     }
 
-                    byte[] pcm =
-                            reader.readAudio(
-                                    sample,
-                                    2048
+                    int length =
+                            Math.min(
+                                    chunkBytes,
+                                    audio.length
+                                            - offset
                             );
 
-                    if (pcm.length == 0) {
+                    int written =
+                            line.write(
+                                    audio,
+                                    offset,
+                                    length
+                            );
+
+                    if (written <= 0) {
                         break;
                     }
 
-                    line.write(
-                            pcm,
-                            0,
-                            pcm.length
-                    );
+                    offset +=
+                            written;
+                }
 
-                    sample +=
-                            pcm.length / 2;
+                if (!stopped) {
+                    line.drain();
                 }
 
             } catch (Exception exception) {
                 System.err.println(
                         "[WayAround Media] Falha no audio da TV: "
+                                + exception.getClass()
+                                .getSimpleName()
+                                + ": "
                                 + exception.getMessage()
                 );
 
             } finally {
-                finished = true;
-
                 if (line != null) {
                     try {
                         line.stop();

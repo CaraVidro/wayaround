@@ -292,16 +292,58 @@ public final class MediaRecorder {
     }
 
     public static void mixVoiceFrame(
-            byte[] pcm
+            byte[] pcm,
+            boolean localTrack
     ) {
         RecordingWriter active =
                 writer;
 
         if (active != null) {
             active.mixVoiceFrame(
-                    pcm
+                    pcm,
+                    localTrack
             );
         }
+    }
+
+    public static void recordAmbientSound(
+            String soundId,
+            String source,
+            float volume,
+            float pitch
+    ) {
+        RecordingWriter active =
+                writer;
+
+        if (active != null) {
+            active.addAmbientSound(
+                    soundId,
+                    source,
+                    volume,
+                    pitch
+            );
+        }
+    }
+
+    public static Vec3 recordingPosition() {
+        if (!isRecording()) {
+            return null;
+        }
+
+        if (detachedCameraPosition != null) {
+            return detachedCameraPosition;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.gameRenderer == null) {
+            return null;
+        }
+
+        return minecraft.gameRenderer
+                .getMainCamera()
+                .getPosition();
     }
 
     private static void finishRecording(

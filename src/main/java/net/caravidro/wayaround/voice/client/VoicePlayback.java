@@ -98,7 +98,7 @@ public final class VoicePlayback {
                     continue;
                 }
 
-                MediaVoiceTap.capture(
+                MediaVoiceTap.captureRemote(
                         pcm
                 );
 
