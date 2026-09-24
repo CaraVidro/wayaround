@@ -1,4 +1,47 @@
 {
-  "gui_light": "front",
-  "elements": []
+  "textures": {
+    "blue": "minecraft:block/blue_stained_glass",
+    "particle": "minecraft:block/blue_stained_glass"
+  },
+  "elements": [
+    {
+      "from": [3, 3, 3],
+      "to": [13, 13, 13],
+      "faces": {
+        "down":  { "texture": "#blue" },
+        "up":    { "texture": "#blue" },
+        "north": { "texture": "#blue" },
+        "south": { "texture": "#blue" },
+        "west":  { "texture": "#blue" },
+        "east":  { "texture": "#blue" }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [30, 225, 0],
+      "translation": [0, 0, 0],
+      "scale": [0.9, 0.9, 0.9]
+    },
+    "fixed": {
+      "rotation": [0, 0, 0],
+      "translation": [0, 0, 0],
+      "scale": [0.7, 0.7, 0.7]
+    },
+    "ground": {
+      "scale": [0, 0, 0]
+    },
+    "firstperson_righthand": {
+      "scale": [0, 0, 0]
+    },
+    "firstperson_lefthand": {
+      "scale": [0, 0, 0]
+    },
+    "thirdperson_righthand": {
+      "scale": [0, 0, 0]
+    },
+    "thirdperson_lefthand": {
+      "scale": [0, 0, 0]
+    }
+  }
 }
