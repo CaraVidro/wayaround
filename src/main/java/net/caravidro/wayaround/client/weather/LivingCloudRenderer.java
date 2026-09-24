@@ -46,6 +46,9 @@ public final class LivingCloudRenderer {
 
     private static final double RENDER_RANGE = 920.0;
     private static final double VOXEL = 9.0;
+    private static final double MAX_VISUAL_RADIUS = 240.0;
+    private static final int MAX_HORIZONTAL_VOXELS = 28;
+    private static final int MAX_VERTICAL_VOXELS = 7;
     private static final int REBUILD_INTERVAL = 10;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
 
@@ -121,14 +124,19 @@ public final class LivingCloudRenderer {
                 );
 
         for (LocalWeatherField.CloudCell cell : cells) {
+            double visualRadius =
+                    visualRadius(
+                            cell
+                    );
+
             AABB bounds =
                     new AABB(
-                            cell.x() - cell.radius() - 30.0,
+                            cell.x() - visualRadius - 30.0,
                             cell.y() - 42.0,
-                            cell.z() - cell.radius() - 30.0,
-                            cell.x() + cell.radius() + 30.0,
+                            cell.z() - visualRadius - 30.0,
+                            cell.x() + visualRadius + 30.0,
                             cell.y() + 48.0,
-                            cell.z() + cell.radius() + 30.0
+                            cell.z() + visualRadius + 30.0
                     );
 
             if (!event.getFrustum().isVisible(bounds)) {
@@ -437,7 +445,12 @@ public final class LivingCloudRenderer {
             return builtAt == Long.MIN_VALUE
                     || time - builtAt >= REBUILD_INTERVAL
                     || builtHoleRevision != holeRevision
-                    || Math.abs(builtRadius - cell.radius()) > 0.01;
+                    || Math.abs(
+                            builtRadius
+                                    - visualRadius(
+                                            cell
+                                    )
+                    ) > 0.01;
         }
 
         private void rebuild(
@@ -446,20 +459,28 @@ public final class LivingCloudRenderer {
         ) {
             occupied.clear();
 
-            double radius = cell.radius();
+            double radius =
+                    visualRadius(
+                            cell
+                    );
+
             int horizontal =
-                    Math.max(
+                    Mth.clamp(
+                            (int) Math.ceil(
+                                    radius / VOXEL
+                            ),
                             4,
-                            (int) Math.ceil(radius / VOXEL)
+                            MAX_HORIZONTAL_VOXELS
                     );
 
             int vertical =
-                    Math.max(
-                            2,
+                    Mth.clamp(
                             (int) Math.ceil(
                                     (18.0 + radius * 0.055)
-                                    / VOXEL
-                            )
+                                            / VOXEL
+                            ),
+                            2,
+                            MAX_VERTICAL_VOXELS
                     );
 
             List<Lobe> lobes =
@@ -674,12 +695,36 @@ public final class LivingCloudRenderer {
         }
     }
 
+    private static double visualRadius(
+            LocalWeatherField.CloudCell cell
+    ) {
+        double radius =
+                cell.radius();
+
+        if (!Double.isFinite(
+                radius
+        )) {
+            return 96.0;
+        }
+
+        return Mth.clamp(
+                radius,
+                40.0,
+                MAX_VISUAL_RADIUS
+        );
+    }
+
     private static List<Lobe> lobes(
             LocalWeatherField.CloudCell cell,
             long time
     ) {
         long seed =
                 cell.id();
+
+        double radius =
+                visualRadius(
+                        cell
+                );
 
         int count =
                 7
@@ -704,8 +749,8 @@ public final class LivingCloudRenderer {
                         0.0,
                         0.0,
                         0.0,
-                        cell.radius() * 0.60,
-                        17.0 + cell.radius() * 0.045
+                        radius * 0.60,
+                        17.0 + radius * 0.045
                 )
         );
 
@@ -732,7 +777,7 @@ public final class LivingCloudRenderer {
                     ) * Math.PI * 2.0;
 
             double radialBase =
-                    cell.radius()
+                    radius
                     * (
                             0.18
                             + random01(
@@ -808,7 +853,7 @@ public final class LivingCloudRenderer {
             }
 
             double horizontalRadius =
-                    cell.radius()
+                    radius
                     * (
                             0.18
                             + random01(
