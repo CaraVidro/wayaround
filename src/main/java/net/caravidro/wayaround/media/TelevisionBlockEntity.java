@@ -9,6 +9,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -29,6 +30,15 @@ public final class TelevisionBlockEntity
             -1L;
 
     private boolean ejected;
+
+    private int lastCountdownBeep =
+            -1;
+
+    private boolean startBeepPlayed;
+
+    private float clientTapePrevious;
+    private float clientTapeProgress;
+    private boolean clientHadTape;
 
     public TelevisionBlockEntity(
             BlockPos pos,
@@ -75,6 +85,16 @@ public final class TelevisionBlockEntity
                 >= playbackStartGameTime;
     }
 
+    public float tapeVisualProgress(
+            float partialTick
+    ) {
+        return Mth.lerp(
+                partialTick,
+                clientTapePrevious,
+                clientTapeProgress
+        );
+    }
+
     public int countdownNumber() {
         if (!isCountingDown()) {
             return 0;
@@ -117,6 +137,12 @@ public final class TelevisionBlockEntity
         ejected =
                 false;
 
+        lastCountdownBeep =
+                -1;
+
+        startBeepPlayed =
+                false;
+
         playbackStartGameTime =
                 level == null
                         ? PRE_ROLL_TICKS
@@ -150,6 +176,7 @@ public final class TelevisionBlockEntity
         }
 
         sync();
+        refreshLight();
 
         return true;
     }
@@ -176,6 +203,7 @@ public final class TelevisionBlockEntity
         );
 
         sync();
+        refreshLight();
 
         return result;
     }
@@ -212,6 +240,7 @@ public final class TelevisionBlockEntity
         );
 
         sync();
+        refreshLight();
     }
 
     private void finishPlayback() {
@@ -254,6 +283,7 @@ public final class TelevisionBlockEntity
         }
 
         sync();
+        refreshLight();
     }
 
     public static void serverTick(
@@ -263,11 +293,49 @@ public final class TelevisionBlockEntity
             TelevisionBlockEntity television
     ) {
         if (television.isCountingDown()) {
+            int number =
+                    television.countdownNumber();
+
+            if (number
+                    != television.lastCountdownBeep) {
+
+                television.lastCountdownBeep =
+                        number;
+
+                level.playSound(
+                        null,
+                        pos,
+                        SoundEvents.NOTE_BLOCK_HAT
+                                .value(),
+                        SoundSource.BLOCKS,
+                        0.42F,
+                        1.15F
+                                + (
+                                3 - number
+                        ) * 0.09F
+                );
+            }
+
             return;
         }
 
         if (!television.isPlaying()) {
             return;
+        }
+
+        if (!television.startBeepPlayed) {
+            television.startBeepPlayed =
+                    true;
+
+            level.playSound(
+                    null,
+                    pos,
+                    SoundEvents.NOTE_BLOCK_PLING
+                            .value(),
+                    SoundSource.BLOCKS,
+                    0.55F,
+                    1.65F
+            );
         }
 
         VhsData.Info info =
@@ -303,6 +371,52 @@ public final class TelevisionBlockEntity
             BlockState state,
             TelevisionBlockEntity television
     ) {
+        boolean hasTape =
+                !television.tape
+                        .isEmpty();
+
+        if (hasTape
+                && !television.clientHadTape) {
+
+            television.clientTapeProgress =
+                    1.0F;
+
+            television.clientTapePrevious =
+                    1.0F;
+        }
+
+        television.clientHadTape =
+                hasTape;
+
+        television.clientTapePrevious =
+                television.clientTapeProgress;
+
+        if (hasTape) {
+            float target =
+                    television.ejected
+                            ? 1.0F
+                            : 0.0F;
+
+            float speed =
+                    television.ejected
+                            ? 0.12F
+                            : 0.16F;
+
+            television.clientTapeProgress =
+                    Mth.approach(
+                            television.clientTapeProgress,
+                            target,
+                            speed
+                    );
+
+        } else {
+            television.clientTapeProgress =
+                    0.0F;
+
+            television.clientTapePrevious =
+                    0.0F;
+        }
+
         MediaClientBridge.televisionTick(
                 television
         );
@@ -441,6 +555,15 @@ public final class TelevisionBlockEntity
                     ),
                     Block.UPDATE_ALL
             );
+        }
+    }
+
+    private void refreshLight() {
+        if (level != null) {
+            level.getLightEngine()
+                    .checkBlock(
+                            worldPosition
+                    );
         }
     }
 
