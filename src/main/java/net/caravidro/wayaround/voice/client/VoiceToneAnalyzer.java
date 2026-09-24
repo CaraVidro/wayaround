@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.voice.client;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,288 @@ public final class VoiceToneAnalyzer {
             char punctuation,
             String tone
     ) {
+    }
+
+    public record KeywordEmphasis(
+            double score,
+            double rmsRatio,
+            double durationRatio,
+            double durationSeconds,
+            boolean found
+    ) {
+        public static final KeywordEmphasis NONE =
+                new KeywordEmphasis(
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        false
+                );
+    }
+
+    /**
+     * Urgency intentionally ignores the artificial question boost applied to
+     * ToneProfile.intent(). A rising question is expressive, but it should not
+     * make BLUE spawn like the player is screaming for their life.
+     */
+    public static double urgency(
+            ToneProfile profile
+    ) {
+        if (profile == null) {
+            return 0.0;
+        }
+
+        double volume =
+                normalize(
+                        profile.activeRms(),
+                        0.030,
+                        0.135
+                );
+
+        double peak =
+                normalize(
+                        profile.peakRms(),
+                        0.065,
+                        0.220
+                );
+
+        double range =
+                normalize(
+                        profile.pitchRange(),
+                        38.0,
+                        145.0
+                );
+
+        double movement =
+                profile.startPitch() > 0.0
+                        && profile.endPitch() > 0.0
+                        ? normalize(
+                        Math.abs(
+                                profile.endPitch()
+                                        - profile.startPitch()
+                        ),
+                        12.0,
+                        85.0
+                )
+                        : 0.0;
+
+        double score =
+                volume * 0.36
+                        + peak * 0.34
+                        + range * 0.22
+                        + movement * 0.08;
+
+        if ("ENFATICO".equals(
+                profile.tone()
+        )) {
+            score += 0.08;
+        }
+
+        return clamp01(
+                score
+        );
+    }
+
+    public static KeywordEmphasis analyzeKeyword(
+            byte[] pcm,
+            List<VoskSpeechRecognizer.WordTiming> words,
+            ToneProfile profile,
+            String... keywords
+    ) {
+        if (pcm == null
+                || pcm.length < 4
+                || words == null
+                || words.isEmpty()
+                || profile == null
+                || keywords == null
+                || keywords.length == 0) {
+
+            return KeywordEmphasis.NONE;
+        }
+
+        short[] samples =
+                decodeLittleEndian16(
+                        pcm
+                );
+
+        List<Double> durations =
+                new ArrayList<>();
+
+        for (VoskSpeechRecognizer.WordTiming word :
+                words) {
+
+            double duration =
+                    Math.max(
+                            0.0,
+                            word.end()
+                                    - word.start()
+                    );
+
+            if (duration > 0.03) {
+                durations.add(
+                        duration
+                );
+            }
+        }
+
+        Collections.sort(
+                durations
+        );
+
+        double typicalDuration =
+                durations.isEmpty()
+                        ? 0.24
+                        : percentile(
+                        durations,
+                        0.50
+                );
+
+        KeywordEmphasis best =
+                KeywordEmphasis.NONE;
+
+        for (VoskSpeechRecognizer.WordTiming word :
+                words) {
+
+            if (!matchesKeyword(
+                    word.word(),
+                    keywords
+            )) {
+                continue;
+            }
+
+            int start =
+                    Math.max(
+                            0,
+                            (int) Math.floor(
+                                    (
+                                            word.start()
+                                                    - 0.025
+                                    )
+                                            * VoiceConstants.SAMPLE_RATE
+                            )
+                    );
+
+            int end =
+                    Math.min(
+                            samples.length,
+                            (int) Math.ceil(
+                                    (
+                                            word.end()
+                                                    + 0.025
+                                    )
+                                            * VoiceConstants.SAMPLE_RATE
+                            )
+                    );
+
+            if (end - start < 32) {
+                continue;
+            }
+
+            double localRms =
+                    calculateRms(
+                            samples,
+                            start,
+                            end - start
+                    );
+
+            double duration =
+                    Math.max(
+                            0.04,
+                            word.end()
+                                    - word.start()
+                    );
+
+            double rmsRatio =
+                    localRms
+                            / Math.max(
+                            0.006,
+                            profile.activeRms()
+                    );
+
+            double durationRatio =
+                    duration
+                            / Math.max(
+                            0.10,
+                            typicalDuration
+                    );
+
+            double score =
+                    clamp01(
+                            normalize(
+                                    rmsRatio,
+                                    1.02,
+                                    1.72
+                            )
+                                    * 0.68
+                                    + normalize(
+                                    durationRatio,
+                                    1.05,
+                                    1.90
+                            )
+                                    * 0.32
+                    );
+
+            if (score > best.score()) {
+                best =
+                        new KeywordEmphasis(
+                                score,
+                                rmsRatio,
+                                durationRatio,
+                                duration,
+                                true
+                        );
+            }
+        }
+
+        return best;
+    }
+
+    private static boolean matchesKeyword(
+            String word,
+            String... keywords
+    ) {
+        String normalizedWord =
+                normalizeWord(
+                        word
+                );
+
+        for (String keyword :
+                keywords) {
+
+            if (normalizedWord.equals(
+                    normalizeWord(
+                            keyword
+                    )
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static String normalizeWord(
+            String text
+    ) {
+        if (text == null) {
+            return "";
+        }
+
+        return Normalizer.normalize(
+                        text,
+                        Normalizer.Form.NFD
+                )
+                .replaceAll(
+                        "\\p{M}+",
+                        ""
+                )
+                .toLowerCase(
+                        java.util.Locale.ROOT
+                )
+                .replaceAll(
+                        "[^a-z0-9]+",
+                        ""
+                );
     }
 
     public static ToneProfile analyze(

@@ -14,8 +14,20 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record VoiceIntentC2SPayload(
         byte intent,
-        float output
+        float output,
+        float urgency
 ) implements CustomPacketPayload {
+
+    public VoiceIntentC2SPayload(
+            byte intent,
+            float output
+    ) {
+        this(
+                intent,
+                output,
+                0.0F
+        );
+    }
 
     public static final byte BLUE_SUMMON = 1;
     public static final byte BLUE_ORBIT = 2;
@@ -23,6 +35,7 @@ public record VoiceIntentC2SPayload(
     public static final byte BLUE_STOP = 4;
     public static final byte BLUE_HOLD = 5;
     public static final byte RED_FIRE = 6;
+    public static final byte BLUE_OUTPUT = 7;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -44,10 +57,14 @@ public record VoiceIntentC2SPayload(
                         buf.writeFloat(
                                 payload.output()
                         );
+                        buf.writeFloat(
+                                payload.urgency()
+                        );
                     },
                     buf ->
                             new VoiceIntentC2SPayload(
                                     buf.readByte(),
+                                    buf.readFloat(),
                                     buf.readFloat()
                             )
             );
@@ -76,7 +93,8 @@ public record VoiceIntentC2SPayload(
                         case BLUE_SUMMON ->
                                 BlueManager.invokeFromVoice(
                                         player,
-                                        payload.output()
+                                        payload.output(),
+                                        payload.urgency()
                                 );
 
                         case BLUE_ORBIT ->
@@ -102,6 +120,12 @@ public record VoiceIntentC2SPayload(
                         case RED_FIRE ->
                                 ImaginaryBetaManager.fireRed(
                                         player
+                                );
+
+                        case BLUE_OUTPUT ->
+                                BlueManager.setActiveOutput(
+                                        player,
+                                        payload.output()
                                 );
 
                         default -> {

@@ -151,6 +151,18 @@ public final class BlueManager {
             ServerPlayer player,
             float output
     ) {
+        return invokeFromVoice(
+                player,
+                output,
+                0.42F
+        );
+    }
+
+    public static boolean invokeFromVoice(
+            ServerPlayer player,
+            float output,
+            float urgency
+    ) {
         if (!beginCharge(
                 player
         )) {
@@ -199,13 +211,78 @@ public final class BlueManager {
             }
         }
 
+        float normalizedUrgency =
+                Mth.clamp(
+                        urgency,
+                        0.0F,
+                        1.0F
+                );
+
+        int emergenceTicks =
+                normalizedUrgency >= 0.72F
+                        ? 2
+                        : normalizedUrgency >= 0.52F
+                                ? 9
+                                : normalizedUrgency >= 0.34F
+                                        ? 17
+                                        : 30;
+
         finishCharge(
-                player
+                player,
+                emergenceTicks
         );
 
         return ACTIVE.containsKey(
                 player.getUUID()
         );
+    }
+
+    public static boolean setActiveOutput(
+            ServerPlayer player,
+            float output
+    ) {
+        ActiveBlue blue =
+                ACTIVE.get(
+                        player.getUUID()
+                );
+
+        if (blue == null
+                || !Float.isFinite(
+                        output
+                )) {
+
+            return false;
+        }
+
+        float normalized =
+                Mth.clamp(
+                        output,
+                        0.0F,
+                        1.0F
+                );
+
+        blue.targetPower =
+                Mth.lerp(
+                        normalized,
+                        0.04F,
+                        1.35F
+                );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        BlockPos.containing(
+                                blue.center
+                        ),
+                        SoundEvents.AMETHYST_BLOCK_CHIME,
+                        SoundSource.PLAYERS,
+                        0.50F,
+                        normalized >= 0.5F
+                                ? 1.55F
+                                : 0.72F
+                );
+
+        return true;
     }
 
     public static boolean holdActive(
@@ -348,6 +425,16 @@ public final class BlueManager {
     public static void finishCharge(
             ServerPlayer player
     ) {
+        finishCharge(
+                player,
+                0
+        );
+    }
+
+    private static void finishCharge(
+            ServerPlayer player,
+            int emergenceTicks
+    ) {
         ChargeState charge =
                 CHARGING.remove(
                         player.getUUID()
@@ -364,7 +451,7 @@ public final class BlueManager {
          * A tap can create a genuinely tiny Blue. It still exerts gravity,
          * but destructive capacity climbs on a steep curve with charge.
          */
-        float power =
+        float targetPower =
                 Mth.clamp(
                         0.025F
                                 + charge.ticks
@@ -380,11 +467,31 @@ public final class BlueManager {
                 player.getLookAngle()
                         .normalize();
 
+        int spawnTicks =
+                Math.max(
+                        0,
+                        emergenceTicks
+                );
+
+        float initialPower =
+                spawnTicks > 3
+                        ? Math.max(
+                        0.04F,
+                        targetPower
+                                * 0.08F
+                )
+                        : targetPower;
+
+        double initialDistance =
+                spawnTicks > 3
+                        ? 0.72
+                        : distance;
+
         Vec3 center =
                 player.getEyePosition()
                         .add(
                                 look.scale(
-                                        distance
+                                        initialDistance
                                 )
                         );
 
@@ -396,7 +503,9 @@ public final class BlueManager {
                         center,
                         look,
                         distance,
-                        power,
+                        initialPower,
+                        targetPower,
+                        spawnTicks,
                         player.serverLevel()
                                 .random
                                 .nextBoolean()
@@ -415,60 +524,86 @@ public final class BlueManager {
                 true
         );
 
-        player.serverLevel()
-                .playSound(
-                        null,
-                        player.blockPosition(),
-                        SoundEvents.ENDERMAN_TELEPORT,
-                        SoundSource.PLAYERS,
-                        0.72F,
-                        0.58F
-                );
+        if (spawnTicks > 3) {
+            player.serverLevel()
+                    .playSound(
+                            null,
+                            player.blockPosition(),
+                            SoundEvents.AMETHYST_BLOCK_RESONATE,
+                            SoundSource.PLAYERS,
+                            0.42F,
+                            0.72F
+                    );
 
-        player.serverLevel()
-                .playSound(
-                        null,
-                        BlockPos.containing(
-                                center
-                        ),
-                        SoundEvents.GENERIC_EXPLODE.value(),
-                        SoundSource.PLAYERS,
-                        1.15F,
-                        1.28F
-                );
+            player.serverLevel()
+                    .sendParticles(
+                            ParticleTypes.PORTAL,
+                            center.x,
+                            center.y,
+                            center.z,
+                            24,
+                            0.24,
+                            0.34,
+                            0.24,
+                            0.025
+                    );
 
-        burst(
-                player.serverLevel(),
-                center,
-                82,
-                1.55F
-        );
+        } else {
+            player.serverLevel()
+                    .playSound(
+                            null,
+                            player.blockPosition(),
+                            SoundEvents.ENDERMAN_TELEPORT,
+                            SoundSource.PLAYERS,
+                            0.72F,
+                            0.58F
+                    );
 
-        player.serverLevel()
-                .sendParticles(
-                        ParticleTypes.EXPLOSION,
-                        center.x,
-                        center.y,
-                        center.z,
-                        7,
-                        1.0
-                                + power
-                                        * 1.6,
-                        0.8
-                                + power,
-                        1.0
-                                + power
-                                        * 1.6,
-                        0.06
-                );
+            player.serverLevel()
+                    .playSound(
+                            null,
+                            BlockPos.containing(
+                                    center
+                            ),
+                            SoundEvents.GENERIC_EXPLODE.value(),
+                            SoundSource.PLAYERS,
+                            1.15F,
+                            1.28F
+                    );
+
+            burst(
+                    player.serverLevel(),
+                    center,
+                    82,
+                    1.55F
+            );
+
+            player.serverLevel()
+                    .sendParticles(
+                            ParticleTypes.EXPLOSION,
+                            center.x,
+                            center.y,
+                            center.z,
+                            7,
+                            1.0
+                                    + targetPower
+                                            * 1.6,
+                            0.8
+                                    + targetPower,
+                            1.0
+                                    + targetPower
+                                            * 1.6,
+                            0.06
+                    );
+        }
 
         sendVisual(
                 player.serverLevel(),
                 blue.owner,
                 center,
-                power,
+                initialPower,
                 attractionRadius(
-                        power
+                        initialPower
                 ),
                 BlueVisualPayload.ACTIVE
         );
@@ -676,6 +811,102 @@ public final class BlueManager {
             blue.look =
                     owner.getLookAngle()
                             .normalize();
+
+            if (blue.emergenceAge
+                    < blue.emergenceDuration) {
+
+                blue.emergenceAge++;
+
+                float raw =
+                        blue.emergenceAge
+                                / (float) Math.max(
+                                1,
+                                blue.emergenceDuration
+                        );
+
+                float progress =
+                        raw
+                                * raw
+                                * (
+                                3.0F
+                                        - 2.0F
+                                                * raw
+                        );
+
+                blue.power =
+                        Mth.lerp(
+                                progress,
+                                Math.max(
+                                        0.04F,
+                                        blue.targetPower
+                                                * 0.08F
+                                ),
+                                blue.targetPower
+                        );
+
+                double emergingDistance =
+                        0.72
+                                + (
+                                blue.distance
+                                        - 0.72
+                        )
+                                        * progress;
+
+                blue.center =
+                        owner.getEyePosition()
+                                .add(
+                                        blue.look.scale(
+                                                emergingDistance
+                                        )
+                                );
+
+                if (tick % 2L == 0L) {
+                    level.sendParticles(
+                            ParticleTypes.PORTAL,
+                            blue.center.x,
+                            blue.center.y,
+                            blue.center.z,
+                            5,
+                            0.16
+                                    + progress * 0.20,
+                            0.16
+                                    + progress * 0.20,
+                            0.16
+                                    + progress * 0.20,
+                            0.02
+                    );
+                }
+
+                sendVisual(
+                        level,
+                        blue.owner,
+                        blue.center,
+                        blue.power,
+                        attractionRadius(
+                                blue.power
+                        ),
+                        BlueVisualPayload.ACTIVE
+                );
+
+                continue;
+            }
+
+            blue.power =
+                    Mth.lerp(
+                            0.18F,
+                            blue.power,
+                            blue.targetPower
+                    );
+
+            if (Math.abs(
+                    blue.power
+                            - blue.targetPower
+            )
+                    < 0.004F) {
+
+                blue.power =
+                        blue.targetPower;
+            }
 
             if (blue.held) {
                 /*
@@ -3624,7 +3855,10 @@ public final class BlueManager {
 
         private final UUID owner;
         private final net.minecraft.resources.ResourceKey<Level> dimension;
-        private final float power;
+        private float power;
+        private float targetPower;
+        private final int emergenceDuration;
+        private int emergenceAge;
         private final double spinDirection;
         private final long startedAt;
 
@@ -3650,6 +3884,8 @@ public final class BlueManager {
                 Vec3 look,
                 double distance,
                 float power,
+                float targetPower,
+                int emergenceDuration,
                 double spinDirection,
                 long startedAt
         ) {
@@ -3659,6 +3895,12 @@ public final class BlueManager {
             this.look = look;
             this.distance = distance;
             this.power = power;
+            this.targetPower = targetPower;
+            this.emergenceDuration =
+                    Math.max(
+                            0,
+                            emergenceDuration
+                    );
             this.spinDirection = spinDirection;
             this.startedAt = startedAt;
         }

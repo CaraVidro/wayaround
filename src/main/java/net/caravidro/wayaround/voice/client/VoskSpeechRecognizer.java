@@ -10,7 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.caravidro.wayaround.WayAround;
@@ -53,14 +55,40 @@ public final class VoskSpeechRecognizer {
     private static volatile Model model;
     private static volatile String lastError = "";
 
+    public record WordTiming(
+            String word,
+            double start,
+            double end,
+            double confidence
+    ) {
+    }
+
     public record Result(
             String text,
-            String error
+            String error,
+            List<WordTiming> words
     ) {
+        public Result(
+                String text,
+                String error
+        ) {
+            this(
+                    text,
+                    error,
+                    List.of()
+            );
+        }
+
         public boolean success() {
             return text != null
                     && !text.isBlank();
         }
+    }
+
+    private record PreparedAudio(
+            byte[] pcm,
+            double offsetSeconds
+    ) {
     }
 
     public static boolean isModelInstalled() {
@@ -172,12 +200,15 @@ public final class VoskSpeechRecognizer {
             long modelReady =
                     System.nanoTime();
 
-            byte[] pcm16k =
+            PreparedAudio prepared =
                     preprocessForRecognition(
                             downsample48kTo16k(
                                     pcm48k
                             )
                     );
+
+            byte[] pcm16k =
+                    prepared.pcm();
 
             long preprocessed =
                     System.nanoTime();
@@ -283,7 +314,11 @@ public final class VoskSpeechRecognizer {
 
                 return new Result(
                         text,
-                        ""
+                        "",
+                        parseWords(
+                                json,
+                                prepared.offsetSeconds()
+                        )
                 );
             }
 
@@ -305,6 +340,78 @@ public final class VoskSpeechRecognizer {
                     message
             );
         }
+    }
+
+    private static List<WordTiming> parseWords(
+            JsonObject json,
+            double offsetSeconds
+    ) {
+        if (!json.has(
+                "result"
+        )
+                || !json.get(
+                "result"
+        )
+                .isJsonArray()) {
+
+            return List.of();
+        }
+
+        List<WordTiming> words =
+                new ArrayList<>();
+
+        for (JsonElement element :
+                json.getAsJsonArray(
+                        "result"
+                )) {
+
+            if (!element.isJsonObject()) {
+                continue;
+            }
+
+            JsonObject word =
+                    element.getAsJsonObject();
+
+            if (!word.has(
+                    "word"
+            )) {
+                continue;
+            }
+
+            double start =
+                    word.has("start")
+                            ? word.get("start")
+                            .getAsDouble()
+                            : 0.0;
+
+            double end =
+                    word.has("end")
+                            ? word.get("end")
+                            .getAsDouble()
+                            : start;
+
+            double confidence =
+                    word.has("conf")
+                            ? word.get("conf")
+                            .getAsDouble()
+                            : 0.0;
+
+            words.add(
+                    new WordTiming(
+                            word.get("word")
+                                    .getAsString(),
+                            start
+                                    + offsetSeconds,
+                            end
+                                    + offsetSeconds,
+                            confidence
+                    )
+            );
+        }
+
+        return List.copyOf(
+                words
+        );
     }
 
     private static Model ensureModel()
@@ -609,14 +716,17 @@ public final class VoskSpeechRecognizer {
         }
     }
 
-    private static byte[] preprocessForRecognition(
+    private static PreparedAudio preprocessForRecognition(
             byte[] pcm
     ) {
         int sampleCount =
                 pcm.length / 2;
 
         if (sampleCount < 160) {
-            return pcm;
+            return new PreparedAudio(
+                    pcm,
+                    0.0
+            );
         }
 
         int[] samples =
@@ -837,7 +947,11 @@ public final class VoskSpeechRecognizer {
                     );
         }
 
-        return output;
+        return new PreparedAudio(
+                output,
+                firstActive
+                        / (double) RECOGNITION_SAMPLE_RATE
+        );
     }
 
     private static byte[] downsample48kTo16k(

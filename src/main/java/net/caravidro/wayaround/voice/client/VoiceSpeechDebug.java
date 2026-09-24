@@ -93,10 +93,6 @@ public final class VoiceSpeechDebug {
                 pcm.length
         );
 
-        /*
-         * Recognition comes first. Intent should never wait for the much more
-         * expensive pitch/tone analysis.
-         */
         VoskSpeechRecognizer.Result recognition;
 
         try {
@@ -117,68 +113,49 @@ public final class VoiceSpeechDebug {
             return;
         }
 
-        long recognizedAt =
-                System.nanoTime();
-
         long recognitionMillis =
-                (recognizedAt - started)
+                (
+                        System.nanoTime()
+                                - started
+                )
                         / 1_000_000L;
 
-        if (recognition.success()) {
-            WayAround.LOGGER.info(
-                    "[Voice/STT] Entendido em {} ms: \"{}\"",
-                    recognitionMillis,
-                    recognition.text()
-            );
-        } else {
+        if (!recognition.success()) {
             WayAround.LOGGER.warn(
                     "[Voice/STT] Falha em {} ms: {}",
                     recognitionMillis,
                     recognition.error()
             );
-        }
 
-        Minecraft minecraft =
-                Minecraft.getInstance();
+            if (VoiceConfig
+                    .isDebugSpeechEnabled()) {
 
-        minecraft.execute(
-                () -> {
-                    if (recognition.success()) {
-                        VoiceIntentClient.handleTranscript(
-                                recognition.text()
-                        );
-
-                    } else if (VoiceConfig
-                            .isDebugSpeechEnabled()) {
-
-                        minecraft.gui
-                                .getChat()
-                                .addMessage(
+                showClientMessage(
+                        Component.literal(
+                                        "[Voice Debug] "
+                                )
+                                .withStyle(
+                                        ChatFormatting.RED
+                                )
+                                .append(
                                         Component.literal(
-                                                        "[Voice Debug] "
-                                                )
-                                                .withStyle(
-                                                        ChatFormatting.RED
-                                                )
-                                                .append(
-                                                        Component.literal(
-                                                                recognition.error()
-                                                        )
-                                                        .withStyle(
-                                                                ChatFormatting.GRAY
-                                                        )
-                                                )
-                                );
-                    }
-                }
-        );
-
-        if (!recognition.success()
-                || !VoiceConfig
-                .isDebugSpeechEnabled()) {
+                                                recognition.error()
+                                        )
+                                        .withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                                )
+                );
+            }
 
             return;
         }
+
+        WayAround.LOGGER.info(
+                "[Voice/STT] Entendido em {} ms: \"{}\"",
+                recognitionMillis,
+                recognition.text()
+        );
 
         long toneStarted =
                 System.nanoTime();
@@ -188,15 +165,73 @@ public final class VoiceSpeechDebug {
                         pcm
                 );
 
+        double urgency =
+                VoiceToneAnalyzer.urgency(
+                        profile
+                );
+
+        VoiceToneAnalyzer.KeywordEmphasis blueEmphasis =
+                VoiceToneAnalyzer.analyzeKeyword(
+                        pcm,
+                        recognition.words(),
+                        profile,
+                        "azul",
+                        "blue"
+                );
+
+        VoiceToneAnalyzer.KeywordEmphasis redEmphasis =
+                VoiceToneAnalyzer.analyzeKeyword(
+                        pcm,
+                        recognition.words(),
+                        profile,
+                        "vermelho",
+                        "red"
+                );
+
         long toneMillis =
-                (System.nanoTime()
-                        - toneStarted)
+                (
+                        System.nanoTime()
+                                - toneStarted
+                )
                         / 1_000_000L;
 
         WayAround.LOGGER.info(
-                "[Voice/Tone] analisado em {} ms",
-                toneMillis
+                "[Voice/Tone] {} ms urgencia={} blueEmphasis={} redEmphasis={}",
+                toneMillis,
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        urgency
+                ),
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        blueEmphasis.score()
+                ),
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        redEmphasis.score()
+                )
         );
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        minecraft.execute(
+                () -> VoiceIntentClient.handleTranscript(
+                        recognition.text(),
+                        profile,
+                        blueEmphasis.score(),
+                        redEmphasis.score()
+                )
+        );
+
+        if (!VoiceConfig
+                .isDebugSpeechEnabled()) {
+
+            return;
+        }
 
         minecraft.execute(
                 () -> {
@@ -228,16 +263,22 @@ public final class VoiceSpeechDebug {
                     String metrics =
                             String.format(
                                     Locale.ROOT,
-                                    "tom=%s | intencao=%d%% | pitch %.0f->%.0f Hz | variacao %.0f Hz | vogal segura %.2fs",
+                                    "tom=%s | urgencia=%d%% | enfase azul=%d%% | vermelho=%d%% | pitch %.0f->%.0f Hz",
                                     profile.tone(),
                                     Math.round(
-                                            profile.intent()
+                                            urgency
+                                                    * 100.0
+                                    ),
+                                    Math.round(
+                                            blueEmphasis.score()
+                                                    * 100.0
+                                    ),
+                                    Math.round(
+                                            redEmphasis.score()
                                                     * 100.0
                                     ),
                                     profile.startPitch(),
-                                    profile.endPitch(),
-                                    profile.pitchRange(),
-                                    profile.holdSeconds()
+                                    profile.endPitch()
                             );
 
                     minecraft.gui

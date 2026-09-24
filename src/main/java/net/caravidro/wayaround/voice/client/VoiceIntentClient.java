@@ -44,6 +44,9 @@ public final class VoiceIntentClient {
     private static float pendingOutput =
             -1.0F;
 
+    private static float pendingUrgency =
+            0.0F;
+
     private static long outputExpiresAt;
 
     public static boolean isEnabled() {
@@ -52,6 +55,20 @@ public final class VoiceIntentClient {
 
     public static void handleTranscript(
             String transcript
+    ) {
+        handleTranscript(
+                transcript,
+                null,
+                0.0,
+                0.0
+        );
+    }
+
+    public static void handleTranscript(
+            String transcript,
+            VoiceToneAnalyzer.ToneProfile profile,
+            double blueEmphasis,
+            double redEmphasis
     ) {
         if (!ENABLED
                 || transcript == null
@@ -72,10 +89,30 @@ public final class VoiceIntentClient {
             return;
         }
 
+        double globalUrgency =
+                VoiceToneAnalyzer.urgency(
+                        profile
+                );
+
         WayAround.LOGGER.info(
-                "[Voice/Intent] bruto=\"{}\" normalizado=\"{}\"",
+                "[Voice/Intent] bruto=\"{}\" normalizado=\"{}\" urgencia={} enfaseBlue={} enfaseRed={}",
                 transcript,
-                normalized
+                normalized,
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        globalUrgency
+                ),
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        blueEmphasis
+                ),
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        redEmphasis
+                )
         );
 
         if (now > outputExpiresAt) {
@@ -174,12 +211,35 @@ public final class VoiceIntentClient {
                 BlueClientEffects.hasLocalControllableBlue();
 
         if (controllingBlue
+                && output != OutputModifier.NONE) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_OUTPUT,
+                    pendingOutput,
+                    0.0F,
+                    output == OutputModifier.MAXIMUM
+                            ? "BLUE / OUTPUT MAXIMO"
+                            : "BLUE / OUTPUT MINIMO"
+            );
+
+            pendingOutput =
+                    -1.0F;
+
+            outputExpiresAt =
+                    0L;
+
+            clearContext();
+            return;
+        }
+
+        if (controllingBlue
                 && looksLikeFinish(
                 currentWords
         )) {
             dispatch(
                     VoiceIntentC2SPayload.BLUE_STOP,
                     -1.0F,
+                    0.0F,
                     "BLUE / ENCERRAR"
             );
 
@@ -194,6 +254,7 @@ public final class VoiceIntentClient {
             dispatch(
                     VoiceIntentC2SPayload.BLUE_HOLD,
                     -1.0F,
+                    0.0F,
                     "BLUE / PARAR"
             );
 
@@ -208,6 +269,7 @@ public final class VoiceIntentClient {
             dispatch(
                     VoiceIntentC2SPayload.BLUE_LAUNCH,
                     -1.0F,
+                    0.0F,
                     "BLUE / LANCAR"
             );
 
@@ -222,6 +284,7 @@ public final class VoiceIntentClient {
             dispatch(
                     VoiceIntentC2SPayload.BLUE_ORBIT,
                     -1.0F,
+                    0.0F,
                     "BLUE / ORBITA"
             );
 
@@ -239,12 +302,26 @@ public final class VoiceIntentClient {
             pendingIntent =
                     VoiceIntentC2SPayload.RED_FIRE;
 
+            pendingUrgency =
+                    (float) Math.max(
+                            globalUrgency,
+                            redEmphasis
+                    );
+
+            long redDelay =
+                    decisionDelay(
+                            pendingUrgency,
+                            320L
+                    );
+
             pendingAt =
                     now
-                            + 320L;
+                            + redDelay;
 
             WayAround.LOGGER.info(
-                    "[Voice/Intent] RED completo -> PENDING"
+                    "[Voice/Intent] RED completo -> PENDING {} ms urgencia={}",
+                    redDelay,
+                    pendingUrgency
             );
 
             status(
@@ -265,14 +342,27 @@ public final class VoiceIntentClient {
             pendingIntent =
                     VoiceIntentC2SPayload.BLUE_SUMMON;
 
+            pendingUrgency =
+                    (float) Math.max(
+                            globalUrgency,
+                            blueEmphasis
+                    );
+
+            long blueDelay =
+                    decisionDelay(
+                            pendingUrgency,
+                            DECISION_DELAY_MS
+                    );
+
             pendingAt =
                     now
-                            + DECISION_DELAY_MS;
+                            + blueDelay;
 
             WayAround.LOGGER.info(
-                    "[Voice/Intent] BLUE completo -> PENDING por {} ms output={}",
-                    DECISION_DELAY_MS,
-                    pendingOutput
+                    "[Voice/Intent] BLUE completo -> PENDING {} ms output={} urgencia={}",
+                    blueDelay,
+                    pendingOutput,
+                    pendingUrgency
             );
 
             status(
@@ -331,6 +421,7 @@ public final class VoiceIntentClient {
             dispatch(
                     intent,
                     output,
+                    pendingUrgency,
                     output < 0.0F
                             ? "SUMMON BLUE"
                             : (
@@ -352,6 +443,7 @@ public final class VoiceIntentClient {
             dispatch(
                     intent,
                     -1.0F,
+                    pendingUrgency,
                     "TECNICA IMAGINARIA / VERMELHO"
             );
         }
@@ -359,15 +451,43 @@ public final class VoiceIntentClient {
         clearContext();
     }
 
+    private static long decisionDelay(
+            double urgency,
+            long calmDelay
+    ) {
+        if (urgency >= 0.72) {
+            return 35L;
+        }
+
+        if (urgency >= 0.52) {
+            return Math.min(
+                    calmDelay,
+                    170L
+            );
+        }
+
+        if (urgency >= 0.34) {
+            return Math.min(
+                    calmDelay,
+                    360L
+            );
+        }
+
+        return calmDelay;
+    }
+
     private static void dispatch(
             byte intent,
             float output,
+            float urgency,
             String label
     ) {
         long now =
                 System.currentTimeMillis();
 
-        if (now - lastTriggerAt
+        if (intent
+                != VoiceIntentC2SPayload.BLUE_OUTPUT
+                && now - lastTriggerAt
                 < TRIGGER_COOLDOWN_MS) {
 
             return;
@@ -384,20 +504,26 @@ public final class VoiceIntentClient {
         }
 
         WayAround.LOGGER.info(
-                "[Voice/Intent] DISPATCH {} output={}",
+                "[Voice/Intent] DISPATCH {} output={} urgencia={}",
                 label,
-                output
+                output,
+                urgency
         );
 
         PacketDistributor.sendToServer(
                 new VoiceIntentC2SPayload(
                         intent,
-                        output
+                        output,
+                        urgency
                 )
         );
 
-        lastTriggerAt =
-                now;
+        if (intent
+                != VoiceIntentC2SPayload.BLUE_OUTPUT) {
+
+            lastTriggerAt =
+                    now;
+        }
 
         status(
                 label,
@@ -1013,6 +1139,9 @@ public final class VoiceIntentClient {
 
         pendingIntent =
                 0;
+
+        pendingUrgency =
+                0.0F;
     }
 
     private static void status(
