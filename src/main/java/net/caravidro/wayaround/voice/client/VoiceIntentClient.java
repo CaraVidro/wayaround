@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -61,6 +62,12 @@ public final class VoiceIntentClient {
             return;
         }
 
+        WayAround.LOGGER.info(
+                "[Voice/Intent] bruto=\"{}\" normalizado=\"{}\"",
+                transcript,
+                normalized
+        );
+
         if (now > contextExpiresAt) {
             rollingContext =
                     "";
@@ -85,9 +92,18 @@ public final class VoiceIntentClient {
                         rollingContext
                 );
 
+        WayAround.LOGGER.info(
+                "[Voice/Intent] contexto=\"{}\"",
+                rollingContext
+        );
+
         if (containsCancellation(
                 words
         )) {
+            WayAround.LOGGER.info(
+                    "[Voice/Intent] CANCELADO por palavra explicita"
+            );
+
             clearPending();
 
             status(
@@ -114,6 +130,11 @@ public final class VoiceIntentClient {
                     now
                             + DECISION_DELAY_MS;
 
+            WayAround.LOGGER.info(
+                    "[Voice/Intent] BLUE completo -> PENDING por {} ms",
+                    DECISION_DELAY_MS
+            );
+
             status(
                     "BLUE entendido... aguardando contexto",
                     ChatFormatting.BLUE
@@ -123,6 +144,10 @@ public final class VoiceIntentClient {
         }
 
         if (match.prefix()) {
+            WayAround.LOGGER.info(
+                    "[Voice/Intent] prefixo reconhecido; aguardando tecnica/BLUE"
+            );
+
             status(
                     "tecnica imaginaria... aguardando tecnica",
                     ChatFormatting.AQUA
@@ -164,6 +189,10 @@ public final class VoiceIntentClient {
             clearPending();
             return;
         }
+
+        WayAround.LOGGER.info(
+                "[Voice/Intent] DISPARANDO BLUE para o servidor"
+        );
 
         PacketDistributor.sendToServer(
                 new VoiceIntentC2SPayload(

@@ -4,6 +4,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import net.caravidro.wayaround.WayAround;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -79,6 +80,18 @@ public final class VoiceSpeechDebug {
                 VoskSpeechRecognizer.recognize(
                         pcm
                 );
+
+        if (recognition.success()) {
+            WayAround.LOGGER.info(
+                    "[Voice/STT] Entendido: \"{}\"",
+                    recognition.text()
+            );
+        } else {
+            WayAround.LOGGER.warn(
+                    "[Voice/STT] Falha: {}",
+                    recognition.error()
+            );
+        }
 
         Minecraft minecraft =
                 Minecraft.getInstance();
