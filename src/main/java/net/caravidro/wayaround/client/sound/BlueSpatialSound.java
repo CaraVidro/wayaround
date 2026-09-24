@@ -32,8 +32,14 @@ public final class BlueSpatialSound
         this.owner =
                 owner;
 
+        /*
+         * The ability owns the lifetime now. Looping lets the 55 s track
+         * continue through the collapse/tail instead of cutting at the OGG
+         * boundary; BlueClientEffects stops it when the synchronized effect
+         * is truly over.
+         */
         this.looping =
-                false;
+                true;
 
         this.delay =
                 0;
