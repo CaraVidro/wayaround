@@ -616,6 +616,11 @@ public final class MediaRecorder {
                 return;
             }
 
+            MediaTransferClient.queueUpload(
+                    summary.recordingId(),
+                    summary.path()
+            );
+
             PacketDistributor.sendToServer(
                     new RecordingFinishedC2SPayload(
                             summary.recordingId(),

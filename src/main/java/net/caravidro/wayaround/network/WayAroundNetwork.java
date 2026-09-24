@@ -106,5 +106,23 @@ public final class WayAroundNetwork {
                 PlacedCameraPickupS2CPayload.STREAM_CODEC,
                 PlacedCameraPickupS2CPayload::handle
         );
+
+        registrar.playToServer(
+                MediaRecordingUploadC2SPayload.TYPE,
+                MediaRecordingUploadC2SPayload.STREAM_CODEC,
+                MediaRecordingUploadC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                MediaRecordingRequestC2SPayload.TYPE,
+                MediaRecordingRequestC2SPayload.STREAM_CODEC,
+                MediaRecordingRequestC2SPayload::handle
+        );
+
+        registrar.playToClient(
+                MediaRecordingChunkS2CPayload.TYPE,
+                MediaRecordingChunkS2CPayload.STREAM_CODEC,
+                MediaRecordingChunkS2CPayload::handle
+        );
     }
 }

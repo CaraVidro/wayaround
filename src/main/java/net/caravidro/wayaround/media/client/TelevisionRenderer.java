@@ -114,14 +114,8 @@ public final class TelevisionRenderer
                         .orElse(null);
 
         if (path == null) {
-            reportOnce(
-                    "missing:"
-                            + info.recordingId(),
-                    "TV em "
-                            + television.getBlockPos()
-                            + " recebeu VHS "
-                            + info.recordingId()
-                            + ", mas o arquivo .wavr nao existe neste cliente."
+            MediaTransferClient.request(
+                    info.recordingId()
             );
 
             release(

@@ -68,6 +68,7 @@ public final class MediaClientEvents {
         installAmbientListener();
 
         MediaRecorder.tick();
+        MediaTransferClient.tick();
         TvVoiceEmitter.advanceTick();
         TvVoiceEmitter.cleanup();
     }
