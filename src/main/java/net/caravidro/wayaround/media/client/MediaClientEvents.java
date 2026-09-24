@@ -41,6 +41,7 @@ public final class MediaClientEvents {
         installBridge();
 
         MediaRecorder.tick();
+        TvVoiceEmitter.advanceTick();
         TvVoiceEmitter.cleanup();
     }
 

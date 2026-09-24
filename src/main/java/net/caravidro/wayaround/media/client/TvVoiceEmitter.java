@@ -34,8 +34,6 @@ public final class TvVoiceEmitter {
             return;
         }
 
-        clientTick++;
-
         String key =
                 television.getLevel()
                         .dimension()
@@ -124,6 +122,10 @@ public final class TvVoiceEmitter {
                 clientTick;
 
         session.updateDistance();
+    }
+
+    public static void advanceTick() {
+        clientTick++;
     }
 
     public static void cleanup() {
