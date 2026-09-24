@@ -10,6 +10,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 
+import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.TelevisionBlock;
 import net.caravidro.wayaround.media.TelevisionBlockEntity;
 import net.caravidro.wayaround.media.VhsData;
@@ -33,6 +34,13 @@ public final class TelevisionRenderer
             new HashMap<>();
 
     private static long lastCleanupTick;
+
+    private static final int FULLBRIGHT =
+            15728880;
+
+    private static final java.util.Set<String>
+            REPORTED_ERRORS =
+            new java.util.HashSet<>();
 
     public TelevisionRenderer(
             BlockEntityRendererProvider.Context context
@@ -73,6 +81,16 @@ public final class TelevisionRenderer
                         .orElse(null);
 
         if (path == null) {
+            reportOnce(
+                    "missing:"
+                            + info.recordingId(),
+                    "TV em "
+                            + television.getBlockPos()
+                            + " recebeu VHS "
+                            + info.recordingId()
+                            + ", mas o arquivo .wavr nao existe neste cliente."
+            );
+
             release(
                     television.getBlockPos()
             );
@@ -108,6 +126,17 @@ public final class TelevisionRenderer
                 );
 
             } catch (Exception exception) {
+                reportOnce(
+                        "open:"
+                                + info.recordingId(),
+                        "Falha abrindo gravacao "
+                                + info.recordingId()
+                                + " na TV: "
+                                + exception.getClass()
+                                        .getSimpleName()
+                                + ": "
+                                + exception.getMessage()
+                );
                 return;
             }
         }
@@ -156,7 +185,18 @@ public final class TelevisionRenderer
                 screen.lastFrame =
                         targetFrame;
 
-            } catch (Exception ignored) {
+            } catch (Exception exception) {
+                reportOnce(
+                        "frame:"
+                                + info.recordingId(),
+                        "Falha lendo frame da gravacao "
+                                + info.recordingId()
+                                + ": "
+                                + exception.getClass()
+                                        .getSimpleName()
+                                + ": "
+                                + exception.getMessage()
+                );
             }
         }
 
@@ -165,7 +205,7 @@ public final class TelevisionRenderer
                 poseStack,
                 buffers,
                 screen.location,
-                packedLight
+                FULLBRIGHT
         );
 
         long currentTick =
@@ -262,7 +302,13 @@ public final class TelevisionRenderer
         float right = 0.855F;
         float bottom = 0.205F;
         float top = 0.795F;
-        float z = 0.106F;
+        /*
+         * Keep the video clearly in front of the static bezel.
+         * The old value was almost coplanar with both the black glass and
+         * the casing face, which could lose the dynamic quad in the depth
+         * buffer and look like an always-black television.
+         */
+        float z = 0.090F;
 
         vertex(
                 consumer,
@@ -273,7 +319,7 @@ public final class TelevisionRenderer
                 z,
                 1.0F,
                 1.0F,
-                packedLight
+                FULLBRIGHT
         );
 
         vertex(
@@ -285,7 +331,7 @@ public final class TelevisionRenderer
                 z,
                 0.0F,
                 1.0F,
-                packedLight
+                FULLBRIGHT
         );
 
         vertex(
@@ -297,7 +343,7 @@ public final class TelevisionRenderer
                 z,
                 0.0F,
                 0.0F,
-                packedLight
+                FULLBRIGHT
         );
 
         vertex(
@@ -309,7 +355,7 @@ public final class TelevisionRenderer
                 z,
                 1.0F,
                 0.0F,
-                packedLight
+                FULLBRIGHT
         );
 
         pose.popPose();
@@ -354,6 +400,20 @@ public final class TelevisionRenderer
                         0.0F,
                         -1.0F
                 );
+    }
+
+    private static void reportOnce(
+            String key,
+            String message
+    ) {
+        if (REPORTED_ERRORS.add(
+                key
+        )) {
+            WayAround.LOGGER.warn(
+                    "[Media/TV] {}",
+                    message
+            );
+        }
     }
 
     private static void cleanup(

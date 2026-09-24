@@ -59,10 +59,8 @@ public final class VoskSpeechRecognizer {
     }
 
     public static boolean isModelInstalled() {
-        return Files.isRegularFile(
+        return isValidModelRoot(
                 modelDirectory()
-                        .resolve("conf")
-                        .resolve("model.conf")
         );
     }
 
@@ -302,17 +300,13 @@ public final class VoskSpeechRecognizer {
         );
 
         Path extracted =
-                staging.resolve(
-                        MODEL_NAME
+                findExtractedModelRoot(
+                        staging
                 );
 
-        if (!Files.isRegularFile(
-                extracted
-                        .resolve("conf")
-                        .resolve("model.conf")
-        )) {
+        if (extracted == null) {
             throw new IllegalStateException(
-                    "modelo baixado nao possui a estrutura esperada"
+                    "modelo PT-BR baixado, mas os arquivos do Vosk nao foram encontrados"
             );
         }
 
