@@ -87,13 +87,13 @@ public final class MechanicalTransmissionRenderer
                 );
 
         /*
-         * Water-wheel positive rotation is defined from the wheel face,
-         * while the transmission model rotates around its local +Z axis.
-         * Those conventions are opposite visually, so invert once here for
-         * every shaft/gearbox instead of fixing axes independently.
+         * V1 visual convention: transmission parts follow the authoritative
+         * source phase directly. Runtime testing showed the previous global
+         * inversion made connected shafts appear to counter-rotate relative
+         * to the wheel.
          */
         float transmissionAngle =
-                -angle;
+                angle;
 
         BlockState state =
                 node.getBlockState();
