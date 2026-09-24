@@ -171,5 +171,21 @@
     "message.wayaround.assembly.imported": "A ferramenta voltou às peças originais. O dano existente virou desgaste.",
     "message.wayaround.assembly.nothing_to_remove": "Não há nada para desmontar.",
     "message.wayaround.knapping.fail": "A pedra fraturou mal. Nenhuma lasca útil sobreviveu.",
-    "message.wayaround.knapping.result": "Lasca de pedra produzida. Qualidade: %s%%"
+    "message.wayaround.knapping.result": "Lasca de pedra produzida. Qualidade: %s%%",
+    "item.wayaround.immortal_wheel": "Immortal Wheel",
+    "tooltip.wayaround.immortal_wheel": "Item amaldiçoado. Aprende padrões de dano e adapta a defesa a eles.",
+    "message.wayaround.immortal_wheel.adapt": "Immortal Wheel — %s: -%s%% de efeito",
+    "message.wayaround.immortal_wheel.family.arrow": "Ataque de flecha",
+    "message.wayaround.immortal_wheel.family.projectile": "Projéteis",
+    "message.wayaround.immortal_wheel.family.explosion": "Explosões",
+    "message.wayaround.immortal_wheel.family.fire": "Fogo",
+    "message.wayaround.immortal_wheel.family.fall": "Queda",
+    "message.wayaround.immortal_wheel.family.freezing": "Congelamento",
+    "message.wayaround.immortal_wheel.family.lightning": "Raio",
+    "message.wayaround.immortal_wheel.family.player_melee": "Ataques de jogador",
+    "message.wayaround.immortal_wheel.family.mob_melee": "Ataques físicos",
+    "message.wayaround.immortal_wheel.family.magic": "Magia",
+    "message.wayaround.immortal_wheel.family.sonic": "Ataque sônico",
+    "message.wayaround.immortal_wheel.family.drowning": "Afogamento",
+    "message.wayaround.immortal_wheel.family.generic": "Dano desconhecido"
 }

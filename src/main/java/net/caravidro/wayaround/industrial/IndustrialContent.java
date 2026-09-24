@@ -165,6 +165,9 @@ public final class IndustrialContent {
                                                 WayAroundContent.GOJO_SPECTRUM.get()
                                         );
                                         output.accept(
+                                                WayAroundContent.IMMORTAL_WHEEL.get()
+                                        );
+                                        output.accept(
                                                 WayAroundContent.BLUE.get()
                                         );
                                         output.accept(

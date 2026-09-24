@@ -2,6 +2,7 @@ package net.caravidro.wayaround.mixin.client;
 
 import java.util.List;
 import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
+import net.caravidro.wayaround.client.ImmortalWheelClientEffects;
 import net.caravidro.wayaround.client.weather.ClientWind;
 import net.caravidro.wayaround.client.weather.WindAffectedParticle;
 import net.caravidro.wayaround.particle.BlizzardCloudParticle;
@@ -55,6 +56,20 @@ public abstract class ParticleWindMixin implements WindAffectedParticle {
             xd += shock.x;
             yd += shock.y;
             zd += shock.z;
+        }
+
+        Vec3 wheelWind =
+                ImmortalWheelClientEffects
+                        .particleWindImpulse(
+                                x,
+                                y,
+                                z
+                        );
+
+        if (wheelWind.lengthSqr() > 0.0000001) {
+            xd += wheelWind.x;
+            yd += wheelWind.y;
+            zd += wheelWind.z;
         }
 
         /*

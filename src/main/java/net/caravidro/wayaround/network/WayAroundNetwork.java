@@ -59,6 +59,12 @@ public final class WayAroundNetwork {
                 BetaTechniqueVisualPayload::handle
         );
 
+        registrar.playToClient(
+                ImmortalWheelVisualPayload.TYPE,
+                ImmortalWheelVisualPayload.STREAM_CODEC,
+                ImmortalWheelVisualPayload::handle
+        );
+
         registrar.playToServer(
                 VoiceFrameC2SPayload.TYPE,
                 VoiceFrameC2SPayload.STREAM_CODEC,

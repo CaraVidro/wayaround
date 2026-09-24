@@ -74,6 +74,19 @@ public final class WayAroundContent {
                     )
             );
 
+    public static final DeferredItem<Item> IMMORTAL_WHEEL =
+            ITEMS.register(
+                    "immortal_wheel",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .fireResistant()
+                                    .rarity(
+                                            net.minecraft.world.item.Rarity.EPIC
+                                    )
+                    )
+            );
+
     public static final DeferredItem<Item> BLUE =
             ITEMS.register(
                     "blue",

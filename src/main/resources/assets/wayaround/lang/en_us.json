@@ -171,5 +171,21 @@
     "message.wayaround.assembly.imported": "The tool was reopened into its original parts. Existing damage became wear.",
     "message.wayaround.assembly.nothing_to_remove": "There is nothing to disassemble.",
     "message.wayaround.knapping.fail": "The stone fractured badly. No useful flake survived.",
-    "message.wayaround.knapping.result": "Stone flake produced. Quality: %s%%"
+    "message.wayaround.knapping.result": "Stone flake produced. Quality: %s%%",
+    "item.wayaround.immortal_wheel": "Immortal Wheel",
+    "tooltip.wayaround.immortal_wheel": "Cursed item. Learns damage patterns and adapts its defense to them.",
+    "message.wayaround.immortal_wheel.adapt": "Immortal Wheel — %s: -%s%% effect",
+    "message.wayaround.immortal_wheel.family.arrow": "Arrow attacks",
+    "message.wayaround.immortal_wheel.family.projectile": "Projectiles",
+    "message.wayaround.immortal_wheel.family.explosion": "Explosions",
+    "message.wayaround.immortal_wheel.family.fire": "Fire",
+    "message.wayaround.immortal_wheel.family.fall": "Fall damage",
+    "message.wayaround.immortal_wheel.family.freezing": "Freezing",
+    "message.wayaround.immortal_wheel.family.lightning": "Lightning",
+    "message.wayaround.immortal_wheel.family.player_melee": "Player attacks",
+    "message.wayaround.immortal_wheel.family.mob_melee": "Physical attacks",
+    "message.wayaround.immortal_wheel.family.magic": "Magic",
+    "message.wayaround.immortal_wheel.family.sonic": "Sonic attacks",
+    "message.wayaround.immortal_wheel.family.drowning": "Drowning",
+    "message.wayaround.immortal_wheel.family.generic": "Unknown damage"
 }
