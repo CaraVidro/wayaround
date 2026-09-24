@@ -67,10 +67,12 @@ public final class TelevisionRenderer
                         .orElse(null);
 
         if (info == null
-                || !television.isPlaying()) {
+                || television.isEjected()) {
+
             release(
                     television.getBlockPos()
             );
+
             return;
         }
 
@@ -94,6 +96,7 @@ public final class TelevisionRenderer
             release(
                     television.getBlockPos()
             );
+
             return;
         }
 
@@ -137,6 +140,7 @@ public final class TelevisionRenderer
                                 + ": "
                                 + exception.getMessage()
                 );
+
                 return;
             }
         }
@@ -145,68 +149,104 @@ public final class TelevisionRenderer
                 television.getLevel()
                         .getGameTime();
 
-        long elapsedTicks =
-                Math.max(
-                        0L,
-                        television.getLevel()
-                                .getGameTime()
-                                - television
-                                .playbackStartGameTime()
+        if (television.isCountingDown()) {
+            int countdown =
+                    television.countdownNumber();
+
+            if (countdown
+                    != screen.lastCountdown) {
+
+                VhsFilter.renderCountdown(
+                        screen.image,
+                        countdown,
+                        screen.filterSeed
                 );
-
-        int targetFrame =
-                (int) Math.min(
-                        Math.max(
-                                0,
-                                screen.reader
-                                        .frameCount()
-                                        - 1
-                        ),
-                        elapsedTicks
-                                * screen.reader
-                                .fps()
-                                / 20L
-                );
-
-        if (targetFrame
-                != screen.lastFrame
-                && screen.reader
-                .frameCount() > 0) {
-
-            try {
-                screen.reader
-                        .readFrame(
-                                targetFrame,
-                                screen.image
-                        );
 
                 screen.texture.upload();
 
-                screen.lastFrame =
-                        targetFrame;
+                screen.lastCountdown =
+                        countdown;
 
-            } catch (Exception exception) {
-                reportOnce(
-                        "frame:"
-                                + info.recordingId(),
-                        "Falha lendo frame da gravacao "
-                                + info.recordingId()
-                                + ": "
-                                + exception.getClass()
-                                        .getSimpleName()
-                                + ": "
-                                + exception.getMessage()
-                );
+                screen.lastFrame =
+                        -1;
+            }
+
+        } else if (television.isPlaying()) {
+            long elapsedTicks =
+                    Math.max(
+                            0L,
+                            television.getLevel()
+                                    .getGameTime()
+                                    - television
+                                    .playbackStartGameTime()
+                    );
+
+            int targetFrame =
+                    (int) Math.min(
+                            Math.max(
+                                    0,
+                                    screen.reader
+                                            .frameCount()
+                                            - 1
+                            ),
+                            elapsedTicks
+                                    * screen.reader
+                                    .fps()
+                                    / 20L
+                    );
+
+            if (targetFrame
+                    != screen.lastFrame
+                    && screen.reader
+                    .frameCount() > 0) {
+
+                try {
+                    screen.reader
+                            .readFrame(
+                                    targetFrame,
+                                    screen.image
+                            );
+
+                    VhsFilter.apply(
+                            screen.image,
+                            targetFrame,
+                            screen.filterSeed
+                    );
+
+                    screen.texture.upload();
+
+                    screen.lastFrame =
+                            targetFrame;
+
+                    screen.lastCountdown =
+                            -1;
+
+                } catch (Exception exception) {
+                    reportOnce(
+                            "frame:"
+                                    + info.recordingId(),
+                            "Falha lendo frame da gravacao "
+                                    + info.recordingId()
+                                    + ": "
+                                    + exception.getClass()
+                                            .getSimpleName()
+                                    + ": "
+                                    + exception.getMessage()
+                    );
+                }
             }
         }
 
-        renderScreen(
-                television,
-                poseStack,
-                buffers,
-                screen.location,
-                FULLBRIGHT
-        );
+        if (television.isCountingDown()
+                || television.isPlaying()) {
+
+            renderScreen(
+                    television,
+                    poseStack,
+                    buffers,
+                    screen.location
+            );
+        }
 
         long currentTick =
                 television.getLevel()
@@ -229,8 +269,7 @@ public final class TelevisionRenderer
             TelevisionBlockEntity television,
             PoseStack pose,
             MultiBufferSource buffers,
-            ResourceLocation texture,
-            int packedLight
+            ResourceLocation texture
     ) {
         Direction facing =
                 television.getBlockState()
@@ -298,17 +337,11 @@ public final class TelevisionRenderer
                         )
                 );
 
-        float left = 0.145F;
-        float right = 0.855F;
+        float left = 0.105F;
+        float right = 0.720F;
         float bottom = 0.205F;
-        float top = 0.795F;
-        /*
-         * Keep the video clearly in front of the static bezel.
-         * The old value was almost coplanar with both the black glass and
-         * the casing face, which could lose the dynamic quad in the depth
-         * buffer and look like an always-black television.
-         */
-        float z = 0.090F;
+        float top = 0.790F;
+        float z = 0.064F;
 
         vertex(
                 consumer,
@@ -318,8 +351,7 @@ public final class TelevisionRenderer
                 bottom,
                 z,
                 1.0F,
-                1.0F,
-                FULLBRIGHT
+                1.0F
         );
 
         vertex(
@@ -330,8 +362,7 @@ public final class TelevisionRenderer
                 bottom,
                 z,
                 0.0F,
-                1.0F,
-                FULLBRIGHT
+                1.0F
         );
 
         vertex(
@@ -342,8 +373,7 @@ public final class TelevisionRenderer
                 top,
                 z,
                 0.0F,
-                0.0F,
-                FULLBRIGHT
+                0.0F
         );
 
         vertex(
@@ -354,8 +384,7 @@ public final class TelevisionRenderer
                 top,
                 z,
                 1.0F,
-                0.0F,
-                FULLBRIGHT
+                0.0F
         );
 
         pose.popPose();
@@ -369,8 +398,7 @@ public final class TelevisionRenderer
             float y,
             float z,
             float u,
-            float v,
-            int packedLight
+            float v
     ) {
         consumer.addVertex(
                         matrix,
@@ -392,7 +420,7 @@ public final class TelevisionRenderer
                         OverlayTexture.NO_OVERLAY
                 )
                 .setLight(
-                        packedLight
+                        FULLBRIGHT
                 )
                 .setNormal(
                         pose.last(),
@@ -464,8 +492,10 @@ public final class TelevisionRenderer
         private final NativeImage image;
         private final DynamicTexture texture;
         private final ResourceLocation location;
+        private final int filterSeed;
 
         private int lastFrame = -1;
+        private int lastCountdown = -1;
         private long lastUsedTick;
 
         private ScreenTexture(
@@ -476,6 +506,9 @@ public final class TelevisionRenderer
 
             this.recordingId =
                     recordingId;
+
+            this.filterSeed =
+                    recordingId.hashCode();
 
             this.reader =
                     new RecordingReader(

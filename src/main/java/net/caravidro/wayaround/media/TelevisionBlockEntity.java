@@ -7,6 +7,8 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -16,6 +18,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public final class TelevisionBlockEntity
         extends BlockEntity {
+
+    public static final int PRE_ROLL_TICKS =
+            60;
 
     private ItemStack tape =
             ItemStack.EMPTY;
@@ -49,11 +54,47 @@ public final class TelevisionBlockEntity
                 && !tape.isEmpty();
     }
 
-    public boolean isPlaying() {
+    public boolean hasTapeLoaded() {
         return !tape.isEmpty()
-                && !ejected
-                && playbackStartGameTime
-                >= 0L;
+                && !ejected;
+    }
+
+    public boolean isCountingDown() {
+        return hasTapeLoaded()
+                && level != null
+                && playbackStartGameTime >= 0L
+                && level.getGameTime()
+                < playbackStartGameTime;
+    }
+
+    public boolean isPlaying() {
+        return hasTapeLoaded()
+                && level != null
+                && playbackStartGameTime >= 0L
+                && level.getGameTime()
+                >= playbackStartGameTime;
+    }
+
+    public int countdownNumber() {
+        if (!isCountingDown()) {
+            return 0;
+        }
+
+        long remaining =
+                Math.max(
+                        1L,
+                        playbackStartGameTime
+                                - level.getGameTime()
+                );
+
+        return (int) Math.max(
+                1L,
+                Math.min(
+                        3L,
+                        (remaining + 19L)
+                                / 20L
+                )
+        );
     }
 
     public boolean insert(
@@ -78,12 +119,35 @@ public final class TelevisionBlockEntity
 
         playbackStartGameTime =
                 level == null
-                        ? 0L
-                        : level.getGameTime();
+                        ? PRE_ROLL_TICKS
+                        : level.getGameTime()
+                                + PRE_ROLL_TICKS;
 
         updateEjectedBlockState(
                 false
         );
+
+        if (level != null
+                && !level.isClientSide) {
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.ITEM_FRAME_ADD_ITEM,
+                    SoundSource.BLOCKS,
+                    0.75F,
+                    0.72F
+            );
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.IRON_TRAPDOOR_CLOSE,
+                    SoundSource.BLOCKS,
+                    0.30F,
+                    1.35F
+            );
+        }
 
         sync();
 
@@ -167,6 +231,28 @@ public final class TelevisionBlockEntity
                 true
         );
 
+        if (level != null
+                && !level.isClientSide) {
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.ITEM_FRAME_REMOVE_ITEM,
+                    SoundSource.BLOCKS,
+                    0.85F,
+                    0.68F
+            );
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.IRON_TRAPDOOR_OPEN,
+                    SoundSource.BLOCKS,
+                    0.32F,
+                    1.20F
+            );
+        }
+
         sync();
     }
 
@@ -176,6 +262,10 @@ public final class TelevisionBlockEntity
             BlockState state,
             TelevisionBlockEntity television
     ) {
+        if (television.isCountingDown()) {
+            return;
+        }
+
         if (!television.isPlaying()) {
             return;
         }
