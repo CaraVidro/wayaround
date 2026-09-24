@@ -16,6 +16,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -36,6 +37,10 @@ public final class InfinityManager {
     }
 
     private static final Map<UUID, InfinityState> ACTIVE =
+            new HashMap<>();
+
+    private static final Map<UUID, FrozenOrientation>
+            FROZEN_ORIENTATION =
             new HashMap<>();
 
     private static final double VISUAL_RANGE =
@@ -389,6 +394,56 @@ public final class InfinityManager {
             if (influence > 0.965) {
                 next =
                         Vec3.ZERO;
+
+                FrozenOrientation orientation =
+                        FROZEN_ORIENTATION.computeIfAbsent(
+                                entity.getUUID(),
+                                ignored ->
+                                        new FrozenOrientation(
+                                                entity.getYRot(),
+                                                entity.getXRot(),
+                                                entity instanceof LivingEntity living
+                                                        ? living.getYHeadRot()
+                                                        : entity.getYRot(),
+                                                entity instanceof LivingEntity living
+                                                        ? living.yBodyRot
+                                                        : entity.getYRot()
+                                        )
+                        );
+
+                entity.setYRot(
+                        orientation.yaw
+                );
+
+                entity.setXRot(
+                        orientation.pitch
+                );
+
+                entity.yRotO =
+                        orientation.yaw;
+
+                entity.xRotO =
+                        orientation.pitch;
+
+                if (entity instanceof LivingEntity living) {
+                    living.setYHeadRot(
+                            orientation.headYaw
+                    );
+
+                    living.yHeadRotO =
+                            orientation.headYaw;
+
+                    living.yBodyRot =
+                            orientation.bodyYaw;
+
+                    living.yBodyRotO =
+                            orientation.bodyYaw;
+                }
+
+            } else {
+                FROZEN_ORIENTATION.remove(
+                        entity.getUUID()
+                );
             }
 
             entity.setDeltaMovement(
@@ -458,6 +513,34 @@ public final class InfinityManager {
 
     public static void clearAll() {
         ACTIVE.clear();
+        FROZEN_ORIENTATION.clear();
+    }
+
+    private static final class FrozenOrientation {
+
+        private final float yaw;
+        private final float pitch;
+        private final float headYaw;
+        private final float bodyYaw;
+
+        private FrozenOrientation(
+                float yaw,
+                float pitch,
+                float headYaw,
+                float bodyYaw
+        ) {
+            this.yaw =
+                    yaw;
+
+            this.pitch =
+                    pitch;
+
+            this.headYaw =
+                    headYaw;
+
+            this.bodyYaw =
+                    bodyYaw;
+        }
     }
 
     private static final class InfinityState {
