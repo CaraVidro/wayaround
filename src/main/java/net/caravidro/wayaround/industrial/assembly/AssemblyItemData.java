@@ -28,6 +28,12 @@ public final class AssemblyItemData {
     private static final String WEAR_KEY =
             "WayAroundWear";
 
+    private static final String PART_PROFILE_KEY =
+            "WayAroundAssemblyPart";
+
+    private static final String PRIMITIVE_ASSEMBLY_KEY =
+            "WayAroundPrimitiveAssembly";
+
     private AssemblyItemData() {
     }
 
@@ -73,6 +79,23 @@ public final class AssemblyItemData {
                                 )
                         )
         );
+
+        AssemblyPartProfile profile =
+                readPart(source);
+
+        if (profile != null) {
+            profile.setWearFraction(
+                    Mth.clamp(
+                            wear / (float) MAX_COMPONENT_WEAR,
+                            0.0F,
+                            1.0F
+                    )
+            );
+            writePart(
+                    stack,
+                    profile
+            );
+        }
 
         return stack;
     }
@@ -191,6 +214,114 @@ public final class AssemblyItemData {
                                         wear
                                 )
                         )
+        );
+
+        return stack;
+    }
+
+    public static void writePart(
+            ItemStack stack,
+            AssemblyPartProfile profile
+    ) {
+        CustomData.update(
+                DataComponents.CUSTOM_DATA,
+                stack,
+                tag -> tag.put(
+                        PART_PROFILE_KEY,
+                        profile.save()
+                )
+        );
+    }
+
+    public static AssemblyPartProfile readPart(
+            ItemStack stack
+    ) {
+        CompoundTag tag =
+                customData(stack);
+
+        if (!tag.contains(
+                PART_PROFILE_KEY,
+                net.minecraft.nbt.Tag.TAG_COMPOUND
+        )) {
+            return null;
+        }
+
+        return AssemblyPartProfile.load(
+                tag.getCompound(
+                        PART_PROFILE_KEY
+                )
+        );
+    }
+
+    public static AssemblyPartProfile profileOrCreate(
+            ItemStack stack,
+            AssemblyPartProfile.Kind kind,
+            AssemblyPartProfile.Material material,
+            int orientation,
+            net.minecraft.util.RandomSource random
+    ) {
+        AssemblyPartProfile existing =
+                readPart(stack);
+
+        if (existing != null) {
+            return existing.copy();
+        }
+
+        return AssemblyPartProfile.fresh(
+                kind,
+                material,
+                BuiltInRegistries.ITEM.getKey(
+                        stack.getItem()
+                ),
+                orientation,
+                random
+        );
+    }
+
+    public static void writeAssembly(
+            ItemStack stack,
+            PrimitiveAssemblyState state
+    ) {
+        CustomData.update(
+                DataComponents.CUSTOM_DATA,
+                stack,
+                tag -> tag.put(
+                        PRIMITIVE_ASSEMBLY_KEY,
+                        state.save()
+                )
+        );
+    }
+
+    public static PrimitiveAssemblyState readAssembly(
+            ItemStack stack
+    ) {
+        CompoundTag tag =
+                customData(stack);
+
+        if (!tag.contains(
+                PRIMITIVE_ASSEMBLY_KEY,
+                net.minecraft.nbt.Tag.TAG_COMPOUND
+        )) {
+            return null;
+        }
+
+        return PrimitiveAssemblyState.load(
+                tag.getCompound(
+                        PRIMITIVE_ASSEMBLY_KEY
+                )
+        );
+    }
+
+    public static ItemStack withProfile(
+            ItemStack source,
+            AssemblyPartProfile profile
+    ) {
+        ItemStack stack =
+                source.copyWithCount(1);
+
+        writePart(
+                stack,
+                profile
         );
 
         return stack;

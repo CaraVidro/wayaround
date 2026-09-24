@@ -17,6 +17,12 @@ public final class AssemblyInteractionEvents {
     public static void onRightClickBlock(
             PlayerInteractEvent.RightClickBlock event
     ) {
+        if (PrimitiveAssemblyEvents.onKnapping(
+                event
+        )) {
+            return;
+        }
+
         if (handleHeldInteraction(
                 event,
                 event.getItemStack()
