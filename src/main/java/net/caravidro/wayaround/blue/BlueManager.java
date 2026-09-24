@@ -81,6 +81,12 @@ public final class BlueManager {
     private static final List<CollapsingEntity> COLLAPSING =
             new ArrayList<>();
 
+    private static final List<AccretionSmoke> ACCRETION_SMOKE =
+            new ArrayList<>();
+
+    private static final int MAX_ACCRETION_SMOKE =
+            360;
+
     private static final Map<UUID, Long> COOLDOWN =
             new HashMap<>();
 
@@ -417,6 +423,7 @@ public final class BlueManager {
 
         cleanupCharges(server);
         tickCollapsing(server);
+        tickAccretionSmoke(server);
 
         Iterator<Map.Entry<UUID, ActiveBlue>> activeIterator =
                 ACTIVE.entrySet()
@@ -750,6 +757,7 @@ public final class BlueManager {
         LAUNCHED.clear();
         RELEASING.clear();
         COLLAPSING.clear();
+        ACCRETION_SMOKE.clear();
         COOLDOWN.clear();
     }
 
@@ -982,17 +990,26 @@ public final class BlueManager {
                 spinDirection
         );
 
+        UUID ownerId =
+                owner == null
+                        ? null
+                        : owner.getUUID();
+
         consumeBlueBody(
                 level,
                 center,
-                power
+                power,
+                ownerId,
+                spinDirection
         );
 
         consumeBlocks(
                 level,
                 center,
                 power,
-                blockBudget
+                blockBudget,
+                ownerId,
+                spinDirection
         );
 
         drawIncomingMatter(
@@ -1157,7 +1174,9 @@ public final class BlueManager {
     private static void consumeBlueBody(
             ServerLevel level,
             Vec3 center,
-            float power
+            float power,
+            UUID ownerId,
+            double spinDirection
     ) {
         double half =
                 physicalOuterHalf(
@@ -1201,7 +1220,9 @@ public final class BlueManager {
                     pos,
                     center,
                     power,
-                    true
+                    true,
+                    ownerId,
+                    spinDirection
             );
         }
     }
@@ -1236,7 +1257,9 @@ public final class BlueManager {
             ServerLevel level,
             Vec3 center,
             float power,
-            int blockBudget
+            int blockBudget,
+            UUID ownerId,
+            double spinDirection
     ) {
         if (blockBudget <= 0) {
             return;
@@ -1345,7 +1368,9 @@ public final class BlueManager {
                     pos,
                     center,
                     power,
-                    false
+                    false,
+                    ownerId,
+                    spinDirection
             )) {
                 removed++;
             }
@@ -1357,7 +1382,9 @@ public final class BlueManager {
             BlockPos pos,
             Vec3 center,
             float power,
-            boolean bodyContact
+            boolean bodyContact,
+            UUID ownerId,
+            double spinDirection
     ) {
         BlockState state =
                 level.getBlockState(
@@ -1442,32 +1469,38 @@ public final class BlueManager {
         );
 
         /*
-         * More destruction dust than before. Every destroyed block produces
-         * 4-9 smoke particles; blocks physically touched by the Blue body are
-         * even dirtier because they are being erased at point-blank range.
+         * V1 destruction dust: every erased block creates a large persistent
+         * cloud. Most smoke stays behind and floats upward; a smaller share is
+         * promoted into tracked accretion smoke that spirals toward and around
+         * the moving Blue until it fades.
          */
         int smokeCount =
-                4
+                7
                         + level.random.nextInt(
-                                6
+                                7
                         )
                         + (
                                 bodyContact
-                                        ? 2
+                                        ? 3
                                         : 0
                         );
 
-        int sucked =
-                Math.min(
-                        smokeCount / 3,
-                        bodyContact
-                                ? 3
-                                : 2
-                );
+        int accretionCount =
+                ownerId == null
+                        ? 0
+                        : Math.min(
+                                bodyContact
+                                        ? 4
+                                        : 3,
+                                Math.max(
+                                        1,
+                                        smokeCount / 4
+                                )
+                        );
 
         int hanging =
                 smokeCount
-                        - sucked;
+                        - accretionCount;
 
         level.sendParticles(
                 ParticleTypes.CAMPFIRE_COSY_SMOKE,
@@ -1476,66 +1509,43 @@ public final class BlueManager {
                 source.z,
                 hanging,
                 bodyContact
-                        ? 0.88
-                        : 0.66,
+                        ? 1.05
+                        : 0.82,
                 bodyContact
-                        ? 0.46
-                        : 0.34,
+                        ? 0.58
+                        : 0.42,
                 bodyContact
-                        ? 0.88
-                        : 0.66,
-                0.009
+                        ? 1.05
+                        : 0.82,
+                0.008
         );
 
-        for (int i = 0;
-                i < sucked;
-                i++) {
-            if (inward.lengthSqr()
-                    < 0.0001) {
-                break;
-            }
-
-            Vec3 tangent =
-                    new Vec3(
-                            -inward.z,
-                            (
-                                    level.random.nextDouble()
-                                            - 0.5
-                            )
-                                    * 0.16,
-                            inward.x
-                    )
-                            .scale(
-                                    (
-                                            level.random.nextBoolean()
-                                                    ? 1.0
-                                                    : -1.0
-                                    )
-                                            * 0.18
-                            );
-
-            Vec3 velocity =
-                    inward.scale(
-                            0.30
-                                    + power
-                                            * 0.10
-                    )
-                            .add(
-                                    tangent
-                            );
-
+        if (bodyContact
+                && level.random.nextFloat()
+                        < 0.45F) {
             level.sendParticles(
-                    i == 0
-                            ? ParticleTypes.CAMPFIRE_COSY_SMOKE
-                            : ParticleTypes.LARGE_SMOKE,
+                    ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
                     source.x,
                     source.y,
                     source.z,
-                    0,
-                    velocity.x,
-                    velocity.y,
-                    velocity.z,
-                    0.24
+                    1,
+                    0.42,
+                    0.34,
+                    0.42,
+                    0.004
+            );
+        }
+
+        for (int i = 0;
+                i < accretionCount;
+                i++) {
+            addAccretionSmoke(
+                    level,
+                    ownerId,
+                    source,
+                    center,
+                    power,
+                    spinDirection
             );
         }
 
@@ -2365,6 +2375,262 @@ public final class BlueManager {
         );
     }
 
+    private static void addAccretionSmoke(
+            ServerLevel level,
+            UUID owner,
+            Vec3 source,
+            Vec3 center,
+            float power,
+            double spinDirection
+    ) {
+        if (owner == null) {
+            return;
+        }
+
+        while (ACCRETION_SMOKE.size()
+                >= MAX_ACCRETION_SMOKE) {
+            ACCRETION_SMOKE.remove(0);
+        }
+
+        Vec3 relative =
+                source.subtract(
+                        center
+                );
+
+        double horizontalRadius =
+                Math.sqrt(
+                        relative.x * relative.x
+                                + relative.z * relative.z
+                );
+
+        double angle =
+                Math.atan2(
+                        relative.z,
+                        relative.x
+                );
+
+        double targetRadius =
+                Math.max(
+                        0.55,
+                        physicalOuterHalf(
+                                power
+                        )
+                                * (
+                                        0.88
+                                                + level.random.nextDouble()
+                                                        * 0.34
+                                )
+                );
+
+        int life =
+                54
+                        + level.random.nextInt(
+                                58
+                        );
+
+        ACCRETION_SMOKE.add(
+                new AccretionSmoke(
+                        owner,
+                        level.dimension(),
+                        Math.max(
+                                targetRadius + 0.4,
+                                Math.min(
+                                        horizontalRadius,
+                                        targetRadius + 13.0
+                                )
+                        ),
+                        targetRadius,
+                        angle,
+                        relative.y,
+                        spinDirection,
+                        life
+                )
+        );
+    }
+
+    private static void tickAccretionSmoke(
+            MinecraftServer server
+    ) {
+        Iterator<AccretionSmoke> iterator =
+                ACCRETION_SMOKE.iterator();
+
+        while (iterator.hasNext()) {
+            AccretionSmoke smoke =
+                    iterator.next();
+
+            BlueAnchor anchor =
+                    findBlueAnchor(
+                            server,
+                            smoke.owner,
+                            smoke.dimension
+                    );
+
+            if (anchor == null) {
+                iterator.remove();
+                continue;
+            }
+
+            ServerLevel level =
+                    server.getLevel(
+                            smoke.dimension
+                    );
+
+            if (level == null) {
+                iterator.remove();
+                continue;
+            }
+
+            smoke.age++;
+
+            double progress =
+                    Mth.clamp(
+                            smoke.age
+                                    / (double) smoke.life,
+                            0.0,
+                            1.0
+                    );
+
+            double approach =
+                    1.0
+                            - Math.pow(
+                                    1.0
+                                            - progress,
+                                    2.35
+                            );
+
+            double radius =
+                    Mth.lerp(
+                            approach,
+                            smoke.startRadius,
+                            smoke.targetRadius
+                    );
+
+            double angularSpeed =
+                    0.16
+                            + progress
+                                    * 0.58;
+
+            smoke.angle +=
+                    smoke.spinDirection
+                            * angularSpeed;
+
+            smoke.verticalOffset *=
+                    0.91;
+
+            double wobble =
+                    Math.sin(
+                            smoke.angle
+                                    * 2.2
+                                    + smoke.age
+                                            * 0.12
+                    )
+                            * (
+                                    0.10
+                                            + (
+                                                    1.0
+                                                            - progress
+                                            )
+                                                    * 0.22
+                            );
+
+            Vec3 position =
+                    anchor.position.add(
+                            Math.cos(
+                                    smoke.angle
+                            )
+                                    * radius,
+                            smoke.verticalOffset
+                                    + wobble,
+                            Math.sin(
+                                    smoke.angle
+                            )
+                                    * radius
+                    );
+
+            level.sendParticles(
+                    smoke.age % 7 == 0
+                            ? ParticleTypes.LARGE_SMOKE
+                            : ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                    position.x,
+                    position.y,
+                    position.z,
+                    1,
+                    0.035,
+                    0.025,
+                    0.035,
+                    0.001
+            );
+
+            if (progress > 0.82
+                    && smoke.age % 3 == 0) {
+                level.sendParticles(
+                        ParticleTypes.ELECTRIC_SPARK,
+                        position.x,
+                        position.y,
+                        position.z,
+                        1,
+                        0.03,
+                        0.03,
+                        0.03,
+                        0.015
+                );
+            }
+
+            if (smoke.age
+                    >= smoke.life) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private static BlueAnchor findBlueAnchor(
+            MinecraftServer server,
+            UUID owner,
+            net.minecraft.resources.ResourceKey<Level> dimension
+    ) {
+        ActiveBlue active =
+                ACTIVE.get(
+                        owner
+                );
+
+        if (active != null
+                && active.dimension.equals(
+                        dimension
+                )) {
+            return new BlueAnchor(
+                    active.center
+            );
+        }
+
+        for (LaunchedBlue blue : LAUNCHED) {
+            if (blue.owner.equals(
+                    owner
+            )
+                    && blue.dimension.equals(
+                            dimension
+                    )) {
+                return new BlueAnchor(
+                        blue.position
+                );
+            }
+        }
+
+        for (ReleasingBlue blue : RELEASING) {
+            if (blue.owner.equals(
+                    owner
+            )
+                    && blue.dimension.equals(
+                            dimension
+                    )) {
+                return new BlueAnchor(
+                        blue.position
+                );
+            }
+        }
+
+        return null;
+    }
+
     private static void releaseSmokeSequence(
             ServerLevel level,
             ReleasingBlue blue
@@ -2843,6 +3109,45 @@ public final class BlueManager {
                         mode
                 )
         );
+    }
+
+    private record BlueAnchor(
+            Vec3 position
+    ) {
+    }
+
+    private static final class AccretionSmoke {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private final double startRadius;
+        private final double targetRadius;
+        private final double spinDirection;
+        private final int life;
+
+        private double angle;
+        private double verticalOffset;
+        private int age;
+
+        private AccretionSmoke(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                double startRadius,
+                double targetRadius,
+                double angle,
+                double verticalOffset,
+                double spinDirection,
+                int life
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.startRadius = startRadius;
+            this.targetRadius = targetRadius;
+            this.angle = angle;
+            this.verticalOffset = verticalOffset;
+            this.spinDirection = spinDirection;
+            this.life = life;
+        }
     }
 
     private static final class ChargeState {
