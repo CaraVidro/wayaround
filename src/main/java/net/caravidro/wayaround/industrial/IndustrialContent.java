@@ -121,6 +121,18 @@ public final class IndustrialContent {
                                                 PowerContent.ASSEMBLY_GUIDE.get()
                                         );
                                         output.accept(
+                                                PowerContent.ASSEMBLY_WORKBENCH_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.STONE_FLAKE.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.ASSEMBLY_HAMMER.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.PRIMITIVE_AXE.get()
+                                        );
+                                        output.accept(
                                                 PowerContent.MECHANICAL_SHAFT_ITEM.get()
                                         );
                                         output.accept(

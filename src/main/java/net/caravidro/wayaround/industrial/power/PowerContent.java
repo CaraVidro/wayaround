@@ -1,7 +1,7 @@
 package net.caravidro.wayaround.industrial.power;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.industrial.assembly.AssemblyGuideItem;
+import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalCapabilities;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
@@ -71,6 +71,35 @@ public final class PowerContent {
 
     public static final DeferredItem<Item> ASSEMBLY_GUIDE = ITEMS.register("assembly_guide",
         () -> new AssemblyGuideItem(new Item.Properties().stacksTo(1)));
+
+    public static final DeferredBlock<AssemblyWorkbenchBlock> ASSEMBLY_WORKBENCH = BLOCKS.register("assembly_workbench",
+        () -> new AssemblyWorkbenchBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
+            .strength(2.5F).sound(SoundType.WOOD)));
+
+    public static final DeferredItem<BlockItem> ASSEMBLY_WORKBENCH_ITEM = ITEMS.register("assembly_workbench",
+        () -> new BlockItem(ASSEMBLY_WORKBENCH.get(), new Item.Properties()));
+
+    public static final DeferredItem<StoneFlakeItem> STONE_FLAKE = ITEMS.register("stone_flake",
+        () -> new StoneFlakeItem(new Item.Properties().stacksTo(16)));
+
+    public static final DeferredItem<Item> ASSEMBLY_HAMMER = ITEMS.register("assembly_hammer",
+        () -> new Item(new Item.Properties().stacksTo(1).durability(192)));
+
+    public static final DeferredItem<PrimitiveAxeItem> PRIMITIVE_AXE = ITEMS.register("primitive_axe",
+        () -> new PrimitiveAxeItem(
+            net.minecraft.world.item.Tiers.STONE,
+            new Item.Properties().attributes(
+                net.minecraft.world.item.DiggerItem.createAttributes(
+                    net.minecraft.world.item.Tiers.STONE,
+                    5.0F,
+                    -3.2F
+                )
+            )
+        ));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<AssemblyWorkbenchBlockEntity>> ASSEMBLY_WORKBENCH_ENTITY =
+        BLOCK_ENTITIES.register("assembly_workbench", () -> BlockEntityType.Builder.of(
+            AssemblyWorkbenchBlockEntity::new, ASSEMBLY_WORKBENCH.get()).build(null));
 
     public static final DeferredBlock<MechanicalShaftBlock> MECHANICAL_SHAFT = BLOCKS.register("mechanical_shaft",
         () -> new MechanicalShaftBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)

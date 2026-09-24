@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.industrial.assembly.AssemblyAdvancements;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.minecraft.core.BlockPos;
@@ -28,6 +29,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -566,6 +568,7 @@ public final class WaterWheelHubBlockEntity
                             * area
                             * 0.46
                             * flow.coherence()
+                            * plate.profile.performanceFactor()
                     );
 
             double plateTorque =
@@ -1136,10 +1139,39 @@ public final class WaterWheelHubBlockEntity
         plate.tiltDegrees =
                 0.0F;
 
-        plate.wear =
-                AssemblyItemData.wear(
-                        source
+        RandomSource assemblyRandom =
+                level == null
+                        ? RandomSource.create()
+                        : level.getRandom();
+
+        plate.profile =
+                AssemblyItemData.profileOrCreate(
+                        source,
+                        AssemblyPartProfile.Kind.BOARD,
+                        AssemblyPartProfile.Material.WOOD,
+                        (int) Math.round(
+                                Math.toDegrees(
+                                        normalized
+                                )
+                        ),
+                        assemblyRandom
                 );
+
+        plate.wear =
+                Math.max(
+                        AssemblyItemData.wear(
+                                source
+                        ),
+                        Math.round(
+                                plate.profile.wear()
+                                * AssemblyItemData.MAX_COMPONENT_WEAR
+                        )
+                );
+
+        plate.profile.setWearFraction(
+                plate.wear
+                / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+        );
 
         plates.add(
                 plate
@@ -1513,6 +1545,11 @@ public final class WaterWheelHubBlockEntity
             return false;
         }
 
+        plate.profile.setWearFraction(
+                plate.wear
+                / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+        );
+
         ItemStack returned =
                 AssemblyItemData.withWear(
                         new ItemStack(
@@ -1520,6 +1557,11 @@ public final class WaterWheelHubBlockEntity
                         ),
                         plate.wear
                 );
+
+        AssemblyItemData.writePart(
+                returned,
+                plate.profile
+        );
 
         giveOrDrop(
                 player,
@@ -1718,6 +1760,9 @@ public final class WaterWheelHubBlockEntity
             if (plate.wet
                     || plateLoad > 0.10) {
 
+                int previousWear =
+                        plate.wear;
+
                 plate.wear =
                         Math.min(
                                 AssemblyItemData.MAX_COMPONENT_WEAR,
@@ -1730,6 +1775,11 @@ public final class WaterWheelHubBlockEntity
                                         )
                                 )
                         );
+
+                plate.profile.applyWear(
+                        (plate.wear - previousWear)
+                        / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+                );
 
                 changed =
                         true;
@@ -2790,7 +2840,19 @@ public final class WaterWheelHubBlockEntity
                 index + 1,
                 fixing,
                 wearText,
-                nail
+                nail,
+                Math.round(
+                        plate.profile.quality()
+                        * 100.0F
+                ),
+                Math.round(
+                        plate.profile.alignment()
+                        * 100.0F
+                ),
+                Math.round(
+                        plate.profile.fatigue()
+                        * 100.0F
+                )
         );
     }
 
@@ -2971,6 +3033,39 @@ public final class WaterWheelHubBlockEntity
                             AssemblyItemData.MAX_COMPONENT_WEAR
                     );
 
+            if (plateTag.contains(
+                    "PartProfile",
+                    Tag.TAG_COMPOUND
+            )) {
+                plate.profile =
+                        AssemblyPartProfile.load(
+                                plateTag.getCompound(
+                                        "PartProfile"
+                                )
+                        );
+            } else {
+                plate.profile =
+                        AssemblyPartProfile.legacy(
+                                AssemblyPartProfile.Kind.BOARD,
+                                AssemblyPartProfile.Material.WOOD,
+                                net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(
+                                        PowerContent.WATER_WHEEL_BLADE_ITEM.get()
+                                ),
+                                (int) Math.round(
+                                        Math.toDegrees(
+                                                plate.anchorAngle
+                                        )
+                                ),
+                                plate.wear
+                                / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+                        );
+            }
+
+            plate.profile.setWearFraction(
+                    plate.wear
+                    / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+            );
+
             plate.width =
                     Mth.clamp(
                             plateTag.getFloat(
@@ -3134,6 +3229,16 @@ public final class WaterWheelHubBlockEntity
                     plate.wear
             );
 
+            plate.profile.setWearFraction(
+                    plate.wear
+                    / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+            );
+
+            plateTag.put(
+                    "PartProfile",
+                    plate.profile.save()
+            );
+
             plateTag.putFloat(
                     "Width",
                     plate.width
@@ -3241,6 +3346,18 @@ public final class WaterWheelHubBlockEntity
 
         private int wear;
 
+        private AssemblyPartProfile profile =
+                AssemblyPartProfile.legacy(
+                        AssemblyPartProfile.Kind.BOARD,
+                        AssemblyPartProfile.Material.WOOD,
+                        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
+                                "wayaround",
+                                "water_wheel_blade"
+                        ),
+                        0,
+                        0.0F
+                );
+
         private boolean nailed;
 
         private ItemStack nail =
@@ -3280,6 +3397,7 @@ public final class WaterWheelHubBlockEntity
                     * depth
                     * 2.15
                     * wearMass
+                    * profile.massFactor()
             );
         }
     }
