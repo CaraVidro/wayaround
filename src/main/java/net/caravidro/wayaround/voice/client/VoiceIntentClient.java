@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.client.BlueClientEffects;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -165,9 +166,15 @@ public final class VoiceIntentClient {
         }
 
         /*
-         * Free-form control of an already active Blue.
+         * Free-form control belongs to the conversational context of an
+         * already active Blue. This is the important difference between
+         * "gira a roda" and "agora me proteja em todos os lados".
          */
-        if (looksLikeFinish(
+        boolean controllingBlue =
+                BlueClientEffects.hasLocalControllableBlue();
+
+        if (controllingBlue
+                && looksLikeFinish(
                 currentWords
         )) {
             dispatch(
@@ -180,7 +187,8 @@ public final class VoiceIntentClient {
             return;
         }
 
-        if (looksLikeHold(
+        if (controllingBlue
+                && looksLikeHold(
                 currentWords
         )) {
             dispatch(
@@ -193,7 +201,8 @@ public final class VoiceIntentClient {
             return;
         }
 
-        if (looksLikeLaunch(
+        if (controllingBlue
+                && looksLikeLaunch(
                 currentWords
         )) {
             dispatch(
@@ -206,7 +215,8 @@ public final class VoiceIntentClient {
             return;
         }
 
-        if (looksLikeOrbit(
+        if (controllingBlue
+                && looksLikeOrbit(
                 currentWords
         )) {
             dispatch(
@@ -418,7 +428,13 @@ public final class VoiceIntentClient {
                 "orbitar",
                 "circula",
                 "circule",
-                "circular"
+                "circular",
+                "rodeia",
+                "rodeie",
+                "rodear",
+                "contorna",
+                "contorne",
+                "contornar"
         )) {
             return true;
         }
@@ -433,7 +449,12 @@ public final class VoiceIntentClient {
                         "defender",
                         "cubra",
                         "cobrir",
-                        "guarde"
+                        "guarde",
+                        "proteção",
+                        "protecao",
+                        "escudo",
+                        "cubrame",
+                        "cubrir"
                 );
 
         boolean around =
@@ -446,11 +467,25 @@ public final class VoiceIntentClient {
                         "todos",
                         "360",
                         "cercar",
-                        "cercando"
+                        "cercando",
+                        "costas",
+                        "inteiro",
+                        "completo",
+                        "completamente"
                 );
 
-        return protective
-                && around
+        boolean protectMe =
+                protective
+                        && (
+                        around
+                                || containsAny(
+                                words,
+                                "me",
+                                "mim"
+                        )
+                );
+
+        return protectMe
                 || containsSequence(
                 words,
                 "em",
@@ -460,6 +495,16 @@ public final class VoiceIntentClient {
                 words,
                 "ao",
                 "redor"
+        )
+                || containsSequence(
+                words,
+                "todos",
+                "lados"
+        )
+                || containsSequence(
+                words,
+                "minhas",
+                "costas"
         );
     }
 
@@ -481,7 +526,12 @@ public final class VoiceIntentClient {
                 "atirar",
                 "atire",
                 "arremessa",
-                "arremessar"
+                "arremessar",
+                "manda",
+                "mande",
+                "envia",
+                "envie",
+                "vai"
         );
     }
 
@@ -537,7 +587,10 @@ public final class VoiceIntentClient {
                 "encerra",
                 "encerre",
                 "finaliza",
-                "finalize"
+                "finalize",
+                "chega",
+                "dispensa",
+                "dispensado"
         )) {
 
             return true;
@@ -552,6 +605,16 @@ public final class VoiceIntentClient {
                 words,
                 "pode",
                 "acabar"
+        )
+                || containsSequence(
+                words,
+                "por",
+                "aqui"
+        )
+                || containsSequence(
+                words,
+                "ja",
+                "chega"
         );
     }
 
@@ -585,7 +648,14 @@ public final class VoiceIntentClient {
                 || containsAny(
                 words,
                 "maximum",
-                "max"
+                "max",
+                "total",
+                "full"
+        )
+                || containsSequence(
+                words,
+                "cem",
+                "porcento"
         )) {
 
             return OutputModifier.MAXIMUM;
@@ -600,7 +670,8 @@ public final class VoiceIntentClient {
                 || containsAny(
                 words,
                 "minimum",
-                "min"
+                "min",
+                "zero"
         )) {
 
             return OutputModifier.MINIMUM;
