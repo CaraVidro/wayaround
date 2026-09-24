@@ -210,7 +210,7 @@ public final class WoodenChairBlock
                     new ArmorStand(
                             level,
                             pos.getX() + 0.5,
-                            pos.getY() - 0.60,
+                            pos.getY() - 1.05,
                             pos.getZ() + 0.5
                     );
 
@@ -221,12 +221,6 @@ public final class WoodenChairBlock
                     true
             );
             seat.setNoGravity(
-                    true
-            );
-            seat.setSmall(
-                    true
-            );
-            seat.setMarker(
                     true
             );
             seat.setInvulnerable(
