@@ -1,6 +1,9 @@
 package net.caravidro.wayaround.media.client;
 
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -15,15 +18,18 @@ import net.caravidro.wayaround.media.TelevisionBlock;
 import net.caravidro.wayaround.media.TelevisionBlockEntity;
 import net.caravidro.wayaround.media.VhsData;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemDisplayContext;
 import org.joml.Matrix4f;
 
 public final class TelevisionRenderer
@@ -32,6 +38,11 @@ public final class TelevisionRenderer
     private static final Map<BlockPos, ScreenTexture>
             CACHE =
             new HashMap<>();
+
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern(
+                    "dd/MM/yyyy HH:mm"
+            );
 
     private static long lastCleanupTick;
 
@@ -42,9 +53,17 @@ public final class TelevisionRenderer
             REPORTED_ERRORS =
             new java.util.HashSet<>();
 
+    private final ItemRenderer itemRenderer;
+    private final Font font;
+
     public TelevisionRenderer(
             BlockEntityRendererProvider.Context context
     ) {
+        this.itemRenderer =
+                context.getItemRenderer();
+
+        this.font =
+                context.getFont();
     }
 
     @Override
@@ -66,13 +85,25 @@ public final class TelevisionRenderer
                 )
                         .orElse(null);
 
-        if (info == null
-                || television.isEjected()) {
-
+        if (info == null) {
             release(
                     television.getBlockPos()
             );
+            return;
+        }
 
+        renderTape(
+                television,
+                partialTick,
+                poseStack,
+                buffers,
+                packedLight
+        );
+
+        if (television.isEjected()) {
+            release(
+                    television.getBlockPos()
+            );
             return;
         }
 
@@ -248,6 +279,15 @@ public final class TelevisionRenderer
             );
         }
 
+        if (television.isPlaying()) {
+            renderMetadata(
+                    television,
+                    info,
+                    poseStack,
+                    buffers
+            );
+        }
+
         long currentTick =
                 television.getLevel()
                         .getGameTime();
@@ -265,66 +305,217 @@ public final class TelevisionRenderer
         }
     }
 
+    private void renderTape(
+            TelevisionBlockEntity television,
+            float partialTick,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int packedLight
+    ) {
+        if (television.tape()
+                .isEmpty()) {
+
+            return;
+        }
+
+        float progress =
+                television.tapeVisualProgress(
+                        partialTick
+                );
+
+        if (progress <= 0.015F
+                && !television.isEjected()) {
+
+            return;
+        }
+
+        pose.pushPose();
+
+        transformFront(
+                television,
+                pose
+        );
+
+        /*
+         * 0 = cassette completely inside the VCR slot.
+         * 1 = cassette protruding far enough to grab.
+         */
+        pose.translate(
+                0.46,
+                0.115,
+                0.17
+                        - progress
+                        * 0.30
+        );
+
+        pose.scale(
+                0.48F,
+                0.48F,
+                0.48F
+        );
+
+        itemRenderer.renderStatic(
+                television.tape(),
+                ItemDisplayContext.FIXED,
+                Math.max(
+                        packedLight,
+                        0x00D000D0
+                ),
+                OverlayTexture.NO_OVERLAY,
+                pose,
+                buffers,
+                television.getLevel(),
+                (int) television.getBlockPos()
+                        .asLong()
+        );
+
+        pose.popPose();
+    }
+
+    private void renderMetadata(
+            TelevisionBlockEntity television,
+            VhsData.Info info,
+            PoseStack pose,
+            MultiBufferSource buffers
+    ) {
+        pose.pushPose();
+
+        transformFront(
+                television,
+                pose
+        );
+
+        pose.translate(
+                0.115,
+                0.765,
+                0.050
+        );
+
+        pose.mulPose(
+                Axis.YP.rotationDegrees(
+                        180.0F
+                )
+        );
+
+        pose.scale(
+                0.0032F,
+                -0.0032F,
+                0.0032F
+        );
+
+        String title =
+                trim(
+                        info.title(),
+                        27
+                );
+
+        drawText(
+                title,
+                0.0F,
+                0.0F,
+                pose,
+                buffers
+        );
+
+        float lineY = 10.0F;
+
+        if (info.showCoordinates()) {
+            drawText(
+                    "XYZ "
+                            + info.x()
+                            + " "
+                            + info.y()
+                            + " "
+                            + info.z(),
+                    0.0F,
+                    lineY,
+                    pose,
+                    buffers
+            );
+
+            lineY += 10.0F;
+        }
+
+        if (info.showDateTime()) {
+            String time =
+                    DATE_FORMAT.format(
+                            Instant.ofEpochMilli(
+                                            info.startedAtMillis()
+                                    )
+                                    .atZone(
+                                            ZoneId.systemDefault()
+                                    )
+                    );
+
+            drawText(
+                    time,
+                    0.0F,
+                    lineY,
+                    pose,
+                    buffers
+            );
+        }
+
+        pose.popPose();
+    }
+
+    private void drawText(
+            String text,
+            float x,
+            float y,
+            PoseStack pose,
+            MultiBufferSource buffers
+    ) {
+        font.drawInBatch(
+                text,
+                x,
+                y,
+                0xFFF1F1F1,
+                false,
+                pose.last()
+                        .pose(),
+                buffers,
+                Font.DisplayMode.POLYGON_OFFSET,
+                0x65000000,
+                FULLBRIGHT
+        );
+    }
+
+    private static String trim(
+            String text,
+            int maximum
+    ) {
+        if (text == null
+                || text.length()
+                <= maximum) {
+
+            return text == null
+                    ? ""
+                    : text;
+        }
+
+        return text.substring(
+                0,
+                Math.max(
+                        0,
+                        maximum - 3
+                )
+        )
+                + "...";
+    }
+
     private static void renderScreen(
             TelevisionBlockEntity television,
             PoseStack pose,
             MultiBufferSource buffers,
             ResourceLocation texture
     ) {
-        Direction facing =
-                television.getBlockState()
-                        .getValue(
-                                TelevisionBlock.FACING
-                        );
-
         pose.pushPose();
 
-        switch (facing) {
-            case SOUTH -> {
-                pose.translate(
-                        1.0,
-                        0.0,
-                        1.0
-                );
-
-                pose.mulPose(
-                        Axis.YP.rotationDegrees(
-                                180.0F
-                        )
-                );
-            }
-
-            case WEST -> {
-                pose.translate(
-                        0.0,
-                        0.0,
-                        1.0
-                );
-
-                pose.mulPose(
-                        Axis.YP.rotationDegrees(
-                                90.0F
-                        )
-                );
-            }
-
-            case EAST -> {
-                pose.translate(
-                        1.0,
-                        0.0,
-                        0.0
-                );
-
-                pose.mulPose(
-                        Axis.YP.rotationDegrees(
-                                -90.0F
-                        )
-                );
-            }
-
-            default -> {
-            }
-        }
+        transformFront(
+                television,
+                pose
+        );
 
         Matrix4f matrix =
                 pose.last()
@@ -388,6 +579,64 @@ public final class TelevisionRenderer
         );
 
         pose.popPose();
+    }
+
+    private static void transformFront(
+            TelevisionBlockEntity television,
+            PoseStack pose
+    ) {
+        Direction facing =
+                television.getBlockState()
+                        .getValue(
+                                TelevisionBlock.FACING
+                        );
+
+        switch (facing) {
+            case SOUTH -> {
+                pose.translate(
+                        1.0,
+                        0.0,
+                        1.0
+                );
+
+                pose.mulPose(
+                        Axis.YP.rotationDegrees(
+                                180.0F
+                        )
+                );
+            }
+
+            case WEST -> {
+                pose.translate(
+                        0.0,
+                        0.0,
+                        1.0
+                );
+
+                pose.mulPose(
+                        Axis.YP.rotationDegrees(
+                                90.0F
+                        )
+                );
+            }
+
+            case EAST -> {
+                pose.translate(
+                        1.0,
+                        0.0,
+                        0.0
+                );
+
+                pose.mulPose(
+                        Axis.YP.rotationDegrees(
+                                -90.0F
+                        )
+                );
+            }
+
+            default -> {
+            }
+        }
     }
 
     private static void vertex(
