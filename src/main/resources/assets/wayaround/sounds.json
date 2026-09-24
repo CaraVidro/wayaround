@@ -14,5 +14,13 @@
         "stream": true
       }
     ]
+  },
+  "final_destination": {
+    "sounds": [
+      {
+        "name": "wayaround:final_destination",
+        "stream": true
+      }
+    ]
   }
 }

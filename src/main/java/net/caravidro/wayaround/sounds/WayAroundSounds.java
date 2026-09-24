@@ -20,6 +20,10 @@ public final class WayAroundSounds {
             SOUNDS.register("blue_theme", () -> SoundEvent.createVariableRangeEvent(
                     ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "blue_theme")));
 
+    public static final DeferredHolder<SoundEvent, SoundEvent> FINAL_DESTINATION =
+            SOUNDS.register("final_destination", () -> SoundEvent.createVariableRangeEvent(
+                    ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "final_destination")));
+
     private WayAroundSounds() {
     }
 

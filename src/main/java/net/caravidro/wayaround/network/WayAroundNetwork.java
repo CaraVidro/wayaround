@@ -47,6 +47,12 @@ public final class WayAroundNetwork {
                 BlueGestureS2CPayload::handle
         );
 
+        registrar.playToClient(
+                BetaTechniqueVisualPayload.TYPE,
+                BetaTechniqueVisualPayload.STREAM_CODEC,
+                BetaTechniqueVisualPayload::handle
+        );
+
         registrar.playToServer(
                 VoiceFrameC2SPayload.TYPE,
                 VoiceFrameC2SPayload.STREAM_CODEC,
