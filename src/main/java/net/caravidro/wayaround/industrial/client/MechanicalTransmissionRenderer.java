@@ -86,6 +86,15 @@ public final class MechanicalTransmissionRenderer
                         source != null
                 );
 
+        /*
+         * Water-wheel positive rotation is defined from the wheel face,
+         * while the transmission model rotates around its local +Z axis.
+         * Those conventions are opposite visually, so invert once here for
+         * every shaft/gearbox instead of fixing axes independently.
+         */
+        float transmissionAngle =
+                -angle;
+
         BlockState state =
                 node.getBlockState();
 
@@ -107,7 +116,7 @@ public final class MechanicalTransmissionRenderer
                     state.getValue(
                             MechanicalShaftBlock.AXIS
                     ),
-                    angle,
+                    transmissionAngle,
                     1.04F,
                     0.30F
             );
@@ -134,7 +143,7 @@ public final class MechanicalTransmissionRenderer
                     packedLight,
                     packedOverlay,
                     Direction.Axis.X,
-                    angle,
+                    transmissionAngle,
                     1.06F,
                     0.22F
             );
@@ -145,7 +154,7 @@ public final class MechanicalTransmissionRenderer
                     packedLight,
                     packedOverlay,
                     Direction.Axis.Y,
-                    angle,
+                    transmissionAngle,
                     1.06F,
                     0.22F
             );
@@ -156,7 +165,7 @@ public final class MechanicalTransmissionRenderer
                     packedLight,
                     packedOverlay,
                     Direction.Axis.Z,
-                    angle,
+                    transmissionAngle,
                     1.06F,
                     0.22F
             );
