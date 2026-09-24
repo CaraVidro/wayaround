@@ -640,6 +640,27 @@ public final class BlueClientEffects {
         return result;
     }
 
+    public static void stopOwner(
+            UUID owner
+    ) {
+        ClientBlue state =
+                BLUES.remove(
+                        owner
+                );
+
+        if (state == null
+                || state.sound == null) {
+
+            return;
+        }
+
+        Minecraft.getInstance()
+                .getSoundManager()
+                .stop(
+                        state.sound
+                );
+    }
+
     public static SoundSample soundSample(
             UUID owner
     ) {
@@ -677,10 +698,28 @@ public final class BlueClientEffects {
                     3.4F;
         }
 
+        float fusion =
+                BetaTechniqueClientEffects
+                        .fusionStrength(
+                                owner
+                        );
+
+        if (fusion > 0.0F) {
+            volume *=
+                    1.0F
+                            + fusion
+                                    * 1.65F;
+        }
+
+        float pitch =
+                1.0F
+                        + fusion
+                                * 0.055F;
+
         return new SoundSample(
                 state.position,
                 volume,
-                1.0F
+                pitch
         );
     }
 
