@@ -82,8 +82,7 @@ public final class InfinityWorldRenderer {
 
         float time =
                 minecraft.level
-                        .getGameTime()
-                        + event.getPartialTick();
+                        .getGameTime();
 
         for (InfinityClientEffects.ClientInfinity field :
                 fields) {
