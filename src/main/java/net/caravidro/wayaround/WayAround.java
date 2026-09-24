@@ -2,6 +2,7 @@ package net.caravidro.wayaround;
 
 import com.mojang.logging.LogUtils;
 
+import net.caravidro.wayaround.assembly.AssemblyContent;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.IndustrialContent;
 import net.caravidro.wayaround.network.WayAroundNetwork;
@@ -34,6 +35,7 @@ public class WayAround {
         LOGGER.info("WayAround iniciando!");
         // Registros do mod.
         WayAroundContent.register(modEventBus);
+        AssemblyContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
         net.caravidro.wayaround.dream.DreamContent.register(modEventBus);
         net.neoforged.fml.ModLoadingContext.get().getActiveContainer().registerConfig(
