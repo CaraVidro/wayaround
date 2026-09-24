@@ -52,8 +52,8 @@ public final class VoiceSpeechDebug {
                         pcm
                 );
 
-        WindowsSpeechRecognizer.Result recognition =
-                WindowsSpeechRecognizer.recognize(
+        OpenAiSpeechRecognizer.Result recognition =
+                OpenAiSpeechRecognizer.recognize(
                         pcm
                 );
 

@@ -201,7 +201,7 @@ public final class VoiceSettingsScreen
 
     private Component debugLabel() {
         return Component.literal(
-                "Debug de fala: "
+                "Debug de fala (API): "
                         + (
                         VoiceConfig.isDebugSpeechEnabled()
                                 ? "LIGADO"
@@ -263,7 +263,7 @@ public final class VoiceSettingsScreen
                 this.font,
                 this.title,
                 this.width / 2,
-                25,
+                22,
                 0xFFFFFF
         );
 
@@ -273,17 +273,34 @@ public final class VoiceSettingsScreen
                         "Segure V para falar"
                 ),
                 this.width / 2,
-                43,
+                40,
                 0xA0A0A0
+        );
+
+        int apiColor =
+                OpenAiSpeechRecognizer.hasApiKey()
+                        ? 0x55FF55
+                        : 0xFF5555;
+
+        graphics.drawCenteredString(
+                this.font,
+                Component.literal(
+                        OpenAiSpeechRecognizer.hasApiKey()
+                                ? "Transcricao API: pronta"
+                                : "Transcricao API: OPENAI_API_KEY ausente"
+                ),
+                this.width / 2,
+                52,
+                apiColor
         );
 
         graphics.drawCenteredString(
                 this.font,
                 Component.literal(
-                        "Debug: texto local + volume + pitch + alongamento de vogal"
+                        "Texto: gpt-transcribe | entonacao: analisada localmente"
                 ),
                 this.width / 2,
-                55,
+                64,
                 0x777777
         );
 
@@ -297,7 +314,7 @@ public final class VoiceSettingsScreen
                                 + " blocos"
                 ),
                 this.width / 2,
-                67,
+                76,
                 0x777777
         );
 
