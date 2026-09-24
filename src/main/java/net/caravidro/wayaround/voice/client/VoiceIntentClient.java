@@ -247,6 +247,58 @@ public final class VoiceIntentClient {
             return;
         }
 
+        if (looksLikePurpleVoid(
+                currentWords
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.PURPLE_VOID,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "VAZIO ROXO"
+            );
+
+            clearContext();
+            return;
+        }
+
+        TechniqueMatch dualBlue =
+                matchTechnique(
+                        contextWords,
+                        "azul"
+                );
+
+        TechniqueMatch dualRed =
+                matchTechnique(
+                        contextWords,
+                        "vermelho"
+                );
+
+        if (dualBlue.complete()
+                && dualRed.complete()) {
+
+            pendingAt =
+                    0L;
+
+            pendingIntent =
+                    0;
+
+            dispatch(
+                    VoiceIntentC2SPayload.DUAL_PREPARE,
+                    pendingOutput,
+                    (float) globalUrgency,
+                    "BLUE + RED / AGUARDANDO VAZIO ROXO"
+            );
+
+            pendingOutput =
+                    -1.0F;
+
+            outputExpiresAt =
+                    0L;
+
+            clearContext();
+            return;
+        }
+
         /*
          * Free-form control belongs to the conversational context of an
          * already active Blue. This is the important difference between
@@ -873,6 +925,42 @@ public final class VoiceIntentClient {
                 ),
                 false,
                 reason.toString()
+        );
+    }
+
+    private static boolean looksLikePurpleVoid(
+            List<String> words
+    ) {
+        int voidIndex =
+                findApprox(
+                        words,
+                        "vazio",
+                        0,
+                        1
+                );
+
+        int purpleIndex =
+                findApprox(
+                        words,
+                        "roxo",
+                        0,
+                        1
+                );
+
+        return (
+                voidIndex >= 0
+                        && purpleIndex >= 0
+        )
+                || (
+                containsAny(
+                        words,
+                        "purple"
+                )
+                        && containsAny(
+                        words,
+                        "vazio",
+                        "void"
+                )
         );
     }
 

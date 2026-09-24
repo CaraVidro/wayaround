@@ -39,6 +39,8 @@ public record VoiceIntentC2SPayload(
     public static final byte BLUE_OUTPUT = 7;
     public static final byte INFINITY_REINFORCE = 8;
     public static final byte INFINITY_OFF = 9;
+    public static final byte DUAL_PREPARE = 10;
+    public static final byte PURPLE_VOID = 11;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -152,6 +154,16 @@ public record VoiceIntentC2SPayload(
                                 );
                             }
                         }
+
+                        case DUAL_PREPARE ->
+                                ImaginaryBetaManager.prepareDual(
+                                        player
+                                );
+
+                        case PURPLE_VOID ->
+                                ImaginaryBetaManager.launchPurpleVoid(
+                                        player
+                                );
 
                         default -> {
                         }

@@ -2928,7 +2928,8 @@ public final class BlueManager {
 
                 eraseEntity(
                         level,
-                        entity
+                        entity,
+                        collapse.originalScale
                 );
 
                 iterator.remove();
@@ -3016,9 +3017,23 @@ public final class BlueManager {
 
     private static void eraseEntity(
             ServerLevel level,
-            Entity entity
+            Entity entity,
+            double originalScale
     ) {
         if (entity instanceof ServerPlayer player) {
+            var scale =
+                    player.getAttribute(
+                            Attributes.SCALE
+                    );
+
+            if (scale != null) {
+                scale.setBaseValue(
+                        originalScale
+                );
+
+                player.refreshDimensions();
+            }
+
             player.hurt(
                     level.damageSources()
                             .genericKill(),

@@ -3,6 +3,7 @@ package net.caravidro.wayaround;
 import com.mojang.logging.LogUtils;
 
 import net.caravidro.wayaround.blue.BlueManager;
+import net.caravidro.wayaround.blue.ImaginaryBetaManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.IndustrialContent;
 import net.caravidro.wayaround.infinity.InfinityManager;
@@ -83,6 +84,7 @@ public class WayAround {
         BlizzardChunkTracker.clear();
         DomainManager.clearAll();
         BlueManager.clearAll();
+        ImaginaryBetaManager.clearAll();
         InfinityManager.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }

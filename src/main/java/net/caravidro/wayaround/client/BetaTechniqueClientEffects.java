@@ -43,7 +43,7 @@ public final class BetaTechniqueClientEffects {
 
     private static int shockwaveTicks;
     private static final int SHOCKWAVE_DURATION =
-            14;
+            18;
 
     public static void receive(
             BetaTechniqueVisualPayload payload
@@ -244,7 +244,11 @@ public final class BetaTechniqueClientEffects {
 
         if (state == null
                 || state.mode
-                == BetaTechniqueVisualPayload.RED) {
+                == BetaTechniqueVisualPayload.RED
+                || state.mode
+                == BetaTechniqueVisualPayload.PAIR_BLUE
+                || state.mode
+                == BetaTechniqueVisualPayload.PURPLE_PROJECTILE) {
 
             return;
         }
@@ -330,7 +334,11 @@ public final class BetaTechniqueClientEffects {
 
         if (state == null
                 || state.mode
-                == BetaTechniqueVisualPayload.RED) {
+                == BetaTechniqueVisualPayload.RED
+                || state.mode
+                == BetaTechniqueVisualPayload.PAIR_BLUE
+                || state.mode
+                == BetaTechniqueVisualPayload.PURPLE_PROJECTILE) {
 
             return;
         }
@@ -435,7 +443,11 @@ public final class BetaTechniqueClientEffects {
 
         if (state == null
                 || state.mode
-                == BetaTechniqueVisualPayload.RED) {
+                == BetaTechniqueVisualPayload.RED
+                || state.mode
+                == BetaTechniqueVisualPayload.PAIR_BLUE
+                || state.mode
+                == BetaTechniqueVisualPayload.PURPLE_PROJECTILE) {
 
             return;
         }
@@ -672,7 +684,7 @@ public final class BetaTechniqueClientEffects {
                 away.length();
 
         if (distance < 0.08
-                || distance > 112.0) {
+                || distance > 168.0) {
 
             return Vec3.ZERO;
         }
@@ -684,7 +696,7 @@ public final class BetaTechniqueClientEffects {
         double distanceStrength =
                 1.0
                         - distance
-                                / 112.0;
+                                / 168.0;
 
         double impulse =
                 (

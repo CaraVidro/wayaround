@@ -63,13 +63,31 @@ public final class ImaginaryBetaManager {
             188;
 
     private static final float PURPLE_NUKE_POWER =
-            38.0F;
+            58.0F;
 
     private static final double PURPLE_STAR_RADIUS =
-            48.0;
+            96.0;
+
+    private static final double PURPLE_SHOCKWAVE_RADIUS =
+            128.0;
+
+    private static final int DUAL_WAIT_TICKS =
+            100;
+
+    private static final int PURPLE_PROJECTILE_LIFE =
+            110;
+
+    private static final double PURPLE_PROJECTILE_SPEED =
+            1.35;
+
+    private static final int PURPLE_PROJECTILE_SUBSTEPS =
+            7;
+
+    private static final double PURPLE_PROJECTILE_RADIUS =
+            3.4;
 
     private static final double VISUAL_RANGE =
-            256.0;
+            384.0;
 
     private static final Map<UUID, RedProjectile>
             REDS =
@@ -78,6 +96,104 @@ public final class ImaginaryBetaManager {
     private static final Map<UUID, PurpleFusion>
             FUSIONS =
             new HashMap<>();
+
+    private static final Map<UUID, PendingDual>
+            DUALS =
+            new HashMap<>();
+
+    private static final Map<UUID, PurpleProjectile>
+            PURPLE_PROJECTILES =
+            new HashMap<>();
+
+    public static boolean prepareDual(
+            ServerPlayer player
+    ) {
+        UUID owner =
+                player.getUUID();
+
+        if (FUSIONS.containsKey(owner)
+                || PURPLE_PROJECTILES.containsKey(owner)) {
+
+            return false;
+        }
+
+        REDS.remove(owner);
+
+        DUALS.put(
+                owner,
+                new PendingDual(
+                        owner,
+                        player.serverLevel().dimension(),
+                        DUAL_WAIT_TICKS
+                )
+        );
+
+        player.serverLevel().playSound(
+                null,
+                player.blockPosition(),
+                SoundEvents.AMETHYST_BLOCK_RESONATE,
+                SoundSource.PLAYERS,
+                0.72F,
+                0.92F
+        );
+
+        return true;
+    }
+
+    public static boolean launchPurpleVoid(
+            ServerPlayer player
+    ) {
+        PendingDual dual =
+                DUALS.remove(
+                        player.getUUID()
+                );
+
+        if (dual == null) {
+            return false;
+        }
+
+        Vec3 direction =
+                player.getLookAngle().normalize();
+
+        Vec3 position =
+                player.getEyePosition()
+                        .add(
+                                direction.scale(4.6)
+                        );
+
+        PURPLE_PROJECTILES.put(
+                player.getUUID(),
+                new PurpleProjectile(
+                        player.getUUID(),
+                        player.serverLevel().dimension(),
+                        position,
+                        direction.scale(
+                                PURPLE_PROJECTILE_SPEED
+                        ),
+                        PURPLE_PROJECTILE_LIFE
+                )
+        );
+
+        player.serverLevel().playSound(
+                null,
+                player.blockPosition(),
+                SoundEvents.END_PORTAL_SPAWN,
+                SoundSource.PLAYERS,
+                2.0F,
+                0.62F
+        );
+
+        sendVisual(
+                player.serverLevel(),
+                player.getUUID(),
+                BetaTechniqueVisualPayload.PURPLE_PROJECTILE,
+                position,
+                1.35F,
+                0.0F
+        );
+
+        return true;
+    }
 
     public static boolean fireRed(
             ServerPlayer player
@@ -148,12 +264,329 @@ public final class ImaginaryBetaManager {
         MinecraftServer server =
                 event.getServer();
 
-        tickReds(
-                server
-        );
+        tickDuals(server);
+        tickReds(server);
+        tickPurpleProjectiles(server);
+        tickFusions(server);
+    }
 
-        tickFusions(
-                server
+    private static void tickDuals(
+            MinecraftServer server
+    ) {
+        Iterator<Map.Entry<UUID, PendingDual>> iterator =
+                DUALS.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            PendingDual dual =
+                    iterator.next().getValue();
+
+            ServerPlayer owner =
+                    server.getPlayerList()
+                            .getPlayer(dual.owner);
+
+            ServerLevel level =
+                    server.getLevel(dual.dimension);
+
+            if (owner == null
+                    || level == null
+                    || !owner.isAlive()
+                    || owner.serverLevel() != level) {
+
+                iterator.remove();
+                continue;
+            }
+
+            dual.life--;
+
+            if (dual.life <= 0) {
+                iterator.remove();
+                continue;
+            }
+
+            Vec3 look =
+                    owner.getLookAngle().normalize();
+
+            Vec3 right =
+                    look.cross(
+                            new Vec3(0.0, 1.0, 0.0)
+                    );
+
+            if (right.lengthSqr() < 0.0001) {
+                right =
+                        new Vec3(1.0, 0.0, 0.0);
+            } else {
+                right =
+                        right.normalize();
+            }
+
+            Vec3 center =
+                    owner.getEyePosition()
+                            .add(
+                                    look.scale(4.6)
+                            );
+
+            sendVisual(
+                    level,
+                    pairVisualId(
+                            dual.owner,
+                            0x42A11E5BL
+                    ),
+                    BetaTechniqueVisualPayload.PAIR_BLUE,
+                    center.add(
+                            right.scale(-1.18)
+                    ),
+                    1.0F,
+                    0.0F
+            );
+
+            sendVisual(
+                    level,
+                    pairVisualId(
+                            dual.owner,
+                            0x7ED00D5EL
+                    ),
+                    BetaTechniqueVisualPayload.RED,
+                    center.add(
+                            right.scale(1.18)
+                    ),
+                    1.0F,
+                    0.0F
+            );
+        }
+    }
+
+    private static void tickPurpleProjectiles(
+            MinecraftServer server
+    ) {
+        Iterator<Map.Entry<UUID, PurpleProjectile>> iterator =
+                PURPLE_PROJECTILES.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            PurpleProjectile purple =
+                    iterator.next().getValue();
+
+            ServerPlayer owner =
+                    server.getPlayerList()
+                            .getPlayer(purple.owner);
+
+            ServerLevel level =
+                    server.getLevel(purple.dimension);
+
+            if (owner == null
+                    || level == null
+                    || owner.serverLevel() != level) {
+
+                iterator.remove();
+                continue;
+            }
+
+            purple.life--;
+
+            if (purple.life <= 0) {
+                iterator.remove();
+                continue;
+            }
+
+            Vec3 step =
+                    purple.velocity.scale(
+                            1.0
+                                    / PURPLE_PROJECTILE_SUBSTEPS
+                    );
+
+            for (int sub = 0;
+                 sub < PURPLE_PROJECTILE_SUBSTEPS;
+                 sub++) {
+
+                purple.position =
+                        purple.position.add(step);
+
+                destroyPurplePath(
+                        level,
+                        purple.position
+                );
+
+                burnPurplePath(
+                        level,
+                        purple.position
+                );
+
+                erasePurpleEntities(
+                        level,
+                        owner,
+                        purple.position
+                );
+            }
+
+            level.sendParticles(
+                    ParticleTypes.END_ROD,
+                    purple.position.x,
+                    purple.position.y,
+                    purple.position.z,
+                    14,
+                    0.55,
+                    0.55,
+                    0.55,
+                    0.08
+            );
+
+            level.sendParticles(
+                    ParticleTypes.FLAME,
+                    purple.position.x,
+                    purple.position.y,
+                    purple.position.z,
+                    18,
+                    0.72,
+                    0.42,
+                    0.72,
+                    0.035
+            );
+
+            sendVisual(
+                    level,
+                    purple.owner,
+                    BetaTechniqueVisualPayload.PURPLE_PROJECTILE,
+                    purple.position,
+                    1.35F,
+                    1.0F
+                            - purple.life
+                                    / (float) PURPLE_PROJECTILE_LIFE
+            );
+        }
+    }
+
+    private static void destroyPurplePath(
+            ServerLevel level,
+            Vec3 center
+    ) {
+        int radius =
+                4;
+
+        BlockPos origin =
+                BlockPos.containing(center);
+
+        double radiusSquared =
+                PURPLE_PROJECTILE_RADIUS
+                        * PURPLE_PROJECTILE_RADIUS;
+
+        for (BlockPos sample :
+                BlockPos.betweenClosed(
+                        origin.offset(-radius, -radius, -radius),
+                        origin.offset(radius, radius, radius)
+                )) {
+
+            if (!level.hasChunkAt(sample)) {
+                continue;
+            }
+
+            if (Vec3.atCenterOf(sample)
+                    .distanceToSqr(center)
+                    > radiusSquared) {
+
+                continue;
+            }
+
+            BlockState state =
+                    level.getBlockState(sample);
+
+            if (state.isAir()
+                    || state.getDestroySpeed(
+                            level,
+                            sample
+                    ) < 0.0F) {
+
+                continue;
+            }
+
+            level.removeBlock(
+                    sample,
+                    false
+            );
+        }
+    }
+
+    private static void burnPurplePath(
+            ServerLevel level,
+            Vec3 center
+    ) {
+        BlockPos origin =
+                BlockPos.containing(center);
+
+        for (int attempt = 0;
+             attempt < 8;
+             attempt++) {
+
+            BlockPos pos =
+                    origin.offset(
+                            level.random.nextInt(7) - 3,
+                            level.random.nextInt(5) - 2,
+                            level.random.nextInt(7) - 3
+                    );
+
+            if (!level.getBlockState(pos).isAir()) {
+                continue;
+            }
+
+            BlockState fire =
+                    Blocks.FIRE.defaultBlockState();
+
+            if (fire.canSurvive(level, pos)) {
+                level.setBlockAndUpdate(
+                        pos,
+                        fire
+                );
+            }
+        }
+    }
+
+    private static void erasePurpleEntities(
+            ServerLevel level,
+            ServerPlayer owner,
+            Vec3 center
+    ) {
+        double reach =
+                PURPLE_PROJECTILE_RADIUS
+                        + 1.4;
+
+        AABB area =
+                new AABB(
+                        center.x - reach,
+                        center.y - reach,
+                        center.z - reach,
+                        center.x + reach,
+                        center.y + reach,
+                        center.z + reach
+                );
+
+        for (LivingEntity living :
+                level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        area,
+                        entity ->
+                                entity.isAlive()
+                                        && entity != owner
+                )) {
+
+            living.igniteForSeconds(10.0F);
+
+            living.hurt(
+                    level.damageSources()
+                            .genericKill(),
+                    Float.MAX_VALUE
+            );
+        }
+    }
+
+    private static UUID pairVisualId(
+            UUID owner,
+            long salt
+    ) {
+        return new UUID(
+                owner.getMostSignificantBits() ^ salt,
+                owner.getLeastSignificantBits()
+                        ^ Long.rotateLeft(
+                        salt,
+                        21
+                )
         );
     }
 
@@ -814,6 +1247,11 @@ public final class ImaginaryBetaManager {
                 Level.ExplosionInteraction.TNT
         );
 
+        applyPurpleNukeShockwave(
+                level,
+                fusion
+        );
+
         level.playSound(
                 null,
                 BlockPos.containing(
@@ -921,6 +1359,85 @@ public final class ImaginaryBetaManager {
         );
     }
 
+    private static void applyPurpleNukeShockwave(
+            ServerLevel level,
+            PurpleFusion fusion
+    ) {
+        double radius =
+                PURPLE_SHOCKWAVE_RADIUS;
+
+        AABB area =
+                new AABB(
+                        fusion.center.x - radius,
+                        fusion.center.y - radius,
+                        fusion.center.z - radius,
+                        fusion.center.x + radius,
+                        fusion.center.y + radius,
+                        fusion.center.z + radius
+                );
+
+        for (LivingEntity living :
+                level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        area,
+                        LivingEntity::isAlive
+                )) {
+
+            Vec3 away =
+                    living.position()
+                            .subtract(fusion.center);
+
+            double distance =
+                    away.length();
+
+            if (distance <= 0.01
+                    || distance > radius) {
+
+                continue;
+            }
+
+            double factor =
+                    1.0
+                            - distance / radius;
+
+            Vec3 direction =
+                    away.scale(
+                            1.0 / distance
+                    );
+
+            living.hurt(
+                    level.damageSources().magic(),
+                    (float) (
+                            8.0
+                                    + factor
+                                            * factor
+                                            * 54.0
+                    )
+            );
+
+            living.setDeltaMovement(
+                    living.getDeltaMovement()
+                            .add(
+                                    direction.scale(
+                                            1.0
+                                                    + factor
+                                                            * 5.2
+                                    )
+                            )
+                            .add(
+                                    0.0,
+                                    0.28
+                                            + factor
+                                                    * 1.2,
+                                    0.0
+                            )
+            );
+
+            living.hurtMarked =
+                    true;
+        }
+    }
+
     private static void igniteAftermath(
             ServerLevel level,
             Vec3 center
@@ -939,7 +1456,7 @@ public final class ImaginaryBetaManager {
                             + Math.sqrt(
                             level.random.nextDouble()
                     )
-                                    * 42.0;
+                                    * 74.0;
 
             int x =
                     Mth.floor(
@@ -1046,6 +1563,13 @@ public final class ImaginaryBetaManager {
         );
     }
 
+    public static void clearAll() {
+        REDS.clear();
+        FUSIONS.clear();
+        DUALS.clear();
+        PURPLE_PROJECTILES.clear();
+    }
+
     private static void sendVisual(
             ServerLevel level,
             UUID owner,
@@ -1071,6 +1595,48 @@ public final class ImaginaryBetaManager {
                         progress
                 )
         );
+    }
+
+    private static final class PendingDual {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level>
+                dimension;
+        private int life;
+
+        private PendingDual(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                int life
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.life = life;
+        }
+    }
+
+    private static final class PurpleProjectile {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level>
+                dimension;
+        private Vec3 position;
+        private final Vec3 velocity;
+        private int life;
+
+        private PurpleProjectile(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 position,
+                Vec3 velocity,
+                int life
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.position = position;
+            this.velocity = velocity;
+            this.life = life;
+        }
     }
 
     private static final class RedProjectile {

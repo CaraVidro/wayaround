@@ -92,6 +92,10 @@ public final class BetaTechniqueWorldRenderer {
 
             if (state.mode()
                     == BetaTechniqueVisualPayload.RED
+                    || state.mode()
+                            == BetaTechniqueVisualPayload.PAIR_BLUE
+                    || state.mode()
+                            == BetaTechniqueVisualPayload.PURPLE_PROJECTILE
                     || (
                     state.mode()
                             == BetaTechniqueVisualPayload.FUSION
@@ -136,6 +140,17 @@ public final class BetaTechniqueWorldRenderer {
                     == BetaTechniqueVisualPayload.RED) {
 
                 emitRed(
+                        buffer,
+                        pose,
+                        camera,
+                        state,
+                        time
+                );
+
+            } else if (state.mode()
+                    == BetaTechniqueVisualPayload.PAIR_BLUE) {
+
+                emitPairBlue(
                         buffer,
                         pose,
                         camera,
@@ -245,6 +260,50 @@ public final class BetaTechniqueWorldRenderer {
         pose.popPose();
     }
 
+    private static void emitPairBlue(
+            BufferBuilder buffer,
+            PoseStack pose,
+            Vec3 camera,
+            BetaTechniqueClientEffects.VisualTechnique state,
+            long time
+    ) {
+        pose.pushPose();
+
+        pose.translate(
+                state.position().x - camera.x,
+                state.position().y - camera.y,
+                state.position().z - camera.z
+        );
+
+        float rotation =
+                time * 8.6F
+                        + state.owner()
+                                .hashCode()
+                                * 0.02F;
+
+        pose.mulPose(
+                Axis.YP.rotationDegrees(
+                        rotation
+                )
+        );
+
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        rotation * 0.51F
+                )
+        );
+
+        var matrix =
+                pose.last()
+                        .pose();
+
+        cube(buffer, matrix, 0.50F, 26, 88, 255, 42);
+        cube(buffer, matrix, 0.33F, 36, 126, 255, 112);
+        cube(buffer, matrix, 0.20F, 130, 205, 255, 244);
+
+        pose.popPose();
+    }
+
     private static void emitPurple(
             BufferBuilder buffer,
             PoseStack pose,
@@ -276,12 +335,15 @@ public final class BetaTechniqueWorldRenderer {
                         0.0F,
                         1.0F
                 )
-                        : 1.0F
-                                - Mth.clamp(
-                                state.progress(),
-                                0.0F,
-                                1.0F
-                        );
+                        : state.mode()
+                        == BetaTechniqueVisualPayload.PURPLE_PROJECTILE
+                                ? 1.0F
+                                : 1.0F
+                                        - Mth.clamp(
+                                        state.progress(),
+                                        0.0F,
+                                        1.0F
+                                );
 
         pose.pushPose();
 
