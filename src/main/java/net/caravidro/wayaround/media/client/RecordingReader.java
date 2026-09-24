@@ -2,6 +2,8 @@ package net.caravidro.wayaround.media.client;
 
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.mojang.blaze3d.platform.NativeImage;
 
@@ -10,15 +12,23 @@ public final class RecordingReader
 
     private final RandomAccessFile file;
 
+    private final int version;
+    private final int headerBytes;
+
     private final int width;
     private final int height;
     private final int fps;
     private final int frameCount;
     private final int sampleRate;
     private final int audioSamples;
+    private final int soundEventCount;
     private final long startedAt;
 
     private final long audioOffset;
+    private final long soundEventsOffset;
+
+    private final List<RecordedAmbientSound>
+            ambientSounds;
 
     public RecordingReader(
             Path path
@@ -33,7 +43,7 @@ public final class RecordingReader
         int magic =
                 file.readInt();
 
-        int version =
+        version =
                 file.readInt();
 
         if (magic
@@ -45,7 +55,9 @@ public final class RecordingReader
         }
 
         if (version
-                != RecordingFormat.VERSION) {
+                != RecordingFormat.VERSION
+                && version
+                != RecordingFormat.LEGACY_VERSION) {
 
             throw new IllegalArgumentException(
                     "Versao de gravacao nao suportada: "
@@ -59,14 +71,40 @@ public final class RecordingReader
         frameCount = file.readInt();
         sampleRate = file.readInt();
         audioSamples = file.readInt();
-        startedAt = file.readLong();
+
+        if (version
+                >= RecordingFormat.VERSION) {
+
+            soundEventCount =
+                    file.readInt();
+
+            startedAt =
+                    file.readLong();
+
+            headerBytes =
+                    RecordingFormat.HEADER_BYTES;
+
+        } else {
+            soundEventCount =
+                    0;
+
+            startedAt =
+                    file.readLong();
+
+            headerBytes =
+                    RecordingFormat
+                            .LEGACY_HEADER_BYTES;
+        }
 
         if (width <= 0
                 || height <= 0
                 || fps <= 0
                 || frameCount < 0
                 || sampleRate <= 0
-                || audioSamples < 0) {
+                || audioSamples < 0
+                || soundEventCount < 0
+                || soundEventCount
+                > RecordingFormat.MAX_SOUND_EVENTS) {
 
             throw new IllegalArgumentException(
                     "Cabecalho de gravacao invalido"
@@ -74,24 +112,29 @@ public final class RecordingReader
         }
 
         audioOffset =
-                RecordingFormat.HEADER_BYTES
+                headerBytes
                         + (long) frameCount
                         * width
                         * height
                         * RecordingFormat
                                 .BYTES_PER_PIXEL;
 
-        long expected =
+        soundEventsOffset =
                 audioOffset
                         + (long) audioSamples
                         * RecordingFormat
                                 .AUDIO_BYTES_PER_SAMPLE;
 
-        if (file.length() < expected) {
+        if (file.length()
+                < soundEventsOffset) {
+
             throw new IllegalArgumentException(
                     "Gravacao incompleta"
             );
         }
+
+        ambientSounds =
+                readAmbientSounds();
     }
 
     public int width() {
@@ -120,6 +163,12 @@ public final class RecordingReader
 
     public long startedAt() {
         return startedAt;
+    }
+
+    public List<RecordedAmbientSound>
+            ambientSounds() {
+
+        return ambientSounds;
     }
 
     public long durationMillis() {
@@ -169,7 +218,7 @@ public final class RecordingReader
                         ];
 
         long offset =
-                RecordingFormat.HEADER_BYTES
+                headerBytes
                         + (long) index
                         * frameBytes;
 
@@ -269,6 +318,83 @@ public final class RecordingReader
         );
 
         return result;
+    }
+
+    public synchronized byte[] readAllAudio()
+            throws Exception {
+
+        if (audioSamples <= 0) {
+            return new byte[0];
+        }
+
+        byte[] result =
+                new byte[
+                        audioSamples
+                                * RecordingFormat
+                                        .AUDIO_BYTES_PER_SAMPLE
+                        ];
+
+        file.seek(
+                audioOffset
+        );
+
+        file.readFully(
+                result
+        );
+
+        return result;
+    }
+
+    private List<RecordedAmbientSound>
+            readAmbientSounds()
+            throws Exception {
+
+        if (soundEventCount <= 0) {
+            return List.of();
+        }
+
+        file.seek(
+                soundEventsOffset
+        );
+
+        List<RecordedAmbientSound> result =
+                new ArrayList<>(
+                        soundEventCount
+                );
+
+        for (int index = 0;
+             index < soundEventCount;
+             index++) {
+
+            long timeMillis =
+                    file.readLong();
+
+            String soundId =
+                    file.readUTF();
+
+            String source =
+                    file.readUTF();
+
+            float volume =
+                    file.readFloat();
+
+            float pitch =
+                    file.readFloat();
+
+            result.add(
+                    new RecordedAmbientSound(
+                            timeMillis,
+                            soundId,
+                            source,
+                            volume,
+                            pitch
+                    )
+            );
+        }
+
+        return List.copyOf(
+                result
+        );
     }
 
     @Override

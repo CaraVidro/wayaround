@@ -5,11 +5,21 @@ public final class MediaVoiceTap {
     private MediaVoiceTap() {
     }
 
-    public static void capture(
+    public static void captureLocal(
             byte[] pcm
     ) {
         MediaRecorder.mixVoiceFrame(
-                pcm
+                pcm,
+                true
+        );
+    }
+
+    public static void captureRemote(
+            byte[] pcm
+    ) {
+        MediaRecorder.mixVoiceFrame(
+                pcm,
+                false
         );
     }
 }

@@ -3,6 +3,8 @@ package net.caravidro.wayaround.media.client;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.mojang.blaze3d.platform.NativeImage;
 
@@ -19,6 +21,10 @@ public final class RecordingWriter
     ) {
     }
 
+    private static final int VOICE_RESYNC_SAMPLES =
+            RecordingFormat.AUDIO_SAMPLE_RATE
+                    / 8;
+
     private final String recordingId;
     private final Path path;
     private final RandomAccessFile file;
@@ -29,8 +35,15 @@ public final class RecordingWriter
     private final long startedAtNanos =
             System.nanoTime();
 
+    private final List<RecordedAmbientSound>
+            ambientSounds =
+            new ArrayList<>();
+
     private short[] voiceMix;
     private int voiceSamplesUsed;
+
+    private int localVoiceCursor = -1;
+    private int remoteVoiceCursor = -1;
 
     private int frameCount;
     private boolean closed;
@@ -79,6 +92,8 @@ public final class RecordingWriter
         file.writeInt(
                 RecordingFormat.AUDIO_SAMPLE_RATE
         );
+
+        file.writeInt(0);
 
         file.writeInt(0);
 
@@ -174,7 +189,8 @@ public final class RecordingWriter
     }
 
     public synchronized void mixVoiceFrame(
-            byte[] pcm
+            byte[] pcm,
+            boolean localTrack
     ) {
         if (closed
                 || pcm == null
@@ -191,22 +207,40 @@ public final class RecordingWriter
                             ];
         }
 
-        long elapsedNanos =
-                Math.max(
-                        0L,
-                        System.nanoTime()
-                                - startedAtNanos
-                );
+        int elapsedSample =
+                elapsedSample();
 
-        int destinationSample =
-                (int) Math.min(
-                        RecordingFormat
-                                .MAX_AUDIO_SAMPLES
-                                - 1L,
-                        elapsedNanos
-                                * RecordingFormat
-                                .AUDIO_SAMPLE_RATE
-                                / 1_000_000_000L
+        int cursor =
+                localTrack
+                        ? localVoiceCursor
+                        : remoteVoiceCursor;
+
+        int destinationSample;
+
+        if (cursor < 0
+                || Math.abs(
+                        elapsedSample
+                                - cursor
+                )
+                > VOICE_RESYNC_SAMPLES) {
+
+            destinationSample =
+                    elapsedSample;
+
+        } else {
+            destinationSample =
+                    cursor;
+        }
+
+        destinationSample =
+                Math.max(
+                        0,
+                        Math.min(
+                                RecordingFormat
+                                        .MAX_AUDIO_SAMPLES
+                                        - 1,
+                                destinationSample
+                        )
                 );
 
         int incomingSamples =
@@ -263,12 +297,63 @@ public final class RecordingWriter
                     (short) mixed;
         }
 
+        int nextCursor =
+                destinationSample
+                        + writable;
+
+        if (localTrack) {
+            localVoiceCursor =
+                    nextCursor;
+        } else {
+            remoteVoiceCursor =
+                    nextCursor;
+        }
+
         voiceSamplesUsed =
                 Math.max(
                         voiceSamplesUsed,
-                        destinationSample
-                                + writable
+                        nextCursor
                 );
+    }
+
+    public synchronized void addAmbientSound(
+            String soundId,
+            String source,
+            float volume,
+            float pitch
+    ) {
+        if (closed
+                || soundId == null
+                || soundId.isBlank()
+                || source == null
+                || source.isBlank()
+                || ambientSounds.size()
+                >= RecordingFormat.MAX_SOUND_EVENTS) {
+
+            return;
+        }
+
+        ambientSounds.add(
+                new RecordedAmbientSound(
+                        elapsedMillis(),
+                        soundId,
+                        source,
+                        Math.max(
+                                0.0F,
+                                Math.min(
+                                        4.0F,
+                                        volume
+                                )
+                        ),
+                        Math.max(
+                                0.5F,
+                                Math.min(
+                                        2.0F,
+                                        pitch
+                                )
+                        )
+                )
+        );
     }
 
     public synchronized Summary finish()
@@ -319,6 +404,15 @@ public final class RecordingWriter
         );
 
         file.seek(
+                RecordingFormat
+                        .SOUND_EVENT_COUNT_OFFSET
+        );
+
+        file.writeInt(
+                ambientSounds.size()
+        );
+
+        file.seek(
                 RecordingFormat.HEADER_BYTES
                         + (long) frameCount
                         * RecordingFormat.FRAME_BYTES
@@ -326,7 +420,7 @@ public final class RecordingWriter
 
         byte[] chunk =
                 new byte[
-                        8192
+                        16_384
                         ];
 
         int sample = 0;
@@ -377,6 +471,30 @@ public final class RecordingWriter
                     samplesThisChunk;
         }
 
+        for (RecordedAmbientSound sound
+                : ambientSounds) {
+
+            file.writeLong(
+                    sound.timeMillis()
+            );
+
+            file.writeUTF(
+                    sound.soundId()
+            );
+
+            file.writeUTF(
+                    sound.source()
+            );
+
+            file.writeFloat(
+                    sound.volume()
+            );
+
+            file.writeFloat(
+                    sound.pitch()
+            );
+        }
+
         file.close();
         closed = true;
 
@@ -404,6 +522,36 @@ public final class RecordingWriter
                 audioSamples,
                 startedAtMillis,
                 durationMillis
+        );
+    }
+
+    private int elapsedSample() {
+        long elapsedNanos =
+                Math.max(
+                        0L,
+                        System.nanoTime()
+                                - startedAtNanos
+                );
+
+        return (int) Math.min(
+                RecordingFormat
+                        .MAX_AUDIO_SAMPLES
+                        - 1L,
+                elapsedNanos
+                        * RecordingFormat
+                        .AUDIO_SAMPLE_RATE
+                        / 1_000_000_000L
+        );
+    }
+
+    private long elapsedMillis() {
+        return Math.max(
+                0L,
+                (
+                        System.nanoTime()
+                                - startedAtNanos
+                )
+                        / 1_000_000L
         );
     }
 

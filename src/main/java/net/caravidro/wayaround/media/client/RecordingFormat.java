@@ -10,7 +10,8 @@ public final class RecordingFormat {
     public static final int MAGIC =
             0x57415652; // WAVR
 
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
+    public static final int LEGACY_VERSION = 2;
 
     public static final int WIDTH = 160;
     public static final int HEIGHT = 90;
@@ -28,8 +29,12 @@ public final class RecordingFormat {
 
     public static final int AUDIO_BYTES_PER_SAMPLE = 2;
 
-    public static final int HEADER_BYTES =
+    public static final int LEGACY_HEADER_BYTES =
             Integer.BYTES * 8
+                    + Long.BYTES;
+
+    public static final int HEADER_BYTES =
+            Integer.BYTES * 9
                     + Long.BYTES;
 
     public static final int FRAME_COUNT_OFFSET =
@@ -37,6 +42,9 @@ public final class RecordingFormat {
 
     public static final int AUDIO_SAMPLES_OFFSET =
             Integer.BYTES * 7;
+
+    public static final int SOUND_EVENT_COUNT_OFFSET =
+            Integer.BYTES * 8;
 
     public static final int MAX_SECONDS = 180;
 
@@ -46,4 +54,7 @@ public final class RecordingFormat {
     public static final int MAX_AUDIO_SAMPLES =
             AUDIO_SAMPLE_RATE
                     * MAX_SECONDS;
+
+    public static final int MAX_SOUND_EVENTS =
+            4096;
 }
