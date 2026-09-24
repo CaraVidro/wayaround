@@ -253,10 +253,27 @@ public final class MechanicalTransmission {
             BlockPos pos,
             Direction side
     ) {
+        IRotationalPower sided =
+                level.getCapability(
+                        MechanicalCapabilities.ROTATION,
+                        pos,
+                        side
+                );
+
+        if (sided != null) {
+            return sided;
+        }
+
+        /*
+         * V1 compatibility fallback: some future rotational providers may
+         * expose an unsided capability even when the network approaches from
+         * a concrete face. The water wheel remains axis-checked below, so this
+         * does not bypass transmission direction rules.
+         */
         return level.getCapability(
                 MechanicalCapabilities.ROTATION,
                 pos,
-                side
+                null
         );
     }
 
