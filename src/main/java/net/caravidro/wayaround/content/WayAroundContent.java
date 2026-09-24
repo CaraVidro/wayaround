@@ -65,6 +65,15 @@ public final class WayAroundContent {
      * =========================================================
      */
 
+    public static final DeferredItem<Item> GOJO_SPECTRUM =
+            ITEMS.register(
+                    "gojo_spectrum",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                    )
+            );
+
     public static final DeferredItem<Item> BLUE =
             ITEMS.register(
                     "blue",

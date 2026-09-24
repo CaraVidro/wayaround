@@ -1,0 +1,30 @@
+{
+  "textures": {
+    "spectrum": "minecraft:block/white_stained_glass",
+    "particle": "minecraft:block/light_blue_stained_glass"
+  },
+  "elements": [
+    {
+      "from": [4, 4, 4],
+      "to": [12, 12, 12],
+      "faces": {
+        "down":  { "texture": "#spectrum" },
+        "up":    { "texture": "#spectrum" },
+        "north": { "texture": "#spectrum" },
+        "south": { "texture": "#spectrum" },
+        "west":  { "texture": "#spectrum" },
+        "east":  { "texture": "#spectrum" }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [30, 225, 0],
+      "scale": [0.9, 0.9, 0.9]
+    },
+    "firstperson_righthand": { "scale": [0, 0, 0] },
+    "firstperson_lefthand":  { "scale": [0, 0, 0] },
+    "thirdperson_righthand": { "scale": [0, 0, 0] },
+    "thirdperson_lefthand":  { "scale": [0, 0, 0] }
+  }
+}

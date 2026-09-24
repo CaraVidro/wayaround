@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
 import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.IndustrialContent;
+import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.domain.DomainCommands;
 import net.caravidro.wayaround.domain.DomainManager;
@@ -62,6 +63,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(AntarcticBlizzard::onServerTick);
         NeoForge.EVENT_BUS.addListener(DomainManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(BlueManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
@@ -81,6 +83,7 @@ public class WayAround {
         BlizzardChunkTracker.clear();
         DomainManager.clearAll();
         BlueManager.clearAll();
+        InfinityManager.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }
 }

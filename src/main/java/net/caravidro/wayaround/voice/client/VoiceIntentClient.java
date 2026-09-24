@@ -207,6 +207,46 @@ public final class VoiceIntentClient {
             return;
         }
 
+        InfinityEvidence infinity =
+                detectInfinityEvidence(
+                        currentWords,
+                        globalUrgency
+                );
+
+        if (infinity.off()) {
+            dispatch(
+                    VoiceIntentC2SPayload.INFINITY_OFF,
+                    -1.0F,
+                    0.0F,
+                    "INFINIDADE / DESATIVAR"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (infinity.evidence() > 0.001F) {
+            dispatch(
+                    VoiceIntentC2SPayload.INFINITY_REINFORCE,
+                    infinity.evidence(),
+                    (float) globalUrgency,
+                    "INFINIDADE / CONFIANCA +"
+            );
+
+            WayAround.LOGGER.info(
+                    "[Voice/Intent] INFINITY evidence={} reason={}",
+                    String.format(
+                            Locale.ROOT,
+                            "%.2f",
+                            infinity.evidence()
+                    ),
+                    infinity.reason()
+            );
+
+            clearContext();
+            return;
+        }
+
         /*
          * Free-form control belongs to the conversational context of an
          * already active Blue. This is the important difference between
@@ -586,8 +626,15 @@ public final class VoiceIntentClient {
         long now =
                 System.currentTimeMillis();
 
+        boolean conversationalInfinity =
+                intent
+                        == VoiceIntentC2SPayload.INFINITY_REINFORCE
+                        || intent
+                        == VoiceIntentC2SPayload.INFINITY_OFF;
+
         if (intent
                 != VoiceIntentC2SPayload.BLUE_OUTPUT
+                && !conversationalInfinity
                 && now - lastTriggerAt
                 < TRIGGER_COOLDOWN_MS) {
 
@@ -620,7 +667,8 @@ public final class VoiceIntentClient {
         );
 
         if (intent
-                != VoiceIntentC2SPayload.BLUE_OUTPUT) {
+                != VoiceIntentC2SPayload.BLUE_OUTPUT
+                && !conversationalInfinity) {
 
             lastTriggerAt =
                     now;
@@ -633,6 +681,179 @@ public final class VoiceIntentClient {
                         : intent == VoiceIntentC2SPayload.BLUE_STOP
                                 ? ChatFormatting.GRAY
                                 : ChatFormatting.BLUE
+        );
+    }
+
+    private static InfinityEvidence detectInfinityEvidence(
+            List<String> words,
+            double urgency
+    ) {
+        int infinityIndex =
+                findApprox(
+                        words,
+                        "infinidade",
+                        0,
+                        2
+                );
+
+        boolean hasInfinity =
+                infinityIndex >= 0
+                        || containsAny(
+                        words,
+                        "infinity"
+                );
+
+        if (!hasInfinity) {
+            return InfinityEvidence.NONE;
+        }
+
+        boolean off =
+                containsAny(
+                        words,
+                        "desliga",
+                        "desligue",
+                        "desativar",
+                        "desative",
+                        "cancela",
+                        "cancele",
+                        "acabe"
+                )
+                        || containsSequence(
+                        words,
+                        "sem",
+                        "infinidade"
+                );
+
+        if (off) {
+            return new InfinityEvidence(
+                    0.0F,
+                    true,
+                    "desativacao explicita"
+            );
+        }
+
+        boolean warning =
+                containsAny(
+                        words,
+                        "aproximar",
+                        "aproxime",
+                        "aproxima",
+                        "chegar",
+                        "chegue",
+                        "perto",
+                        "encostar",
+                        "encoste"
+                )
+                        || (
+                        containsAny(
+                                words,
+                                "nao"
+                        )
+                                && containsAny(
+                                words,
+                                "pode",
+                                "consegue",
+                                "vai"
+                        )
+                );
+
+        boolean possession =
+                containsAny(
+                        words,
+                        "tenho",
+                        "possuo",
+                        "meu",
+                        "minha",
+                        "comigo",
+                        "lado"
+                );
+
+        boolean protection =
+                containsAny(
+                        words,
+                        "protege",
+                        "proteger",
+                        "proteja",
+                        "defende",
+                        "defender",
+                        "defesa",
+                        "escudo",
+                        "segura",
+                        "salva"
+                );
+
+        boolean selfReference =
+                containsAny(
+                        words,
+                        "me",
+                        "mim",
+                        "meu",
+                        "minha"
+                );
+
+        float evidence =
+                0.05F;
+
+        StringBuilder reason =
+                new StringBuilder(
+                        "mencao"
+                );
+
+        if (warning) {
+            evidence +=
+                    0.14F;
+
+            reason.append(
+                    "+limite"
+            );
+        }
+
+        if (possession) {
+            evidence +=
+                    0.12F;
+
+            reason.append(
+                    "+posse"
+            );
+        }
+
+        if (protection) {
+            evidence +=
+                    0.34F;
+
+            reason.append(
+                    "+protecao"
+            );
+        }
+
+        if (selfReference
+                && protection) {
+
+            evidence +=
+                    0.08F;
+        }
+
+        if (!warning
+                && !possession
+                && !protection
+                && urgency < 0.48) {
+
+            return InfinityEvidence.NONE;
+        }
+
+        evidence +=
+                (float) Math.min(
+                        0.08,
+                        urgency * 0.08
+                );
+
+        return new InfinityEvidence(
+                Math.min(
+                        0.62F,
+                        evidence
+                ),
+                false,
+                reason.toString()
         );
     }
 
@@ -1294,6 +1515,19 @@ public final class VoiceIntentClient {
                 .replaceAll(
                         "\\s+",
                         " "
+                );
+    }
+
+    private record InfinityEvidence(
+            float evidence,
+            boolean off,
+            String reason
+    ) {
+        private static final InfinityEvidence NONE =
+                new InfinityEvidence(
+                        0.0F,
+                        false,
+                        "none"
                 );
     }
 

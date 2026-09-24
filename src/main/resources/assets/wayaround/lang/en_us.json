@@ -146,5 +146,7 @@
     "hud.wayaround.camera.media": "Paper %s | Film %s",
     "block.wayaround.placed_camera": "Camera",
     "block.wayaround.wooden_chair": "Wooden Chair",
-    "message.wayaround.media.placed_camera_armed": "Camera placed. Preparing recording..."
+    "message.wayaround.media.placed_camera_armed": "Camera placed. Preparing recording...",
+    "item.wayaround.gojo_spectrum": "Gojo Spectrum",
+    "tooltip.wayaround.gojo_spectrum": "Experimental access key for Blue, Red and Infinity."
 }

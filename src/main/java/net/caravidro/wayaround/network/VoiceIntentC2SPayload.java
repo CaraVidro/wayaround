@@ -3,6 +3,7 @@ package net.caravidro.wayaround.network;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.blue.ImaginaryBetaManager;
+import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -36,6 +37,8 @@ public record VoiceIntentC2SPayload(
     public static final byte BLUE_HOLD = 5;
     public static final byte RED_FIRE = 6;
     public static final byte BLUE_OUTPUT = 7;
+    public static final byte INFINITY_REINFORCE = 8;
+    public static final byte INFINITY_OFF = 9;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -128,6 +131,28 @@ public record VoiceIntentC2SPayload(
                                         payload.output()
                                 );
 
+                        case INFINITY_REINFORCE -> {
+                            if (hasInfinityAccess(
+                                    player
+                            )) {
+                                InfinityManager.reinforce(
+                                        player,
+                                        payload.output(),
+                                        payload.urgency()
+                                );
+                            }
+                        }
+
+                        case INFINITY_OFF -> {
+                            if (hasInfinityAccess(
+                                    player
+                            )) {
+                                InfinityManager.deactivate(
+                                        player
+                                );
+                            }
+                        }
+
                         default -> {
                         }
                     }
@@ -151,7 +176,33 @@ public record VoiceIntentC2SPayload(
 
             if (stack.is(
                     WayAroundContent.BLUE.get()
+            )
+                    || stack.is(
+                    WayAroundContent.GOJO_SPECTRUM.get()
             )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean hasInfinityAccess(
+            ServerPlayer player
+    ) {
+        for (int slot = 0;
+             slot < player.getInventory()
+                     .getContainerSize();
+             slot++) {
+
+            if (player.getInventory()
+                    .getItem(
+                            slot
+                    )
+                    .is(
+                            WayAroundContent.GOJO_SPECTRUM.get()
+                    )) {
+
                 return true;
             }
         }

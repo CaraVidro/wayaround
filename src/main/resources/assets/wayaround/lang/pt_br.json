@@ -146,5 +146,7 @@
     "hud.wayaround.camera.media": "Papel %s | Filme %s",
     "block.wayaround.placed_camera": "Câmera",
     "block.wayaround.wooden_chair": "Cadeira de Madeira",
-    "message.wayaround.media.placed_camera_armed": "Câmera posicionada. Preparando gravação..."
+    "message.wayaround.media.placed_camera_armed": "Câmera posicionada. Preparando gravação...",
+    "item.wayaround.gojo_spectrum": "Spectrum do Gojo",
+    "tooltip.wayaround.gojo_spectrum": "Chave de acesso experimental para Azul, Vermelho e Infinidade."
 }

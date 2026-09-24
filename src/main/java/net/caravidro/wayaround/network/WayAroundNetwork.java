@@ -42,6 +42,12 @@ public final class WayAroundNetwork {
         );
 
         registrar.playToClient(
+                InfinityVisualPayload.TYPE,
+                InfinityVisualPayload.STREAM_CODEC,
+                InfinityVisualPayload::handle
+        );
+
+        registrar.playToClient(
                 BlueGestureS2CPayload.TYPE,
                 BlueGestureS2CPayload.STREAM_CODEC,
                 BlueGestureS2CPayload::handle

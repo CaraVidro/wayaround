@@ -150,6 +150,9 @@ public final class IndustrialContent {
                             .displayItems(
                                     (parameters, output) -> {
                                         output.accept(
+                                                WayAroundContent.GOJO_SPECTRUM.get()
+                                        );
+                                        output.accept(
                                                 WayAroundContent.BLUE.get()
                                         );
                                         output.accept(
