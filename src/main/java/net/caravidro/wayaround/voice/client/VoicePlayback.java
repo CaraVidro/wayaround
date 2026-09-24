@@ -97,11 +97,6 @@ public final class VoicePlayback {
             line =
                     openBestOutput();
 
-            line.open(
-                    VoiceConstants.audioFormat(),
-                    VoiceConstants.FRAME_BYTES * 32
-            );
-
             line.start();
 
             while (!Thread.currentThread()
@@ -172,19 +167,20 @@ public final class VoicePlayback {
         VoiceDevices.OutputDevice selected =
                 VoiceDevices.selectedOutputOrDefault();
 
+        Exception lastFailure = null;
+
         if (selected.mixerInfo() != null) {
             try {
-                Mixer mixer =
+                return openLine(
                         AudioSystem.getMixer(
                                 selected.mixerInfo()
-                        );
-
-                return (SourceDataLine)
-                        mixer.getLine(
-                                wanted
-                        );
+                        ),
+                        wanted
+                );
 
             } catch (Exception exception) {
+                lastFailure = exception;
+
                 System.err.println(
                         "[WayAround Voice] Saida selecionada falhou; tentando fallback: "
                                 + exception.getMessage()
@@ -193,38 +189,76 @@ public final class VoicePlayback {
         }
 
         try {
-            return (SourceDataLine)
-                    AudioSystem.getLine(
-                            wanted
-                    );
-
-        } catch (Exception defaultFailure) {
-            List<VoiceDevices.OutputDevice> outputs =
-                    VoiceDevices.listOutputs();
-
-            for (VoiceDevices.OutputDevice output
-                    : outputs) {
-
-                if (output.mixerInfo() == null) {
-                    continue;
-                }
-
-                try {
-                    Mixer mixer =
-                            AudioSystem.getMixer(
-                                    output.mixerInfo()
-                            );
-
-                    return (SourceDataLine)
-                            mixer.getLine(
+            SourceDataLine system =
+                    (SourceDataLine)
+                            AudioSystem.getLine(
                                     wanted
                             );
 
-                } catch (Exception ignored) {
-                }
+            system.open(
+                    VoiceConstants.audioFormat(),
+                    VoiceConstants.FRAME_BYTES * 32
+            );
+
+            return system;
+
+        } catch (Exception exception) {
+            lastFailure = exception;
+        }
+
+        List<VoiceDevices.OutputDevice> outputs =
+                VoiceDevices.listOutputs();
+
+        for (VoiceDevices.OutputDevice output
+                : outputs) {
+
+            if (output.mixerInfo() == null
+                    || (
+                    selected.mixerInfo() != null
+                            && output.id()
+                            .equals(
+                                    selected.id()
+                            )
+            )) {
+                continue;
             }
 
-            throw defaultFailure;
+            try {
+                return openLine(
+                        AudioSystem.getMixer(
+                                output.mixerInfo()
+                        ),
+                        wanted
+                );
+
+            } catch (Exception exception) {
+                lastFailure = exception;
+            }
         }
+
+        throw lastFailure == null
+                ? new IllegalStateException(
+                        "nenhuma saida de audio compativel"
+                )
+                : lastFailure;
+    }
+
+    private static SourceDataLine openLine(
+            Mixer mixer,
+            DataLine.Info wanted
+    ) throws Exception {
+
+        SourceDataLine line =
+                (SourceDataLine)
+                        mixer.getLine(
+                                wanted
+                        );
+
+        line.open(
+                VoiceConstants.audioFormat(),
+                VoiceConstants.FRAME_BYTES * 32
+        );
+
+        return line;
     }
 }
