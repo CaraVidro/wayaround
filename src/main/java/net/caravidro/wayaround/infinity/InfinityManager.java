@@ -64,7 +64,7 @@ public final class InfinityManager {
                 Mth.clamp(
                         evidence,
                         0.0F,
-                        0.72F
+                        1.0F
                 );
 
         float cleanUrgency =

@@ -1,8 +1,10 @@
 package net.caravidro.wayaround.blue;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
@@ -17,9 +19,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -56,7 +60,13 @@ public final class ImaginaryBetaManager {
             92;
 
     private static final int PURPLE_END_TICK =
-            172;
+            188;
+
+    private static final float PURPLE_NUKE_POWER =
+            38.0F;
+
+    private static final double PURPLE_STAR_RADIUS =
+            48.0;
 
     private static final double VISUAL_RANGE =
             256.0;
@@ -226,7 +236,18 @@ public final class ImaginaryBetaManager {
                     break;
                 }
 
+                impactRedEntities(
+                        level,
+                        owner,
+                        red
+                );
+
                 destroyRedPath(
+                        level,
+                        red.position
+                );
+
+                igniteRedTrail(
                         level,
                         red.position
                 );
@@ -270,6 +291,150 @@ public final class ImaginaryBetaManager {
                     1.0F
                             - red.life
                                     / (float) RED_LIFE_TICKS
+            );
+        }
+    }
+
+    private static void impactRedEntities(
+            ServerLevel level,
+            ServerPlayer owner,
+            RedProjectile red
+    ) {
+        double reach =
+                RED_RADIUS
+                        + 0.72;
+
+        AABB area =
+                new AABB(
+                        red.position.x - reach,
+                        red.position.y - reach,
+                        red.position.z - reach,
+                        red.position.x + reach,
+                        red.position.y + reach,
+                        red.position.z + reach
+                );
+
+        Vec3 travel =
+                red.velocity.lengthSqr() > 0.0001
+                        ? red.velocity.normalize()
+                        : owner.getLookAngle()
+                                .normalize();
+
+        for (LivingEntity living :
+                level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        area,
+                        entity ->
+                                entity.isAlive()
+                                        && entity != owner
+                                        && !red.hitEntities
+                                                .contains(
+                                                        entity.getUUID()
+                                                )
+                )) {
+
+            red.hitEntities.add(
+                    living.getUUID()
+            );
+
+            Vec3 away =
+                    living.position()
+                            .subtract(
+                                    red.position
+                            );
+
+            if (away.lengthSqr() < 0.0001) {
+                away =
+                        travel;
+            } else {
+                away =
+                        away.normalize();
+            }
+
+            living.hurt(
+                    level.damageSources()
+                            .playerAttack(
+                                    owner
+                            ),
+                    9.0F
+            );
+
+            living.igniteForSeconds(
+                    6.0F
+            );
+
+            Vec3 knockback =
+                    away.scale(
+                            1.55
+                    )
+                            .add(
+                                    travel.scale(
+                                            0.72
+                                    )
+                            )
+                            .add(
+                                    0.0,
+                                    0.34,
+                                    0.0
+                            );
+
+            living.setDeltaMovement(
+                    living.getDeltaMovement()
+                            .add(
+                                    knockback
+                            )
+            );
+        }
+    }
+
+    private static void igniteRedTrail(
+            ServerLevel level,
+            Vec3 center
+    ) {
+        BlockPos origin =
+                BlockPos.containing(
+                        center
+                );
+
+        for (int attempt = 0;
+             attempt < 3;
+             attempt++) {
+
+            BlockPos pos =
+                    origin.offset(
+                            level.random.nextInt(
+                                    3
+                            ) - 1,
+                            level.random.nextInt(
+                                    3
+                            ) - 1,
+                            level.random.nextInt(
+                                    3
+                            ) - 1
+                    );
+
+            if (!level.getBlockState(
+                    pos
+            )
+                    .isAir()) {
+
+                continue;
+            }
+
+            BlockState fire =
+                    Blocks.FIRE
+                            .defaultBlockState();
+
+            if (!fire.canSurvive(
+                    level,
+                    pos
+            )) {
+                continue;
+            }
+
+            level.setBlockAndUpdate(
+                    pos,
+                    fire
             );
         }
     }
@@ -515,6 +680,15 @@ public final class ImaginaryBetaManager {
                             1.0F
                     );
 
+            if (fusion.age % 3 == 0) {
+                emitAftermathStars(
+                        level,
+                        fusion.center,
+                        54,
+                        1.0F - aftermath * 0.55F
+                );
+            }
+
             sendVisual(
                     level,
                     fusion.owner,
@@ -635,7 +809,7 @@ public final class ImaginaryBetaManager {
                 fusion.center.x,
                 fusion.center.y,
                 fusion.center.z,
-                24.0F,
+                PURPLE_NUKE_POWER,
                 true,
                 Level.ExplosionInteraction.TNT
         );
@@ -668,7 +842,7 @@ public final class ImaginaryBetaManager {
          * instead of lingering at the center.
          */
         for (int index = 0;
-             index < 360;
+             index < 620;
              index++) {
 
             double y =
@@ -730,6 +904,13 @@ public final class ImaginaryBetaManager {
                 fusion.center
         );
 
+        emitAftermathStars(
+                level,
+                fusion.center,
+                260,
+                1.0F
+        );
+
         sendVisual(
                 level,
                 fusion.owner,
@@ -745,7 +926,7 @@ public final class ImaginaryBetaManager {
             Vec3 center
     ) {
         for (int attempt = 0;
-             attempt < 190;
+             attempt < 420;
              attempt++) {
 
             double angle =
@@ -758,7 +939,7 @@ public final class ImaginaryBetaManager {
                             + Math.sqrt(
                             level.random.nextDouble()
                     )
-                                    * 24.0;
+                                    * 42.0;
 
             int x =
                     Mth.floor(
@@ -814,6 +995,57 @@ public final class ImaginaryBetaManager {
         }
     }
 
+    private static void emitAftermathStars(
+            ServerLevel level,
+            Vec3 center,
+            int count,
+            float intensity
+    ) {
+        float cleanIntensity =
+                Mth.clamp(
+                        intensity,
+                        0.15F,
+                        1.0F
+                );
+
+        level.sendParticles(
+                ParticleTypes.END_ROD,
+                center.x,
+                center.y,
+                center.z,
+                Math.max(
+                        8,
+                        Math.round(
+                                count
+                                        * cleanIntensity
+                        )
+                ),
+                PURPLE_STAR_RADIUS,
+                PURPLE_STAR_RADIUS * 0.55,
+                PURPLE_STAR_RADIUS,
+                0.003
+        );
+
+        level.sendParticles(
+                ParticleTypes.ELECTRIC_SPARK,
+                center.x,
+                center.y,
+                center.z,
+                Math.max(
+                        4,
+                        Math.round(
+                                count
+                                        * 0.22F
+                                        * cleanIntensity
+                        )
+                ),
+                PURPLE_STAR_RADIUS * 0.82,
+                PURPLE_STAR_RADIUS * 0.46,
+                PURPLE_STAR_RADIUS * 0.82,
+                0.008
+        );
+    }
+
     private static void sendVisual(
             ServerLevel level,
             UUID owner,
@@ -849,6 +1081,8 @@ public final class ImaginaryBetaManager {
 
         private Vec3 position;
         private final Vec3 velocity;
+        private final Set<UUID> hitEntities =
+                new HashSet<>();
         private int life;
 
         private RedProjectile(

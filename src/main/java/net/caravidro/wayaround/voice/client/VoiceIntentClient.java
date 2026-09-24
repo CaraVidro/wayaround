@@ -707,6 +707,17 @@ public final class VoiceIntentClient {
             return InfinityEvidence.NONE;
         }
 
+        boolean explicitOn =
+                containsAny(
+                        words,
+                        "ativar",
+                        "ative",
+                        "ativa",
+                        "ligar",
+                        "ligue",
+                        "liga"
+                );
+
         boolean off =
                 containsAny(
                         words,
@@ -729,6 +740,14 @@ public final class VoiceIntentClient {
                     0.0F,
                     true,
                     "desativacao explicita"
+            );
+        }
+
+        if (explicitOn) {
+            return new InfinityEvidence(
+                    1.0F,
+                    false,
+                    "ativacao maxima explicita"
             );
         }
 
@@ -1077,13 +1096,27 @@ public final class VoiceIntentClient {
                         2
                 );
 
-        if (output < 0
-                && !containsSequence(
-                words,
-                "out",
-                "put"
-        )) {
+        boolean energyLike =
+                containsAny(
+                        words,
+                        "energia",
+                        "energetica",
+                        "potencia",
+                        "poder",
+                        "forca",
+                        "carga"
+                );
 
+        boolean hasControlWord =
+                output >= 0
+                        || containsSequence(
+                        words,
+                        "out",
+                        "put"
+                )
+                        || energyLike;
+
+        if (!hasControlWord) {
             return OutputModifier.NONE;
         }
 

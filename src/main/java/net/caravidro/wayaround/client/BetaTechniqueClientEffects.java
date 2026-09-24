@@ -451,6 +451,19 @@ public final class BetaTechniqueClientEffects {
         if (state.mode
                 == BetaTechniqueVisualPayload.FUSION) {
 
+            if (state.progress >= 0.86F) {
+                event.getGuiGraphics()
+                        .fill(
+                                0,
+                                0,
+                                width,
+                                height,
+                                0xFF000000
+                        );
+
+                return;
+            }
+
             int black =
                     Mth.clamp(
                             Math.round(
@@ -580,7 +593,7 @@ public final class BetaTechniqueClientEffects {
         }
 
         for (int index = 0;
-             index < 220;
+             index < 360;
              index++) {
 
             double y =
@@ -659,7 +672,7 @@ public final class BetaTechniqueClientEffects {
                 away.length();
 
         if (distance < 0.08
-                || distance > 72.0) {
+                || distance > 112.0) {
 
             return Vec3.ZERO;
         }
@@ -671,7 +684,7 @@ public final class BetaTechniqueClientEffects {
         double distanceStrength =
                 1.0
                         - distance
-                                / 72.0;
+                                / 112.0;
 
         double impulse =
                 (

@@ -34,6 +34,9 @@ public final class BetaTechniqueWorldRenderer {
     private BetaTechniqueWorldRenderer() {
     }
 
+    private static final float FUSION_HIDE_PROGRESS =
+            0.86F;
+
     private static final double GOLDEN_ANGLE =
             Math.PI
                     * (
@@ -89,10 +92,18 @@ public final class BetaTechniqueWorldRenderer {
 
             if (state.mode()
                     == BetaTechniqueVisualPayload.RED
-                    || state.mode()
-                    != BetaTechniqueVisualPayload.AFTERMATH
-                    || state.progress()
-                    <= 0.78F) {
+                    || (
+                    state.mode()
+                            == BetaTechniqueVisualPayload.FUSION
+                            && state.progress()
+                                    < FUSION_HIDE_PROGRESS
+            )
+                    || (
+                    state.mode()
+                            == BetaTechniqueVisualPayload.AFTERMATH
+                            && state.progress()
+                                    <= 0.78F
+            )) {
 
                 hasRenderableGeometry =
                         true;
@@ -245,6 +256,14 @@ public final class BetaTechniqueWorldRenderer {
                 == BetaTechniqueVisualPayload.AFTERMATH
                 && state.progress()
                 > 0.78F) {
+
+            return;
+        }
+
+        if (state.mode()
+                == BetaTechniqueVisualPayload.FUSION
+                && state.progress()
+                >= FUSION_HIDE_PROGRESS) {
 
             return;
         }
