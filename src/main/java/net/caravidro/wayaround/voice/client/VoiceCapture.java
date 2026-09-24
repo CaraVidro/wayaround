@@ -10,6 +10,7 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
 
+import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.client.MediaVoiceTap;
 import net.caravidro.wayaround.network.VoiceFrameC2SPayload;
 import net.caravidro.wayaround.voice.VoiceConstants;
@@ -88,6 +89,15 @@ public final class VoiceCapture {
         voiceActivationSession =
                 voiceActivation;
 
+        WayAround.LOGGER.info(
+                "[Voice/Capture] START mode={} mic={}",
+                voiceActivation
+                        ? "VOICE_ACTIVATION"
+                        : "PUSH_TO_TALK",
+                VoiceDevices.selectedOrDefault()
+                        .displayName()
+        );
+
         Thread thread =
                 new Thread(
                         () -> captureLoop(
@@ -106,6 +116,16 @@ public final class VoiceCapture {
     }
 
     public static synchronized void stop() {
+        if (running) {
+            WayAround.LOGGER.info(
+                    "[Voice/Capture] STOP requested mode={} transmitting={}",
+                    voiceActivationSession
+                            ? "VOICE_ACTIVATION"
+                            : "PUSH_TO_TALK",
+                    transmitting
+            );
+        }
+
         running = false;
         transmitting = false;
 
@@ -251,6 +271,13 @@ public final class VoiceCapture {
                     transmitting =
                             true;
 
+                    WayAround.LOGGER.info(
+                            "[Voice/Capture] VOICE START rms={} threshold={} preRollFrames={}",
+                            String.format(java.util.Locale.ROOT, "%.4f", rms),
+                            String.format(java.util.Locale.ROOT, "%.4f", threshold),
+                            preRoll.size()
+                    );
+
                     silenceFrames =
                             0;
 
@@ -312,6 +339,14 @@ public final class VoiceCapture {
                     transmitting =
                             false;
 
+                    WayAround.LOGGER.info(
+                            "[Voice/Capture] VOICE END after {} silent frames; bytes={}",
+                            SILENCE_FRAMES_TO_CLOSE,
+                            utterance == null
+                                    ? 0
+                                    : utterance.size()
+                    );
+
                     submitUtterance(
                             utterance
                     );
@@ -329,6 +364,17 @@ public final class VoiceCapture {
         } catch (Exception exception) {
             boolean unexpectedStop =
                     running;
+
+            WayAround.LOGGER.warn(
+                    "[Voice/Capture] capture loop exception running={} mode={} -> {}: {}",
+                    running,
+                    voiceActivation
+                            ? "VOICE_ACTIVATION"
+                            : "PUSH_TO_TALK",
+                    exception.getClass()
+                            .getSimpleName(),
+                    exception.getMessage()
+            );
 
             running =
                     false;
@@ -370,6 +416,13 @@ public final class VoiceCapture {
                     false;
             running =
                     false;
+
+            WayAround.LOGGER.info(
+                    "[Voice/Capture] LOOP ENDED mode={}",
+                    voiceActivation
+                            ? "VOICE_ACTIVATION"
+                            : "PUSH_TO_TALK"
+            );
         }
     }
 
@@ -464,8 +517,21 @@ public final class VoiceCapture {
             return;
         }
 
+        byte[] audio =
+                utterance.toByteArray();
+
+        WayAround.LOGGER.info(
+                "[Voice/Capture] SUBMIT STT bytes={} duration~{}ms",
+                audio.length,
+                Math.round(
+                        audio.length
+                                / (VoiceConstants.SAMPLE_RATE * 2.0)
+                                * 1000.0
+                )
+        );
+
         VoiceSpeechDebug.submit(
-                utterance.toByteArray()
+                audio
         );
     }
 

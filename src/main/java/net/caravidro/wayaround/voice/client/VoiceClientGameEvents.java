@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.voice.client;
 
 import net.caravidro.wayaround.WayAround;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -22,6 +23,11 @@ public final class VoiceClientGameEvents {
     private VoiceClientGameEvents() {
     }
 
+    private static boolean lastConnected;
+    private static boolean lastEnabled;
+    private static VoiceConfig.ActivationMode lastMode;
+    private static boolean lastPttDown;
+
     @SubscribeEvent
     public static void onClientTick(
             ClientTickEvent.Post event
@@ -31,11 +37,40 @@ public final class VoiceClientGameEvents {
 
         VoiceIntentClient.tick();
 
+        boolean enabled =
+                VoiceConfig.isEnabled();
+
         boolean connected =
-                VoiceConfig.isEnabled()
+                enabled
                         && minecraft.player != null
                         && minecraft.getConnection()
                         != null;
+
+        VoiceConfig.ActivationMode mode =
+                VoiceConfig.getActivationMode();
+
+        if (connected != lastConnected
+                || enabled != lastEnabled
+                || mode != lastMode) {
+
+            WayAround.LOGGER.info(
+                    "[Voice/State] enabled={} connected={} mode={} debug={} model={}",
+                    enabled,
+                    connected,
+                    mode,
+                    VoiceConfig.isDebugSpeechEnabled(),
+                    VoskSpeechRecognizer.statusText()
+            );
+
+            lastConnected =
+                    connected;
+
+            lastEnabled =
+                    enabled;
+
+            lastMode =
+                    mode;
+        }
 
         if (!connected) {
             if (VoiceCapture.isRunning()) {
@@ -71,6 +106,16 @@ public final class VoiceClientGameEvents {
                 VoiceClientModEvents
                         .PUSH_TO_TALK
                         .isDown();
+
+        if (keyDown != lastPttDown) {
+            WayAround.LOGGER.info(
+                    "[Voice/PTT] keyDown={}",
+                    keyDown
+            );
+
+            lastPttDown =
+                    keyDown;
+        }
 
         if (keyDown
                 && !VoiceCapture.isRunning()) {
