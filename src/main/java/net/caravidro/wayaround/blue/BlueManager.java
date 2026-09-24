@@ -1626,10 +1626,10 @@ public final class BlueManager {
             double spinDirection
     ) {
         int count =
-                18
+                28
                         + Math.round(
                                 power
-                                        * 28.0F
+                                        * 42.0F
                         );
 
         for (int i = 0;
@@ -1644,9 +1644,9 @@ public final class BlueManager {
             double distance =
                     radius
                             * (
-                                    0.28
+                                    0.18
                                             + level.random.nextDouble()
-                                                    * 0.72
+                                                    * 0.95
                             );
 
             double y =
@@ -1656,8 +1656,8 @@ public final class BlueManager {
                     )
                             * Math.min(
                                     radius
-                                            * 0.72,
-                                    18.0
+                                            * 0.82,
+                                    26.0
                             );
 
             Vec3 source =
@@ -1729,16 +1729,16 @@ public final class BlueManager {
                                 power
                                         * 14.0F
                         ),
-                1.25
+                2.20
                         + power
-                                * 1.10,
-                1.25
+                                * 1.80,
+                2.20
                         + power
-                                * 1.10,
-                1.25
+                                * 1.80,
+                2.20
                         + power
-                                * 1.10,
-                0.34
+                                * 1.80,
+                0.38
         );
     }
 
@@ -1775,51 +1775,31 @@ public final class BlueManager {
             return;
         }
 
-        double spread =
-                releasing
-                        ? 5.8
-                        : launched
-                                ? 4.8
-                                : 3.8;
-
-        int cosy =
-                releasing
-                        ? 18
-                        : launched
-                                ? 10
-                                : 6;
-
-        int signal =
-                releasing
-                        ? 8
-                        : launched
-                                ? 4
-                                : 2;
-
-        int large =
-                releasing
-                        ? 24
-                        : launched
-                                ? 14
-                                : 8;
-
         /*
-         * This is meant to read as the dust of the surrounding destruction.
-         * Signal smoke gives the trail very long-lived columns; cosy and large
-         * smoke fill the lower volume so looking back reveals a wall of haze.
+         * Normal travel no longer invents smoke in empty air. Dust now comes
+         * from blocks actually destroyed by Blue. The exception is the
+         * collapse itself, where the Blue body disintegrates into smoke.
          */
+        if (!releasing) {
+            return;
+        }
+
+        double spread =
+                6.6
+                        + power
+                                * 2.2;
+
         level.sendParticles(
                 ParticleTypes.CAMPFIRE_COSY_SMOKE,
                 center.x,
                 center.y,
                 center.z,
-                cosy,
+                22,
                 spread,
-                1.2
-                        + power
-                                * 0.8,
+                1.8
+                        + power,
                 spread,
-                0.006
+                0.007
         );
 
         level.sendParticles(
@@ -1827,14 +1807,14 @@ public final class BlueManager {
                 center.x,
                 center.y,
                 center.z,
-                signal,
+                10,
                 spread
-                        * 0.78,
-                0.9
+                        * 0.82,
+                1.4
                         + power
-                                * 0.6,
+                                * 0.8,
                 spread
-                        * 0.78,
+                        * 0.82,
                 0.004
         );
 
@@ -1843,93 +1823,14 @@ public final class BlueManager {
                 center.x,
                 center.y,
                 center.z,
-                large,
-                spread
-                        * 0.86,
-                0.75
+                30,
+                spread,
+                1.1
                         + power
-                                * 0.45,
-                spread
-                        * 0.86,
+                                * 0.7,
+                spread,
                 0.014
         );
-
-        /*
-         * Only a fraction of nearby smoke is sucked inward. Most of the cloud
-         * remains suspended as a persistent trail while these strands visibly
-         * spiral/fall toward the Blue.
-         */
-        int sucked =
-                3
-                        + Math.round(
-                                power
-                                        * 4.0F
-                        );
-
-        for (int i = 0;
-                i < sucked;
-                i++) {
-            double angle =
-                    level.random.nextDouble()
-                            * Math.PI
-                            * 2.0;
-
-            double distance =
-                    3.5
-                            + level.random.nextDouble()
-                                    * (
-                                            5.0
-                                                    + power
-                                                            * 4.0
-                                    );
-
-            Vec3 source =
-                    center.add(
-                            Math.cos(
-                                    angle
-                            )
-                                    * distance,
-                            (
-                                    level.random.nextDouble()
-                                            - 0.35
-                            )
-                                    * 4.5,
-                            Math.sin(
-                                    angle
-                            )
-                                    * distance
-                    );
-
-            Vec3 inward =
-                    center.subtract(
-                            source
-                    );
-
-            if (inward.lengthSqr()
-                    < 0.001) {
-                continue;
-            }
-
-            inward =
-                    inward.normalize();
-
-            level.sendParticles(
-                    i % 3 == 0
-                            ? ParticleTypes.CAMPFIRE_COSY_SMOKE
-                            : ParticleTypes.LARGE_SMOKE,
-                    source.x,
-                    source.y,
-                    source.z,
-                    0,
-                    inward.x,
-                    inward.y
-                            * 0.65,
-                    inward.z,
-                    0.20
-                            + power
-                                    * 0.09
-            );
-        }
     }
 
     private static void waterBurst(
