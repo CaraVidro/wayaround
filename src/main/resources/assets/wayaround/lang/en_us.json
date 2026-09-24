@@ -94,5 +94,8 @@
     "block.wayaround.mechanical_gearbox": "Mechanical Gearbox",
     "item.wayaround.blue": "Blue",
     "tooltip.wayaround.blue.control": "Hold to charge, release to summon. Click again to dismiss.",
-    "tooltip.wayaround.blue.sling": "While Blue is active, use the wheel to control distance. A fast in-and-out gesture launches it."
+    "tooltip.wayaround.blue.sling": "While Blue is active, use the wheel to control distance. A fast in-and-out gesture launches it.",
+    "itemGroup.wayaround.industrialization": "Industrial",
+    "itemGroup.wayaround.assembly": "Assembly & Mechanics",
+    "itemGroup.wayaround.otherworld_powers": "Otherworld Powers"
 }
