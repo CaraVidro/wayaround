@@ -228,6 +228,10 @@ public final class ImmortalWheelManager {
                     id
             );
 
+            PRESENT.add(
+                    id
+            );
+
             send(
                     player,
                     ImmortalWheelVisualPayload.PRESENCE,
