@@ -699,24 +699,18 @@ public final class BlueManager {
                                     * fade
                     );
 
-            environmentTrail(
+            releaseSmokeSequence(
                     level,
-                    blue.position,
-                    Math.max(
-                            0.7F,
-                            blue.power
-                    ),
-                    false,
-                    true
+                    blue
             );
 
             if (blue.life % 4 == 0) {
                 drawIncomingMatter(
                         level,
                         blue.position,
-                        4.0
+                        5.0
                                 + visualPower
-                                        * 4.0,
+                                        * 6.0,
                         visualPower,
                         blue.spinDirection
                 );
@@ -2369,6 +2363,357 @@ public final class BlueManager {
                 0.24,
                 0.52
         );
+    }
+
+    private static void releaseSmokeSequence(
+            ServerLevel level,
+            ReleasingBlue blue
+    ) {
+        int age =
+                blue.maxLife
+                        - blue.life;
+
+        Vec3 center =
+                blue.position;
+
+        /*
+         * Phase 1: violent implosion. Smoke spawns around the old Blue body
+         * and receives a high inward velocity with a little tangent, so the
+         * whole cloud appears to collapse into the cube.
+         */
+        if (age <= 30) {
+            int strands =
+                    16
+                            + Math.round(
+                                    blue.power
+                                            * 9.0F
+                            );
+
+            for (int i = 0;
+                    i < strands;
+                    i++) {
+
+                double angle =
+                        level.random.nextDouble()
+                                * Math.PI
+                                * 2.0;
+
+                double radius =
+                        4.5
+                                + level.random.nextDouble()
+                                        * (
+                                                6.0
+                                                        + blue.power
+                                                                * 4.0
+                                        );
+
+                double y =
+                        (
+                                level.random.nextDouble()
+                                        - 0.5
+                        )
+                                * (
+                                        5.0
+                                                + blue.power
+                                                        * 4.0
+                                );
+
+                Vec3 source =
+                        center.add(
+                                Math.cos(
+                                        angle
+                                )
+                                        * radius,
+                                y,
+                                Math.sin(
+                                        angle
+                                )
+                                        * radius
+                        );
+
+                Vec3 inward =
+                        center.subtract(
+                                source
+                        )
+                                .normalize();
+
+                Vec3 tangent =
+                        new Vec3(
+                                -inward.z,
+                                (
+                                        level.random.nextDouble()
+                                                - 0.5
+                                )
+                                        * 0.08,
+                                inward.x
+                        )
+                                .scale(
+                                        blue.spinDirection
+                                                * 0.20
+                                );
+
+                Vec3 velocity =
+                        inward.scale(
+                                0.62
+                                        + blue.power
+                                                * 0.18
+                        )
+                                .add(
+                                        tangent
+                                );
+
+                level.sendParticles(
+                        i % 4 == 0
+                                ? ParticleTypes.CAMPFIRE_SIGNAL_SMOKE
+                                : ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                        source.x,
+                        source.y,
+                        source.z,
+                        0,
+                        velocity.x,
+                        velocity.y,
+                        velocity.z,
+                        0.34
+                );
+            }
+
+            return;
+        }
+
+        /*
+         * Phase 2: the compressed cloud detonates. This happens once after
+         * the inward rush, with smoke and sparks thrown outward.
+         */
+        if (age == 31) {
+            level.playSound(
+                    null,
+                    BlockPos.containing(
+                            center
+                    ),
+                    SoundEvents.GENERIC_EXPLODE.value(),
+                    SoundSource.PLAYERS,
+                    1.75F,
+                    0.82F
+            );
+
+            level.sendParticles(
+                    ParticleTypes.EXPLOSION,
+                    center.x,
+                    center.y,
+                    center.z,
+                    12,
+                    2.2
+                            + blue.power
+                                    * 1.8,
+                    1.8
+                            + blue.power,
+                    2.2
+                            + blue.power
+                                    * 1.8,
+                    0.10
+            );
+
+            int blastSmoke =
+                    72
+                            + Math.round(
+                                    blue.power
+                                            * 48.0F
+                            );
+
+            for (int i = 0;
+                    i < blastSmoke;
+                    i++) {
+
+                Vec3 outward =
+                        new Vec3(
+                                level.random.nextDouble()
+                                        * 2.0
+                                        - 1.0,
+                                level.random.nextDouble()
+                                        * 1.6
+                                        - 0.45,
+                                level.random.nextDouble()
+                                        * 2.0
+                                        - 1.0
+                        );
+
+                if (outward.lengthSqr()
+                        < 0.001) {
+                    continue;
+                }
+
+                outward =
+                        outward.normalize();
+
+                Vec3 tangent =
+                        new Vec3(
+                                -outward.z,
+                                0.0,
+                                outward.x
+                        )
+                                .scale(
+                                        blue.spinDirection
+                                                * (
+                                                        0.18
+                                                                + level.random.nextDouble()
+                                                                        * 0.24
+                                                )
+                                );
+
+                Vec3 velocity =
+                        outward.scale(
+                                0.48
+                                        + level.random.nextDouble()
+                                                * 0.58
+                        )
+                                .add(
+                                        tangent
+                                );
+
+                level.sendParticles(
+                        i % 3 == 0
+                                ? ParticleTypes.CAMPFIRE_SIGNAL_SMOKE
+                                : ParticleTypes.LARGE_SMOKE,
+                        center.x,
+                        center.y,
+                        center.z,
+                        0,
+                        velocity.x,
+                        velocity.y,
+                        velocity.z,
+                        0.30
+                );
+            }
+
+            burst(
+                    level,
+                    center,
+                    110,
+                    2.25F
+            );
+
+            return;
+        }
+
+        /*
+         * Phase 3: several smoky revolutions after the blast. New smoke is
+         * placed around rotating rings and given tangent + slight outward
+         * velocity, making the aftermath visibly corkscrew before fading.
+         */
+        if (age <= 78) {
+            double turn =
+                    (
+                            age
+                                    - 31
+                    )
+                            * 0.48
+                            * blue.spinDirection;
+
+            int ringPoints =
+                    12
+                            + Math.round(
+                                    blue.power
+                                            * 4.0F
+                            );
+
+            for (int i = 0;
+                    i < ringPoints;
+                    i++) {
+
+                double angle =
+                        turn
+                                + i
+                                        * (
+                                                Math.PI
+                                                        * 2.0
+                                                        / ringPoints
+                                        );
+
+                double radius =
+                        2.8
+                                + (
+                                        age
+                                                - 31
+                                )
+                                        * 0.075
+                                + blue.power
+                                        * 1.8;
+
+                double y =
+                        Math.sin(
+                                angle
+                                        * 1.7
+                                        + age
+                                                * 0.11
+                        )
+                                * (
+                                        0.9
+                                                + blue.power
+                                                        * 0.7
+                                );
+
+                Vec3 source =
+                        center.add(
+                                Math.cos(
+                                        angle
+                                )
+                                        * radius,
+                                y,
+                                Math.sin(
+                                        angle
+                                )
+                                        * radius
+                        );
+
+                Vec3 tangent =
+                        new Vec3(
+                                -Math.sin(
+                                        angle
+                                ),
+                                0.08
+                                        + Math.sin(
+                                                angle
+                                                        * 0.7
+                                        )
+                                                * 0.03,
+                                Math.cos(
+                                        angle
+                                )
+                        )
+                                .scale(
+                                        blue.spinDirection
+                                                * 0.42
+                                );
+
+                Vec3 outward =
+                        source.subtract(
+                                center
+                        )
+                                .normalize()
+                                .scale(
+                                        0.10
+                                );
+
+                Vec3 velocity =
+                        tangent.add(
+                                outward
+                        );
+
+                level.sendParticles(
+                        i % 5 == 0
+                                ? ParticleTypes.CAMPFIRE_SIGNAL_SMOKE
+                                : ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                        source.x,
+                        source.y,
+                        source.z,
+                        0,
+                        velocity.x,
+                        velocity.y,
+                        velocity.z,
+                        0.22
+                );
+            }
+        }
     }
 
     private static void smokeCollapse(
