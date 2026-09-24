@@ -94,5 +94,8 @@
     "block.wayaround.mechanical_gearbox": "Caixa de engrenagens",
     "item.wayaround.blue": "Blue",
     "tooltip.wayaround.blue.control": "Segure para carregar, solte para invocar. Clique de novo para dispensar.",
-    "tooltip.wayaround.blue.sling": "Com a Blue ativa, use a rodinha para controlar a distância. Um gesto rápido para perto e para longe a lança."
+    "tooltip.wayaround.blue.sling": "Com a Blue ativa, use a rodinha para controlar a distância. Um gesto rápido para perto e para longe a lança.",
+    "itemGroup.wayaround.industrialization": "Industrial",
+    "itemGroup.wayaround.assembly": "Assembly & Mecânica",
+    "itemGroup.wayaround.otherworld_powers": "Poderes do Outro Mundo"
 }
