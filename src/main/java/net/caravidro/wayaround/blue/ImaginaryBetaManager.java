@@ -41,16 +41,16 @@ public final class ImaginaryBetaManager {
     }
 
     private static final int RED_LIFE_TICKS =
-            70;
+            62;
 
     private static final double RED_SPEED =
-            2.20;
+            3.35;
 
     private static final double RED_RADIUS =
-            0.62;
+            0.68;
 
     private static final int RED_SUBSTEPS =
-            7;
+            12;
 
     private static final int PURPLE_BLAST_TICK =
             92;
@@ -393,11 +393,23 @@ public final class ImaginaryBetaManager {
                 fusion.center.x,
                 fusion.center.y,
                 fusion.center.z,
-                80,
-                2.6,
-                2.6,
-                2.6,
-                0.38
+                110,
+                3.2,
+                3.2,
+                3.2,
+                0.44
+        );
+
+        level.sendParticles(
+                ParticleTypes.END_ROD,
+                fusion.center.x,
+                fusion.center.y,
+                fusion.center.z,
+                36,
+                1.6,
+                1.6,
+                1.6,
+                0.18
         );
 
         sendVisual(
@@ -529,16 +541,16 @@ public final class ImaginaryBetaManager {
             float progress
     ) {
         int rays =
-                8
+                12
                         + Math.round(
                                 progress
-                                        * 16.0F
+                                        * 30.0F
                         );
 
         double radius =
-                1.4
+                1.5
                         + progress
-                                * 6.8;
+                                * 9.2;
 
         for (int index = 0;
              index < rays;
@@ -555,7 +567,8 @@ public final class ImaginaryBetaManager {
                                     * (
                                     0.10
                                             + progress
-                                                    * 0.32
+                                                    * progress
+                                                    * 0.66
                             )
                                     * fusion.spinDirection;
 
@@ -620,7 +633,7 @@ public final class ImaginaryBetaManager {
                 fusion.center.x,
                 fusion.center.y,
                 fusion.center.z,
-                18.0F,
+                24.0F,
                 true,
                 Level.ExplosionInteraction.TNT
         );
@@ -636,19 +649,16 @@ public final class ImaginaryBetaManager {
                 0.62F
         );
 
-        /*
-         * Optional BETA soundtrack. The sound event is registered now; the
-         * actual final_destination.ogg asset can be dropped in later.
-         */
-        level.playSound(
-                null,
-                BlockPos.containing(
-                        fusion.center
-                ),
-                WayAroundSounds.FINAL_DESTINATION.get(),
-                SoundSource.MUSIC,
-                4.0F,
-                1.0F
+        level.sendParticles(
+                ParticleTypes.FLASH,
+                fusion.center.x,
+                fusion.center.y,
+                fusion.center.z,
+                1,
+                0.0,
+                0.0,
+                0.0,
+                0.0
         );
 
         /*
@@ -656,7 +666,7 @@ public final class ImaginaryBetaManager {
          * instead of lingering at the center.
          */
         for (int index = 0;
-             index < 260;
+             index < 360;
              index++) {
 
             double y =

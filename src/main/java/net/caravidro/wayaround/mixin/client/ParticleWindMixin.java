@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.mixin.client;
 
 import java.util.List;
+import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
 import net.caravidro.wayaround.client.weather.ClientWind;
 import net.caravidro.wayaround.client.weather.WindAffectedParticle;
 import net.caravidro.wayaround.particle.BlizzardCloudParticle;
@@ -25,6 +26,9 @@ public abstract class ParticleWindMixin implements WindAffectedParticle {
     @Shadow protected double x;
     @Shadow protected double y;
     @Shadow protected double z;
+    @Shadow protected double xd;
+    @Shadow protected double yd;
+    @Shadow protected double zd;
     @Shadow protected boolean removed;
     @Shadow public abstract void remove();
     @Shadow public abstract void setPos(double x, double y, double z);
@@ -37,6 +41,20 @@ public abstract class ParticleWindMixin implements WindAffectedParticle {
     public void wayaround$applyWind() {
         if (removed) {
             return;
+        }
+
+        Vec3 shock =
+                BetaTechniqueClientEffects
+                        .particleShockwaveImpulse(
+                                x,
+                                y,
+                                z
+                        );
+
+        if (shock.lengthSqr() > 0.0000001) {
+            xd += shock.x;
+            yd += shock.y;
+            zd += shock.z;
         }
 
         /*

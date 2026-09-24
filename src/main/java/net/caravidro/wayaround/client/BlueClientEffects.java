@@ -959,13 +959,15 @@ public final class BlueClientEffects {
             volume *=
                     1.0F
                             + fusion
-                                    * 1.65F;
+                                    * fusion
+                                    * 2.70F;
         }
 
         float pitch =
                 1.0F
                         + fusion
-                                * 0.055F;
+                                * fusion
+                                * 0.085F;
 
         return new SoundSample(
                 state.position,

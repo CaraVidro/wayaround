@@ -9,6 +9,8 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.BetaTechniqueVisualPayload;
+import net.caravidro.wayaround.sounds.WayAroundSounds;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
@@ -35,6 +37,13 @@ public final class BetaTechniqueClientEffects {
             new HashMap<>();
 
     private static boolean hadLevel;
+
+    private static Vec3 shockwaveCenter =
+            Vec3.ZERO;
+
+    private static int shockwaveTicks;
+    private static final int SHOCKWAVE_DURATION =
+            14;
 
     public static void receive(
             BetaTechniqueVisualPayload payload
@@ -89,6 +98,24 @@ public final class BetaTechniqueClientEffects {
             BlueClientEffects.stopOwner(
                     payload.owner()
             );
+
+            /*
+             * Music transition is client-timed on the same visual packet as
+             * the white flash, so there is no server-distance delay between
+             * BLUE going silent and FinalDestination beginning.
+             */
+            minecraft.getSoundManager()
+                    .play(
+                            SimpleSoundInstance.forMusic(
+                                    WayAroundSounds.FINAL_DESTINATION.get()
+                            )
+                    );
+
+            shockwaveCenter =
+                    state.position;
+
+            shockwaveTicks =
+                    SHOCKWAVE_DURATION;
 
             emitClientShockwave(
                     state.position
@@ -176,6 +203,10 @@ public final class BetaTechniqueClientEffects {
 
         hadLevel =
                 true;
+
+        if (shockwaveTicks > 0) {
+            shockwaveTicks--;
+        }
 
         long tick =
                 minecraft.level
@@ -423,12 +454,12 @@ public final class BetaTechniqueClientEffects {
             int black =
                     Mth.clamp(
                             Math.round(
-                                    38.0F
+                                    48.0F
                                             + state.progress
-                                                    * 170.0F
+                                                    * 188.0F
                             ),
                             0,
-                            220
+                            236
                     );
 
             event.getGuiGraphics()
@@ -445,10 +476,10 @@ public final class BetaTechniqueClientEffects {
                     Mth.clamp(
                             Math.round(
                                     state.progress
-                                            * 42.0F
+                                            * 72.0F
                             ),
                             0,
-                            54
+                            86
                     );
 
             event.getGuiGraphics()
@@ -548,15 +579,6 @@ public final class BetaTechniqueClientEffects {
             return;
         }
 
-        /*
-         * The blast is a visual reset: all old particles disappear on the
-         * exact frame, then a new radial shockwave replaces them.
-         */
-        minecraft.particleEngine
-                .setLevel(
-                        minecraft.level
-                );
-
         for (int index = 0;
              index < 220;
              index++) {
@@ -612,6 +634,70 @@ public final class BetaTechniqueClientEffects {
                                     * speed
                     );
         }
+    }
+
+    public static Vec3 particleShockwaveImpulse(
+            double x,
+            double y,
+            double z
+    ) {
+        if (shockwaveTicks <= 0) {
+            return Vec3.ZERO;
+        }
+
+        Vec3 away =
+                new Vec3(
+                        x,
+                        y,
+                        z
+                )
+                        .subtract(
+                                shockwaveCenter
+                        );
+
+        double distance =
+                away.length();
+
+        if (distance < 0.08
+                || distance > 72.0) {
+
+            return Vec3.ZERO;
+        }
+
+        double timeStrength =
+                shockwaveTicks
+                        / (double) SHOCKWAVE_DURATION;
+
+        double distanceStrength =
+                1.0
+                        - distance
+                                / 72.0;
+
+        double impulse =
+                (
+                        0.055
+                                + distanceStrength
+                                        * distanceStrength
+                                        * 1.65
+                )
+                        * timeStrength;
+
+        Vec3 direction =
+                away.scale(
+                        1.0
+                                / distance
+                );
+
+        return direction.scale(
+                impulse
+        )
+                .add(
+                        0.0,
+                        0.035
+                                * distanceStrength
+                                * timeStrength,
+                        0.0
+                );
     }
 
     public record VisualTechnique(

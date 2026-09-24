@@ -254,14 +254,16 @@ public final class BetaTechniqueWorldRenderer {
                 (float) (
                         time
                                 * (
-                                1.4
+                                1.8
                                         + progress
-                                                * 15.0
+                                                * progress
+                                                * 44.0
                         )
                                 + time
-                                        * time
-                                        * 0.018
                                         * progress
+                                        * progress
+                                        * progress
+                                        * 26.0
                                 + phase
                                         * 180.0
                 );
@@ -317,10 +319,20 @@ public final class BetaTechniqueWorldRenderer {
                 buffer,
                 matrix,
                 core,
-                224,
-                132,
+                232,
+                150,
                 255,
-                238
+                248
+        );
+
+        cube(
+                buffer,
+                matrix,
+                core * 0.54F,
+                255,
+                222,
+                255,
+                252
         );
 
         /*
@@ -329,17 +341,17 @@ public final class BetaTechniqueWorldRenderer {
          * giving the impression of cubic lightning growing out of the core.
          */
         int roots =
-                10
+                12
                         + Math.round(
                                 progress
-                                        * 12.0F
+                                        * 22.0F
                         );
 
         int segments =
-                4
+                5
                         + Math.round(
                                 progress
-                                        * 5.0F
+                                        * 8.0F
                         );
 
         for (int root = 0;
@@ -415,9 +427,9 @@ public final class BetaTechniqueWorldRenderer {
                                 + 0.55
                                 + fraction
                                         * (
-                                        2.5
+                                        3.2
                                                 + progress
-                                                        * 7.5
+                                                        * 10.5
                                 );
 
                 double wobble =
