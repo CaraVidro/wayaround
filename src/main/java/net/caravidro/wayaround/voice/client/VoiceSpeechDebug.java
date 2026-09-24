@@ -39,6 +39,29 @@ public final class VoiceSpeechDebug {
         byte[] copy =
                 pcm.clone();
 
+        if (!VoskSpeechRecognizer
+                .isModelInstalled()
+                && !VoskSpeechRecognizer
+                .isPreparing()) {
+
+            showClientMessage(
+                    Component.literal(
+                                    "[Voice Debug] "
+                            )
+                            .withStyle(
+                                    ChatFormatting.AQUA
+                            )
+                            .append(
+                                    Component.literal(
+                                            "baixando o modelo PT-BR gratuito (31 MB); isso acontece so uma vez..."
+                                    )
+                                    .withStyle(
+                                            ChatFormatting.GRAY
+                                    )
+                            )
+            );
+        }
+
         WORKER.execute(
                 () -> process(copy)
         );
@@ -52,8 +75,8 @@ public final class VoiceSpeechDebug {
                         pcm
                 );
 
-        OpenAiSpeechRecognizer.Result recognition =
-                OpenAiSpeechRecognizer.recognize(
+        VoskSpeechRecognizer.Result recognition =
+                VoskSpeechRecognizer.recognize(
                         pcm
                 );
 
@@ -143,6 +166,22 @@ public final class VoiceSpeechDebug {
                                             )
                             );
                 }
+        );
+    }
+
+    private static void showClientMessage(
+            Component message
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        minecraft.execute(
+                () ->
+                        minecraft.gui
+                                .getChat()
+                                .addMessage(
+                                        message
+                                )
         );
     }
 }

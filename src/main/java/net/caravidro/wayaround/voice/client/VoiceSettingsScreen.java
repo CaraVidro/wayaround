@@ -201,7 +201,7 @@ public final class VoiceSettingsScreen
 
     private Component debugLabel() {
         return Component.literal(
-                "Debug de fala (API): "
+                "Debug de fala local: "
                         + (
                         VoiceConfig.isDebugSpeechEnabled()
                                 ? "LIGADO"
@@ -263,7 +263,7 @@ public final class VoiceSettingsScreen
                 this.font,
                 this.title,
                 this.width / 2,
-                22,
+                20,
                 0xFFFFFF
         );
 
@@ -273,34 +273,31 @@ public final class VoiceSettingsScreen
                         "Segure V para falar"
                 ),
                 this.width / 2,
-                40,
+                38,
                 0xA0A0A0
         );
 
-        int apiColor =
-                OpenAiSpeechRecognizer.hasApiKey()
-                        ? 0x55FF55
-                        : 0xFF5555;
-
         graphics.drawCenteredString(
                 this.font,
                 Component.literal(
-                        OpenAiSpeechRecognizer.hasApiKey()
-                                ? "Transcricao API: pronta"
-                                : "Transcricao API: OPENAI_API_KEY ausente"
+                        VoskSpeechRecognizer
+                                .statusText()
                 ),
                 this.width / 2,
-                52,
-                apiColor
+                50,
+                VoskSpeechRecognizer
+                        .isModelInstalled()
+                        ? 0x55FF55
+                        : 0xFFAA55
         );
 
         graphics.drawCenteredString(
                 this.font,
                 Component.literal(
-                        "Texto: gpt-transcribe | entonacao: analisada localmente"
+                        "Vosk offline: palavras | Way Around: pitch, intensidade e alongamento"
                 ),
                 this.width / 2,
-                64,
+                62,
                 0x777777
         );
 
@@ -314,7 +311,7 @@ public final class VoiceSettingsScreen
                                 + " blocos"
                 ),
                 this.width / 2,
-                76,
+                74,
                 0x777777
         );
 

@@ -27,7 +27,8 @@ sourceSets.main.resources {
 }
 
 repositories {
-    // Add here additional repositories if required by some of the dependencies below.
+    // Vosk is published on Maven Central.
+    mavenCentral()
 }
 
 base {
@@ -116,6 +117,9 @@ configurations {
 }
 
 dependencies {
+    // Free/offline speech-to-text used by the experimental voice debug.
+    implementation "com.alphacephei:vosk:0.3.45"
+
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
