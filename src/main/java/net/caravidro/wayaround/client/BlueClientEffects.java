@@ -42,7 +42,7 @@ public final class BlueClientEffects {
     private static final double SHAKE_RANGE = 75.0;
     private static final double DARK_RANGE = 50.0;
     private static final int SNAPSHOT_TIMEOUT = 8;
-    private static final int SOUND_LINGER_TICKS = 100;
+    private static final int SOUND_LINGER_TICKS = 200;
 
     private static final Map<UUID, ClientBlue> BLUES =
             new HashMap<>();
