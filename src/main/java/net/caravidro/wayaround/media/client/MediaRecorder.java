@@ -7,11 +7,15 @@ import com.mojang.blaze3d.platform.NativeImage;
 
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.network.RecordingFinishedC2SPayload;
+import net.caravidro.wayaround.network.StartRecordingC2SPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -26,8 +30,14 @@ public final class MediaRecorder {
 
     private static RecordingWriter writer;
 
+    private static boolean startRequestPending;
+
     private static long nextCaptureNanos;
     private static long cameraMissingSinceNanos;
+    private static long recordingStartedNanos;
+
+    private static BlockPos recordingStartBlock =
+            BlockPos.ZERO;
 
     private static Vec3 detachedCameraPosition;
     private static float detachedCameraYaw;
@@ -39,14 +49,19 @@ public final class MediaRecorder {
         return writer != null;
     }
 
+    public static boolean isStartPending() {
+        return startRequestPending;
+    }
+
     public static boolean shouldHideHands() {
-        return isRecording();
+        return isRecording()
+                || PhotoCapture.isPending();
     }
 
     public static boolean useArmCameraOffset() {
         return isRecording()
                 && detachedCameraPosition == null
-                && playerHoldingCamera();
+                && isCameraHeld();
     }
 
     public static Vec3 detachedCameraPosition() {
@@ -61,17 +76,78 @@ public final class MediaRecorder {
         return detachedCameraPitch;
     }
 
-    public static void toggle() {
-        if (isRecording()) {
-            finishRecording(
-                    false
-            );
-        } else {
-            start();
+    public static long elapsedMillis() {
+        if (!isRecording()
+                || recordingStartedNanos <= 0L) {
+
+            return 0L;
         }
+
+        return Math.max(
+                0L,
+                (
+                        System.nanoTime()
+                                - recordingStartedNanos
+                )
+                        / 1_000_000L
+        );
     }
 
-    public static void start() {
+    public static void handleShortPress() {
+        if (isRecording()
+                || startRequestPending) {
+
+            return;
+        }
+
+        PhotoCapture.request();
+    }
+
+    public static void handleLongPress() {
+        if (startRequestPending) {
+            return;
+        }
+
+        if (isRecording()) {
+            finishRecording(false);
+            playCameraBeep(
+                    0.82F
+            );
+            return;
+        }
+
+        startRequestPending =
+                true;
+
+        PacketDistributor.sendToServer(
+                new StartRecordingC2SPayload()
+        );
+    }
+
+    public static void onStartResult(
+            boolean allowed,
+            String messageKey
+    ) {
+        startRequestPending =
+                false;
+
+        if (!allowed) {
+            if (messageKey != null
+                    && !messageKey.isBlank()) {
+
+                clientMessage(
+                        Component.translatable(
+                                messageKey
+                        )
+                );
+            }
+            return;
+        }
+
+        startApproved();
+    }
+
+    private static void startApproved() {
         if (isRecording()) {
             return;
         }
@@ -90,9 +166,21 @@ public final class MediaRecorder {
             nextCaptureNanos = 0L;
             cameraMissingSinceNanos = 0L;
             detachedCameraPosition = null;
+            recordingStartedNanos =
+                    System.nanoTime();
 
             Minecraft minecraft =
                     Minecraft.getInstance();
+
+            Vec3 position =
+                    minecraft.gameRenderer
+                            .getMainCamera()
+                            .getPosition();
+
+            recordingStartBlock =
+                    BlockPos.containing(
+                            position
+                    );
 
             previousCameraType =
                     minecraft.options
@@ -102,6 +190,10 @@ public final class MediaRecorder {
                     .setCameraType(
                             CameraType.FIRST_PERSON
                     );
+
+            playCameraBeep(
+                    1.65F
+            );
 
             clientMessage(
                     Component.translatable(
@@ -146,7 +238,7 @@ public final class MediaRecorder {
             return;
         }
 
-        if (playerHoldingCamera()) {
+        if (isCameraHeld()) {
             cameraMissingSinceNanos = 0L;
             detachedCameraPosition = null;
             return;
@@ -209,6 +301,8 @@ public final class MediaRecorder {
     }
 
     public static void captureDueFrame() {
+        PhotoCapture.captureIfPending();
+
         RecordingWriter active =
                 writer;
 
@@ -346,6 +440,26 @@ public final class MediaRecorder {
                 .getPosition();
     }
 
+    public static boolean isCameraHeld() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return false;
+        }
+
+        return minecraft.player
+                .getMainHandItem()
+                .is(
+                        MediaContent.CAMERA.get()
+                )
+                || minecraft.player
+                .getOffhandItem()
+                .is(
+                        MediaContent.CAMERA.get()
+                );
+    }
+
     private static void finishRecording(
             boolean dropTape
     ) {
@@ -356,6 +470,7 @@ public final class MediaRecorder {
 
         cameraMissingSinceNanos = 0L;
         detachedCameraPosition = null;
+        recordingStartedNanos = 0L;
 
         restoreCameraType();
 
@@ -379,7 +494,10 @@ public final class MediaRecorder {
                             summary.recordingId(),
                             summary.durationMillis(),
                             summary.startedAtMillis(),
-                            dropTape
+                            dropTape,
+                            recordingStartBlock.getX(),
+                            recordingStartBlock.getY(),
+                            recordingStartBlock.getZ()
                     )
             );
 
@@ -403,26 +521,6 @@ public final class MediaRecorder {
                             )
             );
         }
-    }
-
-    private static boolean playerHoldingCamera() {
-        Minecraft minecraft =
-                Minecraft.getInstance();
-
-        if (minecraft.player == null) {
-            return false;
-        }
-
-        return minecraft.player
-                .getMainHandItem()
-                .is(
-                        MediaContent.CAMERA.get()
-                )
-                || minecraft.player
-                .getOffhandItem()
-                .is(
-                        MediaContent.CAMERA.get()
-                );
     }
 
     private static boolean playerHasCameraInInventory() {
@@ -511,6 +609,31 @@ public final class MediaRecorder {
 
             previousCameraType = null;
         }
+    }
+
+    private static void playCameraBeep(
+            float pitch
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.level == null
+                || minecraft.player == null) {
+
+            return;
+        }
+
+        minecraft.level
+                .playLocalSound(
+                        minecraft.player
+                                .blockPosition(),
+                        SoundEvents.NOTE_BLOCK_PLING
+                                .value(),
+                        SoundSource.PLAYERS,
+                        0.45F,
+                        pitch,
+                        false
+                );
     }
 
     private static void clientMessage(

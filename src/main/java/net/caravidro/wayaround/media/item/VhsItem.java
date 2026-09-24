@@ -1,5 +1,8 @@
 package net.caravidro.wayaround.media.item;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
@@ -13,10 +16,33 @@ import net.minecraft.world.item.TooltipFlag;
 public final class VhsItem
         extends Item {
 
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern(
+                    "dd/MM/yyyy HH:mm"
+            );
+
     public VhsItem(
             Properties properties
     ) {
         super(properties);
+    }
+
+    @Override
+    public Component getName(
+            ItemStack stack
+    ) {
+        return VhsData.read(stack)
+                .<Component>map(
+                        info ->
+                                Component.literal(
+                                        info.title()
+                                )
+                )
+                .orElseGet(
+                        () -> super.getName(
+                                stack
+                        )
+                );
     }
 
     @Override
@@ -46,6 +72,39 @@ public final class VhsItem
                                                     ChatFormatting.GRAY
                                             )
                             );
+
+                            if (info.showCoordinates()) {
+                                tooltip.add(
+                                        Component.translatable(
+                                                        "tooltip.wayaround.vhs.coords",
+                                                        info.x(),
+                                                        info.y(),
+                                                        info.z()
+                                                )
+                                                .withStyle(
+                                                        ChatFormatting.DARK_GRAY
+                                                )
+                                );
+                            }
+
+                            if (info.showDateTime()) {
+                                tooltip.add(
+                                        Component.translatable(
+                                                        "tooltip.wayaround.vhs.datetime",
+                                                        DATE_FORMAT.format(
+                                                                Instant.ofEpochMilli(
+                                                                                info.startedAtMillis()
+                                                                        )
+                                                                        .atZone(
+                                                                                ZoneId.systemDefault()
+                                                                        )
+                                                        )
+                                                )
+                                                .withStyle(
+                                                        ChatFormatting.DARK_GRAY
+                                                )
+                                );
+                            }
 
                             tooltip.add(
                                     Component.translatable(
