@@ -11,10 +11,12 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.sound.BlueSpatialSound;
 import net.caravidro.wayaround.client.weather.LivingCloudRenderer;
 import net.caravidro.wayaround.content.WayAroundContent;
+import net.caravidro.wayaround.network.BlueGestureS2CPayload;
 import net.caravidro.wayaround.network.BlueScrollPayload;
 import net.caravidro.wayaround.network.BlueVisualPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -54,7 +56,29 @@ public final class BlueClientEffects {
 
     private static boolean hadLevel;
 
+    private static int gestureTicks;
+    private static int gestureAge;
+    private static byte gestureType;
+
     private BlueClientEffects() {
+    }
+
+    public static void playGesture(
+            byte gesture
+    ) {
+        gestureType =
+                gesture;
+
+        gestureAge =
+                0;
+
+        gestureTicks =
+                switch (gesture) {
+                    case BlueGestureS2CPayload.ORBIT -> 34;
+                    case BlueGestureS2CPayload.LAUNCH -> 18;
+                    case BlueGestureS2CPayload.STOP -> 16;
+                    default -> 28;
+                };
     }
 
     public static void receive(
@@ -66,6 +90,10 @@ public final class BlueClientEffects {
         if (minecraft.level == null) {
             return;
         }
+
+        tickGesture(
+                minecraft
+        );
 
         long tick =
                 minecraft.level
@@ -281,6 +309,45 @@ public final class BlueClientEffects {
             }
 
             iterator.remove();
+        }
+    }
+
+    private static void tickGesture(
+            Minecraft minecraft
+    ) {
+        if (gestureTicks <= 0
+                || minecraft.player == null) {
+
+            return;
+        }
+
+        gestureTicks--;
+        gestureAge++;
+
+        int interval =
+                gestureType
+                        == BlueGestureS2CPayload.ORBIT
+                        ? 5
+                        : 7;
+
+        if (gestureAge == 1
+                || gestureAge % interval == 0) {
+
+            boolean offHand =
+                    gestureType
+                            == BlueGestureS2CPayload.ORBIT
+                            ? (
+                            gestureAge / interval
+                    ) % 2 == 1
+                            : gestureAge % (interval * 2)
+                                    >= interval;
+
+            minecraft.player
+                    .swing(
+                            offHand
+                                    ? InteractionHand.OFF_HAND
+                                    : InteractionHand.MAIN_HAND
+                    );
         }
     }
 

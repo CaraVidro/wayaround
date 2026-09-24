@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.caravidro.wayaround.content.WayAroundContent;
+import net.caravidro.wayaround.network.BlueGestureS2CPayload;
 import net.caravidro.wayaround.network.BlueVisualPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -127,11 +128,26 @@ public final class BlueManager {
                 true
         );
 
+        sendGesture(
+                player,
+                BlueGestureS2CPayload.SUMMON
+        );
+
         return true;
     }
 
     public static boolean invokeFromVoice(
             ServerPlayer player
+    ) {
+        return invokeFromVoice(
+                player,
+                -1.0F
+        );
+    }
+
+    public static boolean invokeFromVoice(
+            ServerPlayer player,
+            float output
     ) {
         if (!beginCharge(
                 player
@@ -145,16 +161,40 @@ public final class BlueManager {
                 );
 
         if (charge != null) {
-            /*
-             * A voice invocation should create a useful but not maximum Blue.
-             * It reuses the normal charge/finish path so cooldowns and state
-             * stay identical to item activation.
-             */
-            charge.ticks =
-                    Math.max(
-                            charge.ticks,
-                            18
-                    );
+            if (output >= 0.0F) {
+                float normalized =
+                        Mth.clamp(
+                                output,
+                                0.0F,
+                                1.0F
+                        );
+
+                float targetPower =
+                        Mth.lerp(
+                                normalized,
+                                0.04F,
+                                1.35F
+                        );
+
+                charge.ticks =
+                        Math.max(
+                                1,
+                                Math.round(
+                                        (
+                                                targetPower
+                                                        - 0.025F
+                                        )
+                                                * 62.0F
+                                )
+                        );
+
+            } else {
+                charge.ticks =
+                        Math.max(
+                                charge.ticks,
+                                18
+                        );
+            }
         }
 
         finishCharge(
@@ -164,6 +204,73 @@ public final class BlueManager {
         return ACTIVE.containsKey(
                 player.getUUID()
         );
+    }
+
+    public static boolean orbitActive(
+            ServerPlayer player
+    ) {
+        ActiveBlue blue =
+                ACTIVE.get(
+                        player.getUUID()
+                );
+
+        if (blue == null) {
+            return false;
+        }
+
+        Vec3 eye =
+                player.getEyePosition();
+
+        Vec3 relative =
+                blue.center.subtract(
+                        eye
+                );
+
+        blue.orbitAngle =
+                Math.atan2(
+                        relative.z,
+                        relative.x
+                );
+
+        blue.orbiting =
+                true;
+
+        sendGesture(
+                player,
+                BlueGestureS2CPayload.ORBIT
+        );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.AMETHYST_BLOCK_CHIME,
+                        SoundSource.PLAYERS,
+                        0.55F,
+                        1.65F
+                );
+
+        return true;
+    }
+
+    public static boolean launchActive(
+            ServerPlayer player
+    ) {
+        ActiveBlue blue =
+                ACTIVE.get(
+                        player.getUUID()
+                );
+
+        if (blue == null) {
+            return false;
+        }
+
+        launchActive(
+                player,
+                blue
+        );
+
+        return true;
     }
 
     public static void tickCharge(
@@ -352,6 +459,11 @@ public final class BlueManager {
                 blue.spinDirection
         );
 
+        sendGesture(
+                player,
+                BlueGestureS2CPayload.STOP
+        );
+
         player.swing(
                 InteractionHand.MAIN_HAND,
                 true
@@ -522,13 +634,54 @@ public final class BlueManager {
                     owner.getLookAngle()
                             .normalize();
 
-            blue.center =
-                    owner.getEyePosition()
-                            .add(
-                                    blue.look.scale(
-                                            blue.distance
-                                    )
-                            );
+            if (blue.orbiting) {
+                blue.orbitAngle +=
+                        0.42
+                                * blue.spinDirection;
+
+                double orbitRadius =
+                        Mth.clamp(
+                                3.25
+                                        + blue.power
+                                                * 1.35,
+                                3.25,
+                                5.10
+                        );
+
+                double bob =
+                        Math.sin(
+                                tick * 0.28
+                                        + blue.owner.hashCode()
+                                                * 0.01
+                        )
+                                * 0.38;
+
+                Vec3 eye =
+                        owner.getEyePosition();
+
+                blue.center =
+                        eye.add(
+                                Math.cos(
+                                        blue.orbitAngle
+                                )
+                                        * orbitRadius,
+                                -0.18
+                                        + bob,
+                                Math.sin(
+                                        blue.orbitAngle
+                                )
+                                        * orbitRadius
+                        );
+
+            } else {
+                blue.center =
+                        owner.getEyePosition()
+                                .add(
+                                        blue.look.scale(
+                                                blue.distance
+                                        )
+                                );
+            }
 
             double radius =
                     attractionRadius(
@@ -906,6 +1059,11 @@ public final class BlueManager {
         player.swing(
                 InteractionHand.OFF_HAND,
                 true
+        );
+
+        sendGesture(
+                player,
+                BlueGestureS2CPayload.LAUNCH
         );
 
         player.serverLevel()
@@ -3138,6 +3296,18 @@ public final class BlueManager {
         );
     }
 
+    private static void sendGesture(
+            ServerPlayer player,
+            byte gesture
+    ) {
+        PacketDistributor.sendToPlayer(
+                player,
+                new BlueGestureS2CPayload(
+                        gesture
+                )
+        );
+    }
+
     private static void sendVisual(
             ServerLevel level,
             UUID owner,
@@ -3227,6 +3397,9 @@ public final class BlueManager {
         private Vec3 center;
         private Vec3 look;
         private double distance;
+
+        private boolean orbiting;
+        private double orbitAngle;
 
         private double inwardWheel;
         private double outwardWheel;

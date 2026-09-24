@@ -21,13 +21,16 @@ public final class VoiceIntentClient {
             true;
 
     private static final long CONTEXT_WINDOW_MS =
-            3_000L;
+            5_000L;
+
+    private static final long OUTPUT_WINDOW_MS =
+            8_000L;
 
     private static final long DECISION_DELAY_MS =
             600L;
 
     private static final long TRIGGER_COOLDOWN_MS =
-            1_800L;
+            650L;
 
     private static String rollingContext =
             "";
@@ -35,6 +38,15 @@ public final class VoiceIntentClient {
     private static long contextExpiresAt;
     private static long pendingBlueAt;
     private static long lastTriggerAt;
+
+    /*
+     * -1 = normal output.
+     * 0..1 = forced size/power for the next summon only.
+     */
+    private static float pendingOutput =
+            -1.0F;
+
+    private static long outputExpiresAt;
 
     public static boolean isEnabled() {
         return ENABLED;
@@ -67,6 +79,45 @@ public final class VoiceIntentClient {
                 transcript,
                 normalized
         );
+
+        if (now > outputExpiresAt) {
+            pendingOutput =
+                    -1.0F;
+        }
+
+        List<String> currentWords =
+                words(
+                        normalized
+                );
+
+        OutputModifier output =
+                detectOutput(
+                        currentWords
+                );
+
+        if (output != OutputModifier.NONE) {
+            pendingOutput =
+                    output == OutputModifier.MAXIMUM
+                            ? 1.0F
+                            : 0.0F;
+
+            outputExpiresAt =
+                    now
+                            + OUTPUT_WINDOW_MS;
+
+            WayAround.LOGGER.info(
+                    "[Voice/Intent] OUTPUT={} guardado por {} ms",
+                    output,
+                    OUTPUT_WINDOW_MS
+            );
+
+            status(
+                    output == OutputModifier.MAXIMUM
+                            ? "OUTPUT MAXIMO"
+                            : "OUTPUT MINIMO",
+                    ChatFormatting.LIGHT_PURPLE
+            );
+        }
 
         if (now > contextExpiresAt) {
             rollingContext =
@@ -104,7 +155,7 @@ public final class VoiceIntentClient {
                     "[Voice/Intent] CANCELADO por palavra explicita"
             );
 
-            clearPending();
+            clearContext();
 
             status(
                     "cancelado",
@@ -114,25 +165,63 @@ public final class VoiceIntentClient {
             return;
         }
 
+        /*
+         * Active-Blue commands are interpreted semantically before summon.
+         * They do not require a magic phrase and are intentionally broad.
+         */
+        if (looksLikeStop(
+                currentWords
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_STOP,
+                    -1.0F,
+                    "STOP"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (looksLikeLaunch(
+                currentWords
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_LAUNCH,
+                    -1.0F,
+                    "LAUNCH"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (looksLikeOrbit(
+                currentWords
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.BLUE_ORBIT,
+                    -1.0F,
+                    "ORBIT"
+            );
+
+            clearContext();
+            return;
+        }
+
         CommandMatch match =
                 matchBlueCommand(
                         words
                 );
 
         if (match.complete()) {
-            /*
-             * Do not fire instantly. A short semantic pause gives the player
-             * time to add something like "na minha frente" in the next
-             * utterance. V0 ignores those modifiers, but the state machine is
-             * already ready for them.
-             */
             pendingBlueAt =
                     now
                             + DECISION_DELAY_MS;
 
             WayAround.LOGGER.info(
-                    "[Voice/Intent] BLUE completo -> PENDING por {} ms",
-                    DECISION_DELAY_MS
+                    "[Voice/Intent] BLUE completo -> PENDING por {} ms output={}",
+                    DECISION_DELAY_MS,
+                    pendingOutput
             );
 
             status(
@@ -172,10 +261,43 @@ public final class VoiceIntentClient {
         pendingBlueAt =
                 0L;
 
+        float output =
+                now <= outputExpiresAt
+                        ? pendingOutput
+                        : -1.0F;
+
+        dispatch(
+                VoiceIntentC2SPayload.BLUE_SUMMON,
+                output,
+                output < 0.0F
+                        ? "SUMMON BLUE"
+                        : (
+                        output >= 0.5F
+                                ? "SUMMON BLUE / OUTPUT MAXIMO"
+                                : "SUMMON BLUE / OUTPUT MINIMO"
+                )
+        );
+
+        pendingOutput =
+                -1.0F;
+
+        outputExpiresAt =
+                0L;
+
+        clearContext();
+    }
+
+    private static void dispatch(
+            byte intent,
+            float output,
+            String label
+    ) {
+        long now =
+                System.currentTimeMillis();
+
         if (now - lastTriggerAt
                 < TRIGGER_COOLDOWN_MS) {
 
-            clearPending();
             return;
         }
 
@@ -186,17 +308,19 @@ public final class VoiceIntentClient {
                 || minecraft.getConnection()
                 == null) {
 
-            clearPending();
             return;
         }
 
         WayAround.LOGGER.info(
-                "[Voice/Intent] DISPARANDO BLUE para o servidor"
+                "[Voice/Intent] DISPATCH {} output={}",
+                label,
+                output
         );
 
         PacketDistributor.sendToServer(
                 new VoiceIntentC2SPayload(
-                        VoiceIntentC2SPayload.BLUE
+                        intent,
+                        output
                 )
         );
 
@@ -204,11 +328,187 @@ public final class VoiceIntentClient {
                 now;
 
         status(
-                "BLUE",
-                ChatFormatting.BLUE
+                label,
+                intent == VoiceIntentC2SPayload.BLUE_STOP
+                        ? ChatFormatting.GRAY
+                        : ChatFormatting.BLUE
         );
+    }
 
-        clearPending();
+    private static boolean looksLikeOrbit(
+            List<String> words
+    ) {
+        if (containsAny(
+                words,
+                "spin",
+                "gira",
+                "gire",
+                "girar",
+                "girando",
+                "rode",
+                "rodar",
+                "rodando",
+                "rotacao",
+                "orbita",
+                "orbite",
+                "orbitar",
+                "circula",
+                "circule",
+                "circular"
+        )) {
+            return true;
+        }
+
+        boolean protective =
+                containsAny(
+                        words,
+                        "proteja",
+                        "proteger",
+                        "protege",
+                        "defenda",
+                        "defender",
+                        "cubra",
+                        "cobrir",
+                        "guarde"
+                );
+
+        boolean around =
+                containsAny(
+                        words,
+                        "redor",
+                        "volta",
+                        "lados",
+                        "lado",
+                        "todos",
+                        "360",
+                        "cercar",
+                        "cercando"
+                );
+
+        if (protective
+                && around) {
+
+            return true;
+        }
+
+        return containsSequence(
+                words,
+                "em",
+                "volta"
+        )
+                || containsSequence(
+                words,
+                "ao",
+                "redor"
+        );
+    }
+
+    private static boolean looksLikeLaunch(
+            List<String> words
+    ) {
+        return containsAny(
+                words,
+                "solta",
+                "soltar",
+                "solte",
+                "lanca",
+                "lancar",
+                "lance",
+                "dispara",
+                "disparar",
+                "dispare",
+                "atira",
+                "atirar",
+                "atire",
+                "arremessa",
+                "arremessar"
+        );
+    }
+
+    private static boolean looksLikeStop(
+            List<String> words
+    ) {
+        if (words.size() <= 4
+                && containsAny(
+                words,
+                "pronto",
+                "acabou",
+                "pare",
+                "parar",
+                "termine",
+                "termina",
+                "desliga",
+                "desligue",
+                "suma"
+        )) {
+
+            return true;
+        }
+
+        return containsSequence(
+                words,
+                "acabe",
+                "aqui"
+        )
+                || containsSequence(
+                words,
+                "pode",
+                "parar"
+        );
+    }
+
+    private static OutputModifier detectOutput(
+            List<String> words
+    ) {
+        int output =
+                findApprox(
+                        words,
+                        "output",
+                        0,
+                        2
+                );
+
+        if (output < 0
+                && !containsSequence(
+                words,
+                "out",
+                "put"
+        )) {
+
+            return OutputModifier.NONE;
+        }
+
+        if (findApprox(
+                words,
+                "maximo",
+                0,
+                2
+        ) >= 0
+                || containsAny(
+                words,
+                "maximum",
+                "max"
+        )) {
+
+            return OutputModifier.MAXIMUM;
+        }
+
+        if (findApprox(
+                words,
+                "minimo",
+                0,
+                2
+        ) >= 0
+                || containsAny(
+                words,
+                "minimum",
+                "min"
+        )) {
+
+            return OutputModifier.MINIMUM;
+        }
+
+        return OutputModifier.NONE;
     }
 
     private static CommandMatch matchBlueCommand(
@@ -271,13 +571,10 @@ public final class VoiceIntentClient {
              index < words.size();
              index++) {
 
-            String word =
+            if (distance(
                     words.get(
                             index
-                    );
-
-            if (distance(
-                    word,
+                    ),
                     target
             )
                     <= maximumDistance) {
@@ -343,12 +640,48 @@ public final class VoiceIntentClient {
     private static boolean containsCancellation(
             List<String> words
     ) {
+        return containsAny(
+                words,
+                "cancela",
+                "cancelar",
+                "cancele"
+        );
+    }
+
+    private static boolean containsAny(
+            List<String> words,
+            String... candidates
+    ) {
         for (String word :
                 words) {
 
-            if (word.equals("cancela")
-                    || word.equals("cancelar")
-                    || word.equals("cancele")) {
+            for (String candidate :
+                    candidates) {
+
+                if (word.equals(
+                        candidate
+                )) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean containsSequence(
+            List<String> words,
+            String first,
+            String second
+    ) {
+        for (int index = 0;
+             index + 1 < words.size();
+             index++) {
+
+            if (words.get(index)
+                    .equals(first)
+                    && words.get(index + 1)
+                    .equals(second)) {
 
                 return true;
             }
@@ -465,7 +798,7 @@ public final class VoiceIntentClient {
                 ];
     }
 
-    private static void clearPending() {
+    private static void clearContext() {
         rollingContext =
                 "";
 
@@ -526,6 +859,12 @@ public final class VoiceIntentClient {
                         "\\s+",
                         " "
                 );
+    }
+
+    private enum OutputModifier {
+        NONE,
+        MINIMUM,
+        MAXIMUM
     }
 
     private record CommandMatch(

@@ -12,10 +12,14 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record VoiceIntentC2SPayload(
-        byte intent
+        byte intent,
+        float output
 ) implements CustomPacketPayload {
 
-    public static final byte BLUE = 1;
+    public static final byte BLUE_SUMMON = 1;
+    public static final byte BLUE_ORBIT = 2;
+    public static final byte BLUE_LAUNCH = 3;
+    public static final byte BLUE_STOP = 4;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -30,13 +34,18 @@ public record VoiceIntentC2SPayload(
             VoiceIntentC2SPayload
             > STREAM_CODEC =
             StreamCodec.of(
-                    (buf, payload) ->
-                            buf.writeByte(
-                                    payload.intent()
-                            ),
+                    (buf, payload) -> {
+                        buf.writeByte(
+                                payload.intent()
+                        );
+                        buf.writeFloat(
+                                payload.output()
+                        );
+                    },
                     buf ->
                             new VoiceIntentC2SPayload(
-                                    buf.readByte()
+                                    buf.readByte(),
+                                    buf.readFloat()
                             )
             );
 
@@ -53,21 +62,38 @@ public record VoiceIntentC2SPayload(
                 () -> {
                     if (!(context.player()
                             instanceof ServerPlayer player)
-                            || payload.intent()
-                            != BLUE) {
+                            || !hasBlue(
+                                    player
+                            )) {
 
                         return;
                     }
 
-                    if (!hasBlue(
-                            player
-                    )) {
-                        return;
-                    }
+                    switch (payload.intent()) {
+                        case BLUE_SUMMON ->
+                                BlueManager.invokeFromVoice(
+                                        player,
+                                        payload.output()
+                                );
 
-                    BlueManager.invokeFromVoice(
-                            player
-                    );
+                        case BLUE_ORBIT ->
+                                BlueManager.orbitActive(
+                                        player
+                                );
+
+                        case BLUE_LAUNCH ->
+                                BlueManager.launchActive(
+                                        player
+                                );
+
+                        case BLUE_STOP ->
+                                BlueManager.releaseActive(
+                                        player
+                                );
+
+                        default -> {
+                        }
+                    }
                 }
         );
     }
