@@ -2,6 +2,7 @@ package net.caravidro.wayaround.media;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.item.CameraItem;
+import net.caravidro.wayaround.media.item.VhsItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
@@ -9,6 +10,7 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
@@ -23,12 +25,24 @@ public final class MediaContent {
     }
 
     private static final DeferredRegister.Blocks BLOCKS =
-            DeferredRegister.createBlocks(WayAround.MODID);
+            DeferredRegister.createBlocks(
+                    WayAround.MODID
+            );
 
     private static final DeferredRegister.Items ITEMS =
-            DeferredRegister.createItems(WayAround.MODID);
+            DeferredRegister.createItems(
+                    WayAround.MODID
+            );
 
-    private static final DeferredRegister<CreativeModeTab> TABS =
+    private static final DeferredRegister<BlockEntityType<?>>
+            BLOCK_ENTITIES =
+            DeferredRegister.create(
+                    Registries.BLOCK_ENTITY_TYPE,
+                    WayAround.MODID
+            );
+
+    private static final DeferredRegister<CreativeModeTab>
+            TABS =
             DeferredRegister.create(
                     Registries.CREATIVE_MODE_TAB,
                     WayAround.MODID
@@ -38,7 +52,17 @@ public final class MediaContent {
             ITEMS.register(
                     "camera",
                     () -> new CameraItem(
-                            new Item.Properties().stacksTo(1)
+                            new Item.Properties()
+                                    .stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<VhsItem> VHS =
+            ITEMS.register(
+                    "vhs",
+                    () -> new VhsItem(
+                            new Item.Properties()
+                                    .stacksTo(1)
                     )
             );
 
@@ -47,9 +71,17 @@ public final class MediaContent {
                     "television",
                     () -> new TelevisionBlock(
                             BlockBehaviour.Properties.of()
-                                    .mapColor(MapColor.COLOR_BLACK)
-                                    .strength(2.0F, 4.0F)
-                                    .sound(SoundType.METAL)
+                                    .mapColor(
+                                            MapColor.COLOR_BLACK
+                                    )
+                                    .strength(
+                                            2.0F,
+                                            4.0F
+                                    )
+                                    .sound(
+                                            SoundType.METAL
+                                    )
+                                    .noOcclusion()
                     )
             );
 
@@ -62,7 +94,23 @@ public final class MediaContent {
                     )
             );
 
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MEDIA_TAB =
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<TelevisionBlockEntity>
+            > TELEVISION_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "television",
+                    () -> BlockEntityType.Builder.of(
+                                    TelevisionBlockEntity::new,
+                                    TELEVISION.get()
+                            )
+                            .build(null)
+            );
+
+    public static final DeferredHolder<
+            CreativeModeTab,
+            CreativeModeTab
+            > MEDIA_TAB =
             TABS.register(
                     "media",
                     () -> CreativeModeTab.builder()
@@ -71,22 +119,37 @@ public final class MediaContent {
                                             "itemGroup.wayaround.media"
                                     )
                             )
-                            .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
+                            .withTabsBefore(
+                                    CreativeModeTabs.SPAWN_EGGS
+                            )
                             .icon(
-                                    () -> CAMERA.get().getDefaultInstance()
+                                    () -> CAMERA.get()
+                                            .getDefaultInstance()
                             )
                             .displayItems(
                                     (parameters, output) -> {
-                                        output.accept(CAMERA.get());
-                                        output.accept(TELEVISION_ITEM.get());
+                                        output.accept(
+                                                CAMERA.get()
+                                        );
+
+                                        output.accept(
+                                                VHS.get()
+                                        );
+
+                                        output.accept(
+                                                TELEVISION_ITEM.get()
+                                        );
                                     }
                             )
                             .build()
             );
 
-    public static void register(IEventBus bus) {
+    public static void register(
+            IEventBus bus
+    ) {
         BLOCKS.register(bus);
         ITEMS.register(bus);
+        BLOCK_ENTITIES.register(bus);
         TABS.register(bus);
     }
 }

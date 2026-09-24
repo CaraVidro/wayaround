@@ -1,7 +1,19 @@
 {
   "variants": {
-    "": {
+    "facing=north": {
       "model": "wayaround:block/television"
+    },
+    "facing=east": {
+      "model": "wayaround:block/television",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/television",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/television",
+      "y": 270
     }
   }
 }

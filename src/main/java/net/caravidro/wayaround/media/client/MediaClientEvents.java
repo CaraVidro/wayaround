@@ -8,6 +8,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderHandEvent;
 
 @EventBusSubscriber(
         modid = WayAround.MODID,
@@ -29,7 +30,7 @@ public final class MediaClientEvents {
 
         MediaClientBridge.install(
                 MediaRecorder::toggle,
-                TvPlaybackScreen::openLatest
+                TvVoiceEmitter::tick
         );
     }
 
@@ -39,22 +40,8 @@ public final class MediaClientEvents {
     ) {
         installBridge();
 
-        if (!MediaRecorder.isRecording()) {
-            return;
-        }
-
-        Minecraft minecraft =
-                Minecraft.getInstance();
-
-        if (minecraft.player == null
-                || minecraft.level == null) {
-            MediaRecorder.stop();
-            return;
-        }
-
-        if (!MediaRecorder.playerStillHasCamera()) {
-            MediaRecorder.stopBecauseCameraGone();
-        }
+        MediaRecorder.tick();
+        TvVoiceEmitter.cleanup();
     }
 
     @SubscribeEvent
@@ -62,6 +49,21 @@ public final class MediaClientEvents {
             RenderGuiEvent.Pre event
     ) {
         installBridge();
-        MediaRecorder.captureDueFrame();
+
+        MediaRecorder
+                .captureDueFrame();
+    }
+
+    @SubscribeEvent
+    public static void onRenderHand(
+            RenderHandEvent event
+    ) {
+        if (MediaRecorder
+                .shouldHideHands()) {
+
+            event.setCanceled(
+                    true
+            );
+        }
     }
 }

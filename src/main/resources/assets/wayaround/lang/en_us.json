@@ -105,8 +105,14 @@
     "item.wayaround.camera": "Camera",
     "block.wayaround.television": "Television",
     "message.wayaround.media.recording_started": "Recording started.",
-    "message.wayaround.media.recording_stopped": "Recording saved: %s",
+    "message.wayaround.media.recording_stopped": "Recording saved to VHS.",
     "message.wayaround.media.recording_failed": "Recording failed: %s",
-    "message.wayaround.media.no_recording": "There is no recording to play yet.",
-    "message.wayaround.media.camera_required": "Recording stopped because the camera is no longer in your hand."
+    "item.wayaround.vhs": "VHS Tape",
+    "tooltip.wayaround.vhs.duration": "Duration: %s",
+    "tooltip.wayaround.vhs.recording": "Recording: %s",
+    "message.wayaround.media.camera_stowed": "Camera stowed. Recording finished.",
+    "message.wayaround.media.camera_dropped": "Camera dropped. Recording the last seconds...",
+    "message.wayaround.media.vhs_inserted": "VHS inserted.",
+    "message.wayaround.media.tv_busy": "There is already a VHS in the television.",
+    "message.wayaround.media.invalid_vhs": "This VHS has no valid recording."
 }

@@ -105,8 +105,14 @@
     "item.wayaround.camera": "Câmera",
     "block.wayaround.television": "Televisão",
     "message.wayaround.media.recording_started": "Gravação iniciada.",
-    "message.wayaround.media.recording_stopped": "Gravação salva: %s",
+    "message.wayaround.media.recording_stopped": "Gravação salva em VHS.",
     "message.wayaround.media.recording_failed": "Falha na gravação: %s",
-    "message.wayaround.media.no_recording": "Ainda não existe nenhuma gravação para reproduzir.",
-    "message.wayaround.media.camera_required": "A gravação parou porque a câmera não está mais na sua mão."
+    "item.wayaround.vhs": "Fita VHS",
+    "tooltip.wayaround.vhs.duration": "Duração: %s",
+    "tooltip.wayaround.vhs.recording": "Gravação: %s",
+    "message.wayaround.media.camera_stowed": "Câmera guardada. Gravação finalizada.",
+    "message.wayaround.media.camera_dropped": "Câmera derrubada. Gravando os últimos segundos...",
+    "message.wayaround.media.vhs_inserted": "VHS inserida.",
+    "message.wayaround.media.tv_busy": "Já existe uma VHS dentro da televisão.",
+    "message.wayaround.media.invalid_vhs": "Esta VHS não possui uma gravação válida."
 }

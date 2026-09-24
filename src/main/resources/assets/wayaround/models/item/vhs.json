@@ -1,0 +1,44 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "casing": "minecraft:block/black_concrete",
+    "label": "minecraft:block/quartz_block",
+    "reel": "minecraft:block/iron_block",
+    "particle": "minecraft:block/black_concrete"
+  },
+  "elements": [
+    {
+      "from": [1, 5, 3],
+      "to": [15, 11, 13],
+      "faces": {
+        "north": { "texture": "#casing" },
+        "south": { "texture": "#casing" },
+        "west": { "texture": "#casing" },
+        "east": { "texture": "#casing" },
+        "up": { "texture": "#casing" },
+        "down": { "texture": "#casing" }
+      }
+    },
+    {
+      "from": [3, 10.9, 5],
+      "to": [13, 11.15, 11],
+      "faces": {
+        "up": { "texture": "#label" }
+      }
+    },
+    {
+      "from": [3, 4.85, 5],
+      "to": [6, 5.05, 8],
+      "faces": {
+        "down": { "texture": "#reel" }
+      }
+    },
+    {
+      "from": [10, 4.85, 5],
+      "to": [13, 5.05, 8],
+      "faces": {
+        "down": { "texture": "#reel" }
+      }
+    }
+  ]
+}

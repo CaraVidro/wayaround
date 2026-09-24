@@ -8,6 +8,7 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
 
+import net.caravidro.wayaround.media.client.MediaVoiceTap;
 import net.caravidro.wayaround.network.VoiceFrameC2SPayload;
 import net.caravidro.wayaround.voice.VoiceConstants;
 import net.minecraft.client.Minecraft;
@@ -133,6 +134,10 @@ public final class VoiceCapture {
                                 buffer,
                                 read
                         );
+
+                MediaVoiceTap.capture(
+                        frame
+                );
 
                 if (debugAudio != null) {
                     debugAudio.write(

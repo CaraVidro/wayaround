@@ -52,5 +52,11 @@ public final class WayAroundNetwork {
                 VoiceFrameS2CPayload.STREAM_CODEC,
                 VoiceFrameS2CPayload::handle
         );
+
+        registrar.playToServer(
+                RecordingFinishedC2SPayload.TYPE,
+                RecordingFinishedC2SPayload.STREAM_CODEC,
+                RecordingFinishedC2SPayload::handle
+        );
     }
 }

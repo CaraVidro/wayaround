@@ -2,7 +2,6 @@
   "required": true,
   "package": "net.caravidro.wayaround.mixin",
   "compatibilityLevel": "JAVA_21",
-
   "mixins": [
     "WayAroundMixinTest",
     "PolarBearSpawnMixin",
@@ -13,7 +12,6 @@
     "AntarcticSurfaceMixin",
     "AntarcticWaterFreezingMixin"
   ],
-
   "client": [
     "client.DreamWakeCameraMixin",
     "client.AntarcticPrecipitationMixin",
@@ -23,12 +21,11 @@
     "client.ColdShiveringMixin",
     "client.ParticleWindMixin",
     "client.ParticleEngineWindMixin",
-    "client.PrecipitationWindMixin"
+    "client.PrecipitationWindMixin",
+    "client.MediaCameraMixin"
   ],
-
   "injectors": {
     "defaultRequire": 1
   },
-
   "minVersion": "0.8.4"
 }

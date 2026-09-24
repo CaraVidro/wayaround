@@ -9,6 +9,7 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 
+import net.caravidro.wayaround.media.client.MediaVoiceTap;
 import net.caravidro.wayaround.voice.VoiceConstants;
 
 public final class VoicePlayback {
@@ -96,6 +97,10 @@ public final class VoicePlayback {
                 if (!VoiceConfig.isEnabled()) {
                     continue;
                 }
+
+                MediaVoiceTap.capture(
+                        pcm
+                );
 
                 line.write(
                         pcm,

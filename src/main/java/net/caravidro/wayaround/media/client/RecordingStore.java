@@ -2,9 +2,8 @@ package net.caravidro.wayaround.media.client;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.UUID;
 
 import net.minecraft.client.Minecraft;
 
@@ -13,54 +12,75 @@ public final class RecordingStore {
     private RecordingStore() {
     }
 
+    public record Target(
+            String id,
+            Path path
+    ) {
+    }
+
     public static Path directory() {
         return Minecraft.getInstance()
                 .gameDirectory
                 .toPath()
-                .resolve("wayaround-recordings");
+                .resolve(
+                        "wayaround-recordings"
+                );
     }
 
-    public static Path createPath() throws Exception {
-        Path directory = directory();
-        Files.createDirectories(directory);
+    public static Target createTarget()
+            throws Exception {
 
-        return directory.resolve(
-                "recording-"
-                        + System.currentTimeMillis()
-                        + ".wavr"
+        Files.createDirectories(
+                directory()
+        );
+
+        String id =
+                UUID.randomUUID()
+                        .toString();
+
+        return new Target(
+                id,
+                pathForId(id)
         );
     }
 
-    public static Optional<Path> latest() {
-        Path directory = directory();
-
-        if (!Files.isDirectory(directory)) {
-            return Optional.empty();
+    public static Path pathForId(
+            String id
+    ) {
+        if (id == null) {
+            throw new IllegalArgumentException(
+                    "ID de gravacao ausente"
+            );
         }
 
-        try (Stream<Path> files = Files.list(directory)) {
-            return files
-                    .filter(Files::isRegularFile)
-                    .filter(
-                            path -> path.getFileName()
-                                    .toString()
-                                    .endsWith(".wavr")
-                    )
-                    .max(
-                            Comparator.comparingLong(
-                                    RecordingStore::lastModified
-                            )
-                    );
-        } catch (Exception exception) {
-            return Optional.empty();
-        }
+        UUID parsed =
+                UUID.fromString(
+                        id
+                );
+
+        return directory()
+                .resolve(
+                        parsed
+                                .toString()
+                                + ".wavr"
+                );
     }
 
-    private static long lastModified(Path path) {
+    public static Optional<Path> find(
+            String id
+    ) {
         try {
-            return Files.getLastModifiedTime(path).toMillis();
+            Path path =
+                    pathForId(id);
+
+            return Files.isRegularFile(
+                    path
+            )
+                    ? Optional.of(path)
+                    : Optional.empty();
+
         } catch (Exception exception) {
-            return 0L;
+            return Optional.empty();
         }
     }
 }
