@@ -97,5 +97,8 @@
     "tooltip.wayaround.blue.sling": "Com a Blue ativa, use a rodinha para controlar a distância. Um gesto rápido para perto e para longe a lança.",
     "itemGroup.wayaround.industrialization": "Industrial",
     "itemGroup.wayaround.assembly": "Assembly & Mecânica",
-    "itemGroup.wayaround.otherworld_powers": "Poderes do Outro Mundo"
+    "itemGroup.wayaround.otherworld_powers": "Poderes do Outro Mundo",
+    "message.wayaround.water_generator.status_v1": "Mecânica: %s | Geração: %s FE/t | Buffer: %s/%s FE",
+    "message.wayaround.mechanical.connected": "Conectada",
+    "message.wayaround.mechanical.disconnected": "Desconectada"
 }
