@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.client;
 
+import net.minecraft.sounds.SoundSource;
+
+import net.minecraft.sounds.SoundEvents;
+
 import net.caravidro.wayaround.client.cinematic.CinematicCameraController;
 
 import java.util.ArrayList;
@@ -73,6 +77,21 @@ public final class TukunaFugaClientEffects {
                         payload.y(),
                         payload.z()
                 )
+        );
+
+        /*
+         * 64 volume gives the positional explosion an attenuation radius of
+         * roughly 1024 blocks, matching the visual packet radius.
+         */
+        minecraft.level.playLocalSound(
+                payload.x(),
+                payload.y(),
+                payload.z(),
+                SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.PLAYERS,
+                64.0F,
+                0.42F,
+                false
         );
 
         if (minecraft.player != null) {

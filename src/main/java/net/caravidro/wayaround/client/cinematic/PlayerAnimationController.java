@@ -262,6 +262,19 @@ public final class PlayerAnimationController {
                 );
     }
 
+    public static boolean hasCameraMotion(
+            UUID player
+    ) {
+        AnimationState state =
+                state(
+                        player
+                );
+
+        return state != null
+                && state.animation
+                        == PlayerCinematicPayload.FUGA_RELEASE;
+    }
+
     public static float cameraPitchOffsetDegrees(
             UUID player
     ) {
@@ -270,7 +283,9 @@ public final class PlayerAnimationController {
                         player
                 );
 
-        if (state == null) {
+        if (state == null
+                || state.animation
+                        != PlayerCinematicPayload.FUGA_RELEASE) {
             return 0.0F;
         }
 
@@ -279,29 +294,50 @@ public final class PlayerAnimationController {
                         state
                 );
 
-        if (state.animation
-                == PlayerCinematicPayload.FUGA_CHARGE) {
-            return 13.0F
-                    * ease(
-                            age / 18.0F
-                    );
-        }
+        float t =
+                Mth.clamp(
+                        age / 34.0F,
+                        0.0F,
+                        1.0F
+                );
 
-        if (state.animation
-                == PlayerCinematicPayload.FUGA_RELEASE) {
-            float p =
-                    ease(
-                            age / 20.0F
-                    );
-
+        /*
+         * A real camera nod rather than locking the view:
+         * down -> small upward rebound -> neutral.
+         */
+        if (t < 0.24F) {
             return Mth.lerp(
-                    p,
-                    13.0F,
-                    5.0F
+                    ease(
+                            t / 0.24F
+                    ),
+                    0.0F,
+                    10.0F
             );
         }
 
-        return 0.0F;
+        if (t < 0.62F) {
+            return Mth.lerp(
+                    ease(
+                            (
+                                    t - 0.24F
+                            )
+                                    / 0.38F
+                    ),
+                    10.0F,
+                    -3.2F
+            );
+        }
+
+        return Mth.lerp(
+                ease(
+                        (
+                                t - 0.62F
+                        )
+                                / 0.38F
+                ),
+                -3.2F,
+                0.0F
+        );
     }
 
     /**

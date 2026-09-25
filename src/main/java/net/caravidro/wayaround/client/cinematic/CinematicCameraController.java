@@ -124,6 +124,10 @@ public final class CinematicCameraController {
                 && (
                 isLocked()
                         || shakeTicks > 0
+                        || PlayerAnimationController
+                                .hasCameraMotion(
+                                        minecraft.player.getUUID()
+                                )
         );
     }
 
@@ -148,16 +152,25 @@ public final class CinematicCameraController {
             Entity entity,
             float partialTick
     ) {
+        UUID local =
+                Minecraft.getInstance().player == null
+                        ? null
+                        : Minecraft.getInstance().player.getUUID();
+
+        float animationOffset =
+                PlayerAnimationController
+                        .cameraPitchOffsetDegrees(
+                                local
+                        );
+
         float pitch =
                 isLocked()
                         ? basePitch
-                        + PlayerAnimationController
-                                .cameraPitchOffsetDegrees(
-                                        lockedPlayer
-                                )
+                                + animationOffset
                         : entity.getViewXRot(
                                 partialTick
-                        );
+                        )
+                                + animationOffset;
 
         return pitch
                 + shakePitch(

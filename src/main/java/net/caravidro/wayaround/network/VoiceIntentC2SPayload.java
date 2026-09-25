@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.network;
 
+import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
+
 import net.caravidro.wayaround.spectrum.SpectrumType;
 
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
@@ -101,6 +103,12 @@ public record VoiceIntentC2SPayload(
                 () -> {
                     if (!(context.player()
                             instanceof ServerPlayer player)) {
+                        return;
+                    }
+
+                    if (PlayerControlLockManager.actionsLocked(
+                            player
+                    )) {
                         return;
                     }
 
@@ -250,23 +258,15 @@ public record VoiceIntentC2SPayload(
     private static boolean hasTechniqueAccess(
             ServerPlayer player
     ) {
-        // The hidden BLUE item remains a legacy/debug entry point.
-        if (SpectrumAccess.has(player, SpectrumType.VOID)) {
-            return true;
-        }
-
-        for (int slot = 0;
-             slot < player.getInventory().getContainerSize();
-             slot++) {
-
-            if (player.getInventory()
-                    .getItem(slot)
-                    .is(WayAroundContent.BLUE.get())) {
-                return true;
-            }
-        }
-
-        return false;
+        /*
+         * A legacy BLUE item is only a debug controller for Blue itself.
+         * It is never permission to invoke Red, Purple, Infinity or a Domain.
+         * Voice techniques require the real Void Spectrum.
+         */
+        return SpectrumAccess.has(
+                player,
+                SpectrumType.VOID
+        );
     }
 
     private static boolean hasInfinityAccess(

@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.cursed;
 
+import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
+
 import net.caravidro.wayaround.network.PlayerCinematicPayload;
 
 import net.caravidro.wayaround.spectrum.SpectrumType;
@@ -1154,11 +1156,16 @@ public final class TukunaManager {
                 )
         );
 
+        PlayerControlLockManager.lockMovement(
+                player,
+                0
+        );
+
         sendFugaCinematic(
                 player,
                 PlayerCinematicPayload.FUGA_CHARGE,
                 0,
-                true,
+                false,
                 0.0F
         );
 
@@ -1217,6 +1224,10 @@ public final class TukunaManager {
                 player.getUUID()
         );
 
+        PlayerControlLockManager.clearMovement(
+                player
+        );
+
         Vec3 direction =
                 player.getLookAngle()
                         .normalize();
@@ -1245,9 +1256,9 @@ public final class TukunaManager {
         sendFugaCinematic(
                 player,
                 PlayerCinematicPayload.FUGA_RELEASE,
-                64,
-                true,
-                1.25F
+                36,
+                false,
+                0.0F
         );
 
         player.serverLevel()
@@ -1503,6 +1514,10 @@ public final class TukunaManager {
             )) {
 
                 if (player != null) {
+                    PlayerControlLockManager.clearMovement(
+                            player
+                    );
+
                     sendFugaCinematic(
                             player,
                             PlayerCinematicPayload.CLEAR,
@@ -1738,7 +1753,7 @@ public final class TukunaManager {
                 center.x,
                 center.y,
                 center.z,
-                512.0,
+                1024.0,
                 new TukunaFugaVisualPayload(
                         owner.getUUID(),
                         center.x,
