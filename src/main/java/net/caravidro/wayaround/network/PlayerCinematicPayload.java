@@ -37,6 +37,7 @@ public record PlayerCinematicPayload(
     public static final byte RED_RELEASE = 8;
     public static final byte PURPLE_FUSION = 9;
     public static final byte PURPLE_RELEASE = 10;
+    public static final byte TUKUNA_TAKEOVER = 11;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(

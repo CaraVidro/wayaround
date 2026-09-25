@@ -258,6 +258,9 @@ public final class PlayerAnimationController {
                             age
                     );
 
+            case PlayerCinematicPayload.TUKUNA_TAKEOVER ->
+                    applyTukunaTakeover(model, age);
+
             default -> {
             }
         }
@@ -925,6 +928,18 @@ public final class PlayerAnimationController {
         model.body.xRot =
                 0.10F
                         * p;
+    }
+
+    private static void applyTukunaTakeover(PlayerModel<?> model, float age) {
+        float bow = ease(Mth.clamp(age / 12.0F, 0.0F, 1.0F));
+        float rise = ease(Mth.clamp((age - 30.0F) / 10.0F, 0.0F, 1.0F));
+        float weight = bow * (1.0F - rise);
+        model.body.xRot += 0.83F * weight;
+        model.head.xRot += 0.56F * weight;
+        model.leftArm.xRot += 0.28F * weight;
+        model.rightArm.xRot += 0.28F * weight;
+        model.leftArm.zRot -= 0.14F * weight;
+        model.rightArm.zRot += 0.14F * weight;
     }
 
     private static void applyPurpleRelease(

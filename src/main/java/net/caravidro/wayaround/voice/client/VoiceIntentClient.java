@@ -11,6 +11,7 @@ import net.caravidro.wayaround.client.BlueClientEffects;
 import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
+import net.caravidro.wayaround.network.TukunaVoiceStatementC2SPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -227,6 +228,9 @@ public final class VoiceIntentClient {
         if (normalized.isBlank()) {
             return;
         }
+
+        PacketDistributor.sendToServer(new TukunaVoiceStatementC2SPayload(
+                transcript.length() > 512 ? transcript.substring(0, 512) : transcript));
 
         double globalUrgency =
                 VoiceToneAnalyzer.urgency(

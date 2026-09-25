@@ -3052,11 +3052,12 @@ public final class BlueManager {
                 player.refreshDimensions();
             }
 
-            player.hurt(
-                    level.damageSources()
-                            .genericKill(),
-                    Float.MAX_VALUE
-            );
+            if (net.caravidro.wayaround.spectrum.SpectrumCombat.isBearer(player)) {
+                player.hurt(level.damageSources().generic(),
+                        Math.max(9.0F, player.getMaxHealth() * 0.72F));
+            } else {
+                player.hurt(level.damageSources().genericKill(), Float.MAX_VALUE);
+            }
 
             return;
         }

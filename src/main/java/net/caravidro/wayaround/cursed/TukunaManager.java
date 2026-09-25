@@ -87,6 +87,10 @@ public final class TukunaManager {
     private static final int POSSESSION_RETURNING_TICKS = 20;
     private static final int SWAP_COOLDOWN_TICKS = 300;
     private static final int DANGEROUS_CONTRACT_TICKS = 20 * 60 * 3;
+    private static final int TAKEOVER_TICKS = 40;
+    private static final int PROPOSAL_TICKS = 20 * 60;
+    private static final String PACT_SPIRIT_KEY = "WayAroundTukunaPactSpirit";
+    private static final String PACT_WORD_KEY = "WayAroundTukunaPactWord";
 
     private static final int FUGA_CHARGE_TICKS =
             120;
@@ -185,6 +189,8 @@ public final class TukunaManager {
 
     private static final Map<UUID, Possession> POSSESSIONS =
             new HashMap<>();
+    private static final Map<UUID, PactProposal> PACT_PROPOSALS = new HashMap<>();
+    private static final Map<UUID, PendingTakeover> PENDING_TAKEOVERS = new HashMap<>();
 
     private static final Set<UUID> SPECTRUM_PRESENT =
             new HashSet<>();
@@ -300,6 +306,11 @@ public final class TukunaManager {
                 replacement,
                 HOST_SPIRIT_KEY
         );
+        copyUuid(original, replacement, PACT_SPIRIT_KEY);
+        if (original.getPersistentData().contains(PACT_WORD_KEY)) {
+            replacement.getPersistentData().putString(PACT_WORD_KEY,
+                    original.getPersistentData().getString(PACT_WORD_KEY));
+        }
 
         if (original.getPersistentData()
                 .getBoolean(
@@ -328,6 +339,7 @@ public final class TukunaManager {
                 server,
                 tick
         );
+        tickTakeovers(server, tick);
 
         tickFugaCharges(
                 server,
@@ -501,6 +513,11 @@ public final class TukunaManager {
             return;
         }
 
+        if (handlePactSpeech(player, raw)) {
+            event.setCanceled(true);
+            return;
+        }
+
         if (handleSpectrumSpeech(
                 player,
                 raw
@@ -553,6 +570,10 @@ public final class TukunaManager {
             return;
         }
 
+        if (handlePactSpeech(player, transcript)) {
+            return;
+        }
+
         if (handleSpectrumSpeech(
                 player,
                 transcript
@@ -594,6 +615,8 @@ public final class TukunaManager {
         FUGA_CHARGES.clear();
         FUGA_PROJECTILES.clear();
         POSSESSIONS.clear();
+        PACT_PROPOSALS.clear();
+        PENDING_TAKEOVERS.clear();
         SPECTRUM_PRESENT.clear();
         GHOST_NOTIFIED.clear();
     }
@@ -949,6 +972,100 @@ public final class TukunaManager {
         return null;
     }
 
+    private static boolean handlePactSpeech(ServerPlayer speaker, String raw) {
+        String said = normalizeSpeech(raw);
+        if (said.isBlank()) return false;
+        long now = speaker.server.getTickCount();
+        ServerPlayer host = isGhost(speaker)
+                ? hostForSpirit(speaker.server, speaker.getUUID()) : speaker;
+        if (host == null || fingerCount(host) <= 0) return false;
+        UUID spiritId = spiritOwner(host);
+        ServerPlayer spirit = spiritId == null ? null
+                : speaker.server.getPlayerList().getPlayer(spiritId);
+        if (spirit == null || !isGhost(spirit)) return false;
+
+        if (speaker == spirit && said.contains("trato")
+                && (said.contains("vamos criar") || said.contains("proponho"))) {
+            if (!(said.contains("3 minutos") || said.contains("tres minutos"))
+                    || !(said.contains("nao posso atacar") || said.contains("sem atacar"))
+                    || !(said.contains("esquecer") || said.contains("esquecera"))) {
+                spirit.displayClientMessage(Component.literal(
+                        "Diga as condições completas: 3 minutos, sem atacar ninguém e esquecimento após aceitar."
+                ).withStyle(ChatFormatting.RED), false);
+                return true;
+            }
+            PACT_PROPOSALS.put(host.getUUID(), new PactProposal(spiritId,
+                    now + PROPOSAL_TICKS, false));
+            host.displayClientMessage(Component.literal(
+                    "Tukuna propõe um TRATO: ao falar uma palavra escolhida por ele, ele controla seu corpo por até 3 minutos, sem poder atacar ninguém. Você esquecerá as condições e a palavra após aceitar. Diga 'aceito o trato' ou 'recuso o trato' em até 60 segundos."
+            ).withStyle(ChatFormatting.GOLD), false);
+            spirit.displayClientMessage(Component.literal(
+                    "Proposta enviada. Aguarde a aceitação explícita do receptáculo."
+            ).withStyle(ChatFormatting.DARK_PURPLE), false);
+            return true;
+        }
+
+        PactProposal proposal = PACT_PROPOSALS.get(host.getUUID());
+        if (speaker == host && (said.equals("aceito o trato")
+                || said.equals("recuso o trato"))) {
+            if (proposal == null || proposal.expiresAt < now
+                    || !proposal.spiritId.equals(spiritId) || proposal.accepted) {
+                host.displayClientMessage(Component.literal("Nenhuma proposta válida aguardando resposta."), true);
+                return true;
+            }
+            if (said.startsWith("recuso")) {
+                PACT_PROPOSALS.remove(host.getUUID());
+                host.displayClientMessage(Component.literal("Trato recusado."), false);
+                spirit.displayClientMessage(Component.literal("O receptáculo recusou o trato."), false);
+            } else {
+                PACT_PROPOSALS.put(host.getUUID(), new PactProposal(spiritId,
+                        now + PROPOSAL_TICKS, true));
+                host.displayClientMessage(Component.literal(
+                        "Você aceitou. A lembrança dos termos se desfaz."
+                ).withStyle(ChatFormatting.DARK_PURPLE), false);
+                spirit.displayClientMessage(Component.literal(
+                        "Trato aceito. Escolha uma palavra dizendo 'palavra do trato: <palavra>' em até 60 segundos."
+                ).withStyle(ChatFormatting.GOLD), false);
+            }
+            return true;
+        }
+
+        if (speaker == spirit && said.startsWith("palavra do trato ")) {
+            if (proposal == null || proposal.expiresAt < now
+                    || !proposal.spiritId.equals(spiritId) || !proposal.accepted) {
+                spirit.displayClientMessage(Component.literal("O receptáculo precisa aceitar a proposta antes."), true);
+                return true;
+            }
+            String word = said.substring("palavra do trato ".length()).trim();
+            if (!word.matches("[a-z]{3,20}") || word.equals("trocar")
+                    || word.equals("fuga") || word.equals("trato")) {
+                spirit.displayClientMessage(Component.literal("Escolha uma palavra simples de 3 a 20 letras."), true);
+                return true;
+            }
+            host.getPersistentData().putUUID(PACT_SPIRIT_KEY, spiritId);
+            host.getPersistentData().putString(PACT_WORD_KEY, word);
+            PACT_PROPOSALS.remove(host.getUUID());
+            spirit.displayClientMessage(Component.literal("Palavra do trato definida: " + word), false);
+            host.displayClientMessage(Component.literal("Algo foi selado, mas você não recorda os detalhes."), false);
+            return true;
+        }
+
+        if (speaker == host && host.getPersistentData().hasUUID(PACT_SPIRIT_KEY)
+                && spiritId.equals(host.getPersistentData().getUUID(PACT_SPIRIT_KEY))
+                && said.equals(host.getPersistentData().getString(PACT_WORD_KEY))) {
+            if (!POSSESSIONS.containsKey(host.getUUID())
+                    && !PENDING_TAKEOVERS.containsKey(host.getUUID())) {
+                long until = Math.max(SWAP_COOLDOWNS.getOrDefault(host.getUUID(), 0L),
+                        SWAP_COOLDOWNS.getOrDefault(spiritId, 0L));
+                if (now >= until) {
+                    beginTakeover(host, spirit, now, true, true);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     public static void confirmSwap(
             ServerPlayer caller
     ) {
@@ -1007,9 +1124,8 @@ public final class TukunaManager {
             return;
         }
 
-        if (POSSESSIONS.containsKey(
-                host.getUUID()
-        )) {
+        if (POSSESSIONS.containsKey(host.getUUID())
+                || PENDING_TAKEOVERS.containsKey(host.getUUID())) {
             caller.displayClientMessage(
                     Component.translatable(
                             "message.wayaround.tukuna.swap_already"
@@ -1111,12 +1227,7 @@ public final class TukunaManager {
             CONTRACT_CONFIRMATIONS.remove(host.getUUID());
             CONTRACT_CONFIRMATIONS.remove(spirit.getUUID());
 
-            beginPossession(
-                    host,
-                    spirit,
-                    tick,
-                    dangerous
-            );
+            beginTakeover(host, spirit, tick, dangerous, false);
         }
     }
 
@@ -1252,7 +1363,7 @@ public final class TukunaManager {
             ServerPlayer player,
             boolean fire
     ) {
-        if (PlayerControlLockManager.actionsLocked(
+        if (isPacifistPossession(player) || PlayerControlLockManager.actionsLocked(
                 player
         )) {
             return;
@@ -1315,7 +1426,7 @@ public final class TukunaManager {
     public static boolean prepareFuga(
             ServerPlayer player
     ) {
-        if (PlayerControlLockManager.actionsLocked(
+        if (isPacifistPossession(player) || PlayerControlLockManager.actionsLocked(
                 player
         )) {
             return false;
@@ -1387,7 +1498,7 @@ public final class TukunaManager {
     public static boolean launchFuga(
             ServerPlayer player
     ) {
-        if (PlayerControlLockManager.actionsLocked(
+        if (isPacifistPossession(player) || PlayerControlLockManager.actionsLocked(
                 player
         )) {
             return false;
@@ -2285,11 +2396,70 @@ public final class TukunaManager {
         }
     }
 
+    public static boolean isPacifistPossession(ServerPlayer spirit) {
+        Possession possession = possessionForSpirit(spirit.getUUID());
+        return possession != null && possession.pacifist;
+    }
+
+    private static void beginTakeover(ServerPlayer host, ServerPlayer spirit,
+                                      long tick, boolean dangerous, boolean pacifist) {
+        if (POSSESSIONS.containsKey(host.getUUID())
+                || PENDING_TAKEOVERS.containsKey(host.getUUID())) return;
+        PENDING_TAKEOVERS.put(host.getUUID(), new PendingTakeover(
+                spirit.getUUID(), tick + TAKEOVER_TICKS, dangerous, pacifist));
+        PlayerControlLockManager.lockMovement(host, TAKEOVER_TICKS);
+        PlayerControlLockManager.lockActions(host, TAKEOVER_TICKS);
+        sendFugaCinematic(host, PlayerCinematicPayload.TUKUNA_TAKEOVER,
+                TAKEOVER_TICKS, false, 0.0F);
+        host.serverLevel().playSound(null, host.blockPosition(),
+                SoundEvents.SOUL_ESCAPE, SoundSource.PLAYERS, 1.1F, 0.55F);
+    }
+
+    private static void tickTakeovers(MinecraftServer server, long tick) {
+        Iterator<Map.Entry<UUID, PendingTakeover>> iterator =
+                PENDING_TAKEOVERS.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, PendingTakeover> entry = iterator.next();
+            PendingTakeover stage = entry.getValue();
+            ServerPlayer host = server.getPlayerList().getPlayer(entry.getKey());
+            ServerPlayer spirit = server.getPlayerList().getPlayer(stage.spiritId);
+            if (host == null || spirit == null || !host.isAlive()
+                    || !isGhost(spirit) || fingerCount(host) <= 0) {
+                if (host != null) {
+                    PlayerControlLockManager.clearMovement(host);
+                    PlayerControlLockManager.clearActions(host);
+                    sendFugaCinematic(host, PlayerCinematicPayload.CLEAR, 0, false, 0.0F);
+                }
+                iterator.remove();
+                continue;
+            }
+            if (tick % 3L == 0L) {
+                float progress = 1.0F - (float)(stage.readyAt - tick) / TAKEOVER_TICKS;
+                host.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                        host.getX(), host.getY() + 0.9, host.getZ(),
+                        4 + Math.max(0, (int)(progress * 16)),
+                        0.35, 0.55, 0.35, 0.025);
+                host.serverLevel().sendParticles(ParticleTypes.PORTAL,
+                        host.getX(), host.getY() + 0.9, host.getZ(),
+                        3 + Math.max(0, (int)(progress * 8)),
+                        0.3, 0.5, 0.3, 0.04);
+            }
+            if (tick >= stage.readyAt) {
+                iterator.remove();
+                PlayerControlLockManager.clearMovement(host);
+                PlayerControlLockManager.clearActions(host);
+                sendFugaCinematic(host, PlayerCinematicPayload.CLEAR, 0, false, 0.0F);
+                beginPossession(host, spirit, tick, stage.dangerous, stage.pacifist);
+            }
+        }
+    }
+
     private static void beginPossession(
             ServerPlayer host,
             ServerPlayer spirit,
             long tick,
-            boolean dangerous
+            boolean dangerous,
+            boolean pacifist
     ) {
         int fingers =
                 fingerCount(
@@ -2313,7 +2483,8 @@ public final class TukunaManager {
                         fingers,
                         hostMode,
                         endTick,
-                        dangerous
+                        dangerous,
+                        pacifist
                 );
 
         POSSESSIONS.put(
@@ -2919,6 +3090,8 @@ public final class TukunaManager {
                                         > SWAP_CONFIRM_WINDOW_TICKS
                 );
 
+        PACT_PROPOSALS.entrySet().removeIf(entry -> entry.getValue().expiresAt < tick);
+
         SWAP_COOLDOWNS.entrySet()
                 .removeIf(
                         entry ->
@@ -2973,6 +3146,11 @@ public final class TukunaManager {
         }
     }
 
+    private record PactProposal(UUID spiritId, long expiresAt, boolean accepted) {}
+
+    private record PendingTakeover(UUID spiritId, long readyAt,
+                                   boolean dangerous, boolean pacifist) {}
+
     private static final class Possession {
         private final UUID hostId;
         private final UUID spiritId;
@@ -2980,6 +3158,7 @@ public final class TukunaManager {
         private final GameType hostMode;
         private final long endTick;
         private final boolean dangerous;
+        private final boolean pacifist;
 
         private boolean nearWarned;
         private boolean returningWarned;
@@ -2990,7 +3169,8 @@ public final class TukunaManager {
                 int fingers,
                 GameType hostMode,
                 long endTick,
-                boolean dangerous
+                boolean dangerous,
+                boolean pacifist
         ) {
             this.hostId =
                     hostId;
@@ -3007,6 +3187,7 @@ public final class TukunaManager {
             this.endTick =
                     endTick;
             this.dangerous = dangerous;
+            this.pacifist = pacifist;
         }
     }
 }

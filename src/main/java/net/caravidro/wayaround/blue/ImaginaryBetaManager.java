@@ -993,11 +993,13 @@ public final class ImaginaryBetaManager {
 
             living.igniteForSeconds(10.0F);
 
-            living.hurt(
-                    level.damageSources()
-                            .genericKill(),
-                    Float.MAX_VALUE
-            );
+            if (living instanceof ServerPlayer spectrum
+                    && net.caravidro.wayaround.spectrum.SpectrumCombat.isBearer(spectrum)) {
+                spectrum.hurt(level.damageSources().generic(),
+                        Math.max(12.0F, spectrum.getMaxHealth() * 0.85F));
+            } else {
+                living.hurt(level.damageSources().genericKill(), Float.MAX_VALUE);
+            }
         }
     }
 
