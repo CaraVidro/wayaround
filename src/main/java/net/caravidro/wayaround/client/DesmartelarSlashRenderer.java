@@ -20,8 +20,12 @@ public final class DesmartelarSlashRenderer
     public DesmartelarSlashRenderer(
             EntityRendererProvider.Context context
     ) {
-        super(context);
-        shadowRadius = 0.0F;
+        super(
+                context
+        );
+
+        shadowRadius =
+                0.0F;
     }
 
     @Override
@@ -41,21 +45,23 @@ public final class DesmartelarSlashRenderer
                                 entity.tickCount
                                         + partialTick
                         )
-                                / 8.0F
+                                / 10.0F
                 );
 
-        float length =
+        float span =
                 entity.length()
                         * (
-                        0.90F
-                                + life * 0.10F
+                        0.92F
+                                + life
+                                        * 0.08F
                 );
 
-        float width =
+        float depth =
                 entity.width()
                         * (
                         0.45F
-                                + life * 0.55F
+                                + life
+                                        * 0.55F
                 );
 
         pose.pushPose();
@@ -72,11 +78,31 @@ public final class DesmartelarSlashRenderer
                 )
         );
 
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        entity.roll()
+                )
+        );
+
+        BlockState outer =
+                entity.fiery()
+                        ? Blocks.MAGMA_BLOCK
+                                .defaultBlockState()
+                        : Blocks.RED_NETHER_BRICKS
+                                .defaultBlockState();
+
+        BlockState inner =
+                entity.fiery()
+                        ? Blocks.SHROOMLIGHT
+                                .defaultBlockState()
+                        : Blocks.REDSTONE_BLOCK
+                                .defaultBlockState();
+
         renderBand(
-                Blocks.RED_NETHER_BRICKS.defaultBlockState(),
-                length,
-                width,
-                0.11F,
+                outer,
+                span,
+                depth,
+                0.10F,
                 pose,
                 buffers
         );
@@ -88,10 +114,10 @@ public final class DesmartelarSlashRenderer
         );
 
         renderBand(
-                Blocks.REDSTONE_BLOCK.defaultBlockState(),
-                length * 0.94F,
-                width * 0.28F,
-                0.055F,
+                inner,
+                span * 0.92F,
+                depth * 0.32F,
+                0.048F,
                 pose,
                 buffers
         );
@@ -108,10 +134,14 @@ public final class DesmartelarSlashRenderer
         );
     }
 
+    /**
+     * Local X is the long axis. The slash therefore reads as a horizontal
+     * "—" while the entity itself moves forward through world space.
+     */
     private static void renderBand(
             BlockState state,
-            float length,
-            float width,
+            float span,
+            float depth,
             float thickness,
             PoseStack pose,
             MultiBufferSource buffers
@@ -119,9 +149,9 @@ public final class DesmartelarSlashRenderer
         pose.pushPose();
 
         pose.scale(
-                width,
+                span,
                 thickness,
-                length
+                depth
         );
 
         pose.translate(
