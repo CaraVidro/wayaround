@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.blue;
 
+import net.caravidro.wayaround.network.PlayerCinematicPayload;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -637,6 +639,22 @@ public final class BlueManager {
                 blue.center,
                 blue.power,
                 blue.spinDirection
+        );
+
+        PacketDistributor.sendToPlayersNear(
+                player.serverLevel(),
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                VISUAL_RANGE,
+                new PlayerCinematicPayload(
+                        player.getUUID(),
+                        PlayerCinematicPayload.BLUE_CLAP,
+                        20,
+                        false,
+                        0.0F
+                )
         );
 
         sendGesture(

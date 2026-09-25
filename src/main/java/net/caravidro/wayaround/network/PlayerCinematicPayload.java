@@ -32,6 +32,7 @@ public record PlayerCinematicPayload(
     public static final byte IMMORTAL_REBUILD = 3;
     public static final byte DESMARTELAR_CHARGE = 4;
     public static final byte DESMARTELAR_RELEASE = 5;
+    public static final byte BLUE_CLAP = 6;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(

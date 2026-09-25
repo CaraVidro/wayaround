@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.client.cinematic;
 
+import net.caravidro.wayaround.client.BlueClientEffects;
+
 import net.caravidro.wayaround.client.sound.FugaCinematicSound;
 
 import java.util.HashMap;
@@ -150,7 +152,11 @@ public final class PlayerAnimationController {
 
         if (state(
                 player.getUUID()
+        ) == null
+                && BlueClientEffects.controllablePosition(
+                player.getUUID()
         ) == null) {
+
             return;
         }
 
@@ -172,6 +178,11 @@ public final class PlayerAnimationController {
                 );
 
         if (state == null) {
+            applyBlueControl(
+                    player,
+                    model
+            );
+
             return;
         }
 
@@ -208,6 +219,12 @@ public final class PlayerAnimationController {
 
             case PlayerCinematicPayload.DESMARTELAR_RELEASE ->
                     applyDesmartelarRelease(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.BLUE_CLAP ->
+                    applyBlueClap(
                             model,
                             age
                     );
@@ -588,6 +605,146 @@ public final class PlayerAnimationController {
                 -0.15F
                         * (
                         1.0F - p
+                );
+    }
+
+    private static void applyBlueControl(
+            AbstractClientPlayer player,
+            PlayerModel<?> model
+    ) {
+        Vec3 blue =
+                BlueClientEffects.controllablePosition(
+                        player.getUUID()
+                );
+
+        if (blue == null) {
+            return;
+        }
+
+        double distance =
+                player.getEyePosition()
+                        .distanceTo(
+                                blue
+                        );
+
+        float far =
+                Mth.clamp(
+                        (float) (
+                                (
+                                        distance - 2.0
+                                )
+                                        / 46.0
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        /*
+         * Close Blue: right hand high, almost "holding the sky".
+         * Far Blue: arm progressively points out from the torso.
+         */
+        model.rightArm.xRot =
+                Mth.lerp(
+                        far,
+                        -2.58F,
+                        -1.48F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        far,
+                        -0.18F,
+                        -0.06F
+                );
+
+        model.rightArm.zRot =
+                Mth.lerp(
+                        far,
+                        0.18F,
+                        0.03F
+                );
+
+        model.body.yRot =
+                -0.035F
+                        * (
+                        1.0F - far
+                );
+    }
+
+    private static void applyBlueClap(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float close =
+                ease(
+                        Math.min(
+                                1.0F,
+                                age / 9.0F
+                        )
+                );
+
+        float release =
+                ease(
+                        Math.max(
+                                0.0F,
+                                Math.min(
+                                        1.0F,
+                                        (
+                                                age - 11.0F
+                                        )
+                                                / 9.0F
+                                )
+                        )
+                );
+
+        float x =
+                Mth.lerp(
+                        release,
+                        Mth.lerp(
+                                close,
+                                -0.45F,
+                                -1.38F
+                        ),
+                        0.0F
+                );
+
+        float y =
+                Mth.lerp(
+                        release,
+                        Mth.lerp(
+                                close,
+                                0.10F,
+                                0.62F
+                        ),
+                        0.0F
+                );
+
+        model.leftArm.xRot =
+                x;
+
+        model.rightArm.xRot =
+                x;
+
+        model.leftArm.yRot =
+                y;
+
+        model.rightArm.yRot =
+                -y;
+
+        model.leftArm.zRot =
+                Mth.lerp(
+                        release,
+                        -0.12F
+                                * close,
+                        0.0F
+                );
+
+        model.rightArm.zRot =
+                Mth.lerp(
+                        release,
+                        0.12F
+                                * close,
+                        0.0F
                 );
     }
 

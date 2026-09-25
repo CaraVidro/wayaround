@@ -1176,6 +1176,25 @@ public final class BlueClientEffects {
         );
     }
 
+    public static Vec3 controllablePosition(
+            UUID owner
+    ) {
+        ClientBlue state =
+                BLUES.get(
+                        owner
+                );
+
+        if (state == null
+                || state.gone
+                || state.mode
+                        != BlueVisualPayload.ACTIVE) {
+
+            return null;
+        }
+
+        return state.position;
+    }
+
     public static boolean hasLocalControllableBlue() {
         Minecraft minecraft =
                 Minecraft.getInstance();
