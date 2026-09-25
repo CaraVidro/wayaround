@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.client;
 
+import net.caravidro.wayaround.client.cinematic.CinematicCameraController;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -63,6 +65,41 @@ public final class TukunaFugaClientEffects {
                         )
                 )
         );
+
+        if (minecraft.player != null) {
+            Vec3 center =
+                    new Vec3(
+                            payload.x(),
+                            payload.y(),
+                            payload.z()
+                    );
+
+            double distance =
+                    minecraft.player
+                            .position()
+                            .distanceTo(
+                                    center
+                            );
+
+            if (distance <= 260.0) {
+                float proximity =
+                        Mth.clamp(
+                                1.0F
+                                        - (float) (
+                                        distance / 260.0
+                                ),
+                                0.0F,
+                                1.0F
+                        );
+
+                CinematicCameraController.shake(
+                        100,
+                        0.45F
+                                + proximity
+                                        * 1.55F
+                );
+            }
+        }
     }
 
     public static List<PillarVisual> visuals() {

@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.client.cinematic;
 
+import net.caravidro.wayaround.client.sound.FugaCinematicSound;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -77,6 +79,22 @@ public final class PlayerAnimationController {
                         )
                 )
         );
+
+        if (payload.animation()
+                == PlayerCinematicPayload.FUGA_RELEASE
+                && minecraft.player != null
+                && minecraft.player.getUUID()
+                        .equals(
+                                payload.player()
+                        )) {
+
+            minecraft.getSoundManager()
+                    .play(
+                            new FugaCinematicSound(
+                                    payload.player()
+                            )
+                    );
+        }
 
         CinematicCameraController.follow(
                 payload.player(),

@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.cursed;
 
+import net.caravidro.wayaround.network.PlayerCinematicPayload;
+
 import net.caravidro.wayaround.spectrum.SpectrumType;
 
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
@@ -84,7 +86,7 @@ public final class TukunaManager {
     private static final int SWAP_COOLDOWN_TICKS = 300;
 
     private static final int FUGA_CHARGE_TICKS =
-            80;
+            120;
 
     private static final int FUGA_PROJECTILE_LIFE =
             140;
@@ -96,10 +98,10 @@ public final class TukunaManager {
             3.8;
 
     private static final double FUGA_CRATER_RADIUS_XZ =
-            18.0;
+            30.0;
 
     private static final double FUGA_CRATER_RADIUS_Y =
-            11.0;
+            18.0;
 
     private static final String FINGER_OWNER_KEY =
             "WayAroundTukunaFingerOwner";
@@ -1152,6 +1154,14 @@ public final class TukunaManager {
                 )
         );
 
+        sendFugaCinematic(
+                player,
+                PlayerCinematicPayload.FUGA_CHARGE,
+                0,
+                true,
+                0.0F
+        );
+
         player.serverLevel()
                 .playSound(
                         null,
@@ -1232,14 +1242,32 @@ public final class TukunaManager {
                 )
         );
 
+        sendFugaCinematic(
+                player,
+                PlayerCinematicPayload.FUGA_RELEASE,
+                64,
+                true,
+                1.25F
+        );
+
         player.serverLevel()
                 .playSound(
                         null,
                         player.blockPosition(),
                         SoundEvents.BLAZE_SHOOT,
                         SoundSource.PLAYERS,
-                        2.0F,
-                        0.42F
+                        2.4F,
+                        0.38F
+                );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.END_PORTAL_SPAWN,
+                        SoundSource.PLAYERS,
+                        1.8F,
+                        0.72F
                 );
 
         player.serverLevel()
@@ -1256,6 +1284,30 @@ public final class TukunaManager {
                 );
 
         return true;
+    }
+
+    private static void sendFugaCinematic(
+            ServerPlayer player,
+            byte animation,
+            int durationTicks,
+            boolean lockCamera,
+            float shakeStrength
+    ) {
+        PacketDistributor.sendToPlayersNear(
+                player.serverLevel(),
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                192.0,
+                new PlayerCinematicPayload(
+                        player.getUUID(),
+                        animation,
+                        durationTicks,
+                        lockCamera,
+                        shakeStrength
+                )
+        );
     }
 
     private static void promptFugaPhrase(
@@ -1449,6 +1501,16 @@ public final class TukunaManager {
                     || !hasSpectrum(
                     player
             )) {
+
+                if (player != null) {
+                    sendFugaCinematic(
+                            player,
+                            PlayerCinematicPayload.CLEAR,
+                            0,
+                            false,
+                            0.0F
+                    );
+                }
 
                 iterator.remove();
                 continue;
@@ -1682,7 +1744,7 @@ public final class TukunaManager {
                         center.x,
                         center.y,
                         center.z,
-                        90
+                        180
                 )
         );
 
@@ -1696,13 +1758,13 @@ public final class TukunaManager {
                 center.x,
                 center.y,
                 center.z,
-                16.0F,
+                28.0F,
                 true,
                 Level.ExplosionInteraction.TNT
         );
 
         double damageRadius =
-                30.0;
+                52.0;
 
         AABB area =
                 new AABB(
@@ -1757,13 +1819,13 @@ public final class TukunaManager {
         }
 
         for (int y = 0;
-             y <= 120;
+             y <= 220;
              y += 2) {
 
             double width =
-                    0.9
+                    1.35
                             + y
-                                    * 0.018;
+                                    * 0.026;
 
             level.sendParticles(
                     y % 8 == 0
@@ -1781,7 +1843,7 @@ public final class TukunaManager {
         }
 
         for (int i = 0;
-             i < 260;
+             i < 460;
              i++) {
 
             double theta =
@@ -1820,6 +1882,17 @@ public final class TukunaManager {
                 SoundSource.PLAYERS,
                 4.0F,
                 0.34F
+        );
+
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        center
+                ),
+                SoundEvents.WITHER_SPAWN,
+                SoundSource.PLAYERS,
+                4.8F,
+                0.62F
         );
     }
 

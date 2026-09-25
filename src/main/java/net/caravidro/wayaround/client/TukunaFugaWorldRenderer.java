@@ -32,10 +32,10 @@ public final class TukunaFugaWorldRenderer {
             10;
 
     private static final int HEIGHT_SEGMENTS =
-            26;
+            36;
 
     private static final double HEIGHT =
-            132.0;
+            224.0;
 
     private static final double NEAR_GUARD =
             0.32;
@@ -187,8 +187,8 @@ public final class TukunaFugaWorldRenderer {
             double baseRadius =
                     (
                             layer == 0
-                                    ? 4.6
-                                    : 2.2
+                                    ? 7.8
+                                    : 3.8
                     )
                             * pulse
                             * (
@@ -374,9 +374,9 @@ public final class TukunaFugaWorldRenderer {
                 camera,
                 look,
                 0.55,
-                7.0
-                        + birth * 12.0,
-                1.25,
+                12.0
+                        + birth * 20.0,
+                2.2,
                 255,
                 96,
                 24,
@@ -394,8 +394,8 @@ public final class TukunaFugaWorldRenderer {
                 look,
                 visibleHeight
                         * 0.72,
-                3.0,
-                7.0,
+                5.5,
+                12.5,
                 255,
                 210,
                 105,
