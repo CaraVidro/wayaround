@@ -8,6 +8,7 @@ import java.util.Locale;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.BlueClientEffects;
+import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -319,7 +320,8 @@ public final class VoiceIntentClient {
         if (looksLikeVoidDomain(
                 currentWords,
                 false
-        )) {
+        )
+                && !hasLocalJusticeSpectrum()) {
             dispatch(
                     VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND,
                     -1.0F,
@@ -2314,4 +2316,33 @@ public final class VoiceIntentClient {
                         false
                 );
     }
+    private static boolean hasLocalJusticeSpectrum() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return false;
+        }
+
+        for (int slot = 0;
+             slot < minecraft.player
+                     .getInventory()
+                     .getContainerSize();
+             slot++) {
+
+            if (minecraft.player
+                    .getInventory()
+                    .getItem(
+                            slot
+                    )
+                    .is(
+                            WayAroundContent.JUSTICE_SPECTRUM.get()
+                    )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }
