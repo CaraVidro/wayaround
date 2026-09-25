@@ -2,6 +2,7 @@ package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.justice.JusticeDomainManager;
+import net.caravidro.wayaround.cursed.TukunaManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -57,6 +58,11 @@ public record JusticeVoiceStatementC2SPayload(
                             instanceof ServerPlayer player) {
 
                         JusticeDomainManager.onVoiceStatement(
+                                player,
+                                payload.transcript()
+                        );
+
+                        TukunaManager.onVoiceStatement(
                                 player,
                                 payload.transcript()
                         );
