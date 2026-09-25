@@ -165,7 +165,7 @@ public final class LivingCloudRenderer {
 
             int alpha =
                     inside
-                            ? 64
+                            ? 40
                             : 194;
 
             int brightness =
@@ -216,18 +216,18 @@ public final class LivingCloudRenderer {
                     alpha
             );
 
-            if (inside) {
-                anyVertex |= mesh.emitInteriorNearCamera(
-                        buffer,
-                        poseStack,
-                        cell,
-                        camera,
-                        red,
-                        green,
-                        blue,
-                        30
-                );
-            }
+            /*
+             * Do NOT render arbitrary internal voxel faces around the camera.
+             *
+             * The old pass emitted all six faces of every occupied voxel up
+             * to 34 blocks from the player. Because those quads are
+             * translucent, overlapping internal faces produced giant dark /
+             * blue polygon sheets at the edge of the screen that appeared to
+             * move with the player.
+             *
+             * The external shell already gives the cloud volume; when the
+             * camera is inside, we simply make that shell more transparent.
+             */
         }
 
         Iterator<Map.Entry<Long, CloudMesh>> iterator =
@@ -249,12 +249,24 @@ public final class LivingCloudRenderer {
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(false);
             RenderSystem.disableCull();
+            RenderSystem.setShaderColor(
+                    1.0F,
+                    1.0F,
+                    1.0F,
+                    1.0F
+            );
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
             BufferUploader.drawWithShader(
                     buffer.buildOrThrow()
             );
 
+            RenderSystem.setShaderColor(
+                    1.0F,
+                    1.0F,
+                    1.0F,
+                    1.0F
+            );
             RenderSystem.enableCull();
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();
@@ -568,80 +580,6 @@ public final class LivingCloudRenderer {
                         continue;
                     }
 
-                    emitFace(
-                            buffer,
-                            poseStack,
-                            cell,
-                            voxel,
-                            face,
-                            red,
-                            green,
-                            blue,
-                            alpha
-                    );
-
-                    emitted = true;
-                }
-            }
-
-            return emitted;
-        }
-
-        private boolean emitInteriorNearCamera(
-                BufferBuilder buffer,
-                PoseStack poseStack,
-                LocalWeatherField.CloudCell cell,
-                Vec3 camera,
-                int red,
-                int green,
-                int blue,
-                int alpha
-        ) {
-            double localX =
-                    camera.x - cell.x();
-
-            double localY =
-                    camera.y - cell.y();
-
-            double localZ =
-                    camera.z - cell.z();
-
-            double radiusSquared =
-                    34.0 * 34.0;
-
-            boolean emitted =
-                    false;
-
-            for (Voxel voxel : occupied) {
-                double vx =
-                        voxel.x * VOXEL;
-
-                double vy =
-                        voxel.y * VOXEL;
-
-                double vz =
-                        voxel.z * VOXEL;
-
-                double dx =
-                        vx - localX;
-
-                double dy =
-                        vy - localY;
-
-                double dz =
-                        vz - localZ;
-
-                if (dx * dx + dy * dy + dz * dz
-                        > radiusSquared) {
-                    continue;
-                }
-
-                for (Face face : Face.values()) {
-                    /*
-                     * These faint local faces are only created while inside
-                     * the cloud. They give nearby fog some readable shape
-                     * instead of leaving the camera inside an empty shell.
-                     */
                     emitFace(
                             buffer,
                             poseStack,
