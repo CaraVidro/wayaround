@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.cursed;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -2554,61 +2558,13 @@ public final class TukunaManager {
     private static boolean hasSpectrum(
             ServerPlayer player
     ) {
-        for (int slot = 0;
-             slot < player.getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            if (player.getInventory()
-                    .getItem(
-                            slot
-                    )
-                    .is(
-                            WayAroundContent.TUKUNA_SPECTRUM.get()
-                    )) {
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(player, SpectrumType.TUKUNA);
     }
 
     private static ItemStack removeSpectrum(
             ServerPlayer player
     ) {
-        for (int slot = 0;
-             slot < player.getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            ItemStack stack =
-                    player.getInventory()
-                            .getItem(
-                                    slot
-                            );
-
-            if (!stack.is(
-                    WayAroundContent.TUKUNA_SPECTRUM.get()
-            )) {
-                continue;
-            }
-
-            ItemStack result =
-                    stack.copyWithCount(
-                            1
-                    );
-
-            stack.shrink(
-                    1
-            );
-
-            player.getInventory()
-                    .setChanged();
-
-            return result;
-        }
-
-        return ItemStack.EMPTY;
+        return SpectrumAccess.removeFirst(player, SpectrumType.TUKUNA);
     }
 
     private static void copyInt(

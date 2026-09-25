@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.infinity;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -542,24 +546,7 @@ public final class InfinityManager {
     private static boolean hasSpectrum(
             ServerPlayer player
     ) {
-        for (int slot = 0;
-             slot < player.getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            if (player.getInventory()
-                    .getItem(
-                            slot
-                    )
-                    .is(
-                            WayAroundContent.GOJO_SPECTRUM.get()
-                    )) {
-
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(player, SpectrumType.VOID);
     }
 
     public static void clearAll() {

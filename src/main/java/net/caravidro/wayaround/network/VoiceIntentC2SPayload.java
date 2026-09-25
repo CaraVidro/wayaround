@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.network;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.blue.ImaginaryBetaManager;
@@ -246,23 +250,18 @@ public record VoiceIntentC2SPayload(
     private static boolean hasTechniqueAccess(
             ServerPlayer player
     ) {
+        // The hidden BLUE item remains a legacy/debug entry point.
+        if (SpectrumAccess.has(player, SpectrumType.VOID)) {
+            return true;
+        }
+
         for (int slot = 0;
-             slot < player.getInventory()
-                     .getContainerSize();
+             slot < player.getInventory().getContainerSize();
              slot++) {
 
-            ItemStack stack =
-                    player.getInventory()
-                            .getItem(
-                                    slot
-                            );
-
-            if (stack.is(
-                    WayAroundContent.BLUE.get()
-            )
-                    || stack.is(
-                    WayAroundContent.GOJO_SPECTRUM.get()
-            )) {
+            if (player.getInventory()
+                    .getItem(slot)
+                    .is(WayAroundContent.BLUE.get())) {
                 return true;
             }
         }
@@ -273,23 +272,6 @@ public record VoiceIntentC2SPayload(
     private static boolean hasInfinityAccess(
             ServerPlayer player
     ) {
-        for (int slot = 0;
-             slot < player.getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            if (player.getInventory()
-                    .getItem(
-                            slot
-                    )
-                    .is(
-                            WayAroundContent.GOJO_SPECTRUM.get()
-                    )) {
-
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(player, SpectrumType.VOID);
     }
 }

@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.domain;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -869,25 +873,7 @@ public final class VoidDomainManager {
     private static boolean hasVoidSpectrum(
             ServerPlayer player
     ) {
-        for (int slot = 0;
-             slot < player.getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            ItemStack stack =
-                    player.getInventory()
-                            .getItem(
-                                    slot
-                            );
-
-            if (stack.is(
-                    WayAroundContent.GOJO_SPECTRUM.get()
-            )) {
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(player, SpectrumType.VOID);
     }
 
     private static final class ActiveVoidDomain {

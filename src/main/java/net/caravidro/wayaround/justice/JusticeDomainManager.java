@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.justice;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -1561,25 +1565,7 @@ public final class JusticeDomainManager {
     public static boolean hasSpectrum(
             ServerPlayer player
     ) {
-        for (int slot = 0;
-             slot < player.getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            ItemStack stack =
-                    player.getInventory()
-                            .getItem(
-                                    slot
-                            );
-
-            if (stack.is(
-                    WayAroundContent.JUSTICE_SPECTRUM.get()
-            )) {
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(player, SpectrumType.JUSTICE);
     }
 
     public static boolean looksLikeDomainPhrase(

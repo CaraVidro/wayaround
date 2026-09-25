@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.client;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+
 import com.mojang.math.Axis;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1204,36 +1208,16 @@ public final class BlueClientEffects {
             return false;
         }
 
-        if (minecraft.player
-                .getMainHandItem()
-                .is(
-                        WayAroundContent.BLUE.get()
-                )
-                || minecraft.player
-                        .getOffhandItem()
-                        .is(
-                                WayAroundContent.BLUE.get()
-                        )) {
+        // Hidden legacy/debug BLUE still works if somebody already has it.
+        if (minecraft.player.getMainHandItem().is(WayAroundContent.BLUE.get())
+                || minecraft.player.getOffhandItem().is(WayAroundContent.BLUE.get())) {
             return true;
         }
 
-        for (int slot = 0;
-             slot < minecraft.player
-                     .getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            if (minecraft.player
-                    .getInventory()
-                    .getItem(slot)
-                    .is(
-                            WayAroundContent.GOJO_SPECTRUM.get()
-                    )) {
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(
+                minecraft.player,
+                SpectrumType.VOID
+        );
     }
 
     private static void cutCloud(
