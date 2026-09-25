@@ -14,6 +14,7 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.TukunaPossessionS2CPayload;
+import net.caravidro.wayaround.network.TukunaFugaVisualPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -1665,6 +1666,22 @@ public final class TukunaManager {
             ServerPlayer owner,
             Vec3 center
     ) {
+        PacketDistributor.sendToPlayersNear(
+                level,
+                null,
+                center.x,
+                center.y,
+                center.z,
+                512.0,
+                new TukunaFugaVisualPayload(
+                        owner.getUUID(),
+                        center.x,
+                        center.y,
+                        center.z,
+                        90
+                )
+        );
+
         pulverizeFugaCrater(
                 level,
                 center
