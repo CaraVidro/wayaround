@@ -95,6 +95,12 @@ public final class WayAroundNetwork {
                 TukunaPossessionS2CPayload::handle
         );
 
+        registrar.playToClient(
+                VoidDomainVisualPayload.TYPE,
+                VoidDomainVisualPayload.STREAM_CODEC,
+                VoidDomainVisualPayload::handle
+        );
+
         registrar.playToServer(
                 RecordingFinishedC2SPayload.TYPE,
                 RecordingFinishedC2SPayload.STREAM_CODEC,
