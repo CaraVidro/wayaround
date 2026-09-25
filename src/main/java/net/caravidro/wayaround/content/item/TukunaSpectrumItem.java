@@ -83,5 +83,14 @@ public final class TukunaSpectrumItem extends Item {
                                 ChatFormatting.GRAY
                         )
         );
+
+        tooltip.add(
+                Component.translatable(
+                                "tooltip.wayaround.tukuna_spectrum.fuga"
+                        )
+                        .withStyle(
+                                ChatFormatting.GOLD
+                        )
+        );
     }
 }
