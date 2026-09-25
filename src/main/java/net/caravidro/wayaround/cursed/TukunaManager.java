@@ -1353,8 +1353,7 @@ public final class TukunaManager {
                 position.z,
                 Set.<RelativeMovement>of(),
                 yaw,
-                pitch,
-                false
+                pitch
         );
     }
 
