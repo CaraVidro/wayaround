@@ -980,42 +980,69 @@ public final class TukunaManager {
                 : speaker.server.getPlayerList().getPlayer(spiritId);
         if (spirit == null || !isGhost(spirit)) return false;
 
-        if (speaker == spirit && said.contains("trato")
-                && (said.contains("vamos criar") || said.contains("proponho"))) {
-            if (!(said.contains("3 minutos") || said.contains("tres minutos"))
-                    || !(said.contains("nao posso atacar") || said.contains("sem atacar"))
-                    || !(said.contains("esquecer") || said.contains("esquecera"))) {
-                spirit.displayClientMessage(Component.literal(
-                        "Diga as condições completas: 3 minutos, sem atacar ninguém e esquecimento após aceitar."
-                ).withStyle(ChatFormatting.RED), false);
-                return true;
+        PactProposal proposal = PACT_PROPOSALS.get(host.getUUID());
+
+        if (speaker == spirit && isPactProposalStart(said)) {
+            proposal = new PactProposal(spiritId, now + PROPOSAL_TICKS,
+                    false, mentionsThreeMinutes(said), mentionsNoAttacks(said),
+                    mentionsForgetting(said));
+            PACT_PROPOSALS.put(host.getUUID(), proposal);
+            showPactDebug(spirit, proposal, proposal.ready()
+                    ? "proposta completa" : "iniciada; aguardando os termos");
+            if (proposal.ready()) {
+                announcePactProposal(host, spirit);
+            } else {
+                host.displayClientMessage(Component.literal(
+                        "Tukuna começou a formular um trato. Os termos aparecerão conforme ele falar."
+                ).withStyle(ChatFormatting.GOLD), false);
             }
-            PACT_PROPOSALS.put(host.getUUID(), new PactProposal(spiritId,
-                    now + PROPOSAL_TICKS, false));
-            host.displayClientMessage(Component.literal(
-                    "Tukuna propõe um TRATO: ao falar uma palavra escolhida por ele, ele controla seu corpo por até 3 minutos, sem poder atacar ninguém. Você esquecerá as condições e a palavra após aceitar. Diga 'aceito o trato' ou 'recuso o trato' em até 60 segundos."
-            ).withStyle(ChatFormatting.GOLD), false);
-            spirit.displayClientMessage(Component.literal(
-                    "Proposta enviada. Aguarde a aceitação explícita do receptáculo."
-            ).withStyle(ChatFormatting.DARK_PURPLE), false);
             return true;
         }
 
-        PactProposal proposal = PACT_PROPOSALS.get(host.getUUID());
-        if (speaker == host && (said.equals("aceito o trato")
-                || said.equals("recuso o trato"))) {
+        if (proposal != null && !proposal.accepted
+                && proposal.spiritId.equals(spiritId)
+                && speaker == spirit && proposal.expiresAt >= now) {
+            boolean duration = proposal.duration || mentionsThreeMinutes(said);
+            boolean pacifist = proposal.pacifist || mentionsNoAttacks(said);
+            boolean forget = proposal.forget || mentionsForgetting(said);
+            boolean changed = duration != proposal.duration
+                    || pacifist != proposal.pacifist || forget != proposal.forget;
+            if (changed) {
+                proposal = new PactProposal(spiritId, proposal.expiresAt,
+                        false, duration, pacifist, forget);
+                PACT_PROPOSALS.put(host.getUUID(), proposal);
+                showPactDebug(spirit, proposal, "termo reconhecido");
+                if (proposal.ready()) {
+                    announcePactProposal(host, spirit);
+                }
+                return true;
+            }
+            if (looksLikePactTerm(said)) {
+                showPactDebug(spirit, proposal, "frase recebida; nenhum termo novo identificado");
+                return true;
+            }
+        }
+
+        if (speaker == host && (isPactAcceptance(said) || isPactRefusal(said))) {
             if (proposal == null || proposal.expiresAt < now
                     || !proposal.spiritId.equals(spiritId) || proposal.accepted) {
                 host.displayClientMessage(Component.literal("Nenhuma proposta válida aguardando resposta."), true);
                 return true;
             }
-            if (said.startsWith("recuso")) {
+            if (isPactRefusal(said)) {
                 PACT_PROPOSALS.remove(host.getUUID());
                 host.displayClientMessage(Component.literal("Trato recusado."), false);
                 spirit.displayClientMessage(Component.literal("O receptáculo recusou o trato."), false);
             } else {
+                if (!proposal.ready()) {
+                    host.displayClientMessage(Component.literal(
+                            "O trato ainda está incompleto. Tukuna precisa definir duração, proibição de ataques e esquecimento."
+                    ).withStyle(ChatFormatting.RED), true);
+                    return true;
+                }
                 PACT_PROPOSALS.put(host.getUUID(), new PactProposal(spiritId,
-                        now + PROPOSAL_TICKS, true));
+                        now + PROPOSAL_TICKS, true,
+                        proposal.duration, proposal.pacifist, proposal.forget));
                 host.displayClientMessage(Component.literal(
                         "Você aceitou. A lembrança dos termos se desfaz."
                 ).withStyle(ChatFormatting.DARK_PURPLE), false);
@@ -1060,6 +1087,73 @@ public final class TukunaManager {
             return true;
         }
         return false;
+    }
+
+    private static boolean isPactProposalStart(String said) {
+        return said.contains("trato")
+                && (said.contains("vamos fazer") || said.contains("vamos criar")
+                || said.contains("quero fazer") || said.contains("proponho")
+                || said.startsWith("fazer um trato"));
+    }
+
+    private static boolean isPactAcceptance(String said) {
+        return said.equals("aceito") || said.equals("eu aceito")
+                || said.contains("aceito o trato") || said.contains("aceito esse trato");
+    }
+
+    private static boolean isPactRefusal(String said) {
+        return said.equals("recuso") || said.equals("eu recuso")
+                || said.contains("recuso o trato") || said.contains("recuso esse trato");
+    }
+
+    private static void announcePactProposal(ServerPlayer host, ServerPlayer spirit) {
+        host.displayClientMessage(Component.literal(
+                "Tukuna propõe um TRATO: ao falar uma palavra escolhida por ele, ele controla seu corpo por até 3 minutos, sem poder atacar ninguém. Você esquecerá as condições e a palavra após aceitar. Diga 'aceito o trato' ou 'recuso o trato' em até 60 segundos."
+        ).withStyle(ChatFormatting.GOLD), false);
+        spirit.displayClientMessage(Component.literal(
+                "Termos completos. Aguarde a aceitação explícita do receptáculo."
+        ).withStyle(ChatFormatting.DARK_PURPLE), false);
+    }
+
+    private static boolean mentionsThreeMinutes(String said) {
+        return said.matches(".*(?:3|tres) minutos?.*")
+                || said.matches(".*(?:3|tres) min(?:uto)?s?.*")
+                || said.matches(".*180 segundos?.*");
+    }
+
+    private static boolean mentionsNoAttacks(String said) {
+        return said.contains("nao posso atacar") || said.contains("nao vou atacar")
+                || said.contains("sem atacar") || said.contains("nao atacar ninguem")
+                || said.contains("nao posso bater") || said.contains("nao vou bater")
+                || said.contains("sem bater") || said.contains("nao machucar ninguem")
+                || said.contains("nao posso machucar") || said.contains("sem agredir")
+                || said.contains("nao posso agredir") || said.contains("nao posso ferir")
+                || said.contains("sem violencia") || said.contains("sem usar forca")
+                || said.contains("pacifista");
+    }
+
+    private static boolean mentionsForgetting(String said) {
+        return said.contains("esquecer") || said.contains("esquecera")
+                || said.contains("esquece") || said.contains("esqueca")
+                || said.contains("apagar da memoria") || said.contains("esquecimento")
+                || said.contains("apague da memoria") || said.contains("nao vai lembrar")
+                || said.contains("nao se lembrara");
+    }
+
+    private static boolean looksLikePactTerm(String said) {
+        return said.contains("minuto") || said.contains("segundo") || said.contains("ataque")
+                || said.contains("bater") || said.contains("machucar") || said.contains("agredir")
+                || said.contains("esquecer") || said.contains("memoria");
+    }
+
+    private static void showPactDebug(ServerPlayer spirit, PactProposal proposal, String note) {
+        String status = "Duração " + (proposal.duration ? "✓" : "…")
+                + " | Sem ataques " + (proposal.pacifist ? "✓" : "…")
+                + " | Esquecimento " + (proposal.forget ? "✓" : "…");
+        spirit.displayClientMessage(Component.literal("[DEBUG / TRATO] " + note + " — " + status)
+                .withStyle(ChatFormatting.AQUA), true);
+        WayAround.LOGGER.info("[Tukuna/Pact] spirit={} state={} note={}",
+                spirit.getGameProfile().getName(), status, note);
     }
 
     public static void confirmSwap(
@@ -3151,7 +3245,12 @@ public final class TukunaManager {
         }
     }
 
-    private record PactProposal(UUID spiritId, long expiresAt, boolean accepted) {}
+    private record PactProposal(UUID spiritId, long expiresAt, boolean accepted,
+                                boolean duration, boolean pacifist, boolean forget) {
+        private boolean ready() {
+            return duration && pacifist && forget;
+        }
+    }
 
     private record PendingTakeover(UUID spiritId, long readyAt,
                                    boolean dangerous, boolean pacifist) {}
