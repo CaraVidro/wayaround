@@ -41,7 +41,7 @@ public final class VoiceIntentClient {
             2_200L;
 
     private static final long REFLEX_RETRIGGER_MS =
-            760L;
+            1_450L;
 
     private static String rollingContext =
             "";
@@ -897,21 +897,28 @@ public final class VoiceIntentClient {
                 )
         )) {
 
-            if (reflexDispatch(
-                    VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND,
-                    -1.0F,
-                    urgency,
-                    "DOMINIO / REFLEXO",
-                    ChatFormatting.WHITE,
-                    now
-            )) {
+            boolean dispatched =
+                    reflexDispatch(
+                            VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND,
+                            -1.0F,
+                            urgency,
+                            "DOMINIO / REFLEXO",
+                            ChatFormatting.WHITE,
+                            now
+                    );
+
+            if (dispatched) {
                 reflexDomainUntil =
                         0L;
 
                 clearContext();
-
-                return true;
             }
+
+            /*
+             * Even when this exact word is the later final STT result and the
+             * reflex cooldown suppresses a duplicate packet, consume it here.
+             */
+            return true;
         }
 
         if (containsPrefix(
@@ -975,14 +982,17 @@ public final class VoiceIntentClient {
                                 ? pendingOutput
                                 : -1.0F;
 
-                if (reflexDispatch(
-                        VoiceIntentC2SPayload.BLUE_SUMMON,
-                        output,
-                        urgency,
-                        "BLUE / REFLEXO",
-                        ChatFormatting.BLUE,
-                        now
-                )) {
+                boolean dispatched =
+                        reflexDispatch(
+                                VoiceIntentC2SPayload.BLUE_SUMMON,
+                                output,
+                                urgency,
+                                "BLUE / REFLEXO",
+                                ChatFormatting.BLUE,
+                                now
+                        );
+
+                if (dispatched) {
                     pendingOutput =
                             -1.0F;
 
@@ -999,9 +1009,9 @@ public final class VoiceIntentClient {
                             now;
 
                     clearContext();
-
-                    return true;
                 }
+
+                return true;
             }
 
             if (containsPrefix(
@@ -1014,14 +1024,17 @@ public final class VoiceIntentClient {
                     "red"
             )) {
 
-                if (reflexDispatch(
-                        VoiceIntentC2SPayload.RED_FIRE,
-                        -1.0F,
-                        urgency,
-                        "VERMELHO / REFLEXO",
-                        ChatFormatting.RED,
-                        now
-                )) {
+                boolean dispatched =
+                        reflexDispatch(
+                                VoiceIntentC2SPayload.RED_FIRE,
+                                -1.0F,
+                                urgency,
+                                "VERMELHO / REFLEXO",
+                                ChatFormatting.RED,
+                                now
+                        );
+
+                if (dispatched) {
                     reflexTechniqueUntil =
                             0L;
 
@@ -1029,9 +1042,9 @@ public final class VoiceIntentClient {
                             0L;
 
                     clearContext();
-
-                    return true;
                 }
+
+                return true;
             }
         }
 
