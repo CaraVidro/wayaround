@@ -1336,9 +1336,9 @@ public final class TukunaManager {
 
             player.displayClientMessage(
                     Component.literal(
-                            "Frase da Fuga definida: ""
+                            "Frase da Fuga definida: \""
                                     + phrase
-                                    + """
+                                    + "\""
                     ).withStyle(
                             ChatFormatting.GOLD
                     ),
