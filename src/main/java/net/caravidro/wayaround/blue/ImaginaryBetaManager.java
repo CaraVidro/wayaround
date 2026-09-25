@@ -45,16 +45,22 @@ public final class ImaginaryBetaManager {
     }
 
     private static final int RED_LIFE_TICKS =
-            62;
+            180;
 
     private static final double RED_SPEED =
-            3.35;
+            5.75;
 
     private static final double RED_RADIUS =
-            0.68;
+            0.82;
 
     private static final int RED_SUBSTEPS =
-            12;
+            18;
+
+    private static final double RED_MAX_RANGE =
+            168.0;
+
+    private static final double RED_MAX_RANGE_CHARGED =
+            246.0;
 
     private static final int PURPLE_BLAST_TICK =
             92;
@@ -63,13 +69,19 @@ public final class ImaginaryBetaManager {
             188;
 
     private static final float PURPLE_NUKE_POWER =
-            58.0F;
+            72.0F;
 
     private static final double PURPLE_STAR_RADIUS =
-            96.0;
+            142.0;
 
     private static final double PURPLE_SHOCKWAVE_RADIUS =
-            128.0;
+            176.0;
+
+    private static final int PURPLE_PULVERIZE_RADIUS =
+            34;
+
+    private static final int PURPLE_PULVERIZE_VERTICAL =
+            22;
 
     private static final int DUAL_WAIT_TICKS =
             100;
@@ -88,6 +100,10 @@ public final class ImaginaryBetaManager {
 
     private static final double VISUAL_RANGE =
             384.0;
+
+    private static final Map<UUID, PreparedRed>
+            PREPARED_REDS =
+            new HashMap<>();
 
     private static final Map<UUID, RedProjectile>
             REDS =
@@ -200,6 +216,9 @@ public final class ImaginaryBetaManager {
     ) {
         if (FUSIONS.containsKey(
                 player.getUUID()
+        )
+                || REDS.containsKey(
+                player.getUUID()
         )) {
             return false;
         }
@@ -212,21 +231,17 @@ public final class ImaginaryBetaManager {
                 player.getEyePosition()
                         .add(
                                 direction.scale(
-                                        1.15
+                                        2.35
                                 )
                         );
 
-        REDS.put(
+        PREPARED_REDS.put(
                 player.getUUID(),
-                new RedProjectile(
+                new PreparedRed(
                         player.getUUID(),
                         player.serverLevel()
                                 .dimension(),
-                        position,
-                        direction.scale(
-                                RED_SPEED
-                        ),
-                        RED_LIFE_TICKS
+                        position
                 )
         );
 
@@ -239,10 +254,36 @@ public final class ImaginaryBetaManager {
                 .playSound(
                         null,
                         player.blockPosition(),
-                        SoundEvents.FIREWORK_ROCKET_LAUNCH,
+                        SoundEvents.AMETHYST_BLOCK_RESONATE,
                         SoundSource.PLAYERS,
-                        0.85F,
-                        0.62F
+                        0.72F,
+                        0.58F
+                );
+
+        player.serverLevel()
+                .sendParticles(
+                        ParticleTypes.ELECTRIC_SPARK,
+                        position.x,
+                        position.y,
+                        position.z,
+                        18,
+                        0.22,
+                        0.22,
+                        0.22,
+                        0.04
+                );
+
+        player.serverLevel()
+                .sendParticles(
+                        ParticleTypes.FLAME,
+                        position.x,
+                        position.y,
+                        position.z,
+                        8,
+                        0.16,
+                        0.16,
+                        0.16,
+                        0.01
                 );
 
         sendVisual(
@@ -250,11 +291,212 @@ public final class ImaginaryBetaManager {
                 player.getUUID(),
                 BetaTechniqueVisualPayload.RED,
                 position,
-                1.0F,
+                0.82F,
                 0.0F
         );
 
         return true;
+    }
+
+    public static boolean hasPreparedRed(
+            ServerPlayer player
+    ) {
+        return PREPARED_REDS.containsKey(
+                player.getUUID()
+        );
+    }
+
+    public static boolean chargePreparedRedMaximum(
+            ServerPlayer player
+    ) {
+        PreparedRed red =
+                PREPARED_REDS.get(
+                        player.getUUID()
+                );
+
+        if (red == null) {
+            return false;
+        }
+
+        red.maximum =
+                true;
+
+        ServerLevel level =
+                player.serverLevel();
+
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        red.position
+                ),
+                SoundEvents.BEACON_POWER_SELECT,
+                SoundSource.PLAYERS,
+                1.15F,
+                1.62F
+        );
+
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        red.position
+                ),
+                SoundEvents.AMETHYST_BLOCK_CHIME,
+                SoundSource.PLAYERS,
+                1.0F,
+                1.92F
+        );
+
+        level.sendParticles(
+                ParticleTypes.ELECTRIC_SPARK,
+                red.position.x,
+                red.position.y,
+                red.position.z,
+                68,
+                0.42,
+                0.42,
+                0.42,
+                0.26
+        );
+
+        return true;
+    }
+
+    public static boolean launchPreparedRed(
+            ServerPlayer player
+    ) {
+        PreparedRed prepared =
+                PREPARED_REDS.remove(
+                        player.getUUID()
+                );
+
+        if (prepared == null) {
+            return false;
+        }
+
+        Vec3 direction =
+                player.getLookAngle()
+                        .normalize();
+
+        double speed =
+                prepared.maximum
+                        ? RED_SPEED * 1.32
+                        : RED_SPEED;
+
+        REDS.put(
+                player.getUUID(),
+                new RedProjectile(
+                        player.getUUID(),
+                        player.serverLevel()
+                                .dimension(),
+                        prepared.position,
+                        direction.scale(
+                                speed
+                        ),
+                        RED_LIFE_TICKS,
+                        prepared.maximum
+                )
+        );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.FIREWORK_ROCKET_LAUNCH,
+                        SoundSource.PLAYERS,
+                        prepared.maximum
+                                ? 1.75F
+                                : 1.10F,
+                        prepared.maximum
+                                ? 0.46F
+                                : 0.62F
+                );
+
+        return true;
+    }
+
+    private static void tickPreparedReds(
+            MinecraftServer server
+    ) {
+        Iterator<Map.Entry<UUID, PreparedRed>> iterator =
+                PREPARED_REDS.entrySet()
+                        .iterator();
+
+        while (iterator.hasNext()) {
+            PreparedRed red =
+                    iterator.next()
+                            .getValue();
+
+            ServerPlayer owner =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    red.owner
+                            );
+
+            ServerLevel level =
+                    server.getLevel(
+                            red.dimension
+                    );
+
+            if (owner == null
+                    || level == null
+                    || !owner.isAlive()
+                    || owner.serverLevel()
+                            != level) {
+
+                iterator.remove();
+                continue;
+            }
+
+            Vec3 look =
+                    owner.getLookAngle()
+                            .normalize();
+
+            red.position =
+                    owner.getEyePosition()
+                            .add(
+                                    look.scale(
+                                            2.35
+                                    )
+                            );
+
+            int count =
+                    red.maximum
+                            ? 6
+                            : 2;
+
+            level.sendParticles(
+                    red.maximum
+                            ? ParticleTypes.END_ROD
+                            : ParticleTypes.ELECTRIC_SPARK,
+                    red.position.x,
+                    red.position.y,
+                    red.position.z,
+                    count,
+                    red.maximum
+                            ? 0.28
+                            : 0.12,
+                    red.maximum
+                            ? 0.28
+                            : 0.12,
+                    red.maximum
+                            ? 0.28
+                            : 0.12,
+                    red.maximum
+                            ? 0.035
+                            : 0.015
+            );
+
+            sendVisual(
+                    level,
+                    red.owner,
+                    BetaTechniqueVisualPayload.RED,
+                    red.position,
+                    red.maximum
+                            ? 1.68F
+                            : 0.82F,
+                    0.0F
+            );
+        }
     }
 
     @SubscribeEvent
@@ -265,6 +507,7 @@ public final class ImaginaryBetaManager {
                 event.getServer();
 
         tickDuals(server);
+        tickPreparedReds(server);
         tickReds(server);
         tickPurpleProjectiles(server);
         tickFusions(server);
@@ -489,12 +732,16 @@ public final class ImaginaryBetaManager {
                     level.getBlockState(sample);
 
             if (state.isAir()
-                    || state.getDestroySpeed(
-                            level,
-                            sample
-                    ) < 0.0F) {
+                    ) {
 
                 continue;
+            }
+
+            if (state.getDestroySpeed(
+                    level,
+                    sample
+            ) < 0.0F) {
+                return true;
             }
 
             level.removeBlock(
@@ -625,11 +872,6 @@ public final class ImaginaryBetaManager {
 
             red.life--;
 
-            if (red.life <= 0) {
-                iterator.remove();
-                continue;
-            }
-
             Vec3 step =
                     red.velocity.scale(
                             1.0
@@ -637,6 +879,9 @@ public final class ImaginaryBetaManager {
                     );
 
             boolean fused =
+                    false;
+
+            boolean stop =
                     false;
 
             for (int sub = 0;
@@ -647,6 +892,9 @@ public final class ImaginaryBetaManager {
                         red.position.add(
                                 step
                         );
+
+                red.travelled +=
+                        step.length();
 
                 BlueManager.FusionSeed blue =
                         BlueManager
@@ -665,7 +913,6 @@ public final class ImaginaryBetaManager {
 
                     fused =
                             true;
-
                     break;
                 }
 
@@ -675,15 +922,39 @@ public final class ImaginaryBetaManager {
                         red
                 );
 
-                destroyRedPath(
+                boolean blocked =
+                        destroyRedPath(
+                                level,
+                                red.position
+                        );
+
+                pushRedWake(
                         level,
-                        red.position
+                        red.position,
+                        red.velocity
                 );
 
-                igniteRedTrail(
-                        level,
-                        red.position
-                );
+                if (red.maximum
+                        && sub % 3 == 0) {
+                    igniteRedTrail(
+                            level,
+                            red.position
+                    );
+                }
+
+                double maxRange =
+                        red.maximum
+                                ? RED_MAX_RANGE_CHARGED
+                                : RED_MAX_RANGE;
+
+                if (blocked
+                        || red.travelled >= maxRange
+                        || red.life <= 0) {
+
+                    stop =
+                            true;
+                    break;
+                }
             }
 
             if (fused) {
@@ -696,11 +967,21 @@ public final class ImaginaryBetaManager {
                     red.position.x,
                     red.position.y,
                     red.position.z,
-                    4,
-                    0.10,
-                    0.10,
-                    0.10,
-                    0.08
+                    red.maximum
+                            ? 12
+                            : 5,
+                    red.maximum
+                            ? 0.24
+                            : 0.10,
+                    red.maximum
+                            ? 0.24
+                            : 0.10,
+                    red.maximum
+                            ? 0.24
+                            : 0.10,
+                    red.maximum
+                            ? 0.18
+                            : 0.08
             );
 
             level.sendParticles(
@@ -708,11 +989,13 @@ public final class ImaginaryBetaManager {
                     red.position.x,
                     red.position.y,
                     red.position.z,
-                    2,
-                    0.08,
-                    0.08,
-                    0.08,
-                    0.02
+                    red.maximum
+                            ? 8
+                            : 3,
+                    0.18,
+                    0.18,
+                    0.18,
+                    0.035
             );
 
             sendVisual(
@@ -720,11 +1003,23 @@ public final class ImaginaryBetaManager {
                     red.owner,
                     BetaTechniqueVisualPayload.RED,
                     red.position,
-                    1.0F,
+                    red.maximum
+                            ? 1.75F
+                            : 1.0F,
                     1.0F
                             - red.life
                                     / (float) RED_LIFE_TICKS
             );
+
+            if (stop) {
+                detonateRed(
+                        level,
+                        owner,
+                        red
+                );
+
+                iterator.remove();
+            }
         }
     }
 
@@ -872,7 +1167,7 @@ public final class ImaginaryBetaManager {
         }
     }
 
-    private static void destroyRedPath(
+    private static boolean destroyRedPath(
             ServerLevel level,
             Vec3 center
     ) {
@@ -947,6 +1242,153 @@ public final class ImaginaryBetaManager {
                     0.26
             );
         }
+        return false;
+    }
+
+    private static void pushRedWake(
+            ServerLevel level,
+            Vec3 center,
+            Vec3 velocity
+    ) {
+        Vec3 direction =
+                velocity.lengthSqr() < 0.0001
+                        ? new Vec3(0.0, 0.0, 1.0)
+                        : velocity.normalize();
+
+        AABB area =
+                new AABB(
+                        center.x - 4.5,
+                        center.y - 3.0,
+                        center.z - 4.5,
+                        center.x + 4.5,
+                        center.y + 3.0,
+                        center.z + 4.5
+                );
+
+        for (LivingEntity living :
+                level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        area,
+                        LivingEntity::isAlive
+                )) {
+
+            living.setDeltaMovement(
+                    living.getDeltaMovement()
+                            .add(
+                                    direction.scale(
+                                            0.08
+                                    )
+                            )
+            );
+
+            living.hurtMarked =
+                    true;
+        }
+
+        if (level.random.nextInt(2) == 0) {
+            BlockPos ground =
+                    BlockPos.containing(
+                            center.x,
+                            center.y - 1.0,
+                            center.z
+                    );
+
+            BlockState state =
+                    level.getBlockState(
+                            ground
+                    );
+
+            if (!state.isAir()) {
+                level.sendParticles(
+                        new BlockParticleOption(
+                                ParticleTypes.BLOCK,
+                                state
+                        ),
+                        center.x,
+                        center.y - 0.25,
+                        center.z,
+                        7,
+                        1.2,
+                        0.38,
+                        1.2,
+                        0.42
+                );
+            }
+        }
+    }
+
+    private static void detonateRed(
+            ServerLevel level,
+            ServerPlayer owner,
+            RedProjectile red
+    ) {
+        float power =
+                red.maximum
+                        ? 21.0F
+                        : 13.0F;
+
+        level.explode(
+                owner,
+                red.position.x,
+                red.position.y,
+                red.position.z,
+                power,
+                red.maximum,
+                Level.ExplosionInteraction.TNT
+        );
+
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        red.position
+                ),
+                SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.PLAYERS,
+                2.8F,
+                red.maximum
+                        ? 0.48F
+                        : 0.68F
+        );
+
+        level.sendParticles(
+                ParticleTypes.EXPLOSION,
+                red.position.x,
+                red.position.y,
+                red.position.z,
+                red.maximum
+                        ? 28
+                        : 14,
+                red.maximum
+                        ? 7.0
+                        : 4.0,
+                red.maximum
+                        ? 5.0
+                        : 3.0,
+                red.maximum
+                        ? 7.0
+                        : 4.0,
+                0.12
+        );
+
+        level.sendParticles(
+                ParticleTypes.ELECTRIC_SPARK,
+                red.position.x,
+                red.position.y,
+                red.position.z,
+                red.maximum
+                        ? 180
+                        : 84,
+                red.maximum
+                        ? 9.0
+                        : 5.5,
+                red.maximum
+                        ? 5.0
+                        : 3.0,
+                red.maximum
+                        ? 9.0
+                        : 5.5,
+                0.32
+        );
     }
 
     private static void beginFusion(
@@ -1247,9 +1689,19 @@ public final class ImaginaryBetaManager {
                 Level.ExplosionInteraction.TNT
         );
 
+        pulverizePurpleCore(
+                level,
+                fusion.center
+        );
+
         applyPurpleNukeShockwave(
                 level,
                 fusion
+        );
+
+        detonatePurpleSecondaryRings(
+                level,
+                fusion.center
         );
 
         level.playSound(
@@ -1357,6 +1809,195 @@ public final class ImaginaryBetaManager {
                 fusion.power,
                 0.0F
         );
+    }
+
+    private static void pulverizePurpleCore(
+            ServerLevel level,
+            Vec3 center
+    ) {
+        BlockPos origin =
+                BlockPos.containing(
+                        center
+                );
+
+        double rx =
+                PURPLE_PULVERIZE_RADIUS;
+
+        double ry =
+                PURPLE_PULVERIZE_VERTICAL;
+
+        double rz =
+                PURPLE_PULVERIZE_RADIUS;
+
+        for (int x = -PURPLE_PULVERIZE_RADIUS;
+             x <= PURPLE_PULVERIZE_RADIUS;
+             x++) {
+
+            for (int y = -PURPLE_PULVERIZE_VERTICAL;
+                 y <= PURPLE_PULVERIZE_VERTICAL;
+                 y++) {
+
+                for (int z = -PURPLE_PULVERIZE_RADIUS;
+                     z <= PURPLE_PULVERIZE_RADIUS;
+                     z++) {
+
+                    double normalized =
+                            x * x / (rx * rx)
+                                    + y * y / (ry * ry)
+                                    + z * z / (rz * rz);
+
+                    if (normalized > 1.0) {
+                        continue;
+                    }
+
+                    BlockPos pos =
+                            origin.offset(
+                                    x,
+                                    y,
+                                    z
+                            );
+
+                    if (!level.hasChunkAt(
+                            pos
+                    )) {
+                        continue;
+                    }
+
+                    BlockState state =
+                            level.getBlockState(
+                                    pos
+                            );
+
+                    if (state.isAir()
+                            || state.getDestroySpeed(
+                            level,
+                            pos
+                    ) < 0.0F) {
+                        continue;
+                    }
+
+                    /*
+                     * Dense center is guaranteed pulverization. The outer
+                     * ellipsoid becomes noisy so the crater is not a perfect
+                     * mathematical sphere.
+                     */
+                    if (normalized < 0.72
+                            || level.random.nextDouble()
+                            > (
+                            normalized - 0.72
+                    ) * 2.2) {
+
+                        level.removeBlock(
+                                pos,
+                                false
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    private static void detonatePurpleSecondaryRings(
+            ServerLevel level,
+            Vec3 center
+    ) {
+        for (int ring = 0;
+             ring < 3;
+             ring++) {
+
+            int points =
+                    8 + ring * 6;
+
+            double radius =
+                    18.0 + ring * 11.0;
+
+            for (int point = 0;
+                 point < points;
+                 point++) {
+
+                double angle =
+                        point
+                                * Math.PI
+                                * 2.0
+                                / points;
+
+                double x =
+                        center.x
+                                + Math.cos(
+                                angle
+                        )
+                                * radius;
+
+                double z =
+                        center.z
+                                + Math.sin(
+                                angle
+                        )
+                                * radius;
+
+                level.explode(
+                        null,
+                        x,
+                        center.y
+                                + (
+                                ring - 1
+                        ) * 2.2,
+                        z,
+                        7.5F
+                                + ring * 1.8F,
+                        false,
+                        Level.ExplosionInteraction.TNT
+                );
+            }
+        }
+
+        for (int index = 0;
+             index < 900;
+             index++) {
+
+            double angle =
+                    level.random.nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            double radius =
+                    Math.sqrt(
+                            level.random.nextDouble()
+                    )
+                            * PURPLE_STAR_RADIUS;
+
+            double y =
+                    (
+                            level.random.nextDouble()
+                                    - 0.5
+                    )
+                            * 52.0;
+
+            Vec3 point =
+                    center.add(
+                            Math.cos(angle)
+                                    * radius,
+                            y,
+                            Math.sin(angle)
+                                    * radius
+                    );
+
+            level.sendParticles(
+                    index % 4 == 0
+                            ? ParticleTypes.FIREWORK
+                            : ParticleTypes.END_ROD,
+                    point.x,
+                    point.y,
+                    point.z,
+                    0,
+                    0.0,
+                    0.012
+                            + level.random.nextDouble()
+                                    * 0.035,
+                    0.0,
+                    1.0
+            );
+        }
     }
 
     private static void applyPurpleNukeShockwave(
@@ -1564,6 +2205,7 @@ public final class ImaginaryBetaManager {
     }
 
     public static void clearAll() {
+        PREPARED_REDS.clear();
         REDS.clear();
         FUSIONS.clear();
         DUALS.clear();
@@ -1639,6 +2281,26 @@ public final class ImaginaryBetaManager {
         }
     }
 
+    private static final class PreparedRed {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level>
+                dimension;
+
+        private Vec3 position;
+        private boolean maximum;
+
+        private PreparedRed(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 position
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.position = position;
+        }
+    }
+
     private static final class RedProjectile {
 
         private final UUID owner;
@@ -1649,29 +2311,25 @@ public final class ImaginaryBetaManager {
         private final Vec3 velocity;
         private final Set<UUID> hitEntities =
                 new HashSet<>();
+
         private int life;
+        private double travelled;
+        private final boolean maximum;
 
         private RedProjectile(
                 UUID owner,
                 net.minecraft.resources.ResourceKey<Level> dimension,
                 Vec3 position,
                 Vec3 velocity,
-                int life
+                int life,
+                boolean maximum
         ) {
-            this.owner =
-                    owner;
-
-            this.dimension =
-                    dimension;
-
-            this.position =
-                    position;
-
-            this.velocity =
-                    velocity;
-
-            this.life =
-                    life;
+            this.owner = owner;
+            this.dimension = dimension;
+            this.position = position;
+            this.velocity = velocity;
+            this.life = life;
+            this.maximum = maximum;
         }
     }
 
