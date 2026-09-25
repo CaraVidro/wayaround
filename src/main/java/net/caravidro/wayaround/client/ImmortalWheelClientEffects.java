@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.client;
 
+import net.minecraft.util.Mth;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +24,9 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
         value = Dist.CLIENT
 )
 public final class ImmortalWheelClientEffects {
+
+    private static final int REACTIVATION_DURATION =
+            84;
 
     private ImmortalWheelClientEffects() {
     }
@@ -181,7 +186,7 @@ public final class ImmortalWheelClientEffects {
                 wheel.reactivationOrigin;
 
         wheel.reactivationTicks =
-                34;
+                REACTIVATION_DURATION;
 
         wheel.spinVelocity =
                 Math.max(
@@ -192,10 +197,10 @@ public final class ImmortalWheelClientEffects {
                 );
 
         wheel.spinBurstTicks =
-                34;
+                REACTIVATION_DURATION;
 
         wheel.shakeTicks =
-                8;
+                18;
 
         wheel.lastPresenceTick =
                 minecraft.level == null
@@ -237,14 +242,29 @@ public final class ImmortalWheelClientEffects {
                 continue;
             }
 
+            float reactivationProgress =
+                    wheel.reactivationTicks > 0
+                            ? 1.0F
+                                    - wheel.reactivationTicks
+                                            / (float) REACTIVATION_DURATION
+                            : 1.0F;
+
+            float easedSpin =
+                    reactivationProgress
+                            * reactivationProgress
+                            * (
+                            3.0F
+                                    - 2.0F
+                                            * reactivationProgress
+                    );
+
             float reactivationSpin =
                     wheel.reactivationTicks > 0
-                            ? 10.0F
-                                    + (
-                                    34
-                                            - wheel.reactivationTicks
-                            )
-                                    * 0.20F
+                            ? Mth.lerp(
+                            easedSpin,
+                            52.0F,
+                            14.0F
+                    )
                             : 0.0F;
 
             wheel.angle =
@@ -255,7 +275,9 @@ public final class ImmortalWheelClientEffects {
                     );
 
             wheel.spinVelocity *=
-                    0.82F;
+                    wheel.reactivationTicks > 0
+                            ? 0.94F
+                            : 0.82F;
 
             if (wheel.reactivationTicks > 0) {
                 wheel.reactivationTicks--;
@@ -515,14 +537,31 @@ public final class ImmortalWheelClientEffects {
                 float t =
                         1.0F
                                 - reactivationTicks
-                                        / 34.0F;
+                                        / (float) REACTIVATION_DURATION;
+
+                /*
+                 * For most of the resurrection the wheel refuses to follow
+                 * the invisible player. It remains alone at the death point.
+                 * Only once the body is nearly complete does it return.
+                 */
+                float returnProgress =
+                        Mth.clamp(
+                                (
+                                        t - 0.82F
+                                )
+                                        / 0.18F,
+                                0.0F,
+                                1.0F
+                        );
 
                 float eased =
-                        1.0F
-                                - (float) Math.pow(
-                                        1.0F - t,
-                                        3.0
-                                );
+                        returnProgress
+                                * returnProgress
+                                * (
+                                3.0F
+                                        - 2.0F
+                                                * returnProgress
+                        );
 
                 Vec3 desired =
                         reactivationOrigin.lerp(
@@ -532,7 +571,7 @@ public final class ImmortalWheelClientEffects {
                                 0.0,
                                 Math.sin(
                                         Math.PI * t
-                                ) * 0.38,
+                                ) * 0.06,
                                 0.0
                         );
 

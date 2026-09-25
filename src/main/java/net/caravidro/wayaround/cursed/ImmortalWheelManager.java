@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.cursed;
 
+import net.caravidro.wayaround.network.PlayerCinematicPayload;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -632,6 +634,9 @@ public final class ImmortalWheelManager {
         boolean wasInvulnerable =
                 player.isInvulnerable();
 
+        boolean wasInvisible =
+                player.isInvisible();
+
         Vec3 origin =
                 player.position();
 
@@ -640,6 +645,14 @@ public final class ImmortalWheelManager {
         );
 
         player.setInvulnerable(
+                true
+        );
+
+        /*
+         * The bearer actually vanishes first. After a short empty beat the
+         * client animation begins revealing body parts one by one.
+         */
+        player.setInvisible(
                 true
         );
 
@@ -657,8 +670,9 @@ public final class ImmortalWheelManager {
                 new Regeneration(
                         player.getUUID(),
                         0,
-                        44,
-                        wasInvulnerable
+                        84,
+                        wasInvulnerable,
+                        wasInvisible
                 )
         );
 
@@ -678,6 +692,22 @@ public final class ImmortalWheelManager {
                         origin.y + player.getBbHeight() + 0.42,
                         origin.z,
                         8 + remaining
+                )
+        );
+
+        PacketDistributor.sendToPlayersNear(
+                level,
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                VISUAL_RANGE,
+                new PlayerCinematicPayload(
+                        player.getUUID(),
+                        PlayerCinematicPayload.IMMORTAL_REBUILD,
+                        84,
+                        false,
+                        0.0F
                 )
         );
 
@@ -733,11 +763,44 @@ public final class ImmortalWheelManager {
                     player
             )) {
 
+                if (player != null) {
+                    player.setInvulnerable(
+                            regeneration.wasInvulnerable
+                    );
+
+                    player.setInvisible(
+                            regeneration.wasInvisible
+                    );
+
+                    PacketDistributor.sendToPlayersNear(
+                            player.serverLevel(),
+                            null,
+                            player.getX(),
+                            player.getY(),
+                            player.getZ(),
+                            VISUAL_RANGE,
+                            new PlayerCinematicPayload(
+                                    player.getUUID(),
+                                    PlayerCinematicPayload.CLEAR,
+                                    0,
+                                    false,
+                                    0.0F
+                            )
+                    );
+                }
+
                 iterator.remove();
                 continue;
             }
 
             regeneration.age++;
+
+            if (regeneration.age == 10
+                    && !regeneration.wasInvisible) {
+                player.setInvisible(
+                        false
+                );
+            }
 
             float progress =
                     Mth.clamp(
@@ -827,6 +890,26 @@ public final class ImmortalWheelManager {
 
                 player.setInvulnerable(
                         regeneration.wasInvulnerable
+                );
+
+                player.setInvisible(
+                        regeneration.wasInvisible
+                );
+
+                PacketDistributor.sendToPlayersNear(
+                        level,
+                        null,
+                        player.getX(),
+                        player.getY(),
+                        player.getZ(),
+                        VISUAL_RANGE,
+                        new PlayerCinematicPayload(
+                                player.getUUID(),
+                                PlayerCinematicPayload.CLEAR,
+                                0,
+                                false,
+                                0.0F
+                        )
                 );
 
                 level.sendParticles(
@@ -1266,17 +1349,20 @@ public final class ImmortalWheelManager {
         private int age;
         private final int duration;
         private final boolean wasInvulnerable;
+        private final boolean wasInvisible;
 
         private Regeneration(
                 UUID owner,
                 int age,
                 int duration,
-                boolean wasInvulnerable
+                boolean wasInvulnerable,
+                boolean wasInvisible
         ) {
             this.owner = owner;
             this.age = age;
             this.duration = duration;
             this.wasInvulnerable = wasInvulnerable;
+            this.wasInvisible = wasInvisible;
         }
     }
 

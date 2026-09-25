@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.client;
 
+import net.caravidro.wayaround.client.cinematic.PlayerAnimationController;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -115,6 +117,12 @@ public final class ImmortalWheelRenderer {
                                 0.0,
                                 player.getBbHeight() + 0.42,
                                 0.0
+                        )
+                        .add(
+                                PlayerAnimationController
+                                        .headAnchorOffset(
+                                                player
+                                        )
                         );
 
         Vec3 anchor =
