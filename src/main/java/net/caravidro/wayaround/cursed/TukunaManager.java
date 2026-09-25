@@ -527,6 +527,9 @@ public final class TukunaManager {
     ) {
         if (transcript == null
                 || transcript.isBlank()
+                || PlayerControlLockManager.actionsLocked(
+                player
+        )
                 || isSilencedHost(
                 player
         )) {
