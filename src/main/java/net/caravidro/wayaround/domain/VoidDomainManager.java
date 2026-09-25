@@ -512,6 +512,56 @@ public final class VoidDomainManager {
         );
     }
 
+    @SubscribeEvent
+    public static void onBlockBreak(
+            BlockEvent.BreakEvent event
+    ) {
+        ServerPlayer player =
+                event.getPlayer();
+
+        UUID ownerId =
+                PARTICIPANT_TO_OWNER.get(
+                        player.getUUID()
+                );
+
+        if (ownerId == null
+                || player.getUUID()
+                        .equals(
+                                ownerId
+                        )) {
+            return;
+        }
+
+        ActiveVoidDomain domain =
+                ACTIVE.get(
+                        ownerId
+                );
+
+        if (domain != null
+                && domain.isInsidePocket(
+                        event.getPos()
+                )) {
+
+            event.setCanceled(
+                    true
+            );
+        }
+    }
+
+    public static boolean isTrapped(
+            ServerPlayer player
+    ) {
+        UUID ownerId =
+                PARTICIPANT_TO_OWNER.get(
+                        player.getUUID()
+                );
+
+        return ownerId != null
+                && !ownerId.equals(
+                        player.getUUID()
+                );
+    }
+
     public static void clearAll() {
         ACTIVE.clear();
         PARTICIPANT_TO_OWNER.clear();
@@ -911,7 +961,7 @@ public final class VoidDomainManager {
                             >= pocketFloorY
                     && pos.getY()
                             < pocketFloorY
-                                    + 40;
+                                    + 48;
         }
 
         private void tick(
