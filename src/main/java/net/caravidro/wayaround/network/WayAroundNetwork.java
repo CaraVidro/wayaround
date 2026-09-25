@@ -101,6 +101,18 @@ public final class WayAroundNetwork {
                 VoidDomainVisualPayload::handle
         );
 
+        registrar.playToClient(
+                JusticeDomainVisualPayload.TYPE,
+                JusticeDomainVisualPayload.STREAM_CODEC,
+                JusticeDomainVisualPayload::handle
+        );
+
+        registrar.playToServer(
+                JusticeVoiceStatementC2SPayload.TYPE,
+                JusticeVoiceStatementC2SPayload.STREAM_CODEC,
+                JusticeVoiceStatementC2SPayload::handle
+        );
+
         registrar.playToServer(
                 RecordingFinishedC2SPayload.TYPE,
                 RecordingFinishedC2SPayload.STREAM_CODEC,

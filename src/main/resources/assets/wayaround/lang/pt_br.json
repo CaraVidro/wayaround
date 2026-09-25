@@ -260,5 +260,12 @@
     "guide.wayaround.assembly.v1.2": "Eixos e gearboxes perdem uma pequena parcela da potência e se desgastam sob carga. Redes longas e ruins custam potência.",
     "guide.wayaround.assembly.v1.3": "A serraria sente falta de potência, desalinhamento, lâmina cega, vibração e excesso de RPM. O Martelo de Assembly faz manutenção, não apaga fadiga.",
     "guide.wayaround.assembly.v1.4": "Tábuas serradas carregam a qualidade do corte e o histórico de fabricação dentro do próprio ItemStack.",
-    "guide.wayaround.assembly.v1_header": "V1 — O Mundo se Move"
+    "guide.wayaround.assembly.v1_header": "V1 — O Mundo se Move",
+    "item.wayaround.justice_spectrum": "Spectrum da Justiça",
+    "tooltip.wayaround.justice_spectrum": "Enquanto estiver no inventário, o Senso de Justiça fica ativo.",
+    "tooltip.wayaround.justice_spectrum.domain": "Diga/escreva \"expansão de domínio\" para julgar o ser vivo mais próximo. Também pode usar o item diretamente nele.",
+    "message.wayaround.justice.hint": "Com este Spectrum no inventário, diga ou escreva \"expansão de domínio\" perto de qualquer ser vivo.",
+    "item.wayaround.justice_execution_blade": "Lâmina da Sentença",
+    "tooltip.wayaround.justice_blade": "Brilha enquanto uma sentença válida estiver ativa. Alcance corpo a corpo; impacto severo.",
+    "tooltip.wayaround.justice_blade.target": "Sentença contra: %s"
 }
