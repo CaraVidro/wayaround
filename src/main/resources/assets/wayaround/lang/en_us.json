@@ -260,5 +260,12 @@
     "guide.wayaround.assembly.v1.2": "Shafts and gearboxes lose a small amount of power and wear under load. Long, poor networks cost power.",
     "guide.wayaround.assembly.v1.3": "The sawmill reacts to power starvation, alignment, dull blades, vibration and overspeed. The Assembly Hammer services it without erasing fatigue.",
     "guide.wayaround.assembly.v1.4": "Sawn boards carry cut quality and manufacturing history inside their ItemStack.",
-    "guide.wayaround.assembly.v1_header": "V1 — The World Moves"
+    "guide.wayaround.assembly.v1_header": "V1 — The World Moves",
+    "item.wayaround.justice_spectrum": "Justice Spectrum",
+    "tooltip.wayaround.justice_spectrum": "Justice Sense stores high-confidence harmful acts committed in the world.",
+    "tooltip.wayaround.justice_spectrum.domain": "Use on another player to open the Court of Justice.",
+    "message.wayaround.justice.hint": "Use the Justice Spectrum on a nearby player to take them to court.",
+    "item.wayaround.justice_execution_blade": "Sentence Blade",
+    "tooltip.wayaround.justice_blade": "Glows while a valid sentence is active. Melee reach; severe impact.",
+    "tooltip.wayaround.justice_blade.target": "Sentence target: %s"
 }

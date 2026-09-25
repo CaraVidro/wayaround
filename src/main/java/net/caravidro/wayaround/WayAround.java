@@ -12,6 +12,9 @@ import net.caravidro.wayaround.domain.DomainCommands;
 import net.caravidro.wayaround.domain.DomainManager;
 import net.caravidro.wayaround.domain.VoidDomainManager;
 import net.caravidro.wayaround.network.WayAroundNetwork;
+import net.caravidro.wayaround.justice.JusticeDomainManager;
+import net.caravidro.wayaround.justice.JusticeRewardManager;
+import net.caravidro.wayaround.justice.JusticeSenseManager;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.sounds.WayAroundSounds;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
@@ -65,6 +68,11 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(AntarcticBlizzard::onServerTick);
         NeoForge.EVENT_BUS.addListener(DomainManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(VoidDomainManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(JusticeRewardManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onServerChat);
+        NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onBlockBreak);
+        NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onBlockPlace);
         NeoForge.EVENT_BUS.addListener(BlueManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
 
@@ -89,6 +97,9 @@ public class WayAround {
         BlueManager.clearAll();
         ImaginaryBetaManager.clearAll();
         InfinityManager.clearAll();
+        JusticeDomainManager.clearAll(event.getServer());
+        JusticeRewardManager.clearAll(event.getServer());
+        JusticeSenseManager.clearTransient();
         LOGGER.info("Caches do WayAround limpos.");
     }
 }

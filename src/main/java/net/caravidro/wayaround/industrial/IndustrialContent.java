@@ -177,6 +177,9 @@ public final class IndustrialContent {
                                                 WayAroundContent.TUKUNA_SPECTRUM.get()
                                         );
                                         output.accept(
+                                                WayAroundContent.JUSTICE_SPECTRUM.get()
+                                        );
+                                        output.accept(
                                                 WayAroundContent.TUKUNA_FINGER.get()
                                         );
                                         output.accept(

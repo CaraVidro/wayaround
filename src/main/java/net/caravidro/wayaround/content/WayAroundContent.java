@@ -7,6 +7,8 @@ import net.caravidro.wayaround.content.item.PrioriteBottleItem;
 import net.caravidro.wayaround.content.item.PrioriteBucketItem;
 import net.caravidro.wayaround.content.item.TukunaFingerItem;
 import net.caravidro.wayaround.content.item.TukunaSpectrumItem;
+import net.caravidro.wayaround.content.item.JusticeSpectrumItem;
+import net.caravidro.wayaround.content.item.JusticeExecutionBladeItem;
 import net.caravidro.wayaround.cursed.DesmartelarSlashEntity;
 import net.caravidro.wayaround.cursed.ImmortalWheelRemnantEntity;
 
@@ -15,6 +17,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.Tiers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -175,6 +179,35 @@ public final class WayAroundContent {
                                     .fireResistant()
                                     .rarity(
                                             net.minecraft.world.item.Rarity.RARE
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<JusticeSpectrumItem> JUSTICE_SPECTRUM =
+            ITEMS.register(
+                    "justice_spectrum",
+                    () -> new JusticeSpectrumItem(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(
+                                            net.minecraft.world.item.Rarity.EPIC
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<JusticeExecutionBladeItem> JUSTICE_EXECUTION_BLADE =
+            ITEMS.register(
+                    "justice_execution_blade",
+                    () -> new JusticeExecutionBladeItem(
+                            Tiers.DIAMOND,
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .attributes(
+                                            SwordItem.createAttributes(
+                                                    Tiers.DIAMOND,
+                                                    7,
+                                                    -2.2F
+                                            )
                                     )
                     )
             );
