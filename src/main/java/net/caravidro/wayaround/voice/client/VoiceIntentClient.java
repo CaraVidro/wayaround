@@ -298,6 +298,26 @@ public final class VoiceIntentClient {
             return;
         }
 
+        /*
+         * Speculative recognition enters attentive mode as soon as "desmar"
+         * appears. If the speaker actually finishes the utterance there, the
+         * cutoff itself is treated as an intentional cast.
+         */
+        if (currentWords.contains(
+                "desmar"
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.TUKUNA_DESMARTELAR,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "TUKUNA / DESMAR"
+            );
+
+            tukunaDesmarPreparedUntil = 0L;
+            clearContext();
+            return;
+        }
+
         if (containsAny(
                 currentWords,
                 "desmartelar",

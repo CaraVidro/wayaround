@@ -164,12 +164,6 @@ public final class IndustrialContent {
                             .withTabsBefore(
                                     CreativeModeTabs.SPAWN_EGGS
                             )
-                            .icon(
-                                    () -> WayAroundContent.GOJO_SPECTRUM.get()
-                                            .getDefaultInstance()
-                            )
-                            .displayItems(
-                                    (parameters, output) -> {
                                         output.accept(
                                                 WayAroundContent.GOJO_SPECTRUM.get()
                                         );
@@ -180,16 +174,13 @@ public final class IndustrialContent {
                                                 WayAroundContent.JUSTICE_SPECTRUM.get()
                                         );
                                         output.accept(
+                                                WayAroundContent.IMMORTAL_WHEEL.get()
+                                        );
+                                        output.accept(
                                                 WayAroundContent.TUKUNA_FINGER.get()
                                         );
                                         output.accept(
-                                                WayAroundContent.PRIORITE_BLOCK_ITEM.get()
-                                        );
-                                        output.accept(
-                                                WayAroundContent.PRIORITE_BUCKET.get()
-                                        );
-                                        output.accept(
-                                                WayAroundContent.PRIORITE_BOTTLE.get()
+                                                WayAroundContent.JUSTICE_EXECUTION_BLADE.get()
                                         );
                                     }
                             )
