@@ -88,6 +88,11 @@ public final class VoiceIntentClient {
                 <= combatHotUntil;
     }
 
+    public static boolean shouldSpeculateSpeech() {
+        return isCombatHot()
+                || hasLocalTukunaSpectrum();
+    }
+
     /**
      * Called by speculative STT snapshots while the utterance is STILL being
      * spoken. This is intentionally much narrower than normal intent parsing:
