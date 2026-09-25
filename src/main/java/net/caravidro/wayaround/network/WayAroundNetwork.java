@@ -114,6 +114,12 @@ public final class WayAroundNetwork {
         );
 
         registrar.playToServer(
+                TukunaVoiceStatementC2SPayload.TYPE,
+                TukunaVoiceStatementC2SPayload.STREAM_CODEC,
+                TukunaVoiceStatementC2SPayload::handle
+        );
+
+        registrar.playToServer(
                 RecordingFinishedC2SPayload.TYPE,
                 RecordingFinishedC2SPayload.STREAM_CODEC,
                 RecordingFinishedC2SPayload::handle
