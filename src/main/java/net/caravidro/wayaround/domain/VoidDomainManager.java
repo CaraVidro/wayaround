@@ -516,8 +516,10 @@ public final class VoidDomainManager {
     public static void onBlockBreak(
             BlockEvent.BreakEvent event
     ) {
-        ServerPlayer player =
-                event.getPlayer();
+        if (!(event.getPlayer()
+                instanceof ServerPlayer player)) {
+            return;
+        }
 
         UUID ownerId =
                 PARTICIPANT_TO_OWNER.get(
