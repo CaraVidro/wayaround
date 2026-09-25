@@ -234,7 +234,7 @@ public final class ImmortalWheelClientEffects {
                             .add(
                                     0.0,
                                     player.getBbHeight()
-                                            + 0.72,
+                                            + 0.42,
                                     0.0
                             );
 
@@ -414,8 +414,9 @@ public final class ImmortalWheelClientEffects {
             }
 
             /*
-             * Intentional cursed-aura lag: the wheel is attached to the
-             * holder, but chases their head instead of being welded to it.
+             * Intentional cursed-halo lag: the wheel remains attached above
+             * the holder's head, but eases toward the target instead of being
+             * welded rigidly to the player model.
              */
             smoothedAnchor =
                     smoothedAnchor.lerp(
