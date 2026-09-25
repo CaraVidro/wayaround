@@ -1,6 +1,11 @@
 package net.caravidro.wayaround.cursed;
 
+import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -9,7 +14,11 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.TukunaPossessionS2CPayload;
+import net.caravidro.wayaround.network.TukunaFugaVisualPayload;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -17,7 +26,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -25,6 +38,10 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -62,6 +79,24 @@ public final class TukunaManager {
     private static final int POSSESSION_RETURNING_TICKS = 20;
     private static final int SWAP_COOLDOWN_TICKS = 300;
 
+    private static final int FUGA_CHARGE_TICKS =
+            80;
+
+    private static final int FUGA_PROJECTILE_LIFE =
+            140;
+
+    private static final int FUGA_SUBSTEPS =
+            7;
+
+    private static final double FUGA_SPEED =
+            3.8;
+
+    private static final double FUGA_CRATER_RADIUS_XZ =
+            18.0;
+
+    private static final double FUGA_CRATER_RADIUS_Y =
+            11.0;
+
     private static final String FINGER_OWNER_KEY =
             "WayAroundTukunaFingerOwner";
 
@@ -76,6 +111,12 @@ public final class TukunaManager {
 
     private static final String GHOST_KEY =
             "WayAroundTukunaGhost";
+
+    private static final String FUGA_PHRASE_KEY =
+            "WayAroundTukunaFugaPhrase";
+
+    private static final String FUGA_PROMPT_KEY =
+            "WayAroundTukunaFugaPhrasePrompted";
 
     private static final ResourceLocation HOST_ARMOR_ID =
             ResourceLocation.fromNamespaceAndPath(
@@ -121,6 +162,12 @@ public final class TukunaManager {
 
     private static final Map<UUID, Long> DESMARTELAR_COOLDOWNS =
             new HashMap<>();
+
+    private static final Map<UUID, FugaCharge> FUGA_CHARGES =
+            new HashMap<>();
+
+    private static final List<FugaProjectile> FUGA_PROJECTILES =
+            new ArrayList<>();
 
     private static final Map<UUID, Possession> POSSESSIONS =
             new HashMap<>();
@@ -266,6 +313,16 @@ public final class TukunaManager {
                 tick
         );
 
+        tickFugaCharges(
+                server,
+                tick
+        );
+
+        tickFugaProjectiles(
+                server,
+                tick
+        );
+
         if (tick % 20L != 0L) {
             return;
         }
@@ -296,6 +353,10 @@ public final class TukunaManager {
                                             ChatFormatting.BOLD
                                     ),
                             false
+                    );
+
+                    promptFugaPhrase(
+                            player
                     );
                 }
             } else {
@@ -424,6 +485,18 @@ public final class TukunaManager {
             return;
         }
 
+        if (handleSpectrumSpeech(
+                player,
+                raw
+        )) {
+
+            event.setCanceled(
+                    true
+            );
+
+            return;
+        }
+
         if (raw.equalsIgnoreCase(
                 "trocar"
         )) {
@@ -437,6 +510,36 @@ public final class TukunaManager {
         }
     }
 
+    public static void onVoiceStatement(
+            ServerPlayer player,
+            String transcript
+    ) {
+        if (transcript == null
+                || transcript.isBlank()
+                || isSilencedHost(
+                player
+        )) {
+            return;
+        }
+
+        if (handleSpectrumSpeech(
+                player,
+                transcript
+        )) {
+            return;
+        }
+
+        if ("trocar".equals(
+                normalizeSpeech(
+                        transcript
+                )
+        )) {
+            confirmSwap(
+                    player
+            );
+        }
+    }
+
     @SubscribeEvent
     public static void onServerStopped(
             ServerStoppedEvent event
@@ -444,6 +547,8 @@ public final class TukunaManager {
         SWAP_CONFIRMATIONS.clear();
         SWAP_COOLDOWNS.clear();
         DESMARTELAR_COOLDOWNS.clear();
+        FUGA_CHARGES.clear();
+        FUGA_PROJECTILES.clear();
         POSSESSIONS.clear();
         SPECTRUM_PRESENT.clear();
         GHOST_NOTIFIED.clear();
@@ -956,6 +1061,16 @@ public final class TukunaManager {
     public static void castPossessedDesmartelar(
             ServerPlayer player
     ) {
+        castPossessedDesmartelar(
+                player,
+                false
+        );
+    }
+
+    public static void castPossessedDesmartelar(
+            ServerPlayer player,
+            boolean fire
+    ) {
         long tick =
                 player.server
                         .getTickCount();
@@ -997,8 +1112,886 @@ public final class TukunaManager {
 
         Desmartelar.cast(
                 player,
-                fingers
+                fingers,
+                fire
         );
+    }
+
+    public static boolean prepareFuga(
+            ServerPlayer player
+    ) {
+        if (!hasSpectrum(
+                player
+        )) {
+            return false;
+        }
+
+        long tick =
+                player.server
+                        .getTickCount();
+
+        FugaCharge existing =
+                FUGA_CHARGES.get(
+                        player.getUUID()
+                );
+
+        if (existing != null) {
+            return true;
+        }
+
+        FUGA_CHARGES.put(
+                player.getUUID(),
+                new FugaCharge(
+                        player.getUUID(),
+                        tick,
+                        tick + FUGA_CHARGE_TICKS
+                )
+        );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.BLAZE_AMBIENT,
+                        SoundSource.PLAYERS,
+                        1.05F,
+                        0.48F
+                );
+
+        player.displayClientMessage(
+                Component.literal(
+                        "Tukuna: Fuga começou a carregar..."
+                ).withStyle(
+                        ChatFormatting.GOLD
+                ),
+                true
+        );
+
+        return true;
+    }
+
+    public static boolean launchFuga(
+            ServerPlayer player
+    ) {
+        FugaCharge charge =
+                FUGA_CHARGES.get(
+                        player.getUUID()
+                );
+
+        if (charge == null) {
+            return false;
+        }
+
+        long tick =
+                player.server
+                        .getTickCount();
+
+        if (tick < charge.readyAt) {
+            player.displayClientMessage(
+                    Component.literal(
+                            "Fuga ainda está carregando."
+                    ).withStyle(
+                            ChatFormatting.RED
+                    ),
+                    true
+            );
+
+            return false;
+        }
+
+        FUGA_CHARGES.remove(
+                player.getUUID()
+        );
+
+        Vec3 direction =
+                player.getLookAngle()
+                        .normalize();
+
+        Vec3 position =
+                player.getEyePosition()
+                        .add(
+                                direction.scale(
+                                        1.4
+                                )
+                        );
+
+        FUGA_PROJECTILES.add(
+                new FugaProjectile(
+                        player.getUUID(),
+                        player.serverLevel()
+                                .dimension(),
+                        position,
+                        direction.scale(
+                                FUGA_SPEED
+                        ),
+                        FUGA_PROJECTILE_LIFE
+                )
+        );
+
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.BLAZE_SHOOT,
+                        SoundSource.PLAYERS,
+                        2.0F,
+                        0.42F
+                );
+
+        player.serverLevel()
+                .sendParticles(
+                        ParticleTypes.FLAME,
+                        position.x,
+                        position.y,
+                        position.z,
+                        48,
+                        0.28,
+                        0.28,
+                        0.28,
+                        0.12
+                );
+
+        return true;
+    }
+
+    private static void promptFugaPhrase(
+            ServerPlayer player
+    ) {
+        if (!player.getPersistentData()
+                .getString(
+                        FUGA_PHRASE_KEY
+                )
+                .isBlank()) {
+            return;
+        }
+
+        if (player.getPersistentData()
+                .getBoolean(
+                        FUGA_PROMPT_KEY
+                )) {
+            return;
+        }
+
+        player.getPersistentData()
+                .putBoolean(
+                        FUGA_PROMPT_KEY,
+                        true
+                );
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "Tukuna: escolha sua frase de preparação com: frase de fuga: <sua frase>"
+                ).withStyle(
+                        ChatFormatting.DARK_RED
+                )
+        );
+    }
+
+    private static boolean handleSpectrumSpeech(
+            ServerPlayer player,
+            String raw
+    ) {
+        if (!hasSpectrum(
+                player
+        )) {
+            return false;
+        }
+
+        String normalized =
+                normalizeSpeech(
+                        raw
+                );
+
+        if (normalized.startsWith(
+                "frase de fuga "
+        )) {
+
+            String phrase =
+                    normalized.substring(
+                            "frase de fuga ".length()
+                    )
+                            .trim();
+
+            if (phrase.length() < 3
+                    || phrase.contains(
+                    "fuga"
+            )) {
+
+                player.displayClientMessage(
+                        Component.literal(
+                                "Escolha uma frase com pelo menos 3 caracteres e sem usar a palavra 'fuga'."
+                        ).withStyle(
+                                ChatFormatting.RED
+                        ),
+                        true
+                );
+
+                return true;
+            }
+
+            player.getPersistentData()
+                    .putString(
+                            FUGA_PHRASE_KEY,
+                            phrase
+                    );
+
+            player.displayClientMessage(
+                    Component.literal(
+                            "Frase da Fuga definida: \""
+                                    + phrase
+                                    + "\""
+                    ).withStyle(
+                            ChatFormatting.GOLD
+                    ),
+                    false
+            );
+
+            return true;
+        }
+
+        String phrase =
+                player.getPersistentData()
+                        .getString(
+                                FUGA_PHRASE_KEY
+                        );
+
+        if (!phrase.isBlank()
+                && normalized.contains(
+                phrase
+        )) {
+
+            prepareFuga(
+                    player
+            );
+
+            return true;
+        }
+
+        if ("fuga".equals(
+                normalized
+        )
+                || normalized.endsWith(
+                " fuga"
+        )) {
+
+            launchFuga(
+                    player
+            );
+
+            return true;
+        }
+
+        if (normalized.startsWith(
+                "desmartelar"
+        )
+                || normalized.startsWith(
+                "desmantelar"
+        )) {
+
+            castPossessedDesmartelar(
+                    player,
+                    normalized.contains(
+                            "fogo"
+                    )
+            );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static String normalizeSpeech(
+            String text
+    ) {
+        return Normalizer.normalize(
+                text.toLowerCase(
+                        Locale.ROOT
+                ),
+                Normalizer.Form.NFD
+        ).replaceAll(
+                "\\p{M}+",
+                ""
+        ).replaceAll(
+                "[^a-z0-9 ]",
+                " "
+        ).replaceAll(
+                "\\s+",
+                " "
+        ).trim();
+    }
+
+    private static void tickFugaCharges(
+            MinecraftServer server,
+            long tick
+    ) {
+        Iterator<Map.Entry<UUID, FugaCharge>> iterator =
+                FUGA_CHARGES.entrySet()
+                        .iterator();
+
+        while (iterator.hasNext()) {
+            FugaCharge charge =
+                    iterator.next()
+                            .getValue();
+
+            ServerPlayer player =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    charge.owner
+                            );
+
+            if (player == null
+                    || !player.isAlive()
+                    || !hasSpectrum(
+                    player
+            )) {
+
+                iterator.remove();
+                continue;
+            }
+
+            double progress =
+                    Mth.clamp(
+                            (
+                                    tick
+                                            - charge.startedAt
+                            )
+                                    / (double) FUGA_CHARGE_TICKS,
+                            0.0,
+                            1.0
+                    );
+
+            Vec3 center =
+                    player.getEyePosition()
+                            .add(
+                                    player.getLookAngle()
+                                            .normalize()
+                                            .scale(
+                                                    0.55
+                                            )
+                            );
+
+            if (tick % 2L == 0L) {
+                player.serverLevel()
+                        .sendParticles(
+                                progress >= 1.0
+                                        ? ParticleTypes.SOUL_FIRE_FLAME
+                                        : ParticleTypes.FLAME,
+                                center.x,
+                                center.y,
+                                center.z,
+                                progress >= 1.0
+                                        ? 8
+                                        : 3,
+                                0.22 + progress * 0.22,
+                                0.22,
+                                0.22 + progress * 0.22,
+                                0.025
+                        );
+            }
+
+            if (tick % 20L == 0L) {
+                player.serverLevel()
+                        .playSound(
+                                null,
+                                player.blockPosition(),
+                                SoundEvents.FIRE_AMBIENT,
+                                SoundSource.PLAYERS,
+                                0.45F
+                                        + (float) progress
+                                                * 0.75F,
+                                0.48F
+                                        + (float) progress
+                                                * 0.45F
+                        );
+            }
+
+            if (!charge.readyAnnounced
+                    && tick >= charge.readyAt) {
+
+                charge.readyAnnounced =
+                        true;
+
+                player.displayClientMessage(
+                        Component.literal(
+                                "Fuga pronta. Diga: fuga"
+                        ).withStyle(
+                                ChatFormatting.GOLD,
+                                ChatFormatting.BOLD
+                        ),
+                        true
+                );
+
+                player.serverLevel()
+                        .playSound(
+                                null,
+                                player.blockPosition(),
+                                SoundEvents.BEACON_POWER_SELECT,
+                                SoundSource.PLAYERS,
+                                1.2F,
+                                0.62F
+                        );
+            }
+        }
+    }
+
+    private static void tickFugaProjectiles(
+            MinecraftServer server,
+            long tick
+    ) {
+        Iterator<FugaProjectile> iterator =
+                FUGA_PROJECTILES.iterator();
+
+        while (iterator.hasNext()) {
+            FugaProjectile projectile =
+                    iterator.next();
+
+            ServerLevel level =
+                    server.getLevel(
+                            projectile.dimension
+                    );
+
+            ServerPlayer owner =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    projectile.owner
+                            );
+
+            if (level == null
+                    || owner == null) {
+
+                iterator.remove();
+                continue;
+            }
+
+            projectile.life--;
+
+            boolean collide =
+                    projectile.life <= 0;
+
+            Vec3 step =
+                    projectile.velocity.scale(
+                            1.0
+                                    / FUGA_SUBSTEPS
+                    );
+
+            for (int sub = 0;
+                 sub < FUGA_SUBSTEPS
+                        && !collide;
+                 sub++) {
+
+                projectile.position =
+                        projectile.position.add(
+                                step
+                        );
+
+                BlockPos pos =
+                        BlockPos.containing(
+                                projectile.position
+                        );
+
+                BlockState state =
+                        level.getBlockState(
+                                pos
+                        );
+
+                if (!state.isAir()) {
+                    collide =
+                            true;
+
+                    break;
+                }
+
+                AABB hitbox =
+                        new AABB(
+                                projectile.position.x - 0.72,
+                                projectile.position.y - 0.72,
+                                projectile.position.z - 0.72,
+                                projectile.position.x + 0.72,
+                                projectile.position.y + 0.72,
+                                projectile.position.z + 0.72
+                        );
+
+                if (!level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        hitbox,
+                        entity ->
+                                entity.isAlive()
+                                        && entity != owner
+                ).isEmpty()) {
+
+                    collide =
+                            true;
+                }
+            }
+
+            level.sendParticles(
+                    ParticleTypes.FLAME,
+                    projectile.position.x,
+                    projectile.position.y,
+                    projectile.position.z,
+                    12,
+                    0.16,
+                    0.16,
+                    0.16,
+                    0.035
+            );
+
+            level.sendParticles(
+                    ParticleTypes.END_ROD,
+                    projectile.position.x,
+                    projectile.position.y,
+                    projectile.position.z,
+                    3,
+                    0.08,
+                    0.08,
+                    0.08,
+                    0.012
+            );
+
+            if (collide) {
+                detonateFuga(
+                        level,
+                        owner,
+                        projectile.position
+                );
+
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void detonateFuga(
+            ServerLevel level,
+            ServerPlayer owner,
+            Vec3 center
+    ) {
+        PacketDistributor.sendToPlayersNear(
+                level,
+                null,
+                center.x,
+                center.y,
+                center.z,
+                512.0,
+                new TukunaFugaVisualPayload(
+                        owner.getUUID(),
+                        center.x,
+                        center.y,
+                        center.z,
+                        90
+                )
+        );
+
+        pulverizeFugaCrater(
+                level,
+                center
+        );
+
+        level.explode(
+                owner,
+                center.x,
+                center.y,
+                center.z,
+                16.0F,
+                true,
+                Level.ExplosionInteraction.TNT
+        );
+
+        double damageRadius =
+                30.0;
+
+        AABB area =
+                new AABB(
+                        center.x - damageRadius,
+                        center.y - damageRadius,
+                        center.z - damageRadius,
+                        center.x + damageRadius,
+                        center.y + damageRadius,
+                        center.z + damageRadius
+                );
+
+        for (LivingEntity living :
+                level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        area,
+                        entity ->
+                                entity.isAlive()
+                                        && entity != owner
+                )) {
+
+            double distance =
+                    living.position()
+                            .distanceTo(
+                                    center
+                            );
+
+            if (distance > damageRadius) {
+                continue;
+            }
+
+            double factor =
+                    1.0
+                            - distance
+                                    / damageRadius;
+
+            living.hurt(
+                    owner.damageSources()
+                            .playerAttack(
+                                    owner
+                            ),
+                    (float) (
+                            18.0
+                                    + factor
+                                            * factor
+                                            * 62.0
+                    )
+            );
+
+            living.igniteForSeconds(
+                    18.0F
+            );
+        }
+
+        for (int y = 0;
+             y <= 120;
+             y += 2) {
+
+            double width =
+                    0.9
+                            + y
+                                    * 0.018;
+
+            level.sendParticles(
+                    y % 8 == 0
+                            ? ParticleTypes.END_ROD
+                            : ParticleTypes.FLAME,
+                    center.x,
+                    center.y + y,
+                    center.z,
+                    8,
+                    width,
+                    0.9,
+                    width,
+                    0.035
+            );
+        }
+
+        for (int i = 0;
+             i < 260;
+             i++) {
+
+            double theta =
+                    level.random.nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            double speed =
+                    0.8
+                            + level.random.nextDouble()
+                                    * 3.0;
+
+            level.sendParticles(
+                    i % 3 == 0
+                            ? ParticleTypes.SOUL_FIRE_FLAME
+                            : ParticleTypes.FLAME,
+                    center.x,
+                    center.y + 1.0,
+                    center.z,
+                    0,
+                    Math.cos(theta) * speed,
+                    0.4
+                            + level.random.nextDouble()
+                                    * 2.6,
+                    Math.sin(theta) * speed,
+                    1.0
+            );
+        }
+
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        center
+                ),
+                SoundEvents.GENERIC_EXPLODE.value(),
+                SoundSource.PLAYERS,
+                4.0F,
+                0.34F
+        );
+    }
+
+    private static void pulverizeFugaCrater(
+            ServerLevel level,
+            Vec3 center
+    ) {
+        int radiusX =
+                Mth.ceil(
+                        FUGA_CRATER_RADIUS_XZ
+                );
+
+        int radiusY =
+                Mth.ceil(
+                        FUGA_CRATER_RADIUS_Y
+                );
+
+        int particleBudget =
+                0;
+
+        for (int x = -radiusX;
+             x <= radiusX;
+             x++) {
+
+            for (int y = -radiusY;
+                 y <= radiusY;
+                 y++) {
+
+                for (int z = -radiusX;
+                     z <= radiusX;
+                     z++) {
+
+                    double normalized =
+                            (
+                                    x * x
+                                            + z * z
+                            )
+                                    / (
+                                    FUGA_CRATER_RADIUS_XZ
+                                            * FUGA_CRATER_RADIUS_XZ
+                            )
+                                    + y * y
+                                            / (
+                                            FUGA_CRATER_RADIUS_Y
+                                                    * FUGA_CRATER_RADIUS_Y
+                                    );
+
+                    if (normalized > 1.0) {
+                        continue;
+                    }
+
+                    BlockPos pos =
+                            BlockPos.containing(
+                                    center.x + x,
+                                    center.y + y,
+                                    center.z + z
+                            );
+
+                    BlockState state =
+                            level.getBlockState(
+                                    pos
+                            );
+
+                    if (state.isAir()
+                            || state.getDestroySpeed(
+                            level,
+                            pos
+                    ) < 0.0F) {
+                        continue;
+                    }
+
+                    level.setBlock(
+                            pos,
+                            Blocks.AIR
+                                    .defaultBlockState(),
+                            2
+                    );
+
+                    if (particleBudget < 150
+                            && level.random.nextFloat()
+                            < 0.035F) {
+
+                        Vec3 blockCenter =
+                                Vec3.atCenterOf(
+                                        pos
+                                );
+
+                        level.sendParticles(
+                                new BlockParticleOption(
+                                        ParticleTypes.BLOCK,
+                                        state
+                                ),
+                                blockCenter.x,
+                                blockCenter.y,
+                                blockCenter.z,
+                                2,
+                                0.35,
+                                0.35,
+                                0.35,
+                                0.24
+                        );
+
+                        particleBudget++;
+                    }
+                }
+            }
+        }
+
+        for (int attempt = 0;
+             attempt < 180;
+             attempt++) {
+
+            double angle =
+                    level.random.nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            double radius =
+                    FUGA_CRATER_RADIUS_XZ
+                            * (
+                            0.65
+                                    + level.random.nextDouble()
+                                            * 0.75
+                    );
+
+            int x =
+                    Mth.floor(
+                            center.x
+                                    + Math.cos(
+                                    angle
+                            )
+                                    * radius
+                    );
+
+            int z =
+                    Mth.floor(
+                            center.z
+                                    + Math.sin(
+                                    angle
+                            )
+                                    * radius
+                    );
+
+            int y =
+                    level.getHeight(
+                            net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                            x,
+                            z
+                    );
+
+            BlockPos firePos =
+                    new BlockPos(
+                            x,
+                            y,
+                            z
+                    );
+
+            BlockState fire =
+                    Blocks.FIRE
+                            .defaultBlockState();
+
+            if (level.getBlockState(
+                    firePos
+            ).isAir()
+                    && fire.canSurvive(
+                    level,
+                    firePos
+            )) {
+
+                level.setBlock(
+                        firePos,
+                        fire,
+                        3
+                );
+            }
+        }
     }
 
     private static void beginPossession(
@@ -1681,6 +2674,45 @@ public final class TukunaManager {
                                 entry.getValue()
                                         <= tick
                 );
+    }
+
+    private static final class FugaCharge {
+        private final UUID owner;
+        private final long startedAt;
+        private final long readyAt;
+        private boolean readyAnnounced;
+
+        private FugaCharge(
+                UUID owner,
+                long startedAt,
+                long readyAt
+        ) {
+            this.owner = owner;
+            this.startedAt = startedAt;
+            this.readyAt = readyAt;
+        }
+    }
+
+    private static final class FugaProjectile {
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private Vec3 position;
+        private final Vec3 velocity;
+        private int life;
+
+        private FugaProjectile(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 position,
+                Vec3 velocity,
+                int life
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.position = position;
+            this.velocity = velocity;
+            this.life = life;
+        }
     }
 
     private static final class Possession {

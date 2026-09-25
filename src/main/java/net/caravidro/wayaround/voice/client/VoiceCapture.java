@@ -540,7 +540,7 @@ public final class VoiceCapture {
             int lastSubmittedBytes
     ) {
         if (utterance == null
-                || !VoiceIntentClient.isCombatHot()) {
+                || !VoiceIntentClient.wantsSpeculativeRecognition()) {
             return lastSubmittedBytes;
         }
 

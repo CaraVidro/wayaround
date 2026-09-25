@@ -15,6 +15,7 @@ import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.BlueGestureS2CPayload;
 import net.caravidro.wayaround.network.BlueScrollPayload;
 import net.caravidro.wayaround.network.BlueVisualPayload;
+import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -177,7 +178,7 @@ public final class BlueClientEffects {
                 Minecraft.getInstance();
 
         if (minecraft.player == null
-                || !hasBlueItem(
+                || !hasBlueControl(
                         minecraft
                 )
                 || !hasOwnedControllableBlue(
@@ -204,6 +205,55 @@ public final class BlueClientEffects {
         event.setCanceled(
                 true
         );
+    }
+
+    @SubscribeEvent
+    public static void onUseInput(
+            InputEvent.InteractionKeyMappingTriggered event
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (!event.isUseItem()
+                || event.getHand()
+                        != InteractionHand.MAIN_HAND
+                || minecraft.player == null
+                || minecraft.getConnection() == null) {
+            return;
+        }
+
+        if (BetaTechniqueClientEffects.hasLocalHeldRed()) {
+            PacketDistributor.sendToServer(
+                    new VoiceIntentC2SPayload(
+                            VoiceIntentC2SPayload.RED_LAUNCH,
+                            -1.0F,
+                            0.0F
+                    )
+            );
+
+            event.setSwingHand(false);
+            event.setCanceled(true);
+            return;
+        }
+
+        if (hasOwnedControllableBlue(
+                minecraft.player.getUUID()
+        )
+                && hasBlueControl(
+                minecraft
+        )) {
+
+            PacketDistributor.sendToServer(
+                    new VoiceIntentC2SPayload(
+                            VoiceIntentC2SPayload.BLUE_STOP,
+                            -1.0F,
+                            0.0F
+                    )
+            );
+
+            event.setSwingHand(false);
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent
@@ -1147,10 +1197,14 @@ public final class BlueClientEffects {
                         == BlueVisualPayload.ACTIVE;
     }
 
-    private static boolean hasBlueItem(
+    private static boolean hasBlueControl(
             Minecraft minecraft
     ) {
-        return minecraft.player
+        if (minecraft.player == null) {
+            return false;
+        }
+
+        if (minecraft.player
                 .getMainHandItem()
                 .is(
                         WayAroundContent.BLUE.get()
@@ -1159,7 +1213,27 @@ public final class BlueClientEffects {
                         .getOffhandItem()
                         .is(
                                 WayAroundContent.BLUE.get()
-                        );
+                        )) {
+            return true;
+        }
+
+        for (int slot = 0;
+             slot < minecraft.player
+                     .getInventory()
+                     .getContainerSize();
+             slot++) {
+
+            if (minecraft.player
+                    .getInventory()
+                    .getItem(slot)
+                    .is(
+                            WayAroundContent.GOJO_SPECTRUM.get()
+                    )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void cutCloud(

@@ -93,6 +93,8 @@ public final class BetaTechniqueWorldRenderer {
             if (state.mode()
                     == BetaTechniqueVisualPayload.RED
                     || state.mode()
+                            == BetaTechniqueVisualPayload.RED_HELD
+                    || state.mode()
                             == BetaTechniqueVisualPayload.PAIR_BLUE
                     || state.mode()
                             == BetaTechniqueVisualPayload.PURPLE_PROJECTILE
@@ -137,7 +139,9 @@ public final class BetaTechniqueWorldRenderer {
                 states) {
 
             if (state.mode()
-                    == BetaTechniqueVisualPayload.RED) {
+                    == BetaTechniqueVisualPayload.RED
+                    || state.mode()
+                            == BetaTechniqueVisualPayload.RED_HELD) {
 
                 emitRed(
                         buffer,
@@ -227,14 +231,27 @@ public final class BetaTechniqueWorldRenderer {
                 pose.last()
                         .pose();
 
+        float charge =
+                Mth.clamp(
+                        state.power(),
+                        1.0F,
+                        2.0F
+                );
+
+        int glow =
+                Math.round(
+                        (charge - 1.0F)
+                                * 120.0F
+                );
+
         cube(
                 buffer,
                 matrix,
                 0.46F,
                 255,
-                15,
-                20,
-                28
+                15 + glow / 5,
+                20 + glow / 8,
+                28 + glow
         );
 
         cube(
@@ -242,9 +259,9 @@ public final class BetaTechniqueWorldRenderer {
                 matrix,
                 0.31F,
                 255,
-                24,
-                28,
-                84
+                24 + glow / 3,
+                28 + glow / 4,
+                84 + glow
         );
 
         cube(
@@ -252,9 +269,9 @@ public final class BetaTechniqueWorldRenderer {
                 matrix,
                 0.19F,
                 255,
-                72,
-                62,
-                238
+                72 + glow,
+                62 + glow / 2,
+                238 + Math.min(17, glow)
         );
 
         pose.popPose();

@@ -399,6 +399,28 @@ public final class JusticeDomainManager {
                 0.62F
         );
 
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        exteriorCenter
+                ),
+                SoundEvents.ANVIL_LAND,
+                SoundSource.PLAYERS,
+                1.75F,
+                0.66F
+        );
+
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        exteriorCenter
+                ),
+                SoundEvents.ANVIL_USE,
+                SoundSource.PLAYERS,
+                1.15F,
+                0.82F
+        );
+
         owner.sendSystemMessage(
                 Component.literal(
                         "EXPANSÃO DE DOMÍNIO — TRIBUNAL DA JUSTIÇA"

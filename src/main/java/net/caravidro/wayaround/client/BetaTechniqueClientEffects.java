@@ -123,6 +123,27 @@ public final class BetaTechniqueClientEffects {
         }
     }
 
+    public static boolean hasLocalHeldRed() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return false;
+        }
+
+        VisualState state =
+                STATES.get(
+                        minecraft.player.getUUID()
+                );
+
+        return state != null
+                && state.mode
+                        == BetaTechniqueVisualPayload.RED_HELD
+                && minecraft.level != null
+                && minecraft.level.getGameTime()
+                        - state.lastSeen <= 12L;
+    }
+
     public static float fusionStrength(
             UUID owner
     ) {

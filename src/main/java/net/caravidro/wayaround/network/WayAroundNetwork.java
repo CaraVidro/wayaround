@@ -96,6 +96,12 @@ public final class WayAroundNetwork {
         );
 
         registrar.playToClient(
+                TukunaFugaVisualPayload.TYPE,
+                TukunaFugaVisualPayload.STREAM_CODEC,
+                TukunaFugaVisualPayload::handle
+        );
+
+        registrar.playToClient(
                 VoidDomainVisualPayload.TYPE,
                 VoidDomainVisualPayload.STREAM_CODEC,
                 VoidDomainVisualPayload::handle
@@ -111,6 +117,12 @@ public final class WayAroundNetwork {
                 JusticeVoiceStatementC2SPayload.TYPE,
                 JusticeVoiceStatementC2SPayload.STREAM_CODEC,
                 JusticeVoiceStatementC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                TukunaVoiceStatementC2SPayload.TYPE,
+                TukunaVoiceStatementC2SPayload.STREAM_CODEC,
+                TukunaVoiceStatementC2SPayload::handle
         );
 
         registrar.playToServer(

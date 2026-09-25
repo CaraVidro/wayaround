@@ -27,6 +27,7 @@ public record BetaTechniqueVisualPayload(
     public static final byte AFTERMATH = 4;
     public static final byte PAIR_BLUE = 5;
     public static final byte PURPLE_PROJECTILE = 6;
+    public static final byte RED_HELD = 7;
 
     public static final Type<BetaTechniqueVisualPayload> TYPE =
             new Type<>(

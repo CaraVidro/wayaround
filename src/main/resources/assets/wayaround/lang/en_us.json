@@ -267,5 +267,6 @@
     "message.wayaround.justice.hint": "Keep this Spectrum in your inventory and say/type \"domain expansion\" near any living entity.",
     "item.wayaround.justice_execution_blade": "Sentence Blade",
     "tooltip.wayaround.justice_blade": "Glows while a valid sentence is active. Melee reach; severe impact.",
-    "tooltip.wayaround.justice_blade.target": "Sentence target: %s"
+    "tooltip.wayaround.justice_blade.target": "Sentence target: %s",
+    "itemGroup.wayaround.spectrums": "Spectrums"
 }

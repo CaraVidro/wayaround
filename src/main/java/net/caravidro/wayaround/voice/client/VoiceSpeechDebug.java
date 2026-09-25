@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.JusticeVoiceStatementC2SPayload;
+import net.caravidro.wayaround.network.TukunaVoiceStatementC2SPayload;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -295,6 +296,12 @@ public final class VoiceSpeechDebug {
 
                         PacketDistributor.sendToServer(
                                 new JusticeVoiceStatementC2SPayload(
+                                        refinedTranscript
+                                )
+                        );
+
+                        PacketDistributor.sendToServer(
+                                new TukunaVoiceStatementC2SPayload(
                                         refinedTranscript
                                 )
                         );
