@@ -221,5 +221,16 @@
     "message.wayaround.black_flash.wheel_cracked": "Immortal Wheel scarred: %s/%s",
     "message.wayaround.black_flash.wheel_destroyed": "Third Black Flash — the Immortal Wheel is collapsing.",
     "message.wayaround.immortal_wheel.black_flash_damage": "Immortal Wheel damaged: %s/%s | Adaptation now needs %s matching hits per turn.",
-    "message.wayaround.immortal_wheel.destroyed": "The Immortal Wheel was torn from you. It has gone black."
+    "message.wayaround.immortal_wheel.destroyed": "The Immortal Wheel was torn from you. It has gone black.",
+    "item.wayaround.tukuna_spectrum": "Tukuna Spectrum",
+    "item.wayaround.tukuna_finger": "Tukuna's Finger",
+    "tooltip.wayaround.tukuna_spectrum": "A complete cursed spectrum. Right click: Desmartelar.",
+    "tooltip.wayaround.tukuna_spectrum.desmartelar": "A short 3D dismantling band tears through blocks and living targets.",
+    "tooltip.wayaround.tukuna_finger": "Eat it and somebody else becomes part of your future problems.",
+    "message.wayaround.tukuna.spectrum_lost": "Your Tukuna Spectrum died with this body. A finger remained behind.",
+    "message.wayaround.tukuna.finger_empty": "This finger has no soul attached to it.",
+    "message.wayaround.tukuna.other_spirit": "Something is already living inside you. This is the wrong finger.",
+    "message.wayaround.tukuna.max_fingers": "You already carry all 20 fingers.",
+    "message.wayaround.tukuna.finger_eaten": "Tukuna fingers consumed: %s/%s. Strength, resistance and speed are now permanent.",
+    "message.wayaround.immortal_wheel.bound": "The Immortal Wheel is no longer an item. It has bound itself to you."
 }

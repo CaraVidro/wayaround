@@ -1,6 +1,5 @@
 package net.caravidro.wayaround.cursed;
 
-import net.caravidro.wayaround.content.WayAroundContent;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -15,17 +14,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-/**
- * Dormant physical Immortal Wheel.
- *
- * Normal remnant: immortal, lava-proof, clickable and inheritable.
- * Shattered remnant: third-Black-Flash corpse; black, unclaimable and it
- * collapses into ash after a short death animation.
- */
 public final class ImmortalWheelRemnantEntity extends Entity {
 
     private static final EntityDataAccessor<Boolean> SHATTERED =
@@ -40,70 +31,38 @@ public final class ImmortalWheelRemnantEntity extends Entity {
             EntityType<? extends ImmortalWheelRemnantEntity> type,
             Level level
     ) {
-        super(
-                type,
-                level
-        );
-
-        setInvulnerable(
-                true
-        );
+        super(type, level);
+        setInvulnerable(true);
     }
 
     @Override
     protected void defineSynchedData(
             SynchedEntityData.Builder builder
     ) {
-        builder.define(
-                SHATTERED,
-                false
-        );
+        builder.define(SHATTERED, false);
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        if (isRemoved()) {
-            return;
-        }
+        if (isRemoved()) return;
 
-        Vec3 velocity =
-                getDeltaMovement();
+        Vec3 velocity = getDeltaMovement();
 
         if (!isNoGravity()) {
-            velocity =
-                    velocity.add(
-                            0.0,
-                            -0.045,
-                            0.0
-                    );
+            velocity = velocity.add(0.0, -0.045, 0.0);
         }
 
-        setDeltaMovement(
-                velocity
-        );
+        setDeltaMovement(velocity);
+        move(MoverType.SELF, velocity);
 
-        move(
-                MoverType.SELF,
-                velocity
-        );
-
-        Vec3 after =
-                getDeltaMovement();
+        Vec3 after = getDeltaMovement();
 
         if (onGround()) {
-            setDeltaMovement(
-                    after.x * 0.58,
-                    0.0,
-                    after.z * 0.58
-            );
+            setDeltaMovement(after.x * 0.58, 0.0, after.z * 0.58);
         } else {
-            setDeltaMovement(
-                    after.scale(
-                            0.985
-                    )
-            );
+            setDeltaMovement(after.scale(0.985));
         }
 
         clearFire();
@@ -184,39 +143,6 @@ public final class ImmortalWheelRemnantEntity extends Entity {
             return InteractionResult.PASS;
         }
 
-        ItemStack wheel =
-                new ItemStack(
-                        WayAroundContent.IMMORTAL_WHEEL.get()
-                );
-
-        ImmortalWheelManager.setWheelDamage(
-                wheel,
-                wheelDamage
-        );
-
-        boolean received =
-                serverPlayer.getInventory()
-                        .add(
-                                wheel
-                        );
-
-        if (!received
-                && serverPlayer.getItemInHand(hand)
-                        .isEmpty()) {
-
-            serverPlayer.setItemInHand(
-                    hand,
-                    wheel
-            );
-
-            received =
-                    true;
-        }
-
-        if (!received) {
-            return InteractionResult.CONSUME;
-        }
-
         Vec3 origin =
                 position()
                         .add(
@@ -225,7 +151,7 @@ public final class ImmortalWheelRemnantEntity extends Entity {
                                 0.0
                         );
 
-        ImmortalWheelManager.reactivateFromRemnant(
+        ImmortalWheelManager.bindFromRemnant(
                 serverPlayer,
                 wheelDamage,
                 origin
@@ -236,69 +162,40 @@ public final class ImmortalWheelRemnantEntity extends Entity {
         return InteractionResult.CONSUME;
     }
 
-    public void setWheelDamage(
-            int wheelDamage
-    ) {
-        this.wheelDamage =
-                Mth.clamp(
-                        wheelDamage,
-                        0,
-                        3
-                );
+    public void setWheelDamage(int wheelDamage) {
+        this.wheelDamage = Mth.clamp(wheelDamage, 0, 3);
     }
 
     public int wheelDamage() {
         return wheelDamage;
     }
 
-    public void setShattered(
-            boolean shattered
-    ) {
-        entityData.set(
-                SHATTERED,
-                shattered
-        );
+    public void setShattered(boolean shattered) {
+        entityData.set(SHATTERED, shattered);
     }
 
     public boolean isShattered() {
-        return entityData.get(
-                SHATTERED
-        );
+        return entityData.get(SHATTERED);
     }
 
     @Override
-    protected void readAdditionalSaveData(
-            CompoundTag tag
-    ) {
+    protected void readAdditionalSaveData(CompoundTag tag) {
         wheelDamage =
                 Mth.clamp(
-                        tag.getInt(
-                                "WheelDamage"
-                        ),
+                        tag.getInt("WheelDamage"),
                         0,
                         3
                 );
 
         setShattered(
-                tag.getBoolean(
-                        "Shattered"
-                )
+                tag.getBoolean("Shattered")
         );
     }
 
     @Override
-    protected void addAdditionalSaveData(
-            CompoundTag tag
-    ) {
-        tag.putInt(
-                "WheelDamage",
-                wheelDamage
-        );
-
-        tag.putBoolean(
-                "Shattered",
-                isShattered()
-        );
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        tag.putInt("WheelDamage", wheelDamage);
+        tag.putBoolean("Shattered", isShattered());
     }
 
     @Override

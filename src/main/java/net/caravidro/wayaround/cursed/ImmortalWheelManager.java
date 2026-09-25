@@ -37,12 +37,15 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Immortal Wheel state.
+ * The Immortal Wheel is a PLAYER BINDING, not an inventory item.
  *
- * Adaptation belongs to the CURRENT holder and is lost on death.
- * Physical Black Flash damage belongs to the WHEEL item and survives a death
- * remnant / new holder. One or two scars slow future adaptation; the third
- * Black Flash destroys the artifact completely.
+ * The legacy item stays registered only so old worlds do not lose registry
+ * references. If an old item is found in a player's inventory it is silently
+ * absorbed and converted into the binding.
+ *
+ * The only normal way to lose the binding is death. Death creates a dormant
+ * physical remnant and resets all adaptation. Physical Black Flash scars stay
+ * with the wheel through the remnant. A third Black Flash destroys the wheel.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class ImmortalWheelManager {
@@ -57,7 +60,13 @@ public final class ImmortalWheelManager {
     private static final int MAX_BLACK_FLASH_DAMAGE = 3;
     private static final double VISUAL_RANGE = 128.0;
 
-    private static final String BLACK_FLASH_DAMAGE_KEY =
+    private static final String BOUND_KEY =
+            "WayAroundImmortalWheelBound";
+
+    private static final String DAMAGE_KEY =
+            "WayAroundImmortalWheelDamage";
+
+    private static final String LEGACY_DAMAGE_KEY =
             "WayAroundImmortalWheelBlackFlashDamage";
 
     private static final Map<UUID, Map<String, Adaptation>> ADAPTATIONS =
@@ -154,31 +163,19 @@ public final class ImmortalWheelManager {
         );
     }
 
-    /**
-     * Death always drops the cursed wheel as a dormant remnant, but the
-     * holder's learned adaptations are intentionally erased.
-     *
-     * Physical Black Flash scars remain stored on the artifact itself.
-     */
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
-
-        ItemStack wheel =
-                removeOneWheel(
-                        player
-                );
-
-        if (wheel.isEmpty()) {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !hasWheel(player)) {
             return;
         }
 
         int physicalDamage =
-                wheelDamage(
-                        wheel
-                );
+                wheelDamage(player);
+
+        clearBinding(
+                player
+        );
 
         ADAPTATIONS.remove(
                 player.getUUID()
@@ -224,37 +221,20 @@ public final class ImmortalWheelManager {
                         0.85F,
                         0.48F
                 );
-
-        WayAround.LOGGER.info(
-                "[ImmortalWheel] {} morreu: a roda caiu dormente e esqueceu todas as adaptações.",
-                player.getGameProfile().getName()
-        );
     }
 
-    /**
-     * Called directly by BlackFlashManager on a successful Black Flash.
-     *
-     * 1st/2nd impact: permanent physical scar -> slower adaptation.
-     * 3rd impact: remove the active halo while the holder is still alive,
-     *              throw a charred wheel into the world and ash it away.
-     */
     public static void damageByBlackFlash(
             ServerPlayer bearer,
             ServerPlayer attacker,
             int charge
     ) {
-        ItemStack wheel =
-                findWheel(
-                        bearer
-                );
-
-        if (wheel.isEmpty()) {
+        if (!hasWheel(bearer)) {
             return;
         }
 
         int damage =
                 Mth.clamp(
-                        wheelDamage(wheel) + 1,
+                        wheelDamage(bearer) + 1,
                         0,
                         MAX_BLACK_FLASH_DAMAGE
                 );
@@ -296,7 +276,7 @@ public final class ImmortalWheelManager {
 
         if (damage < MAX_BLACK_FLASH_DAMAGE) {
             setWheelDamage(
-                    wheel,
+                    bearer,
                     damage
             );
 
@@ -321,26 +301,12 @@ public final class ImmortalWheelManager {
                     true
             );
 
-            attacker.displayClientMessage(
-                    net.minecraft.network.chat.Component.translatable(
-                            "message.wayaround.black_flash.wheel_cracked",
-                            damage,
-                            MAX_BLACK_FLASH_DAMAGE
-                    ),
-                    true
-            );
-
             return;
         }
 
-        ItemStack destroyed =
-                removeOneWheel(
-                        bearer
-                );
-
-        if (destroyed.isEmpty()) {
-            return;
-        }
+        clearBinding(
+                bearer
+        );
 
         ADAPTATIONS.remove(
                 bearer.getUUID()
@@ -412,26 +378,6 @@ public final class ImmortalWheelManager {
                 0.62,
                 0.08
         );
-
-        bearer.displayClientMessage(
-                net.minecraft.network.chat.Component.translatable(
-                        "message.wayaround.immortal_wheel.destroyed"
-                ),
-                true
-        );
-
-        attacker.displayClientMessage(
-                net.minecraft.network.chat.Component.translatable(
-                        "message.wayaround.black_flash.wheel_destroyed"
-                ),
-                true
-        );
-
-        WayAround.LOGGER.info(
-                "[ImmortalWheel] {} destruiu a roda de {} com o terceiro Black Flash.",
-                attacker.getGameProfile().getName(),
-                bearer.getGameProfile().getName()
-        );
     }
 
     @SubscribeEvent
@@ -449,9 +395,13 @@ public final class ImmortalWheelManager {
         for (ServerPlayer player :
                 server.getPlayerList().getPlayers()) {
 
+            migrateLegacyItem(
+                    player
+            );
+
             UUID id = player.getUUID();
 
-            if (!hasWheel(player)) {
+            if (!isBound(player)) {
                 if (PRESENT.remove(id)) {
                     send(
                             player,
@@ -487,16 +437,16 @@ public final class ImmortalWheelManager {
         PRESENT.clear();
     }
 
-    public static void reactivateFromRemnant(
+    public static void bindFromRemnant(
             ServerPlayer newOwner,
             int physicalDamage,
             Vec3 origin
     ) {
-        /*
-         * A dormant wheel never brings adaptation memory with it.
-         * Even if the previous bearer had reached 100%, the new bearer starts
-         * from zero. Physical scars are already written to the item stack.
-         */
+        bind(
+                newOwner,
+                physicalDamage
+        );
+
         ADAPTATIONS.remove(
                 newOwner.getUUID()
         );
@@ -588,12 +538,6 @@ public final class ImmortalWheelManager {
                 0,
                 0
         );
-
-        WayAround.LOGGER.info(
-                "[ImmortalWheel] {} reativou uma roda com {} cicatriz(es) de Black Flash e adaptação zerada.",
-                newOwner.getGameProfile().getName(),
-                physicalDamage
-        );
     }
 
     private static void spawnDormantRemnant(
@@ -630,6 +574,198 @@ public final class ImmortalWheelManager {
         level.addFreshEntity(
                 remnant
         );
+    }
+
+    private static void bind(
+            ServerPlayer player,
+            int damage
+    ) {
+        player.getPersistentData()
+                .putBoolean(
+                        BOUND_KEY,
+                        true
+                );
+
+        player.getPersistentData()
+                .putInt(
+                        DAMAGE_KEY,
+                        Mth.clamp(
+                                damage,
+                                0,
+                                MAX_BLACK_FLASH_DAMAGE - 1
+                        )
+                );
+    }
+
+    private static void clearBinding(
+            ServerPlayer player
+    ) {
+        player.getPersistentData()
+                .remove(
+                        BOUND_KEY
+                );
+
+        player.getPersistentData()
+                .remove(
+                        DAMAGE_KEY
+                );
+    }
+
+    private static boolean isBound(
+            ServerPlayer player
+    ) {
+        return player.getPersistentData()
+                .getBoolean(
+                        BOUND_KEY
+                );
+    }
+
+    private static void migrateLegacyItem(
+            ServerPlayer player
+    ) {
+        if (isBound(player)) {
+            removeLegacyItems(player);
+            return;
+        }
+
+        int bestDamage = 0;
+        boolean found = false;
+
+        for (int slot = 0;
+             slot < player.getInventory().getContainerSize();
+             slot++) {
+
+            ItemStack stack =
+                    player.getInventory().getItem(
+                            slot
+                    );
+
+            if (!stack.is(
+                    WayAroundContent.IMMORTAL_WHEEL.get()
+            )) {
+                continue;
+            }
+
+            found = true;
+            bestDamage =
+                    Math.max(
+                            bestDamage,
+                            legacyWheelDamage(stack)
+                    );
+
+            stack.setCount(
+                    0
+            );
+        }
+
+        if (found) {
+            player.getInventory()
+                    .setChanged();
+
+            bind(
+                    player,
+                    bestDamage
+            );
+
+            player.displayClientMessage(
+                    net.minecraft.network.chat.Component.translatable(
+                            "message.wayaround.immortal_wheel.bound"
+                    ),
+                    true
+            );
+        }
+    }
+
+    private static void removeLegacyItems(
+            ServerPlayer player
+    ) {
+        boolean changed = false;
+
+        for (int slot = 0;
+             slot < player.getInventory().getContainerSize();
+             slot++) {
+
+            ItemStack stack =
+                    player.getInventory().getItem(
+                            slot
+                    );
+
+            if (stack.is(
+                    WayAroundContent.IMMORTAL_WHEEL.get()
+            )) {
+                stack.setCount(
+                        0
+                );
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            player.getInventory()
+                    .setChanged();
+        }
+    }
+
+    private static int legacyWheelDamage(
+            ItemStack stack
+    ) {
+        CustomData data =
+                stack.get(
+                        DataComponents.CUSTOM_DATA
+                );
+
+        if (data == null) {
+            return 0;
+        }
+
+        return Mth.clamp(
+                data.copyTag()
+                        .getInt(
+                                LEGACY_DAMAGE_KEY
+                        ),
+                0,
+                MAX_BLACK_FLASH_DAMAGE - 1
+        );
+    }
+
+    public static boolean hasWheel(
+            ServerPlayer player
+    ) {
+        migrateLegacyItem(
+                player
+        );
+
+        return isBound(
+                player
+        );
+    }
+
+    public static int wheelDamage(
+            ServerPlayer player
+    ) {
+        return Mth.clamp(
+                player.getPersistentData()
+                        .getInt(
+                                DAMAGE_KEY
+                        ),
+                0,
+                MAX_BLACK_FLASH_DAMAGE - 1
+        );
+    }
+
+    private static void setWheelDamage(
+            ServerPlayer player,
+            int damage
+    ) {
+        player.getPersistentData()
+                .putInt(
+                        DAMAGE_KEY,
+                        Mth.clamp(
+                                damage,
+                                0,
+                                MAX_BLACK_FLASH_DAMAGE - 1
+                        )
+                );
     }
 
     private static void spin(
@@ -679,13 +815,6 @@ public final class ImmortalWheelManager {
                 0,
                 steps
         );
-
-        WayAround.LOGGER.info(
-                "[ImmortalWheel] {} adaptou {} -> {}%",
-                player.getGameProfile().getName(),
-                family,
-                Math.min(100, steps * 20)
-        );
     }
 
     private static void send(
@@ -714,114 +843,6 @@ public final class ImmortalWheelManager {
         );
     }
 
-    private static ItemStack findWheel(
-            ServerPlayer player
-    ) {
-        for (int slot = 0;
-             slot < player.getInventory().getContainerSize();
-             slot++) {
-
-            ItemStack stack =
-                    player.getInventory().getItem(slot);
-
-            if (stack.is(
-                    WayAroundContent.IMMORTAL_WHEEL.get()
-            )) {
-                return stack;
-            }
-        }
-
-        return ItemStack.EMPTY;
-    }
-
-    private static ItemStack removeOneWheel(
-            ServerPlayer player
-    ) {
-        for (int slot = 0;
-             slot < player.getInventory().getContainerSize();
-             slot++) {
-
-            ItemStack stack =
-                    player.getInventory().getItem(slot);
-
-            if (!stack.is(
-                    WayAroundContent.IMMORTAL_WHEEL.get()
-            )) {
-                continue;
-            }
-
-            ItemStack removed =
-                    stack.copyWithCount(1);
-
-            stack.shrink(1);
-            player.getInventory().setChanged();
-
-            return removed;
-        }
-
-        return ItemStack.EMPTY;
-    }
-
-    public static int wheelDamage(
-            ServerPlayer player
-    ) {
-        return wheelDamage(
-                findWheel(player)
-        );
-    }
-
-    public static int wheelDamage(
-            ItemStack stack
-    ) {
-        if (stack.isEmpty()
-                || !stack.is(
-                        WayAroundContent.IMMORTAL_WHEEL.get()
-                )) {
-            return 0;
-        }
-
-        CustomData data =
-                stack.get(
-                        DataComponents.CUSTOM_DATA
-                );
-
-        if (data == null) {
-            return 0;
-        }
-
-        return Mth.clamp(
-                data.copyTag()
-                        .getInt(
-                                BLACK_FLASH_DAMAGE_KEY
-                        ),
-                0,
-                MAX_BLACK_FLASH_DAMAGE
-        );
-    }
-
-    public static void setWheelDamage(
-            ItemStack stack,
-            int damage
-    ) {
-        if (stack.isEmpty()) {
-            return;
-        }
-
-        CustomData.update(
-                DataComponents.CUSTOM_DATA,
-                stack,
-                tag ->
-                        tag.putInt(
-                                BLACK_FLASH_DAMAGE_KEY,
-                                Mth.clamp(
-                                        damage,
-                                        0,
-                                        MAX_BLACK_FLASH_DAMAGE
-                                )
-                        )
-        );
-    }
-
     private static int highestStep(UUID owner) {
         Map<String, Adaptation> book =
                 ADAPTATIONS.get(owner);
@@ -843,11 +864,6 @@ public final class ImmortalWheelManager {
         }
 
         return highest;
-    }
-
-    public static boolean hasWheel(ServerPlayer player) {
-        return !findWheel(player)
-                .isEmpty();
     }
 
     private static String classify(DamageSource source) {
