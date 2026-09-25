@@ -47,6 +47,9 @@ public record VoiceIntentC2SPayload(
     public static final byte TUKUNA_SWAP_CONFIRM = 13;
     public static final byte TUKUNA_DESMARTELAR = 14;
     public static final byte VOID_DOMAIN_EXPAND = 15;
+    public static final byte RED_LAUNCH = 16;
+    public static final byte RED_MAXIMUM = 17;
+    public static final byte TUKUNA_DESMARTELAR_FIRE = 18;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -107,7 +110,17 @@ public record VoiceIntentC2SPayload(
                     if (payload.intent()
                             == TUKUNA_DESMARTELAR) {
                         TukunaManager.castPossessedDesmartelar(
-                                player
+                                player,
+                                false
+                        );
+                        return;
+                    }
+
+                    if (payload.intent()
+                            == TUKUNA_DESMARTELAR_FIRE) {
+                        TukunaManager.castPossessedDesmartelar(
+                                player,
+                                true
                         );
                         return;
                     }
@@ -148,6 +161,21 @@ public record VoiceIntentC2SPayload(
 
                         case RED_FIRE ->
                                 ImaginaryBetaManager.fireRed(
+                                        player
+                                );
+
+                        case RED_LAUNCH -> {
+                            if (!ImaginaryBetaManager.launchPreparedRed(
+                                    player
+                            )) {
+                                BlueManager.launchActive(
+                                        player
+                                );
+                            }
+                        }
+
+                        case RED_MAXIMUM ->
+                                ImaginaryBetaManager.chargePreparedRedMaximum(
                                         player
                                 );
 
