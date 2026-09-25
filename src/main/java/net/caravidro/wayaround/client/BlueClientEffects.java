@@ -18,6 +18,7 @@ import net.caravidro.wayaround.network.BlueVisualPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -1150,16 +1151,34 @@ public final class BlueClientEffects {
     private static boolean hasBlueItem(
             Minecraft minecraft
     ) {
-        return minecraft.player
-                .getMainHandItem()
-                .is(
-                        WayAroundContent.BLUE.get()
-                )
-                || minecraft.player
-                        .getOffhandItem()
-                        .is(
-                                WayAroundContent.BLUE.get()
-                        );
+        if (minecraft.player == null) {
+            return false;
+        }
+
+        for (int slot = 0;
+             slot < minecraft.player
+                     .getInventory()
+                     .getContainerSize();
+             slot++) {
+
+            ItemStack stack =
+                    minecraft.player
+                            .getInventory()
+                            .getItem(
+                                    slot
+                            );
+
+            if (stack.is(
+                    WayAroundContent.BLUE.get()
+            )
+                    || stack.is(
+                    WayAroundContent.GOJO_SPECTRUM.get()
+            )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void cutCloud(
