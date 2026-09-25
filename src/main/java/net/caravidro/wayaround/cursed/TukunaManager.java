@@ -2412,7 +2412,7 @@ public final class TukunaManager {
         sendFugaCinematic(host, PlayerCinematicPayload.TUKUNA_TAKEOVER,
                 TAKEOVER_TICKS, false, 0.0F);
         host.serverLevel().playSound(null, host.blockPosition(),
-                SoundEvents.SOUL_ESCAPE, SoundSource.PLAYERS, 1.1F, 0.55F);
+                SoundEvents.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.1F, 0.55F);
     }
 
     private static void tickTakeovers(MinecraftServer server, long tick) {
