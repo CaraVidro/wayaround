@@ -267,6 +267,8 @@ public final class BetaTechniqueClientEffects {
                 || state.mode
                 == BetaTechniqueVisualPayload.RED
                 || state.mode
+                == BetaTechniqueVisualPayload.RED_HELD
+                || state.mode
                 == BetaTechniqueVisualPayload.PAIR_BLUE
                 || state.mode
                 == BetaTechniqueVisualPayload.PURPLE_PROJECTILE) {

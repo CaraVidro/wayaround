@@ -1659,13 +1659,28 @@ public final class VoiceIntentClient {
                         1
                 );
 
+        boolean standalonePurple =
+                purpleIndex >= 0
+                        || findApprox(
+                        words,
+                        "russo",
+                        0,
+                        1
+                ) >= 0
+                        || containsAny(
+                        words,
+                        "roxa",
+                        "rox",
+                        "rocho",
+                        "rouxo"
+                );
+
         boolean portuguesePair =
-                voidIndex >= 0
-                        && purpleIndex >= 0
-                        && Math.abs(
-                        voidIndex
-                                - purpleIndex
-                ) <= 2;
+                standalonePurple
+                        && (
+                        voidIndex >= 0
+                                || words.size() <= 3
+                );
 
         int englishVoid =
                 indexOfAny(
@@ -1687,7 +1702,8 @@ public final class VoiceIntentClient {
                                 - englishPurple
                 ) <= 2;
 
-        return portuguesePair
+        return standalonePurple
+                || portuguesePair
                 || englishPair;
     }
 

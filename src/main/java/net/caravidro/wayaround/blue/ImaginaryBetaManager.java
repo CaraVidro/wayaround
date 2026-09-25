@@ -1,5 +1,13 @@
 package net.caravidro.wayaround.blue;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+
+import net.caravidro.wayaround.network.PlayerCinematicPayload;
+
+import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -120,11 +128,33 @@ public final class ImaginaryBetaManager {
             PURPLE_PROJECTILES =
             new HashMap<>();
 
+    private static final Map<UUID, PendingPurpleCast>
+            PENDING_PURPLE_CASTS =
+            new HashMap<>();
+
     public static boolean prepareDual(
             ServerPlayer player
     ) {
+        if (!SpectrumAccess.has(
+                player,
+                SpectrumType.VOID
+        )
+                || PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return false;
+        }
+
         UUID owner =
                 player.getUUID();
+
+        /*
+         * If Red was physically held, preparing the pair must not leave the
+         * bearer anchored forever.
+         */
+        PlayerControlLockManager.clearMovement(
+                player
+        );
 
         if (FUSIONS.containsKey(owner)
                 || PURPLE_PROJECTILES.containsKey(owner)) {
@@ -158,54 +188,58 @@ public final class ImaginaryBetaManager {
     public static boolean launchPurpleVoid(
             ServerPlayer player
     ) {
+        if (!SpectrumAccess.has(
+                player,
+                SpectrumType.VOID
+        )
+                || PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return false;
+        }
+
         PendingDual dual =
                 DUALS.remove(
                         player.getUUID()
                 );
 
-        if (dual == null) {
+        if (dual == null
+                || PENDING_PURPLE_CASTS.containsKey(
+                player.getUUID()
+        )) {
             return false;
         }
 
         Vec3 direction =
-                player.getLookAngle().normalize();
+                player.getLookAngle()
+                        .normalize();
 
-        Vec3 position =
-                player.getEyePosition()
-                        .add(
-                                direction.scale(4.6)
-                        );
-
-        PURPLE_PROJECTILES.put(
+        PENDING_PURPLE_CASTS.put(
                 player.getUUID(),
-                new PurpleProjectile(
+                new PendingPurpleCast(
                         player.getUUID(),
-                        player.serverLevel().dimension(),
-                        position,
-                        direction.scale(
-                                PURPLE_PROJECTILE_SPEED
-                        ),
-                        PURPLE_PROJECTILE_LIFE
+                        player.serverLevel()
+                                .dimension(),
+                        direction,
+                        24
                 )
         );
 
-        player.serverLevel().playSound(
-                null,
-                player.blockPosition(),
-                SoundEvents.END_PORTAL_SPAWN,
-                SoundSource.PLAYERS,
-                2.0F,
-                0.62F
+        sendCinematic(
+                player,
+                PlayerCinematicPayload.PURPLE_FUSION,
+                24
         );
 
-        sendVisual(
-                player.serverLevel(),
-                player.getUUID(),
-                BetaTechniqueVisualPayload.PURPLE_PROJECTILE,
-                position,
-                1.35F,
-                0.0F
-        );
+        player.serverLevel()
+                .playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.AMETHYST_BLOCK_RESONATE,
+                        SoundSource.PLAYERS,
+                        1.45F,
+                        0.54F
+                );
 
         return true;
     }
@@ -213,6 +247,16 @@ public final class ImaginaryBetaManager {
     public static boolean prepareRed(
             ServerPlayer player
     ) {
+        if (!SpectrumAccess.has(
+                player,
+                SpectrumType.VOID
+        )
+                || PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return false;
+        }
+
         UUID owner =
                 player.getUUID();
 
@@ -263,6 +307,17 @@ public final class ImaginaryBetaManager {
         REDS.put(
                 owner,
                 red
+        );
+
+        PlayerControlLockManager.lockMovement(
+                player,
+                0
+        );
+
+        sendCinematic(
+                player,
+                PlayerCinematicPayload.RED_HOLD,
+                0
         );
 
         player.swing(
@@ -321,6 +376,13 @@ public final class ImaginaryBetaManager {
     public static boolean chargeRedMaximum(
             ServerPlayer player
     ) {
+        if (!SpectrumAccess.has(
+                player,
+                SpectrumType.VOID
+        )) {
+            return false;
+        }
+
         RedProjectile red =
                 REDS.get(
                         player.getUUID()
@@ -386,6 +448,16 @@ public final class ImaginaryBetaManager {
     public static boolean launchRed(
             ServerPlayer player
     ) {
+        if (!SpectrumAccess.has(
+                player,
+                SpectrumType.VOID
+        )
+                || PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return false;
+        }
+
         RedProjectile red =
                 REDS.get(
                         player.getUUID()
@@ -402,6 +474,16 @@ public final class ImaginaryBetaManager {
 
         red.held =
                 false;
+
+        PlayerControlLockManager.clearMovement(
+                player
+        );
+
+        sendCinematic(
+                player,
+                PlayerCinematicPayload.RED_RELEASE,
+                24
+        );
 
         red.life =
                 RED_LIFE_TICKS;
@@ -479,6 +561,7 @@ public final class ImaginaryBetaManager {
                 event.getServer();
 
         tickDuals(server);
+        tickPendingPurpleCasts(server);
         tickReds(server);
         tickPurpleProjectiles(server);
         tickFusions(server);
@@ -505,6 +588,18 @@ public final class ImaginaryBetaManager {
                     || level == null
                     || !owner.isAlive()
                     || owner.serverLevel() != level) {
+
+                if (owner != null) {
+                    PlayerControlLockManager.clearMovement(
+                            owner
+                    );
+
+                    sendCinematic(
+                            owner,
+                            PlayerCinematicPayload.CLEAR,
+                            0
+                    );
+                }
 
                 iterator.remove();
                 continue;
@@ -566,6 +661,105 @@ public final class ImaginaryBetaManager {
                     1.0F,
                     0.0F
             );
+        }
+    }
+
+    private static void tickPendingPurpleCasts(
+            MinecraftServer server
+    ) {
+        Iterator<Map.Entry<UUID, PendingPurpleCast>> iterator =
+                PENDING_PURPLE_CASTS.entrySet()
+                        .iterator();
+
+        while (iterator.hasNext()) {
+            PendingPurpleCast cast =
+                    iterator.next()
+                            .getValue();
+
+            ServerPlayer owner =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    cast.owner
+                            );
+
+            ServerLevel level =
+                    server.getLevel(
+                            cast.dimension
+                    );
+
+            if (owner == null
+                    || level == null
+                    || !owner.isAlive()
+                    || owner.serverLevel() != level
+                    || !SpectrumAccess.has(
+                    owner,
+                    SpectrumType.VOID
+            )) {
+
+                if (owner != null) {
+                    sendCinematic(
+                            owner,
+                            PlayerCinematicPayload.CLEAR,
+                            0
+                    );
+                }
+
+                iterator.remove();
+                continue;
+            }
+
+            cast.delay--;
+
+            if (cast.delay > 0) {
+                continue;
+            }
+
+            Vec3 position =
+                    owner.getEyePosition()
+                            .add(
+                                    cast.direction.scale(
+                                            4.6
+                                    )
+                            );
+
+            PURPLE_PROJECTILES.put(
+                    cast.owner,
+                    new PurpleProjectile(
+                            cast.owner,
+                            cast.dimension,
+                            position,
+                            cast.direction.scale(
+                                    PURPLE_PROJECTILE_SPEED
+                            ),
+                            PURPLE_PROJECTILE_LIFE
+                    )
+            );
+
+            sendCinematic(
+                    owner,
+                    PlayerCinematicPayload.PURPLE_RELEASE,
+                    48
+            );
+
+            level.playSound(
+                    null,
+                    owner.blockPosition(),
+                    SoundEvents.END_PORTAL_SPAWN,
+                    SoundSource.PLAYERS,
+                    2.0F,
+                    0.62F
+            );
+
+            sendVisual(
+                    level,
+                    cast.owner,
+                    BetaTechniqueVisualPayload.PURPLE_PROJECTILE,
+                    position,
+                    1.35F,
+                    0.0F
+            );
+
+            iterator.remove();
         }
     }
 
@@ -841,6 +1035,16 @@ public final class ImaginaryBetaManager {
 
             if (red.held) {
                 if (red.life <= 0) {
+                    PlayerControlLockManager.clearMovement(
+                            owner
+                    );
+
+                    sendCinematic(
+                            owner,
+                            PlayerCinematicPayload.CLEAR,
+                            0
+                    );
+
                     iterator.remove();
                     continue;
                 }
@@ -2362,7 +2566,30 @@ public final class ImaginaryBetaManager {
         REDS.clear();
         FUSIONS.clear();
         DUALS.clear();
+        PENDING_PURPLE_CASTS.clear();
         PURPLE_PROJECTILES.clear();
+    }
+
+    private static void sendCinematic(
+            ServerPlayer player,
+            byte animation,
+            int durationTicks
+    ) {
+        PacketDistributor.sendToPlayersNear(
+                player.serverLevel(),
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                VISUAL_RANGE,
+                new PlayerCinematicPayload(
+                        player.getUUID(),
+                        animation,
+                        durationTicks,
+                        false,
+                        0.0F
+                )
+        );
     }
 
     private static void sendVisual(
@@ -2390,6 +2617,26 @@ public final class ImaginaryBetaManager {
                         progress
                 )
         );
+    }
+
+    private static final class PendingPurpleCast {
+
+        private final UUID owner;
+        private final net.minecraft.resources.ResourceKey<Level> dimension;
+        private final Vec3 direction;
+        private int delay;
+
+        private PendingPurpleCast(
+                UUID owner,
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 direction,
+                int delay
+        ) {
+            this.owner = owner;
+            this.dimension = dimension;
+            this.direction = direction;
+            this.delay = delay;
+        }
     }
 
     private static final class PendingDual {

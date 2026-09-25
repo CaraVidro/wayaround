@@ -229,6 +229,30 @@ public final class PlayerAnimationController {
                             age
                     );
 
+            case PlayerCinematicPayload.RED_HOLD ->
+                    applyRedHold(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.RED_RELEASE ->
+                    applyRedRelease(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.PURPLE_FUSION ->
+                    applyPurpleFusion(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.PURPLE_RELEASE ->
+                    applyPurpleRelease(
+                            model,
+                            age
+                    );
+
             default -> {
             }
         }
@@ -744,6 +768,219 @@ public final class PlayerAnimationController {
                         release,
                         0.12F
                                 * close,
+                        0.0F
+                );
+    }
+
+    private static void applyRedHold(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float p =
+                ease(
+                        age / 7.0F
+                );
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.xRot,
+                        -1.48F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.yRot,
+                        -0.10F
+                );
+
+        model.rightArm.zRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.zRot,
+                        0.02F
+                );
+
+        model.body.xRot =
+                0.06F
+                        * p;
+
+        model.body.yRot =
+                -0.07F
+                        * p;
+    }
+
+    private static void applyRedRelease(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float snap =
+                ease(
+                        Math.min(
+                                1.0F,
+                                age / 5.0F
+                        )
+                );
+
+        float settle =
+                ease(
+                        Math.max(
+                                0.0F,
+                                Math.min(
+                                        1.0F,
+                                        (
+                                                age - 5.0F
+                                        )
+                                                / 19.0F
+                                )
+                        )
+                );
+
+        float wobble =
+                (float) Math.sin(
+                        age
+                                * 0.95F
+                )
+                        * 0.18F
+                        * (
+                        1.0F - settle
+                );
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        settle,
+                        Mth.lerp(
+                                snap,
+                                -1.48F,
+                                -0.72F
+                        ),
+                        0.0F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        settle,
+                        -0.10F
+                                + snap
+                                        * 0.48F,
+                        0.0F
+                );
+
+        model.body.yRot =
+                wobble;
+
+        model.head.yRot +=
+                wobble
+                        * 0.55F;
+    }
+
+    private static void applyPurpleFusion(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float p =
+                ease(
+                        age / 12.0F
+                );
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        p,
+                        model.leftArm.xRot,
+                        -1.42F
+                );
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.xRot,
+                        -1.42F
+                );
+
+        model.leftArm.yRot =
+                Mth.lerp(
+                        p,
+                        model.leftArm.yRot,
+                        0.58F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.yRot,
+                        -0.58F
+                );
+
+        model.body.xRot =
+                0.10F
+                        * p;
+    }
+
+    private static void applyPurpleRelease(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float push =
+                ease(
+                        Math.min(
+                                1.0F,
+                                age / 8.0F
+                        )
+                );
+
+        float returnProgress =
+                ease(
+                        Math.max(
+                                0.0F,
+                                Math.min(
+                                        1.0F,
+                                        (
+                                                age - 20.0F
+                                        )
+                                                / 28.0F
+                                )
+                        )
+                );
+
+        float x =
+                Mth.lerp(
+                        returnProgress,
+                        Mth.lerp(
+                                push,
+                                -1.42F,
+                                -1.72F
+                        ),
+                        0.0F
+                );
+
+        float y =
+                Mth.lerp(
+                        returnProgress,
+                        Mth.lerp(
+                                push,
+                                0.58F,
+                                0.20F
+                        ),
+                        0.0F
+                );
+
+        model.leftArm.xRot =
+                x;
+
+        model.rightArm.xRot =
+                x;
+
+        model.leftArm.yRot =
+                y;
+
+        model.rightArm.yRot =
+                -y;
+
+        model.body.xRot =
+                Mth.lerp(
+                        returnProgress,
+                        0.12F,
                         0.0F
                 );
     }

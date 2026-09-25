@@ -33,6 +33,10 @@ public record PlayerCinematicPayload(
     public static final byte DESMARTELAR_CHARGE = 4;
     public static final byte DESMARTELAR_RELEASE = 5;
     public static final byte BLUE_CLAP = 6;
+    public static final byte RED_HOLD = 7;
+    public static final byte RED_RELEASE = 8;
+    public static final byte PURPLE_FUSION = 9;
+    public static final byte PURPLE_RELEASE = 10;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(
