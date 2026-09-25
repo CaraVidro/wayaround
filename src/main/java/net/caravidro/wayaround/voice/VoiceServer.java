@@ -75,17 +75,12 @@ public final class VoiceServer {
         /*
          * A disembodied Tukuna can be on the other side of the world (or in
          * another dimension). Their voice is emitted around the host instead.
-         * The ghost also hears the relayed frame, giving the intentionally
-         * unsettling "I can hear myself inside you" effect.
+         * Never return microphone audio to its sender: it can feed back into capture.
          */
         Set<UUID> sent =
                 new HashSet<>();
 
-        sendOnce(
-                ghost,
-                pcm,
-                sent
-        );
+
 
         double maxDistanceSqr =
                 VoiceConstants.HEARING_RANGE_BLOCKS
@@ -95,6 +90,7 @@ public final class VoiceServer {
                 host.serverLevel()
                         .players()) {
 
+            if (receiver.getUUID().equals(ghost.getUUID())) continue;
             if (receiver.distanceToSqr(
                     host
             ) > maxDistanceSqr) {

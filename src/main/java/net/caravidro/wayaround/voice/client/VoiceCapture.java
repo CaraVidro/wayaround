@@ -44,6 +44,7 @@ public final class VoiceCapture {
     private static final double COMBAT_SPECULATIVE_MAX_SECONDS =
             2.2;
 
+    private static volatile long captureGeneration;
     private static volatile boolean running;
     private static volatile boolean transmitting;
     private static volatile boolean voiceActivationSession;
@@ -93,6 +94,7 @@ public final class VoiceCapture {
             return;
         }
 
+        long generation = ++captureGeneration;
         running = true;
         transmitting = false;
         voiceActivationSession =
@@ -110,7 +112,7 @@ public final class VoiceCapture {
         Thread thread =
                 new Thread(
                         () -> captureLoop(
-                                voiceActivation
+                                voiceActivation, generation
                         ),
                         voiceActivation
                                 ? "WayAround-VoiceActivation"
@@ -158,7 +160,7 @@ public final class VoiceCapture {
     }
 
     private static void captureLoop(
-            boolean voiceActivation
+            boolean voiceActivation, long generation
     ) {
         TargetDataLine line = null;
 
@@ -191,8 +193,10 @@ public final class VoiceCapture {
 
             line.start();
 
-            activeLine =
-                    line;
+            synchronized (VoiceCapture.class) {
+                if (!running || generation != captureGeneration) return;
+                activeLine = line;
+            }
 
             byte[] buffer =
                     new byte[
@@ -207,7 +211,7 @@ public final class VoiceCapture {
                         new ByteArrayOutputStream();
             }
 
-            while (running
+            while (running && generation == captureGeneration
                     && voiceActivationSession
                     == voiceActivation) {
 
@@ -218,6 +222,7 @@ public final class VoiceCapture {
                                 buffer.length
                         );
 
+                if (!running || generation != captureGeneration) break;
                 if (read <= 0) {
                     continue;
                 }
@@ -230,7 +235,7 @@ public final class VoiceCapture {
 
                 if (!voiceActivation) {
                     publishFrame(
-                            frame
+                            frame, generation
                     );
 
                     if (shouldTranscribe()) {
@@ -311,7 +316,7 @@ public final class VoiceCapture {
                             preRoll) {
 
                         publishFrame(
-                                previous
+                                previous, generation
                         );
 
                         if (utterance != null) {
@@ -333,7 +338,7 @@ public final class VoiceCapture {
                 }
 
                 publishFrame(
-                        frame
+                        frame, generation
                 );
 
                 if (utterance != null) {
@@ -392,8 +397,7 @@ public final class VoiceCapture {
             }
 
         } catch (Exception exception) {
-            boolean unexpectedStop =
-                    running;
+            boolean unexpectedStop = running && generation == captureGeneration;
 
             WayAround.LOGGER.warn(
                     "[Voice/Capture] capture loop exception running={} mode={} -> {}: {}",
@@ -406,11 +410,12 @@ public final class VoiceCapture {
                     exception.getMessage()
             );
 
-            running =
-                    false;
-
-            transmitting =
-                    false;
+            synchronized (VoiceCapture.class) {
+                if (generation == captureGeneration) {
+                    running = false;
+                    transmitting = false;
+                }
+            }
 
             if (unexpectedStop) {
                 showMicrophoneError(
@@ -419,8 +424,9 @@ public final class VoiceCapture {
             }
 
         } finally {
-            activeLine =
-                    null;
+            synchronized (VoiceCapture.class) {
+                if (generation == captureGeneration) activeLine = null;
+            }
 
             if (line != null) {
                 try {
@@ -434,18 +440,20 @@ public final class VoiceCapture {
                 }
             }
 
-            if (!voiceActivation
-                    || transmitting) {
+            if (generation == captureGeneration && (!voiceActivation
+                    || transmitting)) {
 
                 submitUtterance(
                         utterance
                 );
             }
 
-            transmitting =
-                    false;
-            running =
-                    false;
+            synchronized (VoiceCapture.class) {
+                if (generation == captureGeneration) {
+                    transmitting = false;
+                    running = false;
+                }
+            }
 
             WayAround.LOGGER.info(
                     "[Voice/Capture] LOOP ENDED mode={}",
@@ -507,7 +515,7 @@ public final class VoiceCapture {
     }
 
     private static void publishFrame(
-            byte[] frame
+            byte[] frame, long generation
     ) {
         MediaVoiceTap.captureLocal(
                 frame
@@ -518,7 +526,7 @@ public final class VoiceCapture {
 
         minecraft.execute(
                 () -> {
-                    if (!VoiceConfig.isEnabled()
+                    if (generation != captureGeneration || !VoiceConfig.isEnabled()
                             || minecraft.player == null
                             || minecraft.getConnection()
                             == null) {
@@ -701,3 +709,4 @@ public final class VoiceCapture {
         );
     }
 }
+

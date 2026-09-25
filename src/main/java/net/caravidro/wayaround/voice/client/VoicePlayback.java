@@ -19,8 +19,10 @@ public final class VoicePlayback {
     private VoicePlayback() {
     }
 
-    private static final BlockingQueue<byte[]> QUEUE =
-            new ArrayBlockingQueue<>(192);
+    private static final BlockingQueue<Frame> QUEUE =
+            new ArrayBlockingQueue<>(8);
+
+    private record Frame(byte[] pcm, long receivedAt) {}
 
     private static final AtomicBoolean THREAD_STARTED =
             new AtomicBoolean(false);
@@ -50,9 +52,9 @@ public final class VoicePlayback {
                         pcm.length
                 );
 
-        if (!QUEUE.offer(copy)) {
+        if (!QUEUE.offer(new Frame(copy, System.nanoTime()))) {
             QUEUE.poll();
-            QUEUE.offer(copy);
+            QUEUE.offer(new Frame(copy, System.nanoTime()));
         }
     }
 
@@ -102,8 +104,9 @@ public final class VoicePlayback {
             while (!Thread.currentThread()
                     .isInterrupted()) {
 
-                byte[] pcm =
-                        QUEUE.take();
+                Frame frame = QUEUE.take();
+                if (System.nanoTime() - frame.receivedAt > 400_000_000L) continue;
+                byte[] pcm = frame.pcm;
 
                 if (!VoiceConfig.isEnabled()) {
                     continue;
@@ -197,7 +200,7 @@ public final class VoicePlayback {
 
             system.open(
                     VoiceConstants.audioFormat(),
-                    VoiceConstants.FRAME_BYTES * 32
+                    VoiceConstants.FRAME_BYTES * 4
             );
 
             return system;
@@ -256,9 +259,10 @@ public final class VoicePlayback {
 
         line.open(
                 VoiceConstants.audioFormat(),
-                VoiceConstants.FRAME_BYTES * 32
+                VoiceConstants.FRAME_BYTES * 4
         );
 
         return line;
     }
 }
+

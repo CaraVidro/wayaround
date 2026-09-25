@@ -265,3 +265,18 @@ idea {
         downloadJavadoc = true
     }
 }
+
+// Spoken pact regression cases run without a game instance.
+sourceSets {
+    pactTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+tasks.register('checkPact', JavaExec) {
+    dependsOn tasks.named('pactTestClasses')
+    classpath = sourceSets.pactTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.cursed.PactTest'
+}
+tasks.named('check') { dependsOn tasks.named('checkPact') }
+

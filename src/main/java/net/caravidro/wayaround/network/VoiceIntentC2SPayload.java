@@ -106,6 +106,8 @@ public record VoiceIntentC2SPayload(
                         return;
                     }
 
+                    if (TukunaManager.isDraftingPact(player)) return;
+
                     if (PlayerControlLockManager.actionsLocked(
                             player
                     )) {
