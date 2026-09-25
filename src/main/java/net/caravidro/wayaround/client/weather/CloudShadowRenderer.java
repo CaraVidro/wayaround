@@ -20,6 +20,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import org.joml.Vector3f;
 
 /**
  * Cheap projected cloud shadows.
@@ -33,6 +34,7 @@ public final class CloudShadowRenderer {
 
     private static final double RANGE = 420.0;
     private static final int STEP = 12;
+    private static final double CAMERA_NEAR_GUARD = 0.35;
 
     private CloudShadowRenderer() {
     }
@@ -53,6 +55,29 @@ public final class CloudShadowRenderer {
         }
 
         Vec3 camera = event.getCamera().getPosition();
+
+        Vector3f lookVector =
+                event.getCamera().getLookVector();
+
+        double lookX =
+                lookVector.x();
+
+        double lookY =
+                lookVector.y();
+
+        double lookZ =
+                lookVector.z();
+
+        /*
+         * Terrain shadows have no visual meaning while staring almost
+         * straight into the sky. More importantly, large terrain quads near
+         * the player can straddle the camera plane in this orientation and
+         * clip into giant translucent polygons at the screen edge.
+         */
+        if (lookY > 0.52) {
+            return;
+        }
+
         long time = minecraft.level.getGameTime();
 
         Vec3 skyColor =
@@ -176,6 +201,27 @@ public final class CloudShadowRenderer {
                                     z + STEP
                             );
 
+                    if (!quadSafelyInFront(
+                            camera,
+                            lookX,
+                            lookY,
+                            lookZ,
+                            x,
+                            y00 + 0.035,
+                            z,
+                            x + STEP,
+                            y10 + 0.035,
+                            z,
+                            x + STEP,
+                            y11 + 0.035,
+                            z + STEP,
+                            x,
+                            y01 + 0.035,
+                            z + STEP
+                    )) {
+                        continue;
+                    }
+
                     int alpha =
                             Math.min(
                                     86,
@@ -215,18 +261,109 @@ public final class CloudShadowRenderer {
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(false);
             RenderSystem.disableCull();
+            RenderSystem.setShaderColor(
+                    1.0F,
+                    1.0F,
+                    1.0F,
+                    1.0F
+            );
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
             BufferUploader.drawWithShader(
                     buffer.buildOrThrow()
             );
 
+            RenderSystem.setShaderColor(
+                    1.0F,
+                    1.0F,
+                    1.0F,
+                    1.0F
+            );
             RenderSystem.enableCull();
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();
         }
 
         stack.popPose();
+    }
+
+    private static boolean quadSafelyInFront(
+            Vec3 camera,
+            double lookX,
+            double lookY,
+            double lookZ,
+            double x0,
+            double y0,
+            double z0,
+            double x1,
+            double y1,
+            double z1,
+            double x2,
+            double y2,
+            double z2,
+            double x3,
+            double y3,
+            double z3
+    ) {
+        return pointSafelyInFront(
+                camera,
+                lookX,
+                lookY,
+                lookZ,
+                x0,
+                y0,
+                z0
+        )
+                && pointSafelyInFront(
+                camera,
+                lookX,
+                lookY,
+                lookZ,
+                x1,
+                y1,
+                z1
+        )
+                && pointSafelyInFront(
+                camera,
+                lookX,
+                lookY,
+                lookZ,
+                x2,
+                y2,
+                z2
+        )
+                && pointSafelyInFront(
+                camera,
+                lookX,
+                lookY,
+                lookZ,
+                x3,
+                y3,
+                z3
+        );
+    }
+
+    private static boolean pointSafelyInFront(
+            Vec3 camera,
+            double lookX,
+            double lookY,
+            double lookZ,
+            double x,
+            double y,
+            double z
+    ) {
+        double forward =
+                (
+                        x - camera.x
+                ) * lookX
+                        + (
+                        y - camera.y
+                ) * lookY
+                        + (
+                        z - camera.z
+                ) * lookZ;
+
+        return forward > CAMERA_NEAR_GUARD;
     }
 
     private static int floorToStep(
