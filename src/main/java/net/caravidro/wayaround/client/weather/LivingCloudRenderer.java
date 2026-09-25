@@ -29,6 +29,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import org.joml.Vector3f;
 
 /**
  * Simple-Clouds-inspired renderer, intentionally much simpler:
@@ -50,7 +51,8 @@ public final class LivingCloudRenderer {
     private static final int MAX_HORIZONTAL_VOXELS = 19;
     private static final int MAX_VERTICAL_VOXELS = 7;
     private static final int REBUILD_INTERVAL = 10;
-    private static final double CAMERA_FACE_CLEAR_RADIUS = 11.0;
+    private static final double CAMERA_FACE_CLEAR_RADIUS = 18.0;
+    private static final double CAMERA_NEAR_GUARD = 0.35;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
 
     /*
@@ -81,6 +83,19 @@ public final class LivingCloudRenderer {
         }
 
         Vec3 camera = event.getCamera().getPosition();
+
+        Vector3f lookVector =
+                event.getCamera().getLookVector();
+
+        double lookX =
+                lookVector.x();
+
+        double lookY =
+                lookVector.y();
+
+        double lookZ =
+                lookVector.z();
+
         long time = minecraft.level.getGameTime();
 
         pruneHoles(time);
@@ -212,6 +227,9 @@ public final class LivingCloudRenderer {
                     poseStack,
                     cell,
                     camera,
+                    lookX,
+                    lookY,
+                    lookZ,
                     red,
                     green,
                     blue,
@@ -558,6 +576,9 @@ public final class LivingCloudRenderer {
                 PoseStack poseStack,
                 LocalWeatherField.CloudCell cell,
                 Vec3 camera,
+                double lookX,
+                double lookY,
+                double lookZ,
                 int red,
                 int green,
                 int blue,
@@ -583,11 +604,14 @@ public final class LivingCloudRenderer {
                         continue;
                     }
 
-                    if (faceTooCloseToCamera(
+                    if (faceUnsafeForCamera(
                             cell,
                             voxel,
                             face,
-                            camera
+                            camera,
+                            lookX,
+                            lookY,
+                            lookZ
                     )) {
                         continue;
                     }
@@ -871,25 +895,47 @@ public final class LivingCloudRenderer {
         return false;
     }
 
-    private static boolean faceTooCloseToCamera(
+    private static boolean faceUnsafeForCamera(
             LocalWeatherField.CloudCell cell,
             Voxel voxel,
             Face face,
-            Vec3 camera
+            Vec3 camera,
+            double lookX,
+            double lookY,
+            double lookZ
     ) {
-        double centerX =
+        double cx =
                 cell.x()
-                        + voxel.x * VOXEL
+                        + voxel.x * VOXEL;
+
+        double cy =
+                cell.y()
+                        + voxel.y * VOXEL;
+
+        double cz =
+                cell.z()
+                        + voxel.z * VOXEL;
+
+        double half =
+                VOXEL * 0.505;
+
+        double minX = cx - half;
+        double minY = cy - half;
+        double minZ = cz - half;
+        double maxX = cx + half;
+        double maxY = cy + half;
+        double maxZ = cz + half;
+
+        double centerX =
+                cx
                         + face.dx * VOXEL * 0.5;
 
         double centerY =
-                cell.y()
-                        + voxel.y * VOXEL
+                cy
                         + face.dy * VOXEL * 0.5;
 
         double centerZ =
-                cell.z()
-                        + voxel.z * VOXEL
+                cz
                         + face.dz * VOXEL * 0.5;
 
         double dx =
@@ -901,11 +947,182 @@ public final class LivingCloudRenderer {
         double dz =
                 centerZ - camera.z;
 
-        return dx * dx
+        /*
+         * First guard: do not allow a giant voxel wall close enough to fill
+         * most of the screen. This is intentionally larger than a single
+         * 9-block voxel because the face center can be "safe" while one corner
+         * is almost touching the camera.
+         */
+        if (dx * dx
                 + dy * dy
                 + dz * dz
                 < CAMERA_FACE_CLEAR_RADIUS
-                        * CAMERA_FACE_CLEAR_RADIUS;
+                        * CAMERA_FACE_CLEAR_RADIUS) {
+            return true;
+        }
+
+        /*
+         * Second guard: test ALL FOUR vertices against the camera forward
+         * plane. If even one corner sits behind / inside the near plane, the
+         * quad would be clipped into a huge screen-space polygon. Skip the
+         * whole face instead of trusting perspective clipping.
+         */
+        return switch (face) {
+            case DOWN, UP -> {
+                double y =
+                        face == Face.DOWN
+                                ? minY
+                                : maxY;
+
+                yield !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        y,
+                        minZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        y,
+                        minZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        y,
+                        maxZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        y,
+                        maxZ
+                );
+            }
+
+            case NORTH, SOUTH -> {
+                double z =
+                        face == Face.NORTH
+                                ? minZ
+                                : maxZ;
+
+                yield !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        minY,
+                        z
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        minY,
+                        z
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        maxY,
+                        z
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        maxY,
+                        z
+                );
+            }
+
+            case WEST, EAST -> {
+                double x =
+                        face == Face.WEST
+                                ? minX
+                                : maxX;
+
+                yield !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        minY,
+                        minZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        minY,
+                        maxZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        maxY,
+                        maxZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        maxY,
+                        minZ
+                );
+            }
+        };
+    }
+
+    private static boolean pointSafelyInFront(
+            Vec3 camera,
+            double lookX,
+            double lookY,
+            double lookZ,
+            double x,
+            double y,
+            double z
+    ) {
+        double forward =
+                (
+                        x - camera.x
+                ) * lookX
+                        + (
+                        y - camera.y
+                ) * lookY
+                        + (
+                        z - camera.z
+                ) * lookZ;
+
+        return forward > CAMERA_NEAR_GUARD;
     }
 
     private static void emitFace(
