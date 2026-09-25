@@ -55,11 +55,15 @@ public final class BlackFlashManager {
     ) {
         if (!(event.getSource().getEntity()
                 instanceof ServerPlayer attacker)
-                || !(event.getEntity()
-                        instanceof LivingEntity target)
-                || target == attacker
                 || event.getAmount() <= 0.0F) {
 
+            return;
+        }
+
+        LivingEntity target =
+                event.getEntity();
+
+        if (target == attacker) {
             return;
         }
 
