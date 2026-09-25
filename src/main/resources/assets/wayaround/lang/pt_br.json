@@ -148,7 +148,7 @@
     "block.wayaround.wooden_chair": "Cadeira de Madeira",
     "message.wayaround.media.placed_camera_armed": "Câmera posicionada. Preparando gravação...",
     "item.wayaround.gojo_spectrum": "Void Spectrum",
-    "tooltip.wayaround.gojo_spectrum": "Spectrum do Vazio: Azul, Vermelho, Infinidade e Expansão de Domínio.",
+    "tooltip.wayaround.gojo_spectrum": "Void Spectrum: Blue, Red, Infinity, Purple e Expansão de Domínio.",
     "block.wayaround.assembly_workbench": "Bancada de Assembly",
     "item.wayaround.stone_flake": "Lasca de Pedra",
     "item.wayaround.assembly_hammer": "Martelo de Assembly",
@@ -267,5 +267,7 @@
     "message.wayaround.justice.hint": "Com este Spectrum no inventário, diga ou escreva \"expansão de domínio\" perto de qualquer ser vivo.",
     "item.wayaround.justice_execution_blade": "Lâmina da Sentença",
     "tooltip.wayaround.justice_blade": "Brilha enquanto uma sentença válida estiver ativa. Alcance corpo a corpo; impacto severo.",
-    "tooltip.wayaround.justice_blade.target": "Sentença contra: %s"
+    "tooltip.wayaround.justice_blade.target": "Sentença contra: %s",
+    "itemGroup.wayaround.spectrums": "Spectrums",
+    "tooltip.wayaround.gojo_spectrum.controls": "Blue ativo: rodinha controla distância; botão direito encerra. Red preparado: botão direito lança."
 }
