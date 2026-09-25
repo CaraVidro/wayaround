@@ -75,7 +75,7 @@ public final class SawmillRenderer
                     packedOverlay,
                     Blocks.IRON_BLOCK.defaultBlockState(),
                     0.0,
-                    0.18,
+                    0.0,
                     0.0,
                     0.13,
                     0.13,
@@ -160,7 +160,12 @@ public final class SawmillRenderer
             int packedOverlay
     ) {
         poseStack.pushPose();
-        poseStack.translate(0.0, 0.18, 0.0);
+        /*
+         * Keep the saw axle exactly on the normal mechanical-shaft centerline
+         * (block Y + 0.5). The old +0.18 local offset made adjacent shafts look
+         * disconnected even when the network was valid.
+         */
+        poseStack.translate(0.0, 0.0, 0.0);
         poseStack.mulPose(Axis.ZP.rotationDegrees(angle));
 
         BlockState iron = Blocks.IRON_BLOCK.defaultBlockState();

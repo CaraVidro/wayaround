@@ -126,6 +126,15 @@ public final class MechanicalTransmission {
         Map<BlockPos, BlockPos> parent =
                 new HashMap<>();
 
+        IRotationalPower bestSource =
+                null;
+
+        List<BlockPos> bestPath =
+                null;
+
+        float bestScore =
+                -1.0F;
+
         queue.add(
                 start
         );
@@ -181,16 +190,39 @@ public final class MechanicalTransmission {
                         && source.axis()
                                 == direction.getAxis()) {
 
-                    return new PathRotationalPower(
-                            level,
-                            source,
+                    List<BlockPos> candidatePath =
                             reconstructPath(
                                     start,
                                     pos,
                                     parent
-                            ),
-                            outputAxis
-                    );
+                            );
+
+                    float score =
+                            sourceScore(
+                                    source
+                            )
+                                    * pathEfficiency(
+                                    level,
+                                    candidatePath
+                            );
+
+                    /*
+                     * V1.0 used the first endpoint encountered by BFS. A dead
+                     * or stale pulley could therefore win before the rotating
+                     * water wheel farther through another branch, while the
+                     * visual shaft still followed that wheel. Search the whole
+                     * reachable network and prefer actual moving power.
+                     */
+                    if (score > bestScore) {
+                        bestScore =
+                                score;
+
+                        bestSource =
+                                source;
+
+                        bestPath =
+                                candidatePath;
+                    }
                 }
 
                 BlockState neighborState =
@@ -218,7 +250,56 @@ public final class MechanicalTransmission {
             }
         }
 
-        return null;
+        if (bestSource == null
+                || bestPath == null) {
+            return null;
+        }
+
+        return new PathRotationalPower(
+                level,
+                bestSource,
+                bestPath,
+                outputAxis
+        );
+    }
+
+    public static float sourceScore(
+            @Nullable IRotationalPower source
+    ) {
+        if (source == null) {
+            return -1.0F;
+        }
+
+        float rpm =
+                Math.abs(
+                        source.rpm()
+                );
+
+        float power =
+                Math.max(
+                        0.0F,
+                        source.power()
+                );
+
+        /*
+         * Motion matters more than stale advertised power for a machine that
+         * physically requires rotation. Power still differentiates two active
+         * sources once both are actually turning.
+         */
+        float movingBonus =
+                rpm > 0.05F
+                        ? 10.0F
+                                + Math.min(
+                                120.0F,
+                                rpm
+                        )
+                                * 0.16F
+                        : 0.0F;
+
+        return movingBonus
+                + power
+                + rpm
+                        * 0.02F;
     }
 
     private static List<BlockPos> reconstructPath(

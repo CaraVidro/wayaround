@@ -10,6 +10,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
@@ -347,6 +349,12 @@ public final class SawmillBlockEntity extends BlockEntity {
                                 : 0.018F
                 );
 
+        if (spinning) {
+            emitOperatingFeedback(
+                    server
+            );
+        }
+
         if (spinning
                 && !input.isEmpty()) {
 
@@ -390,31 +398,6 @@ public final class SawmillBlockEntity extends BlockEntity {
                             0.18F,
                             1.05F
                     );
-
-            if (Math.floorMod(
-                    server.getGameTime()
-                            + worldPosition.asLong(),
-                    13
-            ) == 0) {
-
-                server.playSound(
-                        null,
-                        worldPosition,
-                        SoundEvents.GRINDSTONE_USE,
-                        SoundSource.BLOCKS,
-                        0.26F
-                                + vibration
-                                        * 0.16F,
-                        0.80F
-                                + Math.min(
-                                0.35F,
-                                Math.abs(
-                                        rpm
-                                )
-                                        / 180.0F
-                        )
-                );
-            }
 
             if (Math.floorMod(
                     server.getGameTime()
@@ -465,6 +448,191 @@ public final class SawmillBlockEntity extends BlockEntity {
         )) {
 
             sync();
+        }
+    }
+
+    private void emitOperatingFeedback(
+            ServerLevel server
+    ) {
+        long time =
+                server.getGameTime();
+
+        float speed =
+                Math.min(
+                        70.0F,
+                        Math.abs(
+                                rpm
+                        )
+                );
+
+        if (input.isEmpty()) {
+            if (Math.floorMod(
+                    time
+                            + worldPosition.asLong(),
+                    24
+            ) == 0) {
+
+                server.playSound(
+                        null,
+                        worldPosition,
+                        SoundEvents.GRINDSTONE_USE,
+                        SoundSource.BLOCKS,
+                        0.13F
+                                + Math.min(
+                                0.08F,
+                                speed
+                                        / 500.0F
+                        ),
+                        0.58F
+                                + Math.min(
+                                0.34F,
+                                speed
+                                        / 150.0F
+                        )
+                );
+            }
+
+            return;
+        }
+
+        /*
+         * Real cutting has two layers: the metallic blade tone and a softer
+         * wood impact. Their cadence speeds up slightly with RPM.
+         */
+        int bladeInterval =
+                Mth.clamp(
+                        11
+                                - Math.round(
+                                speed
+                                        / 14.0F
+                        ),
+                        5,
+                        11
+                );
+
+        if (Math.floorMod(
+                time
+                        + worldPosition.asLong(),
+                bladeInterval
+        ) == 0) {
+
+            server.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.GRINDSTONE_USE,
+                    SoundSource.BLOCKS,
+                    0.24F
+                            + vibration
+                                    * 0.15F,
+                    0.84F
+                            + Math.min(
+                            0.34F,
+                            speed
+                                    / 170.0F
+                    )
+            );
+        }
+
+        if (Math.floorMod(
+                time
+                        + worldPosition.asLong(),
+                12
+        ) == 0) {
+
+            server.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.WOOD_HIT,
+                    SoundSource.BLOCKS,
+                    0.18F
+                            + lastPowerRatio
+                                    * 0.10F,
+                    0.90F
+                            + server.random.nextFloat()
+                                    * 0.14F
+            );
+        }
+
+        if (Math.floorMod(
+                time
+                        + worldPosition.asLong(),
+                4
+        ) == 0) {
+
+            Block dustBlock =
+                    Block.byItem(
+                            input.getItem()
+                    );
+
+            BlockState dustState =
+                    dustBlock == Blocks.AIR
+                            ? Blocks.OAK_LOG
+                            .defaultBlockState()
+                            : dustBlock
+                            .defaultBlockState();
+
+            Direction facing =
+                    getBlockState()
+                            .getValue(
+                                    SawmillBlock.FACING
+                            );
+
+            double sideX =
+                    facing.getStepZ()
+                            * 0.18;
+
+            double sideZ =
+                    -facing.getStepX()
+                            * 0.18;
+
+            server.sendParticles(
+                    new BlockParticleOption(
+                            ParticleTypes.BLOCK,
+                            dustState
+                    ),
+                    worldPosition.getX()
+                            + 0.5
+                            + sideX,
+                    worldPosition.getY()
+                            + 0.55,
+                    worldPosition.getZ()
+                            + 0.5
+                            + sideZ,
+                    4
+                            + Math.round(
+                            speed
+                                    / 20.0F
+                    ),
+                    0.16,
+                    0.08,
+                    0.16,
+                    0.025
+                            + speed
+                                    * 0.00025
+            );
+        }
+
+        if (heat > 0.72F
+                && Math.floorMod(
+                time
+                        + worldPosition.asLong(),
+                10
+        ) == 0) {
+
+            server.sendParticles(
+                    ParticleTypes.SMOKE,
+                    worldPosition.getX()
+                            + 0.5,
+                    worldPosition.getY()
+                            + 0.66,
+                    worldPosition.getZ()
+                            + 0.5,
+                    1,
+                    0.06,
+                    0.03,
+                    0.06,
+                    0.006
+            );
         }
     }
 
@@ -669,7 +837,7 @@ public final class SawmillBlockEntity extends BlockEntity {
         IRotationalPower best =
                 null;
 
-        float bestPower =
+        float bestScore =
                 -1.0F;
 
         for (Direction direction :
@@ -682,12 +850,14 @@ public final class SawmillBlockEntity extends BlockEntity {
                             direction
                     );
 
-            if (source != null
-                    && source.power()
-                            > bestPower) {
+            float score =
+                    MechanicalTransmission.sourceScore(
+                            source
+                    );
 
-                bestPower =
-                        source.power();
+            if (score > bestScore) {
+                bestScore =
+                        score;
 
                 best =
                         source;
