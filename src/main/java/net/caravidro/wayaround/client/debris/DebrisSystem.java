@@ -536,6 +536,12 @@ public final class DebrisSystem {
         PoseStack pose =
                 event.getPoseStack();
 
+        float partialTick =
+                partialTick
+                        .getGameTimeDeltaPartialTick(
+                                true
+                        );
+
         BufferBuilder buffer =
                 Tesselator.getInstance()
                         .begin(
@@ -552,7 +558,7 @@ public final class DebrisSystem {
             Vec3 position =
                     debris.previous.lerp(
                             debris.position,
-                            event.getPartialTick()
+                            partialTick
                     );
 
             if (position.distanceToSqr(
@@ -576,7 +582,7 @@ public final class DebrisSystem {
             pose.mulPose(
                     Axis.XP.rotationDegrees(
                             debris.rotX
-                                    + event.getPartialTick()
+                                    + partialTick
                                             * 6.0F
                     )
             );
@@ -584,7 +590,7 @@ public final class DebrisSystem {
             pose.mulPose(
                     Axis.YP.rotationDegrees(
                             debris.rotY
-                                    + event.getPartialTick()
+                                    + partialTick
                                             * 8.0F
                     )
             );
@@ -592,7 +598,7 @@ public final class DebrisSystem {
             pose.mulPose(
                     Axis.ZP.rotationDegrees(
                             debris.rotZ
-                                    + event.getPartialTick()
+                                    + partialTick
                                             * 4.0F
                     )
             );
