@@ -267,5 +267,6 @@
     "message.wayaround.justice.hint": "Com este Spectrum no inventário, diga ou escreva \"expansão de domínio\" perto de qualquer ser vivo.",
     "item.wayaround.justice_execution_blade": "Lâmina da Sentença",
     "tooltip.wayaround.justice_blade": "Brilha enquanto uma sentença válida estiver ativa. Alcance corpo a corpo; impacto severo.",
-    "tooltip.wayaround.justice_blade.target": "Sentença contra: %s"
+    "tooltip.wayaround.justice_blade.target": "Sentença contra: %s",
+    "itemGroup.wayaround.spectrums": "Spectrums"
 }
