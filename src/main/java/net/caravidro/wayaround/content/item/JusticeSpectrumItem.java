@@ -36,13 +36,11 @@ public final class JusticeSpectrumItem extends Item {
         if (!player.level()
                 .isClientSide
                 && player
-                instanceof ServerPlayer owner
-                && target
-                instanceof ServerPlayer defendant) {
+                instanceof ServerPlayer owner) {
 
             JusticeDomainManager.beginTrial(
                     owner,
-                    defendant
+                    target
             );
         }
 

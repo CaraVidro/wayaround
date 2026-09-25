@@ -199,13 +199,9 @@ public final class JusticeSenseManager {
     public static void onDeath(
             LivingDeathEvent event
     ) {
-        if (event.getEntity()
-                instanceof ServerPlayer deadPlayer) {
-
-            JusticeRewardManager.onPlayerDeath(
-                    deadPlayer
-            );
-        }
+        JusticeRewardManager.onEntityDeath(
+                event.getEntity()
+        );
 
         Entity attacker =
                 event.getSource()

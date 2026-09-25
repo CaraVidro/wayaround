@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
+import net.caravidro.wayaround.network.JusticeDomainVisualPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -25,25 +26,38 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.RelativeMovement;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.event.PlayLevelSoundEvent;
 import net.neoforged.neoforge.event.ServerChatEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class JusticeDomainManager {
 
     private JusticeDomainManager() {
     }
 
-    private static final int TRIAL_TICKS =
+    private static final int PLAYER_TRIAL_TICKS =
             50 * 20;
+
+    private static final int NPC_TRIAL_TICKS =
+            22 * 20;
+
+    private static final int PREPARE_TICKS =
+            34;
 
     private static final int COOLDOWN_TICKS =
             75 * 20;
@@ -57,6 +71,12 @@ public final class JusticeDomainManager {
     private static final int POCKET_SPACING =
             96;
 
+    private static final double AUTO_TARGET_RADIUS =
+            12.0;
+
+    private static final double VISUAL_RANGE =
+            160.0;
+
     private static final Map<UUID, Trial> ACTIVE =
             new HashMap<>();
 
@@ -66,9 +86,77 @@ public final class JusticeDomainManager {
     private static final Map<UUID, Long> COOLDOWN =
             new HashMap<>();
 
+    public static boolean beginTrialNearest(
+            ServerPlayer owner
+    ) {
+        if (!hasSpectrum(
+                owner
+        )) {
+            return false;
+        }
+
+        AABB box =
+                owner.getBoundingBox()
+                        .inflate(
+                                AUTO_TARGET_RADIUS
+                        );
+
+        LivingEntity nearest =
+                null;
+
+        double nearestDistance =
+                Double.MAX_VALUE;
+
+        for (LivingEntity candidate :
+                owner.serverLevel()
+                        .getEntitiesOfClass(
+                                LivingEntity.class,
+                                box,
+                                entity ->
+                                        entity.isAlive()
+                                                && entity != owner
+                                                && !(entity instanceof ArmorStand)
+                                                && !isJudge(
+                                                entity
+                                        )
+                        )) {
+
+            double distance =
+                    owner.distanceToSqr(
+                            candidate
+                    );
+
+            if (distance
+                    < nearestDistance) {
+
+                nearestDistance =
+                        distance;
+
+                nearest =
+                        candidate;
+            }
+        }
+
+        if (nearest == null) {
+            owner.displayClientMessage(
+                    Component.literal(
+                            "Spectrum da Justiça: nenhum ser vivo próximo para julgar."
+                    ),
+                    true
+            );
+
+            return false;
+        }
+
+        return beginTrial(
+                owner,
+                nearest
+        );
+    }
+
     public static boolean beginTrial(
             ServerPlayer owner,
-            ServerPlayer defendant
+            LivingEntity defendant
     ) {
         if (owner == defendant
                 || !hasSpectrum(
@@ -124,11 +212,12 @@ public final class JusticeDomainManager {
         ServerLevel level =
                 owner.serverLevel();
 
-        if (defendant.serverLevel()
+        if (defendant.level()
                 != level
                 || owner.distanceToSqr(
                 defendant
-        ) > 10.0 * 10.0) {
+        ) > AUTO_TARGET_RADIUS
+                * AUTO_TARGET_RADIUS) {
 
             owner.displayClientMessage(
                     Component.literal(
@@ -146,34 +235,34 @@ public final class JusticeDomainManager {
                         level.getMaxBuildHeight() - 34
                 );
 
-        Vec3 center =
+        Vec3 pocketCenter =
                 pocketCenter(
                         owner.getUUID(),
                         floorY + 1
                 );
 
         Vec3 ownerStand =
-                center.add(
+                pocketCenter.add(
                         -3.6,
                         0.0,
                         3.0
                 );
 
         Vec3 defendantStand =
-                center.add(
+                pocketCenter.add(
                         3.6,
                         0.0,
                         3.0
                 );
 
-        ParticipantState ownerReturn =
-                ParticipantState.capture(
+        EntityState ownerReturn =
+                EntityState.capture(
                         owner,
                         ownerStand
                 );
 
-        ParticipantState defendantReturn =
-                ParticipantState.capture(
+        EntityState defendantReturn =
+                EntityState.capture(
                         defendant,
                         defendantStand
                 );
@@ -189,12 +278,47 @@ public final class JusticeDomainManager {
                         10
                 );
 
+        boolean npc =
+                !(defendant
+                        instanceof ServerPlayer);
+
+        int trialTicks =
+                npc
+                        ? NPC_TRIAL_TICKS
+                        : PLAYER_TRIAL_TICKS;
+
+        Vec3 exteriorCenter =
+                owner.position()
+                        .add(
+                                defendant.position()
+                        )
+                        .scale(
+                                0.5
+                        );
+
+        float exteriorRadius =
+                (float) Math.max(
+                        4.25,
+                        Math.sqrt(
+                                owner.distanceToSqr(
+                                        defendant
+                                )
+                        )
+                                * 0.5
+                                + 2.75
+                );
+
         Trial trial =
                 new Trial(
                         owner.getUUID(),
                         defendant.getUUID(),
+                        defendant.getDisplayName()
+                                .getString(),
+                        npc,
                         level.dimension(),
-                        center,
+                        exteriorCenter,
+                        exteriorRadius,
+                        pocketCenter,
                         floorY,
                         ownerReturn,
                         defendantReturn,
@@ -202,10 +326,15 @@ public final class JusticeDomainManager {
                         data.credibility(
                                 owner.getUUID()
                         ),
-                        data.credibility(
+                        npc
+                                ? 0.12F
+                                : data.credibility(
                                 defendant.getUUID()
                         ),
-                        tick + TRIAL_TICKS
+                        tick + PREPARE_TICKS,
+                        tick
+                                + PREPARE_TICKS
+                                + trialTicks
                 );
 
         ACTIVE.put(
@@ -225,9 +354,12 @@ public final class JusticeDomainManager {
 
         COOLDOWN.put(
                 owner.getUUID(),
-                tick
-                        + TRIAL_TICKS
+                trial.endsAt
                         + COOLDOWN_TICKS
+        );
+
+        trial.freezeDefendant(
+                defendant
         );
 
         buildCourt(
@@ -240,31 +372,32 @@ public final class JusticeDomainManager {
                 trial
         );
 
-        teleport(
-                owner,
+        PacketDistributor.sendToPlayersNear(
                 level,
-                ownerStand,
-                180.0F,
-                0.0F
+                null,
+                exteriorCenter.x,
+                exteriorCenter.y,
+                exteriorCenter.z,
+                VISUAL_RANGE,
+                JusticeDomainVisualPayload.open(
+                        owner.getUUID(),
+                        exteriorCenter,
+                        exteriorRadius,
+                        PREPARE_TICKS
+                                + trialTicks
+                )
         );
 
-        teleport(
-                defendant,
-                level,
-                defendantStand,
-                180.0F,
-                0.0F
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        exteriorCenter
+                ),
+                SoundEvents.BEACON_ACTIVATE,
+                SoundSource.PLAYERS,
+                1.35F,
+                0.62F
         );
-
-        owner.serverLevel()
-                .playSound(
-                        null,
-                        owner.blockPosition(),
-                        SoundEvents.END_PORTAL_SPAWN,
-                        SoundSource.PLAYERS,
-                        1.3F,
-                        0.62F
-                );
 
         owner.sendSystemMessage(
                 Component.literal(
@@ -272,67 +405,23 @@ public final class JusticeDomainManager {
                 )
         );
 
-        defendant.sendSystemMessage(
+        owner.displayClientMessage(
                 Component.literal(
-                        "Você foi levado ao Tribunal da Justiça."
-                )
+                        "O tribunal está se formando..."
+                ),
+                true
         );
 
-        sendJudge(
-                owner,
-                defendant,
-                "Apresentem suas versões. Eu não julgo palavras isoladas; julgo coerência, contexto, confiança e provas."
-        );
+        if (defendant
+                instanceof ServerPlayer playerDefendant) {
 
-        owner.sendSystemMessage(
-                Component.literal(
-                        "[Senso de Justiça] O arquivo do acusado contém "
-                                + evidence.size()
-                                + " ocorrência(s)."
-                )
-        );
-
-        if (evidence.isEmpty()) {
-            owner.sendSystemMessage(
+            playerDefendant.displayClientMessage(
                     Component.literal(
-                            "[Senso de Justiça] Nenhuma prova real conhecida. Você ainda pode argumentar — ou fabricar uma alegação e tentar sustentá-la."
-                    )
+                            "O espaço ao redor está ficando branco..."
+                    ),
+                    true
             );
-        } else {
-            int number =
-                    1;
-
-            for (JusticeIncident incident :
-                    evidence) {
-
-                owner.sendSystemMessage(
-                        Component.literal(
-                                "[PROVA "
-                                        + number++
-                                        + "] "
-                                        + incident.summary()
-                                        + " | confiança "
-                                        + Math.round(
-                                        incident.confidence()
-                                                * 100.0F
-                                )
-                                        + "%"
-                        )
-                );
-            }
         }
-
-        owner.sendSystemMessage(
-                Component.literal(
-                        "Fale no chat para argumentar. Alegações que não existem no arquivo contam como prova fabricada e podem ou não convencer o juiz."
-                )
-        );
-
-        defendant.sendSystemMessage(
-                Component.literal(
-                        "Você pode confessar, negar ou explicar pelo chat. Uma confissão encerra o caso."
-                )
-        );
 
         return true;
     }
@@ -366,11 +455,12 @@ public final class JusticeDomainManager {
                                     trial.owner
                             );
 
-            ServerPlayer defendant =
-                    server.getPlayerList()
-                            .getPlayer(
-                                    trial.defendant
-                            );
+            LivingEntity defendant =
+                    findLiving(
+                            server,
+                            trial.defendant,
+                            level
+                    );
 
             if (level == null
                     || owner == null
@@ -389,6 +479,24 @@ public final class JusticeDomainManager {
                 continue;
             }
 
+            if (!trial.entered) {
+                trial.freezeDefendant(
+                        defendant
+                );
+
+                if (tick >= trial.enterAt) {
+                    enterTrial(
+                            server,
+                            level,
+                            trial,
+                            owner,
+                            defendant
+                    );
+                }
+
+                continue;
+            }
+
             trial.keepInside(
                     owner,
                     defendant,
@@ -398,11 +506,16 @@ public final class JusticeDomainManager {
             if (trial.confession
                     || tick >= trial.endsAt) {
 
+                float threshold =
+                        trial.npc
+                                ? 0.72F
+                                : 1.05F;
+
                 boolean guilty =
                         trial.confession
                                 || trial.score(
                                 tick
-                        ) >= 1.05F;
+                        ) >= threshold;
 
                 close(
                         server,
@@ -419,7 +532,7 @@ public final class JusticeDomainManager {
 
             if (tick >= trial.nextCommentAt) {
                 trial.nextCommentAt =
-                        tick + 15L * 20L;
+                        tick + 8L * 20L;
 
                 float score =
                         trial.score(
@@ -427,7 +540,11 @@ public final class JusticeDomainManager {
                         );
 
                 String comment =
-                        score >= 0.85F
+                        trial.npc
+                                ? score >= 0.72F
+                                ? "A defesa do acusado permanece... intelectualmente limitada."
+                                : "Mesmo para uma criatura, ainda preciso de alguma narrativa."
+                                : score >= 0.85F
                                 ? "As peças começam a formar uma narrativa consistente."
                                 : score >= 0.45F
                                 ? "Ainda há contradições. Continuem."
@@ -455,9 +572,91 @@ public final class JusticeDomainManager {
         ServerPlayer speaker =
                 event.getPlayer();
 
+        Trial trial =
+                trialFor(
+                        speaker.getUUID()
+                );
+
+        if (trial != null) {
+            if (trial.entered) {
+                trial.acceptStatement(
+                        speaker,
+                        event.getRawText()
+                );
+            }
+
+            return;
+        }
+
+        if (hasSpectrum(
+                speaker
+        )
+                && looksLikeDomainPhrase(
+                event.getRawText()
+        )) {
+
+            event.setCanceled(
+                    true
+            );
+
+            beginTrialNearest(
+                    speaker
+            );
+        }
+    }
+
+    public static void onVoiceStatement(
+            ServerPlayer speaker,
+            String transcript
+    ) {
+        if (transcript == null
+                || transcript.isBlank()) {
+            return;
+        }
+
+        Trial trial =
+                trialFor(
+                        speaker.getUUID()
+                );
+
+        if (trial != null) {
+            if (trial.entered) {
+                trial.acceptStatement(
+                        speaker,
+                        transcript
+                );
+            }
+
+            return;
+        }
+
+        if (hasSpectrum(
+                speaker
+        )
+                && looksLikeDomainPhrase(
+                transcript
+        )) {
+
+            beginTrialNearest(
+                    speaker
+            );
+        }
+    }
+
+    public static void onSoundAtEntity(
+            PlayLevelSoundEvent.AtEntity event
+    ) {
+        if (!(event.getLevel()
+                instanceof ServerLevel level)) {
+            return;
+        }
+
+        Entity entity =
+                event.getEntity();
+
         UUID ownerId =
                 PARTICIPANT_TO_OWNER.get(
-                        speaker.getUUID()
+                        entity.getUUID()
                 );
 
         if (ownerId == null) {
@@ -469,14 +668,50 @@ public final class JusticeDomainManager {
                         ownerId
                 );
 
-        if (trial == null) {
+        if (trial == null
+                || !trial.entered
+                || !trial.npc
+                || !trial.defendant.equals(
+                entity.getUUID()
+        )) {
             return;
         }
 
-        trial.acceptStatement(
-                speaker,
-                event.getRawText()
-        );
+        long tick =
+                level.getServer()
+                        .getTickCount();
+
+        if (tick < trial.nextNpcSoundAt) {
+            return;
+        }
+
+        trial.nextNpcSoundAt =
+                tick + 32L;
+
+        trial.unintelligibleSounds =
+                Math.min(
+                        8,
+                        trial.unintelligibleSounds + 1
+                );
+
+        ServerPlayer owner =
+                level.getServer()
+                        .getPlayerList()
+                        .getPlayer(
+                                trial.owner
+                        );
+
+        if (owner != null) {
+            sendJudge(
+                    owner,
+                    entity instanceof LivingEntity living
+                            ? living
+                            : null,
+                    trial.unintelligibleSounds == 1
+                            ? "Eu... não entendi esse malandro. Não considerarei isso uma defesa."
+                            : "O acusado emitiu outro som. Continuo sem reconhecer uma defesa juridicamente compreensível."
+            );
+        }
     }
 
     public static void onBlockBreak(
@@ -553,6 +788,137 @@ public final class JusticeDomainManager {
         COOLDOWN.clear();
     }
 
+    private static void enterTrial(
+            MinecraftServer server,
+            ServerLevel level,
+            Trial trial,
+            ServerPlayer owner,
+            LivingEntity defendant
+    ) {
+        if (trial.entered) {
+            return;
+        }
+
+        trial.entered =
+                true;
+
+        PacketDistributor.sendToPlayer(
+                owner,
+                JusticeDomainVisualPayload.enter(
+                        trial.owner
+                )
+        );
+
+        if (defendant
+                instanceof ServerPlayer playerDefendant) {
+
+            PacketDistributor.sendToPlayer(
+                    playerDefendant,
+                    JusticeDomainVisualPayload.enter(
+                            trial.owner
+                    )
+            );
+        }
+
+        teleport(
+                owner,
+                level,
+                trial.ownerReturn
+                        .pocketPosition,
+                180.0F,
+                0.0F
+        );
+
+        teleportLiving(
+                defendant,
+                level,
+                trial.defendantReturn
+                        .pocketPosition,
+                180.0F,
+                0.0F
+        );
+
+        trial.freezeDefendant(
+                defendant
+        );
+
+        sendJudge(
+                owner,
+                defendant,
+                "Apresentem suas versões. Eu julgo coerência, contexto, confiança e provas."
+        );
+
+        owner.sendSystemMessage(
+                Component.literal(
+                        "[Senso de Justiça] O arquivo de "
+                                + trial.defendantName
+                                + " contém "
+                                + trial.evidence.size()
+                                + " ocorrência(s)."
+                )
+        );
+
+        if (trial.evidence.isEmpty()) {
+            owner.sendSystemMessage(
+                    Component.literal(
+                            trial.npc
+                                    ? "[Senso de Justiça] Entidade não-humana: nenhum histórico civil. O tribunal vai considerar natureza do acusado, sua argumentação e a ausência de defesa compreensível."
+                                    : "[Senso de Justiça] Nenhuma prova real conhecida. Você ainda pode argumentar — ou fabricar uma alegação e tentar sustentá-la."
+                    )
+            );
+
+        } else {
+            int number =
+                    1;
+
+            for (JusticeIncident incident :
+                    trial.evidence) {
+
+                owner.sendSystemMessage(
+                        Component.literal(
+                                "[PROVA "
+                                        + number++
+                                        + "] "
+                                        + incident.summary()
+                                        + " | confiança "
+                                        + Math.round(
+                                        incident.confidence()
+                                                * 100.0F
+                                )
+                                        + "%"
+                        )
+                );
+            }
+        }
+
+        owner.sendSystemMessage(
+                Component.literal(
+                        "Argumente pelo chat ou pelo Voice Chat. O juiz cruza sua fala com o Senso de Justiça."
+                )
+        );
+
+        if (defendant
+                instanceof ServerPlayer playerDefendant) {
+
+            playerDefendant.sendSystemMessage(
+                    Component.literal(
+                            "Você pode confessar, negar ou explicar pelo chat/voz. Uma confissão encerra o caso."
+                    )
+            );
+        }
+
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        trial.pocketCenter
+                ),
+                SoundEvents.TRIAL_SPAWNER_AMBIENT,
+                SoundSource.BLOCKS,
+                0.9F,
+                0.72F
+        );
+    }
+
     @Nullable
     private static Trial trialFor(
             UUID participant
@@ -586,27 +952,23 @@ public final class JusticeDomainManager {
                                 trial.owner
                         );
 
-        ServerPlayer defendant =
-                server.getPlayerList()
-                        .getPlayer(
-                                trial.defendant
-                        );
+        LivingEntity defendant =
+                findLiving(
+                        server,
+                        trial.defendant,
+                        level
+                );
 
-        if (owner != null
-                && defendant != null) {
-
+        if (owner != null) {
             sendJudge(
                     owner,
                     defendant,
                     verdict
             );
 
-            JusticeSenseData data =
-                    JusticeSenseData.get(
-                            server
-                    );
+            if (guilty
+                    && defendant != null) {
 
-            if (guilty) {
                 JusticeRewardManager.grant(
                         owner,
                         defendant
@@ -615,42 +977,53 @@ public final class JusticeDomainManager {
                 owner.sendSystemMessage(
                         Component.literal(
                                 "A sentença concedeu velocidade e a Lâmina da Sentença. Ela reconhece "
-                                        + defendant.getGameProfile()
-                                        .getName()
+                                        + trial.defendantName
                                         + "."
                         )
                 );
-
-                if (trial.confession) {
-                    data.adjustCredibility(
-                            defendant.getUUID(),
-                            0.025F
-                    );
-                } else if (trial.supportedClaims > 0) {
-                    data.adjustCredibility(
-                            owner.getUUID(),
-                            0.018F
-                    );
-                }
-
-                if (trial.denials > 0
-                        && trial.realEvidenceStrength(
-                        server.getTickCount()
-                ) > 0.8F) {
-
-                    data.adjustCredibility(
-                            defendant.getUUID(),
-                            -0.025F
-                    );
-                }
             } else {
                 owner.sendSystemMessage(
                         Component.literal(
                                 "Nenhuma sentença foi concedida."
                         )
                 );
+            }
 
-                if (trial.unsupportedClaims
+            JusticeSenseData data =
+                    JusticeSenseData.get(
+                            server
+                    );
+
+            if (!trial.npc
+                    && defendant
+                    instanceof ServerPlayer playerDefendant) {
+
+                if (guilty) {
+                    if (trial.confession) {
+                        data.adjustCredibility(
+                                playerDefendant.getUUID(),
+                                0.025F
+                        );
+
+                    } else if (trial.supportedClaims > 0) {
+                        data.adjustCredibility(
+                                owner.getUUID(),
+                                0.018F
+                        );
+                    }
+
+                    if (trial.denials > 0
+                            && trial.realEvidenceStrength(
+                            server.getTickCount()
+                    ) > 0.8F) {
+
+                        data.adjustCredibility(
+                                playerDefendant.getUUID(),
+                                -0.025F
+                        );
+                    }
+
+                } else if (trial.unsupportedClaims
                         > trial.supportedClaims) {
 
                     data.adjustCredibility(
@@ -677,7 +1050,7 @@ public final class JusticeDomainManager {
             }
 
             if (trial.judgeId != null) {
-                var judge =
+                Entity judge =
                         level.getEntity(
                                 trial.judgeId
                         );
@@ -702,6 +1075,44 @@ public final class JusticeDomainManager {
                         2
                 );
             }
+
+            PacketDistributor.sendToPlayersNear(
+                    level,
+                    null,
+                    trial.exteriorCenter.x,
+                    trial.exteriorCenter.y,
+                    trial.exteriorCenter.z,
+                    VISUAL_RANGE,
+                    JusticeDomainVisualPayload.close(
+                            trial.owner,
+                            trial.exteriorCenter,
+                            trial.exteriorRadius
+                    )
+            );
+        }
+
+        if (owner != null) {
+            PacketDistributor.sendToPlayer(
+                    owner,
+                    JusticeDomainVisualPayload.close(
+                            trial.owner,
+                            trial.exteriorCenter,
+                            trial.exteriorRadius
+                    )
+            );
+        }
+
+        if (defendant
+                instanceof ServerPlayer playerDefendant) {
+
+            PacketDistributor.sendToPlayer(
+                    playerDefendant,
+                    JusticeDomainVisualPayload.close(
+                            trial.owner,
+                            trial.exteriorCenter,
+                            trial.exteriorRadius
+                    )
+            );
         }
 
         PARTICIPANT_TO_OWNER.remove(
@@ -749,9 +1160,9 @@ public final class JusticeDomainManager {
         );
 
         judge.moveTo(
-                trial.center.x,
-                trial.center.y + 1.05,
-                trial.center.z - 8.0,
+                trial.pocketCenter.x,
+                trial.pocketCenter.y + 1.05,
+                trial.pocketCenter.z - 8.0,
                 0.0F,
                 0.0F
         );
@@ -770,12 +1181,12 @@ public final class JusticeDomainManager {
     ) {
         int cx =
                 (int) Math.floor(
-                        trial.center.x
+                        trial.pocketCenter.x
                 );
 
         int cz =
                 (int) Math.floor(
-                        trial.center.z
+                        trial.pocketCenter.z
                 );
 
         int y =
@@ -951,7 +1362,7 @@ public final class JusticeDomainManager {
 
     private static void sendJudge(
             ServerPlayer owner,
-            ServerPlayer defendant,
+            @Nullable LivingEntity defendant,
             String message
     ) {
         Component line =
@@ -964,11 +1375,59 @@ public final class JusticeDomainManager {
                 line
         );
 
-        if (defendant != owner) {
-            defendant.sendSystemMessage(
+        if (defendant
+                instanceof ServerPlayer playerDefendant
+                && playerDefendant != owner) {
+
+            playerDefendant.sendSystemMessage(
                     line
             );
         }
+    }
+
+    @Nullable
+    private static LivingEntity findLiving(
+            MinecraftServer server,
+            UUID id,
+            @Nullable ServerLevel preferred
+    ) {
+        ServerPlayer player =
+                server.getPlayerList()
+                        .getPlayer(
+                                id
+                        );
+
+        if (player != null) {
+            return player;
+        }
+
+        if (preferred != null) {
+            Entity entity =
+                    preferred.getEntity(
+                            id
+                    );
+
+            if (entity
+                    instanceof LivingEntity living) {
+                return living;
+            }
+        }
+
+        for (ServerLevel level :
+                server.getAllLevels()) {
+
+            Entity entity =
+                    level.getEntity(
+                            id
+                    );
+
+            if (entity
+                    instanceof LivingEntity living) {
+                return living;
+            }
+        }
+
+        return null;
     }
 
     private static Vec3 pocketCenter(
@@ -1030,7 +1489,54 @@ public final class JusticeDomainManager {
         );
     }
 
-    private static boolean hasSpectrum(
+    private static void teleportLiving(
+            LivingEntity entity,
+            ServerLevel level,
+            Vec3 pos,
+            float yaw,
+            float pitch
+    ) {
+        entity.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        entity.fallDistance =
+                0.0F;
+
+        if (entity
+                instanceof ServerPlayer player) {
+
+            teleport(
+                    player,
+                    level,
+                    pos,
+                    yaw,
+                    pitch
+            );
+
+            return;
+        }
+
+        entity.teleportTo(
+                pos.x,
+                pos.y,
+                pos.z
+        );
+
+        entity.setYRot(
+                yaw
+        );
+
+        entity.setXRot(
+                pitch
+        );
+
+        entity.setYHeadRot(
+                yaw
+        );
+    }
+
+    public static boolean hasSpectrum(
             ServerPlayer player
     ) {
         for (int slot = 0;
@@ -1052,6 +1558,44 @@ public final class JusticeDomainManager {
         }
 
         return false;
+    }
+
+    public static boolean looksLikeDomainPhrase(
+            String text
+    ) {
+        String normalized =
+                normalize(
+                        text
+                );
+
+        return containsAny(
+                normalized,
+                "expansao de dominio",
+                "expansao do dominio",
+                "expansao dominio",
+                "dominio de expansao",
+                "dominio expansao"
+        )
+                || (
+                normalized.contains(
+                        "expansao"
+                )
+                        && normalized.contains(
+                        "dominio"
+                )
+        );
+    }
+
+    private static boolean isJudge(
+            LivingEntity entity
+    ) {
+        return entity.hasCustomName()
+                && "juiz".equals(
+                normalize(
+                        entity.getCustomName()
+                                .getString()
+                )
+        );
     }
 
     private static String normalize(
@@ -1202,7 +1746,9 @@ public final class JusticeDomainManager {
                 "depois",
                 "antes",
                 "entao",
-                "por isso"
+                "por isso",
+                "ai",
+                "dai"
         )) {
             score += 0.15F;
         }
@@ -1214,7 +1760,9 @@ public final class JusticeDomainManager {
                 "longe",
                 "casa",
                 "bau",
-                "fogo"
+                "fogo",
+                "ontem",
+                "agora"
         )) {
             score += 0.10F;
         }
@@ -1289,14 +1837,19 @@ public final class JusticeDomainManager {
 
         private final UUID owner;
         private final UUID defendant;
+        private final String defendantName;
+        private final boolean npc;
         private final ResourceKey<Level> dimension;
-        private final Vec3 center;
+        private final Vec3 exteriorCenter;
+        private final float exteriorRadius;
+        private final Vec3 pocketCenter;
         private final int floorY;
-        private final ParticipantState ownerReturn;
-        private final ParticipantState defendantReturn;
+        private final EntityState ownerReturn;
+        private final EntityState defendantReturn;
         private final List<JusticeIncident> evidence;
         private final float ownerTrust;
         private final float defendantTrust;
+        private final long enterAt;
         private final long endsAt;
 
         private final Set<Long> temporaryBlocks =
@@ -1321,48 +1874,50 @@ public final class JusticeDomainManager {
         private int supportedClaims;
         private int unsupportedClaims;
         private int denials;
+        private int unintelligibleSounds;
 
         private boolean confession;
+        private boolean entered;
 
         private long nextCommentAt;
+        private long nextNpcSoundAt;
 
         private Trial(
                 UUID owner,
                 UUID defendant,
+                String defendantName,
+                boolean npc,
                 ResourceKey<Level> dimension,
-                Vec3 center,
+                Vec3 exteriorCenter,
+                float exteriorRadius,
+                Vec3 pocketCenter,
                 int floorY,
-                ParticipantState ownerReturn,
-                ParticipantState defendantReturn,
+                EntityState ownerReturn,
+                EntityState defendantReturn,
                 List<JusticeIncident> evidence,
                 float ownerTrust,
                 float defendantTrust,
+                long enterAt,
                 long endsAt
         ) {
-            this.owner =
-                    owner;
-            this.defendant =
-                    defendant;
-            this.dimension =
-                    dimension;
-            this.center =
-                    center;
-            this.floorY =
-                    floorY;
-            this.ownerReturn =
-                    ownerReturn;
-            this.defendantReturn =
-                    defendantReturn;
-            this.evidence =
-                    evidence;
-            this.ownerTrust =
-                    ownerTrust;
-            this.defendantTrust =
-                    defendantTrust;
-            this.endsAt =
-                    endsAt;
+            this.owner = owner;
+            this.defendant = defendant;
+            this.defendantName = defendantName;
+            this.npc = npc;
+            this.dimension = dimension;
+            this.exteriorCenter = exteriorCenter;
+            this.exteriorRadius = exteriorRadius;
+            this.pocketCenter = pocketCenter;
+            this.floorY = floorY;
+            this.ownerReturn = ownerReturn;
+            this.defendantReturn = defendantReturn;
+            this.evidence = evidence;
+            this.ownerTrust = ownerTrust;
+            this.defendantTrust = defendantTrust;
+            this.enterAt = enterAt;
+            this.endsAt = endsAt;
             this.nextCommentAt =
-                    endsAt - TRIAL_TICKS + 15L * 20L;
+                    enterAt + 7L * 20L;
         }
 
         private void acceptStatement(
@@ -1406,7 +1961,11 @@ public final class JusticeDomainManager {
 
                 if (mentioned.isEmpty()) {
                     argumentScore +=
-                            0.035F
+                            (
+                                    npc
+                                            ? 0.20F
+                                            : 0.035F
+                            )
                                     * coherence
                                     * (
                                     0.70F
@@ -1564,7 +2123,18 @@ public final class JusticeDomainManager {
                     )
                             * 0.07F;
 
-            return hidden
+            float npcPresumption =
+                    npc
+                            ? 0.78F
+                                    + Math.min(
+                                    0.10F,
+                                    unintelligibleSounds
+                                            * 0.018F
+                            )
+                            : 0.0F;
+
+            return npcPresumption
+                    + hidden
                     + argumentScore
                     + fabricatedScore
                             * 0.68F
@@ -1629,50 +2199,90 @@ public final class JusticeDomainManager {
             return 0.46F;
         }
 
+        private void freezeDefendant(
+                LivingEntity defendantEntity
+        ) {
+            defendantEntity.setDeltaMovement(
+                    Vec3.ZERO
+            );
+
+            defendantEntity.fallDistance =
+                    0.0F;
+
+            if (defendantEntity
+                    instanceof Mob mob) {
+                mob.setNoAi(
+                        true
+                );
+            }
+        }
+
         private void keepInside(
                 ServerPlayer ownerPlayer,
-                ServerPlayer defendantPlayer,
+                LivingEntity defendantEntity,
                 ServerLevel level
         ) {
             keepParticipant(
                     ownerPlayer,
                     ownerReturn.pocketPosition,
-                    level
+                    level,
+                    false
             );
 
             keepParticipant(
-                    defendantPlayer,
+                    defendantEntity,
                     defendantReturn.pocketPosition,
-                    level
+                    level,
+                    true
             );
         }
 
         private void keepParticipant(
-                ServerPlayer player,
+                LivingEntity entity,
                 Vec3 fallback,
-                ServerLevel level
+                ServerLevel level,
+                boolean lock
         ) {
+            if (lock) {
+                teleportLiving(
+                        entity,
+                        level,
+                        fallback,
+                        entity.getYRot(),
+                        entity.getXRot()
+                );
+
+                if (entity
+                        instanceof Mob mob) {
+                    mob.setNoAi(
+                            true
+                    );
+                }
+
+                return;
+            }
+
             double dx =
                     Math.abs(
-                            player.getX()
-                                    - center.x
+                            entity.getX()
+                                    - pocketCenter.x
                     );
 
             double dz =
                     Math.abs(
-                            player.getZ()
-                                    - center.z
+                            entity.getZ()
+                                    - pocketCenter.z
                     );
 
-            if (player.serverLevel()
+            if (entity.level()
                     != level
                     || dx > 10.2
                     || dz > 12.2
-                    || player.getY()
+                    || entity.getY()
                     < floorY) {
 
-                teleport(
-                        player,
+                teleportLiving(
+                        entity,
                         level,
                         fallback,
                         180.0F,
@@ -1686,11 +2296,11 @@ public final class JusticeDomainManager {
         ) {
             return Math.abs(
                     pos.getX()
-                            - center.x
+                            - pocketCenter.x
             ) <= 12.0
                     && Math.abs(
                     pos.getZ()
-                            - center.z
+                            - pocketCenter.z
             ) <= 14.0
                     && pos.getY()
                     >= floorY
@@ -1699,47 +2309,63 @@ public final class JusticeDomainManager {
         }
     }
 
-    private static final class ParticipantState {
+    private static final class EntityState {
 
         private final Vec3 returnPosition;
         private final float returnYaw;
         private final float returnPitch;
         private final Vec3 pocketPosition;
+        private final boolean wasInvulnerable;
+        private final boolean wasNoAi;
 
-        private ParticipantState(
+        private EntityState(
                 Vec3 returnPosition,
                 float returnYaw,
                 float returnPitch,
-                Vec3 pocketPosition
+                Vec3 pocketPosition,
+                boolean wasInvulnerable,
+                boolean wasNoAi
         ) {
-            this.returnPosition =
-                    returnPosition;
-            this.returnYaw =
-                    returnYaw;
-            this.returnPitch =
-                    returnPitch;
-            this.pocketPosition =
-                    pocketPosition;
+            this.returnPosition = returnPosition;
+            this.returnYaw = returnYaw;
+            this.returnPitch = returnPitch;
+            this.pocketPosition = pocketPosition;
+            this.wasInvulnerable = wasInvulnerable;
+            this.wasNoAi = wasNoAi;
         }
 
-        private static ParticipantState capture(
-                ServerPlayer player,
+        private static EntityState capture(
+                LivingEntity entity,
                 Vec3 pocketPosition
         ) {
-            return new ParticipantState(
-                    player.position(),
-                    player.getYRot(),
-                    player.getXRot(),
-                    pocketPosition
+            return new EntityState(
+                    entity.position(),
+                    entity.getYRot(),
+                    entity.getXRot(),
+                    pocketPosition,
+                    entity.isInvulnerable(),
+                    entity instanceof Mob mob
+                            && mob.isNoAi()
             );
         }
 
         private void restore(
-                ServerPlayer player,
+                LivingEntity entity,
                 ServerLevel level
         ) {
-            teleport(
-                    player,
+            entity.setInvulnerable(
+                    wasInvulnerable
+            );
+
+            if (entity
+                    instanceof Mob mob) {
+                mob.setNoAi(
+                        wasNoAi
+                );
+            }
+
+            teleportLiving(
+                    entity,
                     level,
                     returnPosition,
                     returnYaw,

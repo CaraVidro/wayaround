@@ -12,7 +12,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
@@ -56,14 +55,12 @@ public final class JusticeExecutionBladeItem
 
         if (attacker
                 instanceof ServerPlayer owner
-                && target
-                instanceof ServerPlayer defendant
                 && JusticeRewardManager.isAuthorized(
                 owner.getUUID(),
-                defendant.getUUID()
+                target.getUUID()
         )) {
 
-            defendant.hurt(
+            target.hurt(
                     owner.damageSources()
                             .playerAttack(
                                     owner
@@ -74,7 +71,7 @@ public final class JusticeExecutionBladeItem
             owner.serverLevel()
                     .playSound(
                             null,
-                            defendant.blockPosition(),
+                            target.blockPosition(),
                             SoundEvents.PLAYER_ATTACK_CRIT,
                             SoundSource.PLAYERS,
                             1.25F,

@@ -1,17 +1,22 @@
 package net.caravidro.wayaround.justice;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
+
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -41,7 +46,7 @@ public final class JusticeRewardManager {
 
     public static void grant(
             ServerPlayer owner,
-            ServerPlayer target
+            LivingEntity target
     ) {
         revoke(
                 owner.getUUID(),
@@ -52,6 +57,10 @@ public final class JusticeRewardManager {
                 new ItemStack(
                         WayAroundContent.JUSTICE_EXECUTION_BLADE.get()
                 );
+
+        String targetName =
+                target.getDisplayName()
+                        .getString();
 
         CustomData.update(
                 DataComponents.CUSTOM_DATA,
@@ -69,8 +78,7 @@ public final class JusticeRewardManager {
 
                     tag.putString(
                             TARGET_NAME_KEY,
-                            target.getGameProfile()
-                                    .getName()
+                            targetName
                     );
                 }
         );
@@ -88,7 +96,8 @@ public final class JusticeRewardManager {
                 owner.getUUID(),
                 new Pursuit(
                         owner.getUUID(),
-                        target.getUUID()
+                        target.getUUID(),
+                        targetName
                 )
         );
 
@@ -180,30 +189,24 @@ public final class JusticeRewardManager {
                                     pursuit.owner
                             );
 
-            ServerPlayer target =
-                    server.getPlayerList()
-                            .getPlayer(
-                                    pursuit.target
-                            );
-
             if (owner == null
-                    || !owner.isAlive()
-                    || target == null
-                    || !target.isAlive()) {
-
-                if (owner != null) {
-                    removeBlades(
-                            owner
-                    );
-                }
+                    || !owner.isAlive()) {
 
                 iterator.remove();
                 continue;
             }
 
+            LivingEntity target =
+                    findLiving(
+                            server,
+                            pursuit.target
+                    );
+
             boolean visibleEnough =
-                    owner.serverLevel()
-                            == target.serverLevel()
+                    target != null
+                            && target.isAlive()
+                            && owner.level()
+                            == target.level()
                             && owner.distanceToSqr(
                             target
                     ) <= LOST_DISTANCE
@@ -212,9 +215,11 @@ public final class JusticeRewardManager {
             if (visibleEnough) {
                 pursuit.lostSince =
                         -1L;
+
             } else if (pursuit.lostSince < 0L) {
                 pursuit.lostSince =
                         tick;
+
             } else if (tick - pursuit.lostSince
                     >= LOST_LIMIT_TICKS) {
 
@@ -240,22 +245,28 @@ public final class JusticeRewardManager {
         }
     }
 
-    public static void onPlayerDeath(
-            ServerPlayer player
+    public static void onEntityDeath(
+            LivingEntity entity
     ) {
         MinecraftServer server =
-                player.server;
+                entity.getServer();
+
+        if (server == null) {
+            return;
+        }
 
         UUID id =
-                player.getUUID();
+                entity.getUUID();
 
-        revoke(
-                id,
-                server
-        );
+        if (entity instanceof ServerPlayer) {
+            revoke(
+                    id,
+                    server
+            );
+        }
 
         for (Map.Entry<UUID, Pursuit> entry :
-                new java.util.ArrayList<>(
+                new ArrayList<>(
                         ACTIVE.entrySet()
                 )) {
 
@@ -276,7 +287,7 @@ public final class JusticeRewardManager {
             MinecraftServer server
     ) {
         for (UUID owner :
-                new java.util.ArrayList<>(
+                new ArrayList<>(
                         ACTIVE.keySet()
                 )) {
             revoke(
@@ -286,6 +297,37 @@ public final class JusticeRewardManager {
         }
 
         ACTIVE.clear();
+    }
+
+    @Nullable
+    private static LivingEntity findLiving(
+            MinecraftServer server,
+            UUID id
+    ) {
+        ServerPlayer player =
+                server.getPlayerList()
+                        .getPlayer(
+                                id
+                        );
+
+        if (player != null) {
+            return player;
+        }
+
+        for (ServerLevel level :
+                server.getAllLevels()) {
+
+            var entity =
+                    level.getEntity(
+                            id
+                    );
+
+            if (entity instanceof LivingEntity living) {
+                return living;
+            }
+        }
+
+        return null;
     }
 
     private static void revoke(
@@ -339,17 +381,22 @@ public final class JusticeRewardManager {
     private static final class Pursuit {
         private final UUID owner;
         private final UUID target;
+        @SuppressWarnings("unused")
+        private final String targetName;
         private long lostSince =
                 -1L;
 
         private Pursuit(
                 UUID owner,
-                UUID target
+                UUID target,
+                String targetName
         ) {
             this.owner =
                     owner;
             this.target =
                     target;
+            this.targetName =
+                    targetName;
         }
     }
 }

@@ -6,6 +6,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.network.JusticeVoiceStatementC2SPayload;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -129,7 +131,9 @@ public final class VoiceSpeechDebug {
         minecraft.execute(
                 () ->
                         VoiceIntentClient.handleSpeculativeTranscript(
-                                recognition.text()
+                                BrazilianPortugueseSpeechNormalizer.refine(
+                                        recognition.text()
+                                )
                         )
         );
     }
@@ -270,13 +274,32 @@ public final class VoiceSpeechDebug {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
+        String refinedTranscript =
+                BrazilianPortugueseSpeechNormalizer.refine(
+                        recognition.text()
+                );
+
         minecraft.execute(
-                () -> VoiceIntentClient.handleTranscript(
-                        recognition.text(),
-                        profile,
-                        blueEmphasis.score(),
-                        redEmphasis.score()
-                )
+                () -> {
+                    VoiceIntentClient.handleTranscript(
+                            refinedTranscript,
+                            profile,
+                            blueEmphasis.score(),
+                            redEmphasis.score()
+                    );
+
+                    if (minecraft.player != null
+                            && minecraft.getConnection()
+                            != null
+                            && !refinedTranscript.isBlank()) {
+
+                        PacketDistributor.sendToServer(
+                                new JusticeVoiceStatementC2SPayload(
+                                        refinedTranscript
+                                )
+                        );
+                    }
+                }
         );
 
         if (!VoiceConfig

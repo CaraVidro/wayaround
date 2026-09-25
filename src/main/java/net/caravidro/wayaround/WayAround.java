@@ -73,6 +73,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onServerChat);
         NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onBlockBreak);
         NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onBlockPlace);
+        NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onSoundAtEntity);
         NeoForge.EVENT_BUS.addListener(BlueManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
 
