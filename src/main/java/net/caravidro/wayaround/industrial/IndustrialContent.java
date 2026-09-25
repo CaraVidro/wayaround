@@ -180,6 +180,9 @@ public final class IndustrialContent {
                                                 WayAroundContent.JUSTICE_SPECTRUM.get()
                                         );
                                         output.accept(
+                                                WayAroundContent.IMMORTAL_WHEEL.get()
+                                        );
+                                        output.accept(
                                                 WayAroundContent.TUKUNA_FINGER.get()
                                         );
                                         output.accept(
