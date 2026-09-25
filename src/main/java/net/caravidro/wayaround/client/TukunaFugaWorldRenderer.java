@@ -63,7 +63,7 @@ public final class TukunaFugaWorldRenderer {
                 TukunaFugaClientEffects.visuals();
 
         boolean chargingBow = minecraft.level.players().stream().anyMatch(player ->
-                PlayerAnimationController.isAnimation(player.getUUID(), PlayerCinematicPayload.FUGA_CHARGE));
+                PlayerAnimationController.animationAge(player.getUUID(), PlayerCinematicPayload.FUGA_CHARGE) > 16);
         if (visuals.isEmpty() && !chargingBow) {
             return;
         }
@@ -103,8 +103,8 @@ public final class TukunaFugaWorldRenderer {
 
         if (chargingBow) {
             for (var player : minecraft.level.players()) {
-                if (PlayerAnimationController.isAnimation(player.getUUID(),
-                        PlayerCinematicPayload.FUGA_CHARGE)
+                if (PlayerAnimationController.animationAge(player.getUUID(),
+                        PlayerCinematicPayload.FUGA_CHARGE) > 16
                         && player.distanceToSqr(minecraft.player) < 128.0 * 128.0) {
                     any |= emitFireBow(buffer, pose, camera, look, player);
                 }

@@ -61,15 +61,16 @@ public final class TukunaFingerWorld {
                 item.getBoundingBox().inflate(SEARCH_DISTANCE),
                 player -> !player.isSpectator()).isEmpty();
 
-        if (!remote || watched) {
+        long since = item.getPersistentData().getLong(ABANDONED_SINCE);
+        boolean elapsed = item.getPersistentData().contains(ABANDONED_SINCE)
+                && level.getGameTime() - since >= RECALL_DELAY;
+        if (!remote || (watched && !elapsed)) {
             item.getPersistentData().remove(ABANDONED_SINCE);
         } else if (!item.getPersistentData().contains(ABANDONED_SINCE)) {
             item.getPersistentData().putLong(ABANDONED_SINCE, level.getGameTime());
         }
 
-        long since = item.getPersistentData().getLong(ABANDONED_SINCE);
-        if (!voided && (!remote || watched || since == 0L
-                || level.getGameTime() - since < RECALL_DELAY)) return;
+        if (!voided && (!remote || !elapsed)) return;
 
         // Recreate the entire stack in the overworld, then remove the old entity.
         // One relocation per stack; never shrink or split the finger count.

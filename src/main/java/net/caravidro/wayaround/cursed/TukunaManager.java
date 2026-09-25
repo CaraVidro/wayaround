@@ -2439,6 +2439,10 @@ public final class TukunaManager {
                     removePossessionBuffs(
                             spirit
                     );
+                    if (possession.dangerous) {
+                        PacketDistributor.sendToPlayer(spirit,
+                                new TukunaPossessionS2CPayload(false, false));
+                    }
                 }
 
                 iterator.remove();

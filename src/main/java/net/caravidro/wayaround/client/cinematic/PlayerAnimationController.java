@@ -131,6 +131,11 @@ public final class PlayerAnimationController {
                         == animation;
     }
 
+    public static float animationAge(UUID player, byte animation) {
+        AnimationState state = ACTIVE.get(player);
+        return state != null && state.animation == animation ? age(state) : -1.0F;
+    }
+
     public static void beforeSetupAnim(
             AbstractClientPlayer player,
             PlayerModel<?> model

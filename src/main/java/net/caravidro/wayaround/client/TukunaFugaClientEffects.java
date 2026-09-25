@@ -5,6 +5,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
 
 import net.caravidro.wayaround.client.cinematic.CinematicCameraController;
+import net.caravidro.wayaround.client.cinematic.PlayerAnimationController;
+import net.caravidro.wayaround.network.PlayerCinematicPayload;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -225,6 +227,19 @@ public final class TukunaFugaClientEffects {
         long tick =
                 minecraft.level
                         .getGameTime();
+
+        if (tick % 3L == 0L && minecraft.player != null) {
+            for (var player : minecraft.level.players()) {
+                if (PlayerAnimationController.animationAge(player.getUUID(),
+                        PlayerCinematicPayload.FUGA_CHARGE) <= 16
+                        || player.distanceToSqr(minecraft.player) > 96 * 96) continue;
+                Vec3 bow = player.getEyePosition().add(player.getLookAngle().scale(1.8));
+                minecraft.level.addParticle(tick % 9L == 0L
+                                ? ParticleTypes.LAVA : ParticleTypes.FLAME,
+                        bow.x, bow.y - .2 + minecraft.level.random.nextDouble() * 1.7,
+                        bow.z, 0, .07, 0);
+            }
+        }
 
         Iterator<Map.Entry<UUID, Pillar>> iterator =
                 PILLARS.entrySet()
