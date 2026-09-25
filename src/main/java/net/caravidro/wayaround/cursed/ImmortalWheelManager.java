@@ -58,6 +58,8 @@ public final class ImmortalWheelManager {
     private static final int MAX_STEPS = 5;
     private static final int COMBO_WINDOW_TICKS = 120;
     private static final int MAX_BLACK_FLASH_DAMAGE = 3;
+    private static final int MAX_REBIRTHS = 2;
+    private static final int REBIRTH_TICKS = 86;
     private static final double VISUAL_RANGE = 128.0;
 
     private static final String BOUND_KEY =
@@ -69,11 +71,17 @@ public final class ImmortalWheelManager {
     private static final String LEGACY_DAMAGE_KEY =
             "WayAroundImmortalWheelBlackFlashDamage";
 
+    private static final String REBIRTHS_KEY =
+            "WayAroundImmortalWheelRebirthsUsed";
+
     private static final Map<UUID, Map<String, Adaptation>> ADAPTATIONS =
             new HashMap<>();
 
     private static final Set<UUID> PRESENT =
             new HashSet<>();
+
+    private static final Map<UUID, RebirthState> REBIRTHING =
+            new HashMap<>();
 
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
@@ -164,14 +172,125 @@ public final class ImmortalWheelManager {
     }
 
     @SubscribeEvent
-    public static void onDeath(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)
-                || !hasWheel(player)) {
+    public static void onDeath(
+            LivingDeathEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof ServerPlayer player)
+                || !hasWheel(
+                player
+        )) {
+            return;
+        }
+
+        int used =
+                Mth.clamp(
+                        player.getPersistentData()
+                                .getInt(
+                                        REBIRTHS_KEY
+                                ),
+                        0,
+                        MAX_REBIRTHS
+                );
+
+        if (used < MAX_REBIRTHS) {
+            event.setCanceled(
+                    true
+            );
+
+            player.getPersistentData()
+                    .putInt(
+                            REBIRTHS_KEY,
+                            used + 1
+                    );
+
+            player.setHealth(
+                    1.0F
+            );
+
+            player.setDeltaMovement(
+                    Vec3.ZERO
+            );
+
+            player.fallDistance =
+                    0.0F;
+
+            player.setInvulnerable(
+                    true
+            );
+
+            REBIRTHING.put(
+                    player.getUUID(),
+                    new RebirthState(
+                            player.getUUID(),
+                            player.server.getTickCount(),
+                            player.position(),
+                            used + 1
+                    )
+            );
+
+            ADAPTATIONS.remove(
+                    player.getUUID()
+            );
+
+            ServerLevel level =
+                    player.serverLevel();
+
+            level.playSound(
+                    null,
+                    player.blockPosition(),
+                    SoundEvents.TOTEM_USE,
+                    SoundSource.PLAYERS,
+                    2.0F,
+                    0.38F
+            );
+
+            level.playSound(
+                    null,
+                    player.blockPosition(),
+                    SoundEvents.BEACON_POWER_SELECT,
+                    SoundSource.PLAYERS,
+                    1.5F,
+                    0.54F
+            );
+
+            send(
+                    player,
+                    ImmortalWheelVisualPayload.SPIN,
+                    "rebirth",
+                    0,
+                    MAX_STEPS
+            );
+
+            player.displayClientMessage(
+                    net.minecraft.network.chat.Component.literal(
+                            "IMMORTAL WHEEL — RECONSTRUÇÃO "
+                                    + (used + 1)
+                                    + "/"
+                                    + MAX_REBIRTHS
+                    ).withStyle(
+                            net.minecraft.ChatFormatting.GOLD,
+                            net.minecraft.ChatFormatting.BOLD
+                    ),
+                    false
+            );
+
             return;
         }
 
         int physicalDamage =
-                wheelDamage(player);
+                wheelDamage(
+                        player
+                );
+
+        REBIRTHING.remove(
+                player.getUUID()
+        );
+
+        player.getPersistentData()
+                .remove(
+                        REBIRTHS_KEY
+                );
 
         clearBinding(
                 player
@@ -385,6 +504,11 @@ public final class ImmortalWheelManager {
         MinecraftServer server = event.getServer();
         long tick = server.getTickCount();
 
+        tickRebirths(
+                server,
+                tick
+        );
+
         if (tick % 20L != 0L) {
             return;
         }
@@ -435,6 +559,7 @@ public final class ImmortalWheelManager {
     public static void onServerStopped(ServerStoppedEvent event) {
         ADAPTATIONS.clear();
         PRESENT.clear();
+        REBIRTHING.clear();
     }
 
     public static void bindFromRemnant(
@@ -540,6 +665,222 @@ public final class ImmortalWheelManager {
         );
     }
 
+    private static void tickRebirths(
+            MinecraftServer server,
+            long tick
+    ) {
+        java.util.Iterator<Map.Entry<UUID, RebirthState>> iterator =
+                REBIRTHING.entrySet()
+                        .iterator();
+
+        while (iterator.hasNext()) {
+            RebirthState state =
+                    iterator.next()
+                            .getValue();
+
+            ServerPlayer player =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    state.owner
+                            );
+
+            if (player == null
+                    || !hasWheel(
+                    player
+            )) {
+                iterator.remove();
+                continue;
+            }
+
+            int age =
+                    (int) Math.max(
+                            0L,
+                            tick - state.startedAt
+                    );
+
+            float progress =
+                    Mth.clamp(
+                            age
+                                    / (float) REBIRTH_TICKS,
+                            0.0F,
+                            1.0F
+                    );
+
+            /*
+             * The body is held in place while rebuilding. Visually, particles
+             * start scattered around the old body volume and collapse inward,
+             * making the regeneration read as piece-by-piece reconstruction.
+             */
+            player.setDeltaMovement(
+                    Vec3.ZERO
+            );
+
+            player.fallDistance =
+                    0.0F;
+
+            ServerLevel level =
+                    player.serverLevel();
+
+            Vec3 body =
+                    player.position()
+                            .add(
+                                    0.0,
+                                    player.getBbHeight()
+                                            * 0.52,
+                                    0.0
+                            );
+
+            int fragments =
+                    7
+                            + Math.round(
+                            progress
+                                    * 15.0F
+                    );
+
+            for (int i = 0;
+                 i < fragments;
+                 i++) {
+
+                double angle =
+                        level.random.nextDouble()
+                                * Math.PI
+                                * 2.0;
+
+                double radius =
+                        2.2
+                                * (
+                                1.0 - progress
+                        )
+                                + 0.18
+                                + level.random.nextDouble()
+                                        * 0.45;
+
+                double y =
+                        (
+                                level.random.nextDouble()
+                                        - 0.5
+                        )
+                                * (
+                                2.4
+                                        - progress
+                                                * 1.4
+                        );
+
+                Vec3 source =
+                        body.add(
+                                Math.cos(angle)
+                                        * radius,
+                                y,
+                                Math.sin(angle)
+                                        * radius
+                        );
+
+                Vec3 inward =
+                        body.subtract(
+                                source
+                        );
+
+                if (inward.lengthSqr()
+                        > 0.0001) {
+                    inward =
+                            inward.normalize();
+                }
+
+                level.sendParticles(
+                        i % 4 == 0
+                                ? ParticleTypes.TOTEM_OF_UNDYING
+                                : ParticleTypes.ELECTRIC_SPARK,
+                        source.x,
+                        source.y,
+                        source.z,
+                        0,
+                        inward.x,
+                        inward.y,
+                        inward.z,
+                        0.28
+                                + progress
+                                        * 0.52
+                );
+            }
+
+            if (age % 6 == 0) {
+                send(
+                        player,
+                        ImmortalWheelVisualPayload.SPIN,
+                        "rebirth",
+                        age,
+                        MAX_STEPS
+                );
+            }
+
+            float targetHealth =
+                    Math.max(
+                            1.0F,
+                            player.getMaxHealth()
+                                    * (
+                                    0.06F
+                                            + progress
+                                                    * 0.94F
+                            )
+                    );
+
+            if (player.getHealth()
+                    < targetHealth) {
+                player.setHealth(
+                        targetHealth
+                );
+            }
+
+            if (progress >= 1.0F) {
+                player.setHealth(
+                        player.getMaxHealth()
+                );
+
+                player.setInvulnerable(
+                        false
+                );
+
+                level.playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.TOTEM_USE,
+                        SoundSource.PLAYERS,
+                        1.35F,
+                        1.18F
+                );
+
+                level.sendParticles(
+                        ParticleTypes.TOTEM_OF_UNDYING,
+                        body.x,
+                        body.y,
+                        body.z,
+                        110,
+                        0.85,
+                        1.05,
+                        0.85,
+                        0.30
+                );
+
+                player.displayClientMessage(
+                        net.minecraft.network.chat.Component.literal(
+                                "RECONSTRUÇÃO COMPLETA — resta(m) "
+                                        + Math.max(
+                                        0,
+                                        MAX_REBIRTHS
+                                                - state.rebirthIndex
+                                )
+                                        + " renascimento(s)."
+                        ).withStyle(
+                                net.minecraft.ChatFormatting.YELLOW
+                        ),
+                        false
+                );
+
+                iterator.remove();
+            }
+        }
+    }
+
     private static void spawnDormantRemnant(
             ServerLevel level,
             Vec3 position,
@@ -595,6 +936,12 @@ public final class ImmortalWheelManager {
                                 MAX_BLACK_FLASH_DAMAGE - 1
                         )
                 );
+
+        player.getPersistentData()
+                .putInt(
+                        REBIRTHS_KEY,
+                        0
+                );
     }
 
     private static void clearBinding(
@@ -609,6 +956,15 @@ public final class ImmortalWheelManager {
                 .remove(
                         DAMAGE_KEY
                 );
+
+        player.getPersistentData()
+                .remove(
+                        REBIRTHS_KEY
+                );
+
+        REBIRTHING.remove(
+                player.getUUID()
+        );
     }
 
     private static boolean isBound(
@@ -931,6 +1287,26 @@ public final class ImmortalWheelManager {
         }
 
         return "generic";
+    }
+
+    private static final class RebirthState {
+        private final UUID owner;
+        private final long startedAt;
+        @SuppressWarnings("unused")
+        private final Vec3 deathPosition;
+        private final int rebirthIndex;
+
+        private RebirthState(
+                UUID owner,
+                long startedAt,
+                Vec3 deathPosition,
+                int rebirthIndex
+        ) {
+            this.owner = owner;
+            this.startedAt = startedAt;
+            this.deathPosition = deathPosition;
+            this.rebirthIndex = rebirthIndex;
+        }
     }
 
     private static final class Adaptation {
