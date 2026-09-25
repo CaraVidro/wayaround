@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
@@ -1310,6 +1311,71 @@ public final class ImaginaryBetaManager {
                         0.38,
                         1.2,
                         0.42
+                );
+            }
+        }
+
+        BlockPos origin =
+                BlockPos.containing(
+                        center
+                );
+
+        for (int attempt = 0;
+             attempt < 5;
+             attempt++) {
+
+            BlockPos leafPos =
+                    origin.offset(
+                            level.random.nextInt(9) - 4,
+                            level.random.nextInt(7) - 3,
+                            level.random.nextInt(9) - 4
+                    );
+
+            BlockState leaf =
+                    level.getBlockState(
+                            leafPos
+                    );
+
+            if (!leaf.is(
+                    BlockTags.LEAVES
+            )) {
+                continue;
+            }
+
+            Vec3 particlePos =
+                    Vec3.atCenterOf(
+                            leafPos
+                    );
+
+            for (int particle = 0;
+                 particle < 4;
+                 particle++) {
+
+                level.sendParticles(
+                        new BlockParticleOption(
+                                ParticleTypes.BLOCK,
+                                leaf
+                        ),
+                        particlePos.x,
+                        particlePos.y,
+                        particlePos.z,
+                        0,
+                        direction.x
+                                * (
+                                0.45
+                                        + level.random.nextDouble()
+                                                * 0.55
+                        ),
+                        0.08
+                                + level.random.nextDouble()
+                                        * 0.22,
+                        direction.z
+                                * (
+                                0.45
+                                        + level.random.nextDouble()
+                                                * 0.55
+                        ),
+                        1.0
                 );
             }
         }
