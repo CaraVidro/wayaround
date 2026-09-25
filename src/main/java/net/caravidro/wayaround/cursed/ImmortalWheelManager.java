@@ -1,5 +1,13 @@
 package net.caravidro.wayaround.cursed;
 
+import net.minecraft.world.entity.ai.attributes.Attributes;
+
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+
+import net.minecraft.resources.ResourceLocation;
+
+import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
+
 import net.caravidro.wayaround.network.PlayerCinematicPayload;
 
 import java.util.HashMap;
@@ -61,6 +69,18 @@ public final class ImmortalWheelManager {
     private static final int COMBO_WINDOW_TICKS = 120;
     private static final int MAX_BLACK_FLASH_DAMAGE = 3;
     private static final double VISUAL_RANGE = 128.0;
+
+    private static final int SPECTRAL_MOBILITY_TICKS =
+            60;
+
+    private static final int REGENERATION_TICKS =
+            150;
+
+    private static final ResourceLocation REBIRTH_SPEED_ID =
+            ResourceLocation.fromNamespaceAndPath(
+                    WayAround.MODID,
+                    "immortal_wheel_rebirth_speed"
+            );
 
     private static final String BOUND_KEY =
             "WayAroundImmortalWheelBound";
@@ -649,17 +669,20 @@ public final class ImmortalWheelManager {
         );
 
         /*
-         * The bearer actually vanishes first. After a short empty beat the
-         * client animation begins revealing body parts one by one.
+         * Phase 1 is deliberately physical: the lethal hit has happened, but
+         * the bearer gets a few seconds of impossible mobility before the
+         * actual reconstruction starts. No attacks/items/techniques are
+         * allowed during the entire rebirth.
          */
-        player.setInvisible(
-                true
-        );
-
         player.clearFire();
 
-        player.setDeltaMovement(
-                Vec3.ZERO
+        applySpectralMobility(
+                player
+        );
+
+        PlayerControlLockManager.lockActions(
+                player,
+                0
         );
 
         player.fallDistance =
@@ -670,7 +693,7 @@ public final class ImmortalWheelManager {
                 new Regeneration(
                         player.getUUID(),
                         0,
-                        84,
+                        REGENERATION_TICKS,
                         wasInvulnerable,
                         wasInvisible
                 )
@@ -692,22 +715,6 @@ public final class ImmortalWheelManager {
                         origin.y + player.getBbHeight() + 0.42,
                         origin.z,
                         8 + remaining
-                )
-        );
-
-        PacketDistributor.sendToPlayersNear(
-                level,
-                null,
-                player.getX(),
-                player.getY(),
-                player.getZ(),
-                VISUAL_RANGE,
-                new PlayerCinematicPayload(
-                        player.getUUID(),
-                        PlayerCinematicPayload.IMMORTAL_REBUILD,
-                        84,
-                        false,
-                        0.0F
                 )
         );
 
@@ -772,6 +779,14 @@ public final class ImmortalWheelManager {
                             regeneration.wasInvisible
                     );
 
+                    removeSpectralMobility(
+                            player
+                    );
+
+                    PlayerControlLockManager.clearActions(
+                            player
+                    );
+
                     PacketDistributor.sendToPlayersNear(
                             player.serverLevel(),
                             null,
@@ -795,7 +810,94 @@ public final class ImmortalWheelManager {
 
             regeneration.age++;
 
-            if (regeneration.age == 10
+            ServerLevel level =
+                    player.serverLevel();
+
+            if (regeneration.age
+                    < SPECTRAL_MOBILITY_TICKS) {
+
+                /*
+                 * Lower effective gravity without creating a global gravity
+                 * attribute dependency. Downward velocity is softened every
+                 * server tick while horizontal movement remains player-owned.
+                 */
+                Vec3 velocity =
+                        player.getDeltaMovement();
+
+                if (velocity.y < 0.0) {
+                    player.setDeltaMovement(
+                            velocity.x,
+                            Math.max(
+                                    -0.24,
+                                    velocity.y
+                                            * 0.56
+                                            + 0.012
+                            ),
+                            velocity.z
+                    );
+                }
+
+                player.setHealth(
+                        Math.max(
+                                1.0F,
+                                player.getHealth()
+                        )
+                );
+
+                continue;
+            }
+
+            if (!regeneration.visualStarted) {
+                regeneration.visualStarted =
+                        true;
+
+                removeSpectralMobility(
+                        player
+                );
+
+                player.setInvisible(
+                        true
+                );
+
+                PacketDistributor.sendToPlayersNear(
+                        level,
+                        null,
+                        player.getX(),
+                        player.getY(),
+                        player.getZ(),
+                        VISUAL_RANGE,
+                        new PlayerCinematicPayload(
+                                player.getUUID(),
+                                PlayerCinematicPayload.IMMORTAL_REBUILD,
+                                regeneration.duration
+                                        - SPECTRAL_MOBILITY_TICKS,
+                                false,
+                                0.0F
+                        )
+                );
+
+                level.playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.END_PORTAL_SPAWN,
+                        SoundSource.PLAYERS,
+                        1.35F,
+                        0.55F
+                );
+            }
+
+            int rebuildAge =
+                    regeneration.age
+                            - SPECTRAL_MOBILITY_TICKS;
+
+            int rebuildDuration =
+                    Math.max(
+                            1,
+                            regeneration.duration
+                                    - SPECTRAL_MOBILITY_TICKS
+                    );
+
+            if (rebuildAge == 6
                     && !regeneration.wasInvisible) {
                 player.setInvisible(
                         false
@@ -804,8 +906,8 @@ public final class ImmortalWheelManager {
 
             float progress =
                     Mth.clamp(
-                            regeneration.age
-                                    / (float) regeneration.duration,
+                            rebuildAge
+                                    / (float) rebuildDuration,
                             0.0F,
                             1.0F
                     );
@@ -815,9 +917,9 @@ public final class ImmortalWheelManager {
                             1.0F,
                             player.getMaxHealth()
                                     * (
-                                    0.06F
+                                    0.05F
                                             + progress
-                                                    * 0.72F
+                                                    * 0.73F
                             )
                     );
 
@@ -836,9 +938,6 @@ public final class ImmortalWheelManager {
                                             * progress,
                                     0.0
                             );
-
-            ServerLevel level =
-                    player.serverLevel();
 
             level.sendParticles(
                     ParticleTypes.TOTEM_OF_UNDYING,
@@ -896,6 +995,14 @@ public final class ImmortalWheelManager {
                         regeneration.wasInvisible
                 );
 
+                removeSpectralMobility(
+                        player
+                );
+
+                PlayerControlLockManager.clearActions(
+                        player
+                );
+
                 PacketDistributor.sendToPlayersNear(
                         level,
                         null,
@@ -937,6 +1044,43 @@ public final class ImmortalWheelManager {
 
                 iterator.remove();
             }
+        }
+    }
+
+    private static void applySpectralMobility(
+            ServerPlayer player
+    ) {
+        var speed =
+                player.getAttribute(
+                        Attributes.MOVEMENT_SPEED
+                );
+
+        if (speed != null) {
+            speed.addOrUpdateTransientModifier(
+                    new AttributeModifier(
+                            REBIRTH_SPEED_ID,
+                            0.72,
+                            AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL
+                    )
+            );
+        }
+    }
+
+    private static void removeSpectralMobility(
+            ServerPlayer player
+    ) {
+        var speed =
+                player.getAttribute(
+                        Attributes.MOVEMENT_SPEED
+                );
+
+        if (speed != null
+                && speed.hasModifier(
+                REBIRTH_SPEED_ID
+        )) {
+            speed.removeModifier(
+                    REBIRTH_SPEED_ID
+            );
         }
     }
 
@@ -1350,6 +1494,7 @@ public final class ImmortalWheelManager {
         private final int duration;
         private final boolean wasInvulnerable;
         private final boolean wasInvisible;
+        private boolean visualStarted;
 
         private Regeneration(
                 UUID owner,

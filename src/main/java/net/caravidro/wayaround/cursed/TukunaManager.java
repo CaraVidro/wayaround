@@ -1193,6 +1193,12 @@ public final class TukunaManager {
             ServerPlayer player,
             boolean fire
     ) {
+        if (PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return;
+        }
+
         long tick =
                 player.server
                         .getTickCount();
@@ -1250,6 +1256,12 @@ public final class TukunaManager {
     public static boolean prepareFuga(
             ServerPlayer player
     ) {
+        if (PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return false;
+        }
+
         if (!hasSpectrum(
                 player
         )) {
@@ -1316,6 +1328,12 @@ public final class TukunaManager {
     public static boolean launchFuga(
             ServerPlayer player
     ) {
+        if (PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return false;
+        }
+
         FugaCharge charge =
                 FUGA_CHARGES.get(
                         player.getUUID()

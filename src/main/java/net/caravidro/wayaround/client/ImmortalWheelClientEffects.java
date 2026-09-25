@@ -26,7 +26,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 public final class ImmortalWheelClientEffects {
 
     private static final int REACTIVATION_DURATION =
-            84;
+            150;
 
     private ImmortalWheelClientEffects() {
     }
