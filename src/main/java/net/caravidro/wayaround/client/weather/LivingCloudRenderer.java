@@ -35,10 +35,9 @@ import org.joml.Vector3f;
  * Simple-Clouds-inspired renderer, intentionally much simpler:
  *
  * - cloud bodies are a sparse voxel field;
- * - only exposed voxel faces are emitted;
- * - the voxel field is rebuilt occasionally as its lobes drift/grow/shrink;
- * - when the camera enters a cloud the outside shell becomes much more
- *   transparent and nearby occupied voxels gain faint internal faces.
+ * - exposed faces are cached when the mesh is rebuilt, not rediscovered every frame;
+ * - distant clouds rebuild less frequently than nearby clouds;
+ * - when the camera enters a cloud the outside shell becomes more transparent.
  *
  * This gives Way Around actual cloud volume without ray marching.
  */
@@ -50,7 +49,9 @@ public final class LivingCloudRenderer {
     private static final double MAX_VISUAL_RADIUS = 156.0;
     private static final int MAX_HORIZONTAL_VOXELS = 19;
     private static final int MAX_VERTICAL_VOXELS = 7;
-    private static final int REBUILD_INTERVAL = 10;
+    private static final int REBUILD_INTERVAL_NEAR = 10;
+    private static final int REBUILD_INTERVAL_MID = 20;
+    private static final int REBUILD_INTERVAL_FAR = 40;
     private static final double CAMERA_FACE_CLEAR_RADIUS = 18.0;
     private static final double CAMERA_NEAR_GUARD = 0.35;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
@@ -167,8 +168,27 @@ public final class LivingCloudRenderer {
                             id -> new CloudMesh()
                     );
 
-            if (mesh.needsRebuild(time, cell)) {
-                mesh.rebuild(cell, time);
+            double cellDx =
+                    cell.x() - camera.x;
+
+            double cellDz =
+                    cell.z() - camera.z;
+
+            int rebuildInterval =
+                    rebuildIntervalForDistance(
+                            cellDx * cellDx
+                                    + cellDz * cellDz
+                    );
+
+            if (mesh.needsRebuild(
+                    time,
+                    cell,
+                    rebuildInterval
+            )) {
+                mesh.rebuild(
+                        cell,
+                        time
+                );
             }
 
             boolean inside =
@@ -258,7 +278,7 @@ public final class LivingCloudRenderer {
                     iterator.next();
 
             if (!visibleIds.contains(entry.getKey())
-                    && time - entry.getValue().lastUsed > 100L) {
+                    && time - entry.getValue().lastUsed > 200L) {
                 iterator.remove();
             }
         }
@@ -323,8 +343,15 @@ public final class LivingCloudRenderer {
                             id -> new CloudMesh()
                     );
 
-            if (mesh.needsRebuild(time, cell)) {
-                mesh.rebuild(cell, time);
+            if (mesh.needsRebuild(
+                    time,
+                    cell,
+                    REBUILD_INTERVAL_NEAR
+            )) {
+                mesh.rebuild(
+                        cell,
+                        time
+                );
             }
 
             if (mesh.containsWorld(
@@ -456,6 +483,13 @@ public final class LivingCloudRenderer {
         private final Set<Voxel> occupied =
                 new HashSet<>();
 
+        /*
+         * Expensive neighbor tests happen only when the cloud shape changes.
+         * Rendering then walks this compact exposed-face list directly.
+         */
+        private final List<SurfaceFace> surfaceFaces =
+                new ArrayList<>();
+
         private long builtAt =
                 Long.MIN_VALUE;
 
@@ -470,12 +504,13 @@ public final class LivingCloudRenderer {
 
         private boolean needsRebuild(
                 long time,
-                LocalWeatherField.CloudCell cell
+                LocalWeatherField.CloudCell cell,
+                int rebuildInterval
         ) {
             lastUsed = time;
 
             return builtAt == Long.MIN_VALUE
-                    || time - builtAt >= REBUILD_INTERVAL
+                    || time - builtAt >= rebuildInterval
                     || builtHoleRevision != holeRevision
                     || Math.abs(
                             builtRadius
@@ -565,10 +600,37 @@ public final class LivingCloudRenderer {
                 }
             }
 
+            rebuildSurfaceFaces();
+
             builtAt = time;
             builtRadius = radius;
             builtHoleRevision = holeRevision;
             lastUsed = time;
+        }
+
+        private void rebuildSurfaceFaces() {
+            surfaceFaces.clear();
+
+            for (Voxel voxel : occupied) {
+                for (Face face : Face.values()) {
+                    if (occupied.contains(
+                            new Voxel(
+                                    voxel.x + face.dx,
+                                    voxel.y + face.dy,
+                                    voxel.z + face.dz
+                            )
+                    )) {
+                        continue;
+                    }
+
+                    surfaceFaces.add(
+                            new SurfaceFace(
+                                    voxel,
+                                    face
+                            )
+                    );
+                }
+            }
         }
 
         private boolean emitSurface(
@@ -584,52 +646,48 @@ public final class LivingCloudRenderer {
                 int blue,
                 int alpha
         ) {
-            if (occupied.isEmpty()) {
+            if (surfaceFaces.isEmpty()) {
                 return false;
             }
 
             boolean emitted =
                     false;
 
-            for (Voxel voxel : occupied) {
-                for (Face face : Face.values()) {
-                    Voxel neighbor =
-                            new Voxel(
-                                    voxel.x + face.dx,
-                                    voxel.y + face.dy,
-                                    voxel.z + face.dz
-                            );
+            for (SurfaceFace surfaceFace :
+                    surfaceFaces) {
 
-                    if (occupied.contains(neighbor)) {
-                        continue;
-                    }
+                Voxel voxel =
+                        surfaceFace.voxel;
 
-                    if (faceUnsafeForCamera(
-                            cell,
-                            voxel,
-                            face,
-                            camera,
-                            lookX,
-                            lookY,
-                            lookZ
-                    )) {
-                        continue;
-                    }
+                Face face =
+                        surfaceFace.face;
 
-                    emitFace(
-                            buffer,
-                            poseStack,
-                            cell,
-                            voxel,
-                            face,
-                            red,
-                            green,
-                            blue,
-                            alpha
-                    );
-
-                    emitted = true;
+                if (faceUnsafeForCamera(
+                        cell,
+                        voxel,
+                        face,
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ
+                )) {
+                    continue;
                 }
+
+                emitFace(
+                        buffer,
+                        poseStack,
+                        cell,
+                        voxel,
+                        face,
+                        red,
+                        green,
+                        blue,
+                        alpha
+                );
+
+                emitted =
+                        true;
             }
 
             return emitted;
@@ -667,6 +725,20 @@ public final class LivingCloudRenderer {
                     )
             );
         }
+    }
+
+    private static int rebuildIntervalForDistance(
+            double distanceSquared
+    ) {
+        if (distanceSquared > 520.0 * 520.0) {
+            return REBUILD_INTERVAL_FAR;
+        }
+
+        if (distanceSquared > 280.0 * 280.0) {
+            return REBUILD_INTERVAL_MID;
+        }
+
+        return REBUILD_INTERVAL_NEAR;
     }
 
     private static double visualRadius(
@@ -1268,6 +1340,12 @@ public final class LivingCloudRenderer {
             int x,
             int y,
             int z
+    ) {
+    }
+
+    private record SurfaceFace(
+            Voxel voxel,
+            Face face
     ) {
     }
 

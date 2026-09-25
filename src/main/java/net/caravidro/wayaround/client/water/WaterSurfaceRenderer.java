@@ -17,6 +17,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.FluidState;
@@ -38,7 +39,7 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 @EventBusSubscriber(modid = WayAround.MODID, value = Dist.CLIENT)
 public final class WaterSurfaceRenderer {
 
-    private static final List<BlockPos> SURFACES =
+    private static final List<WaterSurface> SURFACES =
             new ArrayList<>();
 
     private static int cachedCenterX =
@@ -166,16 +167,25 @@ public final class WaterSurfaceRenderer {
         double radiusSquared =
                 radius * (double) radius;
 
-        for (BlockPos surface :
+        double fadeStart =
+                Math.max(
+                        0.0,
+                        radius - 18.0
+                );
+
+        double fadeStartSquared =
+                fadeStart * fadeStart;
+
+        for (WaterSurface surface :
                 SURFACES) {
 
             double dx =
-                    surface.getX()
+                    surface.x
                     + 0.5
                     - camera.x;
 
             double dz =
-                    surface.getZ()
+                    surface.z
                     + 0.5
                     - camera.z;
 
@@ -187,28 +197,14 @@ public final class WaterSurfaceRenderer {
                 continue;
             }
 
-            FluidState fluid =
-                    minecraft.level.getFluidState(
-                            surface
-                    );
-
-            if (!fluid.is(FluidTags.WATER)) {
-                continue;
-            }
-
             int x =
-                    surface.getX();
+                    surface.x;
 
             int z =
-                    surface.getZ();
+                    surface.z;
 
             double base =
-                    surface.getY()
-                    + fluid.getHeight(
-                            minecraft.level,
-                            surface
-                    )
-                    + 0.006;
+                    surface.baseY;
 
             double y00 =
                     base
@@ -275,41 +271,37 @@ public final class WaterSurfaceRenderer {
                 continue;
             }
 
-            int waterColor =
-                    minecraft.level.getBiome(
-                            surface
-                    ).value()
-                            .getWaterColor();
-
             int red =
-                    waterColor >> 16
-                    & 255;
+                    surface.red;
 
             int green =
-                    waterColor >> 8
-                    & 255;
+                    surface.green;
 
             int blue =
-                    waterColor
-                    & 255;
-
-            double distance =
-                    Math.sqrt(
-                            distanceSquared
-                    );
+                    surface.blue;
 
             float edgeFade =
-                    (float) Math.max(
-                            0.0,
-                            Math.min(
-                                    1.0,
-                                    (
-                                            radius
-                                            - distance
-                                    )
-                                    / 18.0
-                            )
-                    );
+                    1.0F;
+
+            if (distanceSquared > fadeStartSquared) {
+                double distance =
+                        Math.sqrt(
+                                distanceSquared
+                        );
+
+                edgeFade =
+                        (float) Math.max(
+                                0.0,
+                                Math.min(
+                                        1.0,
+                                        (
+                                                radius
+                                                        - distance
+                                        )
+                                                / 18.0
+                                )
+                        );
+            }
 
             int alpha =
                     Math.max(
@@ -511,9 +503,9 @@ public final class WaterSurfaceRenderer {
 
         return dx * dx
                 + dz * dz
-                >= 64
+                >= 100
                 || time - cachedAt
-                >= 40L;
+                >= 60L;
     }
 
     private static void rebuildSurfaces(
@@ -569,8 +561,40 @@ public final class WaterSurfaceRenderer {
                         );
 
                 if (water != null) {
+                    FluidState fluid =
+                            minecraft.level.getFluidState(
+                                    water
+                            );
+
+                    if (!fluid.is(
+                            FluidTags.WATER
+                    )) {
+                        continue;
+                    }
+
+                    int waterColor =
+                            minecraft.level.getBiome(
+                                    water
+                            ).value()
+                                    .getWaterColor();
+
                     SURFACES.add(
-                            water
+                            new WaterSurface(
+                                    water.getX(),
+                                    water.getZ(),
+                                    water.getY()
+                                            + fluid.getHeight(
+                                                    minecraft.level,
+                                                    water
+                                            )
+                                            + 0.006,
+                                    waterColor >> 16
+                                            & 255,
+                                    waterColor >> 8
+                                            & 255,
+                                    waterColor
+                                            & 255
+                            )
                     );
                 }
             }
@@ -634,16 +658,30 @@ public final class WaterSurfaceRenderer {
         double t =
                 time * 0.10;
 
-        return Math.sin(
-                        x * 0.38
-                        + z * 0.21
-                        + t
+        return Mth.sin(
+                        (float) (
+                                x * 0.38
+                                        + z * 0.21
+                                        + t
+                        )
                 ) * amplitude
-                + Math.sin(
-                        x * 0.13
-                        - z * 0.31
-                        + t * 0.63
+                + Mth.sin(
+                        (float) (
+                                x * 0.13
+                                        - z * 0.31
+                                        + t * 0.63
+                        )
                 ) * amplitude * 0.45;
+    }
+
+    private record WaterSurface(
+            int x,
+            int z,
+            double baseY,
+            int red,
+            int green,
+            int blue
+    ) {
     }
 
     private static void clearCache() {
