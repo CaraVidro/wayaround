@@ -42,8 +42,8 @@ public final class SpectrumCombat {
                 && isBearer(victim)
                 && !event.getSource().is(DamageTypes.GENERIC_KILL)) {
             // Armor still applies afterward; one ability cannot erase a Spectrum.
-            event.setAmount(Math.min(event.getAmount() * 0.55F,
-                    Math.max(2.0F, victim.getMaxHealth() * 0.38F)));
+            event.setAmount(Math.min(event.getAmount() * 0.45F,
+                    Math.max(2.0F, victim.getMaxHealth() * 0.25F)));
         }
     }
 }
