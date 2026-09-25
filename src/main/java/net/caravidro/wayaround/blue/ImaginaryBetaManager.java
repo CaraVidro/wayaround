@@ -156,6 +156,12 @@ public final class ImaginaryBetaManager {
                 player
         );
 
+        sendCinematic(
+                player,
+                PlayerCinematicPayload.CLEAR,
+                0
+        );
+
         if (FUSIONS.containsKey(owner)
                 || PURPLE_PROJECTILES.containsKey(owner)) {
 
