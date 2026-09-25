@@ -199,6 +199,14 @@ public final class JusticeSenseManager {
     public static void onDeath(
             LivingDeathEvent event
     ) {
+        if (event.getEntity()
+                instanceof ServerPlayer deadPlayer) {
+
+            JusticeRewardManager.onPlayerDeath(
+                    deadPlayer
+            );
+        }
+
         Entity attacker =
                 event.getSource()
                         .getEntity();
@@ -368,13 +376,19 @@ public final class JusticeSenseManager {
                 offender.server
                         .getTickCount();
 
-        for (Direction direction :
-                Direction.values()) {
+        BlockPos[] candidates =
+                new BlockPos[] {
+                        clicked,
+                        clicked.relative(Direction.DOWN),
+                        clicked.relative(Direction.UP),
+                        clicked.relative(Direction.NORTH),
+                        clicked.relative(Direction.SOUTH),
+                        clicked.relative(Direction.WEST),
+                        clicked.relative(Direction.EAST)
+                };
 
-            BlockPos candidate =
-                    clicked.relative(
-                            direction
-                    );
+        for (BlockPos candidate :
+                candidates) {
 
             BlockState state =
                     level.getBlockState(
