@@ -397,6 +397,16 @@ public final class VoidDomainClientEffects {
             return;
         }
 
+        /*
+         * During the opening burst the white flash wins over the black
+         * interior. On the next ticks the white collapses and reveals the
+         * star-space underneath.
+         */
+        if (inside
+                && whiteFlashTicks > 0) {
+            return;
+        }
+
         float lingeringStrength =
                 lingering
                         ? aftershockTicks
