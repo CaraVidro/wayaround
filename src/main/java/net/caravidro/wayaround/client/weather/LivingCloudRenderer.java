@@ -50,6 +50,7 @@ public final class LivingCloudRenderer {
     private static final int MAX_HORIZONTAL_VOXELS = 19;
     private static final int MAX_VERTICAL_VOXELS = 7;
     private static final int REBUILD_INTERVAL = 10;
+    private static final double CAMERA_FACE_CLEAR_RADIUS = 11.0;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
 
     /*
@@ -210,6 +211,7 @@ public final class LivingCloudRenderer {
                     buffer,
                     poseStack,
                     cell,
+                    camera,
                     red,
                     green,
                     blue,
@@ -555,6 +557,7 @@ public final class LivingCloudRenderer {
                 BufferBuilder buffer,
                 PoseStack poseStack,
                 LocalWeatherField.CloudCell cell,
+                Vec3 camera,
                 int red,
                 int green,
                 int blue,
@@ -577,6 +580,15 @@ public final class LivingCloudRenderer {
                             );
 
                     if (occupied.contains(neighbor)) {
+                        continue;
+                    }
+
+                    if (faceTooCloseToCamera(
+                            cell,
+                            voxel,
+                            face,
+                            camera
+                    )) {
                         continue;
                     }
 
@@ -857,6 +869,43 @@ public final class LivingCloudRenderer {
         }
 
         return false;
+    }
+
+    private static boolean faceTooCloseToCamera(
+            LocalWeatherField.CloudCell cell,
+            Voxel voxel,
+            Face face,
+            Vec3 camera
+    ) {
+        double centerX =
+                cell.x()
+                        + voxel.x * VOXEL
+                        + face.dx * VOXEL * 0.5;
+
+        double centerY =
+                cell.y()
+                        + voxel.y * VOXEL
+                        + face.dy * VOXEL * 0.5;
+
+        double centerZ =
+                cell.z()
+                        + voxel.z * VOXEL
+                        + face.dz * VOXEL * 0.5;
+
+        double dx =
+                centerX - camera.x;
+
+        double dy =
+                centerY - camera.y;
+
+        double dz =
+                centerZ - camera.z;
+
+        return dx * dx
+                + dy * dy
+                + dz * dz
+                < CAMERA_FACE_CLEAR_RADIUS
+                        * CAMERA_FACE_CLEAR_RADIUS;
     }
 
     private static void emitFace(
