@@ -2,6 +2,8 @@ package net.caravidro.wayaround.industrial.power;
 
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.minecraft.core.BlockPos;
@@ -29,17 +31,54 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
+/**
+ * V1 sawmill: a physical consumer rather than a binary recipe box.
+ *
+ * Installed components remain real ItemStacks with AssemblyPartProfile data.
+ * Power quality, alignment, wear, fatigue and over-speed change cutting speed,
+ * vibration, output yield and the quality stamped into the produced boards.
+ */
 public final class SawmillBlockEntity extends BlockEntity {
-    private boolean bladeInstalled;
-    private boolean shaftInstalled;
-    private ItemStack input = ItemStack.EMPTY;
+
+    private static final float OPTIMAL_RPM =
+            30.0F;
+
+    private static final float SAFE_RPM =
+            48.0F;
+
+    private ItemStack body =
+            ItemStack.EMPTY;
+
+    private ItemStack blade =
+            ItemStack.EMPTY;
+
+    private ItemStack driveShaft =
+            ItemStack.EMPTY;
+
+    private ItemStack input =
+            ItemStack.EMPTY;
 
     private float progress;
     private float rpm;
     private float bladeAngle;
+    private float vibration;
+    private float heat;
+    private float lastPowerRatio;
+    private float lastRequestedPower;
+    private float lastGrantedPower;
 
-    public SawmillBlockEntity(BlockPos pos, BlockState state) {
-        super(PowerContent.SAWMILL_ENTITY.get(), pos, state);
+    private int completedCuts;
+    private boolean jammed;
+
+    public SawmillBlockEntity(
+            BlockPos pos,
+            BlockState state
+    ) {
+        super(
+                PowerContent.SAWMILL_ENTITY.get(),
+                pos,
+                state
+        );
     }
 
     public static void serverTick(
@@ -52,190 +91,1123 @@ public final class SawmillBlockEntity extends BlockEntity {
     }
 
     private void tickMachine() {
-        IRotationalPower source = findBestSource();
-
-        float targetRpm = source == null ? 0.0F : source.rpm();
-        float granted = 0.0F;
-
-        if (source != null && bladeInstalled && shaftInstalled) {
-            float idleDraw = input.isEmpty() ? 0.10F : 1.8F + Math.min(1.4F, Math.abs(targetRpm) * 0.025F);
-            granted = source.consumePower(idleDraw);
+        if (!(level instanceof ServerLevel server)) {
+            return;
         }
 
-        boolean spinning = source != null
-                && bladeInstalled
-                && shaftInstalled
-                && granted > 0.04F
-                && Math.abs(targetRpm) > 0.5F;
+        ensureProfiles(
+                server
+        );
 
-        float effectiveTarget = spinning ? targetRpm : 0.0F;
-        rpm += (effectiveTarget - rpm) * 0.30F;
-        if (Math.abs(rpm) < 0.01F && Math.abs(effectiveTarget) < 0.01F) rpm = 0.0F;
+        IRotationalPower source =
+                findBestSource();
 
-        bladeAngle = wrap(bladeAngle + rpm * 0.30F);
+        float targetRpm =
+                source == null
+                        ? 0.0F
+                        : source.rpm();
 
-        if (spinning && !input.isEmpty()) {
-            float speed = Mth.clamp(Math.abs(rpm), 0.0F, 60.0F);
-            progress += 0.0045F + speed * 0.00042F;
+        AssemblyPartProfile bladeProfile =
+                bladeProfile();
 
-            if (level instanceof ServerLevel server
-                    && Math.floorMod(server.getGameTime() + worldPosition.asLong(), 13) == 0) {
+        AssemblyPartProfile shaftProfile =
+                shaftProfile();
+
+        AssemblyPartProfile bodyProfile =
+                bodyProfile();
+
+        boolean mechanicallyComplete =
+                bladeProfile != null
+                        && shaftProfile != null;
+
+        float bladePerformance =
+                bladeProfile == null
+                        ? 0.0F
+                        : bladeProfile.performanceFactor();
+
+        float shaftPerformance =
+                shaftProfile == null
+                        ? 0.0F
+                        : shaftProfile.performanceFactor();
+
+        float bodyPerformance =
+                bodyProfile == null
+                        ? 0.82F
+                        : bodyProfile.performanceFactor();
+
+        float speedAbs =
+                Math.abs(
+                        targetRpm
+                );
+
+        float dullness =
+                bladeProfile == null
+                        ? 1.0F
+                        : 1.0F
+                                - bladeProfile.durabilityScore();
+
+        float requestedPower =
+                0.0F;
+
+        if (source != null
+                && mechanicallyComplete) {
+
+            if (jammed) {
+                /*
+                 * A jam is a locked shaft, not a magical off switch. The source
+                 * still feels a heavy load until the player clears it.
+                 */
+                requestedPower =
+                        3.8F;
+
+            } else if (input.isEmpty()) {
+                requestedPower =
+                        0.08F
+                                + speedAbs
+                                        * 0.002F;
+
+            } else {
+                requestedPower =
+                        1.35F
+                                + speedAbs
+                                        * 0.021F
+                                + dullness
+                                        * 1.35F;
+            }
+        }
+
+        float granted =
+                source == null
+                        || requestedPower <= 0.0F
+                        ? 0.0F
+                        : source.consumePower(
+                                requestedPower
+                        );
+
+        lastRequestedPower =
+                requestedPower;
+
+        lastGrantedPower =
+                granted;
+
+        lastPowerRatio =
+                requestedPower <= 0.001F
+                        ? 0.0F
+                        : Mth.clamp(
+                                granted
+                                        / requestedPower,
+                                0.0F,
+                                1.0F
+                        );
+
+        boolean spinning =
+                !jammed
+                        && source != null
+                        && mechanicallyComplete
+                        && granted > 0.035F
+                        && speedAbs > 0.5F;
+
+        float transmissionFactor =
+                Mth.clamp(
+                        bladePerformance
+                                * 0.58F
+                                + shaftPerformance
+                                        * 0.27F
+                                + bodyPerformance
+                                        * 0.15F,
+                        0.25F,
+                        1.0F
+                );
+
+        float effectiveTarget =
+                spinning
+                        ? targetRpm
+                                * (
+                                0.70F
+                                        + transmissionFactor
+                                                * 0.30F
+                        )
+                        : 0.0F;
+
+        rpm +=
+                (
+                        effectiveTarget
+                                - rpm
+                )
+                        * (
+                        jammed
+                                ? 0.62F
+                                : 0.30F
+                );
+
+        if (Math.abs(
+                rpm
+        ) < 0.01F
+                && Math.abs(
+                effectiveTarget
+        ) < 0.01F) {
+
+            rpm =
+                    0.0F;
+        }
+
+        bladeAngle =
+                wrap(
+                        bladeAngle
+                                + rpm
+                                        * 0.30F
+                );
+
+        float overSpeed =
+                Math.max(
+                        0.0F,
+                        (
+                                Math.abs(
+                                        rpm
+                                )
+                                        - SAFE_RPM
+                        )
+                                / SAFE_RPM
+                );
+
+        float alignmentError =
+                mechanicallyComplete
+                        ? 1.0F
+                                - (
+                                bladeProfile.alignment()
+                                        * 0.55F
+                                        + shaftProfile.alignment()
+                                                * 0.30F
+                                        + bodyPerformance
+                                                * 0.15F
+                        )
+                        : 1.0F;
+
+        float starvation =
+                input.isEmpty()
+                        ? 0.0F
+                        : 1.0F
+                                - lastPowerRatio;
+
+        float targetVibration =
+                Mth.clamp(
+                        alignmentError
+                                * 0.68F
+                                + starvation
+                                        * 0.24F
+                                + overSpeed
+                                        * 0.72F
+                                + (
+                                bladeProfile == null
+                                        ? 0.0F
+                                        : bladeProfile.fatigue()
+                                                * 0.32F
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        vibration +=
+                (
+                        targetVibration
+                                - vibration
+                )
+                        * 0.12F;
+
+        float targetHeat =
+                spinning
+                        ? Mth.clamp(
+                        Math.abs(
+                                rpm
+                        )
+                                / 70.0F
+                                * (
+                                0.34F
+                                        + (
+                                        input.isEmpty()
+                                                ? 0.08F
+                                                : 0.48F
+                                )
+                        )
+                                + dullness
+                                        * 0.28F,
+                        0.0F,
+                        1.0F
+                )
+                        : 0.0F;
+
+        heat +=
+                (
+                        targetHeat
+                                - heat
+                )
+                        * (
+                        spinning
+                                ? 0.035F
+                                : 0.018F
+                );
+
+        if (spinning
+                && !input.isEmpty()) {
+
+            float speedQuality =
+                    Mth.clamp(
+                            1.0F
+                                    - Math.abs(
+                                    Math.abs(
+                                            rpm
+                                    )
+                                            - OPTIMAL_RPM
+                            )
+                                    / 48.0F,
+                            0.25F,
+                            1.0F
+                    );
+
+            float cuttingFactor =
+                    bladePerformance
+                            * 0.52F
+                            + shaftPerformance
+                                    * 0.18F
+                            + lastPowerRatio
+                                    * 0.20F
+                            + speedQuality
+                                    * 0.10F;
+
+            progress +=
+                    (
+                            0.0034F
+                                    + Math.min(
+                                    60.0F,
+                                    Math.abs(
+                                            rpm
+                                    )
+                            )
+                                    * 0.00036F
+                    )
+                            * Mth.clamp(
+                            cuttingFactor,
+                            0.18F,
+                            1.05F
+                    );
+
+            if (Math.floorMod(
+                    server.getGameTime()
+                            + worldPosition.asLong(),
+                    13
+            ) == 0) {
+
                 server.playSound(
                         null,
                         worldPosition,
                         SoundEvents.GRINDSTONE_USE,
                         SoundSource.BLOCKS,
-                        0.32F,
-                        0.82F + Math.min(0.35F, speed / 180.0F)
+                        0.26F
+                                + vibration
+                                        * 0.16F,
+                        0.80F
+                                + Math.min(
+                                0.35F,
+                                Math.abs(
+                                        rpm
+                                )
+                                        / 180.0F
+                        )
+                );
+            }
+
+            if (Math.floorMod(
+                    server.getGameTime()
+                            + worldPosition.asLong(),
+                    20
+            ) == 0) {
+
+                applyMachineWear(
+                        server,
+                        overSpeed
+                );
+            }
+
+            if (vibration > 0.64F
+                    && server.random.nextFloat()
+                    < (
+                    vibration
+                            - 0.60F
+            )
+                    * 0.015F) {
+
+                jam(
+                        server,
+                        "vibration"
                 );
             }
 
             if (progress >= 1.0F) {
-                finishCut();
+                finishCut(
+                        server
+                );
             }
         }
 
-        if (level != null
-                && Math.floorMod(level.getGameTime() + worldPosition.asLong(), 4) == 0
-                && (Math.abs(rpm) > 0.01F || progress > 0.0F)) {
+        if (Math.floorMod(
+                server.getGameTime()
+                        + worldPosition.asLong(),
+                4
+        ) == 0
+                && (
+                Math.abs(
+                        rpm
+                ) > 0.01F
+                        || progress > 0.0F
+                        || vibration > 0.04F
+                        || heat > 0.04F
+                        || jammed
+        )) {
+
             sync();
         }
     }
 
+    private void applyMachineWear(
+            ServerLevel server,
+            float overSpeed
+    ) {
+        AssemblyPartProfile bladeProfile =
+                bladeProfile();
+
+        AssemblyPartProfile shaftProfile =
+                shaftProfile();
+
+        AssemblyPartProfile bodyProfile =
+                bodyProfile();
+
+        float load =
+                Mth.clamp(
+                        lastRequestedPower
+                                / 4.0F,
+                        0.0F,
+                        1.5F
+                );
+
+        if (bladeProfile != null) {
+            bladeProfile.applyWear(
+                    0.0011F
+                            * (
+                            0.35F
+                                    + load
+                                            * 0.65F
+                    )
+                            * (
+                            1.0F
+                                    + overSpeed
+                                            * 2.2F
+                                    + heat
+                                            * 0.7F
+                    )
+            );
+
+            AssemblyItemData.writePart(
+                    blade,
+                    bladeProfile
+            );
+        }
+
+        if (shaftProfile != null) {
+            shaftProfile.applyWear(
+                    0.00034F
+                            * (
+                            0.4F
+                                    + load
+                    )
+                            * (
+                            1.0F
+                                    + vibration
+                                            * 1.4F
+                    )
+            );
+
+            AssemblyItemData.writePart(
+                    driveShaft,
+                    shaftProfile
+            );
+        }
+
+        if (bodyProfile != null) {
+            bodyProfile.applyWear(
+                    0.000055F
+                            * (
+                            0.35F
+                                    + vibration
+                                            * 1.65F
+                    )
+            );
+
+            AssemblyItemData.writePart(
+                    body,
+                    bodyProfile
+            );
+        }
+
+        if (bladeProfile != null
+                && bladeProfile.durabilityScore()
+                < 0.055F
+                && server.random.nextFloat()
+                < 0.035F) {
+
+            breakBlade(
+                    server
+            );
+
+        } else if (shaftProfile != null
+                && shaftProfile.durabilityScore()
+                < 0.045F
+                && server.random.nextFloat()
+                < 0.018F) {
+
+            breakShaft(
+                    server
+            );
+        }
+    }
+
+    private void breakBlade(
+            ServerLevel server
+    ) {
+        blade =
+                ItemStack.EMPTY;
+
+        jammed =
+                true;
+
+        progress =
+                Math.max(
+                        0.0F,
+                        progress
+                                - 0.16F
+                );
+
+        Block.popResource(
+                server,
+                worldPosition.above(),
+                new ItemStack(
+                        Items.IRON_NUGGET,
+                        2
+                )
+        );
+
+        server.playSound(
+                null,
+                worldPosition,
+                SoundEvents.ANVIL_BREAK,
+                SoundSource.BLOCKS,
+                0.9F,
+                1.45F
+        );
+
+        sync();
+    }
+
+    private void breakShaft(
+            ServerLevel server
+    ) {
+        driveShaft =
+                ItemStack.EMPTY;
+
+        jammed =
+                true;
+
+        Block.popResource(
+                server,
+                worldPosition.above(),
+                new ItemStack(
+                        Items.IRON_NUGGET,
+                        1
+                )
+        );
+
+        server.playSound(
+                null,
+                worldPosition,
+                SoundEvents.ANVIL_BREAK,
+                SoundSource.BLOCKS,
+                0.7F,
+                0.78F
+        );
+
+        sync();
+    }
+
+    private void jam(
+            ServerLevel server,
+            String reason
+    ) {
+        if (jammed) {
+            return;
+        }
+
+        jammed =
+                true;
+
+        server.playSound(
+                null,
+                worldPosition,
+                SoundEvents.IRON_DOOR_CLOSE,
+                SoundSource.BLOCKS,
+                0.85F,
+                0.54F
+        );
+
+        sync();
+    }
+
     @Nullable
     private IRotationalPower findBestSource() {
-        if (level == null) return null;
+        if (level == null) {
+            return null;
+        }
 
-        IRotationalPower best = null;
-        float bestPower = -1.0F;
+        IRotationalPower best =
+                null;
 
-        for (Direction direction : Direction.values()) {
-            IRotationalPower source = MechanicalTransmission.findSource(level, worldPosition, direction);
-            if (source != null && source.power() > bestPower) {
-                bestPower = source.power();
-                best = source;
+        float bestPower =
+                -1.0F;
+
+        for (Direction direction :
+                Direction.values()) {
+
+            IRotationalPower source =
+                    MechanicalTransmission.findSource(
+                            level,
+                            worldPosition,
+                            direction
+                    );
+
+            if (source != null
+                    && source.power()
+                            > bestPower) {
+
+                bestPower =
+                        source.power();
+
+                best =
+                        source;
             }
         }
 
         return best;
     }
 
-    public void installBlade(Player player, ItemStack stack) {
-        if (bladeInstalled) {
-            player.displayClientMessage(Component.translatable("message.wayaround.sawmill.blade_present"), true);
-            return;
+    public void restoreBodyFromItem(
+            ItemStack stack
+    ) {
+        body =
+                stack.copyWithCount(
+                        1
+                );
+
+        if (level instanceof ServerLevel server) {
+            AssemblyItemData.ensurePart(
+                    body,
+                    AssemblyPartProfile.Kind.FRAME,
+                    0,
+                    server.random
+            );
         }
-
-        bladeInstalled = true;
-        if (!player.getAbilities().instabuild) stack.consume(1, player);
-        playAssemblySound(SoundEvents.ANVIL_PLACE);
-        sync();
-
-        player.displayClientMessage(
-                Component.translatable("message.wayaround.sawmill.blade_installed"),
-                true
-        );
-    }
-
-    public void installShaft(Player player, ItemStack stack) {
-        if (!bladeInstalled) {
-            player.displayClientMessage(Component.translatable("message.wayaround.sawmill.need_blade"), true);
-            return;
-        }
-        if (shaftInstalled) {
-            player.displayClientMessage(Component.translatable("message.wayaround.sawmill.shaft_present"), true);
-            return;
-        }
-
-        shaftInstalled = true;
-        if (!player.getAbilities().instabuild) stack.consume(1, player);
-        playAssemblySound(SoundEvents.ANVIL_PLACE);
-        sync();
-
-        player.displayClientMessage(
-                Component.translatable("message.wayaround.sawmill.shaft_installed"),
-                true
-        );
-    }
-
-    public void insertLog(Player player, ItemStack stack) {
-        if (!bladeInstalled || !shaftInstalled) {
-            player.displayClientMessage(Component.translatable("message.wayaround.sawmill.incomplete"), true);
-            return;
-        }
-
-        if (!input.isEmpty()) {
-            player.displayClientMessage(Component.translatable("message.wayaround.sawmill.busy"), true);
-            return;
-        }
-
-        if (!stack.is(ItemTags.LOGS)) return;
-
-        input = stack.copyWithCount(1);
-        progress = 0.0F;
-
-        if (!player.getAbilities().instabuild) stack.consume(1, player);
 
         sync();
-        player.displayClientMessage(
-                Component.translatable("message.wayaround.sawmill.log_inserted"),
-                true
+    }
+
+    public void installBlade(
+            Player player,
+            ItemStack stack
+    ) {
+        if (bladeInstalled()) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.blade_present"
+                    ),
+                    true
+            );
+            return;
+        }
+
+        blade =
+                stack.copyWithCount(
+                        1
+                );
+
+        if (level instanceof ServerLevel server) {
+            AssemblyItemData.ensurePart(
+                    blade,
+                    AssemblyPartProfile.Kind.BLADE,
+                    0,
+                    server.random
+            );
+        }
+
+        if (!player.getAbilities()
+                .instabuild) {
+
+            stack.consume(
+                    1,
+                    player
+            );
+        }
+
+        jammed =
+                false;
+
+        playAssemblySound(
+                SoundEvents.ANVIL_PLACE
         );
-    }
 
-    public void removeLast(Player player) {
-        if (!input.isEmpty()) {
-            giveOrDrop(player, input.copy());
-            input = ItemStack.EMPTY;
-            progress = 0.0F;
-            sync();
-            return;
-        }
-
-        if (shaftInstalled) {
-            shaftInstalled = false;
-            giveOrDrop(player, new ItemStack(PowerContent.MECHANICAL_SHAFT_ITEM.get()));
-            sync();
-            return;
-        }
-
-        if (bladeInstalled) {
-            bladeInstalled = false;
-            giveOrDrop(player, new ItemStack(PowerContent.SAW_BLADE.get()));
-            sync();
-            return;
-        }
-
-        describe(player);
-    }
-
-    public void describe(Player player) {
-        String stage;
-        if (!bladeInstalled) stage = Component.translatable("message.wayaround.sawmill.stage_body").getString();
-        else if (!shaftInstalled) stage = Component.translatable("message.wayaround.sawmill.stage_blade").getString();
-        else stage = Component.translatable("message.wayaround.sawmill.stage_ready").getString();
+        sync();
 
         player.displayClientMessage(
                 Component.translatable(
-                        "message.wayaround.sawmill.status",
-                        stage,
-                        String.format(java.util.Locale.ROOT, "%.1f", rpm),
-                        Math.round(progress * 100.0F)
+                        "message.wayaround.sawmill.blade_installed"
                 ),
                 true
         );
     }
 
-    private void finishCut() {
-        if (!(level instanceof ServerLevel server) || input.isEmpty()) return;
+    public void installShaft(
+            Player player,
+            ItemStack stack
+    ) {
+        if (!bladeInstalled()) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.need_blade"
+                    ),
+                    true
+            );
+            return;
+        }
 
-        Item outputItem = matchingPlanks(input);
-        int count = outputItem == Items.OAK_PLANKS && matchingPath(input) == null ? 4 : 6;
+        if (shaftInstalled()) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.shaft_present"
+                    ),
+                    true
+            );
+            return;
+        }
+
+        driveShaft =
+                stack.copyWithCount(
+                        1
+                );
+
+        if (level instanceof ServerLevel server) {
+            AssemblyItemData.ensurePart(
+                    driveShaft,
+                    AssemblyPartProfile.Kind.SHAFT,
+                    0,
+                    server.random
+            );
+        }
+
+        if (!player.getAbilities()
+                .instabuild) {
+
+            stack.consume(
+                    1,
+                    player
+            );
+        }
+
+        jammed =
+                false;
+
+        playAssemblySound(
+                SoundEvents.ANVIL_PLACE
+        );
+
+        sync();
+
+        player.displayClientMessage(
+                Component.translatable(
+                        "message.wayaround.sawmill.shaft_installed"
+                ),
+                true
+        );
+    }
+
+    public void service(
+            Player player
+    ) {
+        if (!(level instanceof ServerLevel server)) {
+            return;
+        }
+
+        ensureProfiles(
+                server
+        );
+
+        boolean wasJammed =
+                jammed;
+
+        jammed =
+                false;
+
+        AssemblyPartProfile bladeProfile =
+                bladeProfile();
+
+        AssemblyPartProfile shaftProfile =
+                shaftProfile();
+
+        AssemblyPartProfile bodyProfile =
+                bodyProfile();
+
+        if (bladeProfile != null) {
+            bladeProfile.service(
+                    server.random,
+                    0.56F
+            );
+
+            AssemblyItemData.writePart(
+                    blade,
+                    bladeProfile
+            );
+        }
+
+        if (shaftProfile != null) {
+            shaftProfile.service(
+                    server.random,
+                    0.42F
+            );
+
+            AssemblyItemData.writePart(
+                    driveShaft,
+                    shaftProfile
+            );
+        }
+
+        if (bodyProfile != null) {
+            bodyProfile.service(
+                    server.random,
+                    0.28F
+            );
+
+            AssemblyItemData.writePart(
+                    body,
+                    bodyProfile
+            );
+        }
+
+        vibration *=
+                0.35F;
+
+        heat *=
+                0.72F;
+
+        server.playSound(
+                null,
+                worldPosition,
+                SoundEvents.ANVIL_USE,
+                SoundSource.BLOCKS,
+                0.55F,
+                wasJammed
+                        ? 0.72F
+                        : 1.08F
+        );
+
+        player.displayClientMessage(
+                Component.translatable(
+                        wasJammed
+                                ? "message.wayaround.sawmill.unjammed"
+                                : "message.wayaround.sawmill.serviced"
+                ),
+                true
+        );
+
+        sync();
+    }
+
+    public void insertLog(
+            Player player,
+            ItemStack stack
+    ) {
+        if (!bladeInstalled()
+                || !shaftInstalled()) {
+
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.incomplete"
+                    ),
+                    true
+            );
+            return;
+        }
+
+        if (jammed) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.jammed"
+                    ),
+                    true
+            );
+            return;
+        }
+
+        if (!input.isEmpty()) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.busy"
+                    ),
+                    true
+            );
+            return;
+        }
+
+        if (!stack.is(
+                ItemTags.LOGS
+        )) {
+            return;
+        }
+
+        input =
+                stack.copyWithCount(
+                        1
+                );
+
+        progress =
+                0.0F;
+
+        if (!player.getAbilities()
+                .instabuild) {
+
+            stack.consume(
+                    1,
+                    player
+            );
+        }
+
+        sync();
+
+        player.displayClientMessage(
+                Component.translatable(
+                        "message.wayaround.sawmill.log_inserted"
+                ),
+                true
+        );
+    }
+
+    public void removeLast(
+            Player player
+    ) {
+        if (!input.isEmpty()) {
+            giveOrDrop(
+                    player,
+                    input.copy()
+            );
+
+            input =
+                    ItemStack.EMPTY;
+
+            progress =
+                    0.0F;
+
+            sync();
+            return;
+        }
+
+        if (shaftInstalled()) {
+            giveOrDrop(
+                    player,
+                    driveShaft.copy()
+            );
+
+            driveShaft =
+                    ItemStack.EMPTY;
+
+            jammed =
+                    false;
+
+            sync();
+            return;
+        }
+
+        if (bladeInstalled()) {
+            giveOrDrop(
+                    player,
+                    blade.copy()
+            );
+
+            blade =
+                    ItemStack.EMPTY;
+
+            jammed =
+                    false;
+
+            sync();
+            return;
+        }
+
+        describe(
+                player
+        );
+    }
+
+    public void describe(
+            Player player
+    ) {
+        String stage;
+
+        if (!bladeInstalled()) {
+            stage =
+                    Component.translatable(
+                            "message.wayaround.sawmill.stage_body"
+                    ).getString();
+
+        } else if (!shaftInstalled()) {
+            stage =
+                    Component.translatable(
+                            "message.wayaround.sawmill.stage_blade"
+                    ).getString();
+
+        } else if (jammed) {
+            stage =
+                    Component.translatable(
+                            "message.wayaround.sawmill.stage_jammed"
+                    ).getString();
+
+        } else {
+            stage =
+                    Component.translatable(
+                            "message.wayaround.sawmill.stage_ready"
+                    ).getString();
+        }
+
+        player.displayClientMessage(
+                Component.translatable(
+                        "message.wayaround.sawmill.status_v1",
+                        stage,
+                        String.format(
+                                java.util.Locale.ROOT,
+                                "%.1f",
+                                rpm
+                        ),
+                        Math.round(
+                                progress
+                                        * 100.0F
+                        ),
+                        Math.round(
+                                partCondition(
+                                        bladeProfile()
+                                )
+                                        * 100.0F
+                        ),
+                        Math.round(
+                                partCondition(
+                                        shaftProfile()
+                                )
+                                        * 100.0F
+                        ),
+                        Math.round(
+                                vibration
+                                        * 100.0F
+                        ),
+                        Math.round(
+                                heat
+                                        * 100.0F
+                        ),
+                        Math.round(
+                                lastPowerRatio
+                                        * 100.0F
+                        )
+                ),
+                true
+        );
+    }
+
+    private void finishCut(
+            ServerLevel server
+    ) {
+        if (input.isEmpty()) {
+            return;
+        }
+
+        Item outputItem =
+                matchingPlanks(
+                        input
+                );
+
+        float quality =
+                currentCutQuality();
+
+        int count =
+                quality >= 0.78F
+                        ? 6
+                        : quality >= 0.48F
+                                ? 5
+                                : 4;
+
+        ItemStack output =
+                new ItemStack(
+                        outputItem,
+                        count
+                );
+
+        ResourceLocation outputId =
+                BuiltInRegistries.ITEM.getKey(
+                        outputItem
+                );
+
+        AssemblyPartProfile boardProfile =
+                AssemblyPartProfile.manufactured(
+                        AssemblyPartProfile.Kind.BOARD,
+                        AssemblyPartProfile.Material.WOOD,
+                        outputId,
+                        0,
+                        quality,
+                        Mth.clamp(
+                                0.44F
+                                        + quality
+                                                * 0.54F
+                                        - vibration
+                                                * 0.16F,
+                                0.0F,
+                                1.0F
+                        ),
+                        Mth.clamp(
+                                0.52F
+                                        + quality
+                                                * 0.44F,
+                                0.0F,
+                                1.0F
+                        ),
+                        0.42F,
+                        0.0F,
+                        Mth.clamp(
+                                vibration
+                                        * 0.04F
+                                        + heat
+                                                * 0.025F,
+                                0.0F,
+                                0.12F
+                        )
+                );
+
+        AssemblyItemData.writePart(
+                output,
+                boardProfile
+        );
+
+        AssemblyItemData.writeProcessStamp(
+                output,
+                "sawmill",
+                quality,
+                machineCondition(),
+                server.getGameTime()
+        );
 
         Block.popResource(
                 server,
                 worldPosition.above(),
-                new ItemStack(outputItem, count)
+                output
         );
 
         server.playSound(
@@ -244,72 +1216,371 @@ public final class SawmillBlockEntity extends BlockEntity {
                 SoundEvents.WOOD_BREAK,
                 SoundSource.BLOCKS,
                 0.65F,
-                1.15F
+                1.02F
+                        + quality
+                                * 0.22F
         );
 
-        input = ItemStack.EMPTY;
-        progress = 0.0F;
+        input =
+                ItemStack.EMPTY;
+
+        progress =
+                0.0F;
+
+        completedCuts++;
+
         sync();
     }
 
-    private Item matchingPlanks(ItemStack stack) {
-        String path = matchingPath(stack);
-        if (path == null) return Items.OAK_PLANKS;
+    private float currentCutQuality() {
+        AssemblyPartProfile bladeProfile =
+                bladeProfile();
 
-        ResourceLocation source = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(source.getNamespace(), path);
-        Item item = BuiltInRegistries.ITEM.get(id);
+        AssemblyPartProfile shaftProfile =
+                shaftProfile();
 
-        return item == Items.AIR ? Items.OAK_PLANKS : item;
+        float bladeQuality =
+                bladeProfile == null
+                        ? 0.20F
+                        : bladeProfile.assemblyScore();
+
+        float shaftQuality =
+                shaftProfile == null
+                        ? 0.20F
+                        : shaftProfile.assemblyScore();
+
+        float speedQuality =
+                Mth.clamp(
+                        1.0F
+                                - Math.abs(
+                                Math.abs(
+                                        rpm
+                                )
+                                        - OPTIMAL_RPM
+                        )
+                                / 42.0F,
+                        0.20F,
+                        1.0F
+                );
+
+        return Mth.clamp(
+                bladeQuality
+                        * 0.42F
+                        + shaftQuality
+                                * 0.17F
+                        + lastPowerRatio
+                                * 0.16F
+                        + speedQuality
+                                * 0.13F
+                        + (
+                        1.0F
+                                - vibration
+                )
+                                * 0.08F
+                        + (
+                        1.0F
+                                - heat
+                )
+                                * 0.04F,
+                0.12F,
+                1.0F
+        );
+    }
+
+    private float machineCondition() {
+        return Mth.clamp(
+                partCondition(
+                        bladeProfile()
+                )
+                        * 0.46F
+                        + partCondition(
+                        shaftProfile()
+                )
+                                * 0.26F
+                        + partCondition(
+                        bodyProfile()
+                )
+                                * 0.18F
+                        + (
+                        1.0F
+                                - vibration
+                )
+                                * 0.10F,
+                0.0F,
+                1.0F
+        );
+    }
+
+    private static float partCondition(
+            @Nullable AssemblyPartProfile profile
+    ) {
+        return profile == null
+                ? 0.0F
+                : profile.durabilityScore();
+    }
+
+    private void ensureProfiles(
+            ServerLevel server
+    ) {
+        if (body.isEmpty()) {
+            body =
+                    new ItemStack(
+                            PowerContent.SAWMILL_ITEM.get()
+                    );
+        }
+
+        AssemblyItemData.ensurePart(
+                body,
+                AssemblyPartProfile.Kind.FRAME,
+                0,
+                server.random
+        );
+
+        if (!blade.isEmpty()) {
+            AssemblyItemData.ensurePart(
+                    blade,
+                    AssemblyPartProfile.Kind.BLADE,
+                    0,
+                    server.random
+            );
+        }
+
+        if (!driveShaft.isEmpty()) {
+            AssemblyItemData.ensurePart(
+                    driveShaft,
+                    AssemblyPartProfile.Kind.SHAFT,
+                    0,
+                    server.random
+            );
+        }
     }
 
     @Nullable
-    private String matchingPath(ItemStack stack) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (id == null) return null;
+    private AssemblyPartProfile bladeProfile() {
+        return blade.isEmpty()
+                ? null
+                : AssemblyItemData.readPart(
+                        blade
+                );
+    }
 
-        String path = id.getPath();
-        if (path.endsWith("_log")) return path.substring(0, path.length() - 4) + "_planks";
-        if (path.endsWith("_wood")) return path.substring(0, path.length() - 5) + "_planks";
-        if (path.endsWith("_stem")) return path.substring(0, path.length() - 5) + "_planks";
-        if (path.endsWith("_hyphae")) return path.substring(0, path.length() - 7) + "_planks";
+    @Nullable
+    private AssemblyPartProfile shaftProfile() {
+        return driveShaft.isEmpty()
+                ? null
+                : AssemblyItemData.readPart(
+                        driveShaft
+                );
+    }
+
+    @Nullable
+    private AssemblyPartProfile bodyProfile() {
+        return body.isEmpty()
+                ? null
+                : AssemblyItemData.readPart(
+                        body
+                );
+    }
+
+    private Item matchingPlanks(
+            ItemStack stack
+    ) {
+        String path =
+                matchingPath(
+                        stack
+                );
+
+        if (path == null) {
+            return Items.OAK_PLANKS;
+        }
+
+        ResourceLocation source =
+                BuiltInRegistries.ITEM.getKey(
+                        stack.getItem()
+                );
+
+        ResourceLocation id =
+                ResourceLocation.fromNamespaceAndPath(
+                        source.getNamespace(),
+                        path
+                );
+
+        Item item =
+                BuiltInRegistries.ITEM.get(
+                        id
+                );
+
+        return item == Items.AIR
+                ? Items.OAK_PLANKS
+                : item;
+    }
+
+    @Nullable
+    private String matchingPath(
+            ItemStack stack
+    ) {
+        ResourceLocation id =
+                BuiltInRegistries.ITEM.getKey(
+                        stack.getItem()
+                );
+
+        if (id == null) {
+            return null;
+        }
+
+        String path =
+                id.getPath();
+
+        if (path.endsWith(
+                "_log"
+        )) {
+            return path.substring(
+                    0,
+                    path.length()
+                            - 4
+            )
+                    + "_planks";
+        }
+
+        if (path.endsWith(
+                "_wood"
+        )) {
+            return path.substring(
+                    0,
+                    path.length()
+                            - 5
+            )
+                    + "_planks";
+        }
+
+        if (path.endsWith(
+                "_stem"
+        )) {
+            return path.substring(
+                    0,
+                    path.length()
+                            - 5
+            )
+                    + "_planks";
+        }
+
+        if (path.endsWith(
+                "_hyphae"
+        )) {
+            return path.substring(
+                    0,
+                    path.length()
+                            - 7
+            )
+                    + "_planks";
+        }
+
         return null;
     }
 
-    private void giveOrDrop(Player player, ItemStack stack) {
-        if (!player.addItem(stack) && level != null) {
-            Block.popResource(level, worldPosition, stack);
+    private void giveOrDrop(
+            Player player,
+            ItemStack stack
+    ) {
+        if (!player.addItem(
+                stack
+        )
+                && level != null) {
+
+            Block.popResource(
+                    level,
+                    worldPosition,
+                    stack
+            );
         }
     }
 
-    private void playAssemblySound(net.minecraft.sounds.SoundEvent sound) {
+    private void playAssemblySound(
+            net.minecraft.sounds.SoundEvent sound
+    ) {
         if (level != null) {
-            level.playSound(null, worldPosition, sound, SoundSource.BLOCKS, 0.7F, 1.0F);
+            level.playSound(
+                    null,
+                    worldPosition,
+                    sound,
+                    SoundSource.BLOCKS,
+                    0.7F,
+                    1.0F
+            );
         }
     }
 
-    public void dropContents() {
-        if (level == null) return;
+    public void dropAssembly() {
+        if (level == null) {
+            return;
+        }
 
-        if (!input.isEmpty()) Block.popResource(level, worldPosition, input.copy());
-        if (shaftInstalled) Block.popResource(level, worldPosition, new ItemStack(PowerContent.MECHANICAL_SHAFT_ITEM.get()));
-        if (bladeInstalled) Block.popResource(level, worldPosition, new ItemStack(PowerContent.SAW_BLADE.get()));
+        if (!input.isEmpty()) {
+            Block.popResource(
+                    level,
+                    worldPosition,
+                    input.copy()
+            );
+        }
 
-        input = ItemStack.EMPTY;
-        shaftInstalled = false;
-        bladeInstalled = false;
+        if (!driveShaft.isEmpty()) {
+            Block.popResource(
+                    level,
+                    worldPosition,
+                    driveShaft.copy()
+            );
+        }
+
+        if (!blade.isEmpty()) {
+            Block.popResource(
+                    level,
+                    worldPosition,
+                    blade.copy()
+            );
+        }
+
+        ItemStack bodyDrop =
+                body.isEmpty()
+                        ? new ItemStack(
+                        PowerContent.SAWMILL_ITEM.get()
+                )
+                        : body.copy();
+
+        Block.popResource(
+                level,
+                worldPosition,
+                bodyDrop
+        );
+
+        input =
+                ItemStack.EMPTY;
+
+        driveShaft =
+                ItemStack.EMPTY;
+
+        blade =
+                ItemStack.EMPTY;
+
+        body =
+                ItemStack.EMPTY;
     }
 
     public boolean bladeInstalled() {
-        return bladeInstalled;
+        return !blade.isEmpty();
     }
 
     public boolean shaftInstalled() {
-        return shaftInstalled;
+        return !driveShaft.isEmpty();
     }
 
     public boolean hasInput() {
         return !input.isEmpty();
+    }
+
+    public Item inputItem() {
+        return input.isEmpty()
+                ? Items.AIR
+                : input.getItem();
     }
 
     public float progress() {
@@ -324,53 +1595,311 @@ public final class SawmillBlockEntity extends BlockEntity {
         return bladeAngle;
     }
 
-    private static float wrap(float value) {
-        value %= 360.0F;
-        if (value < 0.0F) value += 360.0F;
+    public float vibration() {
+        return vibration;
+    }
+
+    public float heat() {
+        return heat;
+    }
+
+    public boolean jammed() {
+        return jammed;
+    }
+
+    private static float wrap(
+            float value
+    ) {
+        value %=
+                360.0F;
+
+        if (value < 0.0F) {
+            value +=
+                    360.0F;
+        }
+
         return value;
     }
 
     private void sync() {
         setChanged();
+
         if (level != null) {
-            BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, 3);
+            BlockState state =
+                    getBlockState();
+
+            level.sendBlockUpdated(
+                    worldPosition,
+                    state,
+                    state,
+                    3
+            );
         }
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        tag.putBoolean("BladeInstalled", bladeInstalled);
-        tag.putBoolean("ShaftInstalled", shaftInstalled);
-        tag.putFloat("Progress", progress);
-        tag.putFloat("Rpm", rpm);
-        tag.putFloat("BladeAngle", bladeAngle);
-        if (!input.isEmpty()) tag.put("Input", input.saveOptional(registries));
+    protected void saveAdditional(
+            CompoundTag tag,
+            HolderLookup.Provider registries
+    ) {
+        super.saveAdditional(
+                tag,
+                registries
+        );
+
+        tag.putFloat(
+                "Progress",
+                progress
+        );
+
+        tag.putFloat(
+                "Rpm",
+                rpm
+        );
+
+        tag.putFloat(
+                "BladeAngle",
+                bladeAngle
+        );
+
+        tag.putFloat(
+                "Vibration",
+                vibration
+        );
+
+        tag.putFloat(
+                "Heat",
+                heat
+        );
+
+        tag.putFloat(
+                "PowerRatio",
+                lastPowerRatio
+        );
+
+        tag.putFloat(
+                "RequestedPower",
+                lastRequestedPower
+        );
+
+        tag.putFloat(
+                "GrantedPower",
+                lastGrantedPower
+        );
+
+        tag.putInt(
+                "CompletedCuts",
+                completedCuts
+        );
+
+        tag.putBoolean(
+                "Jammed",
+                jammed
+        );
+
+        if (!body.isEmpty()) {
+            tag.put(
+                    "Body",
+                    body.saveOptional(
+                            registries
+                    )
+            );
+        }
+
+        if (!blade.isEmpty()) {
+            tag.put(
+                    "Blade",
+                    blade.saveOptional(
+                            registries
+                    )
+            );
+        }
+
+        if (!driveShaft.isEmpty()) {
+            tag.put(
+                    "DriveShaft",
+                    driveShaft.saveOptional(
+                            registries
+                    )
+            );
+        }
+
+        if (!input.isEmpty()) {
+            tag.put(
+                    "Input",
+                    input.saveOptional(
+                            registries
+                    )
+            );
+        }
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        bladeInstalled = tag.getBoolean("BladeInstalled");
-        shaftInstalled = tag.getBoolean("ShaftInstalled");
-        progress = Mth.clamp(tag.getFloat("Progress"), 0.0F, 1.0F);
-        rpm = tag.getFloat("Rpm");
-        bladeAngle = tag.getFloat("BladeAngle");
-        input = tag.contains("Input", Tag.TAG_COMPOUND)
-                ? ItemStack.parseOptional(registries, tag.getCompound("Input"))
-                : ItemStack.EMPTY;
+    protected void loadAdditional(
+            CompoundTag tag,
+            HolderLookup.Provider registries
+    ) {
+        super.loadAdditional(
+                tag,
+                registries
+        );
+
+        /*
+         * Legacy migration: old V1 saves only stored booleans.
+         */
+        body =
+                tag.contains(
+                        "Body",
+                        Tag.TAG_COMPOUND
+                )
+                        ? ItemStack.parseOptional(
+                        registries,
+                        tag.getCompound(
+                                "Body"
+                        )
+                )
+                        : ItemStack.EMPTY;
+
+        blade =
+                tag.contains(
+                        "Blade",
+                        Tag.TAG_COMPOUND
+                )
+                        ? ItemStack.parseOptional(
+                        registries,
+                        tag.getCompound(
+                                "Blade"
+                        )
+                )
+                        : tag.getBoolean(
+                        "BladeInstalled"
+                )
+                        ? new ItemStack(
+                        PowerContent.SAW_BLADE.get()
+                )
+                        : ItemStack.EMPTY;
+
+        driveShaft =
+                tag.contains(
+                        "DriveShaft",
+                        Tag.TAG_COMPOUND
+                )
+                        ? ItemStack.parseOptional(
+                        registries,
+                        tag.getCompound(
+                                "DriveShaft"
+                        )
+                )
+                        : tag.getBoolean(
+                        "ShaftInstalled"
+                )
+                        ? new ItemStack(
+                        PowerContent.MECHANICAL_SHAFT_ITEM.get()
+                )
+                        : ItemStack.EMPTY;
+
+        progress =
+                Mth.clamp(
+                        tag.getFloat(
+                                "Progress"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        rpm =
+                tag.getFloat(
+                        "Rpm"
+                );
+
+        bladeAngle =
+                tag.getFloat(
+                        "BladeAngle"
+                );
+
+        vibration =
+                Mth.clamp(
+                        tag.getFloat(
+                                "Vibration"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        heat =
+                Mth.clamp(
+                        tag.getFloat(
+                                "Heat"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        lastPowerRatio =
+                Mth.clamp(
+                        tag.getFloat(
+                                "PowerRatio"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        lastRequestedPower =
+                tag.getFloat(
+                        "RequestedPower"
+                );
+
+        lastGrantedPower =
+                tag.getFloat(
+                        "GrantedPower"
+                );
+
+        completedCuts =
+                Math.max(
+                        0,
+                        tag.getInt(
+                                "CompletedCuts"
+                        )
+                );
+
+        jammed =
+                tag.getBoolean(
+                        "Jammed"
+                );
+
+        input =
+                tag.contains(
+                        "Input",
+                        Tag.TAG_COMPOUND
+                )
+                        ? ItemStack.parseOptional(
+                        registries,
+                        tag.getCompound(
+                                "Input"
+                        )
+                )
+                        : ItemStack.EMPTY;
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        saveAdditional(tag, registries);
+    public CompoundTag getUpdateTag(
+            HolderLookup.Provider registries
+    ) {
+        CompoundTag tag =
+                new CompoundTag();
+
+        saveAdditional(
+                tag,
+                registries
+        );
+
         return tag;
     }
 
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
-        return ClientboundBlockEntityDataPacket.create(this);
+        return ClientboundBlockEntityDataPacket.create(
+                this
+        );
     }
 }

@@ -117,7 +117,7 @@ public final class PowerContent {
 
     public static final DeferredBlock<SawmillBlock> SAWMILL = BLOCKS.register("sawmill",
         () -> new SawmillBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
-            .strength(2.4F, 4.0F).sound(SoundType.WOOD).noOcclusion()));
+            .strength(2.4F, 4.0F).sound(SoundType.WOOD).noOcclusion().noLootTable()));
 
     public static final DeferredItem<BlockItem> SAWMILL_ITEM = ITEMS.register("sawmill",
         () -> new BlockItem(SAWMILL.get(), new Item.Properties()));
@@ -128,14 +128,14 @@ public final class PowerContent {
 
     public static final DeferredBlock<MechanicalShaftBlock> MECHANICAL_SHAFT = BLOCKS.register("mechanical_shaft",
         () -> new MechanicalShaftBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
-            .strength(2.2F, 5.0F).sound(SoundType.METAL).noOcclusion()));
+            .strength(2.2F, 5.0F).sound(SoundType.METAL).noOcclusion().noLootTable()));
 
     public static final DeferredItem<BlockItem> MECHANICAL_SHAFT_ITEM = ITEMS.register("mechanical_shaft",
         () -> new BlockItem(MECHANICAL_SHAFT.get(), new Item.Properties()));
 
     public static final DeferredBlock<MechanicalGearboxBlock> MECHANICAL_GEARBOX = BLOCKS.register("mechanical_gearbox",
         () -> new MechanicalGearboxBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
-            .strength(2.8F, 6.0F).sound(SoundType.METAL).noOcclusion()));
+            .strength(2.8F, 6.0F).sound(SoundType.METAL).noOcclusion().noLootTable()));
 
     public static final DeferredItem<BlockItem> MECHANICAL_GEARBOX_ITEM = ITEMS.register("mechanical_gearbox",
         () -> new BlockItem(MECHANICAL_GEARBOX.get(), new Item.Properties()));

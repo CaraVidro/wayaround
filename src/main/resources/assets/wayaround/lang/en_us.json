@@ -192,7 +192,7 @@
     "item.wayaround.saw_blade": "Saw Blade",
     "block.wayaround.sawmill": "Assembly Sawmill",
     "message.wayaround.pulley.refined": "Wheel refined: %s -> %s sides | Shape efficiency: %s%%",
-    "message.wayaround.pulley.status": "Pulley: %s sides | Shape %s%% | %s | RPM %s",
+    "message.wayaround.pulley.status": "Pulley: %s sides | Shape %s%% | %s | RPM %s | Wheel %s%% | Belt %s%%",
     "message.wayaround.pulley.no_belt": "No belt",
     "message.wayaround.pulley.has_belt": "Rope belt connected",
     "message.wayaround.pulley.belt_first": "Rope hooked to this wheel. Use the same string on a second pulley.",
@@ -248,5 +248,16 @@
     "message.wayaround.tukuna.near_return": "perto de voltar...",
     "message.wayaround.tukuna.returning": "VOLTANDO",
     "message.wayaround.tukuna.returned": "The body returned to its owner. Tukuna is a ghost again.",
-    "message.wayaround.tukuna.silenced": "You cannot speak while Tukuna controls your body."
+    "message.wayaround.tukuna.silenced": "You cannot speak while Tukuna controls your body.",
+    "message.wayaround.sawmill.stage_jammed": "JAMMED — shaft under load",
+    "message.wayaround.sawmill.status_v1": "Sawmill: %s | RPM %s | Cut %s%% | Blade %s%% | Shaft %s%% | Vibration %s%% | Heat %s%% | Power received %s%%",
+    "message.wayaround.sawmill.jammed": "The sawmill is jammed. Use the Assembly Hammer to free and realign it.",
+    "message.wayaround.sawmill.unjammed": "CLANK — jam cleared. Parts were realigned, but fatigue remains.",
+    "message.wayaround.sawmill.serviced": "Sawmill serviced. Looseness reduced; structural fatigue was not erased.",
+    "tooltip.wayaround.part.kind": "Physical part: %s",
+    "tooltip.wayaround.part.process": "Process: %s | quality %s%%",
+    "guide.wayaround.assembly.v1.1": "V1: quality and wear now travel through the mechanical chain. Disassembly does not reset a part.",
+    "guide.wayaround.assembly.v1.2": "Shafts and gearboxes lose a small amount of power and wear under load. Long, poor networks cost power.",
+    "guide.wayaround.assembly.v1.3": "The sawmill reacts to power starvation, alignment, dull blades, vibration and overspeed. The Assembly Hammer services it without erasing fatigue.",
+    "guide.wayaround.assembly.v1.4": "Sawn boards carry cut quality and manufacturing history inside their ItemStack."
 }
