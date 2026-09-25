@@ -15,6 +15,7 @@ import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.BlueGestureS2CPayload;
 import net.caravidro.wayaround.network.BlueScrollPayload;
 import net.caravidro.wayaround.network.BlueVisualPayload;
+import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -168,6 +169,60 @@ public final class BlueClientEffects {
                             state.sound
                     );
         }
+    }
+
+    @SubscribeEvent
+    public static void onInteraction(
+            InputEvent.InteractionKeyMappingTriggered event
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (!event.isUseItem()
+                || event.getHand()
+                != InteractionHand.MAIN_HAND
+                || minecraft.player == null
+                || !hasBlueItem(
+                minecraft
+        )) {
+            return;
+        }
+
+        if (hasOwnedControllableBlue(
+                minecraft.player.getUUID()
+        )) {
+
+            PacketDistributor.sendToServer(
+                    new VoiceIntentC2SPayload(
+                            VoiceIntentC2SPayload.BLUE_STOP,
+                            -1.0F,
+                            0.0F
+                    )
+            );
+
+            event.setCanceled(
+                    true
+            );
+
+            event.setSwingHand(
+                    false
+            );
+
+            return;
+        }
+
+        /*
+         * Do not cancel vanilla use when no Blue is active. If a Red happens
+         * to be prepared server-side this launches it; otherwise the packet is
+         * harmless and the normal right-click action still proceeds.
+         */
+        PacketDistributor.sendToServer(
+                new VoiceIntentC2SPayload(
+                        VoiceIntentC2SPayload.RED_LAUNCH,
+                        -1.0F,
+                        0.0F
+                )
+        );
     }
 
     @SubscribeEvent
