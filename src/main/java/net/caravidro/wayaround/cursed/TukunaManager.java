@@ -86,6 +86,7 @@ public final class TukunaManager {
     private static final int POSSESSION_NEAR_RETURN_TICKS = 100;
     private static final int POSSESSION_RETURNING_TICKS = 20;
     private static final int SWAP_COOLDOWN_TICKS = 300;
+    private static final int DANGEROUS_CONTRACT_TICKS = 20 * 60 * 3;
 
     private static final int FUGA_CHARGE_TICKS =
             120;
@@ -163,6 +164,8 @@ public final class TukunaManager {
             );
 
     private static final Map<UUID, Long> SWAP_CONFIRMATIONS =
+            new HashMap<>();
+    private static final Map<UUID, Long> CONTRACT_CONFIRMATIONS =
             new HashMap<>();
 
     private static final Map<UUID, Long> SWAP_COOLDOWNS =
@@ -243,6 +246,8 @@ public final class TukunaManager {
                             player.getZ(),
                             fingers
                     );
+
+            TukunaFingerWorld.protect(entity);
 
             double angle =
                     group
@@ -508,6 +513,18 @@ public final class TukunaManager {
             return;
         }
 
+        String statement = normalizeSpeech(raw);
+        if ("contrato de 3 minutos".equals(statement)
+                || "contrato de tres minutos".equals(statement)) {
+            event.setCanceled(true);
+            confirmSwap(player, true);
+            return;
+        }
+        if ("devolver corpo".equals(statement) || "voltar corpo".equals(statement)) {
+            event.setCanceled(true);
+            returnBodyEarly(player);
+            return;
+        }
         if (raw.equalsIgnoreCase(
                 "trocar"
         )) {
@@ -543,6 +560,17 @@ public final class TukunaManager {
             return;
         }
 
+        String statement = normalizeSpeech(transcript);
+        if ("contrato de 3 minutos".equals(statement)
+                || "contrato de tres minutos".equals(statement)) {
+            confirmSwap(player, true);
+            return;
+        }
+        if ("devolver corpo".equals(statement) || "voltar corpo".equals(statement)) {
+            returnBodyEarly(player);
+            return;
+        }
+
         if ("trocar".equals(
                 normalizeSpeech(
                         transcript
@@ -559,6 +587,7 @@ public final class TukunaManager {
             ServerStoppedEvent event
     ) {
         SWAP_CONFIRMATIONS.clear();
+        CONTRACT_CONFIRMATIONS.clear();
         SWAP_COOLDOWNS.clear();
         DESMARTELAR_COOLDOWNS.clear();
         MANUAL_DESMARTELAR_CHARGES.clear();
@@ -923,6 +952,10 @@ public final class TukunaManager {
     public static void confirmSwap(
             ServerPlayer caller
     ) {
+        confirmSwap(caller, false);
+    }
+
+    public static void confirmSwap(ServerPlayer caller, boolean dangerous) {
         MinecraftServer server =
                 caller.server;
 
@@ -1016,7 +1049,9 @@ public final class TukunaManager {
             return;
         }
 
-        SWAP_CONFIRMATIONS.put(
+        Map<UUID, Long> confirmations = dangerous
+                ? CONTRACT_CONFIRMATIONS : SWAP_CONFIRMATIONS;
+        confirmations.put(
                 caller.getUUID(),
                 tick
         );
@@ -1036,6 +1071,12 @@ public final class TukunaManager {
                 true
         );
 
+        if (dangerous) {
+            caller.displayClientMessage(Component.literal(
+                    "Contrato perigoso: até 3 minutos. Tukuna pode devolver antes dizendo 'devolver corpo'."
+            ).withStyle(ChatFormatting.GOLD), false);
+        }
+
         other.displayClientMessage(
                 Component.translatable(
                                 "message.wayaround.tukuna.swap_waiting_other",
@@ -1049,7 +1090,7 @@ public final class TukunaManager {
         );
 
         long otherTick =
-                SWAP_CONFIRMATIONS.getOrDefault(
+                confirmations.getOrDefault(
                         other.getUUID(),
                         Long.MIN_VALUE / 4L
                 );
@@ -1057,20 +1098,35 @@ public final class TukunaManager {
         if (tick - otherTick
                 <= SWAP_CONFIRM_WINDOW_TICKS) {
 
-            SWAP_CONFIRMATIONS.remove(
+            confirmations.remove(
                     host.getUUID()
             );
 
-            SWAP_CONFIRMATIONS.remove(
+            confirmations.remove(
                     spirit.getUUID()
             );
+
+            SWAP_CONFIRMATIONS.remove(host.getUUID());
+            SWAP_CONFIRMATIONS.remove(spirit.getUUID());
+            CONTRACT_CONFIRMATIONS.remove(host.getUUID());
+            CONTRACT_CONFIRMATIONS.remove(spirit.getUUID());
 
             beginPossession(
                     host,
                     spirit,
-                    tick
+                    tick,
+                    dangerous
             );
         }
+    }
+
+    private static void returnBodyEarly(ServerPlayer spirit) {
+        Possession possession = possessionForSpirit(spirit.getUUID());
+        if (possession == null || !possession.dangerous) return;
+        ServerPlayer host = spirit.server.getPlayerList().getPlayer(possession.hostId);
+        if (host == null) return;
+        finishPossession(host, spirit, possession, spirit.server.getTickCount());
+        POSSESSIONS.remove(possession.hostId);
     }
 
     public static void beginManualDesmartelar(
@@ -2232,7 +2288,8 @@ public final class TukunaManager {
     private static void beginPossession(
             ServerPlayer host,
             ServerPlayer spirit,
-            long tick
+            long tick,
+            boolean dangerous
     ) {
         int fingers =
                 fingerCount(
@@ -2243,7 +2300,7 @@ public final class TukunaManager {
                 host.gameMode
                         .getGameModeForPlayer();
 
-        long endTick =
+        long endTick = dangerous ? tick + DANGEROUS_CONTRACT_TICKS :
                 tick
                         + POSSESSION_BASE_TICKS
                         + fingers
@@ -2255,7 +2312,8 @@ public final class TukunaManager {
                         spirit.getUUID(),
                         fingers,
                         hostMode,
-                        endTick
+                        endTick,
+                        dangerous
                 );
 
         POSSESSIONS.put(
@@ -2295,9 +2353,14 @@ public final class TukunaManager {
         PacketDistributor.sendToPlayer(
                 host,
                 new TukunaPossessionS2CPayload(
-                        true
+                        true, dangerous
                 )
         );
+
+        if (dangerous) {
+            PacketDistributor.sendToPlayer(spirit,
+                    new TukunaPossessionS2CPayload(false, true));
+        }
 
         host.displayClientMessage(
                 Component.translatable(
@@ -2525,9 +2588,13 @@ public final class TukunaManager {
         PacketDistributor.sendToPlayer(
                 host,
                 new TukunaPossessionS2CPayload(
-                        false
+                        false, false
                 )
         );
+        if (possession.dangerous) {
+            PacketDistributor.sendToPlayer(spirit,
+                    new TukunaPossessionS2CPayload(false, false));
+        }
 
         Component returned =
                 Component.translatable(
@@ -2562,7 +2629,7 @@ public final class TukunaManager {
         PacketDistributor.sendToPlayer(
                 host,
                 new TukunaPossessionS2CPayload(
-                        false
+                        false, false
                 )
         );
     }
@@ -2908,6 +2975,7 @@ public final class TukunaManager {
         private final int fingers;
         private final GameType hostMode;
         private final long endTick;
+        private final boolean dangerous;
 
         private boolean nearWarned;
         private boolean returningWarned;
@@ -2917,7 +2985,8 @@ public final class TukunaManager {
                 UUID spiritId,
                 int fingers,
                 GameType hostMode,
-                long endTick
+                long endTick,
+                boolean dangerous
         ) {
             this.hostId =
                     hostId;
@@ -2933,6 +3002,7 @@ public final class TukunaManager {
 
             this.endTick =
                     endTick;
+            this.dangerous = dangerous;
         }
     }
 }

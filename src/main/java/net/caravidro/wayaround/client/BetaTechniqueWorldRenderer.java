@@ -98,6 +98,8 @@ public final class BetaTechniqueWorldRenderer {
                             == BetaTechniqueVisualPayload.PAIR_BLUE
                     || state.mode()
                             == BetaTechniqueVisualPayload.PURPLE_PROJECTILE
+                    || state.mode()
+                            == BetaTechniqueVisualPayload.PURPLE_HELD
                     || (
                     state.mode()
                             == BetaTechniqueVisualPayload.FUSION
@@ -354,6 +356,8 @@ public final class BetaTechniqueWorldRenderer {
                 )
                         : state.mode()
                         == BetaTechniqueVisualPayload.PURPLE_PROJECTILE
+                        || state.mode()
+                        == BetaTechniqueVisualPayload.PURPLE_HELD
                                 ? 1.0F
                                 : 1.0F
                                         - Mth.clamp(

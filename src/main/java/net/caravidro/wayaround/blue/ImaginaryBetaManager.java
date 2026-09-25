@@ -204,6 +204,17 @@ public final class ImaginaryBetaManager {
             return false;
         }
 
+        PurpleFusion held = FUSIONS.get(player.getUUID());
+        if (held != null && held.age >= 72 && !held.released) {
+            held.released = true;
+            held.direction = player.getLookAngle().normalize();
+            held.travelTicks = 0;
+            sendCinematic(player, PlayerCinematicPayload.PURPLE_RELEASE, 48);
+            player.serverLevel().playSound(null, player.blockPosition(),
+                    SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 2.0F, 0.62F);
+            return true;
+        }
+
         PendingDual dual =
                 DUALS.remove(
                         player.getUUID()
@@ -1974,6 +1985,52 @@ public final class ImaginaryBetaManager {
                 continue;
             }
 
+            ServerPlayer owner = server.getPlayerList().getPlayer(fusion.owner);
+            if (owner == null || owner.serverLevel() != level
+                    || !owner.isAlive() || !SpectrumAccess.has(owner, SpectrumType.VOID)) {
+                iterator.remove();
+                continue;
+            }
+
+            // The contact sequence forms a Purple, then holds it at the crosshair.
+            // The server owns both the aim and the eventual release.
+            if (fusion.age >= 72 && !fusion.released && !fusion.blastTriggered) {
+                if (!fusion.holdAnnounced) {
+                    fusion.holdAnnounced = true;
+                    sendCinematic(owner, PlayerCinematicPayload.PURPLE_FUSION, 0);
+                    owner.displayClientMessage(
+                            net.minecraft.network.chat.Component.literal("Purple pronto: botão direito para lançar"), true);
+                }
+                fusion.center = owner.getEyePosition()
+                        .add(owner.getLookAngle().normalize().scale(4.6));
+                if (level.getGameTime() % 2 == 0) {
+                    level.sendParticles(ParticleTypes.END_ROD,
+                            fusion.center.x, fusion.center.y, fusion.center.z,
+                            12, 1.5, 1.5, 1.5, 0.035);
+                }
+                sendVisual(level, fusion.owner, BetaTechniqueVisualPayload.PURPLE_HELD,
+                        fusion.center, fusion.power, 1.0F);
+                continue;
+            }
+
+            if (fusion.released && !fusion.blastTriggered) {
+                fusion.travelTicks++;
+                Vec3 next = fusion.center.add(fusion.direction.scale(2.8));
+                boolean impact = !level.getBlockState(BlockPos.containing(next)).isAir()
+                        || fusion.travelTicks >= 90;
+                fusion.center = next;
+                if (!impact) {
+                    sendVisual(level, fusion.owner, BetaTechniqueVisualPayload.PURPLE_PROJECTILE,
+                            fusion.center, fusion.power, fusion.travelTicks / 90.0F);
+                    level.sendParticles(ParticleTypes.END_ROD,
+                            next.x, next.y, next.z, 18, 1.0, 1.0, 1.0, 0.08);
+                    continue;
+                }
+                fusion.blastTriggered = true;
+                fusion.age = PURPLE_BLAST_TICK;
+                detonatePurple(level, fusion);
+            }
+
             fusion.age++;
 
             if (fusion.age
@@ -2288,7 +2345,7 @@ public final class ImaginaryBetaManager {
         emitAftermathStars(
                 level,
                 fusion.center,
-                260,
+                420,
                 1.0F
         );
 
@@ -2307,7 +2364,7 @@ public final class ImaginaryBetaManager {
             Vec3 center
     ) {
         for (int index = 0;
-             index < 360;
+             index < 640;
              index++) {
 
             double angle =
@@ -2349,8 +2406,10 @@ public final class ImaginaryBetaManager {
                                     * radius;
 
             level.sendParticles(
-                    index % 3 == 0
+                    index % 4 == 0
                             ? ParticleTypes.END_ROD
+                            : index % 4 == 1
+                            ? ParticleTypes.FIREWORK
                             : ParticleTypes.ELECTRIC_SPARK,
                     x,
                     y,
@@ -2730,12 +2789,16 @@ public final class ImaginaryBetaManager {
         private final UUID owner;
         private final net.minecraft.resources.ResourceKey<Level>
                 dimension;
-        private final Vec3 center;
+        private Vec3 center;
         private final float power;
         private final double spinDirection;
 
         private int age;
         private boolean blastTriggered;
+        private boolean released;
+        private boolean holdAnnounced;
+        private Vec3 direction = Vec3.ZERO;
+        private int travelTicks;
 
         private PurpleFusion(
                 UUID owner,

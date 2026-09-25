@@ -15,10 +15,13 @@
       }
     ]
   },
+  "in_my_way": {
+    "sounds": [{ "name": "wayaround:in_my_way", "stream": true }]
+  },
   "final_destination": {
     "sounds": [
       {
-        "name": "wayaround:final_destination",
+        "name": "wayaround:finaldestination",
         "stream": true
       }
     ]

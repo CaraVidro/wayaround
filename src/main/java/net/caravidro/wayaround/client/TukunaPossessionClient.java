@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.client;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.client.sound.TukunaContractSound;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -21,13 +22,20 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 public final class TukunaPossessionClient {
 
     private static boolean possessed;
+    private static boolean contractMusic;
+    private static TukunaContractSound music;
     private static CameraType previousCamera;
 
     private TukunaPossessionClient() {
     }
 
+    public static boolean isContractMusicPlaying() {
+        return contractMusic;
+    }
+
     public static void setPossessed(
-            boolean active
+            boolean active,
+            boolean playContractMusic
     ) {
         Minecraft minecraft =
                 Minecraft.getInstance();
@@ -41,6 +49,15 @@ public final class TukunaPossessionClient {
 
         possessed =
                 active;
+
+        if (playContractMusic && !contractMusic) {
+            music = new TukunaContractSound();
+            minecraft.getSoundManager().play(music);
+        } else if (!playContractMusic && contractMusic && music != null) {
+            minecraft.getSoundManager().stop(music);
+            music = null;
+        }
+        contractMusic = playContractMusic;
 
         if (!active
                 && previousCamera != null) {
@@ -59,6 +76,10 @@ public final class TukunaPossessionClient {
             ClientTickEvent.Post event
     ) {
         if (!possessed) {
+            if (Minecraft.getInstance().level == null) {
+                contractMusic = false;
+                music = null;
+            }
             return;
         }
 
@@ -69,6 +90,8 @@ public final class TukunaPossessionClient {
                 || minecraft.level == null) {
             possessed =
                     false;
+            contractMusic = false;
+            music = null;
             previousCamera =
                     null;
             return;

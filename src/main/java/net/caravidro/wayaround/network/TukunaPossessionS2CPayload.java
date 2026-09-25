@@ -10,7 +10,8 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record TukunaPossessionS2CPayload(
-        boolean active
+        boolean active,
+        boolean contractMusic
 ) implements CustomPacketPayload {
 
     public static final Type<TukunaPossessionS2CPayload> TYPE =
@@ -26,13 +27,15 @@ public record TukunaPossessionS2CPayload(
             TukunaPossessionS2CPayload
             > STREAM_CODEC =
             StreamCodec.of(
-                    (buf, payload) ->
+                    (buf, payload) -> {
                             buf.writeBoolean(
                                     payload.active()
-                            ),
+                            );
+                            buf.writeBoolean(payload.contractMusic());
+                    },
                     buf ->
                             new TukunaPossessionS2CPayload(
-                                    buf.readBoolean()
+                                    buf.readBoolean(), buf.readBoolean()
                             )
             );
 
@@ -52,7 +55,7 @@ public record TukunaPossessionS2CPayload(
         context.enqueueWork(
                 () ->
                         TukunaPossessionClient.setPossessed(
-                                payload.active()
+                                payload.active(), payload.contractMusic()
                         )
         );
     }

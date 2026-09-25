@@ -144,6 +144,14 @@ public final class BetaTechniqueClientEffects {
                         - state.lastSeen <= 12L;
     }
 
+    public static boolean hasLocalHeldPurple() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.level == null) return false;
+        VisualState state = STATES.get(minecraft.player.getUUID());
+        return state != null && state.mode == BetaTechniqueVisualPayload.PURPLE_HELD
+                && minecraft.level.getGameTime() - state.lastSeen <= 12L;
+    }
+
     public static float fusionStrength(
             UUID owner
     ) {
@@ -272,6 +280,10 @@ public final class BetaTechniqueClientEffects {
                 == BetaTechniqueVisualPayload.PAIR_BLUE
                 || state.mode
                 == BetaTechniqueVisualPayload.PURPLE_PROJECTILE) {
+            return;
+        }
+
+        if (state.mode == BetaTechniqueVisualPayload.PURPLE_HELD) {
 
             return;
         }
@@ -362,6 +374,10 @@ public final class BetaTechniqueClientEffects {
                 == BetaTechniqueVisualPayload.PAIR_BLUE
                 || state.mode
                 == BetaTechniqueVisualPayload.PURPLE_PROJECTILE) {
+            return;
+        }
+
+        if (state.mode == BetaTechniqueVisualPayload.PURPLE_HELD) {
 
             return;
         }
@@ -471,6 +487,10 @@ public final class BetaTechniqueClientEffects {
                 == BetaTechniqueVisualPayload.PAIR_BLUE
                 || state.mode
                 == BetaTechniqueVisualPayload.PURPLE_PROJECTILE) {
+            return;
+        }
+
+        if (state.mode == BetaTechniqueVisualPayload.PURPLE_HELD) {
 
             return;
         }

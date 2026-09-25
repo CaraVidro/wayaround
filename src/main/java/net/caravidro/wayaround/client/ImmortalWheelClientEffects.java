@@ -26,7 +26,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 public final class ImmortalWheelClientEffects {
 
     private static final int REACTIVATION_DURATION =
-            150;
+            210;
 
     private ImmortalWheelClientEffects() {
     }
@@ -547,9 +547,9 @@ public final class ImmortalWheelClientEffects {
                 float returnProgress =
                         Mth.clamp(
                                 (
-                                        t - 0.82F
+                                        t - 0.90F
                                 )
-                                        / 0.18F,
+                                / 0.10F,
                                 0.0F,
                                 1.0F
                         );

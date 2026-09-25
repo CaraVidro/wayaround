@@ -71,10 +71,10 @@ public final class ImmortalWheelManager {
     private static final double VISUAL_RANGE = 128.0;
 
     private static final int SPECTRAL_MOBILITY_TICKS =
-            60;
+            120;
 
     private static final int REGENERATION_TICKS =
-            150;
+            210;
 
     private static final ResourceLocation REBIRTH_SPEED_ID =
             ResourceLocation.fromNamespaceAndPath(
@@ -668,6 +668,10 @@ public final class ImmortalWheelManager {
                 true
         );
 
+        // Only the wheel remains visible at the death site. The player may
+        // travel during this ghost interval but still cannot use abilities.
+        player.setInvisible(true);
+
         /*
          * Phase 1 is deliberately physical: the lethal hit has happened, but
          * the bearer gets a few seconds of impossible mobility before the
@@ -815,6 +819,22 @@ public final class ImmortalWheelManager {
 
             if (regeneration.age
                     < SPECTRAL_MOBILITY_TICKS) {
+
+                if (regeneration.age == 60 || regeneration.age == 80
+                        || regeneration.age == 100) {
+                    int count = (120 - regeneration.age) / 20;
+                    player.displayClientMessage(
+                            net.minecraft.network.chat.Component.literal(count + "...")
+                                    .withStyle(net.minecraft.ChatFormatting.GOLD), true);
+                    level.playSound(null, player.blockPosition(),
+                            SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS,
+                            0.9F, 0.65F + 0.18F * (3 - count));
+                }
+                if (regeneration.age > 45 && regeneration.age % 8 == 0) {
+                    level.sendParticles(ParticleTypes.END_ROD,
+                            player.getX(), player.getY() + 1.0, player.getZ(),
+                            6, 0.35, 0.75, 0.35, 0.02);
+                }
 
                 /*
                  * Lower effective gravity without creating a global gravity

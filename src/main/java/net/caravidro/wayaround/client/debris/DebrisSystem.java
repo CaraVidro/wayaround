@@ -46,13 +46,13 @@ public final class DebrisSystem {
     }
 
     private static final int MAX_DEBRIS =
-            260;
+            520;
 
     private static final int FUGA_SMALL_COUNT =
-            76;
+            300;
 
     private static final int FUGA_GIANT_COUNT =
-            10;
+            24;
 
     private static final double RENDER_DISTANCE_SQR =
             1400.0
@@ -83,17 +83,18 @@ public final class DebrisSystem {
                             * 2.0;
 
             double horizontal =
-                    0.20
-                            + RANDOM.nextDouble()
-                                    * 1.15;
+                    0.20 + RANDOM.nextDouble() * 2.1;
+
+            // Three flight bands give the crater both low skimming chunks
+            // and high fragments, with a few substantial middle-sized ones.
+            int band = i % 3;
 
             Vec3 velocity =
                     new Vec3(
                             Math.cos(angle)
                                     * horizontal,
-                            0.72
-                                    + RANDOM.nextDouble()
-                                            * 2.45,
+                            (band == 0 ? 0.45 : band == 1 ? 1.7 : 3.4)
+                                    + RANDOM.nextDouble() * (band == 2 ? 3.2 : 1.5),
                             Math.sin(angle)
                                     * horizontal
                     );
@@ -115,9 +116,8 @@ public final class DebrisSystem {
                     );
 
             double size =
-                    0.24
-                            + RANDOM.nextDouble()
-                                    * 1.15;
+                    (band == 2 ? 1.0 : 0.24)
+                            + RANDOM.nextDouble() * (band == 2 ? 2.8 : 1.15);
 
             ACTIVE.add(
                     new Debris(
@@ -188,9 +188,9 @@ public final class DebrisSystem {
                     new Debris(
                             position,
                             velocity,
-                            2.4
+                            3.4
                                     + RANDOM.nextDouble()
-                                            * 4.2,
+                                            * 7.5,
                             220
                                     + RANDOM.nextInt(
                                     120

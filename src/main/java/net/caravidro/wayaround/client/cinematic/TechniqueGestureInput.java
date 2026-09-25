@@ -1,7 +1,9 @@
 package net.caravidro.wayaround.client.cinematic;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
 import net.caravidro.wayaround.network.TechniqueGestureC2SPayload;
+import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
 import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.minecraft.client.Minecraft;
@@ -29,13 +31,14 @@ public final class TechniqueGestureInput {
 
     private static boolean desmartelarCharging;
     private static int chargeTicks;
+    private static boolean purpleUseDown;
 
     @SubscribeEvent
     public static void suppressVanillaUse(
             InputEvent.InteractionKeyMappingTriggered event
     ) {
         if (!event.isUseItem()
-                || !eligible()) {
+                || (!eligible() && !BetaTechniqueClientEffects.hasLocalHeldPurple())) {
             return;
         }
 
@@ -70,6 +73,14 @@ public final class TechniqueGestureInput {
                 minecraft.options
                         .keyUse
                         .isDown();
+
+        boolean heldPurple = BetaTechniqueClientEffects.hasLocalHeldPurple();
+        if (heldPurple && pressed && !purpleUseDown) {
+            PacketDistributor.sendToServer(new VoiceIntentC2SPayload(
+                    VoiceIntentC2SPayload.PURPLE_VOID, 1.0F));
+        }
+        purpleUseDown = pressed;
+        if (heldPurple) return;
 
         if (eligible
                 && pressed) {

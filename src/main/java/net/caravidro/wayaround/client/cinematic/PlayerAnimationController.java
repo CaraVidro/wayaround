@@ -469,6 +469,11 @@ public final class PlayerAnimationController {
                         age / 18.0F
                 );
 
+        // Draw the bow in stages: raise, sweep the string back, then tense.
+        float raise = ease(age / 12.0F);
+        float draw = ease((age - 12.0F) / 22.0F);
+        float breath = (float) Math.sin(age * 0.13F) * 0.045F * draw;
+
         model.body.xRot =
                 Mth.lerp(
                         p,
@@ -489,9 +494,9 @@ public final class PlayerAnimationController {
 
         model.leftArm.xRot =
                 Mth.lerp(
-                        p,
+                        raise,
                         model.leftArm.xRot,
-                        -1.43F
+                        -1.35F + breath
                 );
 
         model.leftArm.yRot =
@@ -510,16 +515,16 @@ public final class PlayerAnimationController {
 
         model.rightArm.xRot =
                 Mth.lerp(
-                        p,
+                        raise,
                         model.rightArm.xRot,
-                        -0.92F
+                        -0.45F - draw * 0.47F - breath
                 );
 
         model.rightArm.yRot =
                 Mth.lerp(
                         p,
                         model.rightArm.yRot,
-                        0.82F
+                        0.25F + draw * 0.57F
                 );
 
         model.rightArm.zRot =

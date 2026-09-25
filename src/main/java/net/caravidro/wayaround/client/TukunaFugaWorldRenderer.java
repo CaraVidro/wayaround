@@ -9,6 +9,8 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.client.cinematic.PlayerAnimationController;
+import net.caravidro.wayaround.network.PlayerCinematicPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.world.phys.Vec3;
@@ -60,7 +62,9 @@ public final class TukunaFugaWorldRenderer {
         var visuals =
                 TukunaFugaClientEffects.visuals();
 
-        if (visuals.isEmpty()) {
+        boolean chargingBow = minecraft.level.players().stream().anyMatch(player ->
+                PlayerAnimationController.isAnimation(player.getUUID(), PlayerCinematicPayload.FUGA_CHARGE));
+        if (visuals.isEmpty() && !chargingBow) {
             return;
         }
 
@@ -95,6 +99,16 @@ public final class TukunaFugaWorldRenderer {
                     look,
                     pillar
             );
+        }
+
+        if (chargingBow) {
+            for (var player : minecraft.level.players()) {
+                if (PlayerAnimationController.isAnimation(player.getUUID(),
+                        PlayerCinematicPayload.FUGA_CHARGE)
+                        && player.distanceToSqr(minecraft.player) < 128.0 * 128.0) {
+                    any |= emitFireBow(buffer, pose, camera, look, player);
+                }
+            }
         }
 
         if (!any) {
@@ -407,6 +421,73 @@ public final class TukunaFugaWorldRenderer {
 
         pose.popPose();
 
+        return any;
+    }
+
+    /** A small three-dimensional molten bow, held in front of the caster. */
+    private static boolean emitFireBow(BufferBuilder buffer, PoseStack pose,
+                                       Vec3 camera, Vector3f look,
+                                       net.minecraft.world.entity.player.Player player) {
+        Vec3 facing = player.getLookAngle().normalize();
+        Vec3 horizontal = new Vec3(facing.x, 0.0, facing.z);
+        if (horizontal.lengthSqr() < 0.01) horizontal = new Vec3(0, 0, 1);
+        horizontal = horizontal.normalize();
+        Vec3 right = new Vec3(-horizontal.z, 0, horizontal.x);
+        Vec3 center = player.getEyePosition().add(facing.scale(1.8))
+                .add(right.scale(-0.25)).add(0, -0.18, 0);
+        pose.pushPose();
+        pose.translate(center.x - camera.x, center.y - camera.y, center.z - camera.z);
+        Matrix4f matrix = pose.last().pose();
+        boolean any = false;
+        Vec3 previous = null;
+        Vec3 low = null;
+        Vec3 high = null;
+        for (int i = 0; i <= 12; i++) {
+            double t = i / 12.0;
+            Vec3 point = new Vec3(0, (t - .5) * 2.2, 0)
+                    .add(horizontal.scale(Math.sin(t * Math.PI) * 0.45));
+            if (i == 0) low = point;
+            if (i == 12) high = point;
+            if (previous != null) {
+                any |= emitRod(buffer, matrix, center, camera, look,
+                        previous, point, .095, 255, i % 3 == 0 ? 185 : 74,
+                        i % 3 == 0 ? 25 : 7, 232);
+                any |= emitRod(buffer, matrix, center, camera, look,
+                        previous.add(right.scale(.035)), point.add(right.scale(.035)),
+                        .035, 255, 218, 84, 210);
+            }
+            previous = point;
+        }
+        Vec3 grip = horizontal.scale(-.62).add(right.scale(.04));
+        any |= emitRod(buffer, matrix, center, camera, look,
+                low, grip, .027, 255, 190, 82, 220);
+        any |= emitRod(buffer, matrix, center, camera, look,
+                grip, high, .027, 255, 190, 82, 220);
+        pose.popPose();
+        return any;
+    }
+
+    private static boolean emitRod(BufferBuilder buffer, Matrix4f matrix,
+                                   Vec3 center, Vec3 camera, Vector3f look,
+                                   Vec3 from, Vec3 to, double radius,
+                                   int red, int green, int blue, int alpha) {
+        Vec3 axis = to.subtract(from).normalize();
+        Vec3 side = axis.cross(new Vec3(0, 0, 1));
+        if (side.lengthSqr() < .001) side = axis.cross(new Vec3(0, 1, 0));
+        side = side.normalize().scale(radius);
+        Vec3 up = axis.cross(side).normalize().scale(radius);
+        Vec3[] ring = { side, up, side.scale(-1), up.scale(-1) };
+        boolean any = false;
+        for (int i = 0; i < 4; i++) {
+            Vec3 a = from.add(ring[i]);
+            Vec3 b = from.add(ring[(i + 1) % 4]);
+            Vec3 c = to.add(ring[(i + 1) % 4]);
+            Vec3 d = to.add(ring[i]);
+            any |= triangle(buffer, matrix, center, camera, look,
+                    a, b, c, red, green, blue, alpha);
+            any |= triangle(buffer, matrix, center, camera, look,
+                    a, c, d, red, green, blue, alpha);
+        }
         return any;
     }
 
