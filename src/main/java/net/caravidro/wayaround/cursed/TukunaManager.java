@@ -268,13 +268,8 @@ public final class TukunaManager {
         }
 
         player.displayClientMessage(
-                Component.translatable(
-                                "message.wayaround.tukuna.spectrum_lost"
-                        )
-                        .withStyle(
-                                ChatFormatting.DARK_RED,
-                                ChatFormatting.BOLD
-                        ),
+                Component.literal("Seu Spectrum continua ligado a você. Agora você existe como espírito de Tukuna.")
+                        .withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.BOLD),
                 false
         );
     }
