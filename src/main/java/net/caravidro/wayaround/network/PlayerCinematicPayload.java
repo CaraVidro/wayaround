@@ -30,6 +30,8 @@ public record PlayerCinematicPayload(
     public static final byte FUGA_CHARGE = 1;
     public static final byte FUGA_RELEASE = 2;
     public static final byte IMMORTAL_REBUILD = 3;
+    public static final byte DESMARTELAR_CHARGE = 4;
+    public static final byte DESMARTELAR_RELEASE = 5;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(

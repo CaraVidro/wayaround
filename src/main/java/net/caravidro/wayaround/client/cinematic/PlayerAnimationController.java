@@ -200,6 +200,18 @@ public final class PlayerAnimationController {
                             age
                     );
 
+            case PlayerCinematicPayload.DESMARTELAR_CHARGE ->
+                    applyDesmartelarCharge(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.DESMARTELAR_RELEASE ->
+                    applyDesmartelarRelease(
+                            model,
+                            age
+                    );
+
             default -> {
             }
         }
@@ -576,6 +588,144 @@ public final class PlayerAnimationController {
                 -0.15F
                         * (
                         1.0F - p
+                );
+    }
+
+    private static void applyDesmartelarCharge(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float p =
+                ease(
+                        age / 8.0F
+                );
+
+        model.body.xRot =
+                Mth.lerp(
+                        p,
+                        model.body.xRot,
+                        0.10F
+                );
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        p,
+                        model.leftArm.xRot,
+                        -1.08F
+                );
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.xRot,
+                        -1.08F
+                );
+
+        model.leftArm.yRot =
+                Mth.lerp(
+                        p,
+                        model.leftArm.yRot,
+                        0.48F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.yRot,
+                        -0.48F
+                );
+
+        model.leftArm.zRot =
+                Mth.lerp(
+                        p,
+                        model.leftArm.zRot,
+                        -0.10F
+                );
+
+        model.rightArm.zRot =
+                Mth.lerp(
+                        p,
+                        model.rightArm.zRot,
+                        0.10F
+                );
+    }
+
+    private static void applyDesmartelarRelease(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float thrust =
+                ease(
+                        Math.min(
+                                1.0F,
+                                age / 5.0F
+                        )
+                );
+
+        float settle =
+                ease(
+                        Math.max(
+                                0.0F,
+                                Math.min(
+                                        1.0F,
+                                        (
+                                                age - 5.0F
+                                        )
+                                                / 13.0F
+                                )
+                        )
+                );
+
+        float armX =
+                Mth.lerp(
+                        settle,
+                        Mth.lerp(
+                                thrust,
+                                -1.08F,
+                                -1.58F
+                        ),
+                        0.0F
+                );
+
+        float armY =
+                Mth.lerp(
+                        settle,
+                        Mth.lerp(
+                                thrust,
+                                0.48F,
+                                0.08F
+                        ),
+                        0.0F
+                );
+
+        model.leftArm.xRot =
+                armX;
+
+        model.rightArm.xRot =
+                armX;
+
+        model.leftArm.yRot =
+                armY;
+
+        model.rightArm.yRot =
+                -armY;
+
+        model.leftArm.zRot =
+                -0.04F
+                        * (
+                        1.0F - settle
+                );
+
+        model.rightArm.zRot =
+                0.04F
+                        * (
+                        1.0F - settle
+                );
+
+        model.body.xRot =
+                0.12F
+                        * (
+                        1.0F - settle
                 );
     }
 

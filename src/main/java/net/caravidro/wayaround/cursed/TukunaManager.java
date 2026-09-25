@@ -171,6 +171,9 @@ public final class TukunaManager {
     private static final Map<UUID, Long> DESMARTELAR_COOLDOWNS =
             new HashMap<>();
 
+    private static final Map<UUID, Long> MANUAL_DESMARTELAR_CHARGES =
+            new HashMap<>();
+
     private static final Map<UUID, FugaCharge> FUGA_CHARGES =
             new HashMap<>();
 
@@ -555,6 +558,7 @@ public final class TukunaManager {
         SWAP_CONFIRMATIONS.clear();
         SWAP_COOLDOWNS.clear();
         DESMARTELAR_COOLDOWNS.clear();
+        MANUAL_DESMARTELAR_CHARGES.clear();
         FUGA_CHARGES.clear();
         FUGA_PROJECTILES.clear();
         POSSESSIONS.clear();
@@ -1066,6 +1070,116 @@ public final class TukunaManager {
         }
     }
 
+    public static void beginManualDesmartelar(
+            ServerPlayer player
+    ) {
+        if (!hasSpectrum(
+                player
+        )
+                || PlayerControlLockManager.actionsLocked(
+                player
+        )
+                || !player.getMainHandItem()
+                        .isEmpty()
+                || !player.getOffhandItem()
+                        .isEmpty()) {
+
+            return;
+        }
+
+        long tick =
+                player.server
+                        .getTickCount();
+
+        long cooldown =
+                DESMARTELAR_COOLDOWNS.getOrDefault(
+                        player.getUUID(),
+                        0L
+                );
+
+        if (tick < cooldown
+                || MANUAL_DESMARTELAR_CHARGES.containsKey(
+                player.getUUID()
+        )) {
+            return;
+        }
+
+        MANUAL_DESMARTELAR_CHARGES.put(
+                player.getUUID(),
+                tick
+        );
+
+        sendFugaCinematic(
+                player,
+                PlayerCinematicPayload.DESMARTELAR_CHARGE,
+                0,
+                false,
+                0.0F
+        );
+    }
+
+    public static void releaseManualDesmartelar(
+            ServerPlayer player
+    ) {
+        Long started =
+                MANUAL_DESMARTELAR_CHARGES.remove(
+                        player.getUUID()
+                );
+
+        if (started == null
+                || !hasSpectrum(
+                player
+        )
+                || PlayerControlLockManager.actionsLocked(
+                player
+        )
+                || !player.getMainHandItem()
+                        .isEmpty()
+                || !player.getOffhandItem()
+                        .isEmpty()) {
+
+            cancelManualDesmartelar(
+                    player
+            );
+
+            return;
+        }
+
+        long held =
+                player.server
+                        .getTickCount()
+                        - started;
+
+        if (held < 8L) {
+            cancelManualDesmartelar(
+                    player
+            );
+
+            return;
+        }
+
+        castPossessedDesmartelar(
+                player,
+                false
+        );
+    }
+
+    public static void cancelManualDesmartelar(
+            ServerPlayer player
+    ) {
+        MANUAL_DESMARTELAR_CHARGES.remove(
+                player.getUUID()
+        );
+
+        sendFugaCinematic(
+                player,
+                PlayerCinematicPayload.CLEAR,
+                0,
+                false,
+                0.0F
+        );
+    }
+
     public static void castPossessedDesmartelar(
             ServerPlayer player
     ) {
@@ -1116,6 +1230,14 @@ public final class TukunaManager {
         DESMARTELAR_COOLDOWNS.put(
                 player.getUUID(),
                 tick + 28L
+        );
+
+        sendFugaCinematic(
+                player,
+                PlayerCinematicPayload.DESMARTELAR_RELEASE,
+                18,
+                false,
+                0.0F
         );
 
         Desmartelar.cast(

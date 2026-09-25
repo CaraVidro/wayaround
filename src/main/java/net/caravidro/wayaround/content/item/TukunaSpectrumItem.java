@@ -6,10 +6,8 @@ import net.caravidro.wayaround.spectrum.SpectrumItem;
 
 import java.util.List;
 
-import net.caravidro.wayaround.cursed.Desmartelar;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
@@ -32,34 +30,14 @@ public final class TukunaSpectrumItem extends SpectrumItem {
             Player player,
             InteractionHand hand
     ) {
-        ItemStack stack =
+        /*
+         * The Spectrum only grants access. Desmartelar is now an empty-hand
+         * gesture so the item never has to be held like a wand.
+         */
+        return InteractionResultHolder.pass(
                 player.getItemInHand(
                         hand
-                );
-
-        if (!level.isClientSide
-                && player instanceof ServerPlayer serverPlayer) {
-
-            if (!serverPlayer.getCooldowns()
-                    .isOnCooldown(
-                            this
-                    )) {
-
-                Desmartelar.cast(
-                        serverPlayer,
-                        20
-                );
-
-                serverPlayer.getCooldowns()
-                        .addCooldown(
-                                this,
-                                28
-                        );
-            }
-        }
-
-        return InteractionResultHolder.success(
-                stack
+                )
         );
     }
 
