@@ -87,7 +87,7 @@ public final class TukunaManager {
     private static final int POSSESSION_RETURNING_TICKS = 20;
     private static final int SWAP_COOLDOWN_TICKS = 300;
     private static final int DANGEROUS_CONTRACT_TICKS = 20 * 60 * 3;
-    private static final int TAKEOVER_TICKS = 40;
+    private static final int TAKEOVER_TICKS = 80;
     private static final int PROPOSAL_TICKS = 20 * 60;
     private static final String PACT_SPIRIT_KEY = "WayAroundTukunaPactSpirit";
     private static final String PACT_WORD_KEY = "WayAroundTukunaPactWord";
@@ -206,12 +206,7 @@ public final class TukunaManager {
             return;
         }
 
-        ItemStack spectrum =
-                removeSpectrum(
-                        player
-                );
-
-        if (spectrum.isEmpty()) {
+        if (!hasSpectrum(player) || isGhost(player)) {
             return;
         }
 
@@ -923,6 +918,12 @@ public final class TukunaManager {
         return possessionForSpirit(
                 player.getUUID()
         ) != null;
+    }
+
+    public static ServerPlayer possessedHostForSpirit(ServerPlayer spirit) {
+        Possession possession = possessionForSpirit(spirit.getUUID());
+        return possession == null ? null
+                : spirit.server.getPlayerList().getPlayer(possession.hostId);
     }
 
     /**
@@ -2433,16 +2434,22 @@ public final class TukunaManager {
                 iterator.remove();
                 continue;
             }
-            if (tick % 3L == 0L) {
+            if (tick % 2L == 0L) {
                 float progress = 1.0F - (float)(stage.readyAt - tick) / TAKEOVER_TICKS;
-                host.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
-                        host.getX(), host.getY() + 0.9, host.getZ(),
-                        4 + Math.max(0, (int)(progress * 16)),
-                        0.35, 0.55, 0.35, 0.025);
-                host.serverLevel().sendParticles(ParticleTypes.PORTAL,
-                        host.getX(), host.getY() + 0.9, host.getZ(),
-                        3 + Math.max(0, (int)(progress * 8)),
-                        0.3, 0.5, 0.3, 0.04);
+                double radius = 0.25 + progress * 0.72;
+                double rotation = tick * 0.11;
+                for (int i = 0; i < 8; i++) {
+                    double angle = rotation + Math.PI * 2.0 * i / 8.0;
+                    double x = host.getX() + Math.cos(angle) * radius;
+                    double z = host.getZ() + Math.sin(angle) * radius;
+                    double y = host.getY() + 0.2 + ((i * 3 + (int)tick) % 12) * 0.16;
+                    host.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                            x, y, z, 1, 0.015, 0.025, 0.015, 0.002);
+                    if (progress > 0.35F) {
+                        host.serverLevel().sendParticles(ParticleTypes.PORTAL,
+                                x, y, z, 1, 0.01, 0.02, 0.01, 0.015);
+                    }
+                }
             }
             if (tick >= stage.readyAt) {
                 iterator.remove();
@@ -2492,6 +2499,8 @@ public final class TukunaManager {
                 possession
         );
 
+        SpectrumAccess.syncPossession(host, spirit);
+
         host.setGameMode(
                 GameType.SPECTATOR
         );
@@ -2501,8 +2510,13 @@ public final class TukunaManager {
                 host.serverLevel(),
                 host.position(),
                 host.getYRot(),
-                host.getXRot()
+                0.0F
         );
+
+        // Finish the bowed pose looking forward as control transfers.
+        spirit.setYRot(host.getYRot());
+
+        spirit.setXRot(0.0F);
 
         spirit.setGameMode(
                 GameType.SURVIVAL
@@ -2736,6 +2750,8 @@ public final class TukunaManager {
         spirit.setGameMode(
                 GameType.SPECTATOR
         );
+
+        SpectrumAccess.sync(spirit);
 
         removePossessionBuffs(
                 spirit
@@ -3032,12 +3048,6 @@ public final class TukunaManager {
             ServerPlayer player
     ) {
         return SpectrumAccess.has(player, SpectrumType.TUKUNA);
-    }
-
-    private static ItemStack removeSpectrum(
-            ServerPlayer player
-    ) {
-        return SpectrumAccess.removeFirst(player, SpectrumType.TUKUNA);
     }
 
     private static void copyInt(

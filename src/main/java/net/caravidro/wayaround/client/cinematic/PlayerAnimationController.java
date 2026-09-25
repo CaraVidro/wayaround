@@ -931,15 +931,16 @@ public final class PlayerAnimationController {
     }
 
     private static void applyTukunaTakeover(PlayerModel<?> model, float age) {
-        float bow = ease(Mth.clamp(age / 12.0F, 0.0F, 1.0F));
-        float rise = ease(Mth.clamp((age - 30.0F) / 10.0F, 0.0F, 1.0F));
+        float bow = ease(Mth.clamp(age / 20.0F, 0.0F, 1.0F));
+        float rise = ease(Mth.clamp((age - 50.0F) / 24.0F, 0.0F, 1.0F));
         float weight = bow * (1.0F - rise);
-        model.body.xRot += 0.83F * weight;
-        model.head.xRot += 0.56F * weight;
-        model.leftArm.xRot += 0.28F * weight;
-        model.rightArm.xRot += 0.28F * weight;
-        model.leftArm.zRot -= 0.14F * weight;
-        model.rightArm.zRot += 0.14F * weight;
+        model.body.xRot += 0.98F * weight;
+        model.body.yRot += Mth.sin(age * 0.16F) * 0.035F * weight;
+        model.head.xRot += 0.70F * weight;
+        model.leftArm.xRot += 0.34F * weight;
+        model.rightArm.xRot += 0.34F * weight;
+        model.leftArm.zRot -= 0.18F * weight;
+        model.rightArm.zRot += 0.18F * weight;
     }
 
     private static void applyPurpleRelease(

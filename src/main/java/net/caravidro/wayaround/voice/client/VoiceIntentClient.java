@@ -9,9 +9,10 @@ import java.util.Locale;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.BlueClientEffects;
 import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
-import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.caravidro.wayaround.network.TukunaVoiceStatementC2SPayload;
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -2501,25 +2502,7 @@ public final class VoiceIntentClient {
             return false;
         }
 
-        for (int slot = 0;
-             slot < minecraft.player
-                     .getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            if (minecraft.player
-                    .getInventory()
-                    .getItem(
-                            slot
-                    )
-                    .is(
-                            WayAroundContent.TUKUNA_SPECTRUM.get()
-                    )) {
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(minecraft.player, SpectrumType.TUKUNA);
     }
 
     private static boolean hasLocalJusticeSpectrum() {
@@ -2530,25 +2513,7 @@ public final class VoiceIntentClient {
             return false;
         }
 
-        for (int slot = 0;
-             slot < minecraft.player
-                     .getInventory()
-                     .getContainerSize();
-             slot++) {
-
-            if (minecraft.player
-                    .getInventory()
-                    .getItem(
-                            slot
-                    )
-                    .is(
-                            WayAroundContent.JUSTICE_SPECTRUM.get()
-                    )) {
-                return true;
-            }
-        }
-
-        return false;
+        return SpectrumAccess.has(minecraft.player, SpectrumType.JUSTICE);
     }
 
 }
