@@ -259,5 +259,6 @@
     "guide.wayaround.assembly.v1.1": "V1: qualidade e desgaste agora atravessam a cadeia mecânica. Desmontar não reseta uma peça.",
     "guide.wayaround.assembly.v1.2": "Eixos e gearboxes perdem uma pequena parcela da potência e se desgastam sob carga. Redes longas e ruins custam potência.",
     "guide.wayaround.assembly.v1.3": "A serraria sente falta de potência, desalinhamento, lâmina cega, vibração e excesso de RPM. O Martelo de Assembly faz manutenção, não apaga fadiga.",
-    "guide.wayaround.assembly.v1.4": "Tábuas serradas carregam a qualidade do corte e o histórico de fabricação dentro do próprio ItemStack."
+    "guide.wayaround.assembly.v1.4": "Tábuas serradas carregam a qualidade do corte e o histórico de fabricação dentro do próprio ItemStack.",
+    "guide.wayaround.assembly.v1_header": "V1 — O Mundo se Move"
 }
