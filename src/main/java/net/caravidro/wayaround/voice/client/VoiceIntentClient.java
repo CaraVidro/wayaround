@@ -8,6 +8,7 @@ import java.util.Locale;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.BlueClientEffects;
+import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.minecraft.ChatFormatting;
@@ -78,6 +79,9 @@ public final class VoiceIntentClient {
     private static long reflexDomainUntil;
     private static long lastReflexDispatchAt;
 
+    private static long tukunaDesmarPreparedUntil;
+    private static long lastTukunaReflexDispatchAt;
+
     public static boolean isEnabled() {
         return ENABLED;
     }
@@ -85,6 +89,11 @@ public final class VoiceIntentClient {
     public static boolean isCombatHot() {
         return System.currentTimeMillis()
                 <= combatHotUntil;
+    }
+
+    public static boolean wantsSpeculativeRecognition() {
+        return isCombatHot()
+                || hasLocalTukunaSpectrum();
     }
 
     /**
@@ -97,8 +106,7 @@ public final class VoiceIntentClient {
     ) {
         if (!ENABLED
                 || transcript == null
-                || transcript.isBlank()
-                || !isCombatHot()) {
+                || transcript.isBlank()) {
             return;
         }
 
@@ -111,9 +119,75 @@ public final class VoiceIntentClient {
             return;
         }
 
+        long now =
+                System.currentTimeMillis();
+
+        if (hasLocalTukunaSpectrum()) {
+            boolean full =
+                    normalized.contains(
+                            "desmartelar"
+                    )
+                            || normalized.contains(
+                            "desmantelar"
+                    );
+
+            boolean prefix =
+                    normalized.contains(
+                            "desmar"
+                    );
+
+            if (full
+                    && now - lastTukunaReflexDispatchAt
+                    >= 900L) {
+
+                lastTukunaReflexDispatchAt =
+                        now;
+
+                dispatch(
+                        normalized.contains(
+                                "fogo"
+                        )
+                                ? VoiceIntentC2SPayload.TUKUNA_DESMARTELAR_FIRE
+                                : VoiceIntentC2SPayload.TUKUNA_DESMARTELAR,
+                        -1.0F,
+                        1.0F,
+                        normalized.contains(
+                                "fogo"
+                        )
+                                ? "TUKUNA / DESMARTELAR FOGO REFLEXO"
+                                : "TUKUNA / DESMARTELAR REFLEXO"
+                );
+
+                tukunaDesmarPreparedUntil =
+                        0L;
+
+                status(
+                        "DESMARTELAR",
+                        ChatFormatting.DARK_RED
+                );
+
+                return;
+            }
+
+            if (prefix) {
+                tukunaDesmarPreparedUntil =
+                        now
+                                + REFLEX_STAGE_WINDOW_MS;
+
+                status(
+                        "desmar... atento",
+                        ChatFormatting.RED
+                );
+            }
+        }
+
+        if (!isCombatHot()) {
+            return;
+        }
+
         handleCombatReflex(
                 normalized,
-                System.currentTimeMillis(),
+                now,
                 1.0F
         );
     }
@@ -229,11 +303,44 @@ public final class VoiceIntentClient {
                 "desmartelar",
                 "desmantelar"
         )) {
+            boolean fire =
+                    containsAny(
+                            currentWords,
+                            "fogo",
+                            "chama",
+                            "incendio",
+                            "queimar"
+                    );
+
             dispatch(
-                    VoiceIntentC2SPayload.TUKUNA_DESMARTELAR,
+                    fire
+                            ? VoiceIntentC2SPayload.TUKUNA_DESMARTELAR_FIRE
+                            : VoiceIntentC2SPayload.TUKUNA_DESMARTELAR,
                     -1.0F,
                     (float) globalUrgency,
-                    "TUKUNA / DESMARTELAR"
+                    fire
+                            ? "TUKUNA / DESMARTELAR FOGO"
+                            : "TUKUNA / DESMARTELAR"
+            );
+
+            tukunaDesmarPreparedUntil =
+                    0L;
+
+            clearContext();
+            return;
+        }
+
+        if (containsAny(
+                currentWords,
+                "fuga"
+        )
+                && currentWords.size() <= 4) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.TUKUNA_FUGA,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "TUKUNA / FUGA"
             );
 
             clearContext();
@@ -244,6 +351,20 @@ public final class VoiceIntentClient {
                 detectOutput(
                         currentWords
                 );
+
+        if (output == OutputModifier.MAXIMUM
+                && BetaTechniqueClientEffects.hasLocalHeldRed()) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.RED_MAXIMUM,
+                    1.0F,
+                    (float) globalUrgency,
+                    "RED / ENERGIA MAXIMA"
+            );
+
+            clearContext();
+            return;
+        }
 
         if (output != OutputModifier.NONE) {
             pendingOutput =
@@ -444,6 +565,22 @@ public final class VoiceIntentClient {
 
             outputExpiresAt =
                     0L;
+
+            clearContext();
+            return;
+        }
+
+        if (BetaTechniqueClientEffects.hasLocalHeldRed()
+                && looksLikeLaunch(
+                currentWords
+        )) {
+
+            dispatch(
+                    VoiceIntentC2SPayload.RED_LAUNCH,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "RED / LANCAR"
+            );
 
             clearContext();
             return;
@@ -2316,6 +2453,35 @@ public final class VoiceIntentClient {
                         false
                 );
     }
+    private static boolean hasLocalTukunaSpectrum() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return false;
+        }
+
+        for (int slot = 0;
+             slot < minecraft.player
+                     .getInventory()
+                     .getContainerSize();
+             slot++) {
+
+            if (minecraft.player
+                    .getInventory()
+                    .getItem(
+                            slot
+                    )
+                    .is(
+                            WayAroundContent.TUKUNA_SPECTRUM.get()
+                    )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static boolean hasLocalJusticeSpectrum() {
         Minecraft minecraft =
                 Minecraft.getInstance();
