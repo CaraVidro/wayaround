@@ -144,6 +144,35 @@ public final class AssemblyGuideItem
                 player,
                 "guide.wayaround.assembly.diagnostics.6"
         );
+
+        player.sendSystemMessage(
+                Component.translatable(
+                        "guide.wayaround.assembly.v1_header"
+                ).withStyle(
+                        ChatFormatting.GOLD,
+                        ChatFormatting.BOLD
+                )
+        );
+
+        send(
+                player,
+                "guide.wayaround.assembly.v1.1"
+        );
+
+        send(
+                player,
+                "guide.wayaround.assembly.v1.2"
+        );
+
+        send(
+                player,
+                "guide.wayaround.assembly.v1.3"
+        );
+
+        send(
+                player,
+                "guide.wayaround.assembly.v1.4"
+        );
     }
 
     private static void send(
