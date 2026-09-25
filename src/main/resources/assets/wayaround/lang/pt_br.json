@@ -262,9 +262,9 @@
     "guide.wayaround.assembly.v1.4": "Tábuas serradas carregam a qualidade do corte e o histórico de fabricação dentro do próprio ItemStack.",
     "guide.wayaround.assembly.v1_header": "V1 — O Mundo se Move",
     "item.wayaround.justice_spectrum": "Spectrum da Justiça",
-    "tooltip.wayaround.justice_spectrum": "O Senso de Justiça guarda atos de alta confiança cometidos no mundo.",
-    "tooltip.wayaround.justice_spectrum.domain": "Clique em outro jogador para abrir o Tribunal da Justiça.",
-    "message.wayaround.justice.hint": "Use o Spectrum da Justiça em outro jogador próximo para levá-lo ao tribunal.",
+    "tooltip.wayaround.justice_spectrum": "Enquanto estiver no inventário, o Senso de Justiça fica ativo.",
+    "tooltip.wayaround.justice_spectrum.domain": "Diga/escreva \"expansão de domínio\" para julgar o ser vivo mais próximo. Também pode usar o item diretamente nele.",
+    "message.wayaround.justice.hint": "Com este Spectrum no inventário, diga ou escreva \"expansão de domínio\" perto de qualquer ser vivo.",
     "item.wayaround.justice_execution_blade": "Lâmina da Sentença",
     "tooltip.wayaround.justice_blade": "Brilha enquanto uma sentença válida estiver ativa. Alcance corpo a corpo; impacto severo.",
     "tooltip.wayaround.justice_blade.target": "Sentença contra: %s"
