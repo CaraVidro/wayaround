@@ -90,18 +90,30 @@ public final class ImmortalWheelClientEffects {
             wheel.steps =
                     payload.steps();
 
+            boolean rebirth =
+                    "rebirth".equals(
+                            payload.family()
+                    );
+
             wheel.spinVelocity =
-                    38.0F
-                            + payload.steps()
-                                    * 6.0F;
+                    rebirth
+                            ? 138.0F
+                            : 38.0F
+                                    + payload.steps()
+                                            * 6.0F;
 
             wheel.spinBurstTicks =
-                    20;
+                    rebirth
+                            ? 44
+                            : 20;
 
             wheel.shakeTicks =
-                    10;
+                    rebirth
+                            ? 18
+                            : 10;
 
-            if (minecraft.player != null
+            if (!rebirth
+                    && minecraft.player != null
                     && minecraft.player
                             .getUUID()
                             .equals(
@@ -174,7 +186,9 @@ public final class ImmortalWheelClientEffects {
         wheel.spinVelocity =
                 Math.max(
                         wheel.spinVelocity,
-                        22.0F
+                        steps >= 8
+                                ? 118.0F
+                                : 22.0F
                 );
 
         wheel.spinBurstTicks =
