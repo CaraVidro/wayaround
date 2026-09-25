@@ -732,16 +732,12 @@ public final class ImaginaryBetaManager {
                     level.getBlockState(sample);
 
             if (state.isAir()
-                    ) {
+                    || state.getDestroySpeed(
+                            level,
+                            sample
+                    ) < 0.0F) {
 
                 continue;
-            }
-
-            if (state.getDestroySpeed(
-                    level,
-                    sample
-            ) < 0.0F) {
-                return true;
             }
 
             level.removeBlock(
@@ -1213,13 +1209,15 @@ public final class ImaginaryBetaManager {
                             sample
                     );
 
-            if (state.isAir()
-                    || state.getDestroySpeed(
-                            level,
-                            sample
-                    ) < 0.0F) {
-
+            if (state.isAir()) {
                 continue;
+            }
+
+            if (state.getDestroySpeed(
+                    level,
+                    sample
+            ) < 0.0F) {
+                return true;
             }
 
             level.removeBlock(
