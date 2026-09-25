@@ -15,7 +15,7 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 /** Keeps the physical fingers discoverable without keeping remote chunks loaded. */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class TukunaFingerWorld {
-    private static final String ABANDONED_SINCE = "WayAroundFingerAbandonedSince";
+    private static final String LAST_ATTENDED = "WayAroundFingerLastAttended";
     private static final int SEARCH_DISTANCE = 96;
     private static final int RECALL_DISTANCE = 640;
     private static final long RECALL_DELAY = 20L * 60L * 5L;
@@ -30,6 +30,11 @@ public final class TukunaFingerWorld {
     public static void onJoin(EntityJoinLevelEvent event) {
         if (event.getEntity() instanceof ItemEntity item && isFinger(item.getItem())) {
             protect(item);
+            if (!event.getLevel().isClientSide()
+                    && !item.getPersistentData().contains(LAST_ATTENDED)) {
+                item.getPersistentData().putLong(LAST_ATTENDED,
+                        event.getLevel().getGameTime());
+            }
         }
     }
 
@@ -61,13 +66,10 @@ public final class TukunaFingerWorld {
                 item.getBoundingBox().inflate(SEARCH_DISTANCE),
                 player -> !player.isSpectator()).isEmpty();
 
-        long since = item.getPersistentData().getLong(ABANDONED_SINCE);
-        boolean elapsed = item.getPersistentData().contains(ABANDONED_SINCE)
-                && level.getGameTime() - since >= RECALL_DELAY;
+        long since = item.getPersistentData().getLong(LAST_ATTENDED);
+        boolean elapsed = level.getGameTime() - since >= RECALL_DELAY;
         if (!remote || (watched && !elapsed)) {
-            item.getPersistentData().remove(ABANDONED_SINCE);
-        } else if (!item.getPersistentData().contains(ABANDONED_SINCE)) {
-            item.getPersistentData().putLong(ABANDONED_SINCE, level.getGameTime());
+            item.getPersistentData().putLong(LAST_ATTENDED, level.getGameTime());
         }
 
         if (!voided && (!remote || !elapsed)) return;
