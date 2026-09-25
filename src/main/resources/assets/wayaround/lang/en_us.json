@@ -262,9 +262,9 @@
     "guide.wayaround.assembly.v1.4": "Sawn boards carry cut quality and manufacturing history inside their ItemStack.",
     "guide.wayaround.assembly.v1_header": "V1 — The World Moves",
     "item.wayaround.justice_spectrum": "Justice Spectrum",
-    "tooltip.wayaround.justice_spectrum": "Justice Sense stores high-confidence harmful acts committed in the world.",
-    "tooltip.wayaround.justice_spectrum.domain": "Use on another player to open the Court of Justice.",
-    "message.wayaround.justice.hint": "Use the Justice Spectrum on a nearby player to take them to court.",
+    "tooltip.wayaround.justice_spectrum": "While this is in your inventory, Justice Sense is active.",
+    "tooltip.wayaround.justice_spectrum.domain": "Say/type \"domain expansion\" to judge the nearest living entity. You can also use the item directly on it.",
+    "message.wayaround.justice.hint": "Keep this Spectrum in your inventory and say/type \"domain expansion\" near any living entity.",
     "item.wayaround.justice_execution_blade": "Sentence Blade",
     "tooltip.wayaround.justice_blade": "Glows while a valid sentence is active. Melee reach; severe impact.",
     "tooltip.wayaround.justice_blade.target": "Sentence target: %s"
