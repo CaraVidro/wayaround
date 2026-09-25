@@ -10,6 +10,7 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -56,6 +57,33 @@ public final class SawmillBlock extends BaseEntityBlock {
         return new SawmillBlockEntity(pos, state);
     }
 
+    @Override
+    public void setPlacedBy(
+            Level level,
+            BlockPos pos,
+            BlockState state,
+            @Nullable LivingEntity placer,
+            ItemStack stack
+    ) {
+        super.setPlacedBy(
+                level,
+                pos,
+                state,
+                placer,
+                stack
+        );
+
+        if (!level.isClientSide
+                && level.getBlockEntity(
+                pos
+        ) instanceof SawmillBlockEntity sawmill) {
+
+            sawmill.restoreBodyFromItem(
+                    stack
+            );
+        }
+    }
+
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
@@ -77,6 +105,16 @@ public final class SawmillBlock extends BaseEntityBlock {
     ) {
         if (!(level.getBlockEntity(pos) instanceof SawmillBlockEntity sawmill)) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
+        if (stack.is(PowerContent.ASSEMBLY_HAMMER.get())) {
+            if (!level.isClientSide) {
+                sawmill.service(
+                        player
+                );
+            }
+
+            return ItemInteractionResult.SUCCESS;
         }
 
         if (stack.is(PowerContent.SAW_BLADE.get())) {
@@ -128,7 +166,7 @@ public final class SawmillBlock extends BaseEntityBlock {
         if (!state.is(replacement.getBlock())
                 && !level.isClientSide
                 && level.getBlockEntity(pos) instanceof SawmillBlockEntity sawmill) {
-            sawmill.dropContents();
+            sawmill.dropAssembly();
         }
         super.onRemove(state, level, pos, replacement, moving);
     }

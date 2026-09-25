@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -32,7 +33,25 @@ public final class SawmillRenderer
             int packedOverlay
     ) {
         poseStack.pushPose();
-        poseStack.translate(0.5, 0.5, 0.5);
+
+        double shake =
+                Math.sin(
+                        (
+                                sawmill.getLevel() == null
+                                        ? 0.0
+                                        : sawmill.getLevel()
+                                        .getGameTime()
+                        )
+                                * 1.73
+                )
+                        * sawmill.vibration()
+                        * 0.006;
+
+        poseStack.translate(
+                0.5 + shake,
+                0.5,
+                0.5 - shake * 0.55
+        );
 
         Direction facing = sawmill.getBlockState().getValue(SawmillBlock.FACING);
         poseStack.mulPose(
@@ -56,7 +75,7 @@ public final class SawmillRenderer
                     packedOverlay,
                     Blocks.IRON_BLOCK.defaultBlockState(),
                     0.0,
-                    0.18,
+                    0.0,
                     0.0,
                     0.13,
                     0.13,
@@ -86,7 +105,9 @@ public final class SawmillRenderer
                     bufferSource,
                     packedLight,
                     packedOverlay,
-                    Blocks.OAK_LOG.defaultBlockState(),
+                    inputBlockState(
+                            sawmill
+                    ),
                     -0.24,
                     -0.02,
                     z,
@@ -139,7 +160,12 @@ public final class SawmillRenderer
             int packedOverlay
     ) {
         poseStack.pushPose();
-        poseStack.translate(0.0, 0.18, 0.0);
+        /*
+         * Keep the saw axle exactly on the normal mechanical-shaft centerline
+         * (block Y + 0.5). The old +0.18 local offset made adjacent shafts look
+         * disconnected even when the network was valid.
+         */
+        poseStack.translate(0.0, 0.0, 0.0);
         poseStack.mulPose(Axis.ZP.rotationDegrees(angle));
 
         BlockState iron = Blocks.IRON_BLOCK.defaultBlockState();
@@ -202,6 +228,19 @@ public final class SawmillRenderer
         );
 
         poseStack.popPose();
+    }
+
+    private static BlockState inputBlockState(
+            SawmillBlockEntity sawmill
+    ) {
+        Block block =
+                Block.byItem(
+                        sawmill.inputItem()
+                );
+
+        return block == Blocks.AIR
+                ? Blocks.OAK_LOG.defaultBlockState()
+                : block.defaultBlockState();
     }
 
     private static float yawFor(Direction facing) {

@@ -3,6 +3,7 @@ package net.caravidro.wayaround.industrial.power;
 import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.minecraft.core.BlockPos;
@@ -37,6 +38,12 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
     private int sides = MIN_SIDES;
     @Nullable private BlockPos linkedPos;
+
+    private ItemStack wheelPart =
+            ItemStack.EMPTY;
+
+    private ItemStack beltPart =
+            ItemStack.EMPTY;
 
     private float rpm;
     private float rotationDegrees;
@@ -78,7 +85,14 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
             float requestedFromDriver = Math.max(0.0F, requestedPower) / efficiency;
             float taken = driver.consumePower(requestedFromDriver);
-            return Math.min(Math.max(0.0F, requestedPower), taken * efficiency);
+            float delivered = Math.min(Math.max(0.0F, requestedPower), taken * efficiency);
+
+            applyDriveWear(
+                    taken,
+                    driver.rpm()
+            );
+
+            return delivered;
         }
 
         @Override
@@ -170,7 +184,8 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
     }
 
     private float driveEfficiency() {
-        float own = shapeEfficiency();
+        float own = shapeEfficiency()
+                * wheelConditionFactor();
 
         if (localSource != null) {
             return own;
@@ -180,14 +195,303 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         if (peer == null) return 0.0F;
 
         double distance = Math.sqrt(worldPosition.distSqr(peer.worldPosition));
-        float belt = Mth.clamp(0.99F - (float) distance * 0.012F, 0.76F, 0.98F);
+        float beltGeometry = Mth.clamp(0.99F - (float) distance * 0.012F, 0.76F, 0.98F);
+        float beltCondition = beltConditionFactor();
 
-        return own * peer.shapeEfficiency() * belt;
+        return own
+                * peer.shapeEfficiency()
+                * peer.wheelConditionFactor()
+                * beltGeometry
+                * beltCondition;
     }
 
     public float shapeEfficiency() {
         float progress = (sides - MIN_SIDES) / (float) (MAX_SIDES - MIN_SIDES);
         return 0.72F + progress * 0.28F;
+    }
+
+    private float wheelConditionFactor() {
+        AssemblyPartProfile profile =
+                wheelProfile();
+
+        return profile == null
+                ? 0.92F
+                : Mth.clamp(
+                0.72F
+                        + profile.performanceFactor()
+                                * 0.18F
+                        + profile.durabilityScore()
+                                * 0.10F,
+                0.58F,
+                1.0F
+        );
+    }
+
+    private float beltConditionFactor() {
+        AssemblyPartProfile profile =
+                beltProfile();
+
+        if (profile == null) {
+            PulleyWheelBlockEntity peer =
+                    linkedPulley();
+
+            profile =
+                    peer == null
+                            ? null
+                            : peer.beltProfile();
+        }
+
+        return profile == null
+                ? 0.90F
+                : Mth.clamp(
+                0.62F
+                        + profile.performanceFactor()
+                                * 0.20F
+                        + profile.durabilityScore()
+                                * 0.18F,
+                0.42F,
+                1.0F
+        );
+    }
+
+    private void applyDriveWear(
+            float transferredPower,
+            float sourceRpm
+    ) {
+        if (!(level instanceof ServerLevel server)) {
+            return;
+        }
+
+        ensureWheelProfile(
+                server
+        );
+
+        AssemblyPartProfile wheel =
+                wheelProfile();
+
+        if (wheel != null
+                && Math.floorMod(
+                server.getGameTime()
+                        + worldPosition.asLong(),
+                20
+        ) == 0) {
+
+            wheel.applyWear(
+                    0.00013F
+                            * (
+                            0.30F
+                                    + Math.min(
+                                    2.0F,
+                                    transferredPower / 4.0F
+                            )
+                    )
+                            * (
+                            1.0F
+                                    + Math.max(
+                                    0.0F,
+                                    Math.abs(sourceRpm) - 55.0F
+                            )
+                                    / 70.0F
+                    )
+            );
+
+            AssemblyItemData.writePart(
+                    wheelPart,
+                    wheel
+            );
+        }
+
+        PulleyWheelBlockEntity peer =
+                linkedPulley();
+
+        if (peer == null) {
+            return;
+        }
+
+        PulleyWheelBlockEntity owner =
+                worldPosition.asLong()
+                        < peer.worldPosition.asLong()
+                        ? this
+                        : peer;
+
+        if (owner != this
+                || Math.floorMod(
+                server.getGameTime()
+                        + worldPosition.asLong(),
+                20
+        ) != 0) {
+
+            return;
+        }
+
+        ensureBeltProfile(
+                server,
+                peer
+        );
+
+        AssemblyPartProfile belt =
+                beltProfile();
+
+        if (belt == null) {
+            return;
+        }
+
+        double distance =
+                Math.sqrt(
+                        worldPosition.distSqr(
+                                peer.worldPosition
+                        )
+                );
+
+        belt.applyWear(
+                0.00022F
+                        * (
+                        0.30F
+                                + Math.min(
+                                2.4F,
+                                transferredPower / 3.5F
+                        )
+                )
+                        * (
+                        1.0F
+                                + (float) distance
+                                        / 18.0F
+                )
+        );
+
+        AssemblyItemData.writePart(
+                beltPart,
+                belt
+        );
+
+        peer.beltPart =
+                beltPart.copy();
+
+        if (belt.durabilityScore()
+                < 0.045F
+                && server.random.nextFloat()
+                < 0.06F) {
+
+            snapBelt(
+                    server,
+                    peer
+            );
+        }
+    }
+
+    private void snapBelt(
+            ServerLevel server,
+            PulleyWheelBlockEntity peer
+    ) {
+        ItemStack remains =
+                beltPart.isEmpty()
+                        ? new ItemStack(
+                        Items.STRING
+                )
+                        : beltPart.copy();
+
+        Block.popResource(
+                server,
+                worldPosition,
+                remains
+        );
+
+        linkedPos =
+                null;
+
+        beltPart =
+                ItemStack.EMPTY;
+
+        if (worldPosition.equals(
+                peer.linkedPos
+        )) {
+            peer.linkedPos =
+                    null;
+
+            peer.beltPart =
+                    ItemStack.EMPTY;
+
+            peer.sync();
+        }
+
+        server.playSound(
+                null,
+                worldPosition,
+                SoundEvents.LEASH_KNOT_BREAK,
+                SoundSource.BLOCKS,
+                0.8F,
+                1.20F
+        );
+
+        sync();
+    }
+
+    private void ensureWheelProfile(
+            ServerLevel server
+    ) {
+        if (wheelPart.isEmpty()) {
+            wheelPart =
+                    new ItemStack(
+                            PowerContent.PULLEY_WHEEL_ITEM.get()
+                    );
+        }
+
+        AssemblyItemData.ensurePart(
+                wheelPart,
+                AssemblyPartProfile.Kind.PULLEY,
+                0,
+                server.random
+        );
+    }
+
+    private void ensureBeltProfile(
+            ServerLevel server,
+            @Nullable PulleyWheelBlockEntity peer
+    ) {
+        if (beltPart.isEmpty()) {
+            if (peer != null
+                    && !peer.beltPart.isEmpty()) {
+
+                beltPart =
+                        peer.beltPart.copy();
+
+            } else {
+                beltPart =
+                        new ItemStack(
+                                Items.STRING
+                        );
+            }
+        }
+
+        AssemblyItemData.ensurePart(
+                beltPart,
+                AssemblyPartProfile.Kind.BELT,
+                0,
+                server.random
+        );
+
+        if (peer != null) {
+            peer.beltPart =
+                    beltPart.copy();
+        }
+    }
+
+    @Nullable
+    private AssemblyPartProfile wheelProfile() {
+        return wheelPart.isEmpty()
+                ? null
+                : AssemblyItemData.readPart(
+                wheelPart
+        );
+    }
+
+    @Nullable
+    private AssemblyPartProfile beltProfile() {
+        return beltPart.isEmpty()
+                ? null
+                : AssemblyItemData.readPart(
+                beltPart
+        );
     }
 
     public void refine(Player player, int amount) {
@@ -232,7 +536,11 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                         linkedPos == null
                                 ? Component.translatable("message.wayaround.pulley.no_belt")
                                 : Component.translatable("message.wayaround.pulley.has_belt"),
-                        String.format(java.util.Locale.ROOT, "%.1f", rpm)
+                        String.format(java.util.Locale.ROOT, "%.1f", rpm),
+                        Math.round(wheelConditionFactor() * 100.0F),
+                        linkedPos == null
+                                ? 100
+                                : Math.round(beltConditionFactor() * 100.0F)
                 ),
                 true
         );
@@ -306,6 +614,26 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         first.linkedPos = worldPosition.immutable();
         linkedPos = first.worldPosition.immutable();
 
+        ItemStack installedBelt =
+                stack.copyWithCount(
+                        1
+                );
+
+        if (level instanceof ServerLevel server) {
+            AssemblyItemData.ensurePart(
+                    installedBelt,
+                    AssemblyPartProfile.Kind.BELT,
+                    0,
+                    server.random
+            );
+        }
+
+        first.beltPart =
+                installedBelt.copy();
+
+        beltPart =
+                installedBelt.copy();
+
         if (!player.getAbilities().instabuild) {
             stack.consume(1, player);
         }
@@ -348,15 +676,26 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         BlockPos old = linkedPos;
         linkedPos = null;
 
+        ItemStack removedBelt =
+                beltPart.isEmpty()
+                        ? new ItemStack(
+                        Items.STRING
+                )
+                        : beltPart.copy();
+
+        beltPart =
+                ItemStack.EMPTY;
+
         if (level != null && level.getBlockEntity(old) instanceof PulleyWheelBlockEntity peer) {
             if (worldPosition.equals(peer.linkedPos)) {
                 peer.linkedPos = null;
+                peer.beltPart = ItemStack.EMPTY;
                 peer.sync();
             }
         }
 
         if (returnString && level != null && !player.getAbilities().instabuild) {
-            Block.popResource(level, worldPosition, new ItemStack(Items.STRING));
+            Block.popResource(level, worldPosition, removedBelt);
         }
 
         sync();
@@ -369,7 +708,13 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
     public void dropAssembly() {
         if (!(level instanceof ServerLevel server)) return;
 
-        ItemStack wheel = new ItemStack(PowerContent.PULLEY_WHEEL_ITEM.get());
+        ItemStack wheel =
+                wheelPart.isEmpty()
+                        ? new ItemStack(
+                        PowerContent.PULLEY_WHEEL_ITEM.get()
+                )
+                        : wheelPart.copy();
+
         CustomData.update(
                 DataComponents.CUSTOM_DATA,
                 wheel,
@@ -380,7 +725,18 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         if (linkedPos != null) {
             BlockPos old = linkedPos;
             linkedPos = null;
-            Block.popResource(server, worldPosition, new ItemStack(Items.STRING));
+            Block.popResource(
+                    server,
+                    worldPosition,
+                    beltPart.isEmpty()
+                            ? new ItemStack(
+                            Items.STRING
+                    )
+                            : beltPart.copy()
+            );
+
+            beltPart =
+                    ItemStack.EMPTY;
 
             if (server.getBlockEntity(old) instanceof PulleyWheelBlockEntity peer
                     && worldPosition.equals(peer.linkedPos)) {
@@ -392,10 +748,23 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
     public void restoreFromItem(ItemStack stack) {
         CompoundTag data = AssemblyItemData.customData(stack);
+
+        wheelPart =
+                stack.copyWithCount(
+                        1
+                );
+
+        if (level instanceof ServerLevel server) {
+            ensureWheelProfile(
+                    server
+            );
+        }
+
         if (data.contains(ITEM_SIDES_KEY)) {
             sides = Mth.clamp(data.getInt(ITEM_SIDES_KEY), MIN_SIDES, MAX_SIDES);
-            sync();
         }
+
+        sync();
     }
 
     @Nullable
@@ -461,6 +830,24 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         tag.putFloat("MechanicalPower", mechanicalPower);
         tag.putBoolean("HasLink", linkedPos != null);
         if (linkedPos != null) tag.putLong("LinkedPos", linkedPos.asLong());
+
+        if (!wheelPart.isEmpty()) {
+            tag.put(
+                    "WheelPart",
+                    wheelPart.saveOptional(
+                            registries
+                    )
+            );
+        }
+
+        if (!beltPart.isEmpty()) {
+            tag.put(
+                    "BeltPart",
+                    beltPart.saveOptional(
+                            registries
+                    )
+            );
+        }
     }
 
     @Override
@@ -471,6 +858,32 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         rotationDegrees = tag.getFloat("Rotation");
         mechanicalPower = tag.getFloat("MechanicalPower");
         linkedPos = tag.getBoolean("HasLink") ? BlockPos.of(tag.getLong("LinkedPos")) : null;
+
+        wheelPart =
+                tag.contains(
+                        "WheelPart",
+                        net.minecraft.nbt.Tag.TAG_COMPOUND
+                )
+                        ? ItemStack.parseOptional(
+                        registries,
+                        tag.getCompound(
+                                "WheelPart"
+                        )
+                )
+                        : ItemStack.EMPTY;
+
+        beltPart =
+                tag.contains(
+                        "BeltPart",
+                        net.minecraft.nbt.Tag.TAG_COMPOUND
+                )
+                        ? ItemStack.parseOptional(
+                        registries,
+                        tag.getCompound(
+                                "BeltPart"
+                        )
+                )
+                        : ItemStack.EMPTY;
     }
 
     @Override

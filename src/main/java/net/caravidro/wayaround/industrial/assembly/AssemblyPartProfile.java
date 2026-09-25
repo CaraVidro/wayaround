@@ -7,7 +7,7 @@ import net.minecraft.util.RandomSource;
 
 public final class AssemblyPartProfile {
     public enum Kind {
-        HEAD, HANDLE, BINDING, BOARD, FASTENER, FRAME, GENERAL;
+        HEAD, HANDLE, BINDING, BOARD, FASTENER, FRAME, BLADE, SHAFT, GEARBOX, PULLEY, BELT, GENERAL;
 
         static Kind fromName(String name) {
             try {
@@ -153,6 +153,41 @@ public final class AssemblyPartProfile {
         );
     }
 
+    public static AssemblyPartProfile manufactured(
+            Kind kind,
+            Material material,
+            ResourceLocation sourceItem,
+            int orientation,
+            float quality,
+            float alignment,
+            float balance,
+            float tension,
+            float wear,
+            float fatigue
+    ) {
+        float q = clamp01(quality);
+        float resistance =
+                material.resistance()
+                        * (
+                        0.72F
+                                + q * 0.28F
+                );
+
+        return new AssemblyPartProfile(
+                kind,
+                material,
+                sourceItem,
+                orientation,
+                resistance,
+                alignment,
+                wear,
+                q,
+                balance,
+                tension,
+                fatigue
+        );
+    }
+
     public AssemblyPartProfile copy() { return load(save()); }
     public Kind kind() { return kind; }
     public Material material() { return material; }
@@ -214,6 +249,86 @@ public final class AssemblyPartProfile {
     public void setWearFraction(float fraction) {
         wear = clamp01(fraction);
         fatigue = Math.max(fatigue, wear * 0.28F);
+    }
+
+    /**
+     * Maintenance can remove dirt, looseness and part of ordinary wear, but it
+     * never erases fatigue or magically upgrades the original workmanship.
+     */
+    public void service(
+            RandomSource random,
+            float effectiveness
+    ) {
+        float amount =
+                clamp01(
+                        effectiveness
+                );
+
+        float control =
+                material.workability();
+
+        wear =
+                clamp01(
+                        wear
+                                - amount
+                                * (
+                                0.045F
+                                        + control
+                                                * 0.075F
+                        )
+                );
+
+        alignment =
+                clamp01(
+                        alignment
+                                + (
+                                1.0F
+                                        - alignment
+                        )
+                                * amount
+                                * (
+                                0.16F
+                                        + control
+                                                * 0.16F
+                        )
+                );
+
+        balance =
+                clamp01(
+                        balance
+                                + (
+                                1.0F
+                                        - balance
+                        )
+                                * amount
+                                * 0.16F
+                );
+
+        tension =
+                clamp01(
+                        tension
+                                + (
+                                1.0F
+                                        - tension
+                        )
+                                * amount
+                                * 0.20F
+                );
+
+        /*
+         * Working an already tired part can add a tiny amount of permanent
+         * fatigue. Maintenance helps condition; replacement still matters.
+         */
+        if (fatigue > 0.55F
+                && random.nextFloat()
+                        < 0.10F * amount) {
+
+            fatigue =
+                    clamp01(
+                            fatigue
+                                    + 0.002F
+                    );
+        }
     }
 
     public float performanceFactor() {

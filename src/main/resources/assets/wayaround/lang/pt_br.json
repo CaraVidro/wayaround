@@ -192,7 +192,7 @@
     "item.wayaround.saw_blade": "Lâmina de Serra",
     "block.wayaround.sawmill": "Serraria de Assembly",
     "message.wayaround.pulley.refined": "Roda refinada: %s -> %s lados | Eficiência da forma: %s%%",
-    "message.wayaround.pulley.status": "Polia: %s lados | Forma %s%% | %s | RPM %s",
+    "message.wayaround.pulley.status": "Polia: %s lados | Forma %s%% | %s | RPM %s | Roda %s%% | Correia %s%%",
     "message.wayaround.pulley.no_belt": "Sem correia",
     "message.wayaround.pulley.has_belt": "Correia de corda conectada",
     "message.wayaround.pulley.belt_first": "Corda presa nesta roda. Use a mesma linha em uma segunda polia.",
@@ -248,5 +248,17 @@
     "message.wayaround.tukuna.near_return": "perto de voltar...",
     "message.wayaround.tukuna.returning": "VOLTANDO",
     "message.wayaround.tukuna.returned": "O corpo voltou ao dono. Tukuna é um fantasma novamente.",
-    "message.wayaround.tukuna.silenced": "Você não consegue falar enquanto o Tukuna controla seu corpo."
+    "message.wayaround.tukuna.silenced": "Você não consegue falar enquanto o Tukuna controla seu corpo.",
+    "message.wayaround.sawmill.stage_jammed": "TRAVADA — eixo sob carga",
+    "message.wayaround.sawmill.status_v1": "Serraria: %s | RPM %s | Corte %s%% | Lâmina %s%% | Eixo %s%% | Vibração %s%% | Calor %s%% | Potência recebida %s%%",
+    "message.wayaround.sawmill.jammed": "A serraria está travada. Use o Martelo de Assembly para liberar e realinhar.",
+    "message.wayaround.sawmill.unjammed": "CLANC — travamento liberado. As peças foram realinhadas, mas a fadiga permanece.",
+    "message.wayaround.sawmill.serviced": "Serraria revisada. Folgas reduzidas; fadiga estrutural não foi apagada.",
+    "tooltip.wayaround.part.kind": "Peça física: %s",
+    "tooltip.wayaround.part.process": "Processo: %s | qualidade %s%%",
+    "guide.wayaround.assembly.v1.1": "V1: qualidade e desgaste agora atravessam a cadeia mecânica. Desmontar não reseta uma peça.",
+    "guide.wayaround.assembly.v1.2": "Eixos e gearboxes perdem uma pequena parcela da potência e se desgastam sob carga. Redes longas e ruins custam potência.",
+    "guide.wayaround.assembly.v1.3": "A serraria sente falta de potência, desalinhamento, lâmina cega, vibração e excesso de RPM. O Martelo de Assembly faz manutenção, não apaga fadiga.",
+    "guide.wayaround.assembly.v1.4": "Tábuas serradas carregam a qualidade do corte e o histórico de fabricação dentro do próprio ItemStack.",
+    "guide.wayaround.assembly.v1_header": "V1 — O Mundo se Move"
 }

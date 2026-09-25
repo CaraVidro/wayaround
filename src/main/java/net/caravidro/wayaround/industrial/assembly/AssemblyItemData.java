@@ -34,6 +34,9 @@ public final class AssemblyItemData {
     private static final String PRIMITIVE_ASSEMBLY_KEY =
             "WayAroundPrimitiveAssembly";
 
+    private static final String PROCESS_KEY =
+            "WayAroundManufacturingProcess";
+
     private AssemblyItemData() {
     }
 
@@ -276,6 +279,169 @@ public final class AssemblyItemData {
                 orientation,
                 random
         );
+    }
+
+    public static AssemblyPartProfile.Material inferMaterial(
+            ItemStack stack
+    ) {
+        ResourceLocation id =
+                BuiltInRegistries.ITEM.getKey(
+                        stack.getItem()
+                );
+
+        String path =
+                id == null
+                        ? ""
+                        : id.getPath();
+
+        if (path.contains("diamond")) {
+            return AssemblyPartProfile.Material.DIAMOND;
+        }
+
+        if (path.contains("steel")
+                || path.contains("netherite")) {
+            return AssemblyPartProfile.Material.STEEL;
+        }
+
+        if (path.contains("iron")) {
+            return AssemblyPartProfile.Material.IRON;
+        }
+
+        if (path.contains("bronze")) {
+            return AssemblyPartProfile.Material.BRONZE;
+        }
+
+        if (path.contains("copper")) {
+            return AssemblyPartProfile.Material.COPPER;
+        }
+
+        if (path.contains("string")
+                || path.contains("rope")
+                || path.contains("fiber")
+                || path.contains("wool")) {
+            return AssemblyPartProfile.Material.FIBER;
+        }
+
+        if (path.contains("plank")
+                || path.contains("wood")
+                || path.contains("log")
+                || path.contains("stem")
+                || path.contains("pulley")
+                || path.contains("sawmill")) {
+            return AssemblyPartProfile.Material.WOOD;
+        }
+
+        if (path.contains("stone")
+                || path.contains("flint")
+                || path.contains("deepslate")) {
+            return AssemblyPartProfile.Material.STONE;
+        }
+
+        return AssemblyPartProfile.Material.IRON;
+    }
+
+    public static AssemblyPartProfile ensurePart(
+            ItemStack stack,
+            AssemblyPartProfile.Kind kind,
+            int orientation,
+            net.minecraft.util.RandomSource random
+    ) {
+        AssemblyPartProfile existing =
+                readPart(
+                        stack
+                );
+
+        if (existing != null) {
+            return existing;
+        }
+
+        AssemblyPartProfile created =
+                AssemblyPartProfile.fresh(
+                        kind,
+                        inferMaterial(
+                                stack
+                        ),
+                        BuiltInRegistries.ITEM.getKey(
+                                stack.getItem()
+                        ),
+                        orientation,
+                        random
+                );
+
+        writePart(
+                stack,
+                created
+        );
+
+        return created;
+    }
+
+    public static void writeProcessStamp(
+            ItemStack stack,
+            String process,
+            float quality,
+            float machineCondition,
+            long gameTime
+    ) {
+        CustomData.update(
+                DataComponents.CUSTOM_DATA,
+                stack,
+                tag -> {
+                    CompoundTag processTag =
+                            new CompoundTag();
+
+                    processTag.putString(
+                            "Process",
+                            process
+                    );
+
+                    processTag.putFloat(
+                            "Quality",
+                            Mth.clamp(
+                                    quality,
+                                    0.0F,
+                                    1.0F
+                            )
+                    );
+
+                    processTag.putFloat(
+                            "MachineCondition",
+                            Mth.clamp(
+                                    machineCondition,
+                                    0.0F,
+                                    1.0F
+                            )
+                    );
+
+                    processTag.putLong(
+                            "GameTime",
+                            gameTime
+                    );
+
+                    tag.put(
+                            PROCESS_KEY,
+                            processTag
+                    );
+                }
+        );
+    }
+
+    public static CompoundTag readProcessStamp(
+            ItemStack stack
+    ) {
+        CompoundTag tag =
+                customData(
+                        stack
+                );
+
+        return tag.contains(
+                PROCESS_KEY,
+                net.minecraft.nbt.Tag.TAG_COMPOUND
+        )
+                ? tag.getCompound(
+                        PROCESS_KEY
+                )
+                : new CompoundTag();
     }
 
     public static void writeAssembly(
