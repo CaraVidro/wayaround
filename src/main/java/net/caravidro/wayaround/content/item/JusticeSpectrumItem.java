@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.content.item;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumItem;
+
 import java.util.List;
 
 import net.caravidro.wayaround.justice.JusticeDomainManager;
@@ -16,14 +20,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
-public final class JusticeSpectrumItem extends Item {
+public final class JusticeSpectrumItem extends SpectrumItem {
 
     public JusticeSpectrumItem(
             Properties properties
     ) {
-        super(
-                properties
-        );
+        super(SpectrumType.JUSTICE, properties);
     }
 
     @Override

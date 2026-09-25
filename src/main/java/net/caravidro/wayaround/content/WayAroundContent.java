@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.content;
 
+import net.caravidro.wayaround.content.item.VoidSpectrumItem;
+
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.block.PrioriteBlock;
 import net.caravidro.wayaround.content.item.BlueItem;
@@ -83,12 +85,13 @@ public final class WayAroundContent {
      * =========================================================
      */
 
-    public static final DeferredItem<Item> GOJO_SPECTRUM =
+    public static final DeferredItem<VoidSpectrumItem> GOJO_SPECTRUM =
             ITEMS.register(
                     "gojo_spectrum",
-                    () -> new Item(
+                    () -> new VoidSpectrumItem(
                             new Item.Properties()
                                     .stacksTo(1)
+                                    .rarity(net.minecraft.world.item.Rarity.EPIC)
                     )
             );
 

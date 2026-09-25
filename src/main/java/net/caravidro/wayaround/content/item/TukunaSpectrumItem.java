@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.content.item;
 
+import net.caravidro.wayaround.spectrum.SpectrumType;
+
+import net.caravidro.wayaround.spectrum.SpectrumItem;
+
 import java.util.List;
 
 import net.caravidro.wayaround.cursed.Desmartelar;
@@ -14,12 +18,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
-public final class TukunaSpectrumItem extends Item {
+public final class TukunaSpectrumItem extends SpectrumItem {
 
     public TukunaSpectrumItem(
             Properties properties
     ) {
-        super(properties);
+        super(SpectrumType.TUKUNA, properties);
     }
 
     @Override
