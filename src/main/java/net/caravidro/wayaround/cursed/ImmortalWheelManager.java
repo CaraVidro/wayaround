@@ -66,6 +66,9 @@ public final class ImmortalWheelManager {
     private static final String DAMAGE_KEY =
             "WayAroundImmortalWheelDamage";
 
+    private static final String REVIVES_KEY =
+            "WayAroundImmortalWheelRevives";
+
     private static final String LEGACY_DAMAGE_KEY =
             "WayAroundImmortalWheelBlackFlashDamage";
 
@@ -75,11 +78,23 @@ public final class ImmortalWheelManager {
     private static final Set<UUID> PRESENT =
             new HashSet<>();
 
+    private static final Map<UUID, Regeneration> REGENERATING =
+            new HashMap<>();
+
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)
                 || !hasWheel(player)
                 || event.getAmount() <= 0.0F) {
+            return;
+        }
+
+        if (REGENERATING.containsKey(
+                player.getUUID()
+        )) {
+            event.setAmount(
+                    0.0F
+            );
             return;
         }
 
@@ -164,17 +179,55 @@ public final class ImmortalWheelManager {
     }
 
     @SubscribeEvent
-    public static void onDeath(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)
-                || !hasWheel(player)) {
+    public static void onDeath(
+            LivingDeathEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof ServerPlayer player)
+                || !hasWheel(
+                player
+        )) {
+            return;
+        }
+
+        int revives =
+                remainingRevives(
+                        player
+                );
+
+        if (revives > 0) {
+            event.setCanceled(
+                    true
+            );
+
+            int remaining =
+                    revives - 1;
+
+            player.getPersistentData()
+                    .putInt(
+                            REVIVES_KEY,
+                            remaining
+                    );
+
+            beginRegeneration(
+                    player,
+                    remaining
+            );
+
             return;
         }
 
         int physicalDamage =
-                wheelDamage(player);
+                wheelDamage(
+                        player
+                );
 
         clearBinding(
                 player
+        );
+
+        REGENERATING.remove(
+                player.getUUID()
         );
 
         ADAPTATIONS.remove(
@@ -202,7 +255,9 @@ public final class ImmortalWheelManager {
                                 0.0
                         ),
                 player.getDeltaMovement()
-                        .scale(0.28)
+                        .scale(
+                                0.28
+                        )
                         .add(
                                 0.0,
                                 0.16,
@@ -385,6 +440,10 @@ public final class ImmortalWheelManager {
         MinecraftServer server = event.getServer();
         long tick = server.getTickCount();
 
+        tickRegenerations(
+                server
+        );
+
         if (tick % 20L != 0L) {
             return;
         }
@@ -435,6 +494,7 @@ public final class ImmortalWheelManager {
     public static void onServerStopped(ServerStoppedEvent event) {
         ADAPTATIONS.clear();
         PRESENT.clear();
+        REGENERATING.clear();
     }
 
     public static void bindFromRemnant(
@@ -540,6 +600,263 @@ public final class ImmortalWheelManager {
         );
     }
 
+    private static int remainingRevives(
+            ServerPlayer player
+    ) {
+        if (!player.getPersistentData()
+                .contains(
+                        REVIVES_KEY
+                )) {
+
+            player.getPersistentData()
+                    .putInt(
+                            REVIVES_KEY,
+                            2
+                    );
+        }
+
+        return Mth.clamp(
+                player.getPersistentData()
+                        .getInt(
+                                REVIVES_KEY
+                        ),
+                0,
+                2
+        );
+    }
+
+    private static void beginRegeneration(
+            ServerPlayer player,
+            int remaining
+    ) {
+        boolean wasInvulnerable =
+                player.isInvulnerable();
+
+        Vec3 origin =
+                player.position();
+
+        player.setHealth(
+                1.0F
+        );
+
+        player.setInvulnerable(
+                true
+        );
+
+        player.clearFire();
+
+        player.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        player.fallDistance =
+                0.0F;
+
+        REGENERATING.put(
+                player.getUUID(),
+                new Regeneration(
+                        player.getUUID(),
+                        0,
+                        44,
+                        wasInvulnerable
+                )
+        );
+
+        ServerLevel level =
+                player.serverLevel();
+
+        PacketDistributor.sendToPlayersNear(
+                level,
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                VISUAL_RANGE,
+                new ImmortalWheelReactivationPayload(
+                        player.getUUID(),
+                        origin.x,
+                        origin.y + player.getBbHeight() + 0.42,
+                        origin.z,
+                        8 + remaining
+                )
+        );
+
+        send(
+                player,
+                ImmortalWheelVisualPayload.SPIN,
+                "rebirth",
+                0,
+                8 + remaining
+        );
+
+        level.playSound(
+                null,
+                player.blockPosition(),
+                SoundEvents.TOTEM_USE,
+                SoundSource.PLAYERS,
+                1.65F,
+                0.38F
+        );
+
+        player.displayClientMessage(
+                net.minecraft.network.chat.Component.literal(
+                        "Immortal Wheel: reconstruindo... "
+                                + remaining
+                                + " renascimento(s) restante(s)."
+                ).withStyle(
+                        net.minecraft.ChatFormatting.GOLD
+                ),
+                true
+        );
+    }
+
+    private static void tickRegenerations(
+            MinecraftServer server
+    ) {
+        var iterator =
+                REGENERATING.entrySet()
+                        .iterator();
+
+        while (iterator.hasNext()) {
+            Regeneration regeneration =
+                    iterator.next()
+                            .getValue();
+
+            ServerPlayer player =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    regeneration.owner
+                            );
+
+            if (player == null
+                    || !isBound(
+                    player
+            )) {
+
+                iterator.remove();
+                continue;
+            }
+
+            regeneration.age++;
+
+            float progress =
+                    Mth.clamp(
+                            regeneration.age
+                                    / (float) regeneration.duration,
+                            0.0F,
+                            1.0F
+                    );
+
+            float targetHealth =
+                    Math.max(
+                            1.0F,
+                            player.getMaxHealth()
+                                    * (
+                                    0.06F
+                                            + progress
+                                                    * 0.72F
+                            )
+                    );
+
+            player.setHealth(
+                    Math.max(
+                            player.getHealth(),
+                            targetHealth
+                    )
+            );
+
+            Vec3 center =
+                    player.position()
+                            .add(
+                                    0.0,
+                                    player.getBbHeight()
+                                            * progress,
+                                    0.0
+                            );
+
+            ServerLevel level =
+                    player.serverLevel();
+
+            level.sendParticles(
+                    ParticleTypes.TOTEM_OF_UNDYING,
+                    center.x,
+                    center.y,
+                    center.z,
+                    7,
+                    0.34,
+                    0.16,
+                    0.34,
+                    0.08
+            );
+
+            level.sendParticles(
+                    regeneration.age % 3 == 0
+                            ? ParticleTypes.END_ROD
+                            : ParticleTypes.ELECTRIC_SPARK,
+                    center.x,
+                    center.y,
+                    center.z,
+                    4,
+                    0.46,
+                    0.20,
+                    0.46,
+                    0.035
+            );
+
+            if (regeneration.age % 6 == 0) {
+                level.playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.AMETHYST_BLOCK_CHIME,
+                        SoundSource.PLAYERS,
+                        0.62F,
+                        0.48F
+                                + progress
+                                        * 0.95F
+                );
+            }
+
+            if (regeneration.age >= regeneration.duration) {
+                player.setHealth(
+                        Math.max(
+                                player.getHealth(),
+                                player.getMaxHealth()
+                                        * 0.78F
+                        )
+                );
+
+                player.setInvulnerable(
+                        regeneration.wasInvulnerable
+                );
+
+                level.sendParticles(
+                        ParticleTypes.TOTEM_OF_UNDYING,
+                        player.getX(),
+                        player.getY()
+                                + player.getBbHeight()
+                                        * 0.55,
+                        player.getZ(),
+                        72,
+                        0.72,
+                        0.92,
+                        0.72,
+                        0.22
+                );
+
+                level.playSound(
+                        null,
+                        player.blockPosition(),
+                        SoundEvents.BEACON_POWER_SELECT,
+                        SoundSource.PLAYERS,
+                        1.4F,
+                        0.62F
+                );
+
+                iterator.remove();
+            }
+        }
+    }
+
     private static void spawnDormantRemnant(
             ServerLevel level,
             Vec3 position,
@@ -595,6 +912,12 @@ public final class ImmortalWheelManager {
                                 MAX_BLACK_FLASH_DAMAGE - 1
                         )
                 );
+
+        player.getPersistentData()
+                .putInt(
+                        REVIVES_KEY,
+                        2
+                );
     }
 
     private static void clearBinding(
@@ -608,6 +931,11 @@ public final class ImmortalWheelManager {
         player.getPersistentData()
                 .remove(
                         DAMAGE_KEY
+                );
+
+        player.getPersistentData()
+                .remove(
+                        REVIVES_KEY
                 );
     }
 
@@ -931,6 +1259,25 @@ public final class ImmortalWheelManager {
         }
 
         return "generic";
+    }
+
+    private static final class Regeneration {
+        private final UUID owner;
+        private int age;
+        private final int duration;
+        private final boolean wasInvulnerable;
+
+        private Regeneration(
+                UUID owner,
+                int age,
+                int duration,
+                boolean wasInvulnerable
+        ) {
+            this.owner = owner;
+            this.age = age;
+            this.duration = duration;
+            this.wasInvulnerable = wasInvulnerable;
+        }
     }
 
     private static final class Adaptation {
