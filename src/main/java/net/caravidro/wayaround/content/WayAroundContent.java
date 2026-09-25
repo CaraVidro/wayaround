@@ -5,7 +5,14 @@ import net.caravidro.wayaround.block.PrioriteBlock;
 import net.caravidro.wayaround.content.item.BlueItem;
 import net.caravidro.wayaround.content.item.PrioriteBottleItem;
 import net.caravidro.wayaround.content.item.PrioriteBucketItem;
+import net.caravidro.wayaround.content.item.TukunaFingerItem;
+import net.caravidro.wayaround.content.item.TukunaSpectrumItem;
+import net.caravidro.wayaround.cursed.DesmartelarSlashEntity;
+import net.caravidro.wayaround.cursed.ImmortalWheelRemnantEntity;
 
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -15,6 +22,7 @@ import net.minecraft.world.level.material.MapColor;
 
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -25,6 +33,12 @@ public final class WayAroundContent {
 
     public static final DeferredRegister.Items ITEMS =
             DeferredRegister.createItems(WayAround.MODID);
+
+    public static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
+            DeferredRegister.create(
+                    Registries.ENTITY_TYPE,
+                    WayAround.MODID
+            );
 
     /*
      * =========================================================
@@ -87,6 +101,84 @@ public final class WayAroundContent {
                     )
             );
 
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<ImmortalWheelRemnantEntity>
+            > IMMORTAL_WHEEL_REMNANT =
+            ENTITY_TYPES.register(
+                    "immortal_wheel_remnant",
+                    () -> EntityType.Builder
+                            .of(
+                                    ImmortalWheelRemnantEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    1.55F,
+                                    0.34F
+                            )
+                            .clientTrackingRange(
+                                    12
+                            )
+                            .updateInterval(
+                                    1
+                            )
+                            .fireImmune()
+                            .build(
+                                    "wayaround:immortal_wheel_remnant"
+                            )
+            );
+
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<DesmartelarSlashEntity>
+            > DESMARTELAR_SLASH =
+            ENTITY_TYPES.register(
+                    "desmartelar_slash",
+                    () -> EntityType.Builder
+                            .of(
+                                    DesmartelarSlashEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    0.2F,
+                                    0.2F
+                            )
+                            .clientTrackingRange(
+                                    12
+                            )
+                            .updateInterval(
+                                    1
+                            )
+                            .build(
+                                    "wayaround:desmartelar_slash"
+                            )
+            );
+
+    public static final DeferredItem<TukunaSpectrumItem> TUKUNA_SPECTRUM =
+            ITEMS.register(
+                    "tukuna_spectrum",
+                    () -> new TukunaSpectrumItem(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(
+                                            net.minecraft.world.item.Rarity.EPIC
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<TukunaFingerItem> TUKUNA_FINGER =
+            ITEMS.register(
+                    "tukuna_finger",
+                    () -> new TukunaFingerItem(
+                            new Item.Properties()
+                                    .stacksTo(20)
+                                    .fireResistant()
+                                    .rarity(
+                                            net.minecraft.world.item.Rarity.RARE
+                                    )
+                    )
+            );
+
     public static final DeferredItem<Item> BLUE =
             ITEMS.register(
                     "blue",
@@ -120,5 +212,6 @@ public final class WayAroundContent {
     public static void register(IEventBus modEventBus) {
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
+        ENTITY_TYPES.register(modEventBus);
     }
 }

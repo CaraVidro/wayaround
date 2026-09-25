@@ -10,6 +10,7 @@ import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.domain.DomainCommands;
 import net.caravidro.wayaround.domain.DomainManager;
+import net.caravidro.wayaround.domain.VoidDomainManager;
 import net.caravidro.wayaround.network.WayAroundNetwork;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.sounds.WayAroundSounds;
@@ -63,6 +64,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(AntarcticAvalanche::onServerTick);
         NeoForge.EVENT_BUS.addListener(AntarcticBlizzard::onServerTick);
         NeoForge.EVENT_BUS.addListener(DomainManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(VoidDomainManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(BlueManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
 
@@ -83,6 +85,7 @@ public class WayAround {
         BlizzardManager.clearAll();
         BlizzardChunkTracker.clear();
         DomainManager.clearAll();
+        VoidDomainManager.clearAll();
         BlueManager.clearAll();
         ImaginaryBetaManager.clearAll();
         InfinityManager.clearAll();

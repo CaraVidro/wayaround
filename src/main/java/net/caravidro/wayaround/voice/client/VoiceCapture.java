@@ -35,6 +35,15 @@ public final class VoiceCapture {
     private static final double MAX_DYNAMIC_THRESHOLD =
             0.080;
 
+    private static final int COMBAT_SPECULATIVE_MIN_FRAMES =
+            8;
+
+    private static final int COMBAT_SPECULATIVE_STEP_FRAMES =
+            6;
+
+    private static final double COMBAT_SPECULATIVE_MAX_SECONDS =
+            2.2;
+
     private static volatile boolean running;
     private static volatile boolean transmitting;
     private static volatile boolean voiceActivationSession;
@@ -167,6 +176,9 @@ public final class VoiceCapture {
         int silenceFrames =
                 0;
 
+        int lastSpeculativeBytes =
+                0;
+
         try {
             line =
                     openInputLine();
@@ -227,6 +239,12 @@ public final class VoiceCapture {
                                 0,
                                 frame.length
                         );
+
+                        lastSpeculativeBytes =
+                                maybeSubmitCombatSpeculative(
+                                        utterance,
+                                        lastSpeculativeBytes
+                                );
                     }
 
                     continue;
@@ -281,6 +299,9 @@ public final class VoiceCapture {
                     silenceFrames =
                             0;
 
+                    lastSpeculativeBytes =
+                            0;
+
                     utterance =
                             shouldTranscribe()
                                     ? new ByteArrayOutputStream()
@@ -321,6 +342,12 @@ public final class VoiceCapture {
                             0,
                             frame.length
                     );
+
+                    lastSpeculativeBytes =
+                            maybeSubmitCombatSpeculative(
+                                    utterance,
+                                    lastSpeculativeBytes
+                            );
                 }
 
                 if (rms
@@ -353,6 +380,9 @@ public final class VoiceCapture {
 
                     utterance =
                             null;
+
+                    lastSpeculativeBytes =
+                            0;
 
                     silenceFrames =
                             0;
@@ -503,6 +533,59 @@ public final class VoiceCapture {
                     );
                 }
         );
+    }
+
+    private static int maybeSubmitCombatSpeculative(
+            ByteArrayOutputStream utterance,
+            int lastSubmittedBytes
+    ) {
+        if (utterance == null
+                || !VoiceIntentClient.isCombatHot()) {
+            return lastSubmittedBytes;
+        }
+
+        int size =
+                utterance.size();
+
+        int minimum =
+                VoiceConstants.FRAME_BYTES
+                        * COMBAT_SPECULATIVE_MIN_FRAMES;
+
+        int step =
+                VoiceConstants.FRAME_BYTES
+                        * COMBAT_SPECULATIVE_STEP_FRAMES;
+
+        if (size < minimum
+                || size - lastSubmittedBytes
+                        < step) {
+            return lastSubmittedBytes;
+        }
+
+        byte[] audio =
+                utterance.toByteArray();
+
+        int maxBytes =
+                (int) (
+                        VoiceConstants.SAMPLE_RATE
+                                * VoiceConstants.BYTES_PER_SAMPLE
+                                * COMBAT_SPECULATIVE_MAX_SECONDS
+                );
+
+        if (audio.length > maxBytes) {
+            audio =
+                    Arrays.copyOfRange(
+                            audio,
+                            audio.length
+                                    - maxBytes,
+                            audio.length
+                    );
+        }
+
+        VoiceSpeechDebug.submitSpeculative(
+                audio
+        );
+
+        return size;
     }
 
     private static void submitUtterance(

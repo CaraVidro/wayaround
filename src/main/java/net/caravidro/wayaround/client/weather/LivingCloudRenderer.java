@@ -29,15 +29,15 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import org.joml.Vector3f;
 
 /**
  * Simple-Clouds-inspired renderer, intentionally much simpler:
  *
  * - cloud bodies are a sparse voxel field;
- * - only exposed voxel faces are emitted;
- * - the voxel field is rebuilt occasionally as its lobes drift/grow/shrink;
- * - when the camera enters a cloud the outside shell becomes much more
- *   transparent and nearby occupied voxels gain faint internal faces.
+ * - exposed faces are cached when the mesh is rebuilt, not rediscovered every frame;
+ * - distant clouds rebuild less frequently than nearby clouds;
+ * - when the camera enters a cloud the outside shell becomes more transparent.
  *
  * This gives Way Around actual cloud volume without ray marching.
  */
@@ -49,7 +49,11 @@ public final class LivingCloudRenderer {
     private static final double MAX_VISUAL_RADIUS = 156.0;
     private static final int MAX_HORIZONTAL_VOXELS = 19;
     private static final int MAX_VERTICAL_VOXELS = 7;
-    private static final int REBUILD_INTERVAL = 10;
+    private static final int REBUILD_INTERVAL_NEAR = 10;
+    private static final int REBUILD_INTERVAL_MID = 20;
+    private static final int REBUILD_INTERVAL_FAR = 40;
+    private static final double CAMERA_FACE_CLEAR_RADIUS = 18.0;
+    private static final double CAMERA_NEAR_GUARD = 0.35;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
 
     /*
@@ -80,6 +84,19 @@ public final class LivingCloudRenderer {
         }
 
         Vec3 camera = event.getCamera().getPosition();
+
+        Vector3f lookVector =
+                event.getCamera().getLookVector();
+
+        double lookX =
+                lookVector.x();
+
+        double lookY =
+                lookVector.y();
+
+        double lookZ =
+                lookVector.z();
+
         long time = minecraft.level.getGameTime();
 
         pruneHoles(time);
@@ -151,8 +168,27 @@ public final class LivingCloudRenderer {
                             id -> new CloudMesh()
                     );
 
-            if (mesh.needsRebuild(time, cell)) {
-                mesh.rebuild(cell, time);
+            double cellDx =
+                    cell.x() - camera.x;
+
+            double cellDz =
+                    cell.z() - camera.z;
+
+            int rebuildInterval =
+                    rebuildIntervalForDistance(
+                            cellDx * cellDx
+                                    + cellDz * cellDz
+                    );
+
+            if (mesh.needsRebuild(
+                    time,
+                    cell,
+                    rebuildInterval
+            )) {
+                mesh.rebuild(
+                        cell,
+                        time
+                );
             }
 
             boolean inside =
@@ -165,7 +201,7 @@ public final class LivingCloudRenderer {
 
             int alpha =
                     inside
-                            ? 64
+                            ? 40
                             : 194;
 
             int brightness =
@@ -210,24 +246,28 @@ public final class LivingCloudRenderer {
                     buffer,
                     poseStack,
                     cell,
+                    camera,
+                    lookX,
+                    lookY,
+                    lookZ,
                     red,
                     green,
                     blue,
                     alpha
             );
 
-            if (inside) {
-                anyVertex |= mesh.emitInteriorNearCamera(
-                        buffer,
-                        poseStack,
-                        cell,
-                        camera,
-                        red,
-                        green,
-                        blue,
-                        30
-                );
-            }
+            /*
+             * Do NOT render arbitrary internal voxel faces around the camera.
+             *
+             * The old pass emitted all six faces of every occupied voxel up
+             * to 34 blocks from the player. Because those quads are
+             * translucent, overlapping internal faces produced giant dark /
+             * blue polygon sheets at the edge of the screen that appeared to
+             * move with the player.
+             *
+             * The external shell already gives the cloud volume; when the
+             * camera is inside, we simply make that shell more transparent.
+             */
         }
 
         Iterator<Map.Entry<Long, CloudMesh>> iterator =
@@ -238,7 +278,7 @@ public final class LivingCloudRenderer {
                     iterator.next();
 
             if (!visibleIds.contains(entry.getKey())
-                    && time - entry.getValue().lastUsed > 100L) {
+                    && time - entry.getValue().lastUsed > 200L) {
                 iterator.remove();
             }
         }
@@ -249,12 +289,24 @@ public final class LivingCloudRenderer {
             RenderSystem.enableDepthTest();
             RenderSystem.depthMask(false);
             RenderSystem.disableCull();
+            RenderSystem.setShaderColor(
+                    1.0F,
+                    1.0F,
+                    1.0F,
+                    1.0F
+            );
             RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
             BufferUploader.drawWithShader(
                     buffer.buildOrThrow()
             );
 
+            RenderSystem.setShaderColor(
+                    1.0F,
+                    1.0F,
+                    1.0F,
+                    1.0F
+            );
             RenderSystem.enableCull();
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();
@@ -291,8 +343,15 @@ public final class LivingCloudRenderer {
                             id -> new CloudMesh()
                     );
 
-            if (mesh.needsRebuild(time, cell)) {
-                mesh.rebuild(cell, time);
+            if (mesh.needsRebuild(
+                    time,
+                    cell,
+                    REBUILD_INTERVAL_NEAR
+            )) {
+                mesh.rebuild(
+                        cell,
+                        time
+                );
             }
 
             if (mesh.containsWorld(
@@ -424,6 +483,13 @@ public final class LivingCloudRenderer {
         private final Set<Voxel> occupied =
                 new HashSet<>();
 
+        /*
+         * Expensive neighbor tests happen only when the cloud shape changes.
+         * Rendering then walks this compact exposed-face list directly.
+         */
+        private final List<SurfaceFace> surfaceFaces =
+                new ArrayList<>();
+
         private long builtAt =
                 Long.MIN_VALUE;
 
@@ -438,12 +504,13 @@ public final class LivingCloudRenderer {
 
         private boolean needsRebuild(
                 long time,
-                LocalWeatherField.CloudCell cell
+                LocalWeatherField.CloudCell cell,
+                int rebuildInterval
         ) {
             lastUsed = time;
 
             return builtAt == Long.MIN_VALUE
-                    || time - builtAt >= REBUILD_INTERVAL
+                    || time - builtAt >= rebuildInterval
                     || builtHoleRevision != holeRevision
                     || Math.abs(
                             builtRadius
@@ -533,129 +600,94 @@ public final class LivingCloudRenderer {
                 }
             }
 
+            rebuildSurfaceFaces();
+
             builtAt = time;
             builtRadius = radius;
             builtHoleRevision = holeRevision;
             lastUsed = time;
         }
 
+        private void rebuildSurfaceFaces() {
+            surfaceFaces.clear();
+
+            for (Voxel voxel : occupied) {
+                for (Face face : Face.values()) {
+                    if (occupied.contains(
+                            new Voxel(
+                                    voxel.x + face.dx,
+                                    voxel.y + face.dy,
+                                    voxel.z + face.dz
+                            )
+                    )) {
+                        continue;
+                    }
+
+                    surfaceFaces.add(
+                            new SurfaceFace(
+                                    voxel,
+                                    face
+                            )
+                    );
+                }
+            }
+        }
+
         private boolean emitSurface(
                 BufferBuilder buffer,
                 PoseStack poseStack,
                 LocalWeatherField.CloudCell cell,
+                Vec3 camera,
+                double lookX,
+                double lookY,
+                double lookZ,
                 int red,
                 int green,
                 int blue,
                 int alpha
         ) {
-            if (occupied.isEmpty()) {
+            if (surfaceFaces.isEmpty()) {
                 return false;
             }
 
             boolean emitted =
                     false;
 
-            for (Voxel voxel : occupied) {
-                for (Face face : Face.values()) {
-                    Voxel neighbor =
-                            new Voxel(
-                                    voxel.x + face.dx,
-                                    voxel.y + face.dy,
-                                    voxel.z + face.dz
-                            );
+            for (SurfaceFace surfaceFace :
+                    surfaceFaces) {
 
-                    if (occupied.contains(neighbor)) {
-                        continue;
-                    }
+                Voxel voxel =
+                        surfaceFace.voxel;
 
-                    emitFace(
-                            buffer,
-                            poseStack,
-                            cell,
-                            voxel,
-                            face,
-                            red,
-                            green,
-                            blue,
-                            alpha
-                    );
+                Face face =
+                        surfaceFace.face;
 
-                    emitted = true;
-                }
-            }
-
-            return emitted;
-        }
-
-        private boolean emitInteriorNearCamera(
-                BufferBuilder buffer,
-                PoseStack poseStack,
-                LocalWeatherField.CloudCell cell,
-                Vec3 camera,
-                int red,
-                int green,
-                int blue,
-                int alpha
-        ) {
-            double localX =
-                    camera.x - cell.x();
-
-            double localY =
-                    camera.y - cell.y();
-
-            double localZ =
-                    camera.z - cell.z();
-
-            double radiusSquared =
-                    34.0 * 34.0;
-
-            boolean emitted =
-                    false;
-
-            for (Voxel voxel : occupied) {
-                double vx =
-                        voxel.x * VOXEL;
-
-                double vy =
-                        voxel.y * VOXEL;
-
-                double vz =
-                        voxel.z * VOXEL;
-
-                double dx =
-                        vx - localX;
-
-                double dy =
-                        vy - localY;
-
-                double dz =
-                        vz - localZ;
-
-                if (dx * dx + dy * dy + dz * dz
-                        > radiusSquared) {
+                if (faceUnsafeForCamera(
+                        cell,
+                        voxel,
+                        face,
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ
+                )) {
                     continue;
                 }
 
-                for (Face face : Face.values()) {
-                    /*
-                     * These faint local faces are only created while inside
-                     * the cloud. They give nearby fog some readable shape
-                     * instead of leaving the camera inside an empty shell.
-                     */
-                    emitFace(
-                            buffer,
-                            poseStack,
-                            cell,
-                            voxel,
-                            face,
-                            red,
-                            green,
-                            blue,
-                            alpha
-                    );
+                emitFace(
+                        buffer,
+                        poseStack,
+                        cell,
+                        voxel,
+                        face,
+                        red,
+                        green,
+                        blue,
+                        alpha
+                );
 
-                    emitted = true;
-                }
+                emitted =
+                        true;
             }
 
             return emitted;
@@ -693,6 +725,20 @@ public final class LivingCloudRenderer {
                     )
             );
         }
+    }
+
+    private static int rebuildIntervalForDistance(
+            double distanceSquared
+    ) {
+        if (distanceSquared > 520.0 * 520.0) {
+            return REBUILD_INTERVAL_FAR;
+        }
+
+        if (distanceSquared > 280.0 * 280.0) {
+            return REBUILD_INTERVAL_MID;
+        }
+
+        return REBUILD_INTERVAL_NEAR;
     }
 
     private static double visualRadius(
@@ -921,6 +967,236 @@ public final class LivingCloudRenderer {
         return false;
     }
 
+    private static boolean faceUnsafeForCamera(
+            LocalWeatherField.CloudCell cell,
+            Voxel voxel,
+            Face face,
+            Vec3 camera,
+            double lookX,
+            double lookY,
+            double lookZ
+    ) {
+        double cx =
+                cell.x()
+                        + voxel.x * VOXEL;
+
+        double cy =
+                cell.y()
+                        + voxel.y * VOXEL;
+
+        double cz =
+                cell.z()
+                        + voxel.z * VOXEL;
+
+        double half =
+                VOXEL * 0.505;
+
+        double minX = cx - half;
+        double minY = cy - half;
+        double minZ = cz - half;
+        double maxX = cx + half;
+        double maxY = cy + half;
+        double maxZ = cz + half;
+
+        double centerX =
+                cx
+                        + face.dx * VOXEL * 0.5;
+
+        double centerY =
+                cy
+                        + face.dy * VOXEL * 0.5;
+
+        double centerZ =
+                cz
+                        + face.dz * VOXEL * 0.5;
+
+        double dx =
+                centerX - camera.x;
+
+        double dy =
+                centerY - camera.y;
+
+        double dz =
+                centerZ - camera.z;
+
+        /*
+         * First guard: do not allow a giant voxel wall close enough to fill
+         * most of the screen. This is intentionally larger than a single
+         * 9-block voxel because the face center can be "safe" while one corner
+         * is almost touching the camera.
+         */
+        if (dx * dx
+                + dy * dy
+                + dz * dz
+                < CAMERA_FACE_CLEAR_RADIUS
+                        * CAMERA_FACE_CLEAR_RADIUS) {
+            return true;
+        }
+
+        /*
+         * Second guard: test ALL FOUR vertices against the camera forward
+         * plane. If even one corner sits behind / inside the near plane, the
+         * quad would be clipped into a huge screen-space polygon. Skip the
+         * whole face instead of trusting perspective clipping.
+         */
+        return switch (face) {
+            case DOWN, UP -> {
+                double y =
+                        face == Face.DOWN
+                                ? minY
+                                : maxY;
+
+                yield !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        y,
+                        minZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        y,
+                        minZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        y,
+                        maxZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        y,
+                        maxZ
+                );
+            }
+
+            case NORTH, SOUTH -> {
+                double z =
+                        face == Face.NORTH
+                                ? minZ
+                                : maxZ;
+
+                yield !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        minY,
+                        z
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        minY,
+                        z
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        maxX,
+                        maxY,
+                        z
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        minX,
+                        maxY,
+                        z
+                );
+            }
+
+            case WEST, EAST -> {
+                double x =
+                        face == Face.WEST
+                                ? minX
+                                : maxX;
+
+                yield !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        minY,
+                        minZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        minY,
+                        maxZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        maxY,
+                        maxZ
+                )
+                        || !pointSafelyInFront(
+                        camera,
+                        lookX,
+                        lookY,
+                        lookZ,
+                        x,
+                        maxY,
+                        minZ
+                );
+            }
+        };
+    }
+
+    private static boolean pointSafelyInFront(
+            Vec3 camera,
+            double lookX,
+            double lookY,
+            double lookZ,
+            double x,
+            double y,
+            double z
+    ) {
+        double forward =
+                (
+                        x - camera.x
+                ) * lookX
+                        + (
+                        y - camera.y
+                ) * lookY
+                        + (
+                        z - camera.z
+                ) * lookZ;
+
+        return forward > CAMERA_NEAR_GUARD;
+    }
+
     private static void emitFace(
             BufferBuilder buffer,
             PoseStack poseStack,
@@ -1064,6 +1340,12 @@ public final class LivingCloudRenderer {
             int x,
             int y,
             int z
+    ) {
+    }
+
+    private record SurfaceFace(
+            Voxel voxel,
+            Face face
     ) {
     }
 

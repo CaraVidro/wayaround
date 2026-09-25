@@ -34,6 +34,15 @@ public final class VoiceIntentClient {
     private static final long TRIGGER_COOLDOWN_MS =
             650L;
 
+    private static final long COMBAT_HOT_MEMORY_MS =
+            1_800L;
+
+    private static final long REFLEX_STAGE_WINDOW_MS =
+            2_200L;
+
+    private static final long REFLEX_RETRIGGER_MS =
+            1_450L;
+
     private static String rollingContext =
             "";
 
@@ -57,8 +66,55 @@ public final class VoiceIntentClient {
 
     private static long dualPreparedUntil;
 
+    /*
+     * Combat-reflex parser state. combatHotUntil is volatile because the audio
+     * capture thread reads it while the render/client thread updates it.
+     */
+    private static volatile long combatHotUntil;
+
+    private static long reflexTechniqueUntil;
+    private static long reflexImaginaryUntil;
+    private static long reflexDomainUntil;
+    private static long lastReflexDispatchAt;
+
     public static boolean isEnabled() {
         return ENABLED;
+    }
+
+    public static boolean isCombatHot() {
+        return System.currentTimeMillis()
+                <= combatHotUntil;
+    }
+
+    /**
+     * Called by speculative STT snapshots while the utterance is STILL being
+     * spoken. This is intentionally much narrower than normal intent parsing:
+     * it only acts during the short "I am being attacked" window.
+     */
+    public static void handleSpeculativeTranscript(
+            String transcript
+    ) {
+        if (!ENABLED
+                || transcript == null
+                || transcript.isBlank()
+                || !isCombatHot()) {
+            return;
+        }
+
+        String normalized =
+                normalize(
+                        transcript
+                );
+
+        if (normalized.isBlank()) {
+            return;
+        }
+
+        handleCombatReflex(
+                normalized,
+                System.currentTimeMillis(),
+                1.0F
+        );
     }
 
     public static void handleTranscript(
@@ -102,6 +158,18 @@ public final class VoiceIntentClient {
                         profile
                 );
 
+        if (isCombatHot()
+                && handleCombatReflex(
+                normalized,
+                now,
+                (float) Math.max(
+                        0.82,
+                        globalUrgency
+                )
+        )) {
+            return;
+        }
+
         WayAround.LOGGER.info(
                 "[Voice/Intent] bruto=\"{}\" normalizado=\"{}\" urgencia={} enfaseBlue={} enfaseRed={}",
                 transcript,
@@ -132,6 +200,44 @@ public final class VoiceIntentClient {
                 words(
                         normalized
                 );
+
+        /*
+         * Tukuna words are intentionally simple and immediate. Unlike Blue,
+         * "trocar" requires consent from TWO separate player UUIDs server-side,
+         * so there is no reason to make the client guess intent beyond hearing
+         * the explicit word.
+         */
+        if (containsAny(
+                currentWords,
+                "trocar",
+                "troca"
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.TUKUNA_SWAP_CONFIRM,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "TUKUNA / TROCAR"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (containsAny(
+                currentWords,
+                "desmartelar",
+                "desmantelar"
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.TUKUNA_DESMARTELAR,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "TUKUNA / DESMARTELAR"
+            );
+
+            clearContext();
+            return;
+        }
 
         OutputModifier output =
                 detectOutput(
@@ -207,6 +313,21 @@ public final class VoiceIntentClient {
                     ChatFormatting.GRAY
             );
 
+            return;
+        }
+
+        if (looksLikeVoidDomain(
+                currentWords,
+                false
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "DOMINIO DE EXPANSAO / VOID"
+            );
+
+            clearContext();
             return;
         }
 
@@ -624,6 +745,17 @@ public final class VoiceIntentClient {
         long now =
                 System.currentTimeMillis();
 
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player != null
+                && minecraft.player.hurtTime > 0) {
+
+            combatHotUntil =
+                    now
+                            + COMBAT_HOT_MEMORY_MS;
+        }
+
         if (deferredPostSummonOutput >= 0.0F) {
             if (now > deferredPostSummonOutputExpiresAt) {
                 deferredPostSummonOutput =
@@ -710,6 +842,320 @@ public final class VoiceIntentClient {
         }
 
         clearContext();
+    }
+
+    private static boolean handleCombatReflex(
+            String normalized,
+            long now,
+            float urgency
+    ) {
+        List<String> words =
+                words(
+                        normalized
+                );
+
+        if (words.isEmpty()) {
+            return false;
+        }
+
+        boolean sawDomainPrefix =
+                containsPrefix(
+                        words,
+                        "do",
+                        2
+                )
+                        || containsPrefix(
+                        words,
+                        "dom",
+                        3
+                );
+
+        boolean sawDomain =
+                containsPrefix(
+                        words,
+                        "dominio",
+                        5
+                );
+
+        if (sawDomainPrefix) {
+            reflexDomainUntil =
+                    now
+                            + REFLEX_STAGE_WINDOW_MS;
+
+            status(
+                    "DO... dominio preparado",
+                    ChatFormatting.WHITE
+            );
+        }
+
+        if (sawDomain
+                && (
+                now <= reflexDomainUntil
+                        || looksLikeVoidDomain(
+                        words,
+                        true
+                )
+        )) {
+
+            boolean dispatched =
+                    reflexDispatch(
+                            VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND,
+                            -1.0F,
+                            urgency,
+                            "DOMINIO / REFLEXO",
+                            ChatFormatting.WHITE,
+                            now
+                    );
+
+            if (dispatched) {
+                reflexDomainUntil =
+                        0L;
+
+                clearContext();
+            }
+
+            /*
+             * Even when this exact word is the later final STT result and the
+             * reflex cooldown suppresses a duplicate packet, consume it here.
+             */
+            return true;
+        }
+
+        if (containsPrefix(
+                words,
+                "tec",
+                3
+        )
+                || containsPrefix(
+                words,
+                "tecnica",
+                4
+        )) {
+
+            reflexTechniqueUntil =
+                    now
+                            + REFLEX_STAGE_WINDOW_MS;
+
+            status(
+                    "TEC... Azul/Vermelho preparados",
+                    ChatFormatting.AQUA
+            );
+        }
+
+        if (now <= reflexTechniqueUntil
+                && (
+                containsPrefix(
+                        words,
+                        "imag",
+                        4
+                )
+                        || containsPrefix(
+                        words,
+                        "imaginaria",
+                        6
+                )
+        )) {
+
+            reflexImaginaryUntil =
+                    now
+                            + REFLEX_STAGE_WINDOW_MS;
+
+            status(
+                    "IMAGINARIA... gatilho armado",
+                    ChatFormatting.LIGHT_PURPLE
+            );
+        }
+
+        if (now <= reflexImaginaryUntil) {
+            if (containsPrefix(
+                    words,
+                    "azu",
+                    3
+            )
+                    || containsAny(
+                    words,
+                    "blue"
+            )) {
+
+                float output =
+                        now <= outputExpiresAt
+                                ? pendingOutput
+                                : -1.0F;
+
+                boolean dispatched =
+                        reflexDispatch(
+                                VoiceIntentC2SPayload.BLUE_SUMMON,
+                                output,
+                                urgency,
+                                "BLUE / REFLEXO",
+                                ChatFormatting.BLUE,
+                                now
+                        );
+
+                if (dispatched) {
+                    pendingOutput =
+                            -1.0F;
+
+                    outputExpiresAt =
+                            0L;
+
+                    reflexTechniqueUntil =
+                            0L;
+
+                    reflexImaginaryUntil =
+                            0L;
+
+                    lastBlueSummonDispatchAt =
+                            now;
+
+                    clearContext();
+                }
+
+                return true;
+            }
+
+            if (containsPrefix(
+                    words,
+                    "verm",
+                    4
+            )
+                    || containsAny(
+                    words,
+                    "red"
+            )) {
+
+                boolean dispatched =
+                        reflexDispatch(
+                                VoiceIntentC2SPayload.RED_FIRE,
+                                -1.0F,
+                                urgency,
+                                "VERMELHO / REFLEXO",
+                                ChatFormatting.RED,
+                                now
+                        );
+
+                if (dispatched) {
+                    reflexTechniqueUntil =
+                            0L;
+
+                    reflexImaginaryUntil =
+                            0L;
+
+                    clearContext();
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean reflexDispatch(
+            byte intent,
+            float output,
+            float urgency,
+            String label,
+            ChatFormatting color,
+            long now
+    ) {
+        if (now - lastReflexDispatchAt
+                < REFLEX_RETRIGGER_MS) {
+            return false;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null
+                || minecraft.getConnection()
+                        == null) {
+            return false;
+        }
+
+        PacketDistributor.sendToServer(
+                new VoiceIntentC2SPayload(
+                        intent,
+                        output,
+                        urgency
+                )
+        );
+
+        lastReflexDispatchAt =
+                now;
+
+        lastTriggerAt =
+                now;
+
+        status(
+                label,
+                color
+        );
+
+        WayAround.LOGGER.info(
+                "[Voice/Intent] REFLEX DISPATCH {} transcript-stage output={} urgency={}",
+                label,
+                output,
+                urgency
+        );
+
+        return true;
+    }
+
+    private static boolean looksLikeVoidDomain(
+            List<String> words,
+            boolean combat
+    ) {
+        boolean domain =
+                containsPrefix(
+                        words,
+                        "dominio",
+                        5
+                );
+
+        if (!domain) {
+            return false;
+        }
+
+        if (combat) {
+            return true;
+        }
+
+        return containsPrefix(
+                words,
+                "expans",
+                6
+        )
+                || containsAny(
+                words,
+                "expansion"
+        );
+    }
+
+    private static boolean containsPrefix(
+            List<String> words,
+            String prefix,
+            int minimumLength
+    ) {
+        for (String word :
+                words) {
+
+            if (word.length()
+                    < minimumLength) {
+                continue;
+            }
+
+            if (word.startsWith(
+                    prefix
+            )
+                    || prefix.startsWith(
+                    word
+            )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static float effectiveUrgency(

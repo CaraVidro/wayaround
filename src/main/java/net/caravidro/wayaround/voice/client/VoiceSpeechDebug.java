@@ -82,6 +82,58 @@ public final class VoiceSpeechDebug {
         );
     }
 
+    public static void submitSpeculative(
+            byte[] pcm
+    ) {
+        if (pcm == null
+                || pcm.length == 0
+                || WORKER.getActiveCount() > 0
+                || !WORKER.getQueue()
+                        .isEmpty()) {
+            return;
+        }
+
+        byte[] copy =
+                pcm.clone();
+
+        WORKER.execute(
+                () ->
+                        processSpeculative(
+                                copy
+                        )
+        );
+    }
+
+    private static void processSpeculative(
+            byte[] pcm
+    ) {
+        VoskSpeechRecognizer.Result recognition;
+
+        try {
+            recognition =
+                    VoskSpeechRecognizer.recognize(
+                            pcm
+                    );
+
+        } catch (Throwable throwable) {
+            return;
+        }
+
+        if (!recognition.success()) {
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        minecraft.execute(
+                () ->
+                        VoiceIntentClient.handleSpeculativeTranscript(
+                                recognition.text()
+                        )
+        );
+    }
+
     private static void process(
             byte[] pcm
     ) {
