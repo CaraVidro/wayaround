@@ -164,6 +164,12 @@ public final class IndustrialContent {
                             .withTabsBefore(
                                     CreativeModeTabs.SPAWN_EGGS
                             )
+                            .icon(
+                                    () -> WayAroundContent.GOJO_SPECTRUM.get()
+                                            .getDefaultInstance()
+                            )
+                            .displayItems(
+                                    (parameters, output) -> {
                                         output.accept(
                                                 WayAroundContent.GOJO_SPECTRUM.get()
                                         );
