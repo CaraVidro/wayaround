@@ -91,6 +91,11 @@ public final class TukunaFingerItem extends Item {
                         stack
                 );
 
+        String ownerName =
+                TukunaManager.fingerOwnerName(
+                        stack
+                );
+
         tooltip.add(
                 Component.translatable(
                                 "tooltip.wayaround.tukuna_finger"
@@ -104,11 +109,15 @@ public final class TukunaFingerItem extends Item {
             tooltip.add(
                     Component.literal(
                                     "Soul: "
-                                            + owner.toString()
-                                                    .substring(
-                                                            0,
-                                                            8
-                                                    )
+                                            + (
+                                            ownerName.isBlank()
+                                                    ? owner.toString()
+                                                            .substring(
+                                                                    0,
+                                                                    8
+                                                            )
+                                                    : ownerName
+                                    )
                             )
                             .withStyle(
                                     ChatFormatting.DARK_GRAY

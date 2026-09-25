@@ -89,6 +89,12 @@ public final class WayAroundNetwork {
                 VoiceIntentC2SPayload::handle
         );
 
+        registrar.playToClient(
+                TukunaPossessionS2CPayload.TYPE,
+                TukunaPossessionS2CPayload.STREAM_CODEC,
+                TukunaPossessionS2CPayload::handle
+        );
+
         registrar.playToServer(
                 RecordingFinishedC2SPayload.TYPE,
                 RecordingFinishedC2SPayload.STREAM_CODEC,

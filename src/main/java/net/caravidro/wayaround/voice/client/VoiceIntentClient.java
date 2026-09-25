@@ -133,6 +133,44 @@ public final class VoiceIntentClient {
                         normalized
                 );
 
+        /*
+         * Tukuna words are intentionally simple and immediate. Unlike Blue,
+         * "trocar" requires consent from TWO separate player UUIDs server-side,
+         * so there is no reason to make the client guess intent beyond hearing
+         * the explicit word.
+         */
+        if (containsAny(
+                currentWords,
+                "trocar",
+                "troca"
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.TUKUNA_SWAP_CONFIRM,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "TUKUNA / TROCAR"
+            );
+
+            clearContext();
+            return;
+        }
+
+        if (containsAny(
+                currentWords,
+                "desmartelar",
+                "desmantelar"
+        )) {
+            dispatch(
+                    VoiceIntentC2SPayload.TUKUNA_DESMARTELAR,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "TUKUNA / DESMARTELAR"
+            );
+
+            clearContext();
+            return;
+        }
+
         OutputModifier output =
                 detectOutput(
                         currentWords

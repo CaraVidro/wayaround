@@ -1,9 +1,12 @@
 package net.caravidro.wayaround.voice;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.network.VoiceFrameS2CPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -28,46 +31,156 @@ public final class VoiceServer {
             return;
         }
 
+        /*
+         * During possession the host is literally only an observer. Their mic
+         * is server-muted too, not merely hidden in the UI.
+         */
+        if (TukunaManager.isSilencedHost(
+                sender
+        )) {
+            return;
+        }
+
         if (!allowPacket(sender.getUUID())) {
             return;
         }
+
+        ServerPlayer projectionHost =
+                TukunaManager.projectedVoiceHost(
+                        sender
+                );
+
+        if (projectionHost != null) {
+            relayProjectedGhost(
+                    sender,
+                    projectionHost,
+                    pcm
+            );
+            return;
+        }
+
+        relayAround(
+                sender,
+                sender,
+                pcm,
+                false
+        );
+    }
+
+    private static void relayProjectedGhost(
+            ServerPlayer ghost,
+            ServerPlayer host,
+            byte[] pcm
+    ) {
+        /*
+         * A disembodied Tukuna can be on the other side of the world (or in
+         * another dimension). Their voice is emitted around the host instead.
+         * The ghost also hears the relayed frame, giving the intentionally
+         * unsettling "I can hear myself inside you" effect.
+         */
+        Set<UUID> sent =
+                new HashSet<>();
+
+        sendOnce(
+                ghost,
+                pcm,
+                sent
+        );
 
         double maxDistanceSqr =
                 VoiceConstants.HEARING_RANGE_BLOCKS
                         * VoiceConstants.HEARING_RANGE_BLOCKS;
 
-        for (ServerPlayer receiver
-                : sender.serverLevel().players()) {
+        for (ServerPlayer receiver :
+                host.serverLevel()
+                        .players()) {
 
-            if (receiver == sender) {
+            if (receiver.distanceToSqr(
+                    host
+            ) > maxDistanceSqr) {
                 continue;
             }
 
-            if (receiver.distanceToSqr(sender)
-                    > maxDistanceSqr) {
+            sendOnce(
+                    receiver,
+                    pcm,
+                    sent
+            );
+        }
+    }
+
+    private static void relayAround(
+            ServerPlayer sender,
+            ServerPlayer anchor,
+            byte[] pcm,
+            boolean echoSender
+    ) {
+        double maxDistanceSqr =
+                VoiceConstants.HEARING_RANGE_BLOCKS
+                        * VoiceConstants.HEARING_RANGE_BLOCKS;
+
+        for (ServerPlayer receiver :
+                anchor.serverLevel()
+                        .players()) {
+
+            if (!echoSender
+                    && receiver == sender) {
+                continue;
+            }
+
+            if (receiver.distanceToSqr(
+                    anchor
+            ) > maxDistanceSqr) {
                 continue;
             }
 
             PacketDistributor.sendToPlayer(
                     receiver,
-                    new VoiceFrameS2CPayload(pcm)
+                    new VoiceFrameS2CPayload(
+                            pcm
+                    )
             );
         }
     }
 
+    private static void sendOnce(
+            ServerPlayer receiver,
+            byte[] pcm,
+            Set<UUID> sent
+    ) {
+        if (!sent.add(
+                receiver.getUUID()
+        )) {
+            return;
+        }
+
+        PacketDistributor.sendToPlayer(
+                receiver,
+                new VoiceFrameS2CPayload(
+                        pcm
+                )
+        );
+    }
+
     private static boolean allowPacket(UUID playerId) {
-        long second = System.currentTimeMillis() / 1000L;
+        long second =
+                System.currentTimeMillis()
+                        / 1000L;
 
         RateState state =
                 RATE_LIMIT.computeIfAbsent(
                         playerId,
-                        ignored -> new RateState()
+                        ignored ->
+                                new RateState()
                 );
 
         synchronized (state) {
             if (state.second != second) {
-                state.second = second;
-                state.count = 0;
+                state.second =
+                        second;
+
+                state.count =
+                        0;
             }
 
             state.count++;
@@ -79,6 +192,6 @@ public final class VoiceServer {
 
     private static final class RateState {
         private long second = -1;
-        private int count = 0;
+        private int count;
     }
 }

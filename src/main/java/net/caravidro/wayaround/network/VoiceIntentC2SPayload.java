@@ -5,6 +5,7 @@ import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.blue.ImaginaryBetaManager;
 import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.content.WayAroundContent;
+import net.caravidro.wayaround.cursed.TukunaManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -42,6 +43,8 @@ public record VoiceIntentC2SPayload(
     public static final byte DUAL_PREPARE = 10;
     public static final byte PURPLE_VOID = 11;
     public static final byte INFINITY_ON = 12;
+    public static final byte TUKUNA_SWAP_CONFIRM = 13;
+    public static final byte TUKUNA_DESMARTELAR = 14;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -87,11 +90,29 @@ public record VoiceIntentC2SPayload(
         context.enqueueWork(
                 () -> {
                     if (!(context.player()
-                            instanceof ServerPlayer player)
-                            || !hasTechniqueAccess(
-                                    player
-                            )) {
+                            instanceof ServerPlayer player)) {
+                        return;
+                    }
 
+                    if (payload.intent()
+                            == TUKUNA_SWAP_CONFIRM) {
+                        TukunaManager.confirmSwap(
+                                player
+                        );
+                        return;
+                    }
+
+                    if (payload.intent()
+                            == TUKUNA_DESMARTELAR) {
+                        TukunaManager.castPossessedDesmartelar(
+                                player
+                        );
+                        return;
+                    }
+
+                    if (!hasTechniqueAccess(
+                            player
+                    )) {
                         return;
                     }
 
