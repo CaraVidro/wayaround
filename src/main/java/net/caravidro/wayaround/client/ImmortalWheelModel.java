@@ -27,6 +27,22 @@ public final class ImmortalWheelModel {
             PoseStack pose,
             int packedLight
     ) {
+        render(
+                minecraft,
+                buffers,
+                pose,
+                packedLight,
+                false
+        );
+    }
+
+    public static void render(
+            Minecraft minecraft,
+            MultiBufferSource buffers,
+            PoseStack pose,
+            int packedLight,
+            boolean charred
+    ) {
         float radius =
                 0.72F;
 
@@ -59,11 +75,21 @@ public final class ImmortalWheelModel {
             );
 
             BlockState state =
-                    index % 6 == 0
-                            ? Blocks.EMERALD_BLOCK
-                                    .defaultBlockState()
-                            : Blocks.GOLD_BLOCK
-                                    .defaultBlockState();
+                    charred
+                            ? (
+                            index % 6 == 0
+                                    ? Blocks.OBSIDIAN
+                                            .defaultBlockState()
+                                    : Blocks.COAL_BLOCK
+                                            .defaultBlockState()
+                    )
+                            : (
+                            index % 6 == 0
+                                    ? Blocks.EMERALD_BLOCK
+                                            .defaultBlockState()
+                                    : Blocks.GOLD_BLOCK
+                                            .defaultBlockState()
+                    );
 
             renderBlock(
                     minecraft,
@@ -117,8 +143,13 @@ public final class ImmortalWheelModel {
                     minecraft,
                     buffers,
                     pose,
-                    Blocks.GOLD_BLOCK
-                            .defaultBlockState(),
+                    (
+                            charred
+                                    ? Blocks.COAL_BLOCK
+                                            .defaultBlockState()
+                                    : Blocks.GOLD_BLOCK
+                                            .defaultBlockState()
+                    ),
                     0.050F,
                     0.045F,
                     radius * 0.72F,
@@ -140,8 +171,13 @@ public final class ImmortalWheelModel {
                 minecraft,
                 buffers,
                 pose,
-                Blocks.EMERALD_BLOCK
-                        .defaultBlockState(),
+                (
+                        charred
+                                ? Blocks.OBSIDIAN
+                                        .defaultBlockState()
+                                : Blocks.EMERALD_BLOCK
+                                        .defaultBlockState()
+                ),
                 0.20F,
                 0.080F,
                 0.20F,
@@ -175,8 +211,13 @@ public final class ImmortalWheelModel {
                     minecraft,
                     buffers,
                     pose,
-                    Blocks.GOLD_BLOCK
-                            .defaultBlockState(),
+                    (
+                            charred
+                                    ? Blocks.COAL_BLOCK
+                                            .defaultBlockState()
+                                    : Blocks.GOLD_BLOCK
+                                            .defaultBlockState()
+                    ),
                     0.055F,
                     0.050F,
                     0.16F,

@@ -1,10 +1,14 @@
 package net.caravidro.wayaround.cursed;
 
 import net.caravidro.wayaround.content.WayAroundContent;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -16,16 +20,21 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Physical dormant state of the Immortal Wheel.
+ * Dormant physical Immortal Wheel.
  *
- * It is a real persistent entity rather than an ItemEntity: it never despawns,
- * is invulnerable, survives lava, stores the wheel's adaptation memory and can
- * only return to inventory by deliberate interaction.
+ * Normal remnant: immortal, lava-proof, clickable and inheritable.
+ * Shattered remnant: third-Black-Flash corpse; black, unclaimable and it
+ * collapses into ash after a short death animation.
  */
 public final class ImmortalWheelRemnantEntity extends Entity {
 
-    private CompoundTag memory =
-            new CompoundTag();
+    private static final EntityDataAccessor<Boolean> SHATTERED =
+            SynchedEntityData.defineId(
+                    ImmortalWheelRemnantEntity.class,
+                    EntityDataSerializers.BOOLEAN
+            );
+
+    private int wheelDamage;
 
     public ImmortalWheelRemnantEntity(
             EntityType<? extends ImmortalWheelRemnantEntity> type,
@@ -45,6 +54,10 @@ public final class ImmortalWheelRemnantEntity extends Entity {
     protected void defineSynchedData(
             SynchedEntityData.Builder builder
     ) {
+        builder.define(
+                SHATTERED,
+                false
+        );
     }
 
     @Override
@@ -94,6 +107,64 @@ public final class ImmortalWheelRemnantEntity extends Entity {
         }
 
         clearFire();
+
+        if (isShattered()
+                && level() instanceof ServerLevel server) {
+
+            if (tickCount % 4 == 0) {
+                server.sendParticles(
+                        ParticleTypes.ASH,
+                        getX(),
+                        getY() + 0.14,
+                        getZ(),
+                        6,
+                        0.44,
+                        0.08,
+                        0.44,
+                        0.012
+                );
+
+                server.sendParticles(
+                        ParticleTypes.SMOKE,
+                        getX(),
+                        getY() + 0.12,
+                        getZ(),
+                        2,
+                        0.34,
+                        0.06,
+                        0.34,
+                        0.018
+                );
+            }
+
+            if (tickCount >= 76) {
+                server.sendParticles(
+                        ParticleTypes.ASH,
+                        getX(),
+                        getY() + 0.12,
+                        getZ(),
+                        64,
+                        0.78,
+                        0.18,
+                        0.78,
+                        0.055
+                );
+
+                server.sendParticles(
+                        ParticleTypes.LARGE_SMOKE,
+                        getX(),
+                        getY() + 0.12,
+                        getZ(),
+                        20,
+                        0.56,
+                        0.12,
+                        0.56,
+                        0.035
+                );
+
+                discard();
+            }
+        }
     }
 
     @Override
@@ -101,6 +172,10 @@ public final class ImmortalWheelRemnantEntity extends Entity {
             Player player,
             InteractionHand hand
     ) {
+        if (isShattered()) {
+            return InteractionResult.CONSUME;
+        }
+
         if (level().isClientSide) {
             return InteractionResult.SUCCESS;
         }
@@ -113,6 +188,11 @@ public final class ImmortalWheelRemnantEntity extends Entity {
                 new ItemStack(
                         WayAroundContent.IMMORTAL_WHEEL.get()
                 );
+
+        ImmortalWheelManager.setWheelDamage(
+                wheel,
+                wheelDamage
+        );
 
         boolean received =
                 serverPlayer.getInventory()
@@ -147,7 +227,7 @@ public final class ImmortalWheelRemnantEntity extends Entity {
 
         ImmortalWheelManager.reactivateFromRemnant(
                 serverPlayer,
-                memory.copy(),
+                wheelDamage,
                 origin
         );
 
@@ -156,40 +236,68 @@ public final class ImmortalWheelRemnantEntity extends Entity {
         return InteractionResult.CONSUME;
     }
 
-    public void setMemory(
-            CompoundTag memory
+    public void setWheelDamage(
+            int wheelDamage
     ) {
-        this.memory =
-                memory == null
-                        ? new CompoundTag()
-                        : memory.copy();
+        this.wheelDamage =
+                Mth.clamp(
+                        wheelDamage,
+                        0,
+                        3
+                );
     }
 
-    public CompoundTag memory() {
-        return memory.copy();
+    public int wheelDamage() {
+        return wheelDamage;
+    }
+
+    public void setShattered(
+            boolean shattered
+    ) {
+        entityData.set(
+                SHATTERED,
+                shattered
+        );
+    }
+
+    public boolean isShattered() {
+        return entityData.get(
+                SHATTERED
+        );
     }
 
     @Override
     protected void readAdditionalSaveData(
             CompoundTag tag
     ) {
-        memory =
-                tag.contains(
-                        "WheelMemory"
+        wheelDamage =
+                Mth.clamp(
+                        tag.getInt(
+                                "WheelDamage"
+                        ),
+                        0,
+                        3
+                );
+
+        setShattered(
+                tag.getBoolean(
+                        "Shattered"
                 )
-                        ? tag.getCompound(
-                                "WheelMemory"
-                        ).copy()
-                        : new CompoundTag();
+        );
     }
 
     @Override
     protected void addAdditionalSaveData(
             CompoundTag tag
     ) {
-        tag.put(
-                "WheelMemory",
-                memory.copy()
+        tag.putInt(
+                "WheelDamage",
+                wheelDamage
+        );
+
+        tag.putBoolean(
+                "Shattered",
+                isShattered()
         );
     }
 

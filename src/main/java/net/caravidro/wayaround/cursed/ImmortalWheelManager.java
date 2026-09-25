@@ -10,10 +10,8 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.ImmortalWheelReactivationPayload;
 import net.caravidro.wayaround.network.ImmortalWheelVisualPayload;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,6 +26,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -38,14 +37,12 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Cursed artifact state machine.
+ * Immortal Wheel state.
  *
- * While a player carries the Immortal Wheel, damage families adapt exactly as
- * before. Death is different: the artifact is removed before vanilla inventory
- * drops are created and becomes an immortal remnant entity in the world. Its
- * adaptation book is serialized into that remnant, so the memory belongs to
- * the wheel itself and can survive death, chunk unloads, server restarts and a
- * change of holder.
+ * Adaptation belongs to the CURRENT holder and is lost on death.
+ * Physical Black Flash damage belongs to the WHEEL item and survives a death
+ * remnant / new holder. One or two scars slow future adaptation; the third
+ * Black Flash destroys the artifact completely.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class ImmortalWheelManager {
@@ -53,10 +50,15 @@ public final class ImmortalWheelManager {
     private ImmortalWheelManager() {
     }
 
-    private static final int HITS_PER_TURN = 4;
+    private static final int BASE_HITS_PER_TURN = 4;
+    private static final int EXTRA_HITS_PER_BLACK_FLASH = 2;
     private static final int MAX_STEPS = 5;
     private static final int COMBO_WINDOW_TICKS = 120;
+    private static final int MAX_BLACK_FLASH_DAMAGE = 3;
     private static final double VISUAL_RANGE = 128.0;
+
+    private static final String BLACK_FLASH_DAMAGE_KEY =
+            "WayAroundImmortalWheelBlackFlashDamage";
 
     private static final Map<UUID, Map<String, Adaptation>> ADAPTATIONS =
             new HashMap<>();
@@ -122,7 +124,12 @@ public final class ImmortalWheelManager {
         adaptation.lastHitTick = tick;
         adaptation.progress++;
 
-        if (adaptation.progress < HITS_PER_TURN) {
+        int requiredHits =
+                BASE_HITS_PER_TURN
+                        + wheelDamage(player)
+                                * EXTRA_HITS_PER_BLACK_FLASH;
+
+        if (adaptation.progress < requiredHits) {
             send(
                     player,
                     ImmortalWheelVisualPayload.HIT,
@@ -148,9 +155,10 @@ public final class ImmortalWheelManager {
     }
 
     /**
-     * The wheel leaves the inventory before vanilla death-drop processing.
-     * This also deliberately ignores keepInventory: the cursed artifact always
-     * leaves a corpse and becomes a persistent dormant object in the world.
+     * Death always drops the cursed wheel as a dormant remnant, but the
+     * holder's learned adaptations are intentionally erased.
+     *
+     * Physical Black Flash scars remain stored on the artifact itself.
      */
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event) {
@@ -167,10 +175,14 @@ public final class ImmortalWheelManager {
             return;
         }
 
-        CompoundTag memory =
-                detachMemory(
-                        player.getUUID()
+        int physicalDamage =
+                wheelDamage(
+                        wheel
                 );
+
+        ADAPTATIONS.remove(
+                player.getUUID()
+        );
 
         PRESENT.remove(
                 player.getUUID()
@@ -184,36 +196,24 @@ public final class ImmortalWheelManager {
                 0
         );
 
-        ImmortalWheelRemnantEntity remnant =
-                new ImmortalWheelRemnantEntity(
-                        WayAroundContent.IMMORTAL_WHEEL_REMNANT.get(),
-                        player.serverLevel()
-                );
-
-        remnant.setPos(
-                player.getX(),
-                player.getY() + 0.34,
-                player.getZ()
-        );
-
-        remnant.setDeltaMovement(
+        spawnDormantRemnant(
+                player.serverLevel(),
+                player.position()
+                        .add(
+                                0.0,
+                                0.34,
+                                0.0
+                        ),
                 player.getDeltaMovement()
                         .scale(0.28)
                         .add(
                                 0.0,
                                 0.16,
                                 0.0
-                        )
+                        ),
+                physicalDamage,
+                false
         );
-
-        remnant.setMemory(
-                memory
-        );
-
-        player.serverLevel()
-                .addFreshEntity(
-                        remnant
-                );
 
         player.serverLevel()
                 .playSound(
@@ -226,8 +226,211 @@ public final class ImmortalWheelManager {
                 );
 
         WayAround.LOGGER.info(
-                "[ImmortalWheel] {} morreu: a roda entrou em estado dormente.",
+                "[ImmortalWheel] {} morreu: a roda caiu dormente e esqueceu todas as adaptações.",
                 player.getGameProfile().getName()
+        );
+    }
+
+    /**
+     * Called directly by BlackFlashManager on a successful Black Flash.
+     *
+     * 1st/2nd impact: permanent physical scar -> slower adaptation.
+     * 3rd impact: remove the active halo while the holder is still alive,
+     *              throw a charred wheel into the world and ash it away.
+     */
+    public static void damageByBlackFlash(
+            ServerPlayer bearer,
+            ServerPlayer attacker,
+            int charge
+    ) {
+        ItemStack wheel =
+                findWheel(
+                        bearer
+                );
+
+        if (wheel.isEmpty()) {
+            return;
+        }
+
+        int damage =
+                Mth.clamp(
+                        wheelDamage(wheel) + 1,
+                        0,
+                        MAX_BLACK_FLASH_DAMAGE
+                );
+
+        ServerLevel level =
+                bearer.serverLevel();
+
+        Vec3 halo =
+                bearer.position()
+                        .add(
+                                0.0,
+                                bearer.getBbHeight() + 0.42,
+                                0.0
+                        );
+
+        level.sendParticles(
+                ParticleTypes.ELECTRIC_SPARK,
+                halo.x,
+                halo.y,
+                halo.z,
+                34 + charge * 5,
+                0.52,
+                0.18,
+                0.52,
+                0.20
+        );
+
+        level.sendParticles(
+                ParticleTypes.SMOKE,
+                halo.x,
+                halo.y,
+                halo.z,
+                12 + damage * 8,
+                0.42,
+                0.12,
+                0.42,
+                0.035
+        );
+
+        if (damage < MAX_BLACK_FLASH_DAMAGE) {
+            setWheelDamage(
+                    wheel,
+                    damage
+            );
+
+            level.playSound(
+                    null,
+                    bearer.blockPosition(),
+                    SoundEvents.ANVIL_LAND,
+                    SoundSource.PLAYERS,
+                    0.85F,
+                    1.18F - damage * 0.12F
+            );
+
+            bearer.displayClientMessage(
+                    net.minecraft.network.chat.Component.translatable(
+                            "message.wayaround.immortal_wheel.black_flash_damage",
+                            damage,
+                            MAX_BLACK_FLASH_DAMAGE,
+                            BASE_HITS_PER_TURN
+                                    + damage
+                                            * EXTRA_HITS_PER_BLACK_FLASH
+                    ),
+                    true
+            );
+
+            attacker.displayClientMessage(
+                    net.minecraft.network.chat.Component.translatable(
+                            "message.wayaround.black_flash.wheel_cracked",
+                            damage,
+                            MAX_BLACK_FLASH_DAMAGE
+                    ),
+                    true
+            );
+
+            return;
+        }
+
+        ItemStack destroyed =
+                removeOneWheel(
+                        bearer
+                );
+
+        if (destroyed.isEmpty()) {
+            return;
+        }
+
+        ADAPTATIONS.remove(
+                bearer.getUUID()
+        );
+
+        PRESENT.remove(
+                bearer.getUUID()
+        );
+
+        send(
+                bearer,
+                ImmortalWheelVisualPayload.REMOVE,
+                "",
+                0,
+                0
+        );
+
+        Vec3 knock =
+                bearer.position()
+                        .subtract(
+                                attacker.position()
+                        );
+
+        if (knock.lengthSqr() < 0.0001) {
+            knock =
+                    new Vec3(
+                            0.0,
+                            0.0,
+                            1.0
+                    );
+        }
+
+        knock =
+                knock.normalize()
+                        .scale(
+                                0.36
+                        )
+                        .add(
+                                0.0,
+                                0.34,
+                                0.0
+                        );
+
+        spawnDormantRemnant(
+                level,
+                halo,
+                knock,
+                MAX_BLACK_FLASH_DAMAGE,
+                true
+        );
+
+        level.playSound(
+                null,
+                bearer.blockPosition(),
+                SoundEvents.ANVIL_BREAK,
+                SoundSource.PLAYERS,
+                1.35F,
+                0.62F
+        );
+
+        level.sendParticles(
+                ParticleTypes.LARGE_SMOKE,
+                halo.x,
+                halo.y,
+                halo.z,
+                42,
+                0.62,
+                0.32,
+                0.62,
+                0.08
+        );
+
+        bearer.displayClientMessage(
+                net.minecraft.network.chat.Component.translatable(
+                        "message.wayaround.immortal_wheel.destroyed"
+                ),
+                true
+        );
+
+        attacker.displayClientMessage(
+                net.minecraft.network.chat.Component.translatable(
+                        "message.wayaround.black_flash.wheel_destroyed"
+                ),
+                true
+        );
+
+        WayAround.LOGGER.info(
+                "[ImmortalWheel] {} destruiu a roda de {} com o terceiro Black Flash.",
+                attacker.getGameProfile().getName(),
+                bearer.getGameProfile().getName()
         );
     }
 
@@ -258,11 +461,6 @@ public final class ImmortalWheelManager {
                             0
                     );
 
-                    /*
-                     * Normal inventory loss still forgets player-bound state.
-                     * Death is special because onDeath detached that state into
-                     * the remnant first.
-                     */
                     ADAPTATIONS.remove(id);
                 }
                 continue;
@@ -291,13 +489,16 @@ public final class ImmortalWheelManager {
 
     public static void reactivateFromRemnant(
             ServerPlayer newOwner,
-            CompoundTag memory,
+            int physicalDamage,
             Vec3 origin
     ) {
-        restoreMemory(
-                newOwner.getUUID(),
-                memory,
-                newOwner.server.getTickCount()
+        /*
+         * A dormant wheel never brings adaptation memory with it.
+         * Even if the previous bearer had reached 100%, the new bearer starts
+         * from zero. Physical scars are already written to the item stack.
+         */
+        ADAPTATIONS.remove(
+                newOwner.getUUID()
         );
 
         PRESENT.add(
@@ -323,11 +524,12 @@ public final class ImmortalWheelManager {
                 SoundEvents.TOTEM_USE,
                 SoundSource.PLAYERS,
                 1.25F,
-                0.82F
+                0.82F - physicalDamage * 0.035F
         );
 
         for (int i = 0; i <= 14; i++) {
             double t = i / 14.0;
+
             Vec3 point =
                     origin.lerp(
                             target,
@@ -375,9 +577,7 @@ public final class ImmortalWheelManager {
                         origin.x,
                         origin.y,
                         origin.z,
-                        highestStep(
-                                newOwner.getUUID()
-                        )
+                        0
                 )
         );
 
@@ -386,14 +586,49 @@ public final class ImmortalWheelManager {
                 ImmortalWheelVisualPayload.PRESENCE,
                 "",
                 0,
-                highestStep(
-                        newOwner.getUUID()
-                )
+                0
         );
 
         WayAround.LOGGER.info(
-                "[ImmortalWheel] {} reativou a roda dormente.",
-                newOwner.getGameProfile().getName()
+                "[ImmortalWheel] {} reativou uma roda com {} cicatriz(es) de Black Flash e adaptação zerada.",
+                newOwner.getGameProfile().getName(),
+                physicalDamage
+        );
+    }
+
+    private static void spawnDormantRemnant(
+            ServerLevel level,
+            Vec3 position,
+            Vec3 velocity,
+            int physicalDamage,
+            boolean shattered
+    ) {
+        ImmortalWheelRemnantEntity remnant =
+                new ImmortalWheelRemnantEntity(
+                        WayAroundContent.IMMORTAL_WHEEL_REMNANT.get(),
+                        level
+                );
+
+        remnant.setPos(
+                position.x,
+                position.y,
+                position.z
+        );
+
+        remnant.setDeltaMovement(
+                velocity
+        );
+
+        remnant.setWheelDamage(
+                physicalDamage
+        );
+
+        remnant.setShattered(
+                shattered
+        );
+
+        level.addFreshEntity(
+                remnant
         );
     }
 
@@ -479,7 +714,29 @@ public final class ImmortalWheelManager {
         );
     }
 
-    private static ItemStack removeOneWheel(ServerPlayer player) {
+    private static ItemStack findWheel(
+            ServerPlayer player
+    ) {
+        for (int slot = 0;
+             slot < player.getInventory().getContainerSize();
+             slot++) {
+
+            ItemStack stack =
+                    player.getInventory().getItem(slot);
+
+            if (stack.is(
+                    WayAroundContent.IMMORTAL_WHEEL.get()
+            )) {
+                return stack;
+            }
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    private static ItemStack removeOneWheel(
+            ServerPlayer player
+    ) {
         for (int slot = 0;
              slot < player.getInventory().getContainerSize();
              slot++) {
@@ -505,119 +762,64 @@ public final class ImmortalWheelManager {
         return ItemStack.EMPTY;
     }
 
-    private static CompoundTag detachMemory(UUID owner) {
-        Map<String, Adaptation> book =
-                ADAPTATIONS.remove(owner);
-
-        CompoundTag root =
-                new CompoundTag();
-
-        if (book == null
-                || book.isEmpty()) {
-            return root;
-        }
-
-        ListTag entries =
-                new ListTag();
-
-        for (Map.Entry<String, Adaptation> entry :
-                book.entrySet()) {
-
-            CompoundTag tag =
-                    new CompoundTag();
-
-            tag.putString(
-                    "Family",
-                    entry.getKey()
-            );
-
-            tag.putInt(
-                    "Progress",
-                    entry.getValue().progress
-            );
-
-            tag.putInt(
-                    "Steps",
-                    entry.getValue().steps
-            );
-
-            entries.add(
-                    tag
-            );
-        }
-
-        root.put(
-                "Adaptations",
-                entries
+    public static int wheelDamage(
+            ServerPlayer player
+    ) {
+        return wheelDamage(
+                findWheel(player)
         );
-
-        return root;
     }
 
-    private static void restoreMemory(
-            UUID owner,
-            CompoundTag root,
-            long currentTick
+    public static int wheelDamage(
+            ItemStack stack
     ) {
-        Map<String, Adaptation> book =
-                new HashMap<>();
+        if (stack.isEmpty()
+                || !stack.is(
+                        WayAroundContent.IMMORTAL_WHEEL.get()
+                )) {
+            return 0;
+        }
 
-        ListTag entries =
-                root.getList(
-                        "Adaptations",
-                        Tag.TAG_COMPOUND
+        CustomData data =
+                stack.get(
+                        DataComponents.CUSTOM_DATA
                 );
 
-        for (int i = 0;
-             i < entries.size();
-             i++) {
-
-            CompoundTag tag =
-                    entries.getCompound(i);
-
-            String family =
-                    tag.getString(
-                            "Family"
-                    );
-
-            if (family.isBlank()) {
-                continue;
-            }
-
-            Adaptation adaptation =
-                    new Adaptation();
-
-            adaptation.progress =
-                    Mth.clamp(
-                            tag.getInt("Progress"),
-                            0,
-                            HITS_PER_TURN - 1
-                    );
-
-            adaptation.steps =
-                    Mth.clamp(
-                            tag.getInt("Steps"),
-                            0,
-                            MAX_STEPS
-                    );
-
-            adaptation.lastHitTick =
-                    currentTick;
-
-            book.put(
-                    family,
-                    adaptation
-            );
+        if (data == null) {
+            return 0;
         }
 
-        if (book.isEmpty()) {
-            ADAPTATIONS.remove(owner);
-        } else {
-            ADAPTATIONS.put(
-                    owner,
-                    book
-            );
+        return Mth.clamp(
+                data.copyTag()
+                        .getInt(
+                                BLACK_FLASH_DAMAGE_KEY
+                        ),
+                0,
+                MAX_BLACK_FLASH_DAMAGE
+        );
+    }
+
+    public static void setWheelDamage(
+            ItemStack stack,
+            int damage
+    ) {
+        if (stack.isEmpty()) {
+            return;
         }
+
+        CustomData.update(
+                DataComponents.CUSTOM_DATA,
+                stack,
+                tag ->
+                        tag.putInt(
+                                BLACK_FLASH_DAMAGE_KEY,
+                                Mth.clamp(
+                                        damage,
+                                        0,
+                                        MAX_BLACK_FLASH_DAMAGE
+                                )
+                        )
+        );
     }
 
     private static int highestStep(UUID owner) {
@@ -644,21 +846,8 @@ public final class ImmortalWheelManager {
     }
 
     public static boolean hasWheel(ServerPlayer player) {
-        for (int slot = 0;
-             slot < player.getInventory().getContainerSize();
-             slot++) {
-
-            ItemStack stack =
-                    player.getInventory().getItem(slot);
-
-            if (stack.is(
-                    WayAroundContent.IMMORTAL_WHEEL.get()
-            )) {
-                return true;
-            }
-        }
-
-        return false;
+        return !findWheel(player)
+                .isEmpty();
     }
 
     private static String classify(DamageSource source) {

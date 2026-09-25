@@ -214,5 +214,12 @@
     "message.wayaround.sawmill.stage_body": "Body only — missing blade",
     "message.wayaround.sawmill.stage_blade": "Blade installed — missing shaft",
     "message.wayaround.sawmill.stage_ready": "Mechanically complete",
-    "message.wayaround.sawmill.status": "Sawmill: %s | RPM %s | Cut %s%%"
+    "message.wayaround.sawmill.status": "Sawmill: %s | RPM %s | Cut %s%%",
+    "message.wayaround.black_flash.primed": "BLACK FLASH timing found — jump and strike.",
+    "message.wayaround.black_flash.charge": "Black Flash charge: %s/%s — keep the combo grounded or jump to release.",
+    "message.wayaround.black_flash.trigger": "BLACK FLASH ×%s",
+    "message.wayaround.black_flash.wheel_cracked": "Immortal Wheel scarred: %s/%s",
+    "message.wayaround.black_flash.wheel_destroyed": "Third Black Flash — the Immortal Wheel is collapsing.",
+    "message.wayaround.immortal_wheel.black_flash_damage": "Immortal Wheel damaged: %s/%s | Adaptation now needs %s matching hits per turn.",
+    "message.wayaround.immortal_wheel.destroyed": "The Immortal Wheel was torn from you. It has gone black."
 }

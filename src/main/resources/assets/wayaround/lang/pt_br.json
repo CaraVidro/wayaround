@@ -214,5 +214,12 @@
     "message.wayaround.sawmill.stage_body": "Somente corpo — falta a lâmina",
     "message.wayaround.sawmill.stage_blade": "Lâmina instalada — falta o eixo",
     "message.wayaround.sawmill.stage_ready": "Mecanicamente completa",
-    "message.wayaround.sawmill.status": "Serraria: %s | RPM %s | Corte %s%%"
+    "message.wayaround.sawmill.status": "Serraria: %s | RPM %s | Corte %s%%",
+    "message.wayaround.black_flash.primed": "Timing do BLACK FLASH encontrado — pule e ataque.",
+    "message.wayaround.black_flash.charge": "Carga do Black Flash: %s/%s — continue o combo no chão ou pule para soltar.",
+    "message.wayaround.black_flash.trigger": "BLACK FLASH ×%s",
+    "message.wayaround.black_flash.wheel_cracked": "Immortal Wheel danificada: %s/%s",
+    "message.wayaround.black_flash.wheel_destroyed": "Terceiro Black Flash — a Immortal Wheel está colapsando.",
+    "message.wayaround.immortal_wheel.black_flash_damage": "Immortal Wheel danificada: %s/%s | Agora precisa de %s golpes iguais por giro de adaptação.",
+    "message.wayaround.immortal_wheel.destroyed": "A Immortal Wheel foi arrancada de você. Ela ficou preta."
 }

@@ -10,11 +10,12 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 
 /**
- * Dormant Immortal Wheel: the same procedural gold/emerald geometry, but
- * resting close to the floor and intentionally rendered at a very low light
- * value so it looks drained rather than active.
+ * Dormant wheel is dark but recoverable.
+ * A third-Black-Flash remnant is fully charred and physically shrinks while
+ * turning into ash before disappearing.
  */
 public final class ImmortalWheelRemnantRenderer
         extends EntityRenderer<ImmortalWheelRemnantEntity> {
@@ -44,32 +45,70 @@ public final class ImmortalWheelRemnantRenderer
                 0.0
         );
 
-        /*
-         * It has fallen flat, with only a tiny uneven lean. The almost-frozen
-         * crawl prevents the model from looking like a static decoration while
-         * still reading as "dormant", not active.
-         */
         pose.mulPose(
                 Axis.XP.rotationDegrees(
-                        7.0F
+                        entity.isShattered()
+                                ? 14.0F
+                                : 7.0F
                 )
         );
+
+        float spin =
+                entity.isShattered()
+                        ? Math.max(
+                                0.0F,
+                                15.0F
+                                        - entity.tickCount
+                                                * 0.16F
+                        )
+                        : 0.18F;
 
         pose.mulPose(
                 Axis.YP.rotationDegrees(
                         (entity.tickCount + partialTick)
-                                * 0.18F
+                                * spin
                 )
         );
+
+        if (entity.isShattered()) {
+            float ashProgress =
+                    Mth.clamp(
+                            (
+                                    entity.tickCount
+                                            + partialTick
+                                            - 24.0F
+                            )
+                                    / 52.0F,
+                            0.0F,
+                            1.0F
+                    );
+
+            float scale =
+                    1.0F
+                            - ashProgress
+                                    * 0.78F;
+
+            pose.scale(
+                    scale,
+                    scale,
+                    scale
+            );
+        }
 
         ImmortalWheelModel.render(
                 Minecraft.getInstance(),
                 buffers,
                 pose,
-                LightTexture.pack(
-                        3,
-                        3
-                )
+                entity.isShattered()
+                        ? LightTexture.pack(
+                                0,
+                                0
+                        )
+                        : LightTexture.pack(
+                                3,
+                                3
+                        ),
+                entity.isShattered()
         );
 
         pose.popPose();
