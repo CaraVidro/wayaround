@@ -193,8 +193,12 @@ public final class PlayerControlLockManager {
                                     entry.getKey()
                             );
 
-            if (player != null
-                    && active(
+            if (player == null) {
+                iterator.remove();
+                continue;
+            }
+
+            if (active(
                     state.movementUntil,
                     tick
             )
