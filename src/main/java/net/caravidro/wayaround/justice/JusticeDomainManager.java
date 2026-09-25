@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.justice;
 
+import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
+
 import net.caravidro.wayaround.spectrum.SpectrumType;
 
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
@@ -93,7 +95,10 @@ public final class JusticeDomainManager {
     public static boolean beginTrialNearest(
             ServerPlayer owner
     ) {
-        if (!hasSpectrum(
+        if (PlayerControlLockManager.actionsLocked(
+                owner
+        )
+                || !hasSpectrum(
                 owner
         )) {
             return false;
@@ -163,6 +168,9 @@ public final class JusticeDomainManager {
             LivingEntity defendant
     ) {
         if (owner == defendant
+                || PlayerControlLockManager.actionsLocked(
+                owner
+        )
                 || !hasSpectrum(
                 owner
         )) {
