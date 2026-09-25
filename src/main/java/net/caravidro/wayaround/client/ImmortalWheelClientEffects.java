@@ -130,6 +130,66 @@ public final class ImmortalWheelClientEffects {
         }
     }
 
+    public static void reactivate(
+            UUID owner,
+            double x,
+            double y,
+            double z,
+            int steps
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        WheelVisual wheel =
+                WHEELS.computeIfAbsent(
+                        owner,
+                        WheelVisual::new
+                );
+
+        wheel.active =
+                true;
+
+        wheel.steps =
+                Math.max(
+                        wheel.steps,
+                        steps
+                );
+
+        wheel.progress =
+                0;
+
+        wheel.reactivationOrigin =
+                new Vec3(
+                        x,
+                        y,
+                        z
+                );
+
+        wheel.smoothedAnchor =
+                wheel.reactivationOrigin;
+
+        wheel.reactivationTicks =
+                34;
+
+        wheel.spinVelocity =
+                Math.max(
+                        wheel.spinVelocity,
+                        22.0F
+                );
+
+        wheel.spinBurstTicks =
+                34;
+
+        wheel.shakeTicks =
+                8;
+
+        wheel.lastPresenceTick =
+                minecraft.level == null
+                        ? 0L
+                        : minecraft.level
+                                .getGameTime();
+    }
+
     @SubscribeEvent
     public static void tick(
             ClientTickEvent.Post event
@@ -163,14 +223,34 @@ public final class ImmortalWheelClientEffects {
                 continue;
             }
 
+            float reactivationSpin =
+                    wheel.reactivationTicks > 0
+                            ? 10.0F
+                                    + (
+                                    34
+                                            - wheel.reactivationTicks
+                            )
+                                    * 0.20F
+                            : 0.0F;
+
             wheel.angle =
                     wrap(
                             wheel.angle
                                     + wheel.spinVelocity
+                                    + reactivationSpin
                     );
 
             wheel.spinVelocity *=
                     0.82F;
+
+            if (wheel.reactivationTicks > 0) {
+                wheel.reactivationTicks--;
+
+                if (wheel.reactivationTicks == 0) {
+                    wheel.reactivationOrigin =
+                            null;
+                }
+            }
 
             if (Math.abs(
                     wheel.spinVelocity
@@ -361,6 +441,8 @@ public final class ImmortalWheelClientEffects {
         private long lastPresenceTick;
 
         private Vec3 smoothedAnchor;
+        private Vec3 reactivationOrigin;
+        private int reactivationTicks;
 
         private WheelVisual(
                 UUID owner
@@ -409,6 +491,42 @@ public final class ImmortalWheelClientEffects {
             if (smoothedAnchor == null) {
                 smoothedAnchor =
                         target;
+
+                return smoothedAnchor;
+            }
+
+            if (reactivationTicks > 0
+                    && reactivationOrigin != null) {
+
+                float t =
+                        1.0F
+                                - reactivationTicks
+                                        / 34.0F;
+
+                float eased =
+                        1.0F
+                                - (float) Math.pow(
+                                        1.0F - t,
+                                        3.0
+                                );
+
+                Vec3 desired =
+                        reactivationOrigin.lerp(
+                                target,
+                                eased
+                        ).add(
+                                0.0,
+                                Math.sin(
+                                        Math.PI * t
+                                ) * 0.38,
+                                0.0
+                        );
+
+                smoothedAnchor =
+                        smoothedAnchor.lerp(
+                                desired,
+                                0.42
+                        );
 
                 return smoothedAnchor;
             }
