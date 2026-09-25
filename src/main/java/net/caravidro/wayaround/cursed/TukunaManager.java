@@ -17,6 +17,7 @@ import net.minecraft.world.item.component.CustomData;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /**
@@ -99,6 +100,47 @@ public final class TukunaManager {
                         ),
                 false
         );
+    }
+
+    @SubscribeEvent
+    public static void onClone(
+            PlayerEvent.Clone event
+    ) {
+        if (!(event.getOriginal()
+                instanceof ServerPlayer original)
+                || !(event.getEntity()
+                        instanceof ServerPlayer replacement)) {
+            return;
+        }
+
+        int fingers =
+                original.getPersistentData()
+                        .getInt(
+                                HOST_FINGER_COUNT_KEY
+                        );
+
+        if (fingers > 0) {
+            replacement.getPersistentData()
+                    .putInt(
+                            HOST_FINGER_COUNT_KEY,
+                            fingers
+                    );
+        }
+
+        if (original.getPersistentData()
+                .hasUUID(
+                        HOST_SPIRIT_KEY
+                )) {
+
+            replacement.getPersistentData()
+                    .putUUID(
+                            HOST_SPIRIT_KEY,
+                            original.getPersistentData()
+                                    .getUUID(
+                                            HOST_SPIRIT_KEY
+                                    )
+                    );
+        }
     }
 
     @SubscribeEvent
