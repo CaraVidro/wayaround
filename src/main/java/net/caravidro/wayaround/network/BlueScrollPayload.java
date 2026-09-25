@@ -2,6 +2,7 @@ package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.blue.BlueManager;
+import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -45,7 +46,10 @@ public record BlueScrollPayload(double amount)
         context.enqueueWork(
                 () -> {
                     if (context.player()
-                            instanceof ServerPlayer player) {
+                            instanceof ServerPlayer player
+                            && !PlayerControlLockManager.actionsLocked(
+                            player
+                    )) {
                         BlueManager.scroll(
                                 player,
                                 payload.amount()
