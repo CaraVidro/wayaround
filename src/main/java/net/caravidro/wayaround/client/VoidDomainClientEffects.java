@@ -23,12 +23,11 @@ import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
 /**
- * Client illusion for the Void Domain.
+ * Client state for the Void Domain.
  *
- * The physical world remains server-side at its original coordinates, but the
- * local visual space becomes much larger than the exterior sphere: nearly
- * black, star-filled and without a meaningful horizon. Trapped targets also
- * receive information-overload text during and shortly after the domain.
+ * Important: the black/star environment is NOT drawn here. It is real
+ * world-space geometry emitted by VoidDomainWorldRenderer. This class only
+ * owns the opening white flash and the information-overload text for victims.
  */
 @EventBusSubscriber(
         modid = WayAround.MODID,
@@ -142,6 +141,10 @@ public final class VoidDomainClientEffects {
                             12
                     );
 
+            /*
+             * ENTER replaces the local copy of the exterior shell with the
+             * real pocket-space center.
+             */
             DOMAINS.put(
                     payload.owner(),
                     new DomainVisual(
@@ -197,7 +200,30 @@ public final class VoidDomainClientEffects {
         return owner != null
                 && owner.equals(
                         localDomain
+                )
+                && insideTicks > 0;
+    }
+
+    public static VisualDomain localInterior() {
+        if (localDomain == null
+                || insideTicks <= 0) {
+            return null;
+        }
+
+        DomainVisual state =
+                DOMAINS.get(
+                        localDomain
                 );
+
+        if (state == null) {
+            return null;
+        }
+
+        return new VisualDomain(
+                state.owner,
+                state.center,
+                state.radius
+        );
     }
 
     public static List<VisualDomain> visuals() {
@@ -301,6 +327,7 @@ public final class VoidDomainClientEffects {
                 aftershockTicks =
                         120;
             }
+
         } else if (aftershockTicks > 0) {
             aftershockTicks--;
         }
@@ -384,156 +411,36 @@ public final class VoidDomainClientEffects {
             );
         }
 
-        boolean inside =
-                localDomain != null
+        boolean overload =
+                trapped
+                        && localDomain != null
                         && insideTicks > 0;
 
         boolean lingering =
-                !inside
+                lingeringFromTrap
                         && aftershockTicks > 0;
 
-        if (!inside
+        if (!overload
                 && !lingering) {
             return;
         }
 
-        /*
-         * During the opening burst the white flash wins over the black
-         * interior. On the next ticks the white collapses and reveals the
-         * star-space underneath.
-         */
-        if (inside
-                && whiteFlashTicks > 0) {
-            return;
-        }
-
-        float lingeringStrength =
+        float strength =
                 lingering
                         ? aftershockTicks
                                 / 120.0F
                         : 1.0F;
 
-        int blackAlpha =
-                inside
-                        ? 246
-                        : Mth.clamp(
-                                Math.round(
-                                        lingeringStrength
-                                                * 72.0F
-                                ),
-                                0,
-                                72
-                        );
-
-        graphics.fill(
-                0,
-                0,
-                width,
-                height,
-                blackAlpha << 24
-        );
-
-        long phase =
-                minecraft.level
-                        .getGameTime()
-                        / 2L;
-
-        drawStars(
+        drawInformation(
+                minecraft,
                 graphics,
                 width,
                 height,
-                phase,
-                inside
-                        ? 1.0F
-                        : lingeringStrength
+                minecraft.level
+                        .getGameTime()
+                        / 2L,
+                strength
         );
-
-        if (trapped
-                || (
-                lingering
-                        && lingeringFromTrap
-        )) {
-
-            drawInformation(
-                    minecraft,
-                    graphics,
-                    width,
-                    height,
-                    phase,
-                    inside
-                            ? 1.0F
-                            : lingeringStrength
-            );
-        }
-    }
-
-    private static void drawStars(
-            GuiGraphics graphics,
-            int width,
-            int height,
-            long phase,
-            float strength
-    ) {
-        int count =
-                96;
-
-        int alpha =
-                Mth.clamp(
-                        Math.round(
-                                220.0F
-                                        * strength
-                        ),
-                        0,
-                        220
-                );
-
-        for (int index = 0;
-             index < count;
-             index++) {
-
-            long hash =
-                    mix(
-                            phase / 5L
-                                    + index
-                                            * 0x9E3779B97F4A7C15L
-                    );
-
-            int x =
-                    Math.floorMod(
-                            (int) hash,
-                            Math.max(
-                                    1,
-                                    width
-                            )
-                    );
-
-            int y =
-                    Math.floorMod(
-                            (int) (
-                                    hash >>> 32
-                            ),
-                            Math.max(
-                                    1,
-                                    height
-                            )
-                    );
-
-            int size =
-                    (
-                            hash & 15L
-                    ) == 0L
-                            ? 2
-                            : 1;
-
-            graphics.fill(
-                    x,
-                    y,
-                    x + size,
-                    y + size,
-                    alpha << 24
-                            | 0xFFFFFF
-            );
-        }
     }
 
     private static void drawInformation(

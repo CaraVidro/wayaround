@@ -10,6 +10,7 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.VoidDomainVisualPayload;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -21,26 +22,35 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Special domain tied to the Void Spectrum.
+ * Void Spectrum domain.
  *
- * This deliberately does NOT use the generic procedural DomainManager. The
- * outside world sees a compact geometric shell, while participants receive a
- * much larger / effectively infinite black-star interior on the client. That
- * mismatch is intentional: the inside is not represented by normal Euclidean
- * world geometry.
+ * The exterior shell stays at the original cast position, but captured players
+ * are teleported to a real temporary pocket-space far from normal gameplay.
+ * The pocket has an invisible Barrier floor, real Minecraft collision and real
+ * block placement. The Void user is completely free inside it; victims are
+ * position-locked while still remaining real attackable players.
+ *
+ * Anything a participant places in the pocket is temporary and is erased when
+ * the domain closes. The client renders the pocket as actual 3D black space
+ * with world-space stars instead of a fullscreen background.
  */
+@EventBusSubscriber(modid = WayAround.MODID)
 public final class VoidDomainManager {
 
     private VoidDomainManager() {
     }
 
-    private static final double RADIUS =
+    private static final double CAPTURE_RADIUS =
             16.0;
 
     private static final int DURATION_TICKS =
@@ -52,7 +62,25 @@ public final class VoidDomainManager {
     private static final double VISUAL_RANGE =
             192.0;
 
+    private static final int POCKET_HALF_SIZE =
+            48;
+
+    private static final int POCKET_EDGE_GUARD =
+            4;
+
+    private static final int POCKET_SPACING =
+            160;
+
+    private static final int POCKET_BASE_X =
+            -8_000_000;
+
+    private static final int POCKET_BASE_Z =
+            8_000_000;
+
     private static final Map<UUID, ActiveVoidDomain> ACTIVE =
+            new HashMap<>();
+
+    private static final Map<UUID, UUID> PARTICIPANT_TO_OWNER =
             new HashMap<>();
 
     private static final Map<UUID, Long> COOLDOWN =
@@ -104,26 +132,47 @@ public final class VoidDomainManager {
         ServerLevel level =
                 owner.serverLevel();
 
-        Vec3 center =
+        Vec3 exteriorCenter =
                 owner.position();
 
-        Map<UUID, LockedTarget> trapped =
+        int pocketFloorY =
+                Math.max(
+                        level.getMinBuildHeight() + 16,
+                        level.getMaxBuildHeight() - 48
+                );
+
+        Vec3 pocketCenter =
+                pocketCenter(
+                        ownerId,
+                        pocketFloorY + 1
+                );
+
+        ParticipantState ownerState =
+                ParticipantState.capture(
+                        owner,
+                        pocketCenter
+                );
+
+        Map<UUID, ParticipantState> trapped =
                 new LinkedHashMap<>();
 
-        AABB box =
+        AABB captureBox =
                 new AABB(
-                        center.x - RADIUS,
-                        center.y - RADIUS,
-                        center.z - RADIUS,
-                        center.x + RADIUS,
-                        center.y + RADIUS,
-                        center.z + RADIUS
+                        exteriorCenter.x - CAPTURE_RADIUS,
+                        exteriorCenter.y - CAPTURE_RADIUS,
+                        exteriorCenter.z - CAPTURE_RADIUS,
+                        exteriorCenter.x + CAPTURE_RADIUS,
+                        exteriorCenter.y + CAPTURE_RADIUS,
+                        exteriorCenter.z + CAPTURE_RADIUS
                 );
+
+        int targetIndex =
+                0;
 
         for (ServerPlayer target :
                 level.getEntitiesOfClass(
                         ServerPlayer.class,
-                        box,
+                        captureBox,
                         player ->
                                 player.isAlive()
                                         && player != owner
@@ -131,30 +180,63 @@ public final class VoidDomainManager {
 
             if (target.position()
                     .distanceToSqr(
-                            center
+                            exteriorCenter
                     )
-                    > RADIUS * RADIUS) {
+                    > CAPTURE_RADIUS
+                    * CAPTURE_RADIUS) {
                 continue;
             }
 
+            double angle =
+                    targetIndex
+                            * (
+                            Math.PI
+                                    * 2.0
+                                    / Math.max(
+                                    1,
+                                    level.players()
+                                            .size()
+                            )
+                    );
+
+            double ring =
+                    5.0
+                            + (
+                            targetIndex % 3
+                    )
+                            * 1.8;
+
+            Vec3 lock =
+                    pocketCenter.add(
+                            Math.cos(angle)
+                                    * ring,
+                            0.0,
+                            Math.sin(angle)
+                                    * ring
+                    );
+
             trapped.put(
                     target.getUUID(),
-                    LockedTarget.capture(
-                            target
+                    ParticipantState.capture(
+                            target,
+                            lock
                     )
             );
+
+            targetIndex++;
         }
 
         ActiveVoidDomain domain =
                 new ActiveVoidDomain(
                         ownerId,
                         level.dimension(),
-                        center,
-                        LockedTarget.capture(
-                                owner
-                        ),
+                        exteriorCenter,
+                        pocketCenter,
+                        pocketFloorY,
+                        ownerState,
                         trapped,
-                        tick + DURATION_TICKS
+                        tick
+                                + DURATION_TICKS
                 );
 
         ACTIVE.put(
@@ -162,58 +244,97 @@ public final class VoidDomainManager {
                 domain
         );
 
+        PARTICIPANT_TO_OWNER.put(
+                ownerId,
+                ownerId
+        );
+
+        for (UUID targetId :
+                trapped.keySet()) {
+
+            PARTICIPANT_TO_OWNER.put(
+                    targetId,
+                    ownerId
+            );
+        }
+
         COOLDOWN.put(
                 ownerId,
                 domain.endsAt
                         + COOLDOWN_TICKS
         );
 
+        buildPocketFloor(
+                level,
+                domain
+        );
+
+        /*
+         * Outside observers keep the original compact bubble.
+         */
         PacketDistributor.sendToPlayersNear(
                 level,
                 null,
-                center.x,
-                center.y,
-                center.z,
+                exteriorCenter.x,
+                exteriorCenter.y,
+                exteriorCenter.z,
                 VISUAL_RANGE,
                 VoidDomainVisualPayload.open(
                         ownerId,
-                        center,
-                        (float) RADIUS,
+                        exteriorCenter,
+                        (float) CAPTURE_RADIUS,
                         DURATION_TICKS
                 )
+        );
+
+        /*
+         * Participants physically enter the pocket. The ENTER payload carries
+         * the POCKET center, so the client builds its 3D star-space there.
+         */
+        teleportToPocket(
+                owner,
+                level,
+                pocketCenter
         );
 
         PacketDistributor.sendToPlayer(
                 owner,
                 VoidDomainVisualPayload.enter(
                         ownerId,
-                        center,
-                        (float) RADIUS,
+                        pocketCenter,
+                        POCKET_HALF_SIZE,
                         DURATION_TICKS,
                         false
                 )
         );
 
-        for (UUID targetId :
-                trapped.keySet()) {
+        for (Map.Entry<UUID, ParticipantState> entry :
+                trapped.entrySet()) {
 
             ServerPlayer target =
                     owner.server
                             .getPlayerList()
                             .getPlayer(
-                                    targetId
+                                    entry.getKey()
                             );
 
             if (target == null) {
                 continue;
             }
 
+            teleportToPocket(
+                    target,
+                    level,
+                    entry.getValue()
+                            .pocketPosition
+            );
+
             PacketDistributor.sendToPlayer(
                     target,
                     VoidDomainVisualPayload.enter(
                             ownerId,
-                            center,
-                            (float) RADIUS,
+                            pocketCenter,
+                            POCKET_HALF_SIZE,
                             DURATION_TICKS,
                             true
                     )
@@ -222,7 +343,9 @@ public final class VoidDomainManager {
 
         level.playSound(
                 null,
-                owner.blockPosition(),
+                BlockPos.containing(
+                        exteriorCenter
+                ),
                 SoundEvents.END_PORTAL_SPAWN,
                 SoundSource.PLAYERS,
                 2.0F,
@@ -231,9 +354,9 @@ public final class VoidDomainManager {
 
         level.sendParticles(
                 ParticleTypes.FLASH,
-                center.x,
-                center.y + 1.0,
-                center.z,
+                exteriorCenter.x,
+                exteriorCenter.y + 1.0,
+                exteriorCenter.z,
                 7,
                 3.8,
                 2.0,
@@ -243,13 +366,13 @@ public final class VoidDomainManager {
 
         level.sendParticles(
                 ParticleTypes.END_ROD,
-                center.x,
-                center.y + 1.0,
-                center.z,
+                exteriorCenter.x,
+                exteriorCenter.y + 1.0,
+                exteriorCenter.z,
                 90,
-                RADIUS * 0.42,
+                CAPTURE_RADIUS * 0.42,
                 3.2,
-                RADIUS * 0.42,
+                CAPTURE_RADIUS * 0.42,
                 0.08
         );
 
@@ -261,10 +384,11 @@ public final class VoidDomainManager {
         );
 
         WayAround.LOGGER.info(
-                "[VoidDomain] owner={} trapped={} duration={}t",
+                "[VoidDomain] owner={} trapped={} pocket={} duration={}t",
                 owner.getGameProfile()
                         .getName(),
                 trapped.size(),
+                pocketCenter,
                 DURATION_TICKS
         );
 
@@ -285,6 +409,7 @@ public final class VoidDomainManager {
                         .iterator();
 
         while (iterator.hasNext()) {
+
             ActiveVoidDomain domain =
                     iterator.next()
                             .getValue();
@@ -329,8 +454,67 @@ public final class VoidDomainManager {
                 );
     }
 
+    /**
+     * Player-placed blocks inside the pocket are explicitly ephemeral.
+     * EntityMultiPlaceEvent is a subclass of EntityPlaceEvent, so one handler
+     * also catches multi-place operations such as beds.
+     */
+    @SubscribeEvent
+    public static void onBlockPlace(
+            BlockEvent.EntityPlaceEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof ServerPlayer player)) {
+            return;
+        }
+
+        UUID ownerId =
+                PARTICIPANT_TO_OWNER.get(
+                        player.getUUID()
+                );
+
+        if (ownerId == null) {
+            return;
+        }
+
+        ActiveVoidDomain domain =
+                ACTIVE.get(
+                        ownerId
+                );
+
+        if (domain == null
+                || !domain.isInsidePocket(
+                        event.getPos()
+                )) {
+            return;
+        }
+
+        /*
+         * Victims are supposed to be information-locked, not building while
+         * frozen. The Void user, however, can construct normally.
+         */
+        if (!player.getUUID()
+                .equals(
+                        domain.owner
+                )) {
+
+            event.setCanceled(
+                    true
+            );
+
+            return;
+        }
+
+        domain.temporaryBlocks.putIfAbsent(
+                event.getPos()
+                        .asLong(),
+                Boolean.TRUE
+        );
+    }
+
     public static void clearAll() {
         ACTIVE.clear();
+        PARTICIPANT_TO_OWNER.clear();
         COOLDOWN.clear();
     }
 
@@ -338,7 +522,7 @@ public final class VoidDomainManager {
             MinecraftServer server,
             ActiveVoidDomain domain
     ) {
-        ServerLevel originalLevel =
+        ServerLevel level =
                 server.getLevel(
                         domain.dimension
                 );
@@ -349,12 +533,29 @@ public final class VoidDomainManager {
                                 domain.owner
                         );
 
+        /*
+         * Remove temporary construction before returning players. This means
+         * even if the caster builds a little tower, none of it survives the
+         * domain lifecycle.
+         */
+        if (level != null) {
+            clearTemporaryConstruction(
+                    level,
+                    domain
+            );
+
+            removePocketFloor(
+                    level,
+                    domain
+            );
+        }
+
         if (owner != null
-                && originalLevel != null) {
+                && level != null) {
 
             domain.ownerReturn.restore(
                     owner,
-                    originalLevel
+                    level
             );
 
             PacketDistributor.sendToPlayer(
@@ -365,7 +566,7 @@ public final class VoidDomainManager {
             );
         }
 
-        for (Map.Entry<UUID, LockedTarget> entry :
+        for (Map.Entry<UUID, ParticipantState> entry :
                 domain.trapped.entrySet()) {
 
             ServerPlayer target =
@@ -375,14 +576,14 @@ public final class VoidDomainManager {
                             );
 
             if (target == null
-                    || originalLevel == null) {
+                    || level == null) {
                 continue;
             }
 
             entry.getValue()
                     .restore(
                             target,
-                            originalLevel
+                            level
                     );
 
             PacketDistributor.sendToPlayer(
@@ -393,30 +594,224 @@ public final class VoidDomainManager {
             );
         }
 
-        if (originalLevel != null) {
+        PARTICIPANT_TO_OWNER.remove(
+                domain.owner
+        );
+
+        for (UUID targetId :
+                domain.trapped.keySet()) {
+
+            PARTICIPANT_TO_OWNER.remove(
+                    targetId
+            );
+        }
+
+        if (level != null) {
             PacketDistributor.sendToPlayersNear(
-                    originalLevel,
+                    level,
                     null,
-                    domain.center.x,
-                    domain.center.y,
-                    domain.center.z,
+                    domain.exteriorCenter.x,
+                    domain.exteriorCenter.y,
+                    domain.exteriorCenter.z,
                     VISUAL_RANGE,
                     VoidDomainVisualPayload.close(
                             domain.owner
                     )
             );
 
-            originalLevel.playSound(
+            level.playSound(
                     null,
-                    domain.center.x,
-                    domain.center.y,
-                    domain.center.z,
+                    domain.exteriorCenter.x,
+                    domain.exteriorCenter.y,
+                    domain.exteriorCenter.z,
                     SoundEvents.ENDERMAN_TELEPORT,
                     SoundSource.PLAYERS,
                     1.3F,
                     0.58F
             );
         }
+    }
+
+    private static void buildPocketFloor(
+            ServerLevel level,
+            ActiveVoidDomain domain
+    ) {
+        BlockPos.MutableBlockPos cursor =
+                new BlockPos.MutableBlockPos();
+
+        int centerX =
+                (int) Math.floor(
+                        domain.pocketCenter.x
+                );
+
+        int centerZ =
+                (int) Math.floor(
+                        domain.pocketCenter.z
+                );
+
+        for (int x =
+                     centerX
+                             - POCKET_HALF_SIZE;
+             x <= centerX
+                     + POCKET_HALF_SIZE;
+             x++) {
+
+            for (int z =
+                         centerZ
+                                 - POCKET_HALF_SIZE;
+                 z <= centerZ
+                         + POCKET_HALF_SIZE;
+                 z++) {
+
+                cursor.set(
+                        x,
+                        domain.pocketFloorY,
+                        z
+                );
+
+                level.setBlock(
+                        cursor,
+                        Blocks.BARRIER
+                                .defaultBlockState(),
+                        2
+                );
+            }
+        }
+    }
+
+    private static void removePocketFloor(
+            ServerLevel level,
+            ActiveVoidDomain domain
+    ) {
+        BlockPos.MutableBlockPos cursor =
+                new BlockPos.MutableBlockPos();
+
+        int centerX =
+                (int) Math.floor(
+                        domain.pocketCenter.x
+                );
+
+        int centerZ =
+                (int) Math.floor(
+                        domain.pocketCenter.z
+                );
+
+        for (int x =
+                     centerX
+                             - POCKET_HALF_SIZE;
+             x <= centerX
+                     + POCKET_HALF_SIZE;
+             x++) {
+
+            for (int z =
+                         centerZ
+                                 - POCKET_HALF_SIZE;
+                 z <= centerZ
+                         + POCKET_HALF_SIZE;
+                 z++) {
+
+                cursor.set(
+                        x,
+                        domain.pocketFloorY,
+                        z
+                );
+
+                if (level.getBlockState(
+                        cursor
+                ).is(
+                        Blocks.BARRIER
+                )) {
+
+                    level.setBlock(
+                            cursor,
+                            Blocks.AIR
+                                    .defaultBlockState(),
+                            2
+                    );
+                }
+            }
+        }
+    }
+
+    private static void clearTemporaryConstruction(
+            ServerLevel level,
+            ActiveVoidDomain domain
+    ) {
+        for (Long packed :
+                domain.temporaryBlocks
+                        .keySet()) {
+
+            BlockPos pos =
+                    BlockPos.of(
+                            packed
+                    );
+
+            level.setBlock(
+                    pos,
+                    Blocks.AIR
+                            .defaultBlockState(),
+                    3
+            );
+        }
+
+        domain.temporaryBlocks.clear();
+    }
+
+    private static void teleportToPocket(
+            ServerPlayer player,
+            ServerLevel level,
+            Vec3 position
+    ) {
+        player.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        player.fallDistance =
+                0.0F;
+
+        player.teleportTo(
+                level,
+                position.x,
+                position.y,
+                position.z,
+                Set.<RelativeMovement>of(),
+                player.getYRot(),
+                player.getXRot()
+        );
+    }
+
+    private static Vec3 pocketCenter(
+            UUID owner,
+            int y
+    ) {
+        long mixed =
+                owner.getMostSignificantBits()
+                        ^ Long.rotateLeft(
+                        owner.getLeastSignificantBits(),
+                        21
+                );
+
+        int gridX =
+                (int) (
+                        mixed
+                                & 0x3FFL
+                );
+
+        int gridZ =
+                (int) (
+                        mixed >>> 10
+                                & 0x3FFL
+                );
+
+        return new Vec3(
+                POCKET_BASE_X
+                        + gridX
+                                * POCKET_SPACING,
+                y + 0.05,
+                POCKET_BASE_Z
+                        + gridZ
+                                * POCKET_SPACING
+        );
     }
 
     private static boolean hasVoidSpectrum(
@@ -447,17 +842,23 @@ public final class VoidDomainManager {
 
         private final UUID owner;
         private final ResourceKey<Level> dimension;
-        private final Vec3 center;
-        private final LockedTarget ownerReturn;
-        private final Map<UUID, LockedTarget> trapped;
+        private final Vec3 exteriorCenter;
+        private final Vec3 pocketCenter;
+        private final int pocketFloorY;
+        private final ParticipantState ownerReturn;
+        private final Map<UUID, ParticipantState> trapped;
+        private final Map<Long, Boolean> temporaryBlocks =
+                new HashMap<>();
         private final long endsAt;
 
         private ActiveVoidDomain(
                 UUID owner,
                 ResourceKey<Level> dimension,
-                Vec3 center,
-                LockedTarget ownerReturn,
-                Map<UUID, LockedTarget> trapped,
+                Vec3 exteriorCenter,
+                Vec3 pocketCenter,
+                int pocketFloorY,
+                ParticipantState ownerReturn,
+                Map<UUID, ParticipantState> trapped,
                 long endsAt
         ) {
             this.owner =
@@ -466,8 +867,14 @@ public final class VoidDomainManager {
             this.dimension =
                     dimension;
 
-            this.center =
-                    center;
+            this.exteriorCenter =
+                    exteriorCenter;
+
+            this.pocketCenter =
+                    pocketCenter;
+
+            this.pocketFloorY =
+                    pocketFloorY;
 
             this.ownerReturn =
                     ownerReturn;
@@ -479,11 +886,71 @@ public final class VoidDomainManager {
                     endsAt;
         }
 
+        private boolean isInsidePocket(
+                BlockPos pos
+        ) {
+            int centerX =
+                    (int) Math.floor(
+                            pocketCenter.x
+                    );
+
+            int centerZ =
+                    (int) Math.floor(
+                            pocketCenter.z
+                    );
+
+            return Math.abs(
+                    pos.getX()
+                            - centerX
+            ) <= POCKET_HALF_SIZE + 4
+                    && Math.abs(
+                    pos.getZ()
+                            - centerZ
+            ) <= POCKET_HALF_SIZE + 4
+                    && pos.getY()
+                            >= pocketFloorY
+                    && pos.getY()
+                            < pocketFloorY
+                                    + 40;
+        }
+
         private void tick(
                 MinecraftServer server,
                 ServerLevel level
         ) {
-            for (Map.Entry<UUID, LockedTarget> entry :
+            ServerPlayer ownerPlayer =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    owner
+                            );
+
+            if (ownerPlayer != null) {
+                double dx =
+                        ownerPlayer.getX()
+                                - pocketCenter.x;
+
+                double dz =
+                        ownerPlayer.getZ()
+                                - pocketCenter.z;
+
+                double limit =
+                        POCKET_HALF_SIZE
+                                - POCKET_EDGE_GUARD;
+
+                if (Math.abs(dx) > limit
+                        || Math.abs(dz) > limit
+                        || ownerPlayer.getY()
+                                < pocketFloorY - 4) {
+
+                    teleportToPocket(
+                            ownerPlayer,
+                            level,
+                            pocketCenter
+                    );
+                }
+            }
+
+            for (Map.Entry<UUID, ParticipantState> entry :
                     trapped.entrySet()) {
 
                 ServerPlayer target =
@@ -493,12 +960,11 @@ public final class VoidDomainManager {
                                 );
 
                 if (target == null
-                        || !target.isAlive()
-                        || target.serverLevel() != level) {
+                        || !target.isAlive()) {
                     continue;
                 }
 
-                LockedTarget lock =
+                ParticipantState state =
                         entry.getValue();
 
                 target.setDeltaMovement(
@@ -508,54 +974,58 @@ public final class VoidDomainManager {
                 target.fallDistance =
                         0.0F;
 
-                if (target.position()
-                        .distanceToSqr(
-                                lock.position
-                        )
-                        > 0.0004) {
+                if (target.serverLevel() != level
+                        || target.position()
+                                .distanceToSqr(
+                                        state.pocketPosition
+                                )
+                                > 0.0004) {
 
-                    target.teleportTo(
+                    teleportToPocket(
+                            target,
                             level,
-                            lock.position.x,
-                            lock.position.y,
-                            lock.position.z,
-                            Set.<RelativeMovement>of(),
-                            target.getYRot(),
-                            target.getXRot()
+                            state.pocketPosition
                     );
                 }
             }
         }
     }
 
-    private static final class LockedTarget {
+    private static final class ParticipantState {
 
-        private final Vec3 position;
-        private final float yaw;
-        private final float pitch;
+        private final Vec3 returnPosition;
+        private final float returnYaw;
+        private final float returnPitch;
+        private final Vec3 pocketPosition;
 
-        private LockedTarget(
-                Vec3 position,
-                float yaw,
-                float pitch
+        private ParticipantState(
+                Vec3 returnPosition,
+                float returnYaw,
+                float returnPitch,
+                Vec3 pocketPosition
         ) {
-            this.position =
-                    position;
+            this.returnPosition =
+                    returnPosition;
 
-            this.yaw =
-                    yaw;
+            this.returnYaw =
+                    returnYaw;
 
-            this.pitch =
-                    pitch;
+            this.returnPitch =
+                    returnPitch;
+
+            this.pocketPosition =
+                    pocketPosition;
         }
 
-        private static LockedTarget capture(
-                ServerPlayer player
+        private static ParticipantState capture(
+                ServerPlayer player,
+                Vec3 pocketPosition
         ) {
-            return new LockedTarget(
+            return new ParticipantState(
                     player.position(),
                     player.getYRot(),
-                    player.getXRot()
+                    player.getXRot(),
+                    pocketPosition
             );
         }
 
@@ -572,12 +1042,12 @@ public final class VoidDomainManager {
 
             player.teleportTo(
                     level,
-                    position.x,
-                    position.y,
-                    position.z,
+                    returnPosition.x,
+                    returnPosition.y,
+                    returnPosition.z,
                     Set.<RelativeMovement>of(),
-                    yaw,
-                    pitch
+                    returnYaw,
+                    returnPitch
             );
         }
     }
