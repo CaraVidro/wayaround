@@ -1,6 +1,351 @@
 {
-  "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "minecraft:item/totem_of_undying"
+    "gold": "minecraft:block/gold_block",
+    "emerald": "minecraft:block/emerald_block",
+    "particle": "minecraft:block/gold_block"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        7,
+        2
+      ],
+      "to": [
+        6,
+        9,
+        4
+      ],
+      "faces": {
+        "down": {
+          "texture": "#gold"
+        },
+        "up": {
+          "texture": "#gold"
+        },
+        "north": {
+          "texture": "#gold"
+        },
+        "south": {
+          "texture": "#gold"
+        },
+        "west": {
+          "texture": "#gold"
+        },
+        "east": {
+          "texture": "#gold"
+        }
+      }
+    },
+    {
+      "from": [
+        10,
+        7,
+        2
+      ],
+      "to": [
+        14,
+        9,
+        4
+      ],
+      "faces": {
+        "down": {
+          "texture": "#gold"
+        },
+        "up": {
+          "texture": "#gold"
+        },
+        "north": {
+          "texture": "#gold"
+        },
+        "south": {
+          "texture": "#gold"
+        },
+        "west": {
+          "texture": "#gold"
+        },
+        "east": {
+          "texture": "#gold"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        7,
+        12
+      ],
+      "to": [
+        6,
+        9,
+        14
+      ],
+      "faces": {
+        "down": {
+          "texture": "#gold"
+        },
+        "up": {
+          "texture": "#gold"
+        },
+        "north": {
+          "texture": "#gold"
+        },
+        "south": {
+          "texture": "#gold"
+        },
+        "west": {
+          "texture": "#gold"
+        },
+        "east": {
+          "texture": "#gold"
+        }
+      }
+    },
+    {
+      "from": [
+        10,
+        7,
+        12
+      ],
+      "to": [
+        14,
+        9,
+        14
+      ],
+      "faces": {
+        "down": {
+          "texture": "#gold"
+        },
+        "up": {
+          "texture": "#gold"
+        },
+        "north": {
+          "texture": "#gold"
+        },
+        "south": {
+          "texture": "#gold"
+        },
+        "west": {
+          "texture": "#gold"
+        },
+        "east": {
+          "texture": "#gold"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        7,
+        5
+      ],
+      "to": [
+        3,
+        9,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#emerald"
+        },
+        "up": {
+          "texture": "#emerald"
+        },
+        "north": {
+          "texture": "#emerald"
+        },
+        "south": {
+          "texture": "#emerald"
+        },
+        "west": {
+          "texture": "#emerald"
+        },
+        "east": {
+          "texture": "#emerald"
+        }
+      }
+    },
+    {
+      "from": [
+        13,
+        7,
+        5
+      ],
+      "to": [
+        15,
+        9,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#emerald"
+        },
+        "up": {
+          "texture": "#emerald"
+        },
+        "north": {
+          "texture": "#emerald"
+        },
+        "south": {
+          "texture": "#emerald"
+        },
+        "west": {
+          "texture": "#emerald"
+        },
+        "east": {
+          "texture": "#emerald"
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        7,
+        1
+      ],
+      "to": [
+        11,
+        9,
+        3
+      ],
+      "faces": {
+        "down": {
+          "texture": "#emerald"
+        },
+        "up": {
+          "texture": "#emerald"
+        },
+        "north": {
+          "texture": "#emerald"
+        },
+        "south": {
+          "texture": "#emerald"
+        },
+        "west": {
+          "texture": "#emerald"
+        },
+        "east": {
+          "texture": "#emerald"
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        7,
+        13
+      ],
+      "to": [
+        11,
+        9,
+        15
+      ],
+      "faces": {
+        "down": {
+          "texture": "#emerald"
+        },
+        "up": {
+          "texture": "#emerald"
+        },
+        "north": {
+          "texture": "#emerald"
+        },
+        "south": {
+          "texture": "#emerald"
+        },
+        "west": {
+          "texture": "#emerald"
+        },
+        "east": {
+          "texture": "#emerald"
+        }
+      }
+    },
+    {
+      "from": [
+        7,
+        7.4,
+        7
+      ],
+      "to": [
+        9,
+        8.6,
+        9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#emerald"
+        },
+        "up": {
+          "texture": "#emerald"
+        },
+        "north": {
+          "texture": "#emerald"
+        },
+        "south": {
+          "texture": "#emerald"
+        },
+        "west": {
+          "texture": "#emerald"
+        },
+        "east": {
+          "texture": "#emerald"
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        70,
+        0,
+        25
+      ],
+      "scale": [
+        0.95,
+        0.95,
+        0.95
+      ]
+    },
+    "ground": {
+      "rotation": [
+        90,
+        0,
+        0
+      ],
+      "scale": [
+        0.55,
+        0.55,
+        0.55
+      ]
+    },
+    "firstperson_righthand": {
+      "scale": [
+        0,
+        0,
+        0
+      ]
+    },
+    "firstperson_lefthand": {
+      "scale": [
+        0,
+        0,
+        0
+      ]
+    },
+    "thirdperson_righthand": {
+      "scale": [
+        0,
+        0,
+        0
+      ]
+    },
+    "thirdperson_lefthand": {
+      "scale": [
+        0,
+        0,
+        0
+      ]
+    }
   }
 }
