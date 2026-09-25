@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.TukunaFugaVisualPayload;
+import net.caravidro.wayaround.client.debris.DebrisSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
@@ -63,6 +64,14 @@ public final class TukunaFugaClientEffects {
                                 20,
                                 payload.durationTicks()
                         )
+                )
+        );
+
+        DebrisSystem.spawnFugaBurst(
+                new Vec3(
+                        payload.x(),
+                        payload.y(),
+                        payload.z()
                 )
         );
 
