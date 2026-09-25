@@ -22,7 +22,10 @@
     "client.ParticleWindMixin",
     "client.ParticleEngineWindMixin",
     "client.PrecipitationWindMixin",
-    "client.MediaCameraMixin"
+    "client.MediaCameraMixin",
+    "client.CinematicCameraMixin",
+    "client.CinematicLookLockMixin",
+    "client.HumanoidAnimationMixin"
   ],
   "injectors": {
     "defaultRequire": 1

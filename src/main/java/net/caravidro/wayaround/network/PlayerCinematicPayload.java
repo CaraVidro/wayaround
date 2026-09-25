@@ -1,0 +1,80 @@
+package net.caravidro.wayaround.network;
+
+import java.util.UUID;
+
+import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.client.cinematic.PlayerAnimationController;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+/**
+ * Small generic synchronization packet for player cinematics.
+ *
+ * The animation ID describes the body pose/reconstruction sequence. Camera
+ * locking and shake are orthogonal so future abilities can reuse the same
+ * system without inventing a second camera protocol.
+ */
+public record PlayerCinematicPayload(
+        UUID player,
+        byte animation,
+        int durationTicks,
+        boolean lockCamera,
+        float shakeStrength
+) implements CustomPacketPayload {
+
+    public static final byte CLEAR = 0;
+    public static final byte FUGA_CHARGE = 1;
+    public static final byte FUGA_RELEASE = 2;
+    public static final byte IMMORTAL_REBUILD = 3;
+
+    public static final Type<PlayerCinematicPayload> TYPE =
+            new Type<>(
+                    ResourceLocation.fromNamespaceAndPath(
+                            WayAround.MODID,
+                            "player_cinematic"
+                    )
+            );
+
+    public static final StreamCodec<
+            RegistryFriendlyByteBuf,
+            PlayerCinematicPayload
+            > STREAM_CODEC =
+            StreamCodec.of(
+                    (buf, payload) -> {
+                        buf.writeUUID(payload.player());
+                        buf.writeByte(payload.animation());
+                        buf.writeVarInt(payload.durationTicks());
+                        buf.writeBoolean(payload.lockCamera());
+                        buf.writeFloat(payload.shakeStrength());
+                    },
+                    buf -> new PlayerCinematicPayload(
+                            buf.readUUID(),
+                            buf.readByte(),
+                            buf.readVarInt(),
+                            buf.readBoolean(),
+                            buf.readFloat()
+                    )
+            );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
+
+    public static void handle(
+            PlayerCinematicPayload payload,
+            IPayloadContext context
+    ) {
+        if (!FMLEnvironment.dist.isClient()) {
+            return;
+        }
+
+        context.enqueueWork(
+                () -> PlayerAnimationController.receive(payload)
+        );
+    }
+}

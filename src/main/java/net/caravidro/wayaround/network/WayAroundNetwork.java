@@ -102,6 +102,12 @@ public final class WayAroundNetwork {
         );
 
         registrar.playToClient(
+                PlayerCinematicPayload.TYPE,
+                PlayerCinematicPayload.STREAM_CODEC,
+                PlayerCinematicPayload::handle
+        );
+
+        registrar.playToClient(
                 VoidDomainVisualPayload.TYPE,
                 VoidDomainVisualPayload.STREAM_CODEC,
                 VoidDomainVisualPayload::handle
