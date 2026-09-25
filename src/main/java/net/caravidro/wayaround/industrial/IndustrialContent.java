@@ -152,20 +152,20 @@ public final class IndustrialContent {
                             .build()
             );
 
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> OTHERWORLD_POWERS =
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> SPECTRUMS =
             TABS.register(
-                    "otherworld_powers",
+                    "spectrums",
                     () -> CreativeModeTab.builder()
                             .title(
                                     Component.translatable(
-                                            "itemGroup.wayaround.otherworld_powers"
+                                            "itemGroup.wayaround.spectrums"
                                     )
                             )
                             .withTabsBefore(
                                     CreativeModeTabs.SPAWN_EGGS
                             )
                             .icon(
-                                    () -> WayAroundContent.PRIORITE_BOTTLE.get()
+                                    () -> WayAroundContent.GOJO_SPECTRUM.get()
                                             .getDefaultInstance()
                             )
                             .displayItems(
@@ -181,9 +181,6 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 WayAroundContent.TUKUNA_FINGER.get()
-                                        );
-                                        output.accept(
-                                                WayAroundContent.BLUE.get()
                                         );
                                         output.accept(
                                                 WayAroundContent.PRIORITE_BLOCK_ITEM.get()
