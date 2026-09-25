@@ -537,10 +537,7 @@ public final class DebrisSystem {
                 event.getPoseStack();
 
         float partialTick =
-                partialTick
-                        .getGameTimeDeltaPartialTick(
-                                true
-                        );
+                event.getPartialTick();
 
         BufferBuilder buffer =
                 Tesselator.getInstance()
