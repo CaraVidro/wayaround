@@ -148,7 +148,7 @@
     "block.wayaround.wooden_chair": "Cadeira de Madeira",
     "message.wayaround.media.placed_camera_armed": "Câmera posicionada. Preparando gravação...",
     "item.wayaround.gojo_spectrum": "Void Spectrum",
-    "tooltip.wayaround.gojo_spectrum": "Spectrum do Vazio: Azul, Vermelho, Infinidade e Expansão de Domínio.",
+    "tooltip.wayaround.gojo_spectrum": "Void Spectrum: Blue, Red, Infinity, Purple e Expansão de Domínio.",
     "block.wayaround.assembly_workbench": "Bancada de Assembly",
     "item.wayaround.stone_flake": "Lasca de Pedra",
     "item.wayaround.assembly_hammer": "Martelo de Assembly",
@@ -173,7 +173,7 @@
     "message.wayaround.knapping.fail": "A pedra fraturou mal. Nenhuma lasca útil sobreviveu.",
     "message.wayaround.knapping.result": "Lasca de pedra produzida. Qualidade: %s%%",
     "item.wayaround.immortal_wheel": "Immortal Wheel",
-    "tooltip.wayaround.immortal_wheel": "Item amaldiçoado. Aprende padrões de dano e adapta a defesa a eles.",
+    "tooltip.wayaround.immortal_wheel": "Ligação amaldiçoada: adapta-se ao dano e reconstrói o portador após duas mortes letais antes de cair de vez.",
     "message.wayaround.immortal_wheel.adapt": "Immortal Wheel — %s: -%s%% de efeito",
     "message.wayaround.immortal_wheel.family.arrow": "Ataque de flecha",
     "message.wayaround.immortal_wheel.family.projectile": "Projéteis",
@@ -224,8 +224,8 @@
     "message.wayaround.immortal_wheel.destroyed": "A Immortal Wheel foi arrancada de você. Ela ficou preta.",
     "item.wayaround.tukuna_spectrum": "Spectrum do Tukuna",
     "item.wayaround.tukuna_finger": "Dedo do Tukuna",
-    "tooltip.wayaround.tukuna_spectrum": "Spectrum amaldiçoado completo. Clique direito: Desmartelar.",
-    "tooltip.wayaround.tukuna_spectrum.desmartelar": "Uma faixa 3D curta atravessa e desmonta blocos e seres no caminho.",
+    "tooltip.wayaround.tukuna_spectrum": "Spectrum amaldiçoado completo: Desmartelar, Desmartelar de Fogo e ritual de Fuga.",
+    "tooltip.wayaround.tukuna_spectrum.desmartelar": "Diga \"desmartelar\" para cortar em múltiplos planos; acrescente \"fogo\" para incendiar o corte.",
     "tooltip.wayaround.tukuna_finger": "Coma. Ganhe poder. E um novo amigo morando dentro de você.",
     "message.wayaround.tukuna.spectrum_lost": "Seu corpo morreu. Vinte dedos amaldiçoados ficaram. Você agora é um fantasma até sua maldição encontrar um host.",
     "message.wayaround.tukuna.finger_empty": "Esse dedo não possui uma alma vinculada.",
@@ -267,5 +267,8 @@
     "message.wayaround.justice.hint": "Com este Spectrum no inventário, diga ou escreva \"expansão de domínio\" perto de qualquer ser vivo.",
     "item.wayaround.justice_execution_blade": "Lâmina da Sentença",
     "tooltip.wayaround.justice_blade": "Brilha enquanto uma sentença válida estiver ativa. Alcance corpo a corpo; impacto severo.",
-    "tooltip.wayaround.justice_blade.target": "Sentença contra: %s"
+    "tooltip.wayaround.justice_blade.target": "Sentença contra: %s",
+    "itemGroup.wayaround.spectrums": "Spectrums",
+    "tooltip.wayaround.gojo_spectrum.controls": "Blue ativo: rodinha controla distância; botão direito encerra. Red preparado: botão direito lança.",
+    "tooltip.wayaround.tukuna_spectrum.fuga": "Na primeira posse escolha com \"frase: ...\". Diga a frase para carregar e depois \"fuga\" para disparar."
 }

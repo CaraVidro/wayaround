@@ -227,14 +227,42 @@ public final class BetaTechniqueWorldRenderer {
                 pose.last()
                         .pose();
 
+        float energy =
+                Mth.clamp(
+                        (
+                                state.power()
+                                        - 0.82F
+                        )
+                                / 0.93F,
+                        0.0F,
+                        1.0F
+                );
+
+        /*
+         * Maximum output must read as "hotter", not larger. Geometry remains
+         * exactly the same; only the layered core shifts toward white and
+         * becomes less transparent.
+         */
         cube(
                 buffer,
                 matrix,
                 0.46F,
                 255,
-                15,
-                20,
-                28
+                Math.round(
+                        15
+                                + energy
+                                        * 82
+                ),
+                Math.round(
+                        20
+                                + energy
+                                        * 74
+                ),
+                Math.round(
+                        28
+                                + energy
+                                        * 34
+                )
         );
 
         cube(
@@ -242,9 +270,21 @@ public final class BetaTechniqueWorldRenderer {
                 matrix,
                 0.31F,
                 255,
-                24,
-                28,
-                84
+                Math.round(
+                        24
+                                + energy
+                                        * 126
+                ),
+                Math.round(
+                        28
+                                + energy
+                                        * 118
+                ),
+                Math.round(
+                        84
+                                + energy
+                                        * 92
+                )
         );
 
         cube(
@@ -252,9 +292,21 @@ public final class BetaTechniqueWorldRenderer {
                 matrix,
                 0.19F,
                 255,
-                72,
-                62,
-                238
+                Math.round(
+                        72
+                                + energy
+                                        * 175
+                ),
+                Math.round(
+                        62
+                                + energy
+                                        * 185
+                ),
+                Math.round(
+                        238
+                                + energy
+                                        * 17
+                )
         );
 
         pose.popPose();

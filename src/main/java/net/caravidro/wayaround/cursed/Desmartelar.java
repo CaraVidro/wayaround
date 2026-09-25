@@ -5,6 +5,7 @@ import java.util.Set;
 
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,6 +13,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -25,6 +27,18 @@ public final class Desmartelar {
             ServerPlayer caster,
             int fingers
     ) {
+        cast(
+                caster,
+                fingers,
+                false
+        );
+    }
+
+    public static void cast(
+            ServerPlayer caster,
+            int fingers,
+            boolean fire
+    ) {
         ServerLevel level =
                 caster.serverLevel();
 
@@ -36,127 +50,31 @@ public final class Desmartelar {
                 );
 
         double length =
-                7.5
+                8.5
                         + power
-                                * 0.27;
+                                * 0.34;
 
-        double width =
-                0.42
+        double halfSpan =
+                1.3
                         + power
-                                * 0.028;
+                                * 0.075;
 
         float damage =
-                7.0F
+                7.5F
                         + power
-                                * 0.62F;
+                                * 0.68F;
 
-        Vec3 direction =
+        Vec3 forward =
                 caster.getLookAngle()
                         .normalize();
 
-        Vec3 start =
-                caster.getEyePosition()
-                        .add(
-                                direction.scale(
-                                        0.65
-                                )
-                        );
-
-        Vec3 end =
-                start.add(
-                        direction.scale(
-                                length
-                        )
-                );
-
-        destroyBlocks(
-                level,
-                caster,
-                start,
-                direction,
-                length,
-                width
-        );
-
-        damageEntities(
-                level,
-                caster,
-                start,
-                end,
-                width,
-                damage
-        );
-
-        DesmartelarSlashEntity slash =
-                new DesmartelarSlashEntity(
-                        WayAroundContent.DESMARTELAR_SLASH.get(),
-                        level
-                );
-
-        Vec3 middle =
-                start.lerp(
-                        end,
-                        0.5
-                );
-
-        slash.setPos(
-                middle.x,
-                middle.y,
-                middle.z
-        );
-
-        slash.setYRot(
-                caster.getYRot()
-        );
-
-        slash.setXRot(
-                caster.getXRot()
-        );
-
-        slash.configure(
-                (float) length,
-                (float) width
-        );
-
-        level.addFreshEntity(
-                slash
-        );
-
-        level.sendParticles(
-                ParticleTypes.SWEEP_ATTACK,
-                end.x,
-                end.y,
-                end.z,
-                10,
-                width,
-                width * 0.6,
-                width,
-                0.0
-        );
-
-        level.playSound(
-                null,
-                caster.blockPosition(),
-                SoundEvents.PLAYER_ATTACK_SWEEP,
-                SoundSource.PLAYERS,
-                1.25F,
-                0.55F
-        );
-    }
-
-    private static void destroyBlocks(
-            ServerLevel level,
-            ServerPlayer caster,
-            Vec3 start,
-            Vec3 direction,
-            double length,
-            double width
-    ) {
         Vec3 right =
-                new Vec3(
-                        -direction.z,
-                        0.0,
-                        direction.x
+                forward.cross(
+                        new Vec3(
+                                0.0,
+                                1.0,
+                                0.0
+                        )
                 );
 
         if (right.lengthSqr() < 0.0001) {
@@ -172,8 +90,8 @@ public final class Desmartelar {
         }
 
         Vec3 up =
-                direction.cross(
-                        right
+                right.cross(
+                        forward
                 );
 
         if (up.lengthSqr() < 0.0001) {
@@ -188,155 +106,256 @@ public final class Desmartelar {
                     up.normalize();
         }
 
+        Vec3 start =
+                caster.getEyePosition()
+                        .add(
+                                forward.scale(
+                                        0.9
+                                )
+                        );
+
+        /*
+         * Instead of one ray from caster -> target, Desmartelar is now a set
+         * of travelling '-' shaped cutting planes. Each plane slices across
+         * the forward path from a different angle.
+         */
+        double[] angles = {
+                0.0,
+                Math.toRadians(38.0),
+                Math.toRadians(-42.0),
+                Math.toRadians(78.0)
+        };
+
+        for (int band = 0;
+             band < angles.length;
+             band++) {
+
+            double angle =
+                    angles[band];
+
+            Vec3 lateral =
+                    right.scale(
+                            Math.cos(
+                                    angle
+                            )
+                    )
+                            .add(
+                                    up.scale(
+                                            Math.sin(
+                                                    angle
+                                            )
+                                    )
+                            )
+                            .normalize();
+
+            sweepBand(
+                    level,
+                    caster,
+                    start,
+                    forward,
+                    lateral,
+                    length,
+                    halfSpan
+                            * (
+                            0.82
+                                    + band
+                                            * 0.07
+                    ),
+                    damage,
+                    fire
+            );
+
+            spawnSlash(
+                    level,
+                    caster,
+                    start,
+                    forward,
+                    length,
+                    halfSpan,
+                    band,
+                    angle
+            );
+        }
+
+        Vec3 end =
+                start.add(
+                        forward.scale(
+                                length
+                        )
+                );
+
+        level.sendParticles(
+                fire
+                        ? ParticleTypes.FLAME
+                        : ParticleTypes.SWEEP_ATTACK,
+                end.x,
+                end.y,
+                end.z,
+                fire
+                        ? 44
+                        : 14,
+                halfSpan,
+                halfSpan * 0.7,
+                halfSpan,
+                fire
+                        ? 0.08
+                        : 0.0
+        );
+
+        level.playSound(
+                null,
+                caster.blockPosition(),
+                fire
+                        ? SoundEvents.FIRECHARGE_USE
+                        : SoundEvents.PLAYER_ATTACK_SWEEP,
+                SoundSource.PLAYERS,
+                fire
+                        ? 1.45F
+                        : 1.25F,
+                fire
+                        ? 0.72F
+                        : 0.55F
+        );
+    }
+
+    private static void sweepBand(
+            ServerLevel level,
+            ServerPlayer caster,
+            Vec3 start,
+            Vec3 forward,
+            Vec3 lateral,
+            double length,
+            double halfSpan,
+            float damage,
+            boolean fire
+    ) {
         Set<BlockPos> touched =
                 new HashSet<>();
 
-        int radial =
-                Math.max(
-                        0,
-                        Mth.ceil(
-                                width
+        AABB affected =
+                new AABB(
+                        start,
+                        start.add(
+                                forward.scale(
+                                        length
+                                )
                         )
+                ).inflate(
+                        halfSpan + 1.8
                 );
 
         for (double distance = 0.0;
              distance <= length;
-             distance += 0.42) {
+             distance += 0.48) {
 
             Vec3 center =
                     start.add(
-                            direction.scale(
+                            forward.scale(
                                     distance
                             )
                     );
 
-            for (int x = -radial;
-                 x <= radial;
-                 x++) {
+            for (double across = -halfSpan;
+                 across <= halfSpan;
+                 across += 0.46) {
 
-                for (int y = -radial;
-                     y <= radial;
-                     y++) {
+                Vec3 sample =
+                        center.add(
+                                lateral.scale(
+                                        across
+                                )
+                        );
 
-                    Vec3 sample =
-                            center.add(
-                                    right.scale(
-                                            x * 0.55
-                                    )
-                            ).add(
-                                    up.scale(
-                                            y * 0.55
-                                    )
-                            );
+                BlockPos pos =
+                        BlockPos.containing(
+                                sample
+                        );
 
-                    BlockPos pos =
-                            BlockPos.containing(
-                                    sample
-                            );
+                if (!touched.add(
+                        pos
+                )) {
+                    continue;
+                }
 
-                    if (!touched.add(
-                            pos
-                    )) {
-                        continue;
-                    }
+                BlockState state =
+                        level.getBlockState(
+                                pos
+                        );
 
-                    BlockState state =
-                            level.getBlockState(
-                                    pos
-                            );
-
-                    if (state.isAir()) {
-                        continue;
-                    }
-
-                    float hardness =
-                            state.getDestroySpeed(
-                                    level,
-                                    pos
-                            );
-
-                    if (hardness < 0.0F) {
-                        continue;
-                    }
+                if (!state.isAir()
+                        && state.getDestroySpeed(
+                        level,
+                        pos
+                ) >= 0.0F) {
 
                     level.destroyBlock(
                             pos,
                             true,
                             caster
                     );
+
+                    if (fire) {
+                        igniteAround(
+                                level,
+                                pos
+                        );
+                    }
                 }
             }
         }
-    }
-
-    private static void damageEntities(
-            ServerLevel level,
-            ServerPlayer caster,
-            Vec3 start,
-            Vec3 end,
-            double width,
-            float damage
-    ) {
-        AABB search =
-                new AABB(
-                        start,
-                        end
-                ).inflate(
-                        width + 1.0
-                );
-
-        Vec3 segment =
-                end.subtract(
-                        start
-                );
-
-        double segmentLengthSq =
-                segment.lengthSqr();
 
         for (LivingEntity living :
                 level.getEntitiesOfClass(
                         LivingEntity.class,
-                        search,
+                        affected,
                         entity ->
                                 entity != caster
                                         && entity.isAlive()
                 )) {
 
-            Vec3 point =
+            Vec3 relative =
                     living.getBoundingBox()
-                            .getCenter();
+                            .getCenter()
+                            .subtract(
+                                    start
+                            );
 
-            double t =
-                    segmentLengthSq <= 0.0001
-                            ? 0.0
-                            : point.subtract(start)
-                                    .dot(segment)
-                                    / segmentLengthSq;
-
-            t =
-                    Mth.clamp(
-                            t,
-                            0.0,
-                            1.0
+            double along =
+                    relative.dot(
+                            forward
                     );
 
-            Vec3 closest =
+            if (along < -0.6
+                    || along > length + 0.8) {
+                continue;
+            }
+
+            Vec3 planeCenter =
                     start.add(
-                            segment.scale(
-                                    t
+                            forward.scale(
+                                    Mth.clamp(
+                                            along,
+                                            0.0,
+                                            length
+                                    )
                             )
                     );
 
-            double hitRadius =
-                    width
-                            + living.getBbWidth()
-                                    * 0.55;
+            double across =
+                    Math.abs(
+                            living.getBoundingBox()
+                                    .getCenter()
+                                    .subtract(
+                                            planeCenter
+                                    )
+                                    .dot(
+                                            lateral
+                                    )
+                    );
 
-            if (point.distanceToSqr(
-                    closest
-            )
-                    > hitRadius
-                            * hitRadius) {
+            if (across
+                    > halfSpan
+                            + living.getBbWidth()) {
                 continue;
             }
 
@@ -348,17 +367,117 @@ public final class Desmartelar {
                     damage
             );
 
-            Vec3 push =
-                    segment.normalize()
-                            .scale(
-                                    0.38
-                            );
+            if (fire) {
+                living.igniteForSeconds(
+                        9.0F
+                );
+            }
 
             living.push(
-                    push.x,
-                    0.12,
-                    push.z
+                    forward.x * 0.42,
+                    0.10,
+                    forward.z * 0.42
             );
         }
+    }
+
+    private static void igniteAround(
+            ServerLevel level,
+            BlockPos origin
+    ) {
+        for (Direction direction :
+                Direction.values()) {
+
+            BlockPos firePos =
+                    origin.relative(
+                            direction
+                    );
+
+            if (!level.getBlockState(
+                    firePos
+            ).isAir()) {
+                continue;
+            }
+
+            BlockState fire =
+                    Blocks.FIRE
+                            .defaultBlockState();
+
+            if (fire.canSurvive(
+                    level,
+                    firePos
+            )) {
+                level.setBlock(
+                        firePos,
+                        fire,
+                        3
+                );
+            }
+        }
+    }
+
+    private static void spawnSlash(
+            ServerLevel level,
+            ServerPlayer caster,
+            Vec3 start,
+            Vec3 forward,
+            double length,
+            double halfSpan,
+            int band,
+            double angle
+    ) {
+        DesmartelarSlashEntity slash =
+                new DesmartelarSlashEntity(
+                        WayAroundContent.DESMARTELAR_SLASH.get(),
+                        level
+                );
+
+        Vec3 middle =
+                start.add(
+                        forward.scale(
+                                length
+                                        * (
+                                        0.38
+                                                + band
+                                                        * 0.10
+                                )
+                        )
+                );
+
+        slash.setPos(
+                middle.x,
+                middle.y,
+                middle.z
+        );
+
+        slash.setYRot(
+                caster.getYRot()
+                        + (float) Math.toDegrees(
+                        angle
+                )
+        );
+
+        slash.setXRot(
+                caster.getXRot()
+                        + (
+                        band % 2 == 0
+                                ? 0.0F
+                                : 24.0F
+                )
+        );
+
+        slash.configure(
+                (float) (
+                        halfSpan
+                                * 2.0
+                ),
+                0.24F
+                        + band
+                                * 0.035F
+        );
+
+        level.addFreshEntity(
+                slash
+        );
     }
 }

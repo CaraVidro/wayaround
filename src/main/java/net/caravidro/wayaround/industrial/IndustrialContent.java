@@ -158,14 +158,14 @@ public final class IndustrialContent {
                     () -> CreativeModeTab.builder()
                             .title(
                                     Component.translatable(
-                                            "itemGroup.wayaround.otherworld_powers"
+                                            "itemGroup.wayaround.spectrums"
                                     )
                             )
                             .withTabsBefore(
                                     CreativeModeTabs.SPAWN_EGGS
                             )
                             .icon(
-                                    () -> WayAroundContent.PRIORITE_BOTTLE.get()
+                                    () -> WayAroundContent.GOJO_SPECTRUM.get()
                                             .getDefaultInstance()
                             )
                             .displayItems(
@@ -180,10 +180,10 @@ public final class IndustrialContent {
                                                 WayAroundContent.JUSTICE_SPECTRUM.get()
                                         );
                                         output.accept(
-                                                WayAroundContent.TUKUNA_FINGER.get()
+                                                WayAroundContent.IMMORTAL_WHEEL.get()
                                         );
                                         output.accept(
-                                                WayAroundContent.BLUE.get()
+                                                WayAroundContent.TUKUNA_FINGER.get()
                                         );
                                         output.accept(
                                                 WayAroundContent.PRIORITE_BLOCK_ITEM.get()

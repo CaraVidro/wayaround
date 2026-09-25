@@ -9,6 +9,7 @@ import net.caravidro.wayaround.content.item.TukunaFingerItem;
 import net.caravidro.wayaround.content.item.TukunaSpectrumItem;
 import net.caravidro.wayaround.content.item.JusticeSpectrumItem;
 import net.caravidro.wayaround.content.item.JusticeExecutionBladeItem;
+import net.caravidro.wayaround.content.item.VoidSpectrumItem;
 import net.caravidro.wayaround.cursed.DesmartelarSlashEntity;
 import net.caravidro.wayaround.cursed.ImmortalWheelRemnantEntity;
 
@@ -83,12 +84,15 @@ public final class WayAroundContent {
      * =========================================================
      */
 
-    public static final DeferredItem<Item> GOJO_SPECTRUM =
+    public static final DeferredItem<VoidSpectrumItem> GOJO_SPECTRUM =
             ITEMS.register(
                     "gojo_spectrum",
-                    () -> new Item(
+                    () -> new VoidSpectrumItem(
                             new Item.Properties()
                                     .stacksTo(1)
+                                    .rarity(
+                                            net.minecraft.world.item.Rarity.EPIC
+                                    )
                     )
             );
 

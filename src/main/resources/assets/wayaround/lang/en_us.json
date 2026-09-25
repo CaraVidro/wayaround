@@ -148,7 +148,7 @@
     "block.wayaround.wooden_chair": "Wooden Chair",
     "message.wayaround.media.placed_camera_armed": "Camera placed. Preparing recording...",
     "item.wayaround.gojo_spectrum": "Void Spectrum",
-    "tooltip.wayaround.gojo_spectrum": "Void Spectrum: Blue, Red, Infinity and Domain Expansion.",
+    "tooltip.wayaround.gojo_spectrum": "Void Spectrum: Blue, Red, Infinity, Purple and Domain Expansion.",
     "block.wayaround.assembly_workbench": "Assembly Workbench",
     "item.wayaround.stone_flake": "Stone Flake",
     "item.wayaround.assembly_hammer": "Assembly Hammer",
@@ -173,7 +173,7 @@
     "message.wayaround.knapping.fail": "The stone fractured badly. No useful flake survived.",
     "message.wayaround.knapping.result": "Stone flake produced. Quality: %s%%",
     "item.wayaround.immortal_wheel": "Immortal Wheel",
-    "tooltip.wayaround.immortal_wheel": "Cursed item. Learns damage patterns and adapts its defense to them.",
+    "tooltip.wayaround.immortal_wheel": "Cursed binding: adapts to damage and reconstructs its bearer through two lethal deaths before finally falling.",
     "message.wayaround.immortal_wheel.adapt": "Immortal Wheel — %s: -%s%% effect",
     "message.wayaround.immortal_wheel.family.arrow": "Arrow attacks",
     "message.wayaround.immortal_wheel.family.projectile": "Projectiles",
@@ -224,8 +224,8 @@
     "message.wayaround.immortal_wheel.destroyed": "The Immortal Wheel was torn from you. It has gone black.",
     "item.wayaround.tukuna_spectrum": "Tukuna Spectrum",
     "item.wayaround.tukuna_finger": "Tukuna's Finger",
-    "tooltip.wayaround.tukuna_spectrum": "A complete cursed spectrum. Right click: Desmartelar.",
-    "tooltip.wayaround.tukuna_spectrum.desmartelar": "A short 3D dismantling band tears through blocks and living targets.",
+    "tooltip.wayaround.tukuna_spectrum": "Complete cursed Spectrum: Desmartelar, Fire Desmartelar and the Fuga ritual.",
+    "tooltip.wayaround.tukuna_spectrum.desmartelar": "Say \"desmartelar\" for multi-plane cuts; add \"fire\" to ignite the cut.",
     "tooltip.wayaround.tukuna_finger": "Eat it and somebody else becomes part of your future problems.",
     "message.wayaround.tukuna.spectrum_lost": "Your body is dead. Twenty cursed fingers remain. You are a ghost until your curse finds a host.",
     "message.wayaround.tukuna.finger_empty": "This finger has no soul attached to it.",
@@ -267,5 +267,8 @@
     "message.wayaround.justice.hint": "Keep this Spectrum in your inventory and say/type \"domain expansion\" near any living entity.",
     "item.wayaround.justice_execution_blade": "Sentence Blade",
     "tooltip.wayaround.justice_blade": "Glows while a valid sentence is active. Melee reach; severe impact.",
-    "tooltip.wayaround.justice_blade.target": "Sentence target: %s"
+    "tooltip.wayaround.justice_blade.target": "Sentence target: %s",
+    "itemGroup.wayaround.spectrums": "Spectrums",
+    "tooltip.wayaround.gojo_spectrum.controls": "Active Blue: wheel controls distance; right click dismisses. Prepared Red: right click launches.",
+    "tooltip.wayaround.tukuna_spectrum.fuga": "Choose a ritual with \"phrase: ...\". Say it to charge, then say \"fuga\" to fire."
 }

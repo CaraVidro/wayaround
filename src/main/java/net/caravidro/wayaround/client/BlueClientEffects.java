@@ -15,9 +15,11 @@ import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.BlueGestureS2CPayload;
 import net.caravidro.wayaround.network.BlueScrollPayload;
 import net.caravidro.wayaround.network.BlueVisualPayload;
+import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -167,6 +169,60 @@ public final class BlueClientEffects {
                             state.sound
                     );
         }
+    }
+
+    @SubscribeEvent
+    public static void onInteraction(
+            InputEvent.InteractionKeyMappingTriggered event
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (!event.isUseItem()
+                || event.getHand()
+                != InteractionHand.MAIN_HAND
+                || minecraft.player == null
+                || !hasBlueItem(
+                minecraft
+        )) {
+            return;
+        }
+
+        if (hasOwnedControllableBlue(
+                minecraft.player.getUUID()
+        )) {
+
+            PacketDistributor.sendToServer(
+                    new VoiceIntentC2SPayload(
+                            VoiceIntentC2SPayload.BLUE_STOP,
+                            -1.0F,
+                            0.0F
+                    )
+            );
+
+            event.setCanceled(
+                    true
+            );
+
+            event.setSwingHand(
+                    false
+            );
+
+            return;
+        }
+
+        /*
+         * Do not cancel vanilla use when no Blue is active. If a Red happens
+         * to be prepared server-side this launches it; otherwise the packet is
+         * harmless and the normal right-click action still proceeds.
+         */
+        PacketDistributor.sendToServer(
+                new VoiceIntentC2SPayload(
+                        VoiceIntentC2SPayload.RED_LAUNCH,
+                        -1.0F,
+                        0.0F
+                )
+        );
     }
 
     @SubscribeEvent
@@ -1150,16 +1206,34 @@ public final class BlueClientEffects {
     private static boolean hasBlueItem(
             Minecraft minecraft
     ) {
-        return minecraft.player
-                .getMainHandItem()
-                .is(
-                        WayAroundContent.BLUE.get()
-                )
-                || minecraft.player
-                        .getOffhandItem()
-                        .is(
-                                WayAroundContent.BLUE.get()
-                        );
+        if (minecraft.player == null) {
+            return false;
+        }
+
+        for (int slot = 0;
+             slot < minecraft.player
+                     .getInventory()
+                     .getContainerSize();
+             slot++) {
+
+            ItemStack stack =
+                    minecraft.player
+                            .getInventory()
+                            .getItem(
+                                    slot
+                            );
+
+            if (stack.is(
+                    WayAroundContent.BLUE.get()
+            )
+                    || stack.is(
+                    WayAroundContent.GOJO_SPECTRUM.get()
+            )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void cutCloud(
