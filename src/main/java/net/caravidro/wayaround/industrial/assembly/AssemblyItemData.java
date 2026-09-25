@@ -326,8 +326,8 @@ public final class AssemblyItemData {
                 || path.contains("wood")
                 || path.contains("log")
                 || path.contains("stem")
-                || path.contains("shaft")
-                || path.contains("pulley")) {
+                || path.contains("pulley")
+                || path.contains("sawmill")) {
             return AssemblyPartProfile.Material.WOOD;
         }
 
