@@ -23,6 +23,7 @@ public final class TukunaPossessionClient {
 
     private static boolean possessed;
     private static boolean contractMusic;
+    private static boolean loopContractMusic;
     private static TukunaContractSound music;
     private static CameraType previousCamera;
 
@@ -33,9 +34,14 @@ public final class TukunaPossessionClient {
         return contractMusic;
     }
 
+    public static boolean shouldLoopContractMusic() {
+        return loopContractMusic;
+    }
+
     public static void setPossessed(
             boolean active,
-            boolean playContractMusic
+            boolean playContractMusic,
+            boolean loopMusic
     ) {
         Minecraft minecraft =
                 Minecraft.getInstance();
@@ -60,6 +66,9 @@ public final class TukunaPossessionClient {
          */
         contractMusic =
                 playContractMusic;
+
+        loopContractMusic =
+                playContractMusic && loopMusic;
 
         if (playContractMusic && !wasPlaying) {
             music = new TukunaContractSound();
@@ -88,6 +97,7 @@ public final class TukunaPossessionClient {
         if (!possessed) {
             if (Minecraft.getInstance().level == null) {
                 contractMusic = false;
+                loopContractMusic = false;
                 music = null;
             }
             return;
