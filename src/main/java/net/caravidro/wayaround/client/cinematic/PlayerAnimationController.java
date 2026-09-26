@@ -283,6 +283,67 @@ public final class PlayerAnimationController {
             case PlayerCinematicPayload.TUKUNA_FORCED_EAT ->
                     applyTukunaForcedEat(model, age);
 
+            case PlayerCinematicPayload.MELEE_PUNCH ->
+                    applyMeleePunch(
+                            model,
+                            age,
+                            Math.floorMod(
+                                    player.getUUID().hashCode()
+                                            ^ (int)state.startedAt,
+                                    4
+                            )
+                    );
+
+            case PlayerCinematicPayload.MELEE_BLOCK ->
+                    applyMeleeBlock(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.MELEE_CATCH_ATTACKER ->
+                    applyMeleeCatchAttacker(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.MELEE_CATCH_DEFENDER ->
+                    applyMeleeCatchDefender(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.MELEE_LAUNCH ->
+                    applyMeleeLaunch(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.MELEE_DOWNSLAM ->
+                    applyMeleeDownslam(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.MELEE_UPPERCUT ->
+                    applyMeleeUppercut(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.BLACK_FLASH_HEAVY ->
+                    applyBlackFlashHeavy(
+                            model,
+                            age,
+                            false
+                    );
+
+            case PlayerCinematicPayload.BLACK_FLASH_ULTIMATE ->
+                    applyBlackFlashHeavy(
+                            model,
+                            age,
+                            true
+                    );
+
             default -> {
             }
         }
@@ -365,7 +426,9 @@ public final class PlayerAnimationController {
                     || state.animation == PlayerCinematicPayload.TUKUNA_TAKEOVER
                     || state.animation == PlayerCinematicPayload.TUKUNA_RETURN
                     || state.animation == PlayerCinematicPayload.TUKUNA_FINGER_REACTION
-                    || state.animation == PlayerCinematicPayload.TUKUNA_FORCED_EAT);
+                    || state.animation == PlayerCinematicPayload.TUKUNA_FORCED_EAT
+                    || state.animation == PlayerCinematicPayload.BLACK_FLASH_HEAVY
+                    || state.animation == PlayerCinematicPayload.BLACK_FLASH_ULTIMATE);
     }
 
     public static float tukunaBowWeight(UUID player) {
@@ -411,6 +474,20 @@ public final class PlayerAnimationController {
             float down = ease(Mth.clamp((age - 28.0F) / 7.0F, 0.0F, 1.0F))
                     * (1.0F - ease(Mth.clamp((age - 43.0F) / 10.0F, 0.0F, 1.0F)));
             return (float)Math.toDegrees(-0.88F * up + 0.82F * down);
+        }
+
+        if (state.animation == PlayerCinematicPayload.BLACK_FLASH_HEAVY) {
+            float punch = ease(Mth.clamp(age / 5.0F, 0.0F, 1.0F));
+            float recover = ease(Mth.clamp((age - 10.0F) / 9.0F, 0.0F, 1.0F));
+            return Mth.lerp(recover, -8.0F * punch, 0.0F);
+        }
+
+        if (state.animation == PlayerCinematicPayload.BLACK_FLASH_ULTIMATE) {
+            float wind = ease(Mth.clamp(age / 8.0F, 0.0F, 1.0F));
+            float impact = ease(Mth.clamp((age - 8.0F) / 4.0F, 0.0F, 1.0F));
+            float recover = ease(Mth.clamp((age - 17.0F) / 10.0F, 0.0F, 1.0F));
+            float value = Mth.lerp(impact, 7.0F * wind, -15.0F);
+            return Mth.lerp(recover, value, 0.0F);
         }
 
         if (state.animation
@@ -965,6 +1042,434 @@ public final class PlayerAnimationController {
         model.body.xRot += 0.16F * down;
         model.leftArm.xRot += 0.10F * down;
         model.rightArm.xRot += 0.10F * down;
+    }
+
+    private static void applyMeleePunch(
+            PlayerModel<?> model,
+            float age,
+            int variant
+    ) {
+        float strike =
+                ease(
+                        Mth.clamp(
+                                age / 3.0F,
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float recover =
+                ease(
+                        Mth.clamp(
+                                (age - 4.0F) / 5.0F,
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float weight =
+                strike
+                        * (1.0F - recover);
+
+        float side =
+                (variant & 1) == 0
+                        ? 1.0F
+                        : -1.0F;
+
+        boolean right =
+                variant == 0
+                        || variant == 3;
+
+        ModelPart arm =
+                right
+                        ? model.rightArm
+                        : model.leftArm;
+
+        arm.xRot =
+                Mth.lerp(
+                        weight,
+                        arm.xRot,
+                        variant >= 2
+                                ? -1.68F
+                                : -1.42F
+                );
+
+        arm.yRot +=
+                side
+                        * 0.24F
+                        * weight;
+
+        arm.zRot +=
+                side
+                        * (
+                        variant == 1
+                                ? 0.24F
+                                : 0.10F
+                )
+                        * weight;
+
+        model.body.yRot +=
+                side
+                        * 0.34F
+                        * weight;
+
+        model.body.xRot +=
+                (variant == 2
+                        ? 0.18F
+                        : 0.06F)
+                        * weight;
+
+        model.head.yRot -=
+                side
+                        * 0.14F
+                        * weight;
+    }
+
+    private static void applyMeleeBlock(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float weight =
+                ease(
+                        age / 5.0F
+                );
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -1.18F
+                );
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.xRot,
+                        -1.02F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.yRot,
+                        -0.62F
+                );
+
+        model.leftArm.yRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.yRot,
+                        0.46F
+                );
+
+        model.body.yRot +=
+                0.10F
+                        * weight;
+    }
+
+    private static void applyMeleeCatchAttacker(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float snap =
+                ease(
+                        age / 2.0F
+                );
+
+        float release =
+                ease(
+                        Mth.clamp(
+                                (age - 6.0F) / 3.0F,
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float weight =
+                snap
+                        * (1.0F - release);
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -1.58F
+                );
+
+        model.rightArm.yRot +=
+                0.16F
+                        * weight;
+
+        model.body.yRot -=
+                0.16F
+                        * weight;
+    }
+
+    private static void applyMeleeCatchDefender(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float snap =
+                ease(
+                        age / 2.0F
+                );
+
+        float release =
+                ease(
+                        Mth.clamp(
+                                (age - 6.0F) / 3.0F,
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float weight =
+                snap
+                        * (1.0F - release);
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.xRot,
+                        -1.48F
+                );
+
+        model.leftArm.yRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.yRot,
+                        0.84F
+                );
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -0.72F
+                );
+
+        model.body.yRot +=
+                0.22F
+                        * weight;
+    }
+
+    private static void applyMeleeLaunch(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float strike =
+                ease(
+                        age / 4.0F
+                );
+
+        float recover =
+                ease(
+                        Mth.clamp(
+                                (age - 7.0F) / 7.0F,
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float weight =
+                strike
+                        * (1.0F - recover);
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -1.78F
+                );
+
+        model.body.yRot -=
+                0.48F
+                        * weight;
+
+        model.body.xRot +=
+                0.16F
+                        * weight;
+
+        model.leftArm.zRot -=
+                0.18F
+                        * weight;
+    }
+
+    private static void applyMeleeDownslam(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float weight =
+                ease(
+                        Mth.clamp(
+                                age / 5.0F,
+                                0.0F,
+                                1.0F
+                        )
+                )
+                        * (
+                        1.0F
+                                - ease(
+                                Mth.clamp(
+                                        (age - 9.0F) / 7.0F,
+                                        0.0F,
+                                        1.0F
+                                )
+                        )
+                );
+
+        model.body.xRot +=
+                0.62F
+                        * weight;
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -2.52F
+                );
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.xRot,
+                        -2.16F
+                );
+
+        model.head.xRot +=
+                0.42F
+                        * weight;
+    }
+
+    private static void applyMeleeUppercut(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float weight =
+                ease(
+                        Mth.clamp(
+                                age / 4.0F,
+                                0.0F,
+                                1.0F
+                        )
+                )
+                        * (
+                        1.0F
+                                - ease(
+                                Mth.clamp(
+                                        (age - 8.0F) / 7.0F,
+                                        0.0F,
+                                        1.0F
+                                )
+                        )
+                );
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -2.82F
+                );
+
+        model.rightArm.yRot -=
+                0.18F
+                        * weight;
+
+        model.body.xRot -=
+                0.32F
+                        * weight;
+
+        model.body.yRot -=
+                0.24F
+                        * weight;
+
+        model.head.xRot -=
+                0.24F
+                        * weight;
+    }
+
+    private static void applyBlackFlashHeavy(
+            PlayerModel<?> model,
+            float age,
+            boolean ultimate
+    ) {
+        float wind =
+                ease(
+                        Mth.clamp(
+                                age / (
+                                        ultimate
+                                                ? 8.0F
+                                                : 5.0F
+                                ),
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float release =
+                ease(
+                        Mth.clamp(
+                                (
+                                        age
+                                                - (
+                                                ultimate
+                                                        ? 10.0F
+                                                        : 7.0F
+                                        )
+                                )
+                                        / (
+                                        ultimate
+                                                ? 14.0F
+                                                : 9.0F
+                                ),
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float weight =
+                wind
+                        * (1.0F - release);
+
+        model.body.yRot -=
+                (
+                        ultimate
+                                ? 0.72F
+                                : 0.52F
+                )
+                        * weight;
+
+        model.body.xRot +=
+                (
+                        ultimate
+                                ? 0.26F
+                                : 0.16F
+                )
+                        * weight;
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        ultimate
+                                ? -2.32F
+                                : -1.94F
+                );
+
+        model.rightArm.yRot +=
+                0.24F
+                        * weight;
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.xRot,
+                        -0.48F
+                );
+
+        model.head.yRot +=
+                0.22F
+                        * weight;
     }
 
     private static void applyTukunaTakeover(PlayerModel<?> model, float age, float weight) {

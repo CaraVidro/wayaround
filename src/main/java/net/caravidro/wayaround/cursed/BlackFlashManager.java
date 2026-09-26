@@ -5,6 +5,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.network.PlayerCinematicPayload;
+import net.caravidro.wayaround.spectrum.SpectrumAccess;
+import net.caravidro.wayaround.spectrum.SpectrumImpact;
+import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -24,6 +28,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Experimental Black Flash combat rhythm.
@@ -44,9 +49,12 @@ public final class BlackFlashManager {
     private static final int MIN_COMBO_FOR_PRIME = 3;
     private static final int COMBO_TIMEOUT_TICKS = 48;
     private static final int PRIME_TIMEOUT_TICKS = 120;
-    private static final int MAX_CHARGE = 6;
+    private static final int MAX_CHARGE = 5;
 
     private static final Map<UUID, State> STATES =
+            new HashMap<>();
+
+    private static final Map<UUID, Long> ULTIMATE_TUKUNA =
             new HashMap<>();
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -141,6 +149,11 @@ public final class BlackFlashManager {
                     attacker,
                     state.charge,
                     true
+            );
+
+            emitChargeEscalation(
+                    attacker,
+                    state.charge
             );
 
             attacker.displayClientMessage(
@@ -269,6 +282,45 @@ public final class BlackFlashManager {
                 );
             }
         }
+
+        ULTIMATE_TUKUNA.entrySet()
+                .removeIf(
+                        entry -> {
+                            if (tick
+                                    < entry.getValue()) {
+                                return false;
+                            }
+
+                            ServerPlayer target =
+                                    server.getPlayerList()
+                                            .getPlayer(
+                                                    entry.getKey()
+                                            );
+
+                            if (target != null
+                                    && target.isAlive()
+                                    && SpectrumAccess.has(
+                                    target,
+                                    SpectrumType.TUKUNA
+                            )) {
+                                float nearDeath =
+                                        Math.max(
+                                                1.0F,
+                                                target.getMaxHealth()
+                                                        * 0.05F
+                                        );
+
+                                target.setHealth(
+                                        Math.min(
+                                                target.getHealth(),
+                                                nearDeath
+                                        )
+                                );
+                            }
+
+                            return true;
+                        }
+                );
     }
 
     @SubscribeEvent
@@ -276,6 +328,7 @@ public final class BlackFlashManager {
             ServerStoppedEvent event
     ) {
         STATES.clear();
+        ULTIMATE_TUKUNA.clear();
     }
 
     private static void trigger(
@@ -377,17 +430,353 @@ public final class BlackFlashManager {
                 true
         );
 
+        applyChargeImpact(
+                attacker,
+                target,
+                state.charge
+        );
+
+        if (target instanceof ServerPlayer bearer
+                && state.charge >= 5
+                && SpectrumAccess.has(
+                bearer,
+                SpectrumType.TUKUNA
+        )) {
+            ULTIMATE_TUKUNA.put(
+                    bearer.getUUID(),
+                    attacker.server
+                            .getTickCount()
+                            + 1L
+            );
+        }
+
         if (target instanceof ServerPlayer bearer
                 && ImmortalWheelManager.hasWheel(
                         bearer
                 )) {
 
-            ImmortalWheelManager.damageByBlackFlash(
-                    bearer,
-                    attacker,
-                    state.charge
+            if (state.charge >= 5) {
+                ImmortalWheelManager.breakByUltimateBlackFlash(
+                        bearer,
+                        attacker,
+                        state.charge
+                );
+            } else {
+                ImmortalWheelManager.damageByBlackFlash(
+                        bearer,
+                        attacker,
+                        state.charge
+                );
+            }
+        }
+    }
+
+    private static void emitChargeEscalation(
+            ServerPlayer player,
+            int charge
+    ) {
+        ServerLevel level =
+                player.serverLevel();
+
+        Vec3 center =
+                player.position()
+                        .add(
+                                0.0,
+                                player.getBbHeight() * 0.62,
+                                0.0
+                        );
+
+        int count =
+                6
+                        + charge
+                                * charge
+                                * 4;
+
+        level.sendParticles(
+                DustParticleOptions.REDSTONE,
+                center.x,
+                center.y,
+                center.z,
+                count,
+                0.18 + charge * 0.055,
+                0.24 + charge * 0.045,
+                0.18 + charge * 0.055,
+                0.03 + charge * 0.012
+        );
+
+        if (charge >= 2) {
+            level.sendParticles(
+                    ParticleTypes.ELECTRIC_SPARK,
+                    center.x,
+                    center.y,
+                    center.z,
+                    4 + charge * 5,
+                    0.24 + charge * 0.07,
+                    0.28 + charge * 0.05,
+                    0.24 + charge * 0.07,
+                    0.08
             );
         }
+
+        if (charge >= 4) {
+            level.sendParticles(
+                    ParticleTypes.REVERSE_PORTAL,
+                    center.x,
+                    center.y,
+                    center.z,
+                    22 + charge * 8,
+                    0.54,
+                    0.72,
+                    0.54,
+                    0.12
+            );
+        }
+
+        level.playSound(
+                null,
+                player.blockPosition(),
+                charge >= 4
+                        ? SoundEvents.WARDEN_SONIC_BOOM
+                        : SoundEvents.PLAYER_ATTACK_CRIT,
+                SoundSource.PLAYERS,
+                0.38F + charge * 0.17F,
+                Math.max(
+                        0.46F,
+                        1.30F - charge * 0.14F
+                )
+        );
+    }
+
+    private static void applyChargeImpact(
+            ServerPlayer attacker,
+            LivingEntity target,
+            int charge
+    ) {
+        if (charge < 3) {
+            return;
+        }
+
+        Vec3 direction =
+                target.position()
+                        .subtract(
+                                attacker.position()
+                        );
+
+        direction =
+                new Vec3(
+                        direction.x,
+                        0.0,
+                        direction.z
+                );
+
+        if (direction.lengthSqr()
+                < 1.0E-6) {
+            Vec3 look =
+                    attacker.getLookAngle();
+
+            direction =
+                    new Vec3(
+                            look.x,
+                            0.0,
+                            look.z
+                    );
+        }
+
+        direction =
+                direction.lengthSqr()
+                        < 1.0E-6
+                        ? new Vec3(
+                        0.0,
+                        0.0,
+                        1.0
+                )
+                        : direction.normalize();
+
+        if (charge == 3) {
+            SpectrumImpact.launchAndBreak(
+                    attacker,
+                    target,
+                    direction.scale(
+                            2.85
+                    ).add(
+                            0.0,
+                            0.42,
+                            0.0
+                    ),
+                    13.0,
+                    1
+            );
+
+            return;
+        }
+
+        if (charge == 4) {
+            cinematic(
+                    attacker,
+                    PlayerCinematicPayload.BLACK_FLASH_HEAVY,
+                    22,
+                    0.62F
+            );
+
+            ServerLevel level =
+                    attacker.serverLevel();
+
+            Vec3 center =
+                    target.position()
+                            .add(
+                                    0.0,
+                                    target.getBbHeight() * 0.55,
+                                    0.0
+                            );
+
+            level.sendParticles(
+                    ParticleTypes.EXPLOSION,
+                    center.x,
+                    center.y,
+                    center.z,
+                    8,
+                    0.82,
+                    0.72,
+                    0.82,
+                    0.02
+            );
+
+            level.sendParticles(
+                    ParticleTypes.REVERSE_PORTAL,
+                    center.x,
+                    center.y,
+                    center.z,
+                    86,
+                    1.15,
+                    0.85,
+                    1.15,
+                    0.28
+            );
+
+            SpectrumImpact.launchAndBreak(
+                    attacker,
+                    target,
+                    direction.scale(
+                            4.25
+                    ).add(
+                            0.0,
+                            0.72,
+                            0.0
+                    ),
+                    20.0,
+                    1
+            );
+
+            return;
+        }
+
+        cinematic(
+                attacker,
+                PlayerCinematicPayload.BLACK_FLASH_ULTIMATE,
+                30,
+                1.05F
+        );
+
+        ServerLevel level =
+                attacker.serverLevel();
+
+        Vec3 center =
+                target.position()
+                        .add(
+                                0.0,
+                                target.getBbHeight() * 0.55,
+                                0.0
+                        );
+
+        level.sendParticles(
+                ParticleTypes.EXPLOSION,
+                center.x,
+                center.y,
+                center.z,
+                18,
+                1.45,
+                1.0,
+                1.45,
+                0.05
+        );
+
+        level.sendParticles(
+                DustParticleOptions.REDSTONE,
+                center.x,
+                center.y,
+                center.z,
+                190,
+                1.65,
+                1.15,
+                1.65,
+                0.55
+        );
+
+        level.sendParticles(
+                ParticleTypes.ELECTRIC_SPARK,
+                center.x,
+                center.y,
+                center.z,
+                120,
+                1.35,
+                0.92,
+                1.35,
+                0.65
+        );
+
+        level.playSound(
+                null,
+                target.blockPosition(),
+                SoundEvents.WARDEN_SONIC_BOOM,
+                SoundSource.PLAYERS,
+                2.4F,
+                0.46F
+        );
+
+        SpectrumImpact.launchAndBreak(
+                attacker,
+                target,
+                direction.scale(
+                        7.25
+                ).add(
+                        0.0,
+                        1.05,
+                        0.0
+                ),
+                34.0,
+                1
+        );
+    }
+
+    private static void cinematic(
+            ServerPlayer player,
+            byte animation,
+            int duration,
+            float shake
+    ) {
+        PlayerCinematicPayload payload =
+                new PlayerCinematicPayload(
+                        player.getUUID(),
+                        animation,
+                        duration,
+                        true,
+                        shake
+                );
+
+        PacketDistributor.sendToPlayersNear(
+                player.serverLevel(),
+                null,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                160.0,
+                payload
+        );
+
+        PacketDistributor.sendToPlayer(
+                player,
+                payload
+        );
     }
 
     private static boolean isAirAttack(

@@ -279,5 +279,6 @@
     "tooltip.wayaround.machine_gun": "Segure o clique direito: fogo automático, 1 bala a cada 2 ticks.",
     "tooltip.wayaround.rocket_launcher": "Foguete físico lento. Impacto direto severo + explosão destrutiva.",
     "tooltip.wayaround.war.infinity": "Projéteis reais em 3D: a Infinidade pode pará-los antes do contato.",
-    "itemGroup.wayaround.war_without_reason": "War Without Reason"
+    "itemGroup.wayaround.war_without_reason": "War Without Reason",
+    "key.wayaround.spectrum_block": "Bloqueio do Spectrum"
 }

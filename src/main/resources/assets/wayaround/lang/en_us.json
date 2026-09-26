@@ -279,5 +279,6 @@
     "tooltip.wayaround.machine_gun": "Hold right-click: automatic fire, 1 bullet every 2 ticks.",
     "tooltip.wayaround.rocket_launcher": "Slow physical rocket. Severe direct impact + destructive explosion.",
     "tooltip.wayaround.war.infinity": "Real 3D projectiles: Infinity can stop them before contact.",
-    "itemGroup.wayaround.war_without_reason": "War Without Reason"
+    "itemGroup.wayaround.war_without_reason": "War Without Reason",
+    "key.wayaround.spectrum_block": "Spectrum Block"
 }

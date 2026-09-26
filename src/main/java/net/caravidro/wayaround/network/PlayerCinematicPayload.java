@@ -44,6 +44,15 @@ public record PlayerCinematicPayload(
     public static final byte TUKUNA_FINGER_REACTION = 15;
     public static final byte TUKUNA_FORCE_FEED = 16;
     public static final byte TUKUNA_FORCED_EAT = 17;
+    public static final byte MELEE_PUNCH = 18;
+    public static final byte MELEE_BLOCK = 19;
+    public static final byte MELEE_CATCH_ATTACKER = 20;
+    public static final byte MELEE_CATCH_DEFENDER = 21;
+    public static final byte MELEE_LAUNCH = 22;
+    public static final byte MELEE_DOWNSLAM = 23;
+    public static final byte MELEE_UPPERCUT = 24;
+    public static final byte BLACK_FLASH_HEAVY = 25;
+    public static final byte BLACK_FLASH_ULTIMATE = 26;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(

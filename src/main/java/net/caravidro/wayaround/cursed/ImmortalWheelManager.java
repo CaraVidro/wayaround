@@ -300,6 +300,38 @@ public final class ImmortalWheelManager {
                 );
     }
 
+    public static void breakByUltimateBlackFlash(
+            ServerPlayer bearer,
+            ServerPlayer attacker,
+            int charge
+    ) {
+        if (!hasWheel(
+                bearer
+        )) {
+            return;
+        }
+
+        /*
+         * Reuse the existing physical shatter/remnant path. We only force the
+         * scar counter to its last step so the next Black Flash application
+         * breaks the wheel immediately instead of inventing a second wheel
+         * destruction implementation.
+         */
+        setWheelDamage(
+                bearer,
+                MAX_BLACK_FLASH_DAMAGE - 1
+        );
+
+        damageByBlackFlash(
+                bearer,
+                attacker,
+                Math.max(
+                        charge,
+                        MAX_BLACK_FLASH_DAMAGE
+                )
+        );
+    }
+
     public static void damageByBlackFlash(
             ServerPlayer bearer,
             ServerPlayer attacker,
