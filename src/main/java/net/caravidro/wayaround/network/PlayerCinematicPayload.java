@@ -41,6 +41,9 @@ public record PlayerCinematicPayload(
     public static final byte TUKUNA_RETURN = 12;
     public static final byte DESMARTELAR_FIRE_CHARGE = 13;
     public static final byte TUKUNA_DOMAIN_PREVIEW = 14;
+    public static final byte TUKUNA_FINGER_REACTION = 15;
+    public static final byte TUKUNA_FORCE_FEED = 16;
+    public static final byte TUKUNA_FORCED_EAT = 17;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(

@@ -22,6 +22,8 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.TukunaPossessionS2CPayload;
+import net.caravidro.wayaround.network.TukunaViewS2CPayload;
+import net.caravidro.wayaround.network.TukunaMarkS2CPayload;
 import net.caravidro.wayaround.network.TukunaFugaVisualPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -131,6 +133,12 @@ public final class TukunaManager {
 
     private static final String GHOST_KEY =
             "WayAroundTukunaGhost";
+    private static final String SELF_FINGER_COUNT_KEY = "WayAroundTukunaSelfFingerCount";
+    private static final String BODY_RECLAIMED_KEY = "WayAroundTukunaBodyReclaimed";
+    private static final String FORMER_RECEPTACLE_KEY = "WayAroundTukunaFormerReceptacle";
+    private static final String FORCED_TAKEOVER_PENDING_KEY = "WayAroundTukunaForcedTakeoverPending";
+    private static final int FORCED_POSSESSION_TICKS = 20 * 60 * 5;
+    private static final int FORCED_FEED_TICKS = 32;
 
     private static final String FUGA_PHRASE_KEY =
             "WayAroundTukunaFugaPhrase";
@@ -199,6 +207,8 @@ public final class TukunaManager {
 
     private static final Map<UUID, Possession> POSSESSIONS =
             new HashMap<>();
+    private static final Map<UUID, UUID> VIEW_HOSTS = new HashMap<>();
+    private static final Map<UUID, ForcedFeed> FORCED_FEEDS = new HashMap<>();
     private static final Map<UUID, PactProposal> PACT_PROPOSALS = new HashMap<>();
     private static final Map<UUID, PendingTakeover> PENDING_TAKEOVERS = new HashMap<>();
 
@@ -225,6 +235,12 @@ public final class TukunaManager {
                         GHOST_KEY,
                         true
                 );
+
+        if (player.getPersistentData().getBoolean(BODY_RECLAIMED_KEY)) {
+            player.getPersistentData().putBoolean(BODY_RECLAIMED_KEY, false);
+            player.getPersistentData().putInt(SELF_FINGER_COUNT_KEY, 0);
+        }
+        VIEW_HOSTS.remove(player.getUUID());
 
         String ownerName =
                 player.getGameProfile()
@@ -300,6 +316,12 @@ public final class TukunaManager {
                 replacement,
                 HOST_FINGER_COUNT_KEY
         );
+        copyInt(original, replacement, SELF_FINGER_COUNT_KEY);
+        for (String key : new String[]{BODY_RECLAIMED_KEY, FORMER_RECEPTACLE_KEY, FORCED_TAKEOVER_PENDING_KEY}) {
+            if (original.getPersistentData().contains(key)) {
+                replacement.getPersistentData().putBoolean(key, original.getPersistentData().getBoolean(key));
+            }
+        }
 
         copyUuid(
                 original,
@@ -355,6 +377,7 @@ public final class TukunaManager {
         );
         tickTakeovers(server, tick);
         tickReturnVisuals(server, tick);
+        tickForcedFeeds(server, tick);
         DEBUG_SELF_POSSESSIONS.removeIf(id -> {
             ServerPlayer player = server.getPlayerList().getPlayer(id);
             if (player == null || !player.isAlive()) return true;
@@ -422,42 +445,43 @@ public final class TukunaManager {
                     && !isPossessingSpirit(
                     player
             )) {
+                removeHostBuffs(player);
+                removePossessionBuffs(player);
+                if (!player.isSpectator()) player.setGameMode(GameType.SPECTATOR);
 
-                removeHostBuffs(
-                        player
-                );
-
-                removePossessionBuffs(
-                        player
-                );
-
-                if (!player.isSpectator()) {
-                    player.setGameMode(
-                            GameType.SPECTATOR
-                    );
+                UUID previousView = VIEW_HOSTS.get(player.getUUID());
+                ServerPlayer viewedHost = hostForSpirit(server, player.getUUID());
+                if (viewedHost != null) {
+                    VIEW_HOSTS.put(player.getUUID(), viewedHost.getUUID());
+                    player.setCamera(viewedHost);
+                    if (!viewedHost.getUUID().equals(previousView)) {
+                        PacketDistributor.sendToPlayer(player, new TukunaViewS2CPayload(true, 0));
+                        player.displayClientMessage(Component.literal(
+                                "Sua presença se ancora em um receptáculo. Você enxerga pelos olhos dele."
+                        ).withStyle(ChatFormatting.DARK_PURPLE), false);
+                    }
+                } else {
+                    VIEW_HOSTS.remove(player.getUUID());
+                    player.setCamera(player);
+                    if (previousView != null) {
+                        PacketDistributor.sendToPlayer(player, new TukunaViewS2CPayload(false, 0));
+                    }
+                    if (GHOST_NOTIFIED.add(player.getUUID())) {
+                        player.displayClientMessage(Component.translatable(
+                                "message.wayaround.tukuna.ghost"
+                        ).withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC), false);
+                    }
                 }
-
-                if (GHOST_NOTIFIED.add(
-                        player.getUUID()
-                )) {
-                    player.displayClientMessage(
-                            Component.translatable(
-                                            "message.wayaround.tukuna.ghost"
-                                    )
-                                    .withStyle(
-                                            ChatFormatting.DARK_PURPLE,
-                                            ChatFormatting.ITALIC
-                                    ),
-                            false
-                    );
-                }
-
                 continue;
             }
 
             GHOST_NOTIFIED.remove(
                     player.getUUID()
             );
+
+            if (player.getPersistentData().getBoolean(FORCED_TAKEOVER_PENDING_KEY)) {
+                tryStartForcedTakeover(player);
+            }
 
             if (isPossessionHost(
                     player
@@ -488,6 +512,12 @@ public final class TukunaManager {
             removePossessionBuffs(
                     player
             );
+
+            int selfFingers = selfFingerCount(player);
+            if (hasSpectrum(player) && selfFingers > 0) {
+                applyPossessionBuffs(player, effectiveTukunaFingers(player));
+                continue;
+            }
 
             int fingers =
                     fingerCount(
@@ -535,6 +565,11 @@ public final class TukunaManager {
                     true
             );
 
+            return;
+        }
+
+        if ("corpo".equals(normalizeSpeech(raw)) && tryReclaimBody(player)) {
+            event.setCanceled(true);
             return;
         }
 
@@ -595,6 +630,10 @@ public final class TukunaManager {
             return;
         }
 
+        if ("corpo".equals(normalizeSpeech(transcript)) && tryReclaimBody(player)) {
+            return;
+        }
+
         if (handlePactSpeech(player, transcript)) {
             return;
         }
@@ -640,6 +679,8 @@ public final class TukunaManager {
         FUGA_CHARGES.clear();
         FUGA_PROJECTILES.clear();
         POSSESSIONS.clear();
+        VIEW_HOSTS.clear();
+        FORCED_FEEDS.clear();
         PACT_PROPOSALS.clear();
         PENDING_TAKEOVERS.clear();
         RETURN_VISUALS.clear();
@@ -673,6 +714,7 @@ public final class TukunaManager {
                         HOST_FINGER_COUNT_KEY,
                         19
                 );
+        player.getPersistentData().putInt(SELF_FINGER_COUNT_KEY, 19);
 
         player.getPersistentData()
                 .putInt(
@@ -881,158 +923,49 @@ public final class TukunaManager {
             ServerPlayer host,
             ItemStack stack
     ) {
-        UUID owner =
-                fingerOwner(
-                        stack
-                );
-
+        UUID owner = fingerOwner(stack);
         if (owner == null) {
-            host.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.tukuna.finger_empty"
-                    ),
-                    true
-            );
+            host.displayClientMessage(Component.translatable("message.wayaround.tukuna.finger_empty"), true);
             return false;
         }
 
-        if (owner.equals(
-                host.getUUID()
-        )) {
-            host.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.tukuna.own_finger"
-                    ),
-                    true
-            );
+        String ownerName = fingerOwnerName(stack);
+        if (ownerName.isBlank()) ownerName = owner.toString().substring(0, 8);
+
+        if (owner.equals(host.getUUID())) return consumeOwnFinger(host);
+
+        if (isFormerReceptacle(host)) {
+            host.displayClientMessage(Component.literal(
+                    "Seu corpo já aprendeu a rejeitar uma nova presença."
+            ).withStyle(ChatFormatting.DARK_GRAY), true);
             return false;
         }
 
-        UUID existing =
-                spiritOwner(
-                        host
-                );
-
-        if (existing != null
-                && !existing.equals(
-                        owner
-                )) {
-
-            host.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.tukuna.other_spirit"
-                    ),
-                    true
-            );
+        UUID existing = spiritOwner(host);
+        if (existing != null && !existing.equals(owner)) {
+            host.displayClientMessage(Component.translatable("message.wayaround.tukuna.other_spirit"), true);
             return false;
         }
 
-        ServerPlayer existingHost =
-                hostForSpirit(
-                        host.server,
-                        owner
-                );
-
-        if (existingHost != null
-                && existingHost != host) {
-
-            host.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.tukuna.spirit_taken",
-                            existingHost.getGameProfile()
-                                    .getName()
-                    ),
-                    true
-            );
-            return false;
-        }
-
-        int current =
-                fingerCount(
-                        host
-                );
-
+        int current = fingerCount(host);
         if (current >= MAX_FINGERS) {
-            host.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.tukuna.max_fingers"
-                    ),
-                    true
-            );
+            host.displayClientMessage(Component.translatable("message.wayaround.tukuna.max_fingers"), true);
             return false;
         }
 
-        host.getPersistentData()
-                .putUUID(
-                        HOST_SPIRIT_KEY,
-                        owner
-                );
+        // No global host rejection: one spirit may now own many receptacles.
+        host.getPersistentData().putUUID(HOST_SPIRIT_KEY, owner);
+        int next = Math.min(MAX_FINGERS, current + 1);
+        host.getPersistentData().putInt(HOST_FINGER_COUNT_KEY, next);
+        host.displayClientMessage(receptacleProgressMessage(next, ownerName), false);
 
-        int next =
-                Math.min(
-                        MAX_FINGERS,
-                        current + 1
-                );
+        ServerPlayer spirit = host.server.getPlayerList().getPlayer(owner);
+        if (spirit != null && isGhost(spirit)) {
+            spirit.displayClientMessage(Component.literal(
+                    "Um dos seus dedos encontrou um receptáculo em " + host.getGameProfile().getName() + "."
+            ).withStyle(ChatFormatting.DARK_PURPLE), false);
 
-        host.getPersistentData()
-                .putInt(
-                        HOST_FINGER_COUNT_KEY,
-                        next
-                );
-
-        boolean unlockedFuga =
-                current <= 10
-                        && next > 10;
-
-        String spiritName =
-                fingerOwnerName(
-                        stack
-                );
-
-        host.displayClientMessage(
-                Component.translatable(
-                                "message.wayaround.tukuna.finger_eaten",
-                                next,
-                                MAX_FINGERS,
-                                spiritName.isBlank()
-                                        ? owner.toString()
-                                                .substring(
-                                                        0,
-                                                        8
-                                                )
-                                        : spiritName
-                        )
-                        .withStyle(
-                                ChatFormatting.DARK_RED
-                        ),
-                false
-        );
-
-        ServerPlayer spirit =
-                host.server
-                        .getPlayerList()
-                        .getPlayer(
-                                owner
-                        );
-
-        if (spirit != null
-                && isGhost(
-                spirit
-        )) {
-            spirit.displayClientMessage(
-                    Component.translatable(
-                                    "message.wayaround.tukuna.host_found",
-                                    host.getGameProfile()
-                                            .getName(),
-                                    next
-                            )
-                            .withStyle(
-                                    ChatFormatting.DARK_PURPLE
-                            ),
-                    false
-            );
-
-            if (unlockedFuga) {
+            if (current <= 10 && next > 10) {
                 spirit.getPersistentData().remove(FUGA_PHRASE_KEY);
                 spirit.getPersistentData().remove(FUGA_PROMPT_KEY);
                 spirit.getPersistentData().putBoolean(FUGA_UNLOCK_MIGRATION_KEY, true);
@@ -1040,12 +973,117 @@ public final class TukunaManager {
             }
         }
 
-        applyHostBuffs(
-                host,
-                next
-        );
-
+        applyHostBuffs(host, next);
+        applyReceptacleMilestone(host, next);
         return true;
+    }
+
+    private static boolean consumeOwnFinger(ServerPlayer tukuna) {
+        if (!hasSpectrum(tukuna) || (isGhost(tukuna) && !isPossessingSpirit(tukuna))) {
+            tukuna.displayClientMessage(Component.literal(
+                    "Sem um corpo sob seu controle, o dedo atravessa sua presença."
+            ).withStyle(ChatFormatting.DARK_PURPLE), true);
+            return false;
+        }
+
+        int current = selfFingerCount(tukuna);
+        if (current >= MAX_FINGERS) {
+            tukuna.displayClientMessage(Component.literal(
+                    "Sua força já carrega todos os fragmentos."
+            ).withStyle(ChatFormatting.DARK_RED), true);
+            return false;
+        }
+
+        int next = Math.min(MAX_FINGERS, current + 1);
+        tukuna.getPersistentData().putInt(SELF_FINGER_COUNT_KEY, next);
+        applyPossessionBuffs(tukuna, effectiveTukunaFingers(tukuna));
+
+        String text = switch (next) {
+            case 1 -> "Você reconhece o próprio dedo. A força volta como se nunca tivesse ido embora.";
+            case 5 -> "Sua própria energia começa a responder mais rápido que seus movimentos.";
+            case 10 -> "Grande parte da presença perdida já voltou para você.";
+            case 15 -> "O corpo que você controla mal consegue conter sua pressão.";
+            case 20 -> "Todos os seus fragmentos obedecem novamente.";
+            default -> "Outro fragmento retorna. Sua presença fica mais pesada.";
+        };
+        tukuna.displayClientMessage(Component.literal(text).withStyle(ChatFormatting.DARK_RED), false);
+        return true;
+    }
+
+    private static Component receptacleProgressMessage(int stage, String ownerName) {
+        String text = switch (stage) {
+            case 1 -> "Você comeu o dedo de " + ownerName + ". Você se sente mais forte, mas com uma consequência.";
+            case 2 -> "A força cresce. Por um instante, sua respiração parece pertencer a outra pessoa.";
+            case 3 -> "Algo acompanha seus movimentos um pouco tarde demais.";
+            case 4 -> "Sua sombra parece pesada. A sensação passa quando você tenta encará-la.";
+            case 5 -> "Sua visão perde o foco. Seu corpo abaixa a cabeça sozinho — mas o controle ainda é seu.";
+            case 6 -> "A presença volta ao silêncio, porém agora você sabe que ela está ouvindo.";
+            case 7 -> "Seus músculos respondem melhor. Seus pensamentos, nem tanto.";
+            case 8 -> "Um arrepio atravessa o corpo sem motivo aparente.";
+            case 9 -> "Por um segundo, você esquece quem iniciou o último movimento.";
+            case 10 -> "Seu coração dispara. A visão quase apaga e alguma coisa parece tentar acordar por dentro.";
+            case 11 -> "Quando a visão volta, a presença parece muito mais perto.";
+            case 12 -> "Sua força continua crescendo, mas o silêncio dentro da cabeça acabou.";
+            case 13 -> "Às vezes seus olhos procuram lugares que você não decidiu olhar.";
+            case 14 -> "Seu corpo parece ocupado demais para pertencer apenas a você.";
+            case 15 -> "A presença não pede mais espaço. Ela toma.";
+            case 16 -> "Depois do retorno, seus movimentos ainda carregam uma intenção que não é sua.";
+            case 17 -> "A divisão entre hospedeiro e presença está ficando fina demais.";
+            case 18 -> "Seu corpo reconhece aquela energia antes mesmo de você pensar nela.";
+            case 19 -> "Há uma sensação de porta aberta que você não consegue fechar.";
+            case 20 -> "A presença está completa. Em algum lugar dentro de você, uma única palavra ecoa: corpo.";
+            default -> "A presença cresce.";
+        };
+        return Component.literal(text).withStyle(stage >= 15 ? ChatFormatting.DARK_RED : ChatFormatting.RED);
+    }
+
+    private static void applyReceptacleMilestone(ServerPlayer host, int stage) {
+        if (stage == 5) {
+            sendFugaCinematic(host, PlayerCinematicPayload.TUKUNA_FINGER_REACTION, 60, true, 0.0F);
+            PacketDistributor.sendToPlayer(host, new TukunaViewS2CPayload(false, 54));
+            host.serverLevel().sendParticles(ParticleTypes.SOUL, host.getX(), host.getY()+0.9, host.getZ(),
+                    22, 0.45, 0.7, 0.45, 0.02);
+            host.serverLevel().playSound(null, host.blockPosition(), SoundEvents.SOUL_ESCAPE.value(),
+                    SoundSource.PLAYERS, 0.8F, 0.7F);
+        } else if (stage == 10) {
+            host.hurt(host.damageSources().generic(), 6.0F);
+            sendFugaCinematic(host, PlayerCinematicPayload.TUKUNA_FINGER_REACTION, 86, true, 0.18F);
+            PacketDistributor.sendToPlayer(host, new TukunaViewS2CPayload(false, 82));
+            host.serverLevel().playSound(null, host.blockPosition(), SoundEvents.WARDEN_HEARTBEAT,
+                    SoundSource.PLAYERS, 2.0F, 0.72F);
+        } else if (stage == 15) {
+            host.getPersistentData().putBoolean(FORCED_TAKEOVER_PENDING_KEY, true);
+            tryStartForcedTakeover(host);
+        } else if (stage == 20) {
+            host.displayClientMessage(Component.literal(
+                    "Você não sabe por quê, mas a palavra “corpo” parece importante."
+            ).withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC), true);
+        }
+    }
+
+    private static void tryStartForcedTakeover(ServerPlayer host) {
+        if (!host.getPersistentData().getBoolean(FORCED_TAKEOVER_PENDING_KEY)
+                || isFormerReceptacle(host)
+                || POSSESSIONS.containsKey(host.getUUID())
+                || PENDING_TAKEOVERS.containsKey(host.getUUID())) return;
+
+        UUID owner = spiritOwner(host);
+        if (owner == null) return;
+        ServerPlayer spirit = host.server.getPlayerList().getPlayer(owner);
+        if (spirit == null || !isGhost(spirit) || isPossessingSpirit(spirit)) return;
+
+        boolean spiritAlreadyPending =
+                PENDING_TAKEOVERS.values().stream()
+                        .anyMatch(stage -> stage.spiritId.equals(spirit.getUUID()));
+        if (spiritAlreadyPending) return;
+
+        host.getPersistentData().putBoolean(FORCED_TAKEOVER_PENDING_KEY, false);
+        VIEW_HOSTS.put(spirit.getUUID(), host.getUUID());
+        host.displayClientMessage(Component.literal(
+                "Seu corpo para de responder. A presença assume o controle."
+        ).withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD), false);
+        beginTakeover(host, spirit, host.server.getTickCount(), true, false,
+                FORCED_POSSESSION_TICKS, false);
     }
 
     public static ItemStack createFinger(
@@ -1075,13 +1113,8 @@ public final class TukunaManager {
 
         stack.set(
                 DataComponents.CUSTOM_NAME,
-                Component.literal(
-                                ownerName
-                                        + "'s Finger"
-                        )
-                        .withStyle(
-                                ChatFormatting.DARK_RED
-                        )
+                Component.literal("Dedo Amaldiçoado")
+                        .withStyle(ChatFormatting.DARK_RED)
         );
 
         return stack;
@@ -1141,6 +1174,102 @@ public final class TukunaManager {
                                 HOST_FINGER_COUNT_KEY
                         )
         );
+    }
+
+    public static int selfFingerCount(ServerPlayer player) {
+        return Math.max(0, player.getPersistentData().getInt(SELF_FINGER_COUNT_KEY));
+    }
+
+    public static boolean isFormerReceptacle(ServerPlayer player) {
+        return player.getPersistentData().getBoolean(FORMER_RECEPTACLE_KEY);
+    }
+
+    public static boolean beginForcedFeed(ServerPlayer actor, ServerPlayer target, ItemStack stack) {
+        UUID owner = fingerOwner(stack);
+        if (owner == null || !owner.equals(actor.getUUID()) || !hasSpectrum(actor)
+                || target == actor || !target.isAlive() || isFormerReceptacle(target)
+                || FORCED_FEEDS.containsKey(actor.getUUID()) || !aimedAt(actor, target)) return false;
+
+        FORCED_FEEDS.put(actor.getUUID(), new ForcedFeed(target.getUUID(), actor.server.getTickCount()));
+        PlayerControlLockManager.lockMovement(actor, FORCED_FEED_TICKS + 12);
+        PlayerControlLockManager.lockActions(actor, FORCED_FEED_TICKS + 12);
+        PlayerControlLockManager.lockMovement(target, FORCED_FEED_TICKS + 12);
+        PlayerControlLockManager.lockActions(target, FORCED_FEED_TICKS + 12);
+        sendFugaCinematic(actor, PlayerCinematicPayload.TUKUNA_FORCE_FEED, FORCED_FEED_TICKS + 18, false, 0);
+        sendFugaCinematic(target, PlayerCinematicPayload.TUKUNA_FORCED_EAT, FORCED_FEED_TICKS + 22, true, 0);
+        return true;
+    }
+
+    public static boolean isForceFeeding(ServerPlayer actor) {
+        return FORCED_FEEDS.containsKey(actor.getUUID());
+    }
+
+    public static boolean tickForcedFeed(ServerPlayer actor, ItemStack stack) {
+        ForcedFeed f = FORCED_FEEDS.get(actor.getUUID());
+        if (f == null) return false;
+        ServerPlayer target = actor.server.getPlayerList().getPlayer(f.targetId);
+        if (target == null || !target.isAlive() || !actor.isAlive() || !actor.isUsingItem()
+                || !actor.getUseItem().is(stack.getItem()) || !aimedAt(actor, target)) {
+            cancelForcedFeed(actor);
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean finishForcedFeed(ServerPlayer actor, ItemStack stack) {
+        ForcedFeed f = FORCED_FEEDS.remove(actor.getUUID());
+        if (f == null) return false;
+        ServerPlayer target = actor.server.getPlayerList().getPlayer(f.targetId);
+        clearForcedFeedLocks(actor, target);
+        if (actor.server.getTickCount() - f.startedAt < FORCED_FEED_TICKS - 3
+                || target == null || !target.isAlive() || !aimedAt(actor, target)) return false;
+        if (!consumeFinger(target, stack)) return false;
+
+        Vec3 back = actor.getLookAngle().scale(-0.48);
+        actor.setDeltaMovement(actor.getDeltaMovement().add(back.x, 0.10, back.z));
+        target.serverLevel().sendParticles(ParticleTypes.SOUL,
+                target.getX(), target.getEyeY()-0.12, target.getZ(), 18, 0.16, 0.12, 0.16, 0.035);
+        target.serverLevel().playSound(null, target.blockPosition(), SoundEvents.SOUL_ESCAPE.value(),
+                SoundSource.PLAYERS, 1.0F, 0.62F);
+        return true;
+    }
+
+    public static void cancelForcedFeed(ServerPlayer actor) {
+        ForcedFeed f = FORCED_FEEDS.remove(actor.getUUID());
+        if (f == null) return;
+        ServerPlayer target = actor.server.getPlayerList().getPlayer(f.targetId);
+        clearForcedFeedLocks(actor, target);
+        sendFugaCinematic(actor, PlayerCinematicPayload.CLEAR, 0, false, 0);
+        if (target != null) sendFugaCinematic(target, PlayerCinematicPayload.CLEAR, 0, false, 0);
+    }
+
+    private static void clearForcedFeedLocks(ServerPlayer actor, ServerPlayer target) {
+        PlayerControlLockManager.clearMovement(actor);
+        PlayerControlLockManager.clearActions(actor);
+        if (target != null) {
+            PlayerControlLockManager.clearMovement(target);
+            PlayerControlLockManager.clearActions(target);
+        }
+    }
+
+    private static boolean aimedAt(ServerPlayer actor, ServerPlayer target) {
+        if (actor.distanceToSqr(target) > 25 || !actor.hasLineOfSight(target)) return false;
+        Vec3 to = target.getEyePosition().subtract(actor.getEyePosition());
+        return to.lengthSqr() < 1.0E-6 || actor.getLookAngle().dot(to.normalize()) >= 0.90;
+    }
+
+    private static void tickForcedFeeds(MinecraftServer server, long tick) {
+        List<UUID> cancel = new ArrayList<>();
+        for (Map.Entry<UUID, ForcedFeed> e : FORCED_FEEDS.entrySet()) {
+            ServerPlayer a = server.getPlayerList().getPlayer(e.getKey());
+            ServerPlayer t = server.getPlayerList().getPlayer(e.getValue().targetId);
+            if (a == null || t == null || !a.isAlive() || !t.isAlive()
+                    || tick - e.getValue().startedAt > FORCED_FEED_TICKS + 20) cancel.add(e.getKey());
+        }
+        for (UUID id : cancel) {
+            ServerPlayer a = server.getPlayerList().getPlayer(id);
+            if (a != null) cancelForcedFeed(a); else FORCED_FEEDS.remove(id);
+        }
     }
 
     public static UUID spiritOwner(
@@ -1223,26 +1352,24 @@ public final class TukunaManager {
             MinecraftServer server,
             UUID spiritId
     ) {
-        for (ServerPlayer player :
-                server.getPlayerList()
-                        .getPlayers()) {
-
-            UUID owner =
-                    spiritOwner(
-                            player
-                    );
-
-            if (spiritId.equals(
-                    owner
-            )
-                    && fingerCount(
-                    player
-            ) > 0) {
-                return player;
-            }
+        UUID preferred = VIEW_HOSTS.get(spiritId);
+        if (preferred != null) {
+            ServerPlayer p = server.getPlayerList().getPlayer(preferred);
+            if (p != null && p.isAlive() && spiritId.equals(spiritOwner(p))
+                    && fingerCount(p) > 0 && !isFormerReceptacle(p)) return p;
+            VIEW_HOSTS.remove(spiritId);
         }
 
-        return null;
+        ServerPlayer best = null;
+        int bestCount = -1;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            int count = fingerCount(p);
+            if (!p.isAlive() || isFormerReceptacle(p) || count <= 0
+                    || !spiritId.equals(spiritOwner(p))) continue;
+            if (count > bestCount) { best = p; bestCount = count; }
+        }
+        if (best != null) VIEW_HOSTS.put(spiritId, best.getUUID());
+        return best;
     }
 
     private static boolean handlePactSpeech(ServerPlayer speaker, String raw) {
@@ -1709,22 +1836,13 @@ public final class TukunaManager {
 
         int fingers;
 
-        if (hasSpectrum(player)) {
-            fingers =
-                    MAX_FINGERS;
-
+        Possession activePossession = possessionForSpirit(player.getUUID());
+        if (activePossession != null) {
+            fingers = Math.max(activePossession.fingers, selfFingerCount(player));
+        } else if (hasSpectrum(player)) {
+            fingers = effectiveTukunaFingers(player);
         } else {
-            Possession possession =
-                    possessionForSpirit(
-                            player.getUUID()
-                    );
-
-            if (possession == null) {
-                return;
-            }
-
-            fingers =
-                    possession.fingers;
+            return;
         }
 
         long until =
@@ -2584,8 +2702,20 @@ public final class TukunaManager {
     private static void beginTakeover(ServerPlayer host, ServerPlayer spirit,
                                       long tick, boolean dangerous, boolean pacifist,
                                       int durationTicks, boolean negotiated) {
-        if (POSSESSIONS.containsKey(host.getUUID())
-                || PENDING_TAKEOVERS.containsKey(host.getUUID())) return;
+        boolean spiritAlreadyPending =
+                PENDING_TAKEOVERS.values().stream()
+                        .anyMatch(stage -> stage.spiritId.equals(spirit.getUUID()));
+
+        if (isFormerReceptacle(host)
+                || POSSESSIONS.containsKey(host.getUUID())
+                || PENDING_TAKEOVERS.containsKey(host.getUUID())
+                || isPossessingSpirit(spirit)
+                || spiritAlreadyPending) return;
+
+        VIEW_HOSTS.put(spirit.getUUID(), host.getUUID());
+        PacketDistributor.sendToPlayer(host, new TukunaViewS2CPayload(false, TAKEOVER_TICKS));
+        syncTukunaMarks(host, true, 54);
+
         PENDING_TAKEOVERS.put(host.getUUID(), new PendingTakeover(
                 spirit.getUUID(), tick + TAKEOVER_TICKS, dangerous, pacifist, durationTicks, negotiated));
         PlayerControlLockManager.lockMovement(host, TAKEOVER_TICKS);
@@ -2694,6 +2824,10 @@ public final class TukunaManager {
                 host.getUUID(),
                 possession
         );
+
+        VIEW_HOSTS.remove(spirit.getUUID());
+        PacketDistributor.sendToPlayer(spirit, new TukunaViewS2CPayload(false, 0));
+        syncTukunaMarks(spirit, true, 10);
 
         SpectrumAccess.syncPossession(host, spirit);
 
@@ -2853,6 +2987,7 @@ public final class TukunaManager {
             if (possession.endTick == Long.MAX_VALUE && tick % 10L == 0L) {
                 emitIndefiniteAura(spirit, tick, false);
             }
+            if (tick % 40L == 0L) syncTukunaMarks(spirit, true, 1);
 
             long remaining =
                     possession.endTick
@@ -2992,6 +3127,10 @@ public final class TukunaManager {
                         false, false, false
                 )
         );
+        syncTukunaMarks(spirit, false, 40);
+        syncTukunaMarks(host, false, 54);
+        PacketDistributor.sendToPlayer(spirit, new TukunaViewS2CPayload(true, 0));
+        VIEW_HOSTS.put(spirit.getUUID(), host.getUUID());
         if (possession.contractMusic) {
             PacketDistributor.sendToPlayer(spirit,
                     new TukunaPossessionS2CPayload(false, false, false));
@@ -3087,6 +3226,8 @@ public final class TukunaManager {
                         false, false, false
                 )
         );
+        syncTukunaMarks(host, false, 24);
+        PacketDistributor.sendToPlayer(host, new TukunaViewS2CPayload(false, 0));
     }
 
     private static void teleportTo(
@@ -3278,6 +3419,86 @@ public final class TukunaManager {
         );
     }
 
+    private static void syncTukunaMarks(ServerPlayer body, boolean active, int ticks) {
+        PacketDistributor.sendToPlayersNear(body.serverLevel(), null,
+                body.getX(), body.getY(), body.getZ(), 160,
+                new TukunaMarkS2CPayload(body.getUUID(), active, Math.max(1, ticks)));
+    }
+
+    private static boolean tryReclaimBody(ServerPlayer spirit) {
+        if (!hasSpectrum(spirit)) return false;
+        Possession possession = possessionForSpirit(spirit.getUUID());
+        ServerPlayer host = possession != null
+                ? spirit.server.getPlayerList().getPlayer(possession.hostId)
+                : isGhost(spirit) ? hostForSpirit(spirit.server, spirit.getUUID()) : null;
+        if (host == null) return false;
+
+        if (fingerCount(host) < MAX_FINGERS || !spirit.getUUID().equals(spiritOwner(host))) {
+            spirit.displayClientMessage(Component.literal(
+                    "A palavra não encontra força suficiente para separar a presença do receptáculo."
+            ).withStyle(ChatFormatting.DARK_GRAY), true);
+            return true;
+        }
+
+        Vec3 originalHostPos = possession != null
+                ? spirit.position()
+                : host.position();
+        ServerLevel originalHostLevel = possession != null
+                ? spirit.serverLevel()
+                : host.serverLevel();
+        float yaw = possession != null
+                ? spirit.getYRot()
+                : host.getYRot();
+        float pitch = possession != null
+                ? spirit.getXRot()
+                : host.getXRot();
+
+        if (possession != null) {
+            POSSESSIONS.remove(host.getUUID());
+            host.setCamera(host);
+            teleportTo(host, spirit.serverLevel(), spirit.position(), spirit.getYRot(), spirit.getXRot());
+            host.setGameMode(possession.hostMode);
+            PacketDistributor.sendToPlayer(host, new TukunaPossessionS2CPayload(false, false, false));
+            removePossessionBuffs(spirit);
+        }
+
+        host.getPersistentData().remove(HOST_SPIRIT_KEY);
+        host.getPersistentData().putBoolean(FORMER_RECEPTACLE_KEY, true);
+        host.getPersistentData().putBoolean(FORCED_TAKEOVER_PENDING_KEY, false);
+        host.getPersistentData().putInt(HOST_FINGER_COUNT_KEY, MAX_FINGERS);
+        applyHostBuffs(host, MAX_FINGERS);
+
+        spirit.getPersistentData().putBoolean(GHOST_KEY, false);
+        spirit.getPersistentData().putBoolean(BODY_RECLAIMED_KEY, true);
+        spirit.getPersistentData().putInt(SELF_FINGER_COUNT_KEY, MAX_FINGERS);
+        VIEW_HOSTS.remove(spirit.getUUID());
+
+        double angle = Math.toRadians(yaw);
+        teleportTo(spirit, originalHostLevel,
+                originalHostPos.add(-Math.sin(angle)*1.6, 0, Math.cos(angle)*1.6), yaw, pitch);
+        spirit.setGameMode(GameType.SURVIVAL);
+        spirit.setCamera(spirit);
+        PacketDistributor.sendToPlayer(spirit, new TukunaViewS2CPayload(false, 0));
+        applyPossessionBuffs(spirit, MAX_FINGERS);
+        SpectrumAccess.sync(spirit);
+
+        syncTukunaMarks(host, false, 56);
+        syncTukunaMarks(spirit, true, 42);
+        sendFugaCinematic(spirit, PlayerCinematicPayload.TUKUNA_RETURN, RETURN_TICKS, true, 0.18F);
+        spirit.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                spirit.getX(), spirit.getY()+1, spirit.getZ(), 64, .75, 1, .75, .08);
+        spirit.serverLevel().playSound(null, spirit.blockPosition(), SoundEvents.WITHER_SPAWN,
+                SoundSource.PLAYERS, 2.4F, .7F);
+
+        host.displayClientMessage(Component.literal(
+                "A presença abandona seu corpo. A força fica — a possessão não volta."
+        ).withStyle(ChatFormatting.GOLD), false);
+        spirit.displayClientMessage(Component.literal(
+                "CORPO. A presença se separa do receptáculo e volta a existir por conta própria."
+        ).withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD), false);
+        return true;
+    }
+
     private static void removeModifier(
             AttributeInstance instance,
             ResourceLocation id
@@ -3311,25 +3532,17 @@ public final class TukunaManager {
     private static int effectiveTukunaFingers(
             ServerPlayer player
     ) {
-        Possession possession =
-                possessionForSpirit(
-                        player.getUUID()
-                );
-
-        if (possession != null) {
-            return possession.fingers;
-        }
+        Possession possession = possessionForSpirit(player.getUUID());
+        if (possession != null) return Math.max(possession.fingers, selfFingerCount(player));
 
         if (isGhost(player)) {
-            ServerPlayer host =
-                    hostForSpirit(
-                            player.server,
-                            player.getUUID()
-                    );
+            ServerPlayer host = hostForSpirit(player.server, player.getUUID());
+            return Math.max(selfFingerCount(player), host == null ? 0 : fingerCount(host));
+        }
 
-            return host == null
-                    ? 0
-                    : fingerCount(host);
+        if (hasSpectrum(player)) {
+            if (player.getPersistentData().getBoolean(BODY_RECLAIMED_KEY)) return MAX_FINGERS;
+            return Math.max(1, selfFingerCount(player));
         }
 
         return fingerCount(player);
@@ -3463,6 +3676,8 @@ public final class TukunaManager {
     private record PendingTakeover(UUID spiritId, long readyAt,
                                    boolean dangerous, boolean pacifist,
                                    int durationTicks, boolean negotiated) {}
+
+    private record ForcedFeed(UUID targetId, long startedAt) {}
 
     private static final class Possession {
         private final UUID hostId;

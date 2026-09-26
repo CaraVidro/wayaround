@@ -1,13 +1,13 @@
 package net.caravidro.wayaround.content.item;
 
 import java.util.List;
-import java.util.UUID;
 
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -43,6 +43,55 @@ public final class TukunaFingerItem extends Item {
     }
 
     @Override
+    public InteractionResult interactLivingEntity(
+            ItemStack stack,
+            Player player,
+            LivingEntity target,
+            InteractionHand hand
+    ) {
+        if (!(target instanceof Player)) {
+            return InteractionResult.PASS;
+        }
+
+        if (!player.level().isClientSide
+                && player instanceof ServerPlayer actor
+                && target instanceof ServerPlayer receptacle) {
+            if (!TukunaManager.beginForcedFeed(actor, receptacle, stack)) {
+                return InteractionResult.PASS;
+            }
+        }
+
+        player.startUsingItem(hand);
+        return InteractionResult.SUCCESS;
+    }
+
+    @Override
+    public void onUseTick(
+            Level level,
+            LivingEntity living,
+            ItemStack stack,
+            int remainingUseDuration
+    ) {
+        if (!level.isClientSide
+                && living instanceof ServerPlayer actor) {
+            TukunaManager.tickForcedFeed(actor, stack);
+        }
+    }
+
+    @Override
+    public void releaseUsing(
+            ItemStack stack,
+            Level level,
+            LivingEntity living,
+            int timeCharged
+    ) {
+        if (!level.isClientSide
+                && living instanceof ServerPlayer actor) {
+            TukunaManager.cancelForcedFeed(actor);
+        }
+    }
+
+    @Override
     public int getUseDuration(
             ItemStack stack,
             LivingEntity entity
@@ -66,10 +115,23 @@ public final class TukunaFingerItem extends Item {
         if (!level.isClientSide
                 && living instanceof ServerPlayer player) {
 
-            if (TukunaManager.consumeFinger(
-                    player,
-                    stack
-            )) {
+            boolean wasForceFeeding =
+                    TukunaManager.isForceFeeding(
+                            player
+                    );
+
+            boolean forced =
+                    TukunaManager.finishForcedFeed(
+                            player,
+                            stack
+                    );
+
+            if (forced
+                    || (!wasForceFeeding
+                    && TukunaManager.consumeFinger(
+                            player,
+                            stack
+                    ))) {
                 stack.shrink(
                         1
                 );
@@ -86,16 +148,6 @@ public final class TukunaFingerItem extends Item {
             List<Component> tooltip,
             TooltipFlag flag
     ) {
-        UUID owner =
-                TukunaManager.fingerOwner(
-                        stack
-                );
-
-        String ownerName =
-                TukunaManager.fingerOwnerName(
-                        stack
-                );
-
         tooltip.add(
                 Component.translatable(
                                 "tooltip.wayaround.tukuna_finger"
@@ -105,24 +157,14 @@ public final class TukunaFingerItem extends Item {
                         )
         );
 
-        if (owner != null) {
-            tooltip.add(
-                    Component.literal(
-                                    "Soul: "
-                                            + (
-                                            ownerName.isBlank()
-                                                    ? owner.toString()
-                                                            .substring(
-                                                                    0,
-                                                                    8
-                                                            )
-                                                    : ownerName
-                                    )
-                            )
-                            .withStyle(
-                                    ChatFormatting.DARK_GRAY
-                            )
-            );
-        }
+        tooltip.add(
+                Component.literal(
+                                "Há alguma coisa presa aqui."
+                        )
+                        .withStyle(
+                                ChatFormatting.DARK_GRAY,
+                                ChatFormatting.ITALIC
+                        )
+        );
     }
 }

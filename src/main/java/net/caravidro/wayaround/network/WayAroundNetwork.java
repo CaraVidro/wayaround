@@ -105,6 +105,18 @@ public final class WayAroundNetwork {
         );
 
         registrar.playToClient(
+                TukunaViewS2CPayload.TYPE,
+                TukunaViewS2CPayload.STREAM_CODEC,
+                TukunaViewS2CPayload::handle
+        );
+
+        registrar.playToClient(
+                TukunaMarkS2CPayload.TYPE,
+                TukunaMarkS2CPayload.STREAM_CODEC,
+                TukunaMarkS2CPayload::handle
+        );
+
+        registrar.playToClient(
                 SpectrumUnlockS2CPayload.TYPE,
                 SpectrumUnlockS2CPayload.STREAM_CODEC,
                 SpectrumUnlockS2CPayload::handle

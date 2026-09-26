@@ -45,3 +45,15 @@ Fuga aquece o centro ao máximo de 3200, com queda espacial; corte de fogo aplic
 7. Teste também no Void com relíquia desbloqueada e compare tecla, voz e chat; feche o menu para retomar a hotbar.
 
 Build e regressões matemáticas não substituem verificar poses, cores e equilíbrio no jogo.
+
+
+## Tukuna: progressão de receptáculos (1.0.6)
+
+- Um mesmo Tukuna pode manter vários receptáculos. Fora de uma possessão, o espírito fica ancorado à visão em primeira pessoa de um receptáculo disponível e F5 é bloqueado.
+- Durante a troca, o receptáculo perde foco, a imagem escurece e símbolos/faixas de Tukuna aparecem **pixel por pixel** sobre o modelo, sem depender da skin. No retorno eles desaparecem do mesmo jeito.
+- Depois que Tukuna assume, os papéis invertem: ele controla o corpo e pode usar F5; o receptáculo apenas observa. Chat e microfone do receptáculo continuam bloqueados no servidor.
+- O receptáculo conserva os dedos incorporados ao morrer. Quando Tukuna já recuperou um corpo próprio e morre, o conjunto de dedos volta ao mundo.
+- Tukuna pode comer os próprios dedos enquanto controla um corpo; essa força fica salva no espírito.
+- Com um dedo próprio na mão, segurar botão direito mirando outro jogador inicia alimentação forçada. Perder a mira, sair do alcance ou soltar antes do fim cancela.
+- O chat não revela contagem ou “quantos faltam”. Cada dedo tem uma mensagem narrativa própria. Marcos: 5 = visão ruim/aura sem posse; 10 = dano/quase-apagão/batida; 15 = posse obrigatória por 5 minutos; 20 = a palavra **corpo** passa a separar Tukuna do receptáculo.
+- Depois de **corpo**, o antigo receptáculo fica com os buffs e imune a novas possessões. O estado também fica persistido como gancho para um Spectrum exclusivo futuro.

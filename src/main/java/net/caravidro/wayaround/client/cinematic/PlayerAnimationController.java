@@ -274,6 +274,15 @@ public final class PlayerAnimationController {
             case PlayerCinematicPayload.TUKUNA_TAKEOVER, PlayerCinematicPayload.TUKUNA_RETURN ->
                     applyTukunaTakeover(model, age, tukunaBowWeight(state));
 
+            case PlayerCinematicPayload.TUKUNA_FINGER_REACTION ->
+                    applyTukunaFingerReaction(model, age);
+
+            case PlayerCinematicPayload.TUKUNA_FORCE_FEED ->
+                    applyTukunaForceFeed(model, age);
+
+            case PlayerCinematicPayload.TUKUNA_FORCED_EAT ->
+                    applyTukunaForcedEat(model, age);
+
             default -> {
             }
         }
@@ -893,6 +902,52 @@ public final class PlayerAnimationController {
         model.body.xRot =
                 0.10F
                         * p;
+    }
+
+    private static void applyTukunaFingerReaction(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float enter = ease(age / 10.0F);
+        float leave = ease(Mth.clamp((age - 42.0F) / 18.0F, 0.0F, 1.0F));
+        float weight = enter * (1.0F - leave);
+
+        model.body.xRot += 0.38F * weight;
+        model.head.xRot += 0.78F * weight;
+        model.leftArm.xRot += 0.18F * weight;
+        model.rightArm.xRot += 0.18F * weight;
+    }
+
+    private static void applyTukunaForceFeed(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float enter = ease(age / 8.0F);
+        float leave = ease(Mth.clamp((age - 34.0F) / 14.0F, 0.0F, 1.0F));
+        float weight = enter * (1.0F - leave);
+
+        model.body.xRot += 0.20F * weight;
+        model.body.yRot -= 0.18F * weight;
+        model.rightArm.xRot = Mth.lerp(weight, model.rightArm.xRot, -1.78F);
+        model.rightArm.yRot = Mth.lerp(weight, model.rightArm.yRot, -0.18F);
+        model.leftArm.xRot = Mth.lerp(weight, model.leftArm.xRot, -0.44F);
+        model.head.xRot -= 0.16F * weight;
+    }
+
+    private static void applyTukunaForcedEat(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float up = ease(Mth.clamp(age / 8.0F, 0.0F, 1.0F))
+                * (1.0F - ease(Mth.clamp((age - 24.0F) / 8.0F, 0.0F, 1.0F)));
+
+        float down = ease(Mth.clamp((age - 28.0F) / 7.0F, 0.0F, 1.0F))
+                * (1.0F - ease(Mth.clamp((age - 43.0F) / 10.0F, 0.0F, 1.0F)));
+
+        model.head.xRot += -0.88F * up + 0.82F * down;
+        model.body.xRot += 0.16F * down;
+        model.leftArm.xRot += 0.10F * down;
+        model.rightArm.xRot += 0.10F * down;
     }
 
     private static void applyTukunaTakeover(PlayerModel<?> model, float age, float weight) {
