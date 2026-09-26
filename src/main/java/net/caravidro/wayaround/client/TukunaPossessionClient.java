@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.client;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.sound.TukunaContractSound;
 import net.minecraft.client.CameraType;
@@ -32,6 +36,11 @@ public final class TukunaPossessionClient {
     private static int musicRetryTicks;
     private static CameraType previousCamera;
 
+    private static final Map<UUID, VisualLink> VISUAL_LINKS =
+            new HashMap<>();
+
+    private static final long VISUAL_LINK_TIMEOUT_TICKS = 90L;
+
     private TukunaPossessionClient() {
     }
 
@@ -45,6 +54,52 @@ public final class TukunaPossessionClient {
 
     public static boolean isHostWatchingPossession() {
         return possessed;
+    }
+
+    public static void setVisualLink(
+            UUID controller,
+            UUID body,
+            boolean active
+    ) {
+        if (!active) {
+            VISUAL_LINKS.remove(controller);
+            return;
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        long seenAt = minecraft.level == null
+                ? 0L
+                : minecraft.level.getGameTime();
+
+        VISUAL_LINKS.put(
+                controller,
+                new VisualLink(body, seenAt)
+        );
+    }
+
+    public static boolean isHiddenController(
+            UUID player
+    ) {
+        return VISUAL_LINKS.containsKey(player);
+    }
+
+    public static UUID controllerForBody(
+            UUID body
+    ) {
+        for (Map.Entry<UUID, VisualLink> entry : VISUAL_LINKS.entrySet()) {
+            if (entry.getValue().body.equals(body)) {
+                return entry.getKey();
+            }
+        }
+
+        return null;
+    }
+
+    public static UUID bodyForController(
+            UUID controller
+    ) {
+        VisualLink link = VISUAL_LINKS.get(controller);
+        return link == null ? null : link.body;
     }
 
     public static void setPossessed(
@@ -169,6 +224,15 @@ public final class TukunaPossessionClient {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
+        if (minecraft.level == null) {
+            VISUAL_LINKS.clear();
+        } else {
+            long now = minecraft.level.getGameTime();
+            VISUAL_LINKS.entrySet().removeIf(entry ->
+                    now - entry.getValue().lastSeen > VISUAL_LINK_TIMEOUT_TICKS
+            );
+        }
+
         if (musicRetryTicks > 0) {
             musicRetryTicks--;
         }
@@ -228,4 +292,9 @@ public final class TukunaPossessionClient {
                     );
         }
     }
+
+    private record VisualLink(
+            UUID body,
+            long lastSeen
+    ) {}
 }

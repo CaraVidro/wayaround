@@ -21,8 +21,6 @@ import net.caravidro.wayaround.network.TukunaMarkS2CPayload;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
-import net.caravidro.wayaround.spectrum.SpectrumAccess;
-import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.GameRenderer;
 import net.neoforged.api.distmarker.Dist;
@@ -65,30 +63,38 @@ public final class TukunaMarkRenderer {
     }
 
     @SubscribeEvent
-    public static void hideBodyInsidePossessionCamera(RenderPlayerEvent.Pre event) {
+    public static void hidePossessionRenderArtifacts(RenderPlayerEvent.Pre event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) return;
 
-        State state = STATES.get(event.getEntity().getUUID());
-        if (state == null || state.progress <= 0.0F) return;
+        UUID rendered = event.getEntity().getUUID();
 
-        // The receptacle watches through Tukuna's camera. Do not let its own
-        // synchronized body clip directly through that camera on its client.
-        if (event.getEntity() == minecraft.player
-                && TukunaPossessionClient.isHostWatchingPossession()) {
+        // The Tukuna controller must be completely absent visually. Server
+        // invisibility alone still allows armor/held-item layers to leak
+        // through, which is what produced the "second player" look.
+        if (TukunaPossessionClient.isHiddenController(rendered)) {
             event.setCanceled(true);
             return;
         }
 
-        // Tukuna controls an invisible player entity underneath, while the
-        // marked receptacle is the visible body. In first person only, hide
-        // that overlapping shell from Tukuna's own camera. In third person it
-        // stays visible, so F5 shows the receptacle skin + Tukuna markings.
-        if (minecraft.getCameraEntity() == minecraft.player
-                && minecraft.options.getCameraType() == CameraType.FIRST_PERSON
-                && SpectrumAccess.has(minecraft.player, SpectrumType.TUKUNA)
-                && event.getEntity() != minecraft.player
-                && event.getEntity().distanceToSqr(minecraft.player) < 0.36D) {
+        UUID controller =
+                TukunaPossessionClient.controllerForBody(rendered);
+
+        if (controller == null
+                || minecraft.options.getCameraType() != CameraType.FIRST_PERSON
+                || minecraft.getCameraEntity() == null) {
+            return;
+        }
+
+        UUID camera =
+                minecraft.getCameraEntity().getUUID();
+
+        // Both participants can have the camera exactly inside the visible
+        // receptacle body. Hide that shell only in first person; in F5 it is
+        // intentionally visible as the receptacle skin with Tukuna markings.
+        if (camera.equals(controller)
+                || (event.getEntity() == minecraft.player
+                && TukunaPossessionClient.isHostWatchingPossession())) {
             event.setCanceled(true);
         }
     }
@@ -166,36 +172,53 @@ public final class TukunaMarkRenderer {
             Part part,
             Pixel pixel
     ) {
-        float width = part == Part.BODY || part == Part.HEAD ? 0.5F : 0.25F;
-        float height = part == Part.HEAD ? 0.5F : 0.75F;
-        int cols = part == Part.BODY || part == Part.HEAD ? 8 : 4;
-        int rows = part == Part.HEAD ? 8 : 12;
+        Bounds bounds =
+                bounds(
+                        part
+                );
 
-        float minX = -width * 0.5F;
-        float minY;
-        float z;
+        int cols =
+                part == Part.BODY || part == Part.HEAD
+                        ? 8
+                        : 4;
 
-        if (part == Part.HEAD) {
-            // Vanilla head cube: y -8..0, z front -4 px.
-            // Hat layer is inflated by 0.5 px, so draw just outside it.
-            minY = -0.5F;
-            z = -0.286F;
-        } else if (part == Part.LEFT_ARM || part == Part.RIGHT_ARM) {
-            // Vanilla arms start at y=-2 px. Sleeve layer is +0.25 px.
-            minY = -0.125F;
-            z = -0.145F;
-        } else {
-            // Body/legs start at y=0. Jacket/pants layers are +0.25 px.
-            minY = 0.0F;
-            z = -0.145F;
-        }
+        int rows =
+                part == Part.HEAD
+                        ? 8
+                        : 12;
 
-        float px = width / cols;
-        float py = height / rows;
-        float x0 = minX + pixel.x * px;
-        float y0 = minY + pixel.y * py;
-        float x1 = x0 + px * 0.82F;
-        float y1 = y0 + py * 0.82F;
+        float px =
+                (bounds.maxX - bounds.minX)
+                        / cols;
+
+        float py =
+                (bounds.maxY - bounds.minY)
+                        / rows;
+
+        float x0 =
+                bounds.minX
+                        + pixel.x
+                                * px;
+
+        float y0 =
+                bounds.minY
+                        + pixel.y
+                                * py;
+
+        // Nearly connected pixels read as painted/tattooed lines instead of
+        // detached glowing LEDs.
+        float x1 =
+                x0
+                        + px
+                                * 0.96F;
+
+        float y1 =
+                y0
+                        + py
+                                * 0.96F;
+
+        float z =
+                bounds.frontZ;
 
         int a = pixel.argb >>> 24 & 255;
         int r = pixel.argb >>> 16 & 255;
@@ -208,48 +231,170 @@ public final class TukunaMarkRenderer {
         b.addVertex(matrix, x1, y0, z).setColor(r, g, blue, a);
     }
 
-    private static List<Pixel> buildPixels() {
-        List<Pixel> out = new ArrayList<>();
+    private static Bounds bounds(
+            Part part
+    ) {
+        return switch (part) {
+            case BODY ->
+                    new Bounds(
+                            -0.2500F,
+                            0.2500F,
+                            0.0000F,
+                            0.7500F,
+                            -0.1425F
+                    );
 
-        for (int y : new int[]{2, 3, 7, 8}) {
-            for (int x = 0; x < 8; x++) {
-                if ((x + y) % 3 != 1) out.add(new Pixel(Part.BODY, x, y, 0xE8C91522));
-            }
-        }
-        for (int y = 1; y < 11; y++) {
-            out.add(new Pixel(Part.BODY, 2 + Math.floorMod(y, 3), y, 0xF0180A0D));
-            out.add(new Pixel(Part.BODY, 5 - Math.floorMod(y, 3), y, 0xF0180A0D));
-        }
+            case HEAD ->
+                    new Bounds(
+                            -0.2500F,
+                            0.2500F,
+                            -0.5000F,
+                            0.0000F,
+                            -0.2835F
+                    );
 
-        int[][] face = {
-                {1,5},{2,5},{5,5},{6,5},
-                {1,4},{6,4},{2,3},{5,3},
-                {3,2},{4,2},{3,1},{4,1}
+            // Vanilla arm cubes are not centered on the part pivot.
+            case LEFT_ARM ->
+                    new Bounds(
+                            -0.0625F,
+                            0.1875F,
+                            -0.1250F,
+                            0.6250F,
+                            -0.1425F
+                    );
+
+            case RIGHT_ARM ->
+                    new Bounds(
+                            -0.1875F,
+                            0.0625F,
+                            -0.1250F,
+                            0.6250F,
+                            -0.1425F
+                    );
+
+            case LEFT_LEG, RIGHT_LEG ->
+                    new Bounds(
+                            -0.1250F,
+                            0.1250F,
+                            0.0000F,
+                            0.7500F,
+                            -0.1425F
+                    );
         };
-        for (int[] p : face) out.add(new Pixel(Part.HEAD, p[0], p[1], 0xF0B70F1A));
-
-        for (Part part : new Part[]{Part.LEFT_ARM, Part.RIGHT_ARM}) {
-            for (int y : new int[]{3,4,8,9}) {
-                for (int x = 0; x < 4; x++) {
-                    out.add(new Pixel(part, x, y,
-                            (x+y)%2==0 ? 0xE8C91522 : 0xE8180A0D));
-                }
-            }
-        }
-
-        for (Part part : new Part[]{Part.LEFT_LEG, Part.RIGHT_LEG}) {
-            for (int y : new int[]{2,3,7,8}) {
-                for (int x = 0; x < 4; x++) {
-                    if ((x + y) % 3 != 0) {
-                        out.add(new Pixel(part, x, y,
-                                (x+y)%2==0 ? 0xE8C91522 : 0xE8180A0D));
-                    }
-                }
-            }
-        }
-
-        return List.copyOf(out);
     }
+
+    private static List<Pixel> buildPixels() {
+        List<Pixel> out =
+                new ArrayList<>();
+
+        int ink =
+                0xEE26070C;
+
+        int crimson =
+                0xE05D0B16;
+
+        int accent =
+                0xD8881422;
+
+        // Torso: one central sigil with two restrained bands. This is
+        // deliberately sparse so the skin still reads as the receptacle.
+        for (int x = 1; x <= 6; x++) {
+            if (x != 3 && x != 4) {
+                out.add(new Pixel(Part.BODY, x, 3, crimson));
+                out.add(new Pixel(Part.BODY, x, 8, ink));
+            }
+        }
+
+        for (int y = 1; y <= 10; y++) {
+            if (y != 5 && y != 6) {
+                out.add(new Pixel(Part.BODY, 3, y, ink));
+                if ((y & 1) == 0) {
+                    out.add(new Pixel(Part.BODY, 4, y, crimson));
+                }
+            }
+        }
+
+        out.add(new Pixel(Part.BODY, 2, 2, accent));
+        out.add(new Pixel(Part.BODY, 5, 2, accent));
+        out.add(new Pixel(Part.BODY, 2, 9, crimson));
+        out.add(new Pixel(Part.BODY, 5, 9, crimson));
+
+        // Face: cheek slashes + a short forehead mark.
+        int[][] face = {
+                {1,5},{2,5},
+                {5,5},{6,5},
+                {2,4},{5,4},
+                {3,1},{4,1},
+                {3,2},{4,2}
+        };
+
+        for (int[] p : face) {
+            out.add(
+                    new Pixel(
+                            Part.HEAD,
+                            p[0],
+                            p[1],
+                            p[1] <= 2
+                                    ? ink
+                                    : crimson
+                    )
+            );
+        }
+
+        // Arms: continuous bands rather than checkerboard speckles.
+        for (Part part : new Part[]{Part.LEFT_ARM, Part.RIGHT_ARM}) {
+            for (int y : new int[]{3, 8}) {
+                for (int x = 0; x < 4; x++) {
+                    out.add(
+                            new Pixel(
+                                    part,
+                                    x,
+                                    y,
+                                    y == 3
+                                            ? crimson
+                                            : ink
+                            )
+                    );
+                }
+            }
+
+            out.add(new Pixel(part, 1, 5, accent));
+            out.add(new Pixel(part, 2, 6, ink));
+        }
+
+        // Legs: two lower bands and a small diagonal rune.
+        for (Part part : new Part[]{Part.LEFT_LEG, Part.RIGHT_LEG}) {
+            for (int y : new int[]{8, 9}) {
+                for (int x = 0; x < 4; x++) {
+                    out.add(
+                            new Pixel(
+                                    part,
+                                    x,
+                                    y,
+                                    y == 8
+                                            ? ink
+                                            : crimson
+                            )
+                    );
+                }
+            }
+
+            out.add(new Pixel(part, 1, 4, accent));
+            out.add(new Pixel(part, 2, 5, crimson));
+        }
+
+        return List.copyOf(
+                out
+        );
+    }
+
+    private record Bounds(
+            float minX,
+            float maxX,
+            float minY,
+            float maxY,
+            float frontZ
+    ) {}
 
     private enum Part { BODY, HEAD, LEFT_ARM, RIGHT_ARM, LEFT_LEG, RIGHT_LEG }
     private record Pixel(Part part, int x, int y, int argb) {}

@@ -22,6 +22,7 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.TukunaPossessionS2CPayload;
+import net.caravidro.wayaround.network.TukunaPossessionVisualS2CPayload;
 import net.caravidro.wayaround.network.TukunaViewS2CPayload;
 import net.caravidro.wayaround.network.TukunaMarkS2CPayload;
 import net.caravidro.wayaround.network.TukunaFugaVisualPayload;
@@ -2818,7 +2819,8 @@ public final class TukunaManager {
                         dangerous,
                         pacifist,
                         negotiated,
-                        contractMusic
+                        contractMusic,
+                        spirit.isInvisible()
                 );
 
         POSSESSIONS.put(
@@ -2848,6 +2850,12 @@ public final class TukunaManager {
         );
 
         spirit.setInvisible(true);
+
+        syncPossessionVisual(
+                host,
+                spirit.getUUID(),
+                true
+        );
 
         // Finish the bowed pose looking forward as control transfers.
         spirit.setYRot(host.getYRot());
@@ -2954,27 +2962,76 @@ public final class TukunaManager {
 
             if (host == null
                     || spirit == null
+                    || !host.isAlive()
                     || !spirit.isAlive()) {
 
                 if (host != null) {
-                    emergencyRestoreHost(
+                    syncPossessionVisual(
                             host,
-                            possession.hostMode
+                            possession.spiritId,
+                            false
                     );
+
+                    if (host.isAlive()) {
+                        emergencyRestoreHost(
+                                host,
+                                possession.hostMode,
+                                possession.spiritId
+                        );
+                    } else {
+                        PlayerControlLockManager.clearMovement(
+                                host
+                        );
+                        PlayerControlLockManager.clearActions(
+                                host
+                        );
+                    }
                 }
 
                 if (spirit != null) {
-                    spirit.setGameMode(
-                            GameType.SPECTATOR
+                    spirit.setInvisible(
+                            possession.spiritInvisibleBefore
                     );
 
                     removePossessionBuffs(
                             spirit
                     );
-                    if (possession.contractMusic) {
-                        PacketDistributor.sendToPlayer(spirit,
-                                new TukunaPossessionS2CPayload(false, false, false));
+
+                    if (spirit.isAlive()) {
+                        spirit.setGameMode(
+                                GameType.SPECTATOR
+                        );
+
+                        spirit.setCamera(
+                                spirit
+                        );
+
+                        PacketDistributor.sendToPlayer(
+                                spirit,
+                                new TukunaViewS2CPayload(
+                                        false,
+                                        0
+                                )
+                        );
                     }
+
+                    PacketDistributor.sendToPlayer(
+                            spirit,
+                            new TukunaPossessionS2CPayload(
+                                    false,
+                                    false,
+                                    false
+                            )
+                    );
+
+                    PacketDistributor.sendToPlayer(
+                            spirit,
+                            new TukunaPossessionVisualS2CPayload(
+                                    possession.spiritId,
+                                    possession.hostId,
+                                    false
+                            )
+                    );
                 }
 
                 iterator.remove();
@@ -2999,7 +3056,20 @@ public final class TukunaManager {
             if (possession.endTick == Long.MAX_VALUE && tick % 10L == 0L) {
                 emitIndefiniteAura(host, tick, false);
             }
-            if (tick % 40L == 0L) syncTukunaMarks(host, true, 1);
+
+            if (tick % 40L == 0L) {
+                syncTukunaMarks(
+                        host,
+                        true,
+                        1
+                );
+
+                syncPossessionVisual(
+                        host,
+                        spirit.getUUID(),
+                        true
+                );
+            }
 
             long remaining =
                     possession.endTick
@@ -3098,6 +3168,9 @@ public final class TukunaManager {
         host.setYHeadRot(
                 spirit.getYHeadRot()
         );
+        host.setYBodyRot(
+                spirit.getYBodyRot()
+        );
         host.setPose(
                 spirit.getPose()
         );
@@ -3152,7 +3225,15 @@ public final class TukunaManager {
                 possession.hostMode
         );
 
-        spirit.setInvisible(false);
+        syncPossessionVisual(
+                host,
+                spirit.getUUID(),
+                false
+        );
+
+        spirit.setInvisible(
+                possession.spiritInvisibleBefore
+        );
         spirit.setGameMode(
                 GameType.SPECTATOR
         );
@@ -3275,8 +3356,15 @@ public final class TukunaManager {
 
     private static void emergencyRestoreHost(
             ServerPlayer host,
-            GameType hostMode
+            GameType hostMode,
+            UUID spiritId
     ) {
+        syncPossessionVisual(
+                host,
+                spiritId,
+                false
+        );
+
         host.setCamera(
                 host
         );
@@ -3497,6 +3585,51 @@ public final class TukunaManager {
                 new TukunaMarkS2CPayload(body.getUUID(), active, Math.max(1, ticks)));
     }
 
+    private static void syncPossessionVisual(
+            ServerPlayer body,
+            UUID controller,
+            boolean active
+    ) {
+        TukunaPossessionVisualS2CPayload payload =
+                new TukunaPossessionVisualS2CPayload(
+                        controller,
+                        body.getUUID(),
+                        active
+                );
+
+        PacketDistributor.sendToPlayersNear(
+                body.serverLevel(),
+                null,
+                body.getX(),
+                body.getY(),
+                body.getZ(),
+                192,
+                payload
+        );
+
+        // The participants may sit on the edge of tracking/range changes.
+        // Send directly as well so first-person/F5 never depends on proximity.
+        PacketDistributor.sendToPlayer(
+                body,
+                payload
+        );
+
+        ServerPlayer spirit =
+                body.server
+                        .getPlayerList()
+                        .getPlayer(
+                                controller
+                        );
+
+        if (spirit != null
+                && spirit != body) {
+            PacketDistributor.sendToPlayer(
+                    spirit,
+                    payload
+            );
+        }
+    }
+
     private static boolean tryReclaimBody(ServerPlayer spirit) {
         if (!hasSpectrum(spirit)) return false;
         Possession possession = possessionForSpirit(spirit.getUUID());
@@ -3528,6 +3661,7 @@ public final class TukunaManager {
         if (possession != null) {
             syncPossessedBody(host, spirit);
             POSSESSIONS.remove(host.getUUID());
+            syncPossessionVisual(host, spirit.getUUID(), false);
             host.setCamera(host);
             PlayerControlLockManager.clearMovement(host);
             PlayerControlLockManager.clearActions(host);
@@ -3765,6 +3899,7 @@ public final class TukunaManager {
         private final boolean pacifist;
         private final boolean negotiated;
         private final boolean contractMusic;
+        private final boolean spiritInvisibleBefore;
 
         private boolean nearWarned;
         private boolean returningWarned;
@@ -3778,7 +3913,8 @@ public final class TukunaManager {
                 boolean dangerous,
                 boolean pacifist,
                 boolean negotiated,
-                boolean contractMusic
+                boolean contractMusic,
+                boolean spiritInvisibleBefore
         ) {
             this.hostId =
                     hostId;
@@ -3798,6 +3934,7 @@ public final class TukunaManager {
             this.pacifist = pacifist;
             this.negotiated = negotiated;
             this.contractMusic = contractMusic;
+            this.spiritInvisibleBefore = spiritInvisibleBefore;
         }
     }
 }
