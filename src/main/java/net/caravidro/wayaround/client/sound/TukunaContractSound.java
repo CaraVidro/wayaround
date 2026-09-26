@@ -9,7 +9,7 @@ import net.minecraft.sounds.SoundSource;
 /** Only the two participants hear this loop; it ends with the contract. */
 public final class TukunaContractSound extends AbstractTickableSoundInstance {
     public TukunaContractSound() {
-        super(WayAroundSounds.IN_MY_WAY.get(), SoundSource.MUSIC,
+        super(WayAroundSounds.IN_MY_WAY.get(), SoundSource.PLAYERS,
                 SoundInstance.createUnseededRandom());
         looping = TukunaPossessionClient.shouldLoopContractMusic();
         relative = true;
