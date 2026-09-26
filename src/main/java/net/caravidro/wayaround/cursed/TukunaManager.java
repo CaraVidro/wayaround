@@ -636,6 +636,226 @@ public final class TukunaManager {
         GHOST_NOTIFIED.clear();
     }
 
+    public static int debugSelfPossession(
+            ServerPlayer player
+    ) {
+        UUID id =
+                player.getUUID();
+
+        POSSESSIONS.remove(id);
+        PENDING_TAKEOVERS.remove(id);
+        SWAP_CONFIRMATIONS.remove(id);
+        CONTRACT_CONFIRMATIONS.remove(id);
+        FUGA_CHARGES.remove(id);
+
+        player.getPersistentData()
+                .putBoolean(
+                        GHOST_KEY,
+                        false
+                );
+
+        player.getPersistentData()
+                .putInt(
+                        HOST_FINGER_COUNT_KEY,
+                        19
+                );
+
+        player.getPersistentData()
+                .putInt(
+                        PACT_DURATION_KEY,
+                        -1
+                );
+
+        player.getPersistentData()
+                .putBoolean(
+                        PACT_INDEFINITE_KEY,
+                        true
+                );
+
+        player.getPersistentData()
+                .putBoolean(
+                        PACT_PACIFIST_KEY,
+                        false
+                );
+
+        player.getPersistentData()
+                .remove(
+                        FUGA_PHRASE_KEY
+                );
+
+        player.getPersistentData()
+                .remove(
+                        FUGA_PROMPT_KEY
+                );
+
+        player.getPersistentData()
+                .putBoolean(
+                        FUGA_UNLOCK_MIGRATION_KEY,
+                        true
+                );
+
+        SpectrumAccess.unlock(
+                player,
+                SpectrumType.TUKUNA
+        );
+
+        player.setGameMode(
+                GameType.SURVIVAL
+        );
+
+        removeHostBuffs(
+                player
+        );
+
+        removePossessionBuffs(
+                player
+        );
+
+        applyPossessionBuffs(
+                player,
+                19
+        );
+
+        PacketDistributor.sendToPlayer(
+                player,
+                new TukunaPossessionS2CPayload(
+                        true,
+                        true,
+                        true
+                )
+        );
+
+        promptFugaPhrase(
+                player
+        );
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "[Tukuna TEST] Auto-posse local ativada: 19 dedos | duração indeterminada | In My Way=ON | Fuga=destravada."
+                ).withStyle(
+                        ChatFormatting.GOLD,
+                        ChatFormatting.BOLD
+                )
+        );
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "[Tukuna TEST] Se a música não tocar, use /tukuna_test sound. Para encerrar: /tukuna_test stop."
+                ).withStyle(
+                        ChatFormatting.GRAY
+                )
+        );
+
+        return 1;
+    }
+
+    public static int debugSound(
+            ServerPlayer player
+    ) {
+        PacketDistributor.sendToPlayer(
+                player,
+                new TukunaPossessionS2CPayload(
+                        false,
+                        true,
+                        true
+                )
+        );
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "[Tukuna TEST] Payload de In My Way enviado diretamente ao cliente."
+                ).withStyle(
+                        ChatFormatting.LIGHT_PURPLE
+                )
+        );
+
+        return 1;
+    }
+
+    public static int debugStatus(
+            ServerPlayer player
+    ) {
+        String phrase =
+                player.getPersistentData()
+                        .getString(
+                                FUGA_PHRASE_KEY
+                        );
+
+        boolean prompted =
+                player.getPersistentData()
+                        .getBoolean(
+                                FUGA_PROMPT_KEY
+                        );
+
+        boolean migrated =
+                player.getPersistentData()
+                        .getBoolean(
+                                FUGA_UNLOCK_MIGRATION_KEY
+                        );
+
+        boolean indefinite =
+                player.getPersistentData()
+                        .getBoolean(
+                                PACT_INDEFINITE_KEY
+                        )
+                        || player.getPersistentData()
+                                .getInt(
+                                        PACT_DURATION_KEY
+                                ) < 0;
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "[Tukuna TEST] fingers="
+                                + effectiveTukunaFingers(player)
+                                + " | indefinite="
+                                + indefinite
+                                + " | spectrum="
+                                + hasSpectrum(player)
+                                + " | fugaPrompted="
+                                + prompted
+                                + " | fugaMigrated="
+                                + migrated
+                                + " | fugaWord="
+                                + (phrase.isBlank() ? "<nenhuma>" : phrase)
+                ).withStyle(
+                        ChatFormatting.AQUA
+                )
+        );
+
+        return 1;
+    }
+
+    public static int debugStop(
+            ServerPlayer player
+    ) {
+        PacketDistributor.sendToPlayer(
+                player,
+                new TukunaPossessionS2CPayload(
+                        false,
+                        false,
+                        false
+                )
+        );
+
+        FUGA_CHARGES.remove(
+                player.getUUID()
+        );
+
+        removePossessionBuffs(
+                player
+        );
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "[Tukuna TEST] Auto-posse local e música encerradas."
+                ).withStyle(
+                        ChatFormatting.GRAY
+                )
+        );
+
+        return 1;
+    }
+
     public static boolean consumeFinger(
             ServerPlayer host,
             ItemStack stack
