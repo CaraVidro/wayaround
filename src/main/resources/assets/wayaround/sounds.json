@@ -16,7 +16,13 @@
     ]
   },
   "in_my_way": {
-    "sounds": [{ "name": "wayaround:in_my_way", "stream": true }]
+    "sounds": [
+      {
+        "name": "wayaround:in_my_way",
+        "stream": false,
+        "preload": true
+      }
+    ]
   },
   "final_destination": {
     "sounds": [
