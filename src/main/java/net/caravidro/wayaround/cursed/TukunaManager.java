@@ -1984,13 +1984,13 @@ public final class TukunaManager {
             return;
         }
 
-        if (player.getPersistentData()
-                .getBoolean(
-                        FUGA_PROMPT_KEY
-                )) {
-            return;
-        }
-
+        /*
+         * Do not permanently silence this prompt. Older versions persisted a
+         * "prompted" bit even when the player never actually chose a word,
+         * which could leave Fuga configuration invisible forever. The call
+         * sites are event-like (unlock / possession), so re-prompting while
+         * the phrase is still empty is safe and useful.
+         */
         player.getPersistentData()
                 .putBoolean(
                         FUGA_PROMPT_KEY,
