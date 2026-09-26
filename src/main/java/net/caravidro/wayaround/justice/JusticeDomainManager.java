@@ -927,7 +927,7 @@ public final class JusticeDomainManager {
 
         owner.sendSystemMessage(
                 Component.literal(
-                        "Argumente pelo chat ou pelo Voice Chat. O juiz cruza sua fala com o Senso de Justiça."
+                        "Argumente pelo chat ou pelo Voice Chat. Para detalhes, provas e frases exatas, prefira o chat; para RP e fala natural, use a voz. O juiz cruza sua fala com o Senso de Justiça."
                 )
         );
 
@@ -936,7 +936,7 @@ public final class JusticeDomainManager {
 
             playerDefendant.sendSystemMessage(
                     Component.literal(
-                            "Você pode confessar, negar ou explicar pelo chat/voz. Uma confissão encerra o caso."
+                            "Você pode confessar, negar ou explicar pelo chat/voz. Para precisão, prefira o chat; para RP, a voz funciona normalmente. Uma confissão encerra o caso."
                     )
             );
         }
