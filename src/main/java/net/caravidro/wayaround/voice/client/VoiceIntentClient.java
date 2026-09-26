@@ -10,7 +10,6 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.BlueClientEffects;
 import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
-import net.caravidro.wayaround.network.TukunaVoiceStatementC2SPayload;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
 import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.minecraft.ChatFormatting;
@@ -263,6 +262,10 @@ public final class VoiceIntentClient {
 
         if (normalized.isBlank()) {
             return;
+        }
+
+        if (!handlingChatInput) {
+            showInputGuidanceOnce();
         }
 
         double globalUrgency =
