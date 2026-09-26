@@ -298,6 +298,16 @@ public final class InfinityManager {
             Vec3 center =
                     owner.getEyePosition();
 
+            state.centerMotion =
+                    state.lastCenter == null
+                            ? Vec3.ZERO
+                            : center.subtract(
+                                    state.lastCenter
+                            );
+
+            state.lastCenter =
+                    center;
+
             float radius =
                     radiusFor(
                             state.confidence
@@ -677,10 +687,9 @@ public final class InfinityManager {
                             );
 
             double ownerClosing =
-                    owner.getDeltaMovement()
-                            .dot(
-                                    outward
-                            );
+                    state.centerMotion.dot(
+                            outward
+                    );
 
             Vec3 next =
                     Vec3.ZERO;
@@ -1140,6 +1149,9 @@ public final class InfinityManager {
         private ResourceKey<Level> dimension;
         private float confidence;
         private long lastReinforcedTick;
+        private Vec3 lastCenter;
+        private Vec3 centerMotion =
+                Vec3.ZERO;
 
         private InfinityState(
                 UUID owner,
