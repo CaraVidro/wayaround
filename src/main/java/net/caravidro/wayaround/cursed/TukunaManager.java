@@ -26,6 +26,7 @@ import net.caravidro.wayaround.network.TukunaPossessionVisualS2CPayload;
 import net.caravidro.wayaround.network.TukunaViewS2CPayload;
 import net.caravidro.wayaround.network.TukunaMarkS2CPayload;
 import net.caravidro.wayaround.network.TukunaFugaVisualPayload;
+import net.caravidro.wayaround.network.TukunaSpeechVisualS2CPayload;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -213,6 +214,7 @@ public final class TukunaManager {
     private static final Map<UUID, ForcedFeed> FORCED_FEEDS = new HashMap<>();
     private static final Map<UUID, PactProposal> PACT_PROPOSALS = new HashMap<>();
     private static final Map<UUID, PendingTakeover> PENDING_TAKEOVERS = new HashMap<>();
+    private static final Map<UUID, Long> SPEECH_VISUAL_TICKS = new HashMap<>();
 
     private static final Set<UUID> SPECTRUM_PRESENT =
             new HashSet<>();
@@ -685,6 +687,7 @@ public final class TukunaManager {
         FORCED_FEEDS.clear();
         PACT_PROPOSALS.clear();
         PENDING_TAKEOVERS.clear();
+        SPEECH_VISUAL_TICKS.clear();
         RETURN_VISUALS.clear();
         DEBUG_SELF_POSSESSIONS.clear();
         SPECTRUM_PRESENT.clear();
@@ -1115,8 +1118,12 @@ public final class TukunaManager {
 
         stack.set(
                 DataComponents.CUSTOM_NAME,
-                Component.literal("Dedo Amaldiçoado")
-                        .withStyle(ChatFormatting.DARK_RED)
+                Component.literal(
+                        ownerName
+                                + "'s Finger"
+                ).withStyle(
+                        ChatFormatting.DARK_RED
+                )
         );
 
         return stack;
@@ -1334,6 +1341,83 @@ public final class TukunaManager {
      * body instead of around the ghost's spectator coordinates. This works
      * across dimensions because VoiceServer sends the audio to the host level.
      */
+    /**
+     * Sends a subtle visual cue on the avatar through which Tukuna's voice is
+     * currently perceived. Raw PCM frames call this repeatedly; throttling
+     * keeps the effect cheap while still letting the mouth animate in real time.
+     */
+    public static void pulseProjectedSpeech(
+            ServerPlayer spirit
+    ) {
+        ServerPlayer visualBody;
+
+        Possession possession =
+                possessionForSpirit(
+                        spirit.getUUID()
+                );
+
+        if (possession != null) {
+            // During possession the moving spirit/controller is the entity
+            // rendered with the receptacle's skin, so the mouth belongs here.
+            visualBody =
+                    spirit;
+        } else if (isGhost(
+                spirit
+        )) {
+            visualBody =
+                    hostForSpirit(
+                            spirit.server,
+                            spirit.getUUID()
+                    );
+        } else {
+            return;
+        }
+
+        if (visualBody == null
+                || !visualBody.isAlive()) {
+            return;
+        }
+
+        long now =
+                spirit.server
+                        .getTickCount();
+
+        long previous =
+                SPEECH_VISUAL_TICKS.getOrDefault(
+                        spirit.getUUID(),
+                        Long.MIN_VALUE / 2
+                );
+
+        if (now - previous < 2L) {
+            return;
+        }
+
+        SPEECH_VISUAL_TICKS.put(
+                spirit.getUUID(),
+                now
+        );
+
+        TukunaSpeechVisualS2CPayload payload =
+                new TukunaSpeechVisualS2CPayload(
+                        visualBody.getUUID()
+                );
+
+        PacketDistributor.sendToPlayersNear(
+                visualBody.serverLevel(),
+                null,
+                visualBody.getX(),
+                visualBody.getY(),
+                visualBody.getZ(),
+                96.0,
+                payload
+        );
+
+        PacketDistributor.sendToPlayer(
+                visualBody,
+                payload
+        );
+    }
+
     public static ServerPlayer projectedVoiceHost(
             ServerPlayer spirit
     ) {

@@ -71,13 +71,13 @@ public final class WarContent {
             );
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab>
-            WAR_WITHOUT_REASION =
+            WAR_WITHOUT_REASON =
             TABS.register(
-                    "war_without_reasion",
+                    "war_without_reason",
                     () -> CreativeModeTab.builder()
                             .title(
                                     Component.translatable(
-                                            "itemGroup.wayaround.war_without_reasion"
+                                            "itemGroup.wayaround.war_without_reason"
                                     )
                             )
                             .withTabsBefore(

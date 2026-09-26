@@ -24,6 +24,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -35,7 +36,11 @@ import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 public final class TukunaMarkRenderer {
 
     private static final Map<UUID, State> STATES = new HashMap<>();
+    private static final Map<UUID, SpeechState> SPEECH = new HashMap<>();
     private static final List<Pixel> PIXELS = buildPixels();
+
+    private static final long SPEECH_OPEN_GRACE_TICKS = 4L;
+    private static final long SPEECH_VISIBLE_TICKS = 16L;
 
     private TukunaMarkRenderer() {}
 
@@ -46,10 +51,72 @@ public final class TukunaMarkRenderer {
         if (payload.active() && state.progress <= 0) state.progress = Math.min(1, state.step);
     }
 
+    public static void receiveSpeech(
+            UUID body
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.level == null) {
+            return;
+        }
+
+        long now =
+                minecraft.level
+                        .getGameTime();
+
+        SpeechState speech =
+                SPEECH.computeIfAbsent(
+                        body,
+                        ignored ->
+                                new SpeechState()
+                );
+
+        speech.lastPulseTick =
+                now;
+
+        /*
+         * A tiny breath of soul-fire is enough to signal "that voice isn't
+         * the receptacle" without turning normal conversation into a combat VFX.
+         */
+        if (now - speech.lastAuraTick >= 4L) {
+            var entity =
+                    minecraft.level
+                            .getPlayerByUUID(
+                                    body
+                            );
+
+            if (entity != null) {
+                speech.lastAuraTick =
+                        now;
+
+                double angle =
+                        (now * 0.73D
+                                + body.hashCode() * 0.013D)
+                                % (Math.PI * 2.0D);
+
+                minecraft.level.addParticle(
+                        ParticleTypes.SOUL_FIRE_FLAME,
+                        entity.getX()
+                                + Math.cos(angle) * 0.32D,
+                        entity.getY()
+                                + 0.85D
+                                + (now % 5L) * 0.13D,
+                        entity.getZ()
+                                + Math.sin(angle) * 0.32D,
+                        0.0D,
+                        0.008D,
+                        0.0D
+                );
+            }
+        }
+    }
+
     @SubscribeEvent
     public static void tick(ClientTickEvent.Post event) {
         if (Minecraft.getInstance().level == null) {
             STATES.clear();
+            SPEECH.clear();
             return;
         }
 
@@ -62,6 +129,18 @@ public final class TukunaMarkRenderer {
             }
             return state.target == 0 && state.progress == 0;
         });
+
+        long now =
+                Minecraft.getInstance()
+                        .level
+                        .getGameTime();
+
+        SPEECH.entrySet()
+                .removeIf(
+                        entry ->
+                                now - entry.getValue().lastPulseTick
+                                        > SPEECH_VISIBLE_TICKS + 6L
+                );
     }
 
     @SubscribeEvent
@@ -81,13 +160,55 @@ public final class TukunaMarkRenderer {
 
     @SubscribeEvent
     public static void render(RenderPlayerEvent.Post event) {
-        State state = STATES.get(event.getEntity().getUUID());
-        if (state == null || state.progress <= 0) return;
+        UUID playerId =
+                event.getEntity()
+                        .getUUID();
 
-        int visible = Math.max(1, Math.min(
-                PIXELS.size(),
-                (int)Math.ceil(PIXELS.size() * state.progress)
-        ));
+        State state =
+                STATES.get(
+                        playerId
+                );
+
+        SpeechState speech =
+                SPEECH.get(
+                        playerId
+                );
+
+        long now =
+                Minecraft.getInstance().level == null
+                        ? Long.MIN_VALUE
+                        : Minecraft.getInstance().level.getGameTime();
+
+        long silence =
+                speech == null
+                        ? Long.MAX_VALUE
+                        : now - speech.lastPulseTick;
+
+        boolean marksVisible =
+                state != null
+                        && state.progress > 0.0F;
+
+        boolean mouthVisible =
+                silence <= SPEECH_VISIBLE_TICKS;
+
+        if (!marksVisible
+                && !mouthVisible) {
+            return;
+        }
+
+        int visible =
+                marksVisible
+                        ? Math.max(
+                                1,
+                                Math.min(
+                                        PIXELS.size(),
+                                        (int)Math.ceil(
+                                                PIXELS.size()
+                                                        * state.progress
+                                        )
+                                )
+                        )
+                        : 0;
 
         PlayerModel<?> model = event.getRenderer().getModel();
         PoseStack pose = event.getPoseStack();
@@ -134,17 +255,105 @@ public final class TukunaMarkRenderer {
         RenderSystem.depthMask(false);
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
 
-        int rendered = renderPart(pose, model.body, Part.BODY, visible, 0);
-        rendered = renderPart(pose, model.head, Part.HEAD, visible, rendered);
-        rendered = renderPart(pose, model.leftArm, Part.LEFT_ARM, visible, rendered);
-        rendered = renderPart(pose, model.rightArm, Part.RIGHT_ARM, visible, rendered);
-        rendered = renderPart(pose, model.leftLeg, Part.LEFT_LEG, visible, rendered);
-        renderPart(pose, model.rightLeg, Part.RIGHT_LEG, visible, rendered);
+        if (marksVisible) {
+            int rendered = renderPart(pose, model.body, Part.BODY, visible, 0);
+            rendered = renderPart(pose, model.head, Part.HEAD, visible, rendered);
+            rendered = renderPart(pose, model.leftArm, Part.LEFT_ARM, visible, rendered);
+            rendered = renderPart(pose, model.rightArm, Part.RIGHT_ARM, visible, rendered);
+            rendered = renderPart(pose, model.leftLeg, Part.LEFT_LEG, visible, rendered);
+            renderPart(pose, model.rightLeg, Part.RIGHT_LEG, visible, rendered);
+        }
+
+        if (mouthVisible) {
+            boolean open =
+                    silence <= SPEECH_OPEN_GRACE_TICKS
+                            && ((now / 3L) & 1L) == 0L;
+
+            renderSpeechMouth(
+                    pose,
+                    model.head,
+                    open
+            );
+        }
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
 
         pose.popPose();
+    }
+
+    private static void renderSpeechMouth(
+            PoseStack pose,
+            ModelPart head,
+            boolean open
+    ) {
+        pose.pushPose();
+        head.translateAndRotate(
+                pose
+        );
+
+        BufferBuilder buffer =
+                Tesselator.getInstance()
+                        .begin(
+                                VertexFormat.Mode.QUADS,
+                                DefaultVertexFormat.POSITION_COLOR
+                        );
+
+        Matrix4f matrix =
+                pose.last()
+                        .pose();
+
+        float z =
+                -0.2875F;
+
+        int r = 76;
+        int g = 8;
+        int b = 18;
+        int a = 238;
+
+        // Right cheek, front face. Silent/recently-finished speech closes to
+        // an "I"; live PCM alternates I <-> D every three ticks.
+        mouthQuad(
+                buffer,
+                matrix,
+                0.105F,
+                -0.245F,
+                0.132F,
+                -0.095F,
+                z,
+                r, g, b, a
+        );
+
+        if (open) {
+            mouthQuad(buffer, matrix, 0.132F, -0.245F, 0.205F, -0.218F, z, r, g, b, a);
+            mouthQuad(buffer, matrix, 0.132F, -0.122F, 0.205F, -0.095F, z, r, g, b, a);
+            mouthQuad(buffer, matrix, 0.178F, -0.218F, 0.205F, -0.122F, z, r, g, b, a);
+        }
+
+        BufferUploader.drawWithShader(
+                buffer.buildOrThrow()
+        );
+
+        pose.popPose();
+    }
+
+    private static void mouthQuad(
+            BufferBuilder buffer,
+            Matrix4f matrix,
+            float x0,
+            float y0,
+            float x1,
+            float y1,
+            float z,
+            int red,
+            int green,
+            int blue,
+            int alpha
+    ) {
+        buffer.addVertex(matrix, x0, y0, z).setColor(red, green, blue, alpha);
+        buffer.addVertex(matrix, x0, y1, z).setColor(red, green, blue, alpha);
+        buffer.addVertex(matrix, x1, y1, z).setColor(red, green, blue, alpha);
+        buffer.addVertex(matrix, x1, y0, z).setColor(red, green, blue, alpha);
     }
 
     private static int renderPart(
@@ -420,5 +629,10 @@ public final class TukunaMarkRenderer {
         float progress;
         float target;
         float step = 1.0F / 40.0F;
+    }
+
+    private static final class SpeechState {
+        long lastPulseTick = Long.MIN_VALUE / 2;
+        long lastAuraTick = Long.MIN_VALUE / 2;
     }
 }

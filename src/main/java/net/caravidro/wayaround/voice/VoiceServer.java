@@ -45,6 +45,10 @@ public final class VoiceServer {
             return;
         }
 
+        TukunaManager.pulseProjectedSpeech(
+                sender
+        );
+
         ServerPlayer projectionHost =
                 TukunaManager.projectedVoiceHost(
                         sender
