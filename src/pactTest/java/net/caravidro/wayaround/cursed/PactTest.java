@@ -18,8 +18,11 @@ public class PactTest {
   d.append("0 segundos"); check(!d.ready());
   d.append("999999999999999999 segundos"); check(!d.ready());
   d.append("3 segundos"); check(d.ready());
+  d.append("por tempo indeterminado"); check(d.ready() && d.durationSeconds()==-1);
+  check(d.summary().contains("indeterminada"));
+  d.append("4 minutos"); check(d.durationSeconds()==240);
   d.append("fuga"); check(d.transcript().contains("fuga"));
   for(int i=0;i<9000;i++) d.append("a"); check(d.transcript().length()<=8192);
-  System.out.println("Pact parser: 17 checks passed");
+  System.out.println("Pact parser: 20 checks passed");
  }
 }
