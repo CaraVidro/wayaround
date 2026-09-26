@@ -95,6 +95,41 @@ public final class VoiceIntentClient {
         return ENABLED;
     }
 
+    /**
+     * Voice transport does not require Vosk. Native speech recognition is only
+     * useful when the local player actually owns a Spectrum with spoken
+     * actions, or when speech debug was explicitly enabled.
+     *
+     * Keeping this check client-side avoids loading libvosk/model data for a
+     * player who merely wants ordinary proximity voice chat.
+     */
+    public static boolean shouldRecognizeLocalPlayer() {
+        if (!ENABLED) {
+            return false;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null
+                || minecraft.level == null) {
+            return false;
+        }
+
+        return SpectrumAccess.has(
+                minecraft.player,
+                SpectrumType.VOID
+        )
+                || SpectrumAccess.has(
+                minecraft.player,
+                SpectrumType.TUKUNA
+        )
+                || SpectrumAccess.has(
+                minecraft.player,
+                SpectrumType.JUSTICE
+        );
+    }
+
     public static boolean isCombatHot() {
         return System.currentTimeMillis()
                 <= combatHotUntil;

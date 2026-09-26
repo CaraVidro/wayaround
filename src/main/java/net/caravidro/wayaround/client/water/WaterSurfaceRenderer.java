@@ -62,6 +62,17 @@ public final class WaterSurfaceRenderer {
     private static final double CAMERA_NEAR_GUARD =
             0.20;
 
+    /*
+     * Far translucent water is expensive on weak/integrated GPUs and sits on
+     * top of vanilla water anyway. Keep full one-block detail close to the
+     * camera, then progressively sample the cosmetic overlay.
+     */
+    private static final double LOD_MID_DISTANCE_SQR =
+            64.0 * 64.0;
+
+    private static final double LOD_FAR_DISTANCE_SQR =
+            96.0 * 96.0;
+
     private WaterSurfaceRenderer() {
     }
 
@@ -202,6 +213,23 @@ public final class WaterSurfaceRenderer {
 
             int z =
                     surface.z;
+
+            /*
+             * Cosmetic LOD only. Vanilla water remains fully rendered below,
+             * so skipping distant overlay tiles does not create missing water.
+             * This removes up to ~75% of far translucent quads at high render
+             * distances, where individual wave tiles are too small to notice.
+             */
+            if (distanceSquared > LOD_FAR_DISTANCE_SQR) {
+                if ((x & 1) != 0
+                        || (z & 1) != 0) {
+                    continue;
+                }
+            } else if (distanceSquared > LOD_MID_DISTANCE_SQR) {
+                if (((x + z) & 1) != 0) {
+                    continue;
+                }
+            }
 
             double base =
                     surface.baseY;

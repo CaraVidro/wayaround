@@ -46,6 +46,12 @@ public final class VoskSpeechRecognizer {
     private static final float RECOGNITION_SAMPLE_RATE =
             16_000.0f;
 
+    private static final long MAX_MODEL_DOWNLOAD_BYTES =
+            96L * 1024L * 1024L;
+
+    private static final long MAX_MODEL_EXTRACTED_BYTES =
+            512L * 1024L * 1024L;
+
     private static final AtomicBoolean PREPARING =
             new AtomicBoolean(false);
 
@@ -517,6 +523,25 @@ public final class VoskSpeechRecognizer {
             );
         }
 
+        long downloadedBytes =
+                Files.size(
+                        download
+                );
+
+        if (downloadedBytes <= 0L
+                || downloadedBytes
+                        > MAX_MODEL_DOWNLOAD_BYTES) {
+            Files.deleteIfExists(
+                    download
+            );
+
+            throw new IllegalStateException(
+                    "download do modelo com tamanho inesperado: "
+                            + downloadedBytes
+                            + " bytes"
+            );
+        }
+
         Files.createDirectories(staging);
 
         unzipSecurely(
@@ -657,6 +682,9 @@ public final class VoskSpeechRecognizer {
                         .toAbsolutePath()
                         .normalize();
 
+        long extractedBytes =
+                0L;
+
         try (
                 InputStream raw =
                         Files.newInputStream(
@@ -703,17 +731,75 @@ public final class VoskSpeechRecognizer {
                         );
                     }
 
-                    Files.copy(
-                            zip,
-                            target,
-                            StandardCopyOption
-                                    .REPLACE_EXISTING
-                    );
+                    long entryBytes =
+                            copyZipEntryBounded(
+                                    zip,
+                                    target,
+                                    MAX_MODEL_EXTRACTED_BYTES
+                            );
+
+                    extractedBytes +=
+                            entryBytes;
+
+                    if (extractedBytes
+                            > MAX_MODEL_EXTRACTED_BYTES) {
+                        throw new IllegalStateException(
+                                "modelo Vosk expandiu alem do limite de seguranca"
+                        );
+                    }
                 }
 
                 zip.closeEntry();
             }
         }
+    }
+
+    private static long copyZipEntryBounded(
+            ZipInputStream zip,
+            Path target,
+            long remainingLimit
+    ) throws Exception {
+        long written =
+                0L;
+
+        byte[] buffer =
+                new byte[
+                        16 * 1024
+                        ];
+
+        try (var output =
+                     Files.newOutputStream(
+                             target
+                     )) {
+            int read;
+
+            while ((read = zip.read(
+                    buffer
+            ))
+                    >= 0) {
+                if (read == 0) {
+                    continue;
+                }
+
+                written +=
+                        read;
+
+                if (written
+                        > remainingLimit) {
+                    throw new IllegalStateException(
+                            "entrada do ZIP do Vosk excedeu o limite de seguranca"
+                    );
+                }
+
+                output.write(
+                        buffer,
+                        0,
+                        read
+                );
+            }
+        }
+
+        return written;
     }
 
     private static PreparedAudio preprocessForRecognition(

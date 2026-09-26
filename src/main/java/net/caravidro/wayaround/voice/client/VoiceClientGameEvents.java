@@ -86,7 +86,15 @@ public final class VoiceClientGameEvents {
             lastMode =
                     mode;
 
-            if (connected) {
+            if (connected
+                    && (
+                    VoiceConfig.isDebugSpeechEnabled()
+                            || VoiceIntentClient.shouldRecognizeLocalPlayer()
+            )) {
+                /*
+                 * Do not load Vosk's native library merely because proximity
+                 * voice is enabled. Only spoken Spectrum/debug users need STT.
+                 */
                 VoskSpeechRecognizer
                         .warmUpAsync();
             }

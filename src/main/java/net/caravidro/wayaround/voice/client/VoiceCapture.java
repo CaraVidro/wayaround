@@ -44,6 +44,18 @@ public final class VoiceCapture {
     private static final double COMBAT_SPECULATIVE_MAX_SECONDS =
             2.2;
 
+    /*
+     * STT is ancillary to voice transport. Never let a stuck PTT key, noisy
+     * voice-activation session or broken microphone grow a ByteArrayOutputStream
+     * for minutes. Keep only the newest 14 seconds for recognition.
+     */
+    private static final int MAX_TRANSCRIPTION_BYTES =
+            (int) (
+                    VoiceConstants.SAMPLE_RATE
+                            * VoiceConstants.BYTES_PER_SAMPLE
+                            * 14.0
+            );
+
     private static volatile long captureGeneration;
     private static volatile boolean running;
     private static volatile boolean transmitting;
@@ -496,7 +508,7 @@ public final class VoiceCapture {
 
     private static boolean shouldTranscribe() {
         return VoiceConfig.isDebugSpeechEnabled()
-                || VoiceIntentClient.isEnabled();
+                || VoiceIntentClient.shouldRecognizeLocalPlayer();
     }
 
     private static void rememberPreRoll(
@@ -672,6 +684,78 @@ public final class VoiceCapture {
                 meanSquare
         )
                 / 32768.0;
+    }
+
+    private static final class RollingUtterance
+            extends ByteArrayOutputStream {
+
+        private RollingUtterance() {
+            super(
+                    Math.min(
+                            MAX_TRANSCRIPTION_BYTES,
+                            VoiceConstants.FRAME_BYTES * 16
+                    )
+            );
+        }
+
+        @Override
+        public synchronized void write(
+                byte[] source,
+                int offset,
+                int length
+        ) {
+            if (source == null
+                    || length <= 0) {
+                return;
+            }
+
+            if (length >= MAX_TRANSCRIPTION_BYTES) {
+                reset();
+
+                super.write(
+                        source,
+                        offset
+                                + length
+                                - MAX_TRANSCRIPTION_BYTES,
+                        MAX_TRANSCRIPTION_BYTES
+                );
+
+                return;
+            }
+
+            int overflow =
+                    count
+                            + length
+                            - MAX_TRANSCRIPTION_BYTES;
+
+            if (overflow > 0) {
+                int remaining =
+                        count
+                                - overflow;
+
+                if (remaining > 0) {
+                    System.arraycopy(
+                            buf,
+                            overflow,
+                            buf,
+                            0,
+                            remaining
+                    );
+                }
+
+                count =
+                        Math.max(
+                                0,
+                                remaining
+                        );
+            }
+
+            super.write(
+                    source,
+                    offset,
+                    length
+            );
+        }
     }
 
     private static void showMicrophoneError(
