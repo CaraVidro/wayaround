@@ -8,9 +8,11 @@ import net.caravidro.wayaround.network.PlayerCinematicPayload;
 
 import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -79,8 +81,19 @@ public final class ImaginaryBetaManager {
     private static final int PURPLE_END_TICK =
             188;
 
-    private static final float PURPLE_NUKE_POWER =
-            72.0F;
+    /*
+     * The authored crater + shockwave are the actual nuke. A strength-72
+     * vanilla explosion mostly adds redundant block queries/fire and can
+     * produce a catastrophic single-tick spike on weak machines.
+     */
+    private static final float PURPLE_SECONDARY_EXPLOSION_POWER =
+            12.0F;
+
+    private static final int PURPLE_CRATER_CHECK_BUDGET_PER_TICK =
+            7_000;
+
+    private static final int PURPLE_CRATER_CHANGE_BUDGET_PER_TICK =
+            1_400;
 
     private static final double PURPLE_STAR_RADIUS =
             150.0;
@@ -131,6 +144,10 @@ public final class ImaginaryBetaManager {
     private static final Map<UUID, PendingPurpleCast>
             PENDING_PURPLE_CASTS =
             new HashMap<>();
+
+    private static final List<PurpleCraterJob>
+            PURPLE_CRATER_JOBS =
+            new ArrayList<>();
 
     public static boolean prepareDual(
             ServerPlayer player
@@ -618,6 +635,7 @@ public final class ImaginaryBetaManager {
         tickReds(server);
         tickPurpleProjectiles(server);
         tickFusions(server);
+        tickPurpleCraterJobs(server);
     }
 
     private static void tickDuals(
@@ -1772,159 +1790,194 @@ public final class ImaginaryBetaManager {
         );
     }
 
-    private static void pulverizeEllipsoid(
+    private static void queuePulverizeEllipsoid(
             ServerLevel level,
             Vec3 center,
             double radiusXZ,
             double radiusY,
             int particleBudget
     ) {
-        int minX =
-                Mth.floor(
-                        center.x - radiusXZ
-                );
-
-        int maxX =
-                Mth.floor(
-                        center.x + radiusXZ
-                );
-
-        int minY =
-                Math.max(
+        PURPLE_CRATER_JOBS.add(
+                new PurpleCraterJob(
+                        level.dimension(),
+                        center,
+                        radiusXZ,
+                        radiusY,
+                        particleBudget,
                         level.getMinBuildHeight(),
-                        Mth.floor(
-                                center.y - radiusY
-                        )
-                );
+                        level.getMaxBuildHeight() - 1
+                )
+        );
+    }
 
-        int maxY =
-                Math.min(
-                        level.getMaxBuildHeight() - 1,
-                        Mth.floor(
-                                center.y + radiusY
-                        )
-                );
+    private static void tickPurpleCraterJobs(
+            MinecraftServer server
+    ) {
+        int checksLeft =
+                PURPLE_CRATER_CHECK_BUDGET_PER_TICK;
 
-        int minZ =
-                Mth.floor(
-                        center.z - radiusXZ
-                );
+        int changesLeft =
+                PURPLE_CRATER_CHANGE_BUDGET_PER_TICK;
 
-        int maxZ =
-                Mth.floor(
-                        center.z + radiusXZ
-                );
+        Iterator<PurpleCraterJob> iterator =
+                PURPLE_CRATER_JOBS.iterator();
 
-        int particles =
+        while (iterator.hasNext()
+                && checksLeft > 0
+                && changesLeft > 0) {
+            PurpleCraterJob job =
+                    iterator.next();
+
+            ServerLevel level =
+                    server.getLevel(
+                            job.dimension
+                    );
+
+            if (level == null) {
+                iterator.remove();
+                continue;
+            }
+
+            WorkResult result =
+                    processPurpleCraterJob(
+                            level,
+                            job,
+                            checksLeft,
+                            changesLeft
+                    );
+
+            checksLeft -=
+                    result.checks;
+
+            changesLeft -=
+                    result.changes;
+
+            if (job.finished) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private static WorkResult processPurpleCraterJob(
+            ServerLevel level,
+            PurpleCraterJob job,
+            int checkBudget,
+            int changeBudget
+    ) {
+        int checks =
                 0;
 
-        double invXZ =
-                1.0
-                        / (
-                        radiusXZ
-                                * radiusXZ
-                );
+        int changes =
+                0;
 
-        double invY =
-                1.0
-                        / (
-                        radiusY
-                                * radiusY
-                );
+        while (!job.finished
+                && checks < checkBudget
+                && changes < changeBudget) {
+            int x =
+                    job.x;
 
-        for (int x = minX;
-             x <= maxX;
-             x++) {
+            int y =
+                    job.y;
+
+            int z =
+                    job.z;
+
+            job.advance();
+
+            checks++;
 
             double dx =
                     x + 0.5
-                            - center.x;
+                            - job.center.x;
 
-            for (int y = minY;
-                 y <= maxY;
-                 y++) {
+            double dy =
+                    y + 0.5
+                            - job.center.y;
 
-                double dy =
-                        y + 0.5
-                                - center.y;
+            double dz =
+                    z + 0.5
+                            - job.center.z;
 
-                for (int z = minZ;
-                     z <= maxZ;
-                     z++) {
+            double normalized =
+                    (
+                            dx * dx
+                                    + dz * dz
+                    )
+                            * job.invXZ
+                            + dy * dy
+                                    * job.invY;
 
-                    double dz =
-                            z + 0.5
-                                    - center.z;
+            if (normalized > 1.0) {
+                continue;
+            }
 
-                    double normalized =
-                            (
-                                    dx * dx
-                                            + dz * dz
-                            )
-                                    * invXZ
-                                    + dy * dy
-                                            * invY;
-
-                    if (normalized > 1.0) {
-                        continue;
-                    }
-
-                    BlockPos pos =
-                            new BlockPos(
-                                    x,
-                                    y,
-                                    z
-                            );
-
-                    BlockState state =
-                            level.getBlockState(
-                                    pos
-                            );
-
-                    if (state.isAir()
-                            || state.getDestroySpeed(
-                            level,
-                            pos
-                    ) < 0.0F) {
-                        continue;
-                    }
-
-                    level.setBlock(
-                            pos,
-                            Blocks.AIR
-                                    .defaultBlockState(),
-                            2
+            BlockPos pos =
+                    new BlockPos(
+                            x,
+                            y,
+                            z
                     );
 
-                    if (particles < particleBudget
-                            && level.random.nextFloat()
+            if (!level.hasChunkAt(
+                    pos
+            )) {
+                continue;
+            }
+
+            BlockState state =
+                    level.getBlockState(
+                            pos
+                    );
+
+            if (state.isAir()
+                    || state.getDestroySpeed(
+                    level,
+                    pos
+            ) < 0.0F) {
+                continue;
+            }
+
+            level.setBlock(
+                    pos,
+                    Blocks.AIR
+                            .defaultBlockState(),
+                    2
+            );
+
+            changes++;
+
+            if (job.particles
+                    < job.particleBudget
+                    && level.random.nextFloat()
                             < 0.055F) {
-
-                        Vec3 blockCenter =
-                                Vec3.atCenterOf(
-                                        pos
-                                );
-
-                        level.sendParticles(
-                                new BlockParticleOption(
-                                        ParticleTypes.BLOCK,
-                                        state
-                                ),
-                                blockCenter.x,
-                                blockCenter.y,
-                                blockCenter.z,
-                                2,
-                                0.30,
-                                0.30,
-                                0.30,
-                                0.20
+                Vec3 blockCenter =
+                        Vec3.atCenterOf(
+                                pos
                         );
 
-                        particles++;
-                    }
-                }
+                level.sendParticles(
+                        new BlockParticleOption(
+                                ParticleTypes.BLOCK,
+                                state
+                        ),
+                        blockCenter.x,
+                        blockCenter.y,
+                        blockCenter.z,
+                        2,
+                        0.30,
+                        0.30,
+                        0.30,
+                        0.20
+                );
+
+                job.particles++;
             }
         }
+
+        return new WorkResult(
+                checks,
+                changes
+        );
     }
 
     private static void beginFusion(
@@ -2227,7 +2280,7 @@ public final class ImaginaryBetaManager {
          * magnitudes. The physical crater is therefore authored explicitly,
          * then the vanilla blast supplies sound/fire/secondary physics.
          */
-        pulverizeEllipsoid(
+        queuePulverizeEllipsoid(
                 level,
                 fusion.center,
                 PURPLE_CRATER_RADIUS_XZ,
@@ -2245,7 +2298,7 @@ public final class ImaginaryBetaManager {
                 fusion.center.x,
                 fusion.center.y,
                 fusion.center.z,
-                PURPLE_NUKE_POWER,
+                PURPLE_SECONDARY_EXPLOSION_POWER,
                 true,
                 Level.ExplosionInteraction.TNT
         );
@@ -2636,6 +2689,7 @@ public final class ImaginaryBetaManager {
         DUALS.clear();
         PENDING_PURPLE_CASTS.clear();
         PURPLE_PROJECTILES.clear();
+        PURPLE_CRATER_JOBS.clear();
     }
 
     private static void sendCinematic(
@@ -2784,6 +2838,140 @@ public final class ImaginaryBetaManager {
 
             this.life =
                     life;
+        }
+    }
+
+    private record WorkResult(
+            int checks,
+            int changes
+    ) {}
+
+    private static final class PurpleCraterJob {
+
+        private final net.minecraft.resources.ResourceKey<Level>
+                dimension;
+
+        private final Vec3 center;
+        private final double invXZ;
+        private final double invY;
+        private final int particleBudget;
+
+        private final int minX;
+        private final int maxX;
+        private final int minY;
+        private final int maxY;
+        private final int minZ;
+        private final int maxZ;
+
+        private int x;
+        private int y;
+        private int z;
+        private int particles;
+        private boolean finished;
+
+        private PurpleCraterJob(
+                net.minecraft.resources.ResourceKey<Level> dimension,
+                Vec3 center,
+                double radiusXZ,
+                double radiusY,
+                int particleBudget,
+                int worldMinY,
+                int worldMaxY
+        ) {
+            this.dimension =
+                    dimension;
+
+            this.center =
+                    center;
+
+            this.invXZ =
+                    1.0
+                            / (
+                            radiusXZ
+                                    * radiusXZ
+                    );
+
+            this.invY =
+                    1.0
+                            / (
+                            radiusY
+                                    * radiusY
+                    );
+
+            this.particleBudget =
+                    particleBudget;
+
+            this.minX =
+                    Mth.floor(
+                            center.x - radiusXZ
+                    );
+
+            this.maxX =
+                    Mth.floor(
+                            center.x + radiusXZ
+                    );
+
+            this.minY =
+                    Math.max(
+                            worldMinY,
+                            Mth.floor(
+                                    center.y - radiusY
+                            )
+                    );
+
+            this.maxY =
+                    Math.min(
+                            worldMaxY,
+                            Mth.floor(
+                                    center.y + radiusY
+                            )
+                    );
+
+            this.minZ =
+                    Mth.floor(
+                            center.z - radiusXZ
+                    );
+
+            this.maxZ =
+                    Mth.floor(
+                            center.z + radiusXZ
+                    );
+
+            this.x =
+                    minX;
+
+            this.y =
+                    minY;
+
+            this.z =
+                    minZ;
+        }
+
+        private void advance() {
+            z++;
+
+            if (z <= maxZ) {
+                return;
+            }
+
+            z =
+                    minZ;
+
+            y++;
+
+            if (y <= maxY) {
+                return;
+            }
+
+            y =
+                    minY;
+
+            x++;
+
+            if (x > maxX) {
+                finished =
+                        true;
+            }
         }
     }
 
