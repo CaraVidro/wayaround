@@ -167,8 +167,12 @@ public final class TukunaPossessionClient {
         contractMusic =
                 playContractMusic;
 
+        /*
+         * Even indefinite control uses the theme as a one-shot takeover cue.
+         * The possession can last forever; the soundtrack should not.
+         */
         loopContractMusic =
-                playContractMusic && loopMusic;
+                false;
 
         if (playContractMusic && !wasPlaying) {
             music = new TukunaContractSound();

@@ -21,6 +21,18 @@ public final class WayAroundNetwork {
                 SpectrumMeleeInputPayload.STREAM_CODEC,
                 SpectrumMeleeInputPayload::handle
         );
+
+        registrar.playToServer(
+                AccessoryActionC2SPayload.TYPE,
+                AccessoryActionC2SPayload.STREAM_CODEC,
+                AccessoryActionC2SPayload::handle
+        );
+
+        registrar.playToClient(
+                AccessoryStateS2CPayload.TYPE,
+                AccessoryStateS2CPayload.STREAM_CODEC,
+                AccessoryStateS2CPayload::handle
+        );
         registrar.playToClient(ThermalGlowPayload.TYPE, ThermalGlowPayload.STREAM_CODEC, ThermalGlowPayload::handle);
         registrar.playToClient(FugaArrowPayload.TYPE, FugaArrowPayload.STREAM_CODEC, FugaArrowPayload::handle);
         registrar.playToClient(FrostPayload.TYPE, FrostPayload.STREAM_CODEC, FrostPayload::handle);

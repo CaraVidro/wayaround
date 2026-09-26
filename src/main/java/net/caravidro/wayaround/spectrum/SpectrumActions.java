@@ -7,6 +7,7 @@ import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.justice.JusticeDomainManager;
 import net.caravidro.wayaround.network.*;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.particles.ParticleTypes;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -22,6 +23,7 @@ public final class SpectrumActions {
     private static final Map<UUID,Long> INPUT_DEBOUNCE=new HashMap<>();
     private static final Map<UUID,Long> FUGA_DEBOUNCE=new HashMap<>();
     private static final Set<UUID> TUKUNA_MENU_AURA=new HashSet<>();
+    private static final Map<UUID,Long> VOID_SKILL_AURA_UNTIL=new HashMap<>();
     private static boolean allowed(ServerPlayer p, SpectrumType type){
         return p.isAlive() && !p.isSpectator() && !TukunaManager.isSilencedHost(p)
                 && !TukunaManager.isDraftingPact(p) && !TukunaManager.isPacifistPossession(p)
@@ -70,6 +72,7 @@ public final class SpectrumActions {
     }
     public static void perform(ServerPlayer p,SpectrumAction action){
         if(!allowed(p,action.spectrum)) return;
+        if(action.spectrum==SpectrumType.VOID) pulseVoidSkillAura(p);
         switch(action){
             case SLASH,FIRE_SLASH -> TukunaManager.castPossessedDesmartelar(p,action==SpectrumAction.FIRE_SLASH);
             case FUGA -> {
@@ -84,6 +87,31 @@ public final class SpectrumActions {
                     action==SpectrumAction.BLUE_MAX?3.0F:1.0F));
         }
     }
+    public static void pulseVoidSkillAura(ServerPlayer p){
+        if(!SpectrumAccess.has(p,SpectrumType.VOID)) return;
+        VOID_SKILL_AURA_UNTIL.put(p.getUUID(),p.server.getTickCount()+30L);
+    }
+
+    private static void emitVoidSkillAura(ServerPlayer p,long now){
+        double phase=now*0.38+p.getUUID().hashCode()*0.001;
+        for(int i=0;i<3;i++){
+            double angle=phase+i*Math.PI*2.0/3.0;
+            double radius=0.46+0.08*Math.sin(phase*0.7+i);
+            double x=p.getX()+Math.cos(angle)*radius;
+            double z=p.getZ()+Math.sin(angle)*radius;
+            double y=p.getY()+0.35+i*0.48+0.10*Math.sin(phase+i);
+            p.serverLevel().sendParticles(
+                    i==1?ParticleTypes.END_ROD:ParticleTypes.PORTAL,
+                    x,y,z,1,0.015,0.03,0.015,0.005);
+        }
+        if((now&3L)==0L){
+            p.serverLevel().sendParticles(
+                    ParticleTypes.ELECTRIC_SPARK,
+                    p.getX(),p.getY()+1.05,p.getZ(),
+                    2,0.28,0.52,0.28,0.025);
+        }
+    }
+
     public static void cancel(ServerPlayer p){
         if(GESTURES.remove(p.getUUID())!=null) pose(p,PlayerCinematicPayload.CLEAR,0);
     }
@@ -98,6 +126,13 @@ public final class SpectrumActions {
             ServerPlayer p=event.getServer().getPlayerList().getPlayer(id);
             if(p==null||!p.isAlive()||!SpectrumAccess.has(p,SpectrumType.TUKUNA))return true;
             if((now&1L)==0L)TukunaManager.emitSpectrumMenuAura(p,now);
+            return false;
+        });
+
+        VOID_SKILL_AURA_UNTIL.entrySet().removeIf(e->{
+            ServerPlayer p=event.getServer().getPlayerList().getPlayer(e.getKey());
+            if(p==null||!p.isAlive()||!SpectrumAccess.has(p,SpectrumType.VOID)||now>e.getValue())return true;
+            if((now&1L)==0L)emitVoidSkillAura(p,now);
             return false;
         });
 
@@ -116,5 +151,5 @@ public final class SpectrumActions {
         if(now%200==0){COOLDOWN.entrySet().removeIf(e->e.getValue()<now);FUGA_DEBOUNCE.entrySet().removeIf(e->e.getValue()<now);INPUT_DEBOUNCE.entrySet().removeIf(e->e.getValue()<now);}
     }
     private static final class Gesture{long started,next;boolean fire,released,firing;int shots;Gesture(long now){started=now;}}
-    @SubscribeEvent public static void stop(ServerStoppedEvent e){GESTURES.clear();COOLDOWN.clear();FUGA_DEBOUNCE.clear();INPUT_DEBOUNCE.clear();TUKUNA_MENU_AURA.clear();}
+    @SubscribeEvent public static void stop(ServerStoppedEvent e){GESTURES.clear();COOLDOWN.clear();FUGA_DEBOUNCE.clear();INPUT_DEBOUNCE.clear();TUKUNA_MENU_AURA.clear();VOID_SKILL_AURA_UNTIL.clear();}
 }

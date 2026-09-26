@@ -6,12 +6,13 @@ import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
 
-/** Only the two participants hear this loop; it ends with the contract. */
+/** Only the two participants hear the theme. It is deliberately one-shot. */
 public final class TukunaContractSound extends AbstractTickableSoundInstance {
     public TukunaContractSound() {
         super(WayAroundSounds.IN_MY_WAY.get(), SoundSource.PLAYERS,
                 SoundInstance.createUnseededRandom());
-        looping = TukunaPossessionClient.shouldLoopContractMusic();
+        // Indefinite possession must feel ominous, not like a jukebox stuck.
+        looping = false;
         relative = true;
         attenuation = SoundInstance.Attenuation.NONE;
         volume = 0.9F;

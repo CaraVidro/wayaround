@@ -280,5 +280,14 @@
     "tooltip.wayaround.rocket_launcher": "Slow physical rocket. Severe direct impact + destructive explosion.",
     "tooltip.wayaround.war.infinity": "Real 3D projectiles: Infinity can stop them before contact.",
     "itemGroup.wayaround.war_without_reason": "War Without Reason",
-    "key.wayaround.spectrum_block": "Spectrum Block"
+    "key.wayaround.spectrum_block": "Spectrum Block",
+    "itemGroup.wayaround.spectral_objects": "Spectral Objects",
+    "itemGroup.wayaround.aceculture": "Aceculture",
+    "item.wayaround.spectral_sword": "Spectral Sword",
+    "item.wayaround.spectral_armor": "Spectral Armor",
+    "item.wayaround.spectral_compass": "Spectral Compass",
+    "item.wayaround.spectral_glasses": "Spectral Glasses",
+    "item.wayaround.work_gloves": "Work Gloves",
+    "item.wayaround.engineer_cape": "Engineer's Cape",
+    "item.wayaround.wind_boots": "Wind Boots"
 }

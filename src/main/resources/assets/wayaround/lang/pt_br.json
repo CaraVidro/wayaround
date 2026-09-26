@@ -280,5 +280,14 @@
     "tooltip.wayaround.rocket_launcher": "Foguete físico lento. Impacto direto severo + explosão destrutiva.",
     "tooltip.wayaround.war.infinity": "Projéteis reais em 3D: a Infinidade pode pará-los antes do contato.",
     "itemGroup.wayaround.war_without_reason": "War Without Reason",
-    "key.wayaround.spectrum_block": "Bloqueio do Spectrum"
+    "key.wayaround.spectrum_block": "Bloqueio do Spectrum",
+    "itemGroup.wayaround.spectral_objects": "Objetos Spectrais",
+    "itemGroup.wayaround.aceculture": "Acecultura",
+    "item.wayaround.spectral_sword": "Espada Spectral",
+    "item.wayaround.spectral_armor": "Armadura Spectral",
+    "item.wayaround.spectral_compass": "Bússola Spectral",
+    "item.wayaround.spectral_glasses": "Óculos Spectrais",
+    "item.wayaround.work_gloves": "Luvas de Trabalho",
+    "item.wayaround.engineer_cape": "Capa do Engenheiro",
+    "item.wayaround.wind_boots": "Botas do Vento"
 }

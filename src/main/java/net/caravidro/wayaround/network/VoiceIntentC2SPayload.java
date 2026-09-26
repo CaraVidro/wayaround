@@ -153,6 +153,15 @@ public record VoiceIntentC2SPayload(
             return;
         }
 
+        /*
+         * Voice and menu casts share the same short visual tell.
+         * It is deliberately cosmetic: no new permission or cooldown lives here.
+         */
+        net.caravidro.wayaround.spectrum.SpectrumActions
+                .pulseVoidSkillAura(
+                        player
+                );
+
         switch (payload.intent()) {
             case BLUE_SUMMON ->
                     BlueManager.invokeFromVoice(
