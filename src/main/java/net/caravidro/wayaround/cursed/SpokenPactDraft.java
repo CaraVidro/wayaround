@@ -38,6 +38,22 @@ public final class SpokenPactDraft {
         }
         String said = normalize(raw);
         String[] words = said.split(" ");
+
+        boolean indefinite = said.equals("indeterminado")
+                || said.equals("indefinido")
+                || said.contains("tempo indeterminado")
+                || said.contains("tempo indefinido")
+                || said.contains("duracao indeterminada")
+                || said.contains("duracao indefinida")
+                || said.contains("sem limite de tempo")
+                || said.contains("sem tempo definido")
+                || said.contains("sem prazo");
+
+        if (indefinite) {
+            durationSeconds = -1;
+            issue = "";
+        }
+
         // A newer spoken value replaces an earlier one; units are never assumed.
         int previousUnit = -1;
         long previousSeconds = 0;
@@ -111,10 +127,15 @@ public final class SpokenPactDraft {
     public boolean pacifist() { return pacifist; }
     public boolean forget() { return forget; }
     public String transcript() { return transcript.toString(); }
-    public boolean ready() { return durationSeconds > 0 && issue.isEmpty(); }
+    public boolean ready() { return durationSeconds != 0 && issue.isEmpty(); }
     public String issue() { return issue; }
     public String summary() {
-        return "Duração: " + (durationSeconds > 0 ? durationSeconds + " segundos" : "pendente")
+        String duration = durationSeconds < 0
+                ? "indeterminada"
+                : durationSeconds > 0
+                        ? durationSeconds + " segundos"
+                        : "pendente";
+        return "Duração: " + duration
                 + " | Ataques: " + (pacifist ? "proibidos" : "permitidos")
                 + " | Esquecimento: " + (forget ? "sim" : "não");
     }
