@@ -94,6 +94,7 @@ public final class TukunaManager {
     private static final String PACT_PACIFIST_KEY = "WayAroundPactPacifist";
     private static final String PACT_FORGET_KEY = "WayAroundPactForget";
     private static final String PACT_WORD_KEY = "WayAroundTukunaPactWord";
+    private static final String PACT_INDEFINITE_KEY = "WayAroundTukunaPactIndefinite";
 
     private static final int FUGA_CHARGE_TICKS =
             120;
@@ -300,7 +301,7 @@ public final class TukunaManager {
                 HOST_SPIRIT_KEY
         );
         copyUuid(original, replacement, PACT_SPIRIT_KEY);
-        for (String key : new String[]{PACT_DURATION_KEY, PACT_PACIFIST_KEY, PACT_FORGET_KEY}) {
+        for (String key : new String[]{PACT_DURATION_KEY, PACT_PACIFIST_KEY, PACT_FORGET_KEY, PACT_INDEFINITE_KEY}) {
             if (original.getPersistentData().contains(key)) {
                 replacement.getPersistentData().put(key, original.getPersistentData().get(key).copy());
             }
@@ -722,6 +723,10 @@ public final class TukunaManager {
                         next
                 );
 
+        boolean unlockedFuga =
+                current <= 10
+                        && next > 10;
+
         String spiritName =
                 fingerOwnerName(
                         stack
@@ -769,6 +774,12 @@ public final class TukunaManager {
                             ),
                     false
             );
+
+            if (unlockedFuga) {
+                spirit.getPersistentData().remove(FUGA_PHRASE_KEY);
+                spirit.getPersistentData().remove(FUGA_PROMPT_KEY);
+                promptFugaPhrase(spirit);
+            }
         }
 
         applyHostBuffs(
@@ -1062,6 +1073,7 @@ public final class TukunaManager {
             host.getPersistentData().putUUID(PACT_SPIRIT_KEY, spiritId);
             host.getPersistentData().putString(PACT_WORD_KEY, word);
             host.getPersistentData().putInt(PACT_DURATION_KEY, proposal.draft.durationSeconds());
+            host.getPersistentData().putBoolean(PACT_INDEFINITE_KEY, proposal.draft.indefinite());
             host.getPersistentData().putBoolean(PACT_PACIFIST_KEY, proposal.draft.pacifist());
             host.getPersistentData().putBoolean(PACT_FORGET_KEY, proposal.draft.forget());
             PACT_PROPOSALS.remove(host.getUUID());
@@ -1080,7 +1092,9 @@ public final class TukunaManager {
                 if (now >= until) {
                     int storedSeconds = host.getPersistentData().contains(PACT_DURATION_KEY)
                             ? host.getPersistentData().getInt(PACT_DURATION_KEY) : 180;
-                    int seconds = storedSeconds < 0
+                    boolean indefinite = host.getPersistentData().getBoolean(PACT_INDEFINITE_KEY)
+                            || storedSeconds < 0;
+                    int seconds = indefinite
                             ? -1
                             : Math.max(1, Math.min(86400, storedSeconds));
                     boolean pacifist = !host.getPersistentData().contains(PACT_PACIFIST_KEY)
@@ -1494,7 +1508,8 @@ public final class TukunaManager {
 
         if (!hasSpectrum(
                 player
-        )) {
+        )
+                || effectiveTukunaFingers(player) <= 10) {
             return false;
         }
 
@@ -1694,6 +1709,10 @@ public final class TukunaManager {
     private static void promptFugaPhrase(
             ServerPlayer player
     ) {
+        if (effectiveTukunaFingers(player) <= 10) {
+            return;
+        }
+
         if (!player.getPersistentData()
                 .getString(
                         FUGA_PHRASE_KEY
@@ -1717,7 +1736,7 @@ public final class TukunaManager {
 
         player.sendSystemMessage(
                 Component.literal(
-                        "Tukuna: escolha sua frase de preparação com: frase de fuga: <sua frase>"
+                        "Tukuna: com mais de 10 dedos, escolha a palavra-chave da Fuga no chat: palavra da fuga: <palavra>"
                 ).withStyle(
                         ChatFormatting.DARK_RED
                 )
@@ -1739,24 +1758,39 @@ public final class TukunaManager {
                         raw
                 );
 
-        if (normalized.startsWith(
-                "frase de fuga "
-        )) {
+        String fugaPrefix =
+                normalized.startsWith("palavra da fuga ")
+                        ? "palavra da fuga "
+                        : normalized.startsWith("palavra de fuga ")
+                                ? "palavra de fuga "
+                                : normalized.startsWith("frase de fuga ")
+                                        ? "frase de fuga "
+                                        : null;
+
+        if (fugaPrefix != null) {
+            if (effectiveTukunaFingers(player) <= 10) {
+                player.displayClientMessage(
+                        Component.literal("A Fuga só desperta acima de 10 dedos.")
+                                .withStyle(ChatFormatting.DARK_RED),
+                        true
+                );
+                return true;
+            }
 
             String phrase =
                     normalized.substring(
-                            "frase de fuga ".length()
+                            fugaPrefix.length()
                     )
                             .trim();
 
-            if (phrase.length() < 3
+            if (!phrase.matches("[a-z0-9]{3,20}")
                     || phrase.contains(
                     "fuga"
             )) {
 
                 player.displayClientMessage(
                         Component.literal(
-                                "Escolha uma frase com pelo menos 3 caracteres e sem usar a palavra 'fuga'."
+                                "Escolha uma palavra de 3 a 20 caracteres, sem espaços e sem usar 'fuga'."
                         ).withStyle(
                                 ChatFormatting.RED
                         ),
@@ -1774,7 +1808,7 @@ public final class TukunaManager {
 
             player.displayClientMessage(
                     Component.literal(
-                            "Frase da Fuga definida: \""
+                            "Palavra-chave da Fuga definida: \""
                                     + phrase
                                     + "\""
                     ).withStyle(
@@ -2609,6 +2643,10 @@ public final class TukunaManager {
                 fingers
         );
 
+        if (fingers > 10) {
+            promptFugaPhrase(spirit);
+        }
+
         removeHostBuffs(
                 host
         );
@@ -2616,13 +2654,13 @@ public final class TukunaManager {
         PacketDistributor.sendToPlayer(
                 host,
                 new TukunaPossessionS2CPayload(
-                        true, contractMusic
+                        true, contractMusic, indefinite
                 )
         );
 
         if (contractMusic) {
             PacketDistributor.sendToPlayer(spirit,
-                    new TukunaPossessionS2CPayload(false, true));
+                    new TukunaPossessionS2CPayload(false, true, indefinite));
         }
 
         host.displayClientMessage(
@@ -2704,7 +2742,7 @@ public final class TukunaManager {
                     );
                     if (possession.contractMusic) {
                         PacketDistributor.sendToPlayer(spirit,
-                                new TukunaPossessionS2CPayload(false, false));
+                                new TukunaPossessionS2CPayload(false, false, false));
                     }
                 }
 
@@ -2857,12 +2895,12 @@ public final class TukunaManager {
         PacketDistributor.sendToPlayer(
                 host,
                 new TukunaPossessionS2CPayload(
-                        false, false
+                        false, false, false
                 )
         );
         if (possession.contractMusic) {
             PacketDistributor.sendToPlayer(spirit,
-                    new TukunaPossessionS2CPayload(false, false));
+                    new TukunaPossessionS2CPayload(false, false, false));
         }
 
         Component returned =
@@ -2898,7 +2936,7 @@ public final class TukunaManager {
         PacketDistributor.sendToPlayer(
                 host,
                 new TukunaPossessionS2CPayload(
-                        false, false
+                        false, false, false
                 )
         );
     }
@@ -3120,6 +3158,33 @@ public final class TukunaManager {
         }
 
         return null;
+    }
+
+    private static int effectiveTukunaFingers(
+            ServerPlayer player
+    ) {
+        Possession possession =
+                possessionForSpirit(
+                        player.getUUID()
+                );
+
+        if (possession != null) {
+            return possession.fingers;
+        }
+
+        if (isGhost(player)) {
+            ServerPlayer host =
+                    hostForSpirit(
+                            player.server,
+                            player.getUUID()
+                    );
+
+            return host == null
+                    ? 0
+                    : fingerCount(host);
+        }
+
+        return fingerCount(player);
     }
 
     private static boolean hasSpectrum(
