@@ -3169,7 +3169,7 @@ public final class TukunaManager {
                 spirit.getYHeadRot()
         );
         host.setYBodyRot(
-                spirit.getYBodyRot()
+                spirit.getYRot()
         );
         host.setPose(
                 spirit.getPose()
