@@ -344,9 +344,7 @@ public final class PlayerAnimationController {
                         player
                 );
 
-        if (state == null
-                || state.animation
-                        != PlayerCinematicPayload.FUGA_RELEASE) {
+        if (state == null) {
             return 0.0F;
         }
 
@@ -354,6 +352,25 @@ public final class PlayerAnimationController {
                 age(
                         state
                 );
+
+        if (state.animation
+                == PlayerCinematicPayload.TUKUNA_TAKEOVER) {
+            float down =
+                    ease(
+                            age / 20.0F
+                    );
+
+            return Mth.lerp(
+                    down,
+                    0.0F,
+                    62.0F
+            );
+        }
+
+        if (state.animation
+                != PlayerCinematicPayload.FUGA_RELEASE) {
+            return 0.0F;
+        }
 
         float t =
                 Mth.clamp(
