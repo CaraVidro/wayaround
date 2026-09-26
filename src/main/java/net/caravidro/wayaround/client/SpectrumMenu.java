@@ -57,8 +57,8 @@ public final class SpectrumMenu {
         int slot=e.getKey()-GLFW.GLFW_KEY_1;
         if(slot<0||slot>8)return;
         // InputEvent fires after KeyMapping updates and before Minecraft consumes hotbar clicks.
-        mc.options.keyHotbar[slot].setDown(false);
-        while(mc.options.keyHotbar[slot].consumeClick()){}
+        mc.options.keyHotbarSlots[slot].setDown(false);
+        while(mc.options.keyHotbarSlots[slot].consumeClick()){}
         if(e.getAction()==GLFW.GLFW_PRESS){
             int index=page*9+slot;
             if(index>=actions().size())return;
