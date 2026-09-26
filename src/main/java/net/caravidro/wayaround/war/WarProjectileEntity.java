@@ -53,6 +53,12 @@ public final class WarProjectileEntity extends Entity {
                     EntityDataSerializers.BOOLEAN
             );
 
+    private static final EntityDataAccessor<Boolean> INFINITY_HELD =
+            SynchedEntityData.defineId(
+                    WarProjectileEntity.class,
+                    EntityDataSerializers.BOOLEAN
+            );
+
     private UUID ownerId;
 
     public WarProjectileEntity(
@@ -81,6 +87,11 @@ public final class WarProjectileEntity extends Entity {
 
         builder.define(
                 MOMENTUM_BROKEN,
+                false
+        );
+
+        builder.define(
+                INFINITY_HELD,
                 false
         );
     }
@@ -154,6 +165,25 @@ public final class WarProjectileEntity extends Entity {
         );
     }
 
+    public boolean infinityHeld() {
+        return entityData.get(
+                INFINITY_HELD
+        );
+    }
+
+    public void setInfinityHeld(
+            boolean held
+    ) {
+        entityData.set(
+                INFINITY_HELD,
+                held
+        );
+
+        if (held) {
+            markInfinityAffected();
+        }
+    }
+
     @Override
     public void tick() {
         super.tick();
@@ -185,17 +215,21 @@ public final class WarProjectileEntity extends Entity {
                 getDeltaMovement();
 
         /*
-         * Ordinary bullets have a tiny ballistic drop. Rockets fly mostly
-         * straight UNTIL Infinity has drained them. Once momentum is broken,
-         * every war projectile becomes a falling object instead of regaining
-         * its original forward motion.
+         * While latched by Infinity, the field owns velocity completely.
+         * That lets a stopped round hover and lets owner movement push it
+         * outward without this entity adding gravity between field ticks.
+         *
+         * Once released, MOMENTUM_BROKEN remains true forever: momentum is
+         * genuinely gone and gravity takes over.
          */
-        if (momentumBroken()) {
+        if (infinityHeld()) {
+            // Keep the exact velocity supplied by InfinityManager.
+        } else if (momentumBroken()) {
             velocity =
                     new Vec3(
-                            velocity.x * 0.94,
-                            velocity.y - 0.065,
-                            velocity.z * 0.94
+                            velocity.x * 0.90,
+                            velocity.y - 0.070,
+                            velocity.z * 0.90
                     );
         } else if (!kind.rocket()) {
             velocity =
@@ -214,9 +248,9 @@ public final class WarProjectileEntity extends Entity {
         }
 
         /*
-         * A very fast bullet still tests the full segment against Infinity's
-         * hard inner core. Instead of being deleted, it is placed at the entry
-         * point with zero momentum and remains there as a real entity.
+         * Fast bullets test the entire next segment against the INNER stop
+         * radius. They are allowed to travel through the outer slowdown field
+         * first. Only crossing this inner radius latches InfinityHeld.
          */
         Vec3 from =
                 position();
@@ -226,42 +260,42 @@ public final class WarProjectileEntity extends Entity {
                         velocity
                 );
 
-        Vec3 infinityStop =
-                InfinityManager.clipHardProjectileBarrier(
-                        level,
-                        ownerId,
-                        from,
-                        predicted
+        if (!infinityHeld()) {
+            Vec3 infinityStop =
+                    InfinityManager.captureWarProjectileOnSegment(
+                            level,
+                            this,
+                            from,
+                            predicted
+                    );
+
+            if (infinityStop != null) {
+                setPos(
+                        infinityStop.x,
+                        infinityStop.y,
+                        infinityStop.z
                 );
 
-        if (infinityStop != null) {
-            setPos(
-                    infinityStop.x,
-                    infinityStop.y,
-                    infinityStop.z
-            );
+                setDeltaMovement(
+                        Vec3.ZERO
+                );
 
-            setDeltaMovement(
-                    Vec3.ZERO
-            );
+                level.sendParticles(
+                        ParticleTypes.END_ROD,
+                        infinityStop.x,
+                        infinityStop.y,
+                        infinityStop.z,
+                        kind.rocket()
+                                ? 12
+                                : 3,
+                        0.06,
+                        0.06,
+                        0.06,
+                        0.008
+                );
 
-            markInfinityAffected();
-
-            level.sendParticles(
-                    ParticleTypes.END_ROD,
-                    infinityStop.x,
-                    infinityStop.y,
-                    infinityStop.z,
-                    kind.rocket()
-                            ? 12
-                            : 3,
-                    0.06,
-                    0.06,
-                    0.06,
-                    0.008
-            );
-
-            return;
+                return;
+            }
         }
 
         /*
@@ -642,6 +676,13 @@ public final class WarProjectileEntity extends Entity {
                         "MomentumBroken"
                 )
         );
+
+        entityData.set(
+                INFINITY_HELD,
+                tag.getBoolean(
+                        "InfinityHeld"
+                )
+        );
     }
 
     @Override
@@ -672,6 +713,11 @@ public final class WarProjectileEntity extends Entity {
         tag.putBoolean(
                 "MomentumBroken",
                 momentumBroken()
+        );
+
+        tag.putBoolean(
+                "InfinityHeld",
+                infinityHeld()
         );
     }
 

@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -43,15 +44,34 @@ public final class WarProjectileRenderer
     ) {
         pose.pushPose();
 
+        float renderYaw =
+                Mth.rotLerp(
+                        partialTick,
+                        entity.yRotO,
+                        entity.getYRot()
+                );
+
+        float renderPitch =
+                Mth.lerp(
+                        partialTick,
+                        entity.xRotO,
+                        entity.getXRot()
+                );
+
+        /*
+         * The projectile models are built lengthwise along local +Z.
+         * A positive Minecraft yaw rotates +Z into the horizontal velocity
+         * vector; the old negative sign mirrored the model sideways.
+         */
         pose.mulPose(
                 Axis.YP.rotationDegrees(
-                        -entity.getYRot()
+                        renderYaw
                 )
         );
 
         pose.mulPose(
                 Axis.XP.rotationDegrees(
-                        entity.getXRot()
+                        renderPitch
                 )
         );
 

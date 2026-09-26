@@ -5,10 +5,8 @@ import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
@@ -59,6 +57,15 @@ public final class InfinityManager {
      */
     private static final Map<UUID, DrainedProjectile>
             DRAINED_PROJECTILES =
+            new HashMap<>();
+
+    /*
+     * Hysteresis: entering the outer field only slows a projectile. Crossing
+     * STOP_RADIUS latches it here. Only a latched projectile can later be
+     * released, and RELEASE_RADIUS is deliberately much farther out.
+     */
+    private static final Map<UUID, HeldProjectile>
+            HELD_PROJECTILES =
             new HashMap<>();
 
     private static final double VISUAL_RANGE =
@@ -249,9 +256,6 @@ public final class InfinityManager {
         MinecraftServer server =
                 event.getServer();
 
-        Set<UUID> influencedProjectiles =
-                new HashSet<>();
-
         Iterator<Map.Entry<UUID, InfinityState>>
                 iterator =
                 ACTIVE.entrySet()
@@ -305,7 +309,7 @@ public final class InfinityManager {
                     center,
                     radius,
                     state.confidence,
-                    influencedProjectiles
+                    state
             );
 
             if ((server.getTickCount()
@@ -321,9 +325,12 @@ public final class InfinityManager {
             }
         }
 
+        tickHeldProjectiles(
+                server
+        );
+
         tickDrainedProjectiles(
-                server,
-                influencedProjectiles
+                server
         );
     }
 
@@ -333,7 +340,7 @@ public final class InfinityManager {
             Vec3 center,
             float radius,
             float confidence,
-            Set<UUID> influencedProjectiles
+            InfinityState state
     ) {
         AABB area =
                 new AABB(
@@ -344,9 +351,6 @@ public final class InfinityManager {
                         center.y + radius,
                         center.z + radius
                 );
-
-        Vec3 ownerMotion =
-                owner.getDeltaMovement();
 
         for (Entity entity :
                 level.getEntities(
@@ -360,7 +364,6 @@ public final class InfinityManager {
             if (entity instanceof Projectile projectile
                     && projectile.getOwner()
                     == owner) {
-
                 continue;
             }
 
@@ -375,6 +378,15 @@ public final class InfinityManager {
                     entity instanceof Projectile
                             || entity instanceof WarProjectileEntity;
 
+            if (projectileLike
+                    && HELD_PROJECTILES.containsKey(
+                            entity.getUUID()
+                    )) {
+                // A latched projectile is governed exclusively by
+                // tickHeldProjectiles() until it crosses RELEASE_RADIUS.
+                continue;
+            }
+
             Vec3 relative =
                     entity.position()
                             .subtract(
@@ -386,7 +398,6 @@ public final class InfinityManager {
 
             if (distance < 0.08
                     || distance >= radius) {
-
                 continue;
             }
 
@@ -414,35 +425,51 @@ public final class InfinityManager {
                             1.0
                     );
 
-            if (projectileLike
-                    && influence > 0.06) {
-                influencedProjectiles.add(
-                        entity.getUUID()
+            if (projectileLike) {
+                /*
+                 * OUTER FIELD: slowdown only. No "momentum broken", no
+                 * gravity, no release logic. The projectile is allowed to
+                 * penetrate deeper before the inner latch is reached.
+                 */
+                Vec3 velocity =
+                        entity.getDeltaMovement();
+
+                double damping =
+                        Math.max(
+                                0.12,
+                                1.0
+                                        - influence
+                                                * influence
+                                                * 0.74
+                        );
+
+                entity.setDeltaMovement(
+                        velocity.scale(
+                                damping
+                        )
                 );
 
-                if (entity instanceof WarProjectileEntity warProjectile) {
-                    warProjectile.markInfinityAffected();
-                } else if (entity instanceof Projectile projectile) {
-                    projectile.setNoGravity(
-                            false
-                    );
-
-                    DRAINED_PROJECTILES.put(
-                            entity.getUUID(),
-                            new DrainedProjectile(
-                                    level.dimension()
-                            )
+                if (distance
+                        <= stopRadiusFor(
+                                confidence
+                        )) {
+                    holdProjectile(
+                            level,
+                            entity,
+                            state
                     );
                 }
+
+                continue;
             }
 
+            /*
+             * Non-projectile Infinity behaviour stays as before: living
+             * entities/objects are progressively damped and can freeze near
+             * the center.
+             */
             Vec3 velocity =
                     entity.getDeltaMovement();
-
-            double approaching =
-                    -velocity.dot(
-                            outward
-                    );
 
             double damping =
                     Math.max(
@@ -458,72 +485,9 @@ public final class InfinityManager {
                             damping
                     );
 
-            /*
-             * Walking toward an incoming object effectively makes the
-             * remaining distance disappear faster. At high confidence this
-             * becomes a visible recoil: arrows start travelling backwards.
-             */
-            double ownerClosing =
-                    ownerMotion.dot(
-                            outward
-                    );
-
-            if (entity instanceof Projectile
-                    && ownerClosing > 0.0) {
-
-                next =
-                        next.add(
-                                outward.scale(
-                                        ownerClosing
-                                                * influence
-                                                * (
-                                                0.85
-                                                        + proximity
-                                                                * 2.40
-                                        )
-                                )
-                        );
-            }
-
-            if (entity instanceof Projectile
-                    && approaching > 0.0
-                    && influence > 0.74) {
-
-                next =
-                        next.add(
-                                outward.scale(
-                                        approaching
-                                                * (
-                                                influence
-                                                        - 0.70
-                                        )
-                                                * 1.55
-                                )
-                        );
-            }
-
             if (influence > 0.965) {
-                /*
-                 * Full Infinity does not glue projectiles to one absolute
-                 * coordinate. If the owner walks toward a stopped projectile,
-                 * the field pushes it outward so from the owner's perspective
-                 * the round visibly retreats instead of clipping through.
-                 */
-                if (projectileLike
-                        && ownerClosing > 0.0) {
-                    next =
-                            outward.scale(
-                                    ownerClosing
-                                            * (
-                                            1.05
-                                                    + proximity
-                                                            * 1.85
-                                    )
-                            );
-                } else {
-                    next =
-                            Vec3.ZERO;
-                }
+                next =
+                        Vec3.ZERO;
 
                 FrozenOrientation orientation =
                         FROZEN_ORIENTATION.computeIfAbsent(
@@ -569,7 +533,6 @@ public final class InfinityManager {
                     living.yBodyRotO =
                             orientation.bodyYaw;
                 }
-
             } else {
                 FROZEN_ORIENTATION.remove(
                         entity.getUUID()
@@ -585,9 +548,227 @@ public final class InfinityManager {
         }
     }
 
+    private static void holdProjectile(
+            ServerLevel level,
+            Entity entity,
+            InfinityState state
+    ) {
+        HELD_PROJECTILES.put(
+                entity.getUUID(),
+                new HeldProjectile(
+                        state.owner,
+                        level.dimension()
+                )
+        );
+
+        DRAINED_PROJECTILES.remove(
+                entity.getUUID()
+        );
+
+        entity.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        if (entity instanceof WarProjectileEntity warProjectile) {
+            warProjectile.setInfinityHeld(
+                    true
+            );
+        } else if (entity instanceof Projectile projectile) {
+            projectile.setNoGravity(
+                    true
+            );
+        }
+    }
+
+    private static void tickHeldProjectiles(
+            MinecraftServer server
+    ) {
+        Iterator<Map.Entry<UUID, HeldProjectile>>
+                iterator =
+                HELD_PROJECTILES.entrySet()
+                        .iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, HeldProjectile> entry =
+                    iterator.next();
+
+            HeldProjectile held =
+                    entry.getValue();
+
+            ServerLevel level =
+                    server.getLevel(
+                            held.dimension
+                    );
+
+            InfinityState state =
+                    ACTIVE.get(
+                            held.infinityOwner
+                    );
+
+            ServerPlayer owner =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    held.infinityOwner
+                            );
+
+            Entity entity =
+                    level == null
+                            ? null
+                            : level.getEntity(
+                                    entry.getKey()
+                            );
+
+            if (level == null
+                    || entity == null
+                    || !entity.isAlive()) {
+                iterator.remove();
+                continue;
+            }
+
+            if (state == null
+                    || owner == null
+                    || !owner.isAlive()
+                    || owner.serverLevel() != level
+                    || state.confidence < MIN_ACTIVE_CONFIDENCE
+                    || !hasSpectrum(
+                            owner
+                    )) {
+                releaseProjectile(
+                        level,
+                        entity
+                );
+                iterator.remove();
+                continue;
+            }
+
+            Vec3 center =
+                    owner.getEyePosition();
+
+            Vec3 relative =
+                    entity.position()
+                            .subtract(
+                                    center
+                            );
+
+            double distance =
+                    relative.length();
+
+            if (distance
+                    > releaseRadiusFor(
+                            state.confidence
+                    )) {
+                releaseProjectile(
+                        level,
+                        entity
+                );
+                iterator.remove();
+                continue;
+            }
+
+            Vec3 outward =
+                    distance < 0.001
+                            ? owner.getLookAngle()
+                            .scale(
+                                    -1.0
+                            )
+                            .normalize()
+                            : relative.scale(
+                                    1.0 / distance
+                            );
+
+            double ownerClosing =
+                    owner.getDeltaMovement()
+                            .dot(
+                                    outward
+                            );
+
+            Vec3 next =
+                    Vec3.ZERO;
+
+            if (ownerClosing > 0.012) {
+                /*
+                 * Actual world-space retreat. The bullet doesn't merely remain
+                 * fixed while the player closes distance; it gains outward
+                 * velocity and visibly travels backwards.
+                 */
+                double retreatSpeed =
+                        Mth.clamp(
+                                0.11
+                                        + ownerClosing
+                                                * 2.85,
+                                0.11,
+                                0.90
+                        );
+
+                next =
+                        outward.scale(
+                                retreatSpeed
+                        );
+            }
+
+            if (entity instanceof WarProjectileEntity warProjectile) {
+                warProjectile.setInfinityHeld(
+                        true
+                );
+            } else if (entity instanceof Projectile projectile) {
+                projectile.setNoGravity(
+                        true
+                );
+            }
+
+            entity.setDeltaMovement(
+                    next
+            );
+
+            entity.fallDistance =
+                    0.0F;
+        }
+    }
+
+    private static void releaseProjectile(
+            ServerLevel level,
+            Entity entity
+    ) {
+        Vec3 velocity =
+                entity.getDeltaMovement();
+
+        /*
+         * Whatever outward shove existed is retained only weakly. There is no
+         * restoration of pre-Infinity speed; the projectile has spent its
+         * momentum and begins falling immediately.
+         */
+        entity.setDeltaMovement(
+                new Vec3(
+                        velocity.x * 0.40,
+                        Math.min(
+                                velocity.y * 0.35,
+                                -0.055
+                        ),
+                        velocity.z * 0.40
+                )
+        );
+
+        if (entity instanceof WarProjectileEntity warProjectile) {
+            warProjectile.setInfinityHeld(
+                    false
+            );
+            warProjectile.markInfinityAffected();
+        } else if (entity instanceof Projectile projectile) {
+            projectile.setNoGravity(
+                    false
+            );
+
+            DRAINED_PROJECTILES.put(
+                    entity.getUUID(),
+                    new DrainedProjectile(
+                            level.dimension()
+                    )
+            );
+        }
+    }
+
     private static void tickDrainedProjectiles(
-            MinecraftServer server,
-            Set<UUID> influencedProjectiles
+            MinecraftServer server
     ) {
         Iterator<Map.Entry<UUID, DrainedProjectile>>
                 iterator =
@@ -597,6 +778,12 @@ public final class InfinityManager {
         while (iterator.hasNext()) {
             Map.Entry<UUID, DrainedProjectile> entry =
                     iterator.next();
+
+            if (HELD_PROJECTILES.containsKey(
+                    entry.getKey()
+            )) {
+                continue;
+            }
 
             ServerLevel level =
                     server.getLevel(
@@ -624,17 +811,6 @@ public final class InfinityManager {
                     false
             );
 
-            if (influencedProjectiles.contains(
-                    entity.getUUID()
-            )) {
-                continue;
-            }
-
-            /*
-             * The projectile is no longer inside any Infinity field, but the
-             * lost momentum stays lost. This also defeats self-propelled
-             * projectiles that try to rebuild forward speed after release.
-             */
             Vec3 velocity =
                     entity.getDeltaMovement();
 
@@ -655,20 +831,23 @@ public final class InfinityManager {
     }
 
     /**
-     * Continuous segment-vs-Infinity test for very fast physical projectiles.
+     * Continuous A->B test for fast War projectiles. Only the INNER stop
+     * sphere is clipped. The outer Infinity volume merely slows them.
      *
-     * The normal field already damps Projectile entities each tick. Bullets in
-     * WarBallistics can cross several blocks per tick, so they also ray-test
-     * the 3D "hard core" where the existing influence formula reaches the same
-     * 0.965 full-stop threshold used by applyField().
+     * Crossing this sphere is also the moment hysteresis becomes armed:
+     * HELD_PROJECTILES remembers which Infinity caught the round, so the much
+     * larger release radius cannot affect projectiles that were never stopped.
      */
-    public static Vec3 clipHardProjectileBarrier(
+    public static Vec3 captureWarProjectileOnSegment(
             ServerLevel level,
-            UUID projectileOwner,
+            WarProjectileEntity projectile,
             Vec3 from,
             Vec3 to
     ) {
         Vec3 nearest =
+                null;
+
+        InfinityState nearestState =
                 null;
 
         double nearestDistance =
@@ -679,7 +858,7 @@ public final class InfinityManager {
             if (state.confidence
                     < MIN_ACTIVE_CONFIDENCE
                     || state.owner.equals(
-                            projectileOwner
+                            projectile.ownerId()
                     )
                     || !state.dimension.equals(
                             level.dimension()
@@ -703,47 +882,14 @@ public final class InfinityManager {
                 continue;
             }
 
-            double requiredProximitySquared =
-                    (
-                            0.965
-                                    / state.confidence
-                                    - 0.22
-                    )
-                            / 1.12;
-
-            if (requiredProximitySquared
-                    >= 1.0) {
-                continue;
-            }
-
-            double proximity =
-                    Math.sqrt(
-                            Math.max(
-                                    0.0,
-                                    requiredProximitySquared
-                            )
-                    );
-
-            double hardRadius =
-                    radiusFor(
-                            state.confidence
-                    )
-                            * (
-                            1.0
-                                    - proximity
-                    );
-
-            if (hardRadius
-                    <= 0.05) {
-                continue;
-            }
-
             Vec3 hit =
                     segmentSphereEntry(
                             from,
                             to,
                             owner.getEyePosition(),
-                            hardRadius
+                            stopRadiusFor(
+                                    state.confidence
+                            )
                     );
 
             if (hit == null) {
@@ -755,13 +901,23 @@ public final class InfinityManager {
                             hit
                     );
 
-            if (distance
-                    < nearestDistance) {
+            if (distance < nearestDistance) {
                 nearestDistance =
                         distance;
                 nearest =
                         hit;
+                nearestState =
+                        state;
             }
+        }
+
+        if (nearest != null
+                && nearestState != null) {
+            holdProjectile(
+                    level,
+                    projectile,
+                    nearestState
+            );
         }
 
         return nearest;
@@ -848,6 +1004,35 @@ public final class InfinityManager {
         );
     }
 
+    private static float stopRadiusFor(
+            float confidence
+    ) {
+        /*
+         * Max Infinity: ~1.70 blocks from eye position. This is deliberately
+         * well inside the visible/slowdown field so bullets visibly intrude
+         * before finally stopping.
+         */
+        return 0.85F
+                + confidence
+                        * 0.85F;
+    }
+
+    private static float releaseRadiusFor(
+            float confidence
+    ) {
+        /*
+         * Hysteresis gap is intentionally huge. Once caught at ~1.7 blocks,
+         * a max-confidence projectile must get ~7.7 blocks away before the
+         * field releases it.
+         */
+        return stopRadiusFor(
+                confidence
+        )
+                + 4.75F
+                + confidence
+                        * 1.25F;
+    }
+
     private static float radiusFor(
             float confidence
     ) {
@@ -891,6 +1076,23 @@ public final class InfinityManager {
         ACTIVE.clear();
         FROZEN_ORIENTATION.clear();
         DRAINED_PROJECTILES.clear();
+        HELD_PROJECTILES.clear();
+    }
+
+    private static final class HeldProjectile {
+
+        private final UUID infinityOwner;
+        private final ResourceKey<Level> dimension;
+
+        private HeldProjectile(
+                UUID infinityOwner,
+                ResourceKey<Level> dimension
+        ) {
+            this.infinityOwner =
+                    infinityOwner;
+            this.dimension =
+                    dimension;
+        }
     }
 
     private static final class DrainedProjectile {
