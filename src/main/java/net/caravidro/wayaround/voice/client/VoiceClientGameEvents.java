@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientChatEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -27,6 +28,20 @@ public final class VoiceClientGameEvents {
     private static boolean lastEnabled;
     private static VoiceConfig.ActivationMode lastMode;
     private static boolean lastPttDown;
+
+    @SubscribeEvent
+    public static void onClientChat(
+            ClientChatEvent event
+    ) {
+        /*
+         * Do not cancel or rewrite the message: it still behaves like normal
+         * Minecraft chat. We only mirror it into the intent parser so every
+         * voice-driven technique also has a precise typed alternative.
+         */
+        VoiceIntentClient.handleChatMessage(
+                event.getMessage()
+        );
+    }
 
     @SubscribeEvent
     public static void onClientTick(
