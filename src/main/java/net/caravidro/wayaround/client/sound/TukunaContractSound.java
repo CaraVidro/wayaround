@@ -11,7 +11,7 @@ public final class TukunaContractSound extends AbstractTickableSoundInstance {
     public TukunaContractSound() {
         super(WayAroundSounds.IN_MY_WAY.get(), SoundSource.MUSIC,
                 SoundInstance.createUnseededRandom());
-        looping = false;
+        looping = TukunaPossessionClient.shouldLoopContractMusic();
         relative = true;
         attenuation = SoundInstance.Attenuation.NONE;
         volume = 0.9F;
