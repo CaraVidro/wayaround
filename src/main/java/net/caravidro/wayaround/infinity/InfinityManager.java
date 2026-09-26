@@ -5,13 +5,16 @@ import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.InfinityVisualPayload;
+import net.caravidro.wayaround.war.WarProjectileEntity;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -46,6 +49,16 @@ public final class InfinityManager {
 
     private static final Map<UUID, FrozenOrientation>
             FROZEN_ORIENTATION =
+            new HashMap<>();
+
+    /*
+     * Vanilla/mod Projectile instances that have had their momentum drained.
+     * Keeping this after they LEAVE Infinity is intentional: they do not get
+     * their old velocity back; they continue losing horizontal momentum and
+     * fall under gravity.
+     */
+    private static final Map<UUID, DrainedProjectile>
+            DRAINED_PROJECTILES =
             new HashMap<>();
 
     private static final double VISUAL_RANGE =
@@ -236,6 +249,9 @@ public final class InfinityManager {
         MinecraftServer server =
                 event.getServer();
 
+        Set<UUID> influencedProjectiles =
+                new HashSet<>();
+
         Iterator<Map.Entry<UUID, InfinityState>>
                 iterator =
                 ACTIVE.entrySet()
@@ -288,7 +304,8 @@ public final class InfinityManager {
                     owner,
                     center,
                     radius,
-                    state.confidence
+                    state.confidence,
+                    influencedProjectiles
             );
 
             if ((server.getTickCount()
@@ -303,6 +320,11 @@ public final class InfinityManager {
                 );
             }
         }
+
+        tickDrainedProjectiles(
+                server,
+                influencedProjectiles
+        );
     }
 
     private static void applyField(
@@ -310,7 +332,8 @@ public final class InfinityManager {
             ServerPlayer owner,
             Vec3 center,
             float radius,
-            float confidence
+            float confidence,
+            Set<UUID> influencedProjectiles
     ) {
         AABB area =
                 new AABB(
@@ -340,6 +363,17 @@ public final class InfinityManager {
 
                 continue;
             }
+
+            if (entity instanceof WarProjectileEntity warProjectile
+                    && warProjectile.ownedBy(
+                            owner.getUUID()
+                    )) {
+                continue;
+            }
+
+            boolean projectileLike =
+                    entity instanceof Projectile
+                            || entity instanceof WarProjectileEntity;
 
             Vec3 relative =
                     entity.position()
@@ -379,6 +413,28 @@ public final class InfinityManager {
                             0.0,
                             1.0
                     );
+
+            if (projectileLike
+                    && influence > 0.06) {
+                influencedProjectiles.add(
+                        entity.getUUID()
+                );
+
+                if (entity instanceof WarProjectileEntity warProjectile) {
+                    warProjectile.markInfinityAffected();
+                } else if (entity instanceof Projectile projectile) {
+                    projectile.setNoGravity(
+                            false
+                    );
+
+                    DRAINED_PROJECTILES.put(
+                            entity.getUUID(),
+                            new DrainedProjectile(
+                                    level.dimension()
+                            )
+                    );
+                }
+            }
 
             Vec3 velocity =
                     entity.getDeltaMovement();
@@ -447,8 +503,27 @@ public final class InfinityManager {
             }
 
             if (influence > 0.965) {
-                next =
-                        Vec3.ZERO;
+                /*
+                 * Full Infinity does not glue projectiles to one absolute
+                 * coordinate. If the owner walks toward a stopped projectile,
+                 * the field pushes it outward so from the owner's perspective
+                 * the round visibly retreats instead of clipping through.
+                 */
+                if (projectileLike
+                        && ownerClosing > 0.0) {
+                    next =
+                            outward.scale(
+                                    ownerClosing
+                                            * (
+                                            1.05
+                                                    + proximity
+                                                            * 1.85
+                                    )
+                            );
+                } else {
+                    next =
+                            Vec3.ZERO;
+                }
 
                 FrozenOrientation orientation =
                         FROZEN_ORIENTATION.computeIfAbsent(
@@ -507,6 +582,75 @@ public final class InfinityManager {
 
             entity.fallDistance =
                     0.0F;
+        }
+    }
+
+    private static void tickDrainedProjectiles(
+            MinecraftServer server,
+            Set<UUID> influencedProjectiles
+    ) {
+        Iterator<Map.Entry<UUID, DrainedProjectile>>
+                iterator =
+                DRAINED_PROJECTILES.entrySet()
+                        .iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, DrainedProjectile> entry =
+                    iterator.next();
+
+            ServerLevel level =
+                    server.getLevel(
+                            entry.getValue()
+                                    .dimension
+                    );
+
+            if (level == null) {
+                iterator.remove();
+                continue;
+            }
+
+            Entity entity =
+                    level.getEntity(
+                            entry.getKey()
+                    );
+
+            if (!(entity instanceof Projectile projectile)
+                    || !entity.isAlive()) {
+                iterator.remove();
+                continue;
+            }
+
+            projectile.setNoGravity(
+                    false
+            );
+
+            if (influencedProjectiles.contains(
+                    entity.getUUID()
+            )) {
+                continue;
+            }
+
+            /*
+             * The projectile is no longer inside any Infinity field, but the
+             * lost momentum stays lost. This also defeats self-propelled
+             * projectiles that try to rebuild forward speed after release.
+             */
+            Vec3 velocity =
+                    entity.getDeltaMovement();
+
+            Vec3 drained =
+                    new Vec3(
+                            velocity.x * 0.52,
+                            Math.min(
+                                    velocity.y * 0.82,
+                                    -0.055
+                            ),
+                            velocity.z * 0.52
+                    );
+
+            entity.setDeltaMovement(
+                    drained
+            );
         }
     }
 
@@ -746,6 +890,19 @@ public final class InfinityManager {
     public static void clearAll() {
         ACTIVE.clear();
         FROZEN_ORIENTATION.clear();
+        DRAINED_PROJECTILES.clear();
+    }
+
+    private static final class DrainedProjectile {
+
+        private final ResourceKey<Level> dimension;
+
+        private DrainedProjectile(
+                ResourceKey<Level> dimension
+        ) {
+            this.dimension =
+                    dimension;
+        }
     }
 
     private static final class FrozenOrientation {
