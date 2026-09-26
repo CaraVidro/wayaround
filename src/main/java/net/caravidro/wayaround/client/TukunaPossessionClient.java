@@ -25,6 +25,7 @@ public final class TukunaPossessionClient {
     private static boolean contractMusic;
     private static boolean loopContractMusic;
     private static TukunaContractSound music;
+    private static int musicRetryTicks;
     private static CameraType previousCamera;
 
     private TukunaPossessionClient() {
@@ -73,6 +74,7 @@ public final class TukunaPossessionClient {
         if (playContractMusic && !wasPlaying) {
             music = new TukunaContractSound();
             minecraft.getSoundManager().play(music);
+            musicRetryTicks = 20;
         } else if (!playContractMusic && wasPlaying && music != null) {
             minecraft.getSoundManager().stop(music);
             music = null;
@@ -94,24 +96,46 @@ public final class TukunaPossessionClient {
     public static void onTick(
             ClientTickEvent.Post event
     ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (musicRetryTicks > 0) {
+            musicRetryTicks--;
+        }
+
+        /*
+         * Indefinite control must never silently lose its omen. If the sound
+         * engine drops the initial play request or the source stops, retry it.
+         */
+        if (contractMusic
+                && loopContractMusic
+                && minecraft.level != null
+                && minecraft.player != null
+                && musicRetryTicks <= 0
+                && (music == null || !minecraft.getSoundManager().isActive(music))) {
+            music = new TukunaContractSound();
+            minecraft.getSoundManager().play(music);
+            musicRetryTicks = 20;
+        }
+
         if (!possessed) {
-            if (Minecraft.getInstance().level == null) {
+            if (minecraft.level == null) {
                 contractMusic = false;
                 loopContractMusic = false;
                 music = null;
+                musicRetryTicks = 0;
             }
             return;
         }
-
-        Minecraft minecraft =
-                Minecraft.getInstance();
 
         if (minecraft.player == null
                 || minecraft.level == null) {
             possessed =
                     false;
             contractMusic = false;
+            loopContractMusic = false;
             music = null;
+            musicRetryTicks = 0;
             previousCamera =
                     null;
             return;
