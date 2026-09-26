@@ -11,7 +11,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record TukunaPossessionS2CPayload(
         boolean active,
-        boolean contractMusic
+        boolean contractMusic,
+        boolean loopContractMusic
 ) implements CustomPacketPayload {
 
     public static final Type<TukunaPossessionS2CPayload> TYPE =
@@ -32,10 +33,13 @@ public record TukunaPossessionS2CPayload(
                                     payload.active()
                             );
                             buf.writeBoolean(payload.contractMusic());
+                            buf.writeBoolean(payload.loopContractMusic());
                     },
                     buf ->
                             new TukunaPossessionS2CPayload(
-                                    buf.readBoolean(), buf.readBoolean()
+                                    buf.readBoolean(),
+                                    buf.readBoolean(),
+                                    buf.readBoolean()
                             )
             );
 
@@ -55,7 +59,9 @@ public record TukunaPossessionS2CPayload(
         context.enqueueWork(
                 () ->
                         TukunaPossessionClient.setPossessed(
-                                payload.active(), payload.contractMusic()
+                                payload.active(),
+                                payload.contractMusic(),
+                                payload.loopContractMusic()
                         )
         );
     }
