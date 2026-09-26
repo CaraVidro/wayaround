@@ -52,6 +52,7 @@ public final class LivingCloudRenderer {
     private static final int REBUILD_INTERVAL_NEAR = 10;
     private static final int REBUILD_INTERVAL_MID = 20;
     private static final int REBUILD_INTERVAL_FAR = 40;
+    private static final int MAX_REBUILDS_PER_FRAME = 2;
     private static final double CAMERA_FACE_CLEAR_RADIUS = 18.0;
     private static final double CAMERA_NEAR_GUARD = 0.35;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
@@ -119,15 +120,22 @@ public final class LivingCloudRenderer {
                         1.0F
                 );
 
+        double renderRange =
+                effectiveRenderRange(
+                        minecraft
+                );
+
         List<LocalWeatherField.CloudCell> cells =
                 LocalWeatherField.nearbyCells(
                         camera.x,
                         camera.z,
                         time,
-                        RENDER_RANGE
+                        renderRange
                 );
 
         Set<Long> visibleIds = new HashSet<>();
+        int rebuildBudget =
+                MAX_REBUILDS_PER_FRAME;
         boolean anyVertex = false;
 
         PoseStack poseStack = event.getPoseStack();
@@ -185,10 +193,21 @@ public final class LivingCloudRenderer {
                     cell,
                     rebuildInterval
             )) {
-                mesh.rebuild(
-                        cell,
-                        time
-                );
+                if (rebuildBudget > 0) {
+                    mesh.rebuild(
+                            cell,
+                            time
+                    );
+
+                    rebuildBudget--;
+                } else if (mesh.builtAt
+                        == Long.MIN_VALUE) {
+                    /*
+                     * New cloud with no mesh yet: skip this frame rather than
+                     * rebuilding every nearby cloud in one giant hitch.
+                     */
+                    continue;
+                }
             }
 
             boolean inside =
@@ -313,6 +332,31 @@ public final class LivingCloudRenderer {
         }
 
         poseStack.popPose();
+    }
+
+    private static double effectiveRenderRange(
+            Minecraft minecraft
+    ) {
+        /*
+         * Custom clouds used to ignore vanilla render distance entirely and
+         * always evaluate out to 760 blocks. That defeats the main low-end
+         * performance control. Keep a useful minimum, then scale with the
+         * player's chunk setting and cap at the original cinematic range.
+         */
+        double vanillaBlocks =
+                minecraft.options
+                        .renderDistance()
+                        .get()
+                        * 16.0;
+
+        return Math.min(
+                RENDER_RANGE,
+                Math.max(
+                        160.0,
+                        vanillaBlocks
+                                * 1.5
+                )
+        );
     }
 
     public static boolean isInsideCloud(
