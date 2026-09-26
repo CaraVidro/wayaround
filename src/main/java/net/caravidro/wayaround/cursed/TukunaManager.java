@@ -69,10 +69,11 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * voice-haunts that host from anywhere -> both say "trocar" -> temporary
  * possession -> host watches first-person and cannot speak -> automatic return.
  *
- * The actual body transfer deliberately does not move inventories. The ghost
- * player becomes the temporary physical controller at the host's position,
- * while the host is server-side spectator-camerad to that controller. This
- * avoids inventory duplication while preserving the two-real-player mechanic.
+ * Possession does not replace the receptacle's visible identity. The Tukuna
+ * player remains the input/controller entity underneath, while the real host
+ * player is kept as the visible synchronized body (skin, armor and markings).
+ * Inventories are never moved between players, preserving the two-real-player
+ * mechanic without visually swapping the receptacle into Tukuna's avatar.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class TukunaManager {
@@ -2827,13 +2828,16 @@ public final class TukunaManager {
 
         VIEW_HOSTS.remove(spirit.getUUID());
         PacketDistributor.sendToPlayer(spirit, new TukunaViewS2CPayload(false, 0));
-        syncTukunaMarks(spirit, true, 10);
+
+        // The receptacle remains THE visible body. Tukuna only becomes the
+        // hidden controller entity underneath it.
+        syncTukunaMarks(spirit, false, 6);
+        syncTukunaMarks(host, true, 10);
 
         SpectrumAccess.syncPossession(host, spirit);
 
-        host.setGameMode(
-                GameType.SPECTATOR
-        );
+        PlayerControlLockManager.lockMovement(host, 0);
+        PlayerControlLockManager.lockActions(host, 0);
 
         teleportTo(
                 spirit,
@@ -2843,15 +2847,17 @@ public final class TukunaManager {
                 0.0F
         );
 
+        spirit.setInvisible(true);
+
         // Finish the bowed pose looking forward as control transfers.
         spirit.setYRot(host.getYRot());
 
         spirit.setXRot(0.0F);
 
-        // The new controller also bows when the physical body changes hands.
-        sendFugaCinematic(spirit, PlayerCinematicPayload.TUKUNA_RETURN,
+        // The visible receptacle body performs the hand-off animation.
+        sendFugaCinematic(host, PlayerCinematicPayload.TUKUNA_RETURN,
                 RETURN_TICKS, true, 0.0F);
-        if (indefinite) emitIndefiniteAura(spirit, tick, true);
+        if (indefinite) emitIndefiniteAura(host, tick, true);
 
         spirit.setGameMode(
                 GameType.SURVIVAL
@@ -2952,7 +2958,8 @@ public final class TukunaManager {
 
                 if (host != null) {
                     emergencyRestoreHost(
-                            host
+                            host,
+                            possession.hostMode
                     );
                 }
 
@@ -2974,20 +2981,25 @@ public final class TukunaManager {
                 continue;
             }
 
-            if (!host.isSpectator()) {
+            if (host.gameMode.getGameModeForPlayer() != possession.hostMode) {
                 host.setGameMode(
-                        GameType.SPECTATOR
+                        possession.hostMode
                 );
             }
+
+            syncPossessedBody(
+                    host,
+                    spirit
+            );
 
             host.setCamera(
                     spirit
             );
 
             if (possession.endTick == Long.MAX_VALUE && tick % 10L == 0L) {
-                emitIndefiniteAura(spirit, tick, false);
+                emitIndefiniteAura(host, tick, false);
             }
-            if (tick % 40L == 0L) syncTukunaMarks(spirit, true, 1);
+            if (tick % 40L == 0L) syncTukunaMarks(host, true, 1);
 
             long remaining =
                     possession.endTick
@@ -3058,6 +3070,42 @@ public final class TukunaManager {
         }
     }
 
+    private static void syncPossessedBody(
+            ServerPlayer host,
+            ServerPlayer spirit
+    ) {
+        if (host.serverLevel() != spirit.serverLevel()) {
+            teleportTo(
+                    host,
+                    spirit.serverLevel(),
+                    spirit.position(),
+                    spirit.getYRot(),
+                    spirit.getXRot()
+            );
+        }
+
+        PlayerControlLockManager.moveMovementAnchor(
+                host,
+                spirit.position()
+        );
+
+        host.setYRot(
+                spirit.getYRot()
+        );
+        host.setXRot(
+                spirit.getXRot()
+        );
+        host.setYHeadRot(
+                spirit.getYHeadRot()
+        );
+        host.setPose(
+                spirit.getPose()
+        );
+        host.setSprinting(
+                spirit.isSprinting()
+        );
+    }
+
     private static void finishPossession(
             ServerPlayer host,
             ServerPlayer spirit,
@@ -3076,7 +3124,19 @@ public final class TukunaManager {
         float pitch =
                 spirit.getXRot();
 
+        syncPossessedBody(
+                host,
+                spirit
+        );
+
         host.setCamera(
+                host
+        );
+
+        PlayerControlLockManager.clearMovement(
+                host
+        );
+        PlayerControlLockManager.clearActions(
                 host
         );
 
@@ -3092,8 +3152,12 @@ public final class TukunaManager {
                 possession.hostMode
         );
 
+        spirit.setInvisible(false);
         spirit.setGameMode(
                 GameType.SPECTATOR
+        );
+        spirit.setCamera(
+                host
         );
 
         SpectrumAccess.sync(spirit);
@@ -3127,8 +3191,8 @@ public final class TukunaManager {
                         false, false, false
                 )
         );
-        syncTukunaMarks(spirit, false, 40);
         syncTukunaMarks(host, false, 54);
+        syncTukunaMarks(spirit, false, 12);
         PacketDistributor.sendToPlayer(spirit, new TukunaViewS2CPayload(true, 0));
         VIEW_HOSTS.put(spirit.getUUID(), host.getUUID());
         if (possession.contractMusic) {
@@ -3210,14 +3274,22 @@ public final class TukunaManager {
     private record ReturnVisual(long endsAt, boolean indefinite) {}
 
     private static void emergencyRestoreHost(
-            ServerPlayer host
+            ServerPlayer host,
+            GameType hostMode
     ) {
         host.setCamera(
                 host
         );
 
+        PlayerControlLockManager.clearMovement(
+                host
+        );
+        PlayerControlLockManager.clearActions(
+                host
+        );
+
         host.setGameMode(
-                GameType.SURVIVAL
+                hostMode
         );
 
         PacketDistributor.sendToPlayer(
@@ -3454,9 +3526,11 @@ public final class TukunaManager {
                 : host.getXRot();
 
         if (possession != null) {
+            syncPossessedBody(host, spirit);
             POSSESSIONS.remove(host.getUUID());
             host.setCamera(host);
-            teleportTo(host, spirit.serverLevel(), spirit.position(), spirit.getYRot(), spirit.getXRot());
+            PlayerControlLockManager.clearMovement(host);
+            PlayerControlLockManager.clearActions(host);
             host.setGameMode(possession.hostMode);
             PacketDistributor.sendToPlayer(host, new TukunaPossessionS2CPayload(false, false, false));
             removePossessionBuffs(spirit);
@@ -3472,6 +3546,8 @@ public final class TukunaManager {
         spirit.getPersistentData().putBoolean(BODY_RECLAIMED_KEY, true);
         spirit.getPersistentData().putInt(SELF_FINGER_COUNT_KEY, MAX_FINGERS);
         VIEW_HOSTS.remove(spirit.getUUID());
+
+        spirit.setInvisible(false);
 
         double angle = Math.toRadians(yaw);
         teleportTo(spirit, originalHostLevel,

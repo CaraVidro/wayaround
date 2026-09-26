@@ -66,3 +66,14 @@ Build e regressões matemáticas não substituem verificar poses, cores e equil�
 - Se BLUE estiver ativo, inclusive seguindo o mouse, preparar RED captura o BLUE imediatamente, congela seu centro e inicia a fusão.
 - A fusão física BLUE + RED voltou a ser **Purple Nuke**: ela carrega no ponto capturado e detona automaticamente. Não vira mais Purple projectile.
 - Pressionar a ação Purple quando a nuke já passou da fase madura (72 ticks) antecipa a detonação, mas continua sendo a mesma nuke.
+
+
+## Tukuna: corpo do receptáculo e reutilização de sistemas
+
+- Regra de arquitetura: antes de criar mecanismo paralelo, procurar e expandir o sistema existente. Possessão usa o mesmo `TukunaManager`, `PlayerControlLockManager`, câmera e packets; não existe um segundo motor de controle.
+- Durante possessão, **o modelo visível continua sendo o receptáculo**: skin, armadura e corpo são dele. Tukuna é somente o controlador invisível por baixo.
+- O corpo real do receptáculo é sincronizado com posição, rotação, pose e sprint do controlador e permanece marcado pelos símbolos/faixas.
+- Em primeira pessoa, o corpo sobreposto é ocultado apenas para a câmera que estaria dentro dele; em terceira pessoa ele reaparece normalmente como o receptáculo marcado.
+- Ao Tukuna sair, o mesmo corpo é destravado imediatamente, a câmera volta ao receptáculo e Tukuna retorna ao estado de espírito ancorado. Não há troca de avatar.
+- As faixas procedurais agora usam os offsets reais das caixas vanilla (cabeça, tronco, braços e pernas) e ficam do lado de fora das camadas de hat/jacket/sleeves/pants, evitando o deslocamento e o z-fighting anteriores.
+- Para Domains futuros do Tukuna, reutilizar primeiro `DomainManager` / `DomainProfile` e os managers/renderers já existentes de Void/Justice. O preview atual não deve virar um segundo Domain Engine.

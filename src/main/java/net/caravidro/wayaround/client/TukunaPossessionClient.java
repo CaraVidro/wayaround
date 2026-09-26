@@ -43,6 +43,10 @@ public final class TukunaPossessionClient {
         return loopContractMusic;
     }
 
+    public static boolean isHostWatchingPossession() {
+        return possessed;
+    }
+
     public static void setPossessed(
             boolean active,
             boolean playContractMusic,

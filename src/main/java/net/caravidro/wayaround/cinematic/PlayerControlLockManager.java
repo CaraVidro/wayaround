@@ -53,6 +53,45 @@ public final class PlayerControlLockManager {
                 );
     }
 
+    /**
+     * Move an already movement-locked body without releasing the lock.
+     * Possession uses this to keep the receptacle's real player model attached
+     * to the controller instead of spawning/swapping a second visible body.
+     */
+    public static void moveMovementAnchor(
+            ServerPlayer player,
+            Vec3 anchor
+    ) {
+        LockState state =
+                LOCKS.get(
+                        player.getUUID()
+                );
+
+        if (state == null
+                || !active(
+                state.movementUntil,
+                player.server.getTickCount()
+        )) {
+            return;
+        }
+
+        state.anchor =
+                anchor;
+
+        player.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        player.setPos(
+                anchor.x,
+                anchor.y,
+                anchor.z
+        );
+
+        player.fallDistance =
+                0.0F;
+    }
+
     public static void clearMovement(
             ServerPlayer player
     ) {
