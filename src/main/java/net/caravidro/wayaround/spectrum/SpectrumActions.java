@@ -21,10 +21,20 @@ public final class SpectrumActions {
     private static final Map<UUID,Long> COOLDOWN=new HashMap<>();
     private static final Map<UUID,Long> INPUT_DEBOUNCE=new HashMap<>();
     private static final Map<UUID,Long> FUGA_DEBOUNCE=new HashMap<>();
+    private static final Set<UUID> TUKUNA_MENU_AURA=new HashSet<>();
     private static boolean allowed(ServerPlayer p, SpectrumType type){
         return p.isAlive() && !p.isSpectator() && !TukunaManager.isSilencedHost(p)
                 && !TukunaManager.isDraftingPact(p) && !TukunaManager.isPacifistPossession(p)
                 && !PlayerControlLockManager.actionsLocked(p) && SpectrumAccess.has(p,type);
+    }
+    public static void menuState(ServerPlayer p,int spectrumOrdinal,boolean open){
+        SpectrumType[] values=SpectrumType.values();
+        SpectrumType type=spectrumOrdinal>=0&&spectrumOrdinal<values.length?values[spectrumOrdinal]:null;
+        if(open && type==SpectrumType.TUKUNA && SpectrumAccess.has(p,SpectrumType.TUKUNA)){
+            TUKUNA_MENU_AURA.add(p.getUUID());
+        }else{
+            TUKUNA_MENU_AURA.remove(p.getUUID());
+        }
     }
     public static void input(ServerPlayer p,int id,byte phase){
         if(phase==SpectrumInputPayload.CANCEL){cancel(p);return;}
@@ -83,6 +93,14 @@ public final class SpectrumActions {
     }
     @SubscribeEvent public static void tick(ServerTickEvent.Post event){
         long now=event.getServer().getTickCount();
+
+        TUKUNA_MENU_AURA.removeIf(id->{
+            ServerPlayer p=event.getServer().getPlayerList().getPlayer(id);
+            if(p==null||!p.isAlive()||!SpectrumAccess.has(p,SpectrumType.TUKUNA))return true;
+            if((now&1L)==0L)TukunaManager.emitSpectrumMenuAura(p,now);
+            return false;
+        });
+
         GESTURES.entrySet().removeIf(e->{
             ServerPlayer p=event.getServer().getPlayerList().getPlayer(e.getKey()); Gesture g=e.getValue();
             if(p==null)return true;
@@ -98,5 +116,5 @@ public final class SpectrumActions {
         if(now%200==0){COOLDOWN.entrySet().removeIf(e->e.getValue()<now);FUGA_DEBOUNCE.entrySet().removeIf(e->e.getValue()<now);INPUT_DEBOUNCE.entrySet().removeIf(e->e.getValue()<now);}
     }
     private static final class Gesture{long started,next;boolean fire,released,firing;int shots;Gesture(long now){started=now;}}
-    @SubscribeEvent public static void stop(ServerStoppedEvent e){GESTURES.clear();COOLDOWN.clear();FUGA_DEBOUNCE.clear();INPUT_DEBOUNCE.clear();}
+    @SubscribeEvent public static void stop(ServerStoppedEvent e){GESTURES.clear();COOLDOWN.clear();FUGA_DEBOUNCE.clear();INPUT_DEBOUNCE.clear();TUKUNA_MENU_AURA.clear();}
 }

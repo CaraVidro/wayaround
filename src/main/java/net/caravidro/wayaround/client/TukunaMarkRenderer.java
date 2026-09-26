@@ -8,6 +8,8 @@ import java.util.UUID;
 
 import org.joml.Matrix4f;
 
+import com.mojang.math.Axis;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -22,6 +24,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -90,14 +93,40 @@ public final class TukunaMarkRenderer {
         PoseStack pose = event.getPoseStack();
 
         /*
-         * RenderPlayerEvent.Post exposes the entity pose stack after the
-         * vanilla humanoid body transform has been unwound. ModelPart
-         * coordinates still assume the vanilla ~24px-tall humanoid space,
-         * so without this translation the complete rune silhouette appears
-         * about one player-height below the actual skin.
+         * RenderPlayerEvent.Post fires after LivingEntityRenderer has popped
+         * its humanoid transform. Rebuild the same standing-player transform:
+         * body yaw, vanilla X/Y inversion, then the 1.501 model translation.
+         *
+         * The previous code only applied the translation. That left ModelPart
+         * +Y pointing toward world -Y, producing the unmistakable "second
+         * body reflected underneath the feet" seen in-game.
          */
         pose.pushPose();
-        pose.translate(0.0D, -1.501D, 0.0D);
+
+        float bodyYaw =
+                Mth.rotLerp(
+                        event.getPartialTick(),
+                        event.getEntity().yBodyRotO,
+                        event.getEntity().yBodyRot
+                );
+
+        pose.mulPose(
+                Axis.YP.rotationDegrees(
+                        180.0F - bodyYaw
+                )
+        );
+
+        pose.scale(
+                -1.0F,
+                -1.0F,
+                1.0F
+        );
+
+        pose.translate(
+                0.0D,
+                -1.501D,
+                0.0D
+        );
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();

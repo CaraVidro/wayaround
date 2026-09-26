@@ -3311,6 +3311,17 @@ public final class TukunaManager {
         });
     }
 
+    public static void emitSpectrumMenuAura(
+            ServerPlayer player,
+            long tick
+    ) {
+        emitIndefiniteAura(
+                player,
+                tick,
+                false
+        );
+    }
+
     private static void emitIndefiniteAura(ServerPlayer player, long tick, boolean intense) {
         int points = intense ? 20 : 8;
         double radius = intense ? 1.1 : 0.65;

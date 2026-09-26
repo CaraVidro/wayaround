@@ -36,22 +36,29 @@ public final class SpectrumMenu {
         if(Minecraft.getInstance().getConnection()!=null) PacketDistributor.sendToServer(new SpectrumInputPayload(0,SpectrumInputPayload.CANCEL));
         PRESSED.clear();
     }
+    private static void menuState(boolean active){
+        if(Minecraft.getInstance().getConnection()!=null && selected!=null)
+            PacketDistributor.sendToServer(new SpectrumInputPayload(selected.ordinal(),
+                    active?SpectrumInputPayload.MENU_OPEN:SpectrumInputPayload.MENU_CLOSE));
+    }
     @SubscribeEvent public static void key(InputEvent.Key e){
         Minecraft mc=Minecraft.getInstance();
         if(mc.player==null||mc.screen!=null)return;
         if(TOGGLE.consumeClick()){
+            if(open)menuState(false);
             cancel(); open=!open;
             var unlocked=unlocked();
             if(unlocked.isEmpty()){open=false;mc.player.displayClientMessage(Component.literal("Nenhum Spectrum desbloqueado."),true);}
             else if(!unlocked.contains(selected))selected=unlocked.getFirst();
             page=0;
+            if(open)menuState(true);
             // Shift+T must not also open vanilla chat; remapped toggle keys still work.
             while(mc.options.keyChat.consumeClick()){}
             return;
         }
         if(!open)return;
         if(NEXT.consumeClick()){
-            cancel();var types=unlocked();if(!types.isEmpty())selected=types.get((types.indexOf(selected)+1)%types.size());page=0;return;
+            menuState(false);cancel();var types=unlocked();if(!types.isEmpty())selected=types.get((types.indexOf(selected)+1)%types.size());page=0;menuState(true);return;
         }
         if(PAGE.consumeClick()){cancel();page=(page+1)%Math.max(1,(actions().size()+9)/10);return;}
         int slot;
@@ -76,7 +83,7 @@ public final class SpectrumMenu {
     @SubscribeEvent public static void tick(ClientTickEvent.Post e){
         var mc=Minecraft.getInstance();
         if(mc.player==null||mc.level==null){open=false;PRESSED.clear();return;}
-        if(open&&(mc.screen!=null||!SpectrumAccess.has(mc.player,selected))){cancel();open=false;}
+        if(open&&(mc.screen!=null||!SpectrumAccess.has(mc.player,selected))){menuState(false);cancel();open=false;}
     }
     @SubscribeEvent public static void gui(RenderGuiEvent.Post e){
         var mc=Minecraft.getInstance();if(!open||mc.player==null||mc.options.hideGui)return;

@@ -363,7 +363,9 @@ public final class PlayerAnimationController {
         return state != null
                 && (state.animation == PlayerCinematicPayload.FUGA_RELEASE
                     || state.animation == PlayerCinematicPayload.TUKUNA_TAKEOVER
-                    || state.animation == PlayerCinematicPayload.TUKUNA_RETURN);
+                    || state.animation == PlayerCinematicPayload.TUKUNA_RETURN
+                    || state.animation == PlayerCinematicPayload.TUKUNA_FINGER_REACTION
+                    || state.animation == PlayerCinematicPayload.TUKUNA_FORCED_EAT);
     }
 
     public static float tukunaBowWeight(UUID player) {
@@ -395,6 +397,21 @@ public final class PlayerAnimationController {
                 age(
                         state
                 );
+
+        if (state.animation == PlayerCinematicPayload.TUKUNA_FINGER_REACTION) {
+            float enter = ease(age / 10.0F);
+            float leave = ease(Mth.clamp((age - 42.0F) / 18.0F, 0.0F, 1.0F));
+            float weight = enter * (1.0F - leave);
+            return 44.7F * weight;
+        }
+
+        if (state.animation == PlayerCinematicPayload.TUKUNA_FORCED_EAT) {
+            float up = ease(Mth.clamp(age / 8.0F, 0.0F, 1.0F))
+                    * (1.0F - ease(Mth.clamp((age - 24.0F) / 8.0F, 0.0F, 1.0F)));
+            float down = ease(Mth.clamp((age - 28.0F) / 7.0F, 0.0F, 1.0F))
+                    * (1.0F - ease(Mth.clamp((age - 43.0F) / 10.0F, 0.0F, 1.0F)));
+            return (float)Math.toDegrees(-0.88F * up + 0.82F * down);
+        }
 
         if (state.animation
                 != PlayerCinematicPayload.FUGA_RELEASE) {

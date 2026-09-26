@@ -11,11 +11,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderNameTagEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 
 /**
  * Client-side half of "the host only watches".
@@ -214,8 +216,32 @@ public final class TukunaPossessionClient {
         }
     }
 
-    @SubscribeEvent
-    public static void obscure(RenderGuiEvent.Post event) {
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void obscureHud(
+            RenderGuiEvent.Post event
+    ) {
+        renderObscure(
+                event.getGuiGraphics()
+        );
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void obscureScreens(
+            ScreenEvent.Render.Post event
+    ) {
+        /*
+         * Screens (notably ChatScreen) render after the HUD. Drawing the same
+         * blackout here makes the possession transition genuinely top-most:
+         * chat text, input field, inventories and menus cannot sit above it.
+         */
+        renderObscure(
+                event.getGuiGraphics()
+        );
+    }
+
+    private static void renderObscure(
+            net.minecraft.client.gui.GuiGraphics graphics
+    ) {
         if (obscureTicks <= 0) return;
 
         Minecraft minecraft = Minecraft.getInstance();
@@ -226,10 +252,10 @@ public final class TukunaPossessionClient {
         float grayPhase = Math.min(1.0F, progress / 0.48F);
         float blackPhase = Math.max(0.0F, (progress - 0.34F) / 0.66F);
         int grayAlpha = (int)(92.0F * (1.0F - blackPhase) * grayPhase);
-        int blackAlpha = (int)(232.0F * blackPhase);
+        int blackAlpha = (int)(255.0F * blackPhase);
 
         if (grayAlpha > 0) {
-            event.getGuiGraphics().fill(
+            graphics.fill(
                     0, 0, width, height,
                     (grayAlpha << 24) | 0x909090
             );
@@ -239,7 +265,8 @@ public final class TukunaPossessionClient {
                         height / 5.0F * i
                                 + Math.sin((obscureTicks + i * 7) * 0.37D) * 4.0D
                 );
-                event.getGuiGraphics().fill(
+
+                graphics.fill(
                         0,
                         Math.max(0, y),
                         width,
@@ -250,7 +277,7 @@ public final class TukunaPossessionClient {
         }
 
         if (blackAlpha > 0) {
-            event.getGuiGraphics().fill(
+            graphics.fill(
                     0, 0, width, height,
                     blackAlpha << 24
             );

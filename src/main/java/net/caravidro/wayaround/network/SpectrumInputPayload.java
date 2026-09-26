@@ -10,12 +10,18 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record SpectrumInputPayload(int action, byte phase) implements CustomPacketPayload {
-    public static final byte PRESS=0, RELEASE=1, CANCEL=2;
+    public static final byte PRESS=0, RELEASE=1, CANCEL=2, MENU_OPEN=3, MENU_CLOSE=4;
     public static final Type<SpectrumInputPayload> TYPE=new Type<>(ResourceLocation.fromNamespaceAndPath(WayAround.MODID,"spectrum_input"));
     public static final StreamCodec<RegistryFriendlyByteBuf,SpectrumInputPayload> STREAM_CODEC=StreamCodec.of(
             (b,p)->{b.writeVarInt(p.action);b.writeByte(p.phase);}, b->new SpectrumInputPayload(b.readVarInt(),b.readByte()));
     public Type<? extends CustomPacketPayload> type(){return TYPE;}
     public static void handle(SpectrumInputPayload p, IPayloadContext context){context.enqueueWork(()->{
-        if(context.player() instanceof ServerPlayer player) SpectrumActions.input(player,p.action,p.phase);
+        if(context.player() instanceof ServerPlayer player) {
+            if(p.phase==MENU_OPEN || p.phase==MENU_CLOSE) {
+                SpectrumActions.menuState(player,p.action,p.phase==MENU_OPEN);
+            } else {
+                SpectrumActions.input(player,p.action,p.phase);
+            }
+        }
     });}
 }
