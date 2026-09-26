@@ -1078,11 +1078,16 @@ public final class TukunaManager {
                 long until = Math.max(SWAP_COOLDOWNS.getOrDefault(host.getUUID(), 0L),
                         SWAP_COOLDOWNS.getOrDefault(spiritId, 0L));
                 if (now >= until) {
-                    int seconds = host.getPersistentData().contains(PACT_DURATION_KEY)
-                            ? Math.max(1, Math.min(86400, host.getPersistentData().getInt(PACT_DURATION_KEY))) : 180;
+                    int storedSeconds = host.getPersistentData().contains(PACT_DURATION_KEY)
+                            ? host.getPersistentData().getInt(PACT_DURATION_KEY) : 180;
+                    int seconds = storedSeconds < 0
+                            ? -1
+                            : Math.max(1, Math.min(86400, storedSeconds));
                     boolean pacifist = !host.getPersistentData().contains(PACT_PACIFIST_KEY)
                             || host.getPersistentData().getBoolean(PACT_PACIFIST_KEY);
-                    beginTakeover(host, spirit, now, seconds >= 180, pacifist, seconds * 20, true);
+                    int durationTicks = seconds < 0 ? -1 : seconds * 20;
+                    boolean dangerous = seconds < 0 || seconds >= 180;
+                    beginTakeover(host, spirit, now, dangerous, pacifist, durationTicks, true);
                 }
             }
             return true;
@@ -2471,7 +2476,7 @@ public final class TukunaManager {
         PlayerControlLockManager.lockMovement(host, TAKEOVER_TICKS);
         PlayerControlLockManager.lockActions(host, TAKEOVER_TICKS);
         sendFugaCinematic(host, PlayerCinematicPayload.TUKUNA_TAKEOVER,
-                TAKEOVER_TICKS, false, 0.0F);
+                TAKEOVER_TICKS, true, 0.0F);
         host.serverLevel().playSound(null, host.blockPosition(),
                 SoundEvents.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.1F, 0.55F);
     }
@@ -2539,11 +2544,20 @@ public final class TukunaManager {
                 host.gameMode
                         .getGameModeForPlayer();
 
-        long endTick = durationTicks > 0 ? tick + durationTicks : dangerous ? tick + DANGEROUS_CONTRACT_TICKS :
-                tick
-                        + POSSESSION_BASE_TICKS
-                        + fingers
-                                * POSSESSION_PER_FINGER_TICKS;
+        boolean indefinite = durationTicks < 0;
+        boolean contractMusic = indefinite
+                || durationTicks > DANGEROUS_CONTRACT_TICKS;
+
+        long endTick = indefinite
+                ? Long.MAX_VALUE
+                : durationTicks > 0
+                        ? tick + durationTicks
+                        : dangerous
+                                ? tick + DANGEROUS_CONTRACT_TICKS
+                                : tick
+                                        + POSSESSION_BASE_TICKS
+                                        + fingers
+                                                * POSSESSION_PER_FINGER_TICKS;
 
         Possession possession =
                 new Possession(
@@ -2554,7 +2568,8 @@ public final class TukunaManager {
                         endTick,
                         dangerous,
                         pacifist,
-                        negotiated
+                        negotiated,
+                        contractMusic
                 );
 
         POSSESSIONS.put(
@@ -2601,11 +2616,11 @@ public final class TukunaManager {
         PacketDistributor.sendToPlayer(
                 host,
                 new TukunaPossessionS2CPayload(
-                        true, dangerous
+                        true, contractMusic
                 )
         );
 
-        if (dangerous) {
+        if (contractMusic) {
             PacketDistributor.sendToPlayer(spirit,
                     new TukunaPossessionS2CPayload(false, true));
         }
@@ -2687,7 +2702,7 @@ public final class TukunaManager {
                     removePossessionBuffs(
                             spirit
                     );
-                    if (possession.dangerous) {
+                    if (possession.contractMusic) {
                         PacketDistributor.sendToPlayer(spirit,
                                 new TukunaPossessionS2CPayload(false, false));
                     }
@@ -2845,7 +2860,7 @@ public final class TukunaManager {
                         false, false
                 )
         );
-        if (possession.dangerous) {
+        if (possession.contractMusic) {
             PacketDistributor.sendToPlayer(spirit,
                     new TukunaPossessionS2CPayload(false, false));
         }
@@ -3244,6 +3259,7 @@ public final class TukunaManager {
         private final boolean dangerous;
         private final boolean pacifist;
         private final boolean negotiated;
+        private final boolean contractMusic;
 
         private boolean nearWarned;
         private boolean returningWarned;
@@ -3256,7 +3272,8 @@ public final class TukunaManager {
                 long endTick,
                 boolean dangerous,
                 boolean pacifist,
-                boolean negotiated
+                boolean negotiated,
+                boolean contractMusic
         ) {
             this.hostId =
                     hostId;
@@ -3275,6 +3292,7 @@ public final class TukunaManager {
             this.dangerous = dangerous;
             this.pacifist = pacifist;
             this.negotiated = negotiated;
+            this.contractMusic = contractMusic;
         }
     }
 }
