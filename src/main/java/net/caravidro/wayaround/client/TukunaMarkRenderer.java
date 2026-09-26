@@ -89,6 +89,16 @@ public final class TukunaMarkRenderer {
         PlayerModel<?> model = event.getRenderer().getModel();
         PoseStack pose = event.getPoseStack();
 
+        /*
+         * RenderPlayerEvent.Post exposes the entity pose stack after the
+         * vanilla humanoid body transform has been unwound. ModelPart
+         * coordinates still assume the vanilla ~24px-tall humanoid space,
+         * so without this translation the complete rune silhouette appears
+         * about one player-height below the actual skin.
+         */
+        pose.pushPose();
+        pose.translate(0.0D, -1.501D, 0.0D);
+
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.enableDepthTest();
@@ -104,6 +114,8 @@ public final class TukunaMarkRenderer {
 
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
+
+        pose.popPose();
     }
 
     private static int renderPart(

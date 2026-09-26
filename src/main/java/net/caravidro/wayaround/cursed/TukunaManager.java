@@ -599,7 +599,7 @@ public final class TukunaManager {
             confirmSwap(player, true);
             return;
         }
-        if ("devolver corpo".equals(statement) || "voltar corpo".equals(statement)) {
+        if (isManualReturnStatement(statement)) {
             event.setCanceled(true);
             returnBodyEarly(player);
             return;
@@ -653,7 +653,7 @@ public final class TukunaManager {
             confirmSwap(player, true);
             return;
         }
-        if ("devolver corpo".equals(statement) || "voltar corpo".equals(statement)) {
+        if (isManualReturnStatement(statement)) {
             returnBodyEarly(player);
             return;
         }
@@ -1496,6 +1496,18 @@ public final class TukunaManager {
         return false;
     }
 
+    private static boolean isManualReturnStatement(
+            String said
+    ) {
+        return "sair".equals(said)
+                || "devolver".equals(said)
+                || "devolver corpo".equals(said)
+                || "devolver o corpo".equals(said)
+                || "voltar".equals(said)
+                || "voltar corpo".equals(said)
+                || "voltar para o corpo".equals(said);
+    }
+
     private static boolean isPactProposalStart(String said) {
         return said.contains("trato")
                 && (said.contains("vamos fazer") || said.contains("vamos criar")
@@ -1694,7 +1706,7 @@ public final class TukunaManager {
 
     private static void returnBodyEarly(ServerPlayer spirit) {
         Possession possession = possessionForSpirit(spirit.getUUID());
-        if (possession == null || !possession.negotiated) return;
+        if (possession == null) return;
         ServerPlayer host = spirit.server.getPlayerList().getPlayer(possession.hostId);
         if (host == null) return;
         finishPossession(host, spirit, possession, spirit.server.getTickCount());
