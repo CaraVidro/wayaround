@@ -135,6 +135,9 @@ public final class TukunaManager {
     private static final String FUGA_PROMPT_KEY =
             "WayAroundTukunaFugaPhrasePrompted";
 
+    private static final String FUGA_UNLOCK_MIGRATION_KEY =
+            "WayAroundTukunaFugaUnlockV2";
+
     private static final ResourceLocation HOST_ARMOR_ID =
             ResourceLocation.fromNamespaceAndPath(
                     WayAround.MODID,
@@ -311,6 +314,15 @@ public final class TukunaManager {
                     original.getPersistentData().getString(PACT_WORD_KEY));
         }
 
+        if (original.getPersistentData().contains(FUGA_PHRASE_KEY)) {
+            replacement.getPersistentData().putString(FUGA_PHRASE_KEY,
+                    original.getPersistentData().getString(FUGA_PHRASE_KEY));
+        }
+        replacement.getPersistentData().putBoolean(FUGA_PROMPT_KEY,
+                original.getPersistentData().getBoolean(FUGA_PROMPT_KEY));
+        replacement.getPersistentData().putBoolean(FUGA_UNLOCK_MIGRATION_KEY,
+                original.getPersistentData().getBoolean(FUGA_UNLOCK_MIGRATION_KEY));
+
         if (original.getPersistentData()
                 .getBoolean(
                         GHOST_KEY
@@ -386,6 +398,10 @@ public final class TukunaManager {
                             player
                     );
                 }
+
+                ensureFugaUnlockMigrated(
+                        player
+                );
             } else {
                 SPECTRUM_PRESENT.remove(
                         player.getUUID()
@@ -778,6 +794,7 @@ public final class TukunaManager {
             if (unlockedFuga) {
                 spirit.getPersistentData().remove(FUGA_PHRASE_KEY);
                 spirit.getPersistentData().remove(FUGA_PROMPT_KEY);
+                spirit.getPersistentData().putBoolean(FUGA_UNLOCK_MIGRATION_KEY, true);
                 promptFugaPhrase(spirit);
             }
         }
@@ -1704,6 +1721,32 @@ public final class TukunaManager {
                         shakeStrength
                 )
         );
+    }
+
+    private static void ensureFugaUnlockMigrated(
+            ServerPlayer player
+    ) {
+        if (effectiveTukunaFingers(player) <= 10
+                || player.getPersistentData().getBoolean(FUGA_UNLOCK_MIGRATION_KEY)) {
+            return;
+        }
+
+        /*
+         * Older saves could already be above ten fingers before the new
+         * progression gate existed. Force one clean re-selection so those
+         * worlds do not remain stuck with the legacy prompt/phrase state.
+         */
+        player.getPersistentData().remove(FUGA_PHRASE_KEY);
+        player.getPersistentData().remove(FUGA_PROMPT_KEY);
+        player.getPersistentData().putBoolean(FUGA_UNLOCK_MIGRATION_KEY, true);
+
+        player.displayClientMessage(
+                Component.literal("Tukuna: 11+ dedos detectados. A Fuga precisa de uma nova palavra-chave.")
+                        .withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD),
+                false
+        );
+
+        promptFugaPhrase(player);
     }
 
     private static void promptFugaPhrase(
@@ -2644,6 +2687,7 @@ public final class TukunaManager {
         );
 
         if (fingers > 10) {
+            ensureFugaUnlockMigrated(spirit);
             promptFugaPhrase(spirit);
         }
 
