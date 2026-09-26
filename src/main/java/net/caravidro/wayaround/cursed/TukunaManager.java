@@ -999,6 +999,13 @@ public final class TukunaManager {
             proposal.draft.append(raw);
             PACT_PROPOSALS.put(host.getUUID(), proposal);
             showPactDebug(spirit, proposal, "rascunho iniciado; diga pronto para enviar");
+            spirit.displayClientMessage(
+                    Component.literal(
+                            "Dica do trato: para duração, regras e palavras exatas, prefira escrever no chat. "
+                                    + "Para RP, negociação e fala natural, o Voice Chat continua funcionando."
+                    ).withStyle(ChatFormatting.AQUA),
+                    false
+            );
             return true;
         }
         if (speaker == spirit && proposal != null && !proposal.submitted) {
