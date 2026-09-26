@@ -280,3 +280,18 @@ tasks.register('checkPact', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('checkPact') }
 
+
+
+// Deterministic thermal rules run without a game client.
+sourceSets {
+    spectrumTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+tasks.register('spectrumRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.thermal.TemperatureCurveTest'
+}
+tasks.named('check') { dependsOn tasks.named('spectrumRegressionTest') }

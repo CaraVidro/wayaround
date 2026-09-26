@@ -39,6 +39,8 @@ public record PlayerCinematicPayload(
     public static final byte PURPLE_RELEASE = 10;
     public static final byte TUKUNA_TAKEOVER = 11;
     public static final byte TUKUNA_RETURN = 12;
+    public static final byte DESMARTELAR_FIRE_CHARGE = 13;
+    public static final byte TUKUNA_DOMAIN_PREVIEW = 14;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(
@@ -87,3 +89,4 @@ public record PlayerCinematicPayload(
         );
     }
 }
+

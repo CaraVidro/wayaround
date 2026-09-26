@@ -106,8 +106,8 @@ public final class Desmartelar {
                 24.0F
         };
 
-        for (int index = 0;
-             index < yawOffsets.length;
+        for (int index = 1;
+             index < 2;
              index++) {
 
             Vec3 direction =
@@ -135,6 +135,12 @@ public final class Desmartelar {
                                     0.0
                             );
 
+            if (fire) {
+                for (int heatStep = 0; heatStep < 4; heatStep++) {
+                    net.caravidro.wayaround.thermal.RegionalTemperature.pulse(level,
+                            start.add(direction.scale(heatStep * travel / 3)), 7, 2600);
+                }
+            }
             cutCorridor(
                     level,
                     caster,
@@ -534,3 +540,4 @@ public final class Desmartelar {
         );
     }
 }
+

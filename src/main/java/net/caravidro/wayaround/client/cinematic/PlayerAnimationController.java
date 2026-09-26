@@ -221,7 +221,7 @@ public final class PlayerAnimationController {
                             age
                     );
 
-            case PlayerCinematicPayload.DESMARTELAR_CHARGE ->
+            case PlayerCinematicPayload.DESMARTELAR_CHARGE, PlayerCinematicPayload.DESMARTELAR_FIRE_CHARGE ->
                     applyDesmartelarCharge(
                             model,
                             age
@@ -263,11 +263,26 @@ public final class PlayerAnimationController {
                             age
                     );
 
+            case PlayerCinematicPayload.TUKUNA_DOMAIN_PREVIEW -> {
+                float seal = ease(age / 20.0F);
+                model.leftArm.xRot = -1.25F * seal;
+                model.rightArm.xRot = -1.25F * seal;
+                model.leftArm.yRot = -.60F * seal;
+                model.rightArm.yRot = .60F * seal;
+                model.head.xRot += .22F * seal;
+            }
             case PlayerCinematicPayload.TUKUNA_TAKEOVER, PlayerCinematicPayload.TUKUNA_RETURN ->
                     applyTukunaTakeover(model, age, tukunaBowWeight(state));
 
             default -> {
             }
+        }
+        if (state.animation == PlayerCinematicPayload.DESMARTELAR_CHARGE
+                || state.animation == PlayerCinematicPayload.DESMARTELAR_FIRE_CHARGE) {
+            float variation = ((player.getUUID().hashCode() ^ (int)state.startedAt) & 1) == 0 ? 1 : -1;
+            model.body.yRot += variation * .18F;
+            model.rightArm.zRot += variation * .12F;
+            if (state.animation == PlayerCinematicPayload.DESMARTELAR_FIRE_CHARGE) model.leftArm.xRot = -1.1F;
         }
     }
 
@@ -490,93 +505,21 @@ public final class PlayerAnimationController {
         );
     }
 
-    private static void applyFugaCharge(
-            PlayerModel<?> model,
-            float age
-    ) {
-        float p =
-                ease(
-                        age / 18.0F
-                );
-
-        // Draw the bow in stages: raise, sweep the string back, then tense.
-        float raise = ease(age / 12.0F);
-        float draw = ease((age - 12.0F) / 22.0F);
-        float breath = (float) Math.sin(age * 0.13F) * 0.045F * draw;
-
-        model.body.xRot =
-                Mth.lerp(
-                        p,
-                        model.body.xRot,
-                        0.25F
-                );
-
-        model.body.yRot =
-                Mth.lerp(
-                        p,
-                        model.body.yRot,
-                        -0.08F
-                );
-
-        model.head.xRot +=
-                0.23F
-                        * p;
-
-        model.leftArm.xRot =
-                Mth.lerp(
-                        raise,
-                        model.leftArm.xRot,
-                        -1.35F + breath
-                );
-
-        model.leftArm.yRot =
-                Mth.lerp(
-                        p,
-                        model.leftArm.yRot,
-                        -0.12F
-                );
-
-        model.leftArm.zRot =
-                Mth.lerp(
-                        p,
-                        model.leftArm.zRot,
-                        -0.08F
-                );
-
-        model.rightArm.xRot =
-                Mth.lerp(
-                        raise,
-                        model.rightArm.xRot,
-                        -0.45F - draw * 0.47F - breath
-                );
-
-        model.rightArm.yRot =
-                Mth.lerp(
-                        p,
-                        model.rightArm.yRot,
-                        0.25F + draw * 0.57F
-                );
-
-        model.rightArm.zRot =
-                Mth.lerp(
-                        p,
-                        model.rightArm.zRot,
-                        0.24F
-                );
-
-        model.leftLeg.xRot =
-                Mth.lerp(
-                        p,
-                        model.leftLeg.xRot,
-                        0.17F
-                );
-
-        model.rightLeg.xRot =
-                Mth.lerp(
-                        p,
-                        model.rightLeg.xRot,
-                        -0.21F
-                );
+    private static void applyFugaCharge(PlayerModel<?> model, float age) {
+        float raise = ease(age / 50.0F);
+        float clap = ease((age - 48.0F) / 8.0F);
+        float draw = ease((age - 60.0F) / 42.0F);
+        float breath = Mth.sin(age * .10F) * .025F * draw;
+        model.body.yRot = -.25F * draw;
+        model.body.xRot = .12F * draw;
+        model.leftArm.xRot = -1.8F * raise + .35F * draw + breath;
+        model.rightArm.xRot = -1.8F * raise + .85F * draw - breath;
+        model.leftArm.yRot = -.65F * clap * (1-draw) - .10F * draw;
+        model.rightArm.yRot = .65F * clap * (1-draw) + .92F * draw;
+        model.leftArm.zRot = -.25F * raise * (1-clap);
+        model.rightArm.zRot = .25F * raise * (1-clap) + .20F * draw;
+        model.leftLeg.xRot = .17F * draw;
+        model.rightLeg.xRot = -.21F * draw;
     }
 
     private static void applyFugaRelease(
@@ -1534,3 +1477,4 @@ public final class PlayerAnimationController {
         }
     }
 }
+

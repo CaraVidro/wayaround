@@ -216,6 +216,30 @@ public final class VoiceIntentClient {
         );
     }
 
+    private static boolean handleExactSpectrumAction(String text) {
+        var action = switch (text) {
+            case "tecnica imaginaria azul", "tecnica imagina azul" -> net.caravidro.wayaround.spectrum.SpectrumAction.BLUE;
+            case "tecnica imaginaria vermelho" -> net.caravidro.wayaround.spectrum.SpectrumAction.RED;
+            case "azul orbitar", "orbitar azul" -> net.caravidro.wayaround.spectrum.SpectrumAction.BLUE_ORBIT;
+            case "azul parar", "parar azul" -> net.caravidro.wayaround.spectrum.SpectrumAction.BLUE_HOLD;
+            case "azul lancar", "lancar azul" -> net.caravidro.wayaround.spectrum.SpectrumAction.BLUE_LAUNCH;
+            case "azul encerrar", "encerrar azul" -> net.caravidro.wayaround.spectrum.SpectrumAction.BLUE_END;
+            case "azul potencia maxima" -> net.caravidro.wayaround.spectrum.SpectrumAction.BLUE_MAX;
+            case "vermelho lancar", "lancar vermelho" -> net.caravidro.wayaround.spectrum.SpectrumAction.RED_LAUNCH;
+            case "vermelho energia maxima" -> net.caravidro.wayaround.spectrum.SpectrumAction.RED_MAX;
+            case "infinito reforcar", "reforcar infinito" -> net.caravidro.wayaround.spectrum.SpectrumAction.INFINITY_REINFORCE;
+            case "infinito encerrar", "encerrar infinito" -> net.caravidro.wayaround.spectrum.SpectrumAction.INFINITY_OFF;
+            case "ativar infinito" -> net.caravidro.wayaround.spectrum.SpectrumAction.INFINITY;
+            case "preparar azul e vermelho" -> net.caravidro.wayaround.spectrum.SpectrumAction.DUAL;
+            case "lancar roxo" -> net.caravidro.wayaround.spectrum.SpectrumAction.PURPLE;
+            case "dominio void" -> net.caravidro.wayaround.spectrum.SpectrumAction.VOID_DOMAIN;
+            default -> null;
+        };
+        if (action == null || Minecraft.getInstance().getConnection() == null) return false;
+        PacketDistributor.sendToServer(new net.caravidro.wayaround.network.SpectrumInputPayload(action.id,(byte)0));
+        return true;
+    }
+
     public static void handleChatMessage(
             String message
     ) {
@@ -272,6 +296,13 @@ public final class VoiceIntentClient {
                 VoiceToneAnalyzer.urgency(
                         profile
                 );
+
+        if (handleExactSpectrumAction(normalized)) return;
+        // These phrases go once through the server speech listener (pacts/Fuga/combo).
+        if (normalized.equals("preparar desmartelar") || normalized.equals("carregar desmartelar")
+                || normalized.equals("soltar desmartelar") || normalized.equals("lancar desmartelar")
+                || normalized.equals("combinar fogo") || normalized.equals("cancelar tecnica")
+                || normalized.equals("dominio tukuna") || normalized.equals("expansao de dominio tukuna")) return;
 
         if (isCombatHot()
                 && handleCombatReflex(
@@ -2581,3 +2612,4 @@ public final class VoiceIntentClient {
     }
 
 }
+

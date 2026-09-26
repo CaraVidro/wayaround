@@ -63,8 +63,8 @@ public final class TukunaFugaWorldRenderer {
                 TukunaFugaClientEffects.visuals();
 
         boolean chargingBow = minecraft.level.players().stream().anyMatch(player ->
-                PlayerAnimationController.animationAge(player.getUUID(), PlayerCinematicPayload.FUGA_CHARGE) > 16);
-        if (visuals.isEmpty() && !chargingBow) {
+                PlayerAnimationController.animationAge(player.getUUID(), PlayerCinematicPayload.FUGA_CHARGE) > 60);
+        if (visuals.isEmpty() && !chargingBow && TukunaFugaClientEffects.arrows().isEmpty()) {
             return;
         }
 
@@ -104,14 +104,21 @@ public final class TukunaFugaWorldRenderer {
         if (chargingBow) {
             for (var player : minecraft.level.players()) {
                 if (PlayerAnimationController.animationAge(player.getUUID(),
-                        PlayerCinematicPayload.FUGA_CHARGE) > 16
+                        PlayerCinematicPayload.FUGA_CHARGE) > 60
                         && player.distanceToSqr(minecraft.player) < 128.0 * 128.0) {
                     any |= emitFireBow(buffer, pose, camera, look, player);
                 }
             }
         }
 
+        for (var arrow : TukunaFugaClientEffects.arrows()) {
+            double dt = Math.min(2, Math.max(0, minecraft.level.getGameTime() - arrow.receivedAt()));
+            any |= emitArrow(buffer, pose, camera, look, arrow.position().add(arrow.velocity().scale(dt)),
+                    arrow.velocity().normalize(), 1.0F);
+        }
         if (!any) {
+            var empty = buffer.build();
+            if (empty != null) empty.close();
             return;
         }
 
@@ -302,6 +309,12 @@ public final class TukunaFugaWorldRenderer {
                                 * taper1
                                 * wobble1;
 
+                int glitchFrame = (int)(pillar.age() / 2);
+                int noise = Math.floorMod(glitchFrame * 31 + ySegment * 17 + layer * 13, 23);
+                double stretch = noise < 3 ? 1.8 + noise * .65 : 1.0;
+                r0 *= stretch; r1 *= stretch;
+                double jitterX = Math.sin(glitchFrame*2.7+ySegment)*.38;
+                double jitterZ = Math.cos(glitchFrame*3.1+ySegment)*.38;
                 for (int side = 0;
                      side < SIDES;
                      side++) {
@@ -322,30 +335,30 @@ public final class TukunaFugaWorldRenderer {
 
                     Vec3 a =
                             new Vec3(
-                                    Math.cos(a0) * r0,
+                                    Math.cos(a0) * r0 + jitterX,
                                     y0,
-                                    Math.sin(a0) * r0
+                                    Math.sin(a0) * r0 + jitterZ
                             );
 
                     Vec3 b =
                             new Vec3(
-                                    Math.cos(a1) * r0,
+                                    Math.cos(a1) * r0 + jitterX,
                                     y0,
-                                    Math.sin(a1) * r0
+                                    Math.sin(a1) * r0 + jitterZ
                             );
 
                     Vec3 c =
                             new Vec3(
-                                    Math.cos(a1) * r1,
+                                    Math.cos(a1) * r1 - jitterX,
                                     y1,
-                                    Math.sin(a1) * r1
+                                    Math.sin(a1) * r1 - jitterZ
                             );
 
                     Vec3 d =
                             new Vec3(
-                                    Math.cos(a0) * r1,
+                                    Math.cos(a0) * r1 - jitterX,
                                     y1,
-                                    Math.sin(a0) * r1
+                                    Math.sin(a0) * r1 - jitterZ
                             );
 
                     any |= triangle(
@@ -424,47 +437,34 @@ public final class TukunaFugaWorldRenderer {
         return any;
     }
 
-    /** A small three-dimensional molten bow, held in front of the caster. */
-    private static boolean emitFireBow(BufferBuilder buffer, PoseStack pose,
-                                       Vec3 camera, Vector3f look,
+    private static boolean emitFireBow(BufferBuilder buffer, PoseStack pose, Vec3 camera, Vector3f look,
                                        net.minecraft.world.entity.player.Player player) {
         Vec3 facing = player.getLookAngle().normalize();
-        Vec3 horizontal = new Vec3(facing.x, 0.0, facing.z);
-        if (horizontal.lengthSqr() < 0.01) horizontal = new Vec3(0, 0, 1);
-        horizontal = horizontal.normalize();
-        Vec3 right = new Vec3(-horizontal.z, 0, horizontal.x);
-        Vec3 center = player.getEyePosition().add(facing.scale(1.8))
-                .add(right.scale(-0.25)).add(0, -0.18, 0);
-        pose.pushPose();
-        pose.translate(center.x - camera.x, center.y - camera.y, center.z - camera.z);
-        Matrix4f matrix = pose.last().pose();
-        boolean any = false;
-        Vec3 previous = null;
-        Vec3 low = null;
-        Vec3 high = null;
-        for (int i = 0; i <= 12; i++) {
-            double t = i / 12.0;
-            Vec3 point = new Vec3(0, (t - .5) * 2.2, 0)
-                    .add(horizontal.scale(Math.sin(t * Math.PI) * 0.45));
-            if (i == 0) low = point;
-            if (i == 12) high = point;
-            if (previous != null) {
-                any |= emitRod(buffer, matrix, center, camera, look,
-                        previous, point, .095, 255, i % 3 == 0 ? 185 : 74,
-                        i % 3 == 0 ? 25 : 7, 232);
-                any |= emitRod(buffer, matrix, center, camera, look,
-                        previous.add(right.scale(.035)), point.add(right.scale(.035)),
-                        .035, 255, 218, 84, 210);
-            }
-            previous = point;
+        Vec3 right = new Vec3(-facing.z,0,facing.x).normalize();
+        Vec3 center = player.getEyePosition().add(facing.scale(1.05)).add(right.scale(.58)).add(0,-.2,0);
+        float age = PlayerAnimationController.animationAge(player.getUUID(),PlayerCinematicPayload.FUGA_CHARGE);
+        float formation = Math.max(0,Math.min(1,(age-60)/60));
+        return emitArrow(buffer,pose,camera,look,center,facing,formation);
+    }
+
+    private static boolean emitArrow(BufferBuilder buffer, PoseStack pose, Vec3 camera, Vector3f look,
+                                     Vec3 center, Vec3 facing, float formation) {
+        pose.pushPose(); pose.translate(center.x-camera.x,center.y-camera.y,center.z-camera.z);
+        Matrix4f matrix=pose.last().pose();
+        Vec3 right=facing.cross(new Vec3(0,1,0));
+        if(right.lengthSqr()<.01)right=new Vec3(1,0,0);else right=right.normalize();
+        Vec3 up=right.cross(facing).normalize();
+        Vec3 tail=facing.scale(-1.2*formation),tip=facing.scale(1.6*formation);
+        int gold=(int)(100+145*formation);
+        boolean any=emitRod(buffer,matrix,center,camera,look,tail,tip,.075+formation*.06,255,30,8,230);
+        any|=emitRod(buffer,matrix,center,camera,look,tail,tip,.025+formation*.025,255,gold,100,255);
+        for(Vec3 axis:new Vec3[]{right,up,right.scale(-1),up.scale(-1)}){
+            any|=emitRod(buffer,matrix,center,camera,look,tip,facing.scale(.8*formation).add(axis.scale(.33*formation)),
+                    .07,255,gold,45,245);
+            any|=emitRod(buffer,matrix,center,camera,look,tail,tail.add(facing.scale(.4)).add(axis.scale(.28*formation)),
+                    .045,255,65,10,220);
         }
-        Vec3 grip = horizontal.scale(-.62).add(right.scale(.04));
-        any |= emitRod(buffer, matrix, center, camera, look,
-                low, grip, .027, 255, 190, 82, 220);
-        any |= emitRod(buffer, matrix, center, camera, look,
-                grip, high, .027, 255, 190, 82, 220);
-        pose.popPose();
-        return any;
+        pose.popPose();return any;
     }
 
     private static boolean emitRod(BufferBuilder buffer, Matrix4f matrix,
@@ -709,3 +709,4 @@ public final class TukunaFugaWorldRenderer {
         );
     }
 }
+

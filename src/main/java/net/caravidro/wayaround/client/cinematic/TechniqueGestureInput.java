@@ -67,7 +67,7 @@ public final class TechniqueGestureInput {
         }
 
         boolean eligible =
-                eligible();
+                eligible() && !net.caravidro.wayaround.client.SpectrumMenu.isOpen();
 
         boolean pressed =
                 minecraft.options
@@ -131,7 +131,7 @@ public final class TechniqueGestureInput {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        return minecraft.player != null
+        return !net.caravidro.wayaround.client.SpectrumMenu.isOpen() && minecraft.player != null
                 && minecraft.screen == null
                 && minecraft.player
                         .getMainHandItem()
@@ -166,3 +166,4 @@ public final class TechniqueGestureInput {
                 0;
     }
 }
+

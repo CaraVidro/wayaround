@@ -86,16 +86,16 @@ public final class DesmartelarSlashRenderer
 
         BlockState outer =
                 entity.fiery()
-                        ? Blocks.MAGMA_BLOCK
+                        ? Blocks.YELLOW_CONCRETE
                                 .defaultBlockState()
-                        : Blocks.RED_NETHER_BRICKS
+                        : Blocks.RED_CONCRETE
                                 .defaultBlockState();
 
         BlockState inner =
                 entity.fiery()
-                        ? Blocks.SHROOMLIGHT
+                        ? Blocks.RED_CONCRETE
                                 .defaultBlockState()
-                        : Blocks.REDSTONE_BLOCK
+                        : Blocks.WHITE_CONCRETE
                                 .defaultBlockState();
 
         renderBand(
@@ -110,14 +110,14 @@ public final class DesmartelarSlashRenderer
         pose.translate(
                 0.0,
                 0.0,
-                -0.02
+                -0.04
         );
 
         renderBand(
                 inner,
                 span * 0.92F,
-                depth * 0.32F,
-                0.048F,
+                depth * 0.70F,
+                0.14F,
                 pose,
                 buffers
         );
@@ -182,3 +182,4 @@ public final class DesmartelarSlashRenderer
         );
     }
 }
+

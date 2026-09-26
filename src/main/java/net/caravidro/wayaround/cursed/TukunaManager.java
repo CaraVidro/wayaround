@@ -1691,15 +1691,17 @@ public final class TukunaManager {
         );
     }
 
-    public static void castPossessedDesmartelar(
-            ServerPlayer player,
-            boolean fire
-    ) {
-        if (isPacifistPossession(player) || PlayerControlLockManager.actionsLocked(
-                player
-        )) {
-            return;
-        }
+    public static void castRapidDesmartelar(ServerPlayer player, boolean fire) {
+        castDesmartelar(player, fire, 4);
+    }
+
+    public static void castPossessedDesmartelar(ServerPlayer player, boolean fire) {
+        castDesmartelar(player, fire, 28);
+    }
+
+    private static void castDesmartelar(ServerPlayer player, boolean fire, int cooldownTicks) {
+        if (!player.isAlive() || player.isSpectator() || isSilencedHost(player)
+                || isPacifistPossession(player) || PlayerControlLockManager.actionsLocked(player)) return;
 
         long tick =
                 player.server
@@ -1737,7 +1739,7 @@ public final class TukunaManager {
 
         DESMARTELAR_COOLDOWNS.put(
                 player.getUUID(),
-                tick + 28L
+                tick + cooldownTicks
         );
 
         sendFugaCinematic(
@@ -1754,6 +1756,8 @@ public final class TukunaManager {
                 fire
         );
     }
+
+    public static boolean isFugaCharging(ServerPlayer player) { return FUGA_CHARGES.containsKey(player.getUUID()); }
 
     public static boolean prepareFuga(
             ServerPlayer player
@@ -1875,14 +1879,23 @@ public final class TukunaManager {
                 player.getLookAngle()
                         .normalize();
 
-        Vec3 position =
-                player.getEyePosition()
-                        .add(
-                                direction.scale(
-                                        1.4
-                                )
-                        );
+        Vec3 right = new Vec3(-direction.z, 0, direction.x).normalize();
+        Vec3 position = player.getEyePosition().add(direction.scale(1.05)).add(right.scale(.58)).add(0, -.2, 0);
 
+        Vec3 back = direction.scale(-1);
+        BlockPos ground = player.blockPosition().below();
+        BlockState groundState = player.serverLevel().getBlockState(ground);
+        if (!groundState.isAir()) {
+            for (int i = 0; i < 40; i++) {
+                double spread = (player.getRandom().nextDouble() - .5) * 1.2;
+                Vec3 origin = player.position().add(back.scale(.5 + player.getRandom().nextDouble()));
+                player.serverLevel().sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, groundState),
+                        origin.x, origin.y + .15, origin.z, 0,
+                        back.x * (1.0 + i * .02) + spread, .18 + player.getRandom().nextDouble() * .3,
+                        back.z * (1.0 + i * .02) - spread, 1.0);
+            }
+        }
+        net.caravidro.wayaround.thermal.RegionalTemperature.pulse(player.serverLevel(), position, 8, 3200);
         FUGA_PROJECTILES.add(
                 new FugaProjectile(
                         player.getUUID(),
@@ -2042,6 +2055,24 @@ public final class TukunaManager {
                         raw
                 );
 
+        if (normalized.equals("dominio tukuna") || normalized.equals("expansao de dominio tukuna")
+                || normalized.equals("dominio") && !SpectrumAccess.has(player, SpectrumType.VOID)) {
+            net.caravidro.wayaround.spectrum.SpectrumActions.perform(player,
+                    net.caravidro.wayaround.spectrum.SpectrumAction.TUKUNA_DOMAIN);
+            return true;
+        }
+        if (normalized.equals("preparar desmartelar") || normalized.equals("carregar desmartelar")) {
+            net.caravidro.wayaround.spectrum.SpectrumActions.input(player, 1, (byte)0); return true;
+        }
+        if (normalized.equals("soltar desmartelar") || normalized.equals("lancar desmartelar")) {
+            net.caravidro.wayaround.spectrum.SpectrumActions.input(player, 1, (byte)1); return true;
+        }
+        if (normalized.equals("combinar fogo")) {
+            net.caravidro.wayaround.spectrum.SpectrumActions.input(player, 2, (byte)0); return true;
+        }
+        if (normalized.equals("cancelar tecnica")) {
+            net.caravidro.wayaround.spectrum.SpectrumActions.cancel(player); return true;
+        }
         String fugaPrefix =
                 normalized.startsWith("palavra da fuga ")
                         ? "palavra da fuga "
@@ -2110,10 +2141,7 @@ public final class TukunaManager {
                                 FUGA_PHRASE_KEY
                         );
 
-        if (!phrase.isBlank()
-                && normalized.contains(
-                phrase
-        )) {
+        if (!phrase.isBlank() && java.util.Arrays.asList(normalized.split(" ")).contains(phrase)) {
 
             prepareFuga(
                     player
@@ -2129,10 +2157,8 @@ public final class TukunaManager {
                 " fuga"
         )) {
 
-            launchFuga(
-                    player
-            );
-
+            net.caravidro.wayaround.spectrum.SpectrumActions.perform(player,
+                    net.caravidro.wayaround.spectrum.SpectrumAction.FUGA);
             return true;
         }
 
@@ -2219,6 +2245,14 @@ public final class TukunaManager {
                 continue;
             }
 
+            long chargeAge = tick - charge.startedAt;
+            if (!charge.clapped && chargeAge >= 56) {
+                charge.clapped = true;
+                Vec3 hands = player.getEyePosition().add(player.getLookAngle().scale(.8));
+                player.serverLevel().sendParticles(ParticleTypes.FLAME, hands.x, hands.y, hands.z, 45, .15, .15, .15, .15);
+                player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_STRONG,
+                        SoundSource.PLAYERS, 1.4F, .55F);
+            }
             double progress =
                     Mth.clamp(
                             (
@@ -2359,10 +2393,7 @@ public final class TukunaManager {
                                 projectile.position
                         );
 
-                BlockState state =
-                        level.getBlockState(
-                                pos
-                        );
+                BlockState state = level.hasChunkAt(pos) ? level.getBlockState(pos) : Blocks.BEDROCK.defaultBlockState();
 
                 if (!state.isAir()) {
                     collide =
@@ -2418,6 +2449,15 @@ public final class TukunaManager {
                     0.012
             );
 
+            if (tick % 2L == 0L || collide) {
+                PacketDistributor.sendToPlayersNear(level, null, projectile.position.x, projectile.position.y,
+                        projectile.position.z, 192, new net.caravidro.wayaround.network.FugaArrowPayload(
+                                projectile.owner, projectile.position.x, projectile.position.y, projectile.position.z,
+                                projectile.velocity.x, projectile.velocity.y, projectile.velocity.z, collide ? 0 : projectile.life));
+            }
+            if (tick % 4L == 0L && !collide) {
+                net.caravidro.wayaround.thermal.RegionalTemperature.pulse(level, projectile.position, 6, 3200);
+            }
             if (collide) {
                 detonateFuga(
                         level,
@@ -2451,79 +2491,11 @@ public final class TukunaManager {
                 )
         );
 
-        pulverizeFugaCrater(
-                level,
-                center
-        );
-
-        level.explode(
-                owner,
-                center.x,
-                center.y,
-                center.z,
-                28.0F,
-                true,
-                Level.ExplosionInteraction.TNT
-        );
-
-        double damageRadius =
-                52.0;
-
-        AABB area =
-                new AABB(
-                        center.x - damageRadius,
-                        center.y - damageRadius,
-                        center.z - damageRadius,
-                        center.x + damageRadius,
-                        center.y + damageRadius,
-                        center.z + damageRadius
-                );
-
-        for (LivingEntity living :
-                level.getEntitiesOfClass(
-                        LivingEntity.class,
-                        area,
-                        entity ->
-                                entity.isAlive()
-                                        && entity != owner
-                )) {
-
-            double distance =
-                    living.position()
-                            .distanceTo(
-                                    center
-                            );
-
-            if (distance > damageRadius) {
-                continue;
-            }
-
-            double factor =
-                    1.0
-                            - distance
-                                    / damageRadius;
-
-            living.hurt(
-                    owner.damageSources()
-                            .playerAttack(
-                                    owner
-                            ),
-                    (float) (
-                            18.0
-                                    + factor
-                                            * factor
-                                            * 62.0
-                    )
-            );
-
-            living.igniteForSeconds(
-                    18.0F
-            );
-        }
+        net.caravidro.wayaround.thermal.ExpandingFugaBlast.start(level, owner, center);
 
         for (int y = 0;
              y <= 220;
-             y += 2) {
+             y += 8) {
 
             double width =
                     1.35
@@ -2546,7 +2518,7 @@ public final class TukunaManager {
         }
 
         for (int i = 0;
-             i < 460;
+             i < 80;
              i++) {
 
             double theta =
@@ -2597,181 +2569,6 @@ public final class TukunaManager {
                 4.8F,
                 0.62F
         );
-    }
-
-    private static void pulverizeFugaCrater(
-            ServerLevel level,
-            Vec3 center
-    ) {
-        int radiusX =
-                Mth.ceil(
-                        FUGA_CRATER_RADIUS_XZ
-                );
-
-        int radiusY =
-                Mth.ceil(
-                        FUGA_CRATER_RADIUS_Y
-                );
-
-        int particleBudget =
-                0;
-
-        for (int x = -radiusX;
-             x <= radiusX;
-             x++) {
-
-            for (int y = -radiusY;
-                 y <= radiusY;
-                 y++) {
-
-                for (int z = -radiusX;
-                     z <= radiusX;
-                     z++) {
-
-                    double normalized =
-                            (
-                                    x * x
-                                            + z * z
-                            )
-                                    / (
-                                    FUGA_CRATER_RADIUS_XZ
-                                            * FUGA_CRATER_RADIUS_XZ
-                            )
-                                    + y * y
-                                            / (
-                                            FUGA_CRATER_RADIUS_Y
-                                                    * FUGA_CRATER_RADIUS_Y
-                                    );
-
-                    if (normalized > 1.0) {
-                        continue;
-                    }
-
-                    BlockPos pos =
-                            BlockPos.containing(
-                                    center.x + x,
-                                    center.y + y,
-                                    center.z + z
-                            );
-
-                    BlockState state =
-                            level.getBlockState(
-                                    pos
-                            );
-
-                    if (state.isAir()
-                            || state.getDestroySpeed(
-                            level,
-                            pos
-                    ) < 0.0F) {
-                        continue;
-                    }
-
-                    level.setBlock(
-                            pos,
-                            Blocks.AIR
-                                    .defaultBlockState(),
-                            2
-                    );
-
-                    if (particleBudget < 150
-                            && level.random.nextFloat()
-                            < 0.035F) {
-
-                        Vec3 blockCenter =
-                                Vec3.atCenterOf(
-                                        pos
-                                );
-
-                        level.sendParticles(
-                                new BlockParticleOption(
-                                        ParticleTypes.BLOCK,
-                                        state
-                                ),
-                                blockCenter.x,
-                                blockCenter.y,
-                                blockCenter.z,
-                                2,
-                                0.35,
-                                0.35,
-                                0.35,
-                                0.24
-                        );
-
-                        particleBudget++;
-                    }
-                }
-            }
-        }
-
-        for (int attempt = 0;
-             attempt < 180;
-             attempt++) {
-
-            double angle =
-                    level.random.nextDouble()
-                            * Math.PI
-                            * 2.0;
-
-            double radius =
-                    FUGA_CRATER_RADIUS_XZ
-                            * (
-                            0.65
-                                    + level.random.nextDouble()
-                                            * 0.75
-                    );
-
-            int x =
-                    Mth.floor(
-                            center.x
-                                    + Math.cos(
-                                    angle
-                            )
-                                    * radius
-                    );
-
-            int z =
-                    Mth.floor(
-                            center.z
-                                    + Math.sin(
-                                    angle
-                            )
-                                    * radius
-                    );
-
-            int y =
-                    level.getHeight(
-                            net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                            x,
-                            z
-                    );
-
-            BlockPos firePos =
-                    new BlockPos(
-                            x,
-                            y,
-                            z
-                    );
-
-            BlockState fire =
-                    Blocks.FIRE
-                            .defaultBlockState();
-
-            if (level.getBlockState(
-                    firePos
-            ).isAir()
-                    && fire.canSurvive(
-                    level,
-                    firePos
-            )) {
-
-                level.setBlock(
-                        firePos,
-                        fire,
-                        3
-                );
-            }
-        }
     }
 
     public static boolean isPacifistPossession(ServerPlayer spirit) {
@@ -3616,6 +3413,7 @@ public final class TukunaManager {
         private final long startedAt;
         private final long readyAt;
         private boolean readyAnnounced;
+        private boolean clapped;
 
         private FugaCharge(
                 UUID owner,
@@ -3712,3 +3510,4 @@ public final class TukunaManager {
         }
     }
 }
+

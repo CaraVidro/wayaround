@@ -99,162 +99,159 @@ public record VoiceIntentC2SPayload(
             VoiceIntentC2SPayload payload,
             IPayloadContext context
     ) {
-        context.enqueueWork(
-                () -> {
-                    if (!(context.player()
-                            instanceof ServerPlayer player)) {
-                        return;
-                    }
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) execute(player, payload);
+        });
+    }
 
-                    if (TukunaManager.isDraftingPact(player)) return;
+    public static void execute(ServerPlayer player, VoiceIntentC2SPayload payload) {
+        if (!player.isAlive() || (player.isSpectator() && payload.intent()!=TUKUNA_SWAP_CONFIRM) || TukunaManager.isSilencedHost(player)
+                || !Float.isFinite(payload.output()) || !Float.isFinite(payload.urgency())) return;
+        if (TukunaManager.isDraftingPact(player)) return;
 
-                    if (PlayerControlLockManager.actionsLocked(
+        if (PlayerControlLockManager.actionsLocked(
+                player
+        )) {
+            return;
+        }
+
+        if (payload.intent()
+                == TUKUNA_SWAP_CONFIRM) {
+            TukunaManager.confirmSwap(
+                    player
+            );
+            return;
+        }
+
+        if (payload.intent()
+                == TUKUNA_DESMARTELAR) {
+            TukunaManager.castPossessedDesmartelar(
+                    player,
+                    false
+            );
+            return;
+        }
+
+        if (payload.intent()
+                == TUKUNA_DESMARTELAR_FIRE) {
+            TukunaManager.castPossessedDesmartelar(
+                    player,
+                    true
+            );
+            return;
+        }
+
+        if (payload.intent()
+                == TUKUNA_FUGA) {
+            net.caravidro.wayaround.spectrum.SpectrumActions.perform(player, net.caravidro.wayaround.spectrum.SpectrumAction.FUGA);
+            return;
+        }
+
+        if (!hasTechniqueAccess(
+                player
+        )) {
+            return;
+        }
+
+        switch (payload.intent()) {
+            case BLUE_SUMMON ->
+                    BlueManager.invokeFromVoice(
+                            player,
+                            payload.output(),
+                            payload.urgency()
+                    );
+
+            case BLUE_ORBIT ->
+                    BlueManager.orbitActive(
                             player
-                    )) {
-                        return;
-                    }
+                    );
 
-                    if (payload.intent()
-                            == TUKUNA_SWAP_CONFIRM) {
-                        TukunaManager.confirmSwap(
-                                player
-                        );
-                        return;
-                    }
-
-                    if (payload.intent()
-                            == TUKUNA_DESMARTELAR) {
-                        TukunaManager.castPossessedDesmartelar(
-                                player,
-                                false
-                        );
-                        return;
-                    }
-
-                    if (payload.intent()
-                            == TUKUNA_DESMARTELAR_FIRE) {
-                        TukunaManager.castPossessedDesmartelar(
-                                player,
-                                true
-                        );
-                        return;
-                    }
-
-                    if (payload.intent()
-                            == TUKUNA_FUGA) {
-                        TukunaManager.launchFuga(
-                                player
-                        );
-                        return;
-                    }
-
-                    if (!hasTechniqueAccess(
+            case BLUE_LAUNCH ->
+                    BlueManager.launchActive(
                             player
-                    )) {
-                        return;
-                    }
+                    );
 
-                    switch (payload.intent()) {
-                        case BLUE_SUMMON ->
-                                BlueManager.invokeFromVoice(
-                                        player,
-                                        payload.output(),
-                                        payload.urgency()
-                                );
+            case BLUE_STOP ->
+                    BlueManager.releaseActive(
+                            player
+                    );
 
-                        case BLUE_ORBIT ->
-                                BlueManager.orbitActive(
-                                        player
-                                );
+            case BLUE_HOLD ->
+                    BlueManager.holdActive(
+                            player
+                    );
 
-                        case BLUE_LAUNCH ->
-                                BlueManager.launchActive(
-                                        player
-                                );
+            case RED_FIRE ->
+                    ImaginaryBetaManager.prepareRed(
+                            player
+                    );
 
-                        case BLUE_STOP ->
-                                BlueManager.releaseActive(
-                                        player
-                                );
+            case RED_LAUNCH ->
+                    ImaginaryBetaManager.launchRed(
+                            player
+                    );
 
-                        case BLUE_HOLD ->
-                                BlueManager.holdActive(
-                                        player
-                                );
+            case RED_MAXIMUM ->
+                    ImaginaryBetaManager.chargeRedMaximum(
+                            player
+                    );
 
-                        case RED_FIRE ->
-                                ImaginaryBetaManager.prepareRed(
-                                        player
-                                );
+            case BLUE_OUTPUT ->
+                    BlueManager.setActiveOutput(
+                            player,
+                            payload.output()
+                    );
 
-                        case RED_LAUNCH ->
-                                ImaginaryBetaManager.launchRed(
-                                        player
-                                );
-
-                        case RED_MAXIMUM ->
-                                ImaginaryBetaManager.chargeRedMaximum(
-                                        player
-                                );
-
-                        case BLUE_OUTPUT ->
-                                BlueManager.setActiveOutput(
-                                        player,
-                                        payload.output()
-                                );
-
-                        case INFINITY_REINFORCE -> {
-                            if (hasInfinityAccess(
-                                    player
-                            )) {
-                                InfinityManager.reinforce(
-                                        player,
-                                        payload.output(),
-                                        payload.urgency()
-                                );
-                            }
-                        }
-
-                        case INFINITY_OFF -> {
-                            if (hasInfinityAccess(
-                                    player
-                            )) {
-                                InfinityManager.deactivate(
-                                        player
-                                );
-                            }
-                        }
-
-                        case INFINITY_ON -> {
-                            if (hasInfinityAccess(
-                                    player
-                            )) {
-                                InfinityManager.activateMax(
-                                        player
-                                );
-                            }
-                        }
-
-                        case DUAL_PREPARE ->
-                                ImaginaryBetaManager.prepareDual(
-                                        player
-                                );
-
-                        case PURPLE_VOID ->
-                                ImaginaryBetaManager.launchPurpleVoid(
-                                        player
-                                );
-
-                        case VOID_DOMAIN_EXPAND ->
-                                VoidDomainManager.expand(
-                                        player
-                                );
-
-                        default -> {
-                        }
-                    }
+            case INFINITY_REINFORCE -> {
+                if (hasInfinityAccess(
+                        player
+                )) {
+                    InfinityManager.reinforce(
+                            player,
+                            payload.output(),
+                            payload.urgency()
+                    );
                 }
-        );
+            }
+
+            case INFINITY_OFF -> {
+                if (hasInfinityAccess(
+                        player
+                )) {
+                    InfinityManager.deactivate(
+                            player
+                    );
+                }
+            }
+
+            case INFINITY_ON -> {
+                if (hasInfinityAccess(
+                        player
+                )) {
+                    InfinityManager.activateMax(
+                            player
+                    );
+                }
+            }
+
+            case DUAL_PREPARE ->
+                    ImaginaryBetaManager.prepareDual(
+                            player
+                    );
+
+            case PURPLE_VOID ->
+                    ImaginaryBetaManager.launchPurpleVoid(
+                            player
+                    );
+
+            case VOID_DOMAIN_EXPAND ->
+                    VoidDomainManager.expand(
+                            player
+                    );
+
+            default -> {
+            }
+        }
     }
 
     private static boolean hasTechniqueAccess(
@@ -277,3 +274,4 @@ public record VoiceIntentC2SPayload(
         return SpectrumAccess.has(player, SpectrumType.VOID);
     }
 }
+

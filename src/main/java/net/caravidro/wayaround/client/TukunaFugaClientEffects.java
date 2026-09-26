@@ -40,6 +40,16 @@ public final class TukunaFugaClientEffects {
             new HashMap<>();
 
     private static boolean hadLevel;
+    private static final Map<UUID, ArrowVisual> ARROWS = new HashMap<>();
+    public record ArrowVisual(Vec3 position, Vec3 velocity, long receivedAt) {}
+    public static void receiveArrow(net.caravidro.wayaround.network.FugaArrowPayload p) {
+        var level = Minecraft.getInstance().level;
+        if (level == null) return;
+        if (p.life() <= 0) ARROWS.remove(p.owner());
+        else ARROWS.put(p.owner(), new ArrowVisual(new Vec3(p.x(),p.y(),p.z()),new Vec3(p.vx(),p.vy(),p.vz()),level.getGameTime()));
+    }
+    public static List<ArrowVisual> arrows() { return List.copyOf(ARROWS.values()); }
+
 
     public static void receive(
             TukunaFugaVisualPayload payload
@@ -213,6 +223,7 @@ public final class TukunaFugaClientEffects {
         if (minecraft.level == null) {
             if (hadLevel) {
                 PILLARS.clear();
+                ARROWS.clear();
             }
 
             hadLevel =
@@ -228,6 +239,7 @@ public final class TukunaFugaClientEffects {
                 minecraft.level
                         .getGameTime();
 
+        ARROWS.values().removeIf(a -> tick - a.receivedAt() > 8);
         if (tick % 3L == 0L && minecraft.player != null) {
             for (var player : minecraft.level.players()) {
                 if (PlayerAnimationController.animationAge(player.getUUID(),
@@ -307,6 +319,23 @@ public final class TukunaFugaClientEffects {
         }
     }
 
+    @SubscribeEvent
+    public static void darken(net.neoforged.neoforge.client.event.RenderGuiLayerEvent.Pre event) {
+        if (!event.getName().equals(net.neoforged.neoforge.client.gui.VanillaGuiLayers.CAMERA_OVERLAYS)) return;
+        var mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return;
+        float intensity = 0;
+        for (var player : mc.level.players()) {
+            float age = PlayerAnimationController.animationAge(player.getUUID(), PlayerCinematicPayload.FUGA_CHARGE);
+            double distance = player.distanceToSqr(mc.player);
+            if (age < 50 || distance > 64*64) continue;
+            float proximity = 1 - (float)Math.sqrt(distance)/64;
+            intensity = Math.max(intensity, Mth.clamp((age-50)/70, 0, 1)*proximity);
+        }
+        if (intensity > 0) event.getGuiGraphics().fill(0,0,mc.getWindow().getGuiScaledWidth(),
+                mc.getWindow().getGuiScaledHeight(), ((int)(110*intensity)<<24));
+    }
+
     public record PillarVisual(
             UUID owner,
             Vec3 center,
@@ -324,3 +353,4 @@ public final class TukunaFugaClientEffects {
     ) {
     }
 }
+
