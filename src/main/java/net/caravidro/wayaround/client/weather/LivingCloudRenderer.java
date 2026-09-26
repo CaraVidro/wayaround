@@ -45,10 +45,10 @@ import org.joml.Vector3f;
 public final class LivingCloudRenderer {
 
     private static final double RENDER_RANGE = 760.0;
-    private static final double VOXEL = 9.0;
-    private static final double MAX_VISUAL_RADIUS = 156.0;
-    private static final int MAX_HORIZONTAL_VOXELS = 19;
-    private static final int MAX_VERTICAL_VOXELS = 7;
+    private static final double BASE_VOXEL = 9.0;
+    private static final double MAX_VISUAL_RADIUS = 278.0;
+    private static final int MAX_HORIZONTAL_VOXELS = 21;
+    private static final int MAX_VERTICAL_VOXELS = 8;
     private static final int REBUILD_INTERVAL_NEAR = 10;
     private static final int REBUILD_INTERVAL_MID = 20;
     private static final int REBUILD_INTERVAL_FAR = 40;
@@ -154,13 +154,18 @@ public final class LivingCloudRenderer {
                             cell
                     );
 
+            double verticalBounds =
+                    34.0
+                            + visualRadius
+                                    * 0.10;
+
             AABB bounds =
                     new AABB(
                             cell.x() - visualRadius - 30.0,
-                            cell.y() - 42.0,
+                            cell.y() - verticalBounds,
                             cell.z() - visualRadius - 30.0,
                             cell.x() + visualRadius + 30.0,
-                            cell.y() + 48.0,
+                            cell.y() + verticalBounds,
                             cell.z() + visualRadius + 30.0
                     );
 
@@ -272,7 +277,8 @@ public final class LivingCloudRenderer {
                     red,
                     green,
                     blue,
-                    alpha
+                    alpha,
+                    time
             );
 
             /*
@@ -543,6 +549,9 @@ public final class LivingCloudRenderer {
         private double builtRadius =
                 -1.0;
 
+        private double builtVoxel =
+                BASE_VOXEL;
+
         private long builtHoleRevision =
                 Long.MIN_VALUE;
 
@@ -575,10 +584,18 @@ public final class LivingCloudRenderer {
                             cell
                     );
 
+            double voxel =
+                    voxelSizeFor(
+                            cell
+                    );
+
+            builtVoxel =
+                    voxel;
+
             int horizontal =
                     Mth.clamp(
                             (int) Math.ceil(
-                                    radius / VOXEL
+                                    radius / voxel
                             ),
                             4,
                             MAX_HORIZONTAL_VOXELS
@@ -587,8 +604,8 @@ public final class LivingCloudRenderer {
             int vertical =
                     Mth.clamp(
                             (int) Math.ceil(
-                                    (18.0 + radius * 0.055)
-                                            / VOXEL
+                                    (20.0 + radius * 0.070)
+                                            / voxel
                             ),
                             2,
                             MAX_VERTICAL_VOXELS
@@ -613,19 +630,20 @@ public final class LivingCloudRenderer {
                             z++) {
 
                         double wx =
-                                x * VOXEL;
+                                x * voxel;
 
                         double wy =
-                                y * VOXEL;
+                                y * voxel;
 
                         double wz =
-                                z * VOXEL;
+                                z * voxel;
 
                         if (occupiedByLobe(
                                 lobes,
                                 wx,
                                 wy,
-                                wz
+                                wz,
+                                voxel
                         )
                                 && !cutByBlue(
                                         cell.x() + wx,
@@ -688,7 +706,8 @@ public final class LivingCloudRenderer {
                 int red,
                 int green,
                 int blue,
-                int alpha
+                int alpha,
+                long time
         ) {
             if (surfaceFaces.isEmpty()) {
                 return false;
@@ -713,10 +732,24 @@ public final class LivingCloudRenderer {
                         camera,
                         lookX,
                         lookY,
-                        lookZ
+                        lookZ,
+                        builtVoxel
                 )) {
                     continue;
                 }
+
+                CloudColor shade =
+                        cloudColor(
+                                cell,
+                                voxel,
+                                face,
+                                red,
+                                green,
+                                blue,
+                                alpha,
+                                time,
+                                builtVoxel
+                        );
 
                 emitFace(
                         buffer,
@@ -724,10 +757,11 @@ public final class LivingCloudRenderer {
                         cell,
                         voxel,
                         face,
-                        red,
-                        green,
-                        blue,
-                        alpha
+                        shade.red,
+                        shade.green,
+                        shade.blue,
+                        shade.alpha,
+                        builtVoxel
                 );
 
                 emitted =
@@ -746,19 +780,19 @@ public final class LivingCloudRenderer {
             int vx =
                     (int) Math.round(
                             (x - cell.x())
-                            / VOXEL
+                            / builtVoxel
                     );
 
             int vy =
                     (int) Math.round(
                             (y - cell.y())
-                            / VOXEL
+                            / builtVoxel
                     );
 
             int vz =
                     (int) Math.round(
                             (z - cell.z())
-                            / VOXEL
+                            / builtVoxel
                     );
 
             return occupied.contains(
@@ -799,9 +833,34 @@ public final class LivingCloudRenderer {
 
         return Mth.clamp(
                 radius,
-                40.0,
+                36.0,
                 MAX_VISUAL_RADIUS
         );
+    }
+
+    private static double voxelSizeFor(
+            LocalWeatherField.CloudCell cell
+    ) {
+        double radius =
+                visualRadius(
+                        cell
+                );
+
+        /*
+         * Giant clouds get larger voxels instead of exponentially more mesh
+         * work. Up close ordinary clouds keep the original 9-block detail.
+         */
+        double giant =
+                Mth.clamp(
+                        (radius - 145.0)
+                                / 133.0,
+                        0.0,
+                        1.0
+                );
+
+        return BASE_VOXEL
+                + giant
+                        * 5.2;
     }
 
     private static List<Lobe> lobes(
@@ -816,11 +875,33 @@ public final class LivingCloudRenderer {
                         cell
                 );
 
+        double giantInfluence =
+                Mth.clamp(
+                        (radius - 120.0)
+                                / 158.0,
+                        0.0,
+                        1.0
+                );
+
         int count =
                 7
                 + (int) Math.floor(
                         random01(seed ^ 0x44B82A14L)
                         * 7.0
+                )
+                + (int) Math.round(
+                        giantInfluence
+                                * 4.0
+                );
+
+        float windX =
+                LocalWeatherField.windX(
+                        time
+                );
+
+        float windZ =
+                LocalWeatherField.windZ(
+                        time
                 );
 
         List<Lobe> lobes =
@@ -839,8 +920,15 @@ public final class LivingCloudRenderer {
                         0.0,
                         0.0,
                         0.0,
-                        radius * 0.48,
-                        14.0 + radius * 0.035
+                        radius * (
+                                0.46
+                                        + random01(
+                                        seed ^ 0x7C3F12A1L
+                                ) * 0.08
+                        ),
+                        13.0
+                                + radius * 0.045
+                                + giantInfluence * 7.0
                 )
         );
 
@@ -913,11 +1001,57 @@ public final class LivingCloudRenderer {
                                     ^ 0x632BE59BD9B4E019L
                             ) - 0.5
                     )
-                    * 20.0
+                    * (
+                            20.0
+                                    + giantInfluence
+                                            * 22.0
+                    )
                     + Math.sin(
                             t * 0.21
                             + phase
-                    ) * 4.0;
+                    ) * (
+                            4.0
+                                    + giantInfluence
+                                            * 3.5
+                    );
+
+            /*
+             * Large fronts visibly lean and stretch with the wind. Higher
+             * lobes receive more shear, mimicking faster airflow aloft.
+             */
+            double verticalBand =
+                    Mth.clamp(
+                            0.55
+                                    + y
+                                            / (
+                                            52.0
+                                                    + radius
+                                                            * 0.12
+                                    ),
+                            0.10,
+                            1.20
+                    );
+
+            double windShear =
+                    giantInfluence
+                            * verticalBand
+                            * (
+                            10.0
+                                    + radialBase
+                                            * 0.22
+                                    + Math.sin(
+                                    t * 0.10
+                                            + phase
+                            ) * 5.0
+                    );
+
+            x +=
+                    windX
+                            * windShear;
+
+            z +=
+                    windZ
+                            * windShear;
 
             double pulse =
                     0.70
@@ -955,11 +1089,15 @@ public final class LivingCloudRenderer {
 
             double verticalRadius =
                     (
-                            9.0
+                            8.0
                             + random01(
                                     lobeSeed
                                     ^ 0x9FB21C651E98DF25L
-                            ) * 13.0
+                            ) * (
+                                    14.0
+                                            + giantInfluence
+                                                    * 10.0
+                            )
                     )
                     * (
                             0.82
@@ -984,10 +1122,11 @@ public final class LivingCloudRenderer {
             List<Lobe> lobes,
             double x,
             double y,
-            double z
+            double z,
+            double voxelSize
     ) {
         for (Lobe lobe : lobes) {
-            if (lobe.horizontalRadius < VOXEL * 0.55) {
+            if (lobe.horizontalRadius < voxelSize * 0.55) {
                 continue;
             }
 
@@ -1018,22 +1157,23 @@ public final class LivingCloudRenderer {
             Vec3 camera,
             double lookX,
             double lookY,
-            double lookZ
+            double lookZ,
+            double voxelSize
     ) {
         double cx =
                 cell.x()
-                        + voxel.x * VOXEL;
+                        + voxel.x * voxelSize;
 
         double cy =
                 cell.y()
-                        + voxel.y * VOXEL;
+                        + voxel.y * voxelSize;
 
         double cz =
                 cell.z()
-                        + voxel.z * VOXEL;
+                        + voxel.z * voxelSize;
 
         double half =
-                VOXEL * 0.505;
+                voxelSize * 0.505;
 
         double minX = cx - half;
         double minY = cy - half;
@@ -1044,15 +1184,15 @@ public final class LivingCloudRenderer {
 
         double centerX =
                 cx
-                        + face.dx * VOXEL * 0.5;
+                        + face.dx * voxelSize * 0.5;
 
         double centerY =
                 cy
-                        + face.dy * VOXEL * 0.5;
+                        + face.dy * voxelSize * 0.5;
 
         double centerZ =
                 cz
-                        + face.dz * VOXEL * 0.5;
+                        + face.dz * voxelSize * 0.5;
 
         double dx =
                 centerX - camera.x;
@@ -1241,6 +1381,186 @@ public final class LivingCloudRenderer {
         return forward > CAMERA_NEAR_GUARD;
     }
 
+    private static CloudColor cloudColor(
+            LocalWeatherField.CloudCell cell,
+            Voxel voxel,
+            Face face,
+            int baseRed,
+            int baseGreen,
+            int baseBlue,
+            int baseAlpha,
+            long time,
+            double voxelSize
+    ) {
+        double radius =
+                visualRadius(
+                        cell
+                );
+
+        double verticalExtent =
+                20.0
+                        + radius
+                                * 0.070;
+
+        double localY =
+                voxel.y
+                        * voxelSize;
+
+        double height01 =
+                Mth.clamp(
+                        (
+                                localY
+                                        + verticalExtent
+                        )
+                                / (
+                                verticalExtent
+                                        * 2.0
+                                ),
+                        0.0,
+                        1.0
+                );
+
+        /*
+         * Cloud body shading: lower layers are denser/darker, top faces catch
+         * more light, and side faces sit between those extremes.
+         */
+        double faceShade =
+                switch (face) {
+                    case DOWN ->
+                            0.56;
+                    case UP ->
+                            1.08;
+                    default ->
+                            0.76
+                                    + height01
+                                            * 0.20;
+                };
+
+        double verticalShade =
+                0.72
+                        + height01
+                                * 0.30;
+
+        long voxelSeed =
+                mix64(
+                        cell.id()
+                                ^ (
+                                voxel.x
+                                        * 0x9E3779B97F4A7C15L
+                        )
+                                ^ (
+                                voxel.y
+                                        * 0xC2B2AE3D27D4EB4FL
+                        )
+                                ^ (
+                                voxel.z
+                                        * 0x165667B19E3779F9L
+                        )
+                );
+
+        double patch =
+                0.94
+                        + random01(
+                                voxelSeed
+                        ) * 0.12;
+
+        /*
+         * Very slow breathing variation prevents every frame from looking
+         * like the exact same static palette, without making the cloud flash.
+         */
+        double temporal =
+                0.975
+                        + Math.sin(
+                                time * 0.0045
+                                        + random01(
+                                        cell.id()
+                                                ^ 0xD6E8FEB86659FD93L
+                                ) * Math.PI * 2.0
+                        ) * 0.025;
+
+        double shade =
+                faceShade
+                        * verticalShade
+                        * patch
+                        * temporal;
+
+        double tint =
+                signedColorBias(
+                        cell.id()
+                );
+
+        int red =
+                Mth.clamp(
+                        (int) Math.round(
+                                baseRed
+                                        * shade
+                                        * (
+                                        1.0
+                                                + tint
+                                                        * 0.025
+                                )
+                        ),
+                        10,
+                        255
+                );
+
+        int green =
+                Mth.clamp(
+                        (int) Math.round(
+                                baseGreen
+                                        * shade
+                        ),
+                        10,
+                        255
+                );
+
+        int blue =
+                Mth.clamp(
+                        (int) Math.round(
+                                baseBlue
+                                        * shade
+                                        * (
+                                        1.0
+                                                - tint
+                                                        * 0.035
+                                )
+                        ),
+                        12,
+                        255
+                );
+
+        int alpha =
+                Mth.clamp(
+                        baseAlpha
+                                + (
+                                face == Face.DOWN
+                                        ? 18
+                                        : face == Face.UP
+                                        ? -8
+                                        : 0
+                        ),
+                        20,
+                        235
+                );
+
+        return new CloudColor(
+                red,
+                green,
+                blue,
+                alpha
+        );
+    }
+
+    private static double signedColorBias(
+            long seed
+    ) {
+        return random01(
+                seed
+                        ^ 0xA0761D6478BD642FL
+        ) * 2.0
+                - 1.0;
+    }
+
     private static void emitFace(
             BufferBuilder buffer,
             PoseStack poseStack,
@@ -1250,22 +1570,23 @@ public final class LivingCloudRenderer {
             int red,
             int green,
             int blue,
-            int alpha
+            int alpha,
+            double voxelSize
     ) {
         double cx =
                 cell.x()
-                + voxel.x * VOXEL;
+                + voxel.x * voxelSize;
 
         double cy =
                 cell.y()
-                + voxel.y * VOXEL;
+                + voxel.y * voxelSize;
 
         double cz =
                 cell.z()
-                + voxel.z * VOXEL;
+                + voxel.z * voxelSize;
 
         double half =
-                VOXEL * 0.505;
+                voxelSize * 0.505;
 
         double minX =
                 cx - half;
@@ -1371,6 +1692,14 @@ public final class LivingCloudRenderer {
         value *= 0x94d049bb133111ebL;
         value ^= value >>> 31;
         return value;
+    }
+
+    private record CloudColor(
+            int red,
+            int green,
+            int blue,
+            int alpha
+    ) {
     }
 
     private record CloudHole(

@@ -15,7 +15,7 @@ public final class LocalWeatherField {
 
     private static final double CELL_SPACING = 520.0;
     private static final double DRIFT_SPEED = 0.024;
-    private static final double MAX_RADIUS = 240.0;
+    private static final double MAX_RADIUS = 278.0;
 
     private LocalWeatherField() {
     }
@@ -178,31 +178,41 @@ public final class LocalWeatherField {
 
         double radius;
 
-        if (sizeRoll < 0.24) {
+        if (sizeRoll < 0.20) {
             /*
-             * Small wandering cloud chunks.
+             * Small isolated puffs. Some are intentionally tiny enough to
+             * read as individual wandering clouds rather than weather fronts.
              */
             radius =
-                    52.0
-                    + sizeRoll / 0.24 * 58.0;
-        } else if (sizeRoll < 0.90) {
+                    38.0
+                    + sizeRoll / 0.20 * 62.0;
+        } else if (sizeRoll < 0.76) {
             /*
-             * Most clouds live here.
+             * Ordinary clouds now cover a much wider middle range.
              */
             radius =
-                    105.0
+                    92.0
                     + (
-                            sizeRoll - 0.24
-                    ) / 0.66 * 90.0;
-        } else {
+                            sizeRoll - 0.20
+                    ) / 0.56 * 108.0;
+        } else if (sizeRoll < 0.94) {
             /*
-             * Rare giant fronts.
+             * Large banks are common enough to be seen regularly.
              */
             radius =
                     195.0
                     + (
-                            sizeRoll - 0.90
-                    ) / 0.10 * 45.0;
+                            sizeRoll - 0.76
+                    ) / 0.18 * 48.0;
+        } else {
+            /*
+             * Rare enormous fronts.
+             */
+            radius =
+                    243.0
+                    + (
+                            sizeRoll - 0.94
+                    ) / 0.06 * 35.0;
         }
 
         float storm = (float) unit01(seed ^ 0xA54FF53A5F1D36F1L);
@@ -213,8 +223,54 @@ public final class LocalWeatherField {
          */
         storm = Mth.clamp((storm - 0.12F) / 0.88F, 0.0F, 1.0F);
 
-        double height = 158.0
-                + unit01(seed ^ 0x510E527FADE682D1L) * 28.0;
+        double heightRoll =
+                unit01(
+                        seed
+                                ^ 0x510E527FADE682D1L
+                );
+
+        double height;
+
+        if (heightRoll < 0.14) {
+            /*
+             * Low dramatic banks, occasionally close enough to hills and
+             * mountains for the player to enter them.
+             */
+            height =
+                    118.0
+                            + heightRoll / 0.14
+                                    * 31.0;
+        } else if (heightRoll > 0.86) {
+            /*
+             * High thin-looking masses break the old perfectly level ceiling.
+             */
+            height =
+                    202.0
+                            + (
+                            heightRoll - 0.86
+                    ) / 0.14
+                                    * 38.0;
+        } else {
+            height =
+                    148.0
+                            + (
+                            heightRoll - 0.14
+                    ) / 0.72
+                                    * 58.0;
+        }
+
+        /*
+         * Giant fronts receive a slight deterministic vertical offset too,
+         * preventing all the largest silhouettes from sharing one horizon.
+         */
+        if (radius > 225.0) {
+            height +=
+                    signed01(
+                            seed
+                                    ^ 0x1F83D9ABFB41BD6BL
+                    )
+                            * 18.0;
+        }
 
         return new CloudCell(
                 seed,

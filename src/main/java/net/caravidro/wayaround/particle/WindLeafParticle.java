@@ -1,12 +1,16 @@
 package net.caravidro.wayaround.particle;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.client.particle.ParticleRenderType;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.particle.TextureSheetParticle;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.state.BlockState;
 
 public final class WindLeafParticle extends TextureSheetParticle {
 
@@ -36,15 +40,127 @@ public final class WindLeafParticle extends TextureSheetParticle {
         this.quadSize = 0.12F + level.random.nextFloat() * 0.12F;
         this.lifetime = 24 + level.random.nextInt(36);
 
-        float green = 0.62F + level.random.nextFloat() * 0.24F;
-        this.rCol = green * 0.62F;
-        this.gCol = green;
-        this.bCol = green * 0.48F;
+        applySourceLeafColor(
+                level,
+                x,
+                y,
+                z
+        );
 
         this.roll = level.random.nextFloat() * ((float) Math.PI * 2.0F);
         this.oRoll = this.roll;
 
         this.pickSprite(sprites);
+    }
+
+    private void applySourceLeafColor(
+            ClientLevel level,
+            double x,
+            double y,
+            double z
+    ) {
+        BlockPos origin =
+                BlockPos.containing(
+                        x,
+                        y - 0.55,
+                        z
+                );
+
+        BlockPos source =
+                null;
+
+        /*
+         * The mote is emitted just above a leaf. Search a tiny vertical band
+         * instead of trusting one exact Y so tall/custom leaf blocks still
+         * carry their own biome tint into the particle.
+         */
+        for (int offset = 0;
+             offset >= -3;
+             offset--) {
+            BlockPos candidate =
+                    origin.offset(
+                            0,
+                            offset,
+                            0
+                    );
+
+            if (level.getBlockState(
+                    candidate
+            ).is(
+                    BlockTags.LEAVES
+            )) {
+                source =
+                        candidate;
+                break;
+            }
+        }
+
+        if (source == null) {
+            float green =
+                    0.62F
+                            + level.random.nextFloat()
+                                    * 0.24F;
+
+            setColor(
+                    green * 0.62F,
+                    green,
+                    green * 0.48F
+            );
+
+            return;
+        }
+
+        BlockState state =
+                level.getBlockState(
+                        source
+                );
+
+        int color =
+                Minecraft.getInstance()
+                        .getBlockColors()
+                        .getColor(
+                                state,
+                                level,
+                                source,
+                                0
+                        );
+
+        if (color == -1) {
+            color =
+                    0x6FA64B;
+        }
+
+        float variation =
+                0.92F
+                        + level.random.nextFloat()
+                                * 0.16F;
+
+        float red =
+                ((color >> 16) & 255)
+                        / 255.0F;
+
+        float green =
+                ((color >> 8) & 255)
+                        / 255.0F;
+
+        float blue =
+                (color & 255)
+                        / 255.0F;
+
+        setColor(
+                Math.min(
+                        1.0F,
+                        red * variation
+                ),
+                Math.min(
+                        1.0F,
+                        green * variation
+                ),
+                Math.min(
+                        1.0F,
+                        blue * variation
+                )
+        );
     }
 
     @Override
