@@ -26,6 +26,14 @@ public final class VoiceIntentClient {
     private static final boolean ENABLED =
             true;
 
+    /*
+     * Chat and voice share the same intent parser. Chat is deliberately marked
+     * while parsing so server-side chat listeners (Tukuna/Justice) remain the
+     * single authority for their conversational state and are not triggered twice.
+     */
+    private static boolean handlingChatInput;
+    private static boolean inputGuidanceShown;
+
     private static final long CONTEXT_WINDOW_MS =
             5_000L;
 
@@ -121,6 +129,10 @@ public final class VoiceIntentClient {
             return;
         }
 
+        if (!handlingChatInput) {
+            showInputGuidanceOnce();
+        }
+
         long now =
                 System.currentTimeMillis();
 
@@ -205,6 +217,29 @@ public final class VoiceIntentClient {
         );
     }
 
+    public static void handleChatMessage(
+            String message
+    ) {
+        if (!ENABLED
+                || message == null
+                || message.isBlank()) {
+            return;
+        }
+
+        handlingChatInput = true;
+
+        try {
+            handleTranscript(
+                    message,
+                    null,
+                    0.0,
+                    0.0
+            );
+        } finally {
+            handlingChatInput = false;
+        }
+    }
+
     public static void handleTranscript(
             String transcript,
             VoiceToneAnalyzer.ToneProfile profile,
@@ -229,9 +264,6 @@ public final class VoiceIntentClient {
         if (normalized.isBlank()) {
             return;
         }
-
-        PacketDistributor.sendToServer(new TukunaVoiceStatementC2SPayload(
-                transcript.length() > 512 ? transcript.substring(0, 512) : transcript));
 
         double globalUrgency =
                 VoiceToneAnalyzer.urgency(
@@ -281,6 +313,7 @@ public final class VoiceIntentClient {
                         normalized
                 );
 
+        if (!handlingChatInput) {
         /*
          * Tukuna words are intentionally simple and immediate. Unlike Blue,
          * "trocar" requires consent from TWO separate player UUIDs server-side,
@@ -370,6 +403,8 @@ public final class VoiceIntentClient {
 
             clearContext();
             return;
+        }
+
         }
 
         OutputModifier output =
@@ -2355,6 +2390,32 @@ public final class VoiceIntentClient {
         return previous[
                 b.length()
                 ];
+    }
+
+    private static void showInputGuidanceOnce() {
+        if (inputGuidanceShown) {
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return;
+        }
+
+        inputGuidanceShown = true;
+
+        minecraft.player.displayClientMessage(
+                Component.literal(
+                        "[Way Around] Precisão (regras, números, frases exatas): prefira o chat. "
+                                + "RP e comandos naturais: Voice Chat funciona melhor. "
+                                + "O chat também usa o mesmo interpretador de intenções."
+                ).withStyle(
+                        ChatFormatting.AQUA
+                ),
+                false
+        );
     }
 
     private static void clearContext() {
