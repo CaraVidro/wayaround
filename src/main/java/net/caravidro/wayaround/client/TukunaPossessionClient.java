@@ -50,14 +50,24 @@ public final class TukunaPossessionClient {
         possessed =
                 active;
 
-        if (playContractMusic && !contractMusic) {
+        boolean wasPlaying =
+                contractMusic;
+
+        /*
+         * Publish the state before starting the tickable sound. The sound
+         * checks this flag from its own tick(), so it must never observe a
+         * stale false value during startup.
+         */
+        contractMusic =
+                playContractMusic;
+
+        if (playContractMusic && !wasPlaying) {
             music = new TukunaContractSound();
             minecraft.getSoundManager().play(music);
-        } else if (!playContractMusic && contractMusic && music != null) {
+        } else if (!playContractMusic && wasPlaying && music != null) {
             minecraft.getSoundManager().stop(music);
             music = null;
         }
-        contractMusic = playContractMusic;
 
         if (!active
                 && previousCamera != null) {
