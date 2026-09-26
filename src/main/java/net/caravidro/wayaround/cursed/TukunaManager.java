@@ -88,6 +88,9 @@ public final class TukunaManager {
     private static final int SWAP_COOLDOWN_TICKS = 300;
     private static final int DANGEROUS_CONTRACT_TICKS = 20 * 60 * 3;
     private static final int TAKEOVER_TICKS = 80;
+    private static final int RETURN_TICKS = 60;
+    private static final Map<UUID, ReturnVisual> RETURN_VISUALS = new HashMap<>();
+    private static final Set<UUID> DEBUG_SELF_POSSESSIONS = new HashSet<>();
     private static final int PROPOSAL_TICKS = 20 * 60;
     private static final String PACT_SPIRIT_KEY = "WayAroundTukunaPactSpirit";
     private static final String PACT_DURATION_KEY = "WayAroundPactDurationSeconds";
@@ -351,6 +354,13 @@ public final class TukunaManager {
                 tick
         );
         tickTakeovers(server, tick);
+        tickReturnVisuals(server, tick);
+        DEBUG_SELF_POSSESSIONS.removeIf(id -> {
+            ServerPlayer player = server.getPlayerList().getPlayer(id);
+            if (player == null || !player.isAlive()) return true;
+            if (tick % 10L == 0L) emitIndefiniteAura(player, tick, false);
+            return false;
+        });
 
         tickFugaCharges(
                 server,
@@ -632,6 +642,8 @@ public final class TukunaManager {
         POSSESSIONS.clear();
         PACT_PROPOSALS.clear();
         PENDING_TAKEOVERS.clear();
+        RETURN_VISUALS.clear();
+        DEBUG_SELF_POSSESSIONS.clear();
         SPECTRUM_PRESENT.clear();
         GHOST_NOTIFIED.clear();
     }
@@ -642,6 +654,8 @@ public final class TukunaManager {
         UUID id =
                 player.getUUID();
 
+        DEBUG_SELF_POSSESSIONS.add(id);
+        RETURN_VISUALS.remove(id);
         POSSESSIONS.remove(id);
         PENDING_TAKEOVERS.remove(id);
         SWAP_CONFIRMATIONS.remove(id);
@@ -715,6 +729,10 @@ public final class TukunaManager {
                 player,
                 19
         );
+
+        sendFugaCinematic(player, PlayerCinematicPayload.TUKUNA_TAKEOVER,
+                TAKEOVER_TICKS, true, 0.0F);
+        emitIndefiniteAura(player, player.server.getTickCount(), true);
 
         PacketDistributor.sendToPlayer(
                 player,
@@ -828,6 +846,9 @@ public final class TukunaManager {
     public static int debugStop(
             ServerPlayer player
     ) {
+        if (DEBUG_SELF_POSSESSIONS.remove(player.getUUID())) {
+            beginReturnVisual(player, true, player.server.getTickCount());
+        }
         PacketDistributor.sendToPlayer(
                 player,
                 new TukunaPossessionS2CPayload(
@@ -2813,6 +2834,9 @@ public final class TukunaManager {
                     }
                 }
             }
+            if (stage.durationTicks < 0 && tick % 4L == 0L) {
+                emitIndefiniteAura(host, tick, true);
+            }
             if (tick >= stage.readyAt) {
                 iterator.remove();
                 PlayerControlLockManager.clearMovement(host);
@@ -2892,6 +2916,11 @@ public final class TukunaManager {
         spirit.setYRot(host.getYRot());
 
         spirit.setXRot(0.0F);
+
+        // The new controller also bows when the physical body changes hands.
+        sendFugaCinematic(spirit, PlayerCinematicPayload.TUKUNA_RETURN,
+                RETURN_TICKS, true, 0.0F);
+        if (indefinite) emitIndefiniteAura(spirit, tick, true);
 
         spirit.setGameMode(
                 GameType.SURVIVAL
@@ -3023,6 +3052,10 @@ public final class TukunaManager {
             host.setCamera(
                     spirit
             );
+
+            if (possession.endTick == Long.MAX_VALUE && tick % 10L == 0L) {
+                emitIndefiniteAura(spirit, tick, false);
+            }
 
             long remaining =
                     possession.endTick
@@ -3167,6 +3200,8 @@ public final class TukunaManager {
                     new TukunaPossessionS2CPayload(false, false, false));
         }
 
+        beginReturnVisual(host, possession.endTick == Long.MAX_VALUE, tick);
+
         Component returned =
                 Component.translatable(
                                 "message.wayaround.tukuna.returned"
@@ -3185,6 +3220,58 @@ public final class TukunaManager {
                 false
         );
     }
+
+    private static void beginReturnVisual(ServerPlayer player, boolean indefinite, long tick) {
+        RETURN_VISUALS.put(player.getUUID(), new ReturnVisual(tick + RETURN_TICKS, indefinite));
+        sendFugaCinematic(player, PlayerCinematicPayload.TUKUNA_RETURN,
+                RETURN_TICKS, true, 0.0F);
+        player.serverLevel().sendParticles(ParticleTypes.SOUL,
+                player.getX(), player.getY() + 1.0, player.getZ(),
+                indefinite ? 48 : 12, 0.55, 0.75, 0.55, indefinite ? 0.12 : 0.035);
+    }
+
+    private static void tickReturnVisuals(MinecraftServer server, long tick) {
+        RETURN_VISUALS.entrySet().removeIf(entry -> {
+            ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+            ReturnVisual visual = entry.getValue();
+            if (player == null || !player.isAlive() || tick >= visual.endsAt) return true;
+            if (tick % 4L != 0L) return false;
+            double progress = 1.0 - (visual.endsAt - tick) / (double) RETURN_TICKS;
+            double radius = 0.4 + progress * (visual.indefinite ? 2.6 : 0.8);
+            int points = visual.indefinite ? 20 : 8;
+            for (int i = 0; i < points; i++) {
+                double angle = Math.PI * 2.0 * i / points - tick * 0.16;
+                player.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                        player.getX() + Math.cos(angle) * radius,
+                        player.getY() + 0.2 + progress * 1.6,
+                        player.getZ() + Math.sin(angle) * radius,
+                        1, 0.01, 0.01, 0.01, 0.006);
+            }
+            if (visual.indefinite) {
+                player.serverLevel().sendParticles(ParticleTypes.SMOKE,
+                        player.getX(), player.getY() + 1.0, player.getZ(),
+                        6, 0.45, 0.65, 0.45, 0.04);
+            }
+            return false;
+        });
+    }
+
+    private static void emitIndefiniteAura(ServerPlayer player, long tick, boolean intense) {
+        int points = intense ? 20 : 8;
+        double radius = intense ? 1.1 : 0.65;
+        for (int i = 0; i < points; i++) {
+            double angle = tick * 0.16 + Math.PI * 2.0 * i / points;
+            double x = player.getX() + Math.cos(angle) * radius;
+            double z = player.getZ() + Math.sin(angle) * radius;
+            double y = player.getY() + 0.15 + (i % 10) * 0.18;
+            player.serverLevel().sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                    x, y, z, 1, 0.01, 0.015, 0.01, 0.003);
+            if (intense) player.serverLevel().sendParticles(ParticleTypes.SMOKE,
+                    x, y, z, 1, 0.02, 0.03, 0.02, 0.015);
+        }
+    }
+
+    private record ReturnVisual(long endsAt, boolean indefinite) {}
 
     private static void emergencyRestoreHost(
             ServerPlayer host

@@ -98,6 +98,11 @@ public final class PlayerAnimationController {
                     );
         }
 
+        // Every transfer starts a fresh bow, even if another cinematic was locked.
+        if (payload.animation() == PlayerCinematicPayload.TUKUNA_TAKEOVER
+                || payload.animation() == PlayerCinematicPayload.TUKUNA_RETURN) {
+            CinematicCameraController.clear(payload.player());
+        }
         CinematicCameraController.follow(
                 payload.player(),
                 payload.lockCamera()
@@ -258,8 +263,8 @@ public final class PlayerAnimationController {
                             age
                     );
 
-            case PlayerCinematicPayload.TUKUNA_TAKEOVER ->
-                    applyTukunaTakeover(model, age);
+            case PlayerCinematicPayload.TUKUNA_TAKEOVER, PlayerCinematicPayload.TUKUNA_RETURN ->
+                    applyTukunaTakeover(model, age, tukunaBowWeight(state));
 
             default -> {
             }
@@ -332,8 +337,22 @@ public final class PlayerAnimationController {
                 );
 
         return state != null
-                && state.animation
-                        == PlayerCinematicPayload.FUGA_RELEASE;
+                && (state.animation == PlayerCinematicPayload.FUGA_RELEASE
+                    || state.animation == PlayerCinematicPayload.TUKUNA_TAKEOVER
+                    || state.animation == PlayerCinematicPayload.TUKUNA_RETURN);
+    }
+
+    public static float tukunaBowWeight(UUID player) {
+        AnimationState state = state(player);
+        return state == null ? 0.0F : tukunaBowWeight(state);
+    }
+
+    private static float tukunaBowWeight(AnimationState state) {
+        if (state.animation != PlayerCinematicPayload.TUKUNA_TAKEOVER
+                && state.animation != PlayerCinematicPayload.TUKUNA_RETURN) return 0.0F;
+        float progress = age(state) / Math.max(1, state.duration);
+        return ease(Mth.clamp(progress / 0.25F, 0.0F, 1.0F))
+                * (1.0F - ease(Mth.clamp((progress - 0.65F) / 0.35F, 0.0F, 1.0F)));
     }
 
     public static float cameraPitchOffsetDegrees(
@@ -352,20 +371,6 @@ public final class PlayerAnimationController {
                 age(
                         state
                 );
-
-        if (state.animation
-                == PlayerCinematicPayload.TUKUNA_TAKEOVER) {
-            float down =
-                    ease(
-                            age / 20.0F
-                    );
-
-            return Mth.lerp(
-                    down,
-                    0.0F,
-                    62.0F
-            );
-        }
 
         if (state.animation
                 != PlayerCinematicPayload.FUGA_RELEASE) {
@@ -947,10 +952,7 @@ public final class PlayerAnimationController {
                         * p;
     }
 
-    private static void applyTukunaTakeover(PlayerModel<?> model, float age) {
-        float bow = ease(Mth.clamp(age / 20.0F, 0.0F, 1.0F));
-        float rise = ease(Mth.clamp((age - 50.0F) / 24.0F, 0.0F, 1.0F));
-        float weight = bow * (1.0F - rise);
+    private static void applyTukunaTakeover(PlayerModel<?> model, float age, float weight) {
         model.body.xRot += 0.98F * weight;
         model.body.yRot += Mth.sin(age * 0.16F) * 0.035F * weight;
         model.head.xRot += 0.70F * weight;

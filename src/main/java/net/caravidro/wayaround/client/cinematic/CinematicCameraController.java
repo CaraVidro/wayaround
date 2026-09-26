@@ -5,6 +5,7 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -120,13 +121,13 @@ public final class CinematicCameraController {
                 Minecraft.getInstance();
 
         return minecraft.player != null
-                && entity == minecraft.player
+                && (entity == minecraft.player || entity == minecraft.getCameraEntity())
                 && (
                 isLocked()
                         || shakeTicks > 0
                         || PlayerAnimationController
                                 .hasCameraMotion(
-                                        minecraft.player.getUUID()
+                                        entity.getUUID()
                                 )
         );
     }
@@ -152,10 +153,7 @@ public final class CinematicCameraController {
             Entity entity,
             float partialTick
     ) {
-        UUID local =
-                Minecraft.getInstance().player == null
-                        ? null
-                        : Minecraft.getInstance().player.getUUID();
+        UUID local = entity.getUUID();
 
         float animationOffset =
                 PlayerAnimationController
@@ -172,10 +170,12 @@ public final class CinematicCameraController {
                         )
                                 + animationOffset;
 
-        return pitch
+        // Absolute target: looking down already must not rotate past the floor.
+        pitch = Mth.lerp(PlayerAnimationController.tukunaBowWeight(local), pitch, 62.0F);
+        return Mth.clamp(pitch
                 + shakePitch(
                         partialTick
-                );
+                ), -90.0F, 90.0F);
     }
 
     private static float shakeYaw(

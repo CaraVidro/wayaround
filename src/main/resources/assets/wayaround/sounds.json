@@ -19,8 +19,7 @@
     "sounds": [
       {
         "name": "wayaround:in_my_way",
-        "stream": false,
-        "preload": true
+        "stream": true
       }
     ]
   },
