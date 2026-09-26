@@ -40,11 +40,19 @@ public final class SpokenPactDraft {
         String[] words = said.split(" ");
 
         boolean indefinite = said.equals("indeterminado")
+                || said.equals("indeterminada")
                 || said.equals("indefinido")
+                || said.equals("indefinida")
+                || said.equals("inderterminado")
+                || said.equals("inderterminada")
                 || said.contains("tempo indeterminado")
+                || said.contains("tempo indeterminada")
                 || said.contains("tempo indefinido")
+                || said.contains("tempo indefinida")
                 || said.contains("duracao indeterminada")
+                || said.contains("duracao indeterminado")
                 || said.contains("duracao indefinida")
+                || said.contains("duracao indefinido")
                 || said.contains("sem limite de tempo")
                 || said.contains("sem tempo definido")
                 || said.contains("sem prazo");
@@ -124,6 +132,7 @@ public final class SpokenPactDraft {
     }
 
     public int durationSeconds() { return durationSeconds; }
+    public boolean indefinite() { return durationSeconds < 0; }
     public boolean pacifist() { return pacifist; }
     public boolean forget() { return forget; }
     public String transcript() { return transcript.toString(); }
