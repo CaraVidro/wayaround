@@ -57,3 +57,12 @@ Build e regressões matemáticas não substituem verificar poses, cores e equil�
 - Com um dedo próprio na mão, segurar botão direito mirando outro jogador inicia alimentação forçada. Perder a mira, sair do alcance ou soltar antes do fim cancela.
 - O chat não revela contagem ou “quantos faltam”. Cada dedo tem uma mensagem narrativa própria. Marcos: 5 = visão ruim/aura sem posse; 10 = dano/quase-apagão/batida; 15 = posse obrigatória por 5 minutos; 20 = a palavra **corpo** passa a separar Tukuna do receptáculo.
 - Depois de **corpo**, o antigo receptáculo fica com os buffs e imune a novas possessões. O estado também fica persistido como gancho para um Spectrum exclusivo futuro.
+
+
+## Void polish: UI e Purple Nuke
+
+- O menu Spectrum agora é mais compacto e usa 10 slots por página: **1–9 e 0**. Só depois disso abre a próxima página.
+- RED preparado não aplica mais o overlay branco opaco; fica apenas uma tonalidade vermelha discreta.
+- Se BLUE estiver ativo, inclusive seguindo o mouse, preparar RED captura o BLUE imediatamente, congela seu centro e inicia a fusão.
+- A fusão física BLUE + RED voltou a ser **Purple Nuke**: ela carrega no ponto capturado e detona automaticamente. Não vira mais Purple projectile.
+- Pressionar a ação Purple quando a nuke já passou da fase madura (72 ticks) antecipa a detonação, mas continua sendo a mesma nuke.

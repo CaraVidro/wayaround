@@ -1422,6 +1422,42 @@ public final class BlueManager {
         );
     }
 
+    public static FusionSeed consumeActiveBlueForFusion(
+            ServerPlayer player
+    ) {
+        ActiveBlue blue =
+                ACTIVE.get(
+                        player.getUUID()
+                );
+
+        if (blue == null
+                || blue.dimension
+                != player.serverLevel()
+                        .dimension()) {
+            return null;
+        }
+
+        if (!ACTIVE.remove(
+                player.getUUID(),
+                blue
+        )) {
+            return null;
+        }
+
+        sendGesture(
+                player,
+                BlueGestureS2CPayload.FUSION
+        );
+
+        return new FusionSeed(
+                blue.owner,
+                blue.dimension,
+                blue.center,
+                blue.power,
+                blue.spinDirection
+        );
+    }
+
     public static FusionSeed consumeHeldBlueForFusion(
             ServerPlayer player,
             Vec3 redPosition,

@@ -205,13 +205,13 @@ public final class ImaginaryBetaManager {
         }
 
         PurpleFusion held = FUSIONS.get(player.getUUID());
-        if (held != null && held.age >= 72 && !held.released) {
-            held.released = true;
-            held.direction = player.getLookAngle().normalize();
-            held.travelTicks = 0;
-            sendCinematic(player, PlayerCinematicPayload.PURPLE_RELEASE, 48);
+        if (held != null && held.age >= 72 && !held.blastTriggered) {
+            held.blastTriggered = true;
+            held.age = PURPLE_BLAST_TICK;
+            sendCinematic(player, PlayerCinematicPayload.PURPLE_RELEASE, 28);
             player.serverLevel().playSound(null, player.blockPosition(),
-                    SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 2.0F, 0.62F);
+                    SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 2.0F, 0.52F);
+            detonatePurple(player.serverLevel(), held);
             return true;
         }
 
@@ -284,6 +284,42 @@ public final class ImaginaryBetaManager {
                 owner
         )) {
             return false;
+        }
+
+        BlueManager.FusionSeed activeBlue =
+                BlueManager.consumeActiveBlueForFusion(
+                        player
+                );
+
+        if (activeBlue != null) {
+            beginFusion(
+                    player.serverLevel(),
+                    player,
+                    activeBlue
+            );
+
+            player.serverLevel().sendParticles(
+                    ParticleTypes.ELECTRIC_SPARK,
+                    activeBlue.center().x,
+                    activeBlue.center().y,
+                    activeBlue.center().z,
+                    46,
+                    0.8,
+                    0.8,
+                    0.8,
+                    0.18
+            );
+
+            player.serverLevel().playSound(
+                    null,
+                    BlockPos.containing(activeBlue.center()),
+                    SoundEvents.FIREWORK_ROCKET_LAUNCH,
+                    SoundSource.PLAYERS,
+                    1.15F,
+                    0.48F
+            );
+
+            return true;
         }
 
         RedProjectile existing =
@@ -1994,44 +2030,9 @@ public final class ImaginaryBetaManager {
                 continue;
             }
 
-            // The contact sequence forms a Purple, then holds it at the crosshair.
-            // The server owns both the aim and the eventual release.
-            if (fusion.age >= 72 && !fusion.released && !fusion.blastTriggered) {
-                if (!fusion.holdAnnounced) {
-                    fusion.holdAnnounced = true;
-                    sendCinematic(owner, PlayerCinematicPayload.PURPLE_FUSION, 0);
-                    owner.displayClientMessage(
-                            net.minecraft.network.chat.Component.literal("Purple pronto: botão direito para lançar"), true);
-                }
-                fusion.center = owner.getEyePosition()
-                        .add(owner.getLookAngle().normalize().scale(4.6));
-                if (level.getGameTime() % 2 == 0) {
-                    level.sendParticles(ParticleTypes.END_ROD,
-                            fusion.center.x, fusion.center.y, fusion.center.z,
-                            12, 1.5, 1.5, 1.5, 0.035);
-                }
-                sendVisual(level, fusion.owner, BetaTechniqueVisualPayload.PURPLE_HELD,
-                        fusion.center, fusion.power, 1.0F);
-                continue;
-            }
-
-            if (fusion.released && !fusion.blastTriggered) {
-                fusion.travelTicks++;
-                Vec3 next = fusion.center.add(fusion.direction.scale(2.8));
-                boolean impact = !level.getBlockState(BlockPos.containing(next)).isAir()
-                        || fusion.travelTicks >= 90;
-                fusion.center = next;
-                if (!impact) {
-                    sendVisual(level, fusion.owner, BetaTechniqueVisualPayload.PURPLE_PROJECTILE,
-                            fusion.center, fusion.power, fusion.travelTicks / 90.0F);
-                    level.sendParticles(ParticleTypes.END_ROD,
-                            next.x, next.y, next.z, 18, 1.0, 1.0, 1.0, 0.08);
-                    continue;
-                }
-                fusion.blastTriggered = true;
-                fusion.age = PURPLE_BLAST_TICK;
-                detonatePurple(level, fusion);
-            }
+            // BLUE + RED is committed to the old Purple Nuke again.
+            // Once fusion starts, its center is frozen and the charge grows
+            // until detonation; it never becomes a held/projectile Purple.
 
             fusion.age++;
 
@@ -2797,10 +2798,6 @@ public final class ImaginaryBetaManager {
 
         private int age;
         private boolean blastTriggered;
-        private boolean released;
-        private boolean holdAnnounced;
-        private Vec3 direction = Vec3.ZERO;
-        private int travelTicks;
 
         private PurpleFusion(
                 UUID owner,

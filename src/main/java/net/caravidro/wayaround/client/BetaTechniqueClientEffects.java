@@ -283,6 +283,17 @@ public final class BetaTechniqueClientEffects {
             return;
         }
 
+        if (state.mode == BetaTechniqueVisualPayload.RED_HELD) {
+            int width = minecraft.getWindow().getGuiScaledWidth();
+            int height = minecraft.getWindow().getGuiScaledHeight();
+            int alpha = Mth.clamp(Math.round(18.0F + state.power * 8.0F), 18, 34);
+            event.getGuiGraphics().fill(
+                    0, 0, width, height,
+                    alpha << 24 | 0x5A0000
+            );
+            return;
+        }
+
         if (state.mode == BetaTechniqueVisualPayload.PURPLE_HELD) {
 
             return;

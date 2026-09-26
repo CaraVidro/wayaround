@@ -53,14 +53,18 @@ public final class SpectrumMenu {
         if(NEXT.consumeClick()){
             cancel();var types=unlocked();if(!types.isEmpty())selected=types.get((types.indexOf(selected)+1)%types.size());page=0;return;
         }
-        if(PAGE.consumeClick()){cancel();page=(page+1)%Math.max(1,(actions().size()+8)/9);return;}
-        int slot=e.getKey()-GLFW.GLFW_KEY_1;
-        if(slot<0||slot>8)return;
-        // InputEvent fires after KeyMapping updates and before Minecraft consumes hotbar clicks.
-        mc.options.keyHotbarSlots[slot].setDown(false);
-        while(mc.options.keyHotbarSlots[slot].consumeClick()){}
+        if(PAGE.consumeClick()){cancel();page=(page+1)%Math.max(1,(actions().size()+9)/10);return;}
+        int slot;
+        if(e.getKey()>=GLFW.GLFW_KEY_1 && e.getKey()<=GLFW.GLFW_KEY_9) slot=e.getKey()-GLFW.GLFW_KEY_1;
+        else if(e.getKey()==GLFW.GLFW_KEY_0) slot=9;
+        else return;
+        // 1-9 are also vanilla hotbar keys; suppress those while the Spectrum menu is open.
+        if(slot<9){
+            mc.options.keyHotbarSlots[slot].setDown(false);
+            while(mc.options.keyHotbarSlots[slot].consumeClick()){}
+        }
         if(e.getAction()==GLFW.GLFW_PRESS){
-            int index=page*9+slot;
+            int index=page*10+slot;
             if(index>=actions().size())return;
             int id=actions().get(index).id;PRESSED.put(e.getKey(),id);
             PacketDistributor.sendToServer(new SpectrumInputPayload(id,SpectrumInputPayload.PRESS));
@@ -76,18 +80,20 @@ public final class SpectrumMenu {
     }
     @SubscribeEvent public static void gui(RenderGuiEvent.Post e){
         var mc=Minecraft.getInstance();if(!open||mc.player==null||mc.options.hideGui)return;
-        var g=e.getGuiGraphics();var all=actions();int count=Math.min(9,all.size()-page*9);
-        int w=Math.min(226,mc.getWindow().getGuiScaledWidth()-16),h=44+count*20;
-        int x=mc.getWindow().getGuiScaledWidth()-w-8,y=Math.max(8,(mc.getWindow().getGuiScaledHeight()-h)/2);
-        g.fill(x-2,y-2,x+w+2,y+h+2,0xFF777777);g.fill(x,y,x+w,y+h,0xD914141A);
-        g.drawString(mc.font,"SPECTRUM · "+selected.path().toUpperCase(Locale.ROOT),x+7,y+7,0xFFF3CE,false);
+        var g=e.getGuiGraphics();var all=actions();int count=Math.min(10,all.size()-page*10);
+        int w=Math.min(184,mc.getWindow().getGuiScaledWidth()-16),h=31+count*14;
+        int x=mc.getWindow().getGuiScaledWidth()-w-6,y=Math.max(6,(mc.getWindow().getGuiScaledHeight()-h)/2);
+        g.fill(x-1,y-1,x+w+1,y+h+1,0xAA666666);g.fill(x,y,x+w,y+h,0xC914141A);
+        g.drawString(mc.font,"SPECTRUM · "+selected.path().toUpperCase(Locale.ROOT),x+5,y+5,0xFFF3CE,false);
         for(int i=0;i<count;i++){
-            SpectrumAction action=all.get(page*9+i);int row=y+22+i*20;
+            SpectrumAction action=all.get(page*10+i);int row=y+17+i*14;
             boolean held=PRESSED.containsValue(action.id);
-            g.fill(x+5,row,x+w-5,row+18,held?0xC08A2929:0xB03B3B42);
-            g.drawString(mc.font,(i+1)+"  "+action.label,x+9,row+5,held?0xFFFFFF:0xDDDDDD,false);
+            g.fill(x+3,row,x+w-3,row+12,held?0xB88A2929:0x983B3B42);
+            String key=i==9?"0":Integer.toString(i+1);
+            String label=action.label;
+            while(mc.font.width(label)>w-28 && label.length()>4) label=label.substring(0,label.length()-2)+"…";
+            g.drawString(mc.font,key+" "+label,x+6,row+2,held?0xFFFFFF:0xDDDDDD,false);
         }
-        g.drawString(mc.font,"Página "+(page+1)+"/"+((all.size()+8)/9)+" · "+PAGE.getTranslatedKeyMessage().getString(),x+7,y+h-13,0xB7B7C2,false);
-        if(selected==SpectrumType.TUKUNA)g.drawString(mc.font,"1 segurar: rajada · 1 → 2: fogo",x+3,y+h+6,0xFFAD66,false);
+        g.drawString(mc.font,"P "+(page+1)+"/"+Math.max(1,(all.size()+9)/10)+" · "+PAGE.getTranslatedKeyMessage().getString(),x+5,y+h-10,0xAFAFB8,false);
     }
 }
