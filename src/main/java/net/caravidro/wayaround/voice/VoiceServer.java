@@ -45,9 +45,13 @@ public final class VoiceServer {
             return;
         }
 
-        TukunaManager.pulseProjectedSpeech(
-                sender
-        );
+        if (containsSpeech(
+                pcm
+        )) {
+            TukunaManager.pulseProjectedSpeech(
+                    sender
+            );
+        }
 
         ServerPlayer projectionHost =
                 TukunaManager.projectedVoiceHost(
@@ -160,6 +164,54 @@ public final class VoiceServer {
                         pcm
                 )
         );
+    }
+
+    private static boolean containsSpeech(
+            byte[] pcm
+    ) {
+        if (pcm.length < 2) {
+            return false;
+        }
+
+        long squareSum =
+                0L;
+
+        int samples =
+                pcm.length / 2;
+
+        for (int index = 0;
+             index < samples;
+             index++) {
+            int byteIndex =
+                    index * 2;
+
+            int sample =
+                    (short) (
+                            (pcm[byteIndex]
+                                    & 0xFF)
+                                    | (pcm[byteIndex + 1]
+                                    << 8)
+                    );
+
+            squareSum +=
+                    (long) sample
+                            * sample;
+        }
+
+        double rms =
+                Math.sqrt(
+                        squareSum
+                                / (double) samples
+                )
+                        / 32768.0;
+
+        /*
+         * Lower than the client's voice-activation threshold on purpose: once
+         * an utterance is already being transmitted, quiet syllables should
+         * still move Tukuna's cheek mouth. Mic hiss / held PTT silence should
+         * not.
+         */
+        return rms >= 0.0065;
     }
 
     private static boolean allowPacket(UUID playerId) {
