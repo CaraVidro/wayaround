@@ -1620,7 +1620,7 @@ public final class ImaginaryBetaManager {
             ServerPlayer owner,
             RedProjectile red
     ) {
-        pulverizeEllipsoid(
+        queuePulverizeEllipsoid(
                 level,
                 red.position,
                 RED_IMPACT_RADIUS,
