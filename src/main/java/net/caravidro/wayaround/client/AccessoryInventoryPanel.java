@@ -6,6 +6,7 @@ import net.caravidro.wayaround.network.AccessoryActionC2SPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -13,6 +14,13 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+/**
+ * Four accessory slots embedded around the vanilla player preview.
+ *
+ * Vanilla offhand sits at inventory-relative (77,62). The accessory column
+ * deliberately uses y=8/26/44/80, leaving the offhand slot itself untouched
+ * in the middle of the stack.
+ */
 @EventBusSubscriber(
         modid = WayAround.MODID,
         value = Dist.CLIENT
@@ -21,18 +29,33 @@ public final class AccessoryInventoryPanel {
 
     private AccessoryInventoryPanel() {}
 
-    private static final int SLOT =
-            22;
+    private static final int SLOT_SIZE =
+            18;
 
-    private static final int PANEL_WIDTH =
-            28;
+    private static final int SLOT_X =
+            77;
+
+    // AccessorySlot ordinal order: HEAD, HANDS, TORSO, FEET.
+    private static final int[] SLOT_Y = {
+            8,
+            44,
+            26,
+            80
+    };
+
+    private static final String[] EMPTY_MARKS = {
+            "H",
+            "M",
+            "T",
+            "F"
+    };
 
     @SubscribeEvent
     public static void render(
             ScreenEvent.Render.Post event
     ) {
         if (!(event.getScreen()
-                instanceof InventoryScreen)) {
+                instanceof InventoryScreen screen)) {
             return;
         }
 
@@ -48,118 +71,153 @@ public final class AccessoryInventoryPanel {
                         minecraft.player.getUUID()
                 );
 
-        int[] origin =
-                origin(
-                        minecraft
-                );
+        int left =
+                screen.getGuiLeft();
 
-        int x =
-                origin[0];
-
-        int y =
-                origin[1];
+        int top =
+                screen.getGuiTop();
 
         GuiGraphics graphics =
                 event.getGuiGraphics();
 
-        graphics.fill(
-                x - 2,
-                y - 16,
-                x + PANEL_WIDTH,
-                y + SLOT * 4 + 3,
-                0xD0181818
-        );
+        for (int slot = 0;
+             slot < 4;
+             slot++) {
+            int x =
+                    left
+                            + SLOT_X;
 
-        graphics.fill(
-                x + 3,
-                y - 13,
-                x + PANEL_WIDTH - 3,
-                y - 2,
-                0xFF342A44
-        );
+            int y =
+                    top
+                            + SLOT_Y[slot];
 
-        graphics.drawString(
-                minecraft.font,
-                "A",
-                x + 10,
-                y - 12,
-                0xFFE7D7FF,
-                false
-        );
-
-        String[] letters =
-                {"H", "M", "T", "F"};
-
-        for (int index = 0;
-             index < 4;
-             index++) {
-            int slotY =
-                    y
-                            + index
-                                    * SLOT;
-
-            graphics.fill(
+            drawSlot(
+                    graphics,
+                    minecraft,
+                    state,
+                    slot,
                     x,
-                    slotY,
-                    x + 20,
-                    slotY + 20,
-                    0xFF2D2D34
+                    y,
+                    event.getMouseX(),
+                    event.getMouseY()
             );
+        }
+    }
 
+    private static void drawSlot(
+            GuiGraphics graphics,
+            Minecraft minecraft,
+            AccessoryClientState.State state,
+            int slot,
+            int x,
+            int y,
+            double mouseX,
+            double mouseY
+    ) {
+        boolean hovered =
+                inside(
+                        mouseX,
+                        mouseY,
+                        x,
+                        y
+                );
+
+        /*
+         * Three-layer border mirrors vanilla's recessed inventory language
+         * without adding another detached panel.
+         */
+        graphics.fill(
+                x,
+                y,
+                x + SLOT_SIZE,
+                y + SLOT_SIZE,
+                0xFF8B8B8B
+        );
+
+        graphics.fill(
+                x + 1,
+                y + 1,
+                x + SLOT_SIZE - 1,
+                y + SLOT_SIZE - 1,
+                0xFF373737
+        );
+
+        graphics.fill(
+                x + 2,
+                y + 2,
+                x + SLOT_SIZE - 2,
+                y + SLOT_SIZE - 2,
+                hovered
+                        ? 0xFF25252D
+                        : 0xFF15151A
+        );
+
+        String path =
+                state == null
+                        ? ""
+                        : state.forSlot(
+                                slot
+                        );
+
+        ItemStack stack =
+                stackFor(
+                        path
+                );
+
+        if (!stack.isEmpty()) {
+            graphics.renderItem(
+                    stack,
+                    x + 1,
+                    y + 1
+            );
+        } else {
+            graphics.drawString(
+                    minecraft.font,
+                    EMPTY_MARKS[slot],
+                    x + 6,
+                    y + 5,
+                    hovered
+                            ? 0xFFA996C9
+                            : 0xFF686873,
+                    false
+            );
+        }
+
+        if (hovered) {
             graphics.fill(
                     x + 1,
-                    slotY + 1,
-                    x + 19,
-                    slotY + 19,
-                    0xFF111116
+                    y + 1,
+                    x + SLOT_SIZE - 1,
+                    y + SLOT_SIZE - 1,
+                    0x22FFFFFF
             );
 
-            String path =
-                    state == null
-                            ? ""
-                            : state.forSlot(
-                                    index
-                            );
+            Component label =
+                    switch (slot) {
+                        case 0 ->
+                                Component.literal(
+                                        "Accessory: Head"
+                                );
+                        case 1 ->
+                                Component.literal(
+                                        "Accessory: Hands"
+                                );
+                        case 2 ->
+                                Component.literal(
+                                        "Accessory: Torso"
+                                );
+                        default ->
+                                Component.literal(
+                                        "Accessory: Feet"
+                                );
+                    };
 
-            ItemStack stack =
-                    stackFor(
-                            path
-                    );
-
-            if (!stack.isEmpty()) {
-                graphics.renderItem(
-                        stack,
-                        x + 2,
-                        slotY + 2
-                );
-            } else {
-                graphics.drawString(
-                        minecraft.font,
-                        letters[index],
-                        x + 7,
-                        slotY + 6,
-                        0xFF777783,
-                        false
-                );
-            }
-
-            if (event.getMouseX()
-                    >= x
-                    && event.getMouseX()
-                    < x + 20
-                    && event.getMouseY()
-                    >= slotY
-                    && event.getMouseY()
-                    < slotY + 20) {
-
-                graphics.fill(
-                        x,
-                        slotY,
-                        x + 20,
-                        slotY + 20,
-                        0x28FFFFFF
-                );
-            }
+            graphics.renderTooltip(
+                    minecraft.font,
+                    label,
+                    (int) mouseX,
+                    (int) mouseY
+            );
         }
     }
 
@@ -168,7 +226,7 @@ public final class AccessoryInventoryPanel {
             ScreenEvent.MouseButtonPressed.Pre event
     ) {
         if (!(event.getScreen()
-                instanceof InventoryScreen)) {
+                instanceof InventoryScreen screen)) {
             return;
         }
 
@@ -179,33 +237,29 @@ public final class AccessoryInventoryPanel {
             return;
         }
 
-        int[] origin =
-                origin(
-                        minecraft
-                );
+        int left =
+                screen.getGuiLeft();
 
-        int x =
-                origin[0];
+        int top =
+                screen.getGuiTop();
 
-        int y =
-                origin[1];
+        for (int slot = 0;
+             slot < 4;
+             slot++) {
+            int x =
+                    left
+                            + SLOT_X;
 
-        for (int index = 0;
-             index < 4;
-             index++) {
-            int slotY =
+            int y =
+                    top
+                            + SLOT_Y[slot];
+
+            if (!inside(
+                    event.getMouseX(),
+                    event.getMouseY(),
+                    x,
                     y
-                            + index
-                                    * SLOT;
-
-            if (event.getMouseX()
-                    < x
-                    || event.getMouseX()
-                    >= x + 20
-                    || event.getMouseY()
-                    < slotY
-                    || event.getMouseY()
-                    >= slotY + 20) {
+            )) {
                 continue;
             }
 
@@ -216,7 +270,7 @@ public final class AccessoryInventoryPanel {
 
             PacketDistributor.sendToServer(
                     new AccessoryActionC2SPayload(
-                            (byte) index,
+                            (byte) slot,
                             action
                     )
             );
@@ -229,33 +283,16 @@ public final class AccessoryInventoryPanel {
         }
     }
 
-    private static int[] origin(
-            Minecraft minecraft
+    private static boolean inside(
+            double mouseX,
+            double mouseY,
+            int x,
+            int y
     ) {
-        int width =
-                minecraft.getWindow()
-                        .getGuiScaledWidth();
-
-        int height =
-                minecraft.getWindow()
-                        .getGuiScaledHeight();
-
-        int inventoryLeft =
-                (
-                        width - 176
-                )
-                        / 2;
-
-        int inventoryTop =
-                (
-                        height - 166
-                )
-                        / 2;
-
-        return new int[]{
-                inventoryLeft - 29,
-                inventoryTop + 12
-        };
+        return mouseX >= x
+                && mouseX < x + SLOT_SIZE
+                && mouseY >= y
+                && mouseY < y + SLOT_SIZE;
     }
 
     private static ItemStack stackFor(

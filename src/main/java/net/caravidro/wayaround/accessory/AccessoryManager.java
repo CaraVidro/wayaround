@@ -7,8 +7,6 @@ import net.caravidro.wayaround.network.AccessoryStateS2CPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -16,6 +14,14 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+/**
+ * Server-side accessory equipment state.
+ *
+ * Accessories are intentionally cosmetic by default. This manager only owns
+ * equip/unequip, visual modes and multiplayer synchronization; gameplay buffs
+ * must be explicit features of an individual accessory instead of being baked
+ * into the slot system.
+ */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class AccessoryManager {
 
@@ -95,27 +101,10 @@ public final class AccessoryManager {
 
         if (action
                 == AccessoryActionC2SPayload.TOGGLE) {
-            if (slot == AccessorySlot.HEAD
-                    && equipped(
+            toggleAccessoryMode(
                     player,
                     slot
-            ) == AccessoryKind.SPECTRAL_GLASSES) {
-
-                player.getPersistentData()
-                        .putInt(
-                                GLASSES_MODE,
-                                glassesMode(
-                                        player
-                                ) == 0
-                                        ? 1
-                                        : 0
-                        );
-
-                sync(
-                        player
-                );
-            }
-
+            );
             return;
         }
 
@@ -138,13 +127,10 @@ public final class AccessoryManager {
                             slot
                     );
 
-            AccessoryKind replacement =
-                    accessory.kind();
-
             setEquipped(
                     player,
                     slot,
-                    replacement
+                    accessory.kind()
             );
 
             player.containerMenu
@@ -184,6 +170,33 @@ public final class AccessoryManager {
                         OddityContent.accessoryStack(
                                 old
                         )
+                );
+
+        sync(
+                player
+        );
+    }
+
+    private static void toggleAccessoryMode(
+            ServerPlayer player,
+            AccessorySlot slot
+    ) {
+        if (slot != AccessorySlot.HEAD
+                || equipped(
+                player,
+                slot
+        ) != AccessoryKind.SPECTRAL_GLASSES) {
+            return;
+        }
+
+        player.getPersistentData()
+                .putInt(
+                        GLASSES_MODE,
+                        glassesMode(
+                                player
+                        ) == 0
+                                ? 1
+                                : 0
                 );
 
         sync(
@@ -279,76 +292,19 @@ public final class AccessoryManager {
         long tick =
                 server.getTickCount();
 
-        for (ServerPlayer player :
-                server.getPlayerList()
-                        .getPlayers()) {
-            applyEffects(
-                    player
-            );
-
-            if (tick % 20L == 0L) {
-                sync(
-                        player
-                );
-            }
-        }
-    }
-
-    private static void applyEffects(
-            ServerPlayer player
-    ) {
-        if (!player.isAlive()) {
+        /*
+         * Changes sync immediately; this slow refresh exists only so players
+         * entering another player's tracking range receive the cosmetic state.
+         */
+        if (tick % 40L != 0L) {
             return;
         }
 
-        if (equipped(
-                player,
-                AccessorySlot.HEAD
-        ) == AccessoryKind.SPECTRAL_GLASSES
-                && glassesMode(
-                player
-        ) == 0) {
-            player.addEffect(
-                    new MobEffectInstance(
-                            MobEffects.NIGHT_VISION,
-                            240,
-                            0,
-                            true,
-                            false,
-                            false
-                    )
-            );
-        }
-
-        if (equipped(
-                player,
-                AccessorySlot.HANDS
-        ) == AccessoryKind.WORK_GLOVES) {
-            player.addEffect(
-                    new MobEffectInstance(
-                            MobEffects.DIG_SPEED,
-                            30,
-                            0,
-                            true,
-                            false,
-                            false
-                    )
-            );
-        }
-
-        if (equipped(
-                player,
-                AccessorySlot.FEET
-        ) == AccessoryKind.WIND_BOOTS) {
-            player.addEffect(
-                    new MobEffectInstance(
-                            MobEffects.MOVEMENT_SPEED,
-                            30,
-                            0,
-                            true,
-                            false,
-                            false
-                    )
+        for (ServerPlayer player :
+                server.getPlayerList()
+                        .getPlayers()) {
+            sync(
+                    player
             );
         }
     }

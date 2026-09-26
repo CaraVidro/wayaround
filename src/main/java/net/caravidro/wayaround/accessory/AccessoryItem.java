@@ -70,13 +70,13 @@ public final class AccessoryItem
         String hint =
                 switch (kind) {
                     case SPECTRAL_GLASSES ->
-                            "Right-click its slot: eyes / crown.";
+                            "Right-click the head slot: eyes / forehead.";
                     case WORK_GLOVES ->
-                            "Some work is remembered by the hands.";
+                            "A pair of reinforced decorative gloves.";
                     case ENGINEER_CAPE ->
-                            "It dislikes standing still.";
+                            "Its cloth reacts to your movement.";
                     case WIND_BOOTS ->
-                            "The ground should arrive later.";
+                            "Light boots. Decorative, for now.";
                 };
 
         tooltip.add(
