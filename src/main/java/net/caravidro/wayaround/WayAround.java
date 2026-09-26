@@ -9,6 +9,7 @@ import net.caravidro.wayaround.industrial.IndustrialContent;
 import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.domain.DomainCommands;
+import net.caravidro.wayaround.cursed.TukunaDebugCommands;
 import net.caravidro.wayaround.domain.DomainManager;
 import net.caravidro.wayaround.domain.VoidDomainManager;
 import net.caravidro.wayaround.network.WayAroundNetwork;
@@ -81,6 +82,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
         NeoForge.EVENT_BUS.addListener(BlizzardCommand::register);
         NeoForge.EVENT_BUS.addListener(DomainCommands::register);
+        NeoForge.EVENT_BUS.addListener(TukunaDebugCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);
