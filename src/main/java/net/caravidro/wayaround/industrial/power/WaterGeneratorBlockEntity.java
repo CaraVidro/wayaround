@@ -4,6 +4,8 @@ import java.util.Locale;
 
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -106,6 +108,13 @@ public final class WaterGeneratorBlockEntity
             BlockState state,
             WaterGeneratorBlockEntity generator
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.POWER_NETWORKS
+        )) {
+            return;
+        }
+
         if (!(level instanceof ServerLevel server)) {
             return;
         }

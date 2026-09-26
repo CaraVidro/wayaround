@@ -6,6 +6,8 @@ import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.justice.JusticeDomainManager;
 import net.caravidro.wayaround.network.*;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.core.particles.ParticleTypes;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -72,6 +74,10 @@ public final class SpectrumActions {
     }
     public static void perform(ServerPlayer p,SpectrumAction action){
         if(!allowed(p,action.spectrum)) return;
+        if((action==SpectrumAction.TUKUNA_DOMAIN
+                || action==SpectrumAction.VOID_DOMAIN
+                || action==SpectrumAction.JUSTICE_DOMAIN)
+                && !WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) return;
         if(action.spectrum==SpectrumType.VOID) pulseVoidSkillAura(p);
         switch(action){
             case SLASH,FIRE_SLASH -> TukunaManager.castPossessedDesmartelar(p,action==SpectrumAction.FIRE_SLASH);

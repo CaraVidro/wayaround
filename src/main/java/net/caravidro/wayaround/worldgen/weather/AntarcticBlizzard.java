@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.worldgen.weather;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.network.BlizzardStatePayload;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.minecraft.core.BlockPos;
@@ -43,6 +45,11 @@ public final class AntarcticBlizzard {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ANTARCTICA
+        )) {
+            return;
+        }
 
         MinecraftServer server =
                 event.getServer();

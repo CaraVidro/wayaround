@@ -4,6 +4,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -49,6 +51,11 @@ public abstract class AntarcticPossibleBiomesMixin {
     private void wayaround$includePolarBiomes(
             CallbackInfoReturnable<Set<Holder<Biome>>> cir
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ANTARCTICA
+        )) {
+            return;
+        }
 
         /*
          * =====================================================

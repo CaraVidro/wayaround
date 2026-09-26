@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.industrial.assembly;
 
 import net.caravidro.wayaround.industrial.power.PowerContent;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -21,6 +23,13 @@ public final class PrimitiveAssemblyEvents {
     }
 
     public static boolean onKnapping(PlayerInteractEvent.RightClickBlock event) {
+        if (!WorldFeatureRuntime.enabled(
+                event.getLevel(),
+                WorldFeature.ASSEMBLY
+        )) {
+            return false;
+        }
+
         Player player = event.getEntity();
         ItemStack held = event.getItemStack();
         Level level = event.getLevel();

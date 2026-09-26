@@ -33,6 +33,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
@@ -88,6 +90,10 @@ public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity i
     }
 
     public static void tick(Level level, BlockPos pos, BlockState state, ReforcedBlasterBlockEntity machine) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.INDUSTRIAL_MACHINES
+        )) return;
         if (!(level instanceof ServerLevel server)) return;
         SingleRecipeInput input = new SingleRecipeInput(machine.items.get(0));
         RecipeHolder<? extends AbstractCookingRecipe> recipe = input.isEmpty() ? null : machine.findRecipe(server, input);

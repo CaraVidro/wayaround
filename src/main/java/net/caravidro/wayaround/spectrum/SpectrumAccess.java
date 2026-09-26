@@ -7,6 +7,8 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.network.SpectrumUnlockS2CPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -31,6 +33,11 @@ public final class SpectrumAccess {
 
     public static boolean has(Player player, SpectrumType type) {
         if (player instanceof ServerPlayer serverPlayer) {
+            if (!WorldFeatureRuntime.serverEnabled(
+                    WorldFeature.SPECTRUMS
+            )) {
+                return false;
+            }
             bindHeldItems(serverPlayer);
             if (serverPlayer.getPersistentData().getBoolean(key(type))) return true;
 
@@ -39,11 +46,23 @@ public final class SpectrumAccess {
             return host != null && has(host, type);
         }
 
+        if (!WorldFeatureRuntime.clientEnabled(
+                WorldFeature.SPECTRUMS
+        )) {
+            return false;
+        }
+
         int mask = CLIENT_UNLOCKS.getOrDefault(player.getUUID(), 0);
         return (mask & bit(type)) != 0 || hasStack(player, type);
     }
 
     public static void unlock(ServerPlayer player, SpectrumType type) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.SPECTRUMS
+        )) {
+            return;
+        }
+
         boolean newlyUnlocked = !player.getPersistentData().getBoolean(key(type));
         player.getPersistentData().putBoolean(key(type), true);
         consumeItems(player, type);
@@ -128,6 +147,9 @@ public final class SpectrumAccess {
 
     @SubscribeEvent
     public static void onPickup(ItemEntityPickupEvent.Post event) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.SPECTRUMS
+        )) return;
         if (!(event.getPlayer() instanceof ServerPlayer player)) return;
         for (SpectrumType type : SpectrumType.values()) {
             if (!isSpectrum(event.getOriginalStack(), type)) continue;

@@ -4,6 +4,8 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.AntarcticClientLighting;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
@@ -37,6 +39,10 @@ public final class LivingWeatherClient {
     @SubscribeEvent
     public static void tick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
+
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER)) {
+            return;
+        }
 
         if (minecraft.level == null || minecraft.player == null || minecraft.isPaused()) {
             return;

@@ -13,6 +13,8 @@ import org.joml.Vector3f;
 import net.caravidro.wayaround.domain.DomainProfile.Consequence;
 import net.caravidro.wayaround.domain.DomainProfile.Reward;
 import net.caravidro.wayaround.domain.DomainProfile.Trigger;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -47,6 +49,9 @@ public final class DomainManager {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return;
+        }
         MinecraftServer server =
                 event.getServer();
 
@@ -95,6 +100,9 @@ public final class DomainManager {
     public static boolean expand(
             ServerPlayer player
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return false;
+        }
         DomainProfile profile =
                 DomainPlayerData.profile(
                         player
@@ -202,6 +210,9 @@ public final class DomainManager {
     public static boolean quick(
             ServerPlayer player
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return false;
+        }
         DomainProfile profile =
                 DomainPlayerData.profile(
                         player

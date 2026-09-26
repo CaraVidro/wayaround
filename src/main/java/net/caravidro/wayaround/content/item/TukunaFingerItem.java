@@ -3,6 +3,8 @@ package net.caravidro.wayaround.content.item;
 import java.util.List;
 
 import net.caravidro.wayaround.cursed.TukunaManager;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,6 +33,17 @@ public final class TukunaFingerItem extends Item {
             Player player,
             InteractionHand hand
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.TUKUNA_SYSTEM
+        )) {
+            return InteractionResultHolder.pass(
+                    player.getItemInHand(
+                            hand
+                    )
+            );
+        }
+
         player.startUsingItem(
                 hand
         );
@@ -49,6 +62,13 @@ public final class TukunaFingerItem extends Item {
             LivingEntity target,
             InteractionHand hand
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                player.level(),
+                WorldFeature.TUKUNA_SYSTEM
+        )) {
+            return InteractionResult.PASS;
+        }
+
         if (!(target instanceof Player)) {
             return InteractionResult.PASS;
         }
@@ -72,6 +92,13 @@ public final class TukunaFingerItem extends Item {
             ItemStack stack,
             int remainingUseDuration
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.TUKUNA_SYSTEM
+        )) {
+            return;
+        }
+
         if (!level.isClientSide
                 && living instanceof ServerPlayer actor) {
             TukunaManager.tickForcedFeed(actor, stack);
@@ -112,6 +139,13 @@ public final class TukunaFingerItem extends Item {
             Level level,
             LivingEntity living
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.TUKUNA_SYSTEM
+        )) {
+            return stack;
+        }
+
         if (!level.isClientSide
                 && living instanceof ServerPlayer player) {
 

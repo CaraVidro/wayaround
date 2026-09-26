@@ -3,6 +3,8 @@ package net.caravidro.wayaround.client;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.network.AccessoryActionC2SPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -54,7 +56,10 @@ public final class AccessoryInventoryPanel {
     public static void render(
             ScreenEvent.Render.Post event
     ) {
-        if (!(event.getScreen()
+        if (!WorldFeatureRuntime.clientEnabled(
+                WorldFeature.ACCESSORIES
+        )
+                || !(event.getScreen()
                 instanceof InventoryScreen screen)) {
             return;
         }

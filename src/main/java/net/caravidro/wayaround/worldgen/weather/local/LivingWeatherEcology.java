@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
@@ -29,6 +31,12 @@ public final class LivingWeatherEcology {
 
     @SubscribeEvent
     public static void tick(ServerTickEvent.Post event) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.LIVING_WEATHER
+        )) {
+            return;
+        }
+
         if (event.getServer().getTickCount() % 20 != 0) {
             return;
         }

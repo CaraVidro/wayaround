@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.industrial.ship;
 
 import java.util.List;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -28,6 +30,9 @@ public final class CaravelItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.SHIPS)) {
+            return InteractionResultHolder.pass(stack);
+        }
         HitResult hit = getPlayerPOVHitResult(level, player, ClipContext.Fluid.ANY);
         if (hit.getType() != HitResult.Type.BLOCK) {
             return InteractionResultHolder.pass(stack);

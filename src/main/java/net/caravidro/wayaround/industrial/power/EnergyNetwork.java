@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import net.caravidro.wayaround.worldgen.weather.BlizzardManager;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -28,6 +30,12 @@ public final class EnergyNetwork {
     private EnergyNetwork() {}
     /** A fresh bounded search avoids stale routes, chunk loading, and power crossing broken wires. */
     public static int distribute(ServerLevel level, BlockPos worldPosition, EnergyBudget buffer, int nextReceiver) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.POWER_NETWORKS
+        )) {
+            return nextReceiver;
+        }
+
         List<IEnergyStorage> receivers = new ArrayList<>();
         Set<BlockPos> receiverPositions = new HashSet<>();
         Set<BlockPos> cables = new HashSet<>();

@@ -14,6 +14,8 @@ import net.caravidro.wayaround.industrial.power.MechanicalGearboxBlock;
 import net.caravidro.wayaround.industrial.power.MechanicalShaftBlock;
 import net.caravidro.wayaround.industrial.power.MechanicalTransmissionBlockEntity;
 import net.caravidro.wayaround.industrial.power.WaterWheelHubBlockEntity;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -41,6 +43,13 @@ public final class MechanicalTransmission {
             BlockPos consumerPos,
             Direction direction
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.POWER_NETWORKS
+        )) {
+            return null;
+        }
+
         return findSourceInternal(
                 level,
                 consumerPos,
@@ -56,6 +65,13 @@ public final class MechanicalTransmission {
             Direction direction,
             BlockPos excludedSourcePos
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.POWER_NETWORKS
+        )) {
+            return null;
+        }
+
         return findSourceInternal(
                 level,
                 consumerPos,

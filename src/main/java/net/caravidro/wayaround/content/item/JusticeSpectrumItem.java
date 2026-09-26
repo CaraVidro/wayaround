@@ -7,6 +7,8 @@ import net.caravidro.wayaround.spectrum.SpectrumItem;
 import java.util.List;
 
 import net.caravidro.wayaround.justice.JusticeDomainManager;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -35,6 +37,9 @@ public final class JusticeSpectrumItem extends SpectrumItem {
             LivingEntity target,
             InteractionHand hand
     ) {
+        if (!WorldFeatureRuntime.enabled(player.level(), WorldFeature.SPECTRUMS)) {
+            return InteractionResult.PASS;
+        }
         if (!player.level()
                 .isClientSide
                 && player
@@ -59,6 +64,10 @@ public final class JusticeSpectrumItem extends SpectrumItem {
                 player.getItemInHand(
                         hand
                 );
+
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.SPECTRUMS)) {
+            return InteractionResultHolder.pass(stack);
+        }
 
         if (!level.isClientSide) {
             player.sendSystemMessage(

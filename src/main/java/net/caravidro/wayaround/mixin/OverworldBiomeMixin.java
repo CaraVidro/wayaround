@@ -3,6 +3,8 @@ package net.caravidro.wayaround.mixin;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.geography.AntarcticField;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -60,6 +62,11 @@ public abstract class OverworldBiomeMixin {
             Climate.Sampler sampler,
             CallbackInfoReturnable<Holder<Biome>> cir
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ANTARCTICA
+        )) {
+            return;
+        }
 
         /*
          * Os Holders só existem depois que

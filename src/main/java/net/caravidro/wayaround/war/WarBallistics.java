@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,6 +31,12 @@ public final class WarBallistics {
             ServerPlayer player,
             WarGunItem.Kind kind
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.WAR_WITHOUT_REASON
+        )) {
+            return false;
+        }
+
         if (!player.isAlive()
                 || player.isSpectator()) {
             return false;

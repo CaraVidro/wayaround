@@ -9,6 +9,8 @@ import java.util.Set;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -56,6 +58,13 @@ public final class WaterEffectsClient {
     ) {
         Minecraft minecraft =
                 Minecraft.getInstance();
+
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.WATER_DYNAMICS)) {
+            FALLING_BLOCKS_IN_WATER.clear();
+            TURBULENCE.clear();
+            wasInWater = false;
+            return;
+        }
 
         if (minecraft.level == null
                 || minecraft.player == null

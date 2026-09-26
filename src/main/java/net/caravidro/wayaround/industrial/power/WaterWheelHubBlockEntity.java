@@ -12,6 +12,8 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -157,6 +159,13 @@ public final class WaterWheelHubBlockEntity
             BlockState state,
             WaterWheelHubBlockEntity hub
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.POWER_NETWORKS
+        )) {
+            return;
+        }
+
         if (!(level instanceof ServerLevel server)) {
             return;
         }

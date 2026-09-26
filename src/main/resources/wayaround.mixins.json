@@ -3,19 +3,36 @@
   "package": "net.caravidro.wayaround.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "WayAroundMixinTest", "PolarBearSpawnMixin", "AntarcticTorchMixin",
-    "OverworldBiomeMixin", "AntarcticPossibleBiomesMixin", "NoiseRouterMixin",
-    "AntarcticSurfaceMixin", "AntarcticWaterFreezingMixin", "TukunaMobPickupMixin"
+    "WayAroundMixinTest",
+    "PolarBearSpawnMixin",
+    "AntarcticTorchMixin",
+    "OverworldBiomeMixin",
+    "AntarcticPossibleBiomesMixin",
+    "NoiseRouterMixin",
+    "AntarcticSurfaceMixin",
+    "AntarcticWaterFreezingMixin",
+    "TukunaMobPickupMixin"
   ],
   "client": [
-    "client.DreamWakeCameraMixin", "client.AntarcticPrecipitationMixin",
-    "client.AntarcticSkyMixin", "client.AntarcticCloudMixin",
-    "client.AntarcticLightTextureMixin", "client.ColdShiveringMixin",
-    "client.ParticleWindMixin", "client.ParticleEngineWindMixin",
-    "client.PrecipitationWindMixin", "client.MediaCameraMixin",
-    "client.CinematicCameraMixin", "client.CinematicLookLockMixin",
-    "client.HumanoidAnimationMixin", "client.TukunaPossessionSkinMixin"
+    "client.DreamWakeCameraMixin",
+    "client.AntarcticPrecipitationMixin",
+    "client.AntarcticSkyMixin",
+    "client.AntarcticCloudMixin",
+    "client.AntarcticLightTextureMixin",
+    "client.ColdShiveringMixin",
+    "client.ParticleWindMixin",
+    "client.ParticleEngineWindMixin",
+    "client.PrecipitationWindMixin",
+    "client.MediaCameraMixin",
+    "client.CinematicCameraMixin",
+    "client.CinematicLookLockMixin",
+    "client.HumanoidAnimationMixin",
+    "client.TukunaPossessionSkinMixin",
+    "client.CreateWorldScreenInvoker",
+    "client.CreateWorldScreenFeatureMixin"
   ],
-  "injectors": { "defaultRequire": 1 },
+  "injectors": {
+    "defaultRequire": 1
+  },
   "minVersion": "0.8.4"
 }

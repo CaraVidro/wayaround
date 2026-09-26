@@ -19,6 +19,8 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.AntarcticClientLighting;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.util.Mth;
@@ -75,6 +77,13 @@ public final class LivingCloudRenderer {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
+
+        if (!WorldFeatureRuntime.clientEnabled(
+                WorldFeature.PROCEDURAL_CLOUDS
+        )) {
+            CACHE.clear();
+            return;
+        }
 
         if (minecraft.level == null
                 || minecraft.player == null

@@ -10,6 +10,8 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.caravidro.wayaround.client.ClientBlizzardState;
 import net.caravidro.wayaround.worldgen.weather.BlizzardWind;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -197,11 +199,18 @@ public final class ClientWind {
     }
 
     public static float getStrength() {
-        return strength;
+        return WorldFeatureRuntime.clientEnabled(
+                WorldFeature.WIND_PARTICLES
+        )
+                ? strength
+                : 0.0F;
     }
 
     public static boolean active() {
-        return strength > 0.001F;
+        return WorldFeatureRuntime.clientEnabled(
+                WorldFeature.WIND_PARTICLES
+        )
+                && strength > 0.001F;
     }
 
     public static double getSpeed() {

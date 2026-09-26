@@ -14,6 +14,8 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.client.MediaVoiceTap;
 import net.caravidro.wayaround.network.VoiceFrameC2SPayload;
 import net.caravidro.wayaround.voice.VoiceConstants;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -91,7 +93,10 @@ public final class VoiceCapture {
     private static void start(
             boolean voiceActivation
     ) {
-        if (!VoiceConfig.isEnabled()) {
+        if (!VoiceConfig.isEnabled()
+                || !WorldFeatureRuntime.clientEnabled(
+                WorldFeature.VOICE_CHAT
+        )) {
             return;
         }
 
@@ -538,7 +543,11 @@ public final class VoiceCapture {
 
         minecraft.execute(
                 () -> {
-                    if (generation != captureGeneration || !VoiceConfig.isEnabled()
+                    if (generation != captureGeneration
+                            || !VoiceConfig.isEnabled()
+                            || !WorldFeatureRuntime.clientEnabled(
+                            WorldFeature.VOICE_CHAT
+                    )
                             || minecraft.player == null
                             || minecraft.getConnection()
                             == null) {

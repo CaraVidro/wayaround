@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.VoidDomainVisualPayload;
 import net.minecraft.core.BlockPos;
@@ -93,7 +95,8 @@ public final class VoidDomainManager {
     public static boolean expand(
             ServerPlayer owner
     ) {
-        if (!hasVoidSpectrum(owner)) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)
+                || !hasVoidSpectrum(owner)) {
             return false;
         }
 
@@ -402,6 +405,9 @@ public final class VoidDomainManager {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return;
+        }
         MinecraftServer server =
                 event.getServer();
 

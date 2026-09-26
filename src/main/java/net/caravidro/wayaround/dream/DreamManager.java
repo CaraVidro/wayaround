@@ -2,6 +2,8 @@ package net.caravidro.wayaround.dream;
 
 import java.util.*;
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
@@ -29,6 +31,7 @@ public final class DreamManager {
         DreamSession s=session(player);return s!=null&&s.state!=DreamState.NORMAL&&s.state!=DreamState.CLEANUP;
     }
     public static void start(ServerPlayer player) throws Exception {
+        if(!WorldFeatureRuntime.serverEnabled(WorldFeature.DREAMS)) throw new IllegalStateException("Dreams are disabled in this world.");
         if(SESSIONS.containsKey(player.getUUID()))throw new IllegalStateException("Sessão ativa ou limpeza ainda em andamento.");
         if(player.getPersistentData().getBoolean(DreamJournal.MARKER))throw new IllegalStateException("Restauração pendente; reconecte antes de iniciar outro teste.");
         if(player.level().dimension().equals(DreamContent.DIMENSION))throw new IllegalStateException("Jogador já está na dimensão de teste.");
@@ -69,6 +72,7 @@ public final class DreamManager {
         s.state=state;s.age=0;s.frozen=player.position();send(player,state,ticks);
     }
     public static void tick(MinecraftServer server){
+        if(!WorldFeatureRuntime.serverEnabled(WorldFeature.DREAMS)) return;
         int budget=DreamConfig.COPY_BUDGET.get()/Math.max(1,SESSIONS.size());
         for(DreamSession s:new ArrayList<>(SESSIONS.values())){
             ServerPlayer player=server.getPlayerList().getPlayer(s.player);

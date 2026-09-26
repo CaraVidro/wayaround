@@ -5,6 +5,8 @@ import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.media.MediaInventory;
 import net.caravidro.wayaround.media.PlacedCameraBlock;
 import net.caravidro.wayaround.media.PlacedCameraBlockEntity;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -39,6 +41,9 @@ public final class CameraItem
     public InteractionResult useOn(
             UseOnContext context
     ) {
+        if (!WorldFeatureRuntime.enabled(context.getLevel(), WorldFeature.MEDIA)) {
+            return InteractionResult.PASS;
+        }
         Player player =
                 context.getPlayer();
 
@@ -130,6 +135,10 @@ public final class CameraItem
         ItemStack stack =
                 player.getItemInHand(hand);
 
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.MEDIA)) {
+            return InteractionResultHolder.pass(stack);
+        }
+
         player.startUsingItem(
                 hand
         );
@@ -161,7 +170,8 @@ public final class CameraItem
             ItemStack stack,
             int remainingUseDuration
     ) {
-        if (!level.isClientSide) {
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.MEDIA)
+                || !level.isClientSide) {
             return;
         }
 
@@ -182,7 +192,8 @@ public final class CameraItem
             LivingEntity living,
             int timeLeft
     ) {
-        if (!level.isClientSide) {
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.MEDIA)
+                || !level.isClientSide) {
             return;
         }
 

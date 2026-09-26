@@ -13,6 +13,8 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
@@ -82,6 +84,13 @@ public final class WaterSurfaceRenderer {
     ) {
         if (event.getStage()
                 != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
+            return;
+        }
+
+        if (!WorldFeatureRuntime.clientEnabled(
+                WorldFeature.WATER_DYNAMICS
+        )) {
+            clearCache();
             return;
         }
 

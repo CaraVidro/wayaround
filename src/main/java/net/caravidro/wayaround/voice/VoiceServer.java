@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.network.VoiceFrameS2CPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -25,6 +27,12 @@ public final class VoiceServer {
             ServerPlayer sender,
             byte[] pcm
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.VOICE_CHAT
+        )) {
+            return;
+        }
+
         if (pcm == null
                 || pcm.length == 0
                 || pcm.length > VoiceConstants.MAX_PACKET_BYTES) {

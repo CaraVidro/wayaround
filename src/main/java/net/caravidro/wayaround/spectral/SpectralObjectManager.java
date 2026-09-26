@@ -8,6 +8,8 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.cursed.TukunaManager;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
@@ -39,6 +41,12 @@ public final class SpectralObjectManager {
     public static void tick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.SPECTRAL_OBJECTS
+        )) {
+            return;
+        }
+
         MinecraftServer server =
                 event.getServer();
 

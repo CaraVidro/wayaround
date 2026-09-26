@@ -22,6 +22,8 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.JusticeDomainVisualPayload;
 import net.minecraft.core.BlockPos;
@@ -95,6 +97,9 @@ public final class JusticeDomainManager {
     public static boolean beginTrialNearest(
             ServerPlayer owner
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return false;
+        }
         if (PlayerControlLockManager.actionsLocked(
                 owner
         )
@@ -167,6 +172,9 @@ public final class JusticeDomainManager {
             ServerPlayer owner,
             LivingEntity defendant
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return false;
+        }
         if (owner == defendant
                 || PlayerControlLockManager.actionsLocked(
                 owner
@@ -463,6 +471,9 @@ public final class JusticeDomainManager {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return;
+        }
         MinecraftServer server =
                 event.getServer();
 
@@ -603,6 +614,9 @@ public final class JusticeDomainManager {
     public static void onServerChat(
             ServerChatEvent event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return;
+        }
         ServerPlayer speaker =
                 event.getPlayer();
 
@@ -643,6 +657,9 @@ public final class JusticeDomainManager {
             ServerPlayer speaker,
             String transcript
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)) {
+            return;
+        }
         if (transcript == null
                 || transcript.isBlank()) {
             return;

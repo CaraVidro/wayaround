@@ -2,6 +2,8 @@ package net.caravidro.wayaround.worldgen.feature;
 
 import com.mojang.serialization.Codec;
 
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
@@ -36,6 +38,12 @@ public final class LivingVegetationFeature
     public boolean place(
             FeaturePlaceContext<NoneFeatureConfiguration> context
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.LIVING_VEGETATION
+        )) {
+            return false;
+        }
+
         WorldGenLevel level = context.level();
         RandomSource random = context.random();
         BlockPos origin = context.origin();

@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.worldgen.water;
 
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
@@ -29,6 +31,16 @@ public final class WaterDynamics {
 
         if (!state.is(FluidTags.WATER)) {
             return Vec3.ZERO;
+        }
+
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.WATER_DYNAMICS
+        )) {
+            return state.getFlow(
+                    level,
+                    pos
+            );
         }
 
         Vec3 vanilla =
@@ -135,6 +147,18 @@ public final class WaterDynamics {
             Level level,
             BlockPos center
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.WATER_DYNAMICS
+        )) {
+            return new MechanicalFlow(
+                    Vec3.ZERO,
+                    0.0F,
+                    false,
+                    0
+            );
+        }
+
         Vec3 sum =
                 Vec3.ZERO;
 
@@ -391,6 +415,13 @@ public final class WaterDynamics {
             Level level,
             BlockPos pos
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.WATER_DYNAMICS
+        )) {
+            return 0.0F;
+        }
+
         if (!level.getFluidState(pos).is(FluidTags.WATER)) {
             return 0.0F;
         }

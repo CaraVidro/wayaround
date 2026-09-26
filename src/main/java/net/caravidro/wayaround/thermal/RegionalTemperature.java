@@ -3,6 +3,8 @@ package net.caravidro.wayaround.thermal;
 import java.util.*;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.ThermalGlowPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
@@ -40,10 +42,12 @@ public final class RegionalTemperature {
                 Math.floorDiv(pos.getY(), CELL), Math.floorDiv(pos.getZ(), CELL));
     }
     public static double at(ServerLevel level, BlockPos pos) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.THERMAL_SYSTEM)) return TemperatureCurve.AMBIENT;
         Heat heat = HEAT.get(cell(level, pos));
         return heat == null ? TemperatureCurve.AMBIENT : TemperatureCurve.cool(heat.degrees, level.getGameTime() - heat.time);
     }
     public static void pulse(ServerLevel level, Vec3 center, double radius, double degrees) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.THERMAL_SYSTEM)) return;
         if (!Double.isFinite(degrees) || !Double.isFinite(radius)) return;
         radius = Math.max(1, Math.min(64, radius));
         int reach = (int)Math.ceil(radius / CELL);
@@ -62,6 +66,7 @@ public final class RegionalTemperature {
         }
     }
     @SubscribeEvent public static void tick(ServerTickEvent.Post event) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.THERMAL_SYSTEM)) { HEAT.clear(); cursor = 0; return; }
         if (HEAT.isEmpty()) return;
         var server = event.getServer();
         HEAT.entrySet().removeIf(e -> {

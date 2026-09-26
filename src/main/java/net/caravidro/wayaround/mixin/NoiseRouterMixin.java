@@ -2,6 +2,8 @@ package net.caravidro.wayaround.mixin;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.terrain.AntarcticDensityFunction;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.NoiseRouter;
@@ -61,6 +63,11 @@ public abstract class NoiseRouterMixin {
     private void wayaround$modifyNoiseRouter(
             CallbackInfoReturnable<NoiseRouter> cir
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ANTARCTICA
+        )) {
+            return;
+        }
 
         NoiseRouter vanilla =
                 cir.getReturnValue();

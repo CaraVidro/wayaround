@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.industrial.power;
 
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -51,6 +53,7 @@ public final class SteamEngineBlockEntity extends BlockEntity {
                 water, SteamCycle.WATER_CAPACITY, heat, coal, buffer.stored(), buffer.capacity());
     }
     public static void serverTick(Level level, BlockPos pos, BlockState state, SteamEngineBlockEntity engine) {
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.POWER_NETWORKS)) return;
         if (!(level instanceof ServerLevel server)) return;
         if (Math.floorMod(level.getGameTime(), 20) == 0) {
             SteamCycle.Step step = SteamCycle.tick(engine.water, engine.fuel, engine.heat,

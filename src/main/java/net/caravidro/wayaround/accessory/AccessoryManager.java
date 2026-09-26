@@ -4,6 +4,8 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.network.AccessoryActionC2SPayload;
 import net.caravidro.wayaround.network.AccessoryStateS2CPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -38,6 +40,12 @@ public final class AccessoryManager {
             InteractionHand hand,
             AccessoryItem accessory
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ACCESSORIES
+        )) {
+            return;
+        }
+
         ItemStack held =
                 player.getItemInHand(
                         hand
@@ -90,6 +98,12 @@ public final class AccessoryManager {
             byte slotOrdinal,
             byte action
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ACCESSORIES
+        )) {
+            return;
+        }
+
         AccessorySlot slot =
                 AccessorySlot.byOrdinal(
                         slotOrdinal
@@ -286,6 +300,12 @@ public final class AccessoryManager {
     public static void tick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ACCESSORIES
+        )) {
+            return;
+        }
+
         MinecraftServer server =
                 event.getServer();
 
@@ -312,6 +332,12 @@ public final class AccessoryManager {
     public static void sync(
             ServerPlayer player
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ACCESSORIES
+        )) {
+            return;
+        }
+
         AccessoryStateS2CPayload payload =
                 new AccessoryStateS2CPayload(
                         player.getUUID(),

@@ -2,6 +2,8 @@ package net.caravidro.wayaround.worldgen.weather.avalanche;
 
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -123,6 +125,11 @@ public final class AntarcticAvalanche {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ANTARCTICA
+        )) {
+            return;
+        }
 
         MinecraftServer server =
                 event.getServer();

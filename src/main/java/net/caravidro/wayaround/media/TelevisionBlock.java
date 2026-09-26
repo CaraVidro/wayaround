@@ -4,6 +4,8 @@ import com.mojang.serialization.MapCodec;
 
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -164,6 +166,9 @@ public final class TelevisionBlock
             InteractionHand hand,
             BlockHitResult hit
     ) {
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.MEDIA)) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
         if (!stack.is(
                 MediaContent.VHS.get()
         )) {
@@ -223,6 +228,9 @@ public final class TelevisionBlock
             Player player,
             BlockHitResult hit
     ) {
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.MEDIA)) {
+            return InteractionResult.PASS;
+        }
         if (level.getBlockEntity(pos)
                 instanceof TelevisionBlockEntity television
                 && television.isEjected()) {

@@ -5,6 +5,8 @@ import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.blue.ImaginaryBetaManager;
 import net.caravidro.wayaround.spectrum.SpectrumItem;
 import net.caravidro.wayaround.spectrum.SpectrumType;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,6 +30,10 @@ public final class VoidSpectrumItem extends SpectrumItem {
             InteractionHand hand
     ) {
         ItemStack stack = player.getItemInHand(hand);
+
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.SPECTRUMS)) {
+            return InteractionResultHolder.pass(stack);
+        }
 
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
             // Active Blue: dismiss immediately, with no chat/status line.

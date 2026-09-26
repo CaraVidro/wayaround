@@ -10,6 +10,8 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.GameRenderer;
@@ -40,6 +42,12 @@ public final class AccessoryRenderer {
     public static void render(
             RenderPlayerEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.clientEnabled(
+                WorldFeature.ACCESSORIES
+        )) {
+            return;
+        }
+
         AccessoryClientState.State state =
                 AccessoryClientState.get(
                         event.getEntity()

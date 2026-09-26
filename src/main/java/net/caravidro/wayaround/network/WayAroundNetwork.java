@@ -33,6 +33,12 @@ public final class WayAroundNetwork {
                 AccessoryStateS2CPayload.STREAM_CODEC,
                 AccessoryStateS2CPayload::handle
         );
+
+        registrar.playToClient(
+                WorldFeatureConfigS2CPayload.TYPE,
+                WorldFeatureConfigS2CPayload.STREAM_CODEC,
+                WorldFeatureConfigS2CPayload::handle
+        );
         registrar.playToClient(ThermalGlowPayload.TYPE, ThermalGlowPayload.STREAM_CODEC, ThermalGlowPayload::handle);
         registrar.playToClient(FugaArrowPayload.TYPE, FugaArrowPayload.STREAM_CODEC, FugaArrowPayload::handle);
         registrar.playToClient(FrostPayload.TYPE, FrostPayload.STREAM_CODEC, FrostPayload::handle);

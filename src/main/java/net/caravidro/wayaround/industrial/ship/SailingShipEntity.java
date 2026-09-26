@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.industrial.ship;
 
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -67,7 +69,8 @@ public abstract class SailingShipEntity extends ChestBoat {
         }
     }
     public boolean canUse(Player player) {
-        return isAlive() && player.level() == level() && !player.isSpectator()
+        return WorldFeatureRuntime.enabled(level(), WorldFeature.SHIPS)
+                && isAlive() && player.level() == level() && !player.isSpectator()
                 && (hasPassenger(player) || getBoundingBox().inflate(5).contains(player.position()));
     }
     public void openControls(Player player) {
@@ -78,6 +81,9 @@ public abstract class SailingShipEntity extends ChestBoat {
     }
     @Override public void openCustomInventoryScreen(Player player) { openControls(player); }
     @Override public InteractionResult interact(Player player, InteractionHand hand) {
+        if (!WorldFeatureRuntime.enabled(level(), WorldFeature.SHIPS)) {
+            return InteractionResult.PASS;
+        }
         if (player.isSecondaryUseActive()) {
             openControls(player);
             return InteractionResult.sidedSuccess(level().isClientSide);

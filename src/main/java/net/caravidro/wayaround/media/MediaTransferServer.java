@@ -13,6 +13,8 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.MediaRecordingChunkS2CPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.storage.LevelResource;
@@ -56,6 +58,7 @@ public final class MediaTransferServer {
             long offset,
             byte[] data
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.MEDIA)) return;
         if (!validId(
                 recordingId
         )
@@ -151,6 +154,7 @@ public final class MediaTransferServer {
             ServerPlayer player,
             String recordingId
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.MEDIA)) return;
         if (!validId(
                 recordingId
         )) {
@@ -219,6 +223,7 @@ public final class MediaTransferServer {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.MEDIA)) return;
         MinecraftServer server =
                 event.getServer();
 

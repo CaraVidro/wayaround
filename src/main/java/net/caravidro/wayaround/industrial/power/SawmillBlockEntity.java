@@ -6,6 +6,8 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -90,6 +92,13 @@ public final class SawmillBlockEntity extends BlockEntity {
             BlockState state,
             SawmillBlockEntity sawmill
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.INDUSTRIAL_MACHINES
+        )) {
+            return;
+        }
+
         sawmill.tickMachine();
     }
 

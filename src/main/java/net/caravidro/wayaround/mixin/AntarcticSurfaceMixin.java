@@ -2,6 +2,8 @@ package net.caravidro.wayaround.mixin;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
@@ -25,6 +27,11 @@ public abstract class AntarcticSurfaceMixin {
     private void wayaround$antarcticSurface(
             CallbackInfoReturnable<SurfaceRules.RuleSource> cir
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ANTARCTICA
+        )) {
+            return;
+        }
 
         SurfaceRules.RuleSource vanilla =
                 cir.getReturnValue();

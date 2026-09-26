@@ -20,6 +20,8 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.network.ImmortalWheelReactivationPayload;
 import net.caravidro.wayaround.network.ImmortalWheelVisualPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
@@ -491,6 +493,7 @@ public final class ImmortalWheelManager {
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.IMMORTAL_WHEEL)) return;
         MinecraftServer server = event.getServer();
         long tick = server.getTickCount();
 
@@ -1338,6 +1341,9 @@ public final class ImmortalWheelManager {
     public static boolean hasWheel(
             ServerPlayer player
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.IMMORTAL_WHEEL)) {
+            return false;
+        }
         migrateLegacyItem(
                 player
         );

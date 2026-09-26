@@ -2,6 +2,8 @@ package net.caravidro.wayaround.industrial.assembly;
 
 import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.caravidro.wayaround.network.AssemblyEmptyHandPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -17,6 +19,12 @@ public final class AssemblyInteractionEvents {
     public static void onRightClickBlock(
             PlayerInteractEvent.RightClickBlock event
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                event.getLevel(),
+                WorldFeature.ASSEMBLY
+        )) {
+            return;
+        }
         if (PrimitiveAssemblyEvents.onKnapping(
                 event
         )) {
@@ -40,6 +48,12 @@ public final class AssemblyInteractionEvents {
     public static void onRightClickItem(
             PlayerInteractEvent.RightClickItem event
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                event.getLevel(),
+                WorldFeature.ASSEMBLY
+        )) {
+            return;
+        }
         if (handleHeldInteraction(
                 event,
                 event.getItemStack()
@@ -57,6 +71,11 @@ public final class AssemblyInteractionEvents {
     public static void onRightClickEmpty(
             PlayerInteractEvent.RightClickEmpty event
     ) {
+        if (!WorldFeatureRuntime.clientEnabled(
+                WorldFeature.ASSEMBLY
+        )) {
+            return;
+        }
         if (!event.getLevel().isClientSide
                 || !event.getItemStack().isEmpty()) {
             return;
@@ -196,6 +215,11 @@ public final class AssemblyInteractionEvents {
     public static void handleEmptyHand(
             ServerPlayer player
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ASSEMBLY
+        )) {
+            return;
+        }
         AssemblyInteraction.WheelHit hit =
                 AssemblyInteraction.raycastWheel(
                         player,

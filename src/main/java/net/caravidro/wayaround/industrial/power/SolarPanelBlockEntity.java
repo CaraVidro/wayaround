@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import net.caravidro.wayaround.worldgen.weather.BlizzardManager;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -54,6 +56,7 @@ public final class SolarPanelBlockEntity extends BlockEntity {
     public IEnergyStorage energyOutput() { return output; }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, SolarPanelBlockEntity panel) {
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.POWER_NETWORKS)) return;
         if (!(level instanceof ServerLevel server)) return;
         long time = level.getGameTime();
         if (panel.lastEnvironmentCheck == Long.MIN_VALUE || time - panel.lastEnvironmentCheck >= 20L) {
