@@ -8,11 +8,14 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.sound.TukunaContractSound;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.Component;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderNameTagEvent;
 
 /**
  * Client-side half of "the host only watches".
@@ -100,6 +103,43 @@ public final class TukunaPossessionClient {
     ) {
         VisualLink link = VISUAL_LINKS.get(controller);
         return link == null ? null : link.body;
+    }
+
+    @SubscribeEvent
+    public static void possessionNameTag(
+            RenderNameTagEvent event
+    ) {
+        UUID body =
+                bodyForController(
+                        event.getEntity()
+                                .getUUID()
+                );
+
+        if (body == null) {
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.getConnection() == null) {
+            return;
+        }
+
+        PlayerInfo info =
+                minecraft.getConnection()
+                        .getPlayerInfo(
+                                body
+                        );
+
+        if (info != null) {
+            event.setContent(
+                    Component.literal(
+                            info.getProfile()
+                                    .getName()
+                    )
+            );
+        }
     }
 
     public static void setPossessed(

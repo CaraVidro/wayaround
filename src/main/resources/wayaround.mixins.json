@@ -14,7 +14,7 @@
     "client.ParticleWindMixin", "client.ParticleEngineWindMixin",
     "client.PrecipitationWindMixin", "client.MediaCameraMixin",
     "client.CinematicCameraMixin", "client.CinematicLookLockMixin",
-    "client.HumanoidAnimationMixin"
+    "client.HumanoidAnimationMixin", "client.TukunaPossessionSkinMixin"
   ],
   "injectors": { "defaultRequire": 1 },
   "minVersion": "0.8.4"

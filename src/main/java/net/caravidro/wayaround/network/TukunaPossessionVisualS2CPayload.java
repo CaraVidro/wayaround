@@ -14,8 +14,9 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 /**
  * Visual-only possession link.
  *
- * The controller remains a real ServerPlayer for input/gameplay, but clients
- * render only the receptacle body. Refresh packets also make late observers
+ * The controller remains the one real moving ServerPlayer for input/gameplay.
+ * Clients hide the frozen receptacle entity and resolve the controller with
+ * the receptacle's visual identity. Refresh packets also make late observers
  * discover an already-running possession.
  */
 public record TukunaPossessionVisualS2CPayload(

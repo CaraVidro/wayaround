@@ -70,11 +70,11 @@ import net.neoforged.neoforge.network.PacketDistributor;
  * voice-haunts that host from anywhere -> both say "trocar" -> temporary
  * possession -> host watches first-person and cannot speak -> automatic return.
  *
- * Possession does not replace the receptacle's visible identity. The Tukuna
- * player remains the input/controller entity underneath, while the real host
- * player is kept as the visible synchronized body (skin, armor and markings).
- * Inventories are never moved between players, preserving the two-real-player
- * mechanic without visually swapping the receptacle into Tukuna's avatar.
+ * Possession keeps exactly one moving physical player: Tukuna. The host is
+ * frozen as a spectator watching that controller, while clients render the
+ * controller with the receptacle's skin/model and Tukuna markings. This avoids
+ * per-tick body following/interpolation while preserving the two-real-player
+ * mechanic and native Minecraft input.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class TukunaManager {
@@ -2831,15 +2831,19 @@ public final class TukunaManager {
         VIEW_HOSTS.remove(spirit.getUUID());
         PacketDistributor.sendToPlayer(spirit, new TukunaViewS2CPayload(false, 0));
 
-        // The receptacle remains THE visible body. Tukuna only becomes the
-        // hidden controller entity underneath it.
-        syncTukunaMarks(spirit, false, 6);
-        syncTukunaMarks(host, true, 10);
+        // The marks are transferred to the ONE entity that will actually
+        // move. Its skin/model is overridden client-side to the receptacle.
+        syncTukunaMarks(host, false, 1);
+        syncTukunaMarks(spirit, true, 1);
 
         SpectrumAccess.syncPossession(host, spirit);
 
         PlayerControlLockManager.lockMovement(host, 0);
         PlayerControlLockManager.lockActions(host, 0);
+
+        host.setGameMode(
+                GameType.SPECTATOR
+        );
 
         teleportTo(
                 spirit,
@@ -2849,7 +2853,10 @@ public final class TukunaManager {
                 0.0F
         );
 
-        spirit.setInvisible(true);
+        // A ghost/spectator can be invisible for unrelated reasons. While it
+        // is the possession controller it must render; the skin mixin makes it
+        // look like the receptacle instead of Tukuna.
+        spirit.setInvisible(false);
 
         syncPossessionVisual(
                 host,
@@ -2857,15 +2864,12 @@ public final class TukunaManager {
                 true
         );
 
-        // Finish the bowed pose looking forward as control transfers.
         spirit.setYRot(host.getYRot());
-
         spirit.setXRot(0.0F);
 
-        // The visible receptacle body performs the hand-off animation.
-        sendFugaCinematic(host, PlayerCinematicPayload.TUKUNA_RETURN,
+        sendFugaCinematic(spirit, PlayerCinematicPayload.TUKUNA_RETURN,
                 RETURN_TICKS, true, 0.0F);
-        if (indefinite) emitIndefiniteAura(host, tick, true);
+        if (indefinite) emitIndefiniteAura(spirit, tick, true);
 
         spirit.setGameMode(
                 GameType.SURVIVAL
@@ -3038,28 +3042,24 @@ public final class TukunaManager {
                 continue;
             }
 
-            if (host.gameMode.getGameModeForPlayer() != possession.hostMode) {
+            if (!host.isSpectator()) {
                 host.setGameMode(
-                        possession.hostMode
+                        GameType.SPECTATOR
                 );
             }
 
-            syncPossessedBody(
-                    host,
-                    spirit
-            );
-
+            // No body-following here. Tukuna is the sole moving entity.
             host.setCamera(
                     spirit
             );
 
             if (possession.endTick == Long.MAX_VALUE && tick % 10L == 0L) {
-                emitIndefiniteAura(host, tick, false);
+                emitIndefiniteAura(spirit, tick, false);
             }
 
             if (tick % 40L == 0L) {
                 syncTukunaMarks(
-                        host,
+                        spirit,
                         true,
                         1
                 );
@@ -3140,45 +3140,6 @@ public final class TukunaManager {
         }
     }
 
-    private static void syncPossessedBody(
-            ServerPlayer host,
-            ServerPlayer spirit
-    ) {
-        if (host.serverLevel() != spirit.serverLevel()) {
-            teleportTo(
-                    host,
-                    spirit.serverLevel(),
-                    spirit.position(),
-                    spirit.getYRot(),
-                    spirit.getXRot()
-            );
-        }
-
-        PlayerControlLockManager.moveMovementAnchor(
-                host,
-                spirit.position()
-        );
-
-        host.setYRot(
-                spirit.getYRot()
-        );
-        host.setXRot(
-                spirit.getXRot()
-        );
-        host.setYHeadRot(
-                spirit.getYHeadRot()
-        );
-        host.setYBodyRot(
-                spirit.getYRot()
-        );
-        host.setPose(
-                spirit.getPose()
-        );
-        host.setSprinting(
-                spirit.isSprinting()
-        );
-    }
-
     private static void finishPossession(
             ServerPlayer host,
             ServerPlayer spirit,
@@ -3196,11 +3157,6 @@ public final class TukunaManager {
 
         float pitch =
                 spirit.getXRot();
-
-        syncPossessedBody(
-                host,
-                spirit
-        );
 
         host.setCamera(
                 host
@@ -3272,8 +3228,14 @@ public final class TukunaManager {
                         false, false, false
                 )
         );
+
+        // At the hand-back the physical host appears once at the controller's
+        // final location. Transfer the mark state so it can fade on the body
+        // instead of briefly appearing on Tukuna's restored skin.
+        syncTukunaMarks(spirit, false, 1);
+        syncTukunaMarks(host, true, 1);
         syncTukunaMarks(host, false, 54);
-        syncTukunaMarks(spirit, false, 12);
+
         PacketDistributor.sendToPlayer(spirit, new TukunaViewS2CPayload(true, 0));
         VIEW_HOSTS.put(spirit.getUUID(), host.getUUID());
         if (possession.contractMusic) {
@@ -3597,29 +3559,34 @@ public final class TukunaManager {
                         active
                 );
 
-        PacketDistributor.sendToPlayersNear(
-                body.serverLevel(),
-                null,
-                body.getX(),
-                body.getY(),
-                body.getZ(),
-                192,
-                payload
-        );
-
-        // The participants may sit on the edge of tracking/range changes.
-        // Send directly as well so first-person/F5 never depends on proximity.
-        PacketDistributor.sendToPlayer(
-                body,
-                payload
-        );
-
         ServerPlayer spirit =
                 body.server
                         .getPlayerList()
                         .getPlayer(
                                 controller
                         );
+
+        ServerPlayer center =
+                spirit != null
+                        ? spirit
+                        : body;
+
+        PacketDistributor.sendToPlayersNear(
+                center.serverLevel(),
+                null,
+                center.getX(),
+                center.getY(),
+                center.getZ(),
+                192,
+                payload
+        );
+
+        // Both participants receive it directly; nearby observers receive it
+        // around the actual moving avatar.
+        PacketDistributor.sendToPlayer(
+                body,
+                payload
+        );
 
         if (spirit != null
                 && spirit != body) {
@@ -3659,12 +3626,12 @@ public final class TukunaManager {
                 : host.getXRot();
 
         if (possession != null) {
-            syncPossessedBody(host, spirit);
             POSSESSIONS.remove(host.getUUID());
             syncPossessionVisual(host, spirit.getUUID(), false);
             host.setCamera(host);
             PlayerControlLockManager.clearMovement(host);
             PlayerControlLockManager.clearActions(host);
+            teleportTo(host, spirit.serverLevel(), spirit.position(), spirit.getYRot(), spirit.getXRot());
             host.setGameMode(possession.hostMode);
             PacketDistributor.sendToPlayer(host, new TukunaPossessionS2CPayload(false, false, false));
             removePossessionBuffs(spirit);

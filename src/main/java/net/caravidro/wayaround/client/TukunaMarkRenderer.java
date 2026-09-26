@@ -18,7 +18,6 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.TukunaMarkS2CPayload;
-import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
@@ -63,38 +62,16 @@ public final class TukunaMarkRenderer {
     }
 
     @SubscribeEvent
-    public static void hidePossessionRenderArtifacts(RenderPlayerEvent.Pre event) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null) return;
+    public static void hideFrozenReceptacle(RenderPlayerEvent.Pre event) {
+        UUID rendered =
+                event.getEntity()
+                        .getUUID();
 
-        UUID rendered = event.getEntity().getUUID();
-
-        // The Tukuna controller must be completely absent visually. Server
-        // invisibility alone still allows armor/held-item layers to leak
-        // through, which is what produced the "second player" look.
-        if (TukunaPossessionClient.isHiddenController(rendered)) {
-            event.setCanceled(true);
-            return;
-        }
-
-        UUID controller =
-                TukunaPossessionClient.controllerForBody(rendered);
-
-        if (controller == null
-                || minecraft.options.getCameraType() != CameraType.FIRST_PERSON
-                || minecraft.getCameraEntity() == null) {
-            return;
-        }
-
-        UUID camera =
-                minecraft.getCameraEntity().getUUID();
-
-        // Both participants can have the camera exactly inside the visible
-        // receptacle body. Hide that shell only in first person; in F5 it is
-        // intentionally visible as the receptacle skin with Tukuna markings.
-        if (camera.equals(controller)
-                || (event.getEntity() == minecraft.player
-                && TukunaPossessionClient.isHostWatchingPossession())) {
+        // Only one avatar exists visually during possession. The real
+        // receptacle ServerPlayer is frozen/spectating and therefore hidden;
+        // Tukuna's single moving entity is rendered with this body's skin by
+        // TukunaPossessionSkinMixin.
+        if (TukunaPossessionClient.controllerForBody(rendered) != null) {
             event.setCanceled(true);
         }
     }
