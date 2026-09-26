@@ -45,10 +45,10 @@ import org.joml.Vector3f;
 public final class LivingCloudRenderer {
 
     private static final double RENDER_RANGE = 760.0;
-    private static final double BASE_VOXEL = 9.0;
+    private static final double BASE_VOXEL = 7.5;
     private static final double MAX_VISUAL_RADIUS = 278.0;
-    private static final int MAX_HORIZONTAL_VOXELS = 21;
-    private static final int MAX_VERTICAL_VOXELS = 8;
+    private static final int MAX_HORIZONTAL_VOXELS = 25;
+    private static final int MAX_VERTICAL_VOXELS = 10;
     private static final int REBUILD_INTERVAL_NEAR = 10;
     private static final int REBUILD_INTERVAL_MID = 20;
     private static final int REBUILD_INTERVAL_FAR = 40;
@@ -225,8 +225,8 @@ public final class LivingCloudRenderer {
 
             int alpha =
                     inside
-                            ? 40
-                            : 194;
+                            ? 46
+                            : 226;
 
             int brightness =
                     Mth.clamp(
@@ -312,7 +312,14 @@ public final class LivingCloudRenderer {
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             RenderSystem.enableDepthTest();
-            RenderSystem.depthMask(false);
+
+            /*
+             * These are the EXTERNAL shell faces, not smoke sprites.
+             * Writing depth prevents the opposite/lower faces from bleeding
+             * through the near shell and creating the stacked "lasagna"
+             * pattern visible from below.
+             */
+            RenderSystem.depthMask(true);
             RenderSystem.disableCull();
             RenderSystem.setShaderColor(
                     1.0F,
@@ -604,7 +611,7 @@ public final class LivingCloudRenderer {
             int vertical =
                     Mth.clamp(
                             (int) Math.ceil(
-                                    (20.0 + radius * 0.070)
+                                    (25.0 + radius * 0.105)
                                             / voxel
                             ),
                             2,
@@ -858,9 +865,14 @@ public final class LivingCloudRenderer {
                         1.0
                 );
 
+        /*
+         * Keep giant fronts detailed enough that one voxel does not become a
+         * building-sized plate. MAX_HORIZONTAL_VOXELS was raised alongside
+         * this, so a 278-block cloud still fits without clipping its radius.
+         */
         return BASE_VOXEL
                 + giant
-                        * 5.2;
+                        * 3.55;
     }
 
     private static List<Lobe> lobes(
@@ -926,9 +938,9 @@ public final class LivingCloudRenderer {
                                         seed ^ 0x7C3F12A1L
                                 ) * 0.08
                         ),
-                        13.0
-                                + radius * 0.045
-                                + giantInfluence * 7.0
+                        17.0
+                                + radius * 0.060
+                                + giantInfluence * 11.0
                 )
         );
 
@@ -1002,9 +1014,9 @@ public final class LivingCloudRenderer {
                             ) - 0.5
                     )
                     * (
-                            20.0
+                            26.0
                                     + giantInfluence
-                                            * 22.0
+                                            * 32.0
                     )
                     + Math.sin(
                             t * 0.21
@@ -1089,14 +1101,14 @@ public final class LivingCloudRenderer {
 
             double verticalRadius =
                     (
-                            8.0
+                            11.0
                             + random01(
                                     lobeSeed
                                     ^ 0x9FB21C651E98DF25L
                             ) * (
-                                    14.0
+                                    17.0
                                             + giantInfluence
-                                                    * 10.0
+                                                    * 14.0
                             )
                     )
                     * (
@@ -1398,9 +1410,9 @@ public final class LivingCloudRenderer {
                 );
 
         double verticalExtent =
-                20.0
+                25.0
                         + radius
-                                * 0.070;
+                                * 0.105;
 
         double localY =
                 voxel.y
@@ -1421,67 +1433,74 @@ public final class LivingCloudRenderer {
                 );
 
         /*
-         * Cloud body shading: lower layers are denser/darker, top faces catch
-         * more light, and side faces sit between those extremes.
+         * Broad lighting first: bottom is heavier, top catches the sky, but
+         * the difference is intentionally restrained. Huge per-face contrast
+         * was making every voxel edge read like a separate slab.
          */
         double faceShade =
                 switch (face) {
                     case DOWN ->
-                            0.56;
+                            0.74;
                     case UP ->
-                            1.08;
+                            1.03;
                     default ->
-                            0.76
+                            0.84
                                     + height01
-                                            * 0.20;
+                                            * 0.12;
                 };
 
         double verticalShade =
-                0.72
+                0.82
                         + height01
-                                * 0.30;
-
-        long voxelSeed =
-                mix64(
-                        cell.id()
-                                ^ (
-                                voxel.x
-                                        * 0x9E3779B97F4A7C15L
-                        )
-                                ^ (
-                                voxel.y
-                                        * 0xC2B2AE3D27D4EB4FL
-                        )
-                                ^ (
-                                voxel.z
-                                        * 0x165667B19E3779F9L
-                        )
-                );
-
-        double patch =
-                0.94
-                        + random01(
-                                voxelSeed
-                        ) * 0.12;
+                                * 0.18;
 
         /*
-         * Very slow breathing variation prevents every frame from looking
-         * like the exact same static palette, without making the cloud flash.
+         * Coherent low-frequency variation. Neighboring voxels now receive
+         * almost the same shade instead of independent random greys, so the
+         * cloud reads as one mass rather than a checkerboard.
+         */
+        double phase =
+                random01(
+                        cell.id()
+                                ^ 0xD1B54A32D192ED03L
+                )
+                        * Math.PI
+                        * 2.0;
+
+        double broadPatch =
+                Math.sin(
+                        voxel.x * 0.31
+                                + phase
+                                + Math.sin(
+                                voxel.z * 0.17
+                                        - phase
+                        ) * 0.45
+                )
+                        * 0.018
+                        + Math.cos(
+                        voxel.z * 0.27
+                                - phase * 0.63
+                )
+                        * 0.014;
+
+        /*
+         * Very slow whole-cloud breathing. It changes the atmosphere without
+         * causing individual cubes to flash independently.
          */
         double temporal =
-                0.975
+                0.988
                         + Math.sin(
-                                time * 0.0045
-                                        + random01(
-                                        cell.id()
-                                                ^ 0xD6E8FEB86659FD93L
-                                ) * Math.PI * 2.0
-                        ) * 0.025;
+                                time * 0.0032
+                                        + phase
+                        ) * 0.012;
 
         double shade =
                 faceShade
                         * verticalShade
-                        * patch
+                        * (
+                        1.0
+                                + broadPatch
+                        )
                         * temporal;
 
         double tint =
@@ -1534,13 +1553,13 @@ public final class LivingCloudRenderer {
                         baseAlpha
                                 + (
                                 face == Face.DOWN
-                                        ? 18
+                                        ? 4
                                         : face == Face.UP
-                                        ? -8
+                                        ? -4
                                         : 0
                         ),
-                        20,
-                        235
+                        24,
+                        236
                 );
 
         return new CloudColor(
