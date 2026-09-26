@@ -269,5 +269,15 @@
     "item.wayaround.justice_execution_blade": "Sentence Blade",
     "tooltip.wayaround.justice_blade": "Glows while a valid sentence is active. Melee reach; severe impact.",
     "tooltip.wayaround.justice_blade.target": "Sentence target: %s",
-    "itemGroup.wayaround.spectrums": "Spectrums"
+    "itemGroup.wayaround.spectrums": "Spectrums",
+    "itemGroup.wayaround.war_without_reasion": "War Without Reasion",
+    "item.wayaround.glock": "Glock",
+    "item.wayaround.shotgun": "Shotgun",
+    "item.wayaround.machine_gun": "Machine Gun",
+    "item.wayaround.rocket_launcher": "Rocket Launcher",
+    "tooltip.wayaround.glock": "Semi-auto. Fast physical projectile; 14 base damage.",
+    "tooltip.wayaround.shotgun": "Fires 9 physical pellets with brutal close-range spread.",
+    "tooltip.wayaround.machine_gun": "Hold right-click: automatic fire, 1 bullet every 2 ticks.",
+    "tooltip.wayaround.rocket_launcher": "Slow physical rocket. Severe direct impact + destructive explosion.",
+    "tooltip.wayaround.war.infinity": "Real 3D projectiles: Infinity can stop them before contact."
 }

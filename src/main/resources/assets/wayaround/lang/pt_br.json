@@ -269,5 +269,15 @@
     "item.wayaround.justice_execution_blade": "Lâmina da Sentença",
     "tooltip.wayaround.justice_blade": "Brilha enquanto uma sentença válida estiver ativa. Alcance corpo a corpo; impacto severo.",
     "tooltip.wayaround.justice_blade.target": "Sentença contra: %s",
-    "itemGroup.wayaround.spectrums": "Spectrums"
+    "itemGroup.wayaround.spectrums": "Spectrums",
+    "itemGroup.wayaround.war_without_reasion": "War Without Reasion",
+    "item.wayaround.glock": "Glock",
+    "item.wayaround.shotgun": "Escopeta",
+    "item.wayaround.machine_gun": "Metralhadora",
+    "item.wayaround.rocket_launcher": "Lança-Foguetes",
+    "tooltip.wayaround.glock": "Semiautomática. Projétil físico rápido; 14 de dano base.",
+    "tooltip.wayaround.shotgun": "Dispara 9 projéteis físicos com espalhamento brutal a curta distância.",
+    "tooltip.wayaround.machine_gun": "Segure o clique direito: fogo automático, 1 bala a cada 2 ticks.",
+    "tooltip.wayaround.rocket_launcher": "Foguete físico lento. Impacto direto severo + explosão destrutiva.",
+    "tooltip.wayaround.war.infinity": "Projéteis reais em 3D: a Infinidade pode pará-los antes do contato."
 }

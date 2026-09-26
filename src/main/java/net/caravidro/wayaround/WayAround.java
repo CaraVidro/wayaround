@@ -29,6 +29,8 @@ import net.caravidro.wayaround.worldgen.weather.avalanche.AntarcticAvalanche;
 import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheCommand;
 import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheManager;
 import net.caravidro.wayaround.worldgen.weather.command.BlizzardCommand;
+import net.caravidro.wayaround.war.WarBallistics;
+import net.caravidro.wayaround.war.WarContent;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
@@ -46,6 +48,7 @@ public class WayAround {
         // Registros do mod.
         WayAroundContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
+        WarContent.register(modEventBus);
         MediaContent.register(modEventBus);
         net.caravidro.wayaround.dream.DreamContent.register(modEventBus);
         net.neoforged.fml.ModLoadingContext.get().getActiveContainer().registerConfig(
@@ -77,6 +80,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onSoundAtEntity);
         NeoForge.EVENT_BUS.addListener(BlueManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(WarBallistics::onServerTick);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
@@ -100,6 +104,7 @@ public class WayAround {
         BlueManager.clearAll();
         ImaginaryBetaManager.clearAll();
         InfinityManager.clearAll();
+        WarBallistics.clearAll();
         JusticeDomainManager.clearAll(event.getServer());
         JusticeRewardManager.clearAll(event.getServer());
         JusticeSenseManager.clearTransient();

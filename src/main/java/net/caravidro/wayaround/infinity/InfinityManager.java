@@ -510,6 +510,200 @@ public final class InfinityManager {
         }
     }
 
+    /**
+     * Continuous segment-vs-Infinity test for very fast physical projectiles.
+     *
+     * The normal field already damps Projectile entities each tick. Bullets in
+     * WarBallistics can cross several blocks per tick, so they also ray-test
+     * the 3D "hard core" where the existing influence formula reaches the same
+     * 0.965 full-stop threshold used by applyField().
+     */
+    public static Vec3 clipHardProjectileBarrier(
+            ServerLevel level,
+            UUID projectileOwner,
+            Vec3 from,
+            Vec3 to
+    ) {
+        Vec3 nearest =
+                null;
+
+        double nearestDistance =
+                Double.POSITIVE_INFINITY;
+
+        for (InfinityState state :
+                ACTIVE.values()) {
+            if (state.confidence
+                    < MIN_ACTIVE_CONFIDENCE
+                    || state.owner.equals(
+                            projectileOwner
+                    )
+                    || !state.dimension.equals(
+                            level.dimension()
+                    )) {
+                continue;
+            }
+
+            ServerPlayer owner =
+                    level.getServer()
+                            .getPlayerList()
+                            .getPlayer(
+                                    state.owner
+                            );
+
+            if (owner == null
+                    || !owner.isAlive()
+                    || owner.serverLevel() != level
+                    || !hasSpectrum(
+                            owner
+                    )) {
+                continue;
+            }
+
+            double requiredProximitySquared =
+                    (
+                            0.965
+                                    / state.confidence
+                                    - 0.22
+                    )
+                            / 1.12;
+
+            if (requiredProximitySquared
+                    >= 1.0) {
+                continue;
+            }
+
+            double proximity =
+                    Math.sqrt(
+                            Math.max(
+                                    0.0,
+                                    requiredProximitySquared
+                            )
+                    );
+
+            double hardRadius =
+                    radiusFor(
+                            state.confidence
+                    )
+                            * (
+                            1.0
+                                    - proximity
+                    );
+
+            if (hardRadius
+                    <= 0.05) {
+                continue;
+            }
+
+            Vec3 hit =
+                    segmentSphereEntry(
+                            from,
+                            to,
+                            owner.getEyePosition(),
+                            hardRadius
+                    );
+
+            if (hit == null) {
+                continue;
+            }
+
+            double distance =
+                    from.distanceToSqr(
+                            hit
+                    );
+
+            if (distance
+                    < nearestDistance) {
+                nearestDistance =
+                        distance;
+                nearest =
+                        hit;
+            }
+        }
+
+        return nearest;
+    }
+
+    private static Vec3 segmentSphereEntry(
+            Vec3 from,
+            Vec3 to,
+            Vec3 center,
+            double radius
+    ) {
+        Vec3 delta =
+                to.subtract(
+                        from
+                );
+
+        Vec3 offset =
+                from.subtract(
+                        center
+                );
+
+        double a =
+                delta.dot(
+                        delta
+                );
+
+        if (a
+                < 1.0E-9) {
+            return null;
+        }
+
+        double c =
+                offset.dot(
+                        offset
+                )
+                        - radius
+                                * radius;
+
+        if (c <= 0.0) {
+            return from;
+        }
+
+        double b =
+                2.0
+                        * offset.dot(
+                                delta
+                        );
+
+        double discriminant =
+                b * b
+                        - 4.0
+                                * a
+                                * c;
+
+        if (discriminant
+                < 0.0) {
+            return null;
+        }
+
+        double sqrt =
+                Math.sqrt(
+                        discriminant
+                );
+
+        double t =
+                (
+                        -b
+                                - sqrt
+                )
+                        / (
+                        2.0
+                                * a
+                );
+
+        if (t < 0.0
+                || t > 1.0) {
+            return null;
+        }
+
+        return from.add(
+                delta.scale(
+                        t
+                )
+        );
+    }
+
     private static float radiusFor(
             float confidence
     ) {
