@@ -31,6 +31,15 @@ public final class TimeAgingEngine {
             float wearFraction
     ) {}
 
+    public record Snapshot(
+            long ageTicks,
+            long inactiveTicks,
+            float weathering,
+            float corrosion,
+            float organicGrowth,
+            float moisture
+    ) {}
+
     public static Sample sampleAssembly(
             ServerLevel level,
             BlockPos pos,
@@ -151,7 +160,25 @@ public final class TimeAgingEngine {
 
         float wetness = wetness(level, pos);
         boolean shaded = !level.canSeeSky(pos.above());
-        float organic = wetness * (shaded ? 0.028F : 0.010F);
+
+        long projectedInactive =
+                active
+                        ? 0L
+                        : state.inactiveTicks()
+                                + elapsed;
+
+        float abandonment =
+                Mth.clamp(
+                        projectedInactive
+                                / (24000.0F * 5.0F),
+                        0.0F,
+                        1.0F
+                );
+
+        float organic =
+                wetness
+                        * (shaded ? 0.028F : 0.010F)
+                        * (0.08F + abandonment * 0.92F);
 
         state.advance(
                 elapsed,
@@ -165,6 +192,24 @@ public final class TimeAgingEngine {
         data.setDirty();
 
         return state;
+    }
+
+    public static Snapshot snapshot(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        TemporalState state =
+                TemporalAgingData.get(level)
+                        .state(pos);
+
+        return new Snapshot(
+                state.ageTicks(),
+                state.inactiveTicks(),
+                state.weathering(),
+                state.corrosion(),
+                state.organicGrowth(),
+                state.moistureMemory()
+        );
     }
 
     private static float wetness(
