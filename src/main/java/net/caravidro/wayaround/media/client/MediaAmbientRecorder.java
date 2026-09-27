@@ -21,8 +21,7 @@ public final class MediaAmbientRecorder
             WeighedSoundEvents accessor,
             float range
     ) {
-        if (!MediaRecorder.isRecording()
-                || sound
+        if (sound
                 instanceof RecordedWorldSound) {
 
             return;
@@ -45,6 +44,17 @@ public final class MediaAmbientRecorder
 
         float volume =
                 sound.getVolume();
+
+        BroadcastAmbientCapture.maybeForward(
+                sound,
+                source,
+                volume,
+                sound.getPitch()
+        );
+
+        if (!MediaRecorder.isRecording()) {
+            return;
+        }
 
         Vec3 cameraPosition =
                 MediaRecorder.recordingPosition();

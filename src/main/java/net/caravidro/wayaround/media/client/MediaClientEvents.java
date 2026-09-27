@@ -71,6 +71,7 @@ public final class MediaClientEvents {
         MediaTransferClient.tick();
         TvVoiceEmitter.advanceTick();
         TvVoiceEmitter.cleanup();
+        BroadcastClientState.cleanup();
     }
 
     @SubscribeEvent

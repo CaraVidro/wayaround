@@ -30,5 +30,22 @@
         "stream": true
       }
     ]
+  },
+  "intermission": {
+    "sounds": [
+      {
+        "name": "wayaround:in_my_way",
+        "stream": true
+      }
+    ]
+  },
+  "radio_static": {
+    "sounds": [
+      {
+        "name": "minecraft:block.note_block.hat",
+        "volume": 0.35,
+        "pitch": 0.45
+      }
+    ]
   }
 }

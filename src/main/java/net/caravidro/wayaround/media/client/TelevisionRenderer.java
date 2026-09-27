@@ -89,6 +89,21 @@ public final class TelevisionRenderer
             release(
                     television.getBlockPos()
             );
+
+            ResourceLocation live =
+                    BroadcastClientState.texture(
+                            television.getBlockPos()
+                    );
+
+            if (live != null) {
+                renderScreen(
+                        television,
+                        poseStack,
+                        buffers,
+                        live
+                );
+            }
+
             return;
         }
 
