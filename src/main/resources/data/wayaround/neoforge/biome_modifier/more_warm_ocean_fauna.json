@@ -1,0 +1,26 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": [
+    "minecraft:warm_ocean"
+  ],
+  "spawners": [
+    {
+      "type": "minecraft:tropical_fish",
+      "weight": 18,
+      "minCount": 6,
+      "maxCount": 14
+    },
+    {
+      "type": "minecraft:pufferfish",
+      "weight": 6,
+      "minCount": 2,
+      "maxCount": 5
+    },
+    {
+      "type": "minecraft:dolphin",
+      "weight": 3,
+      "minCount": 1,
+      "maxCount": 3
+    }
+  ]
+}
