@@ -206,7 +206,7 @@ public final class BlackBoxManager {
                 event.getPosition(),
                 event.getSound()
                         .value()
-                        .location()
+                        .getLocation()
                         .toString(),
                 event.getSource(),
                 event.getNewVolume(),
@@ -230,7 +230,7 @@ public final class BlackBoxManager {
                         .position(),
                 event.getSound()
                         .value()
-                        .location()
+                        .getLocation()
                         .toString(),
                 event.getSource(),
                 event.getNewVolume(),
