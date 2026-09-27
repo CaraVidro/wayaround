@@ -173,8 +173,9 @@ Land/flying Animals recognize dropped items accepted by their vanilla
 
 ## Fish migration
 
-Every processed `AbstractFish` receives a persistent reproductive home when
-it first enters Living Ecology.
+Every `AbstractFish` receives a persistent reproductive home as soon as it
+joins the server world. Land/flying Animals likewise remember their ecological
+origin on spawn.
 
 At spawn/first observation:
 
@@ -199,6 +200,10 @@ Fish detect dropped ItemEntities with food components.
 
 They swim toward nearby food, consume one item at close range and remember a
 temporary satiated state.
+
+Satiated fish receive a modest, bounded increase in reproductive success
+during migration season. Food therefore matters ecologically without becoming
+a direct "feed item = guaranteed baby" mechanic.
 
 ### Fish reproduction
 
