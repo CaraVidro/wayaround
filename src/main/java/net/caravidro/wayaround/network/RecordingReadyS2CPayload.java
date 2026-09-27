@@ -1,8 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.media.client.TapeLabelScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -50,15 +48,6 @@ public record RecordingReadyS2CPayload(
             RecordingReadyS2CPayload payload,
             IPayloadContext context
     ) {
-        context.enqueueWork(
-                () -> Minecraft.getInstance()
-                        .setScreen(
-                                new TapeLabelScreen(
-                                        payload.recordingId(),
-                                        payload.defaultTitle(),
-                                        payload.vhs()
-                                )
-                        )
-        );
+        ClientPayloadBridge.handleRecordingReady(payload, context);
     }
 }
