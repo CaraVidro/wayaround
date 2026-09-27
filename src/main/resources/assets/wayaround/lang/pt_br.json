@@ -341,5 +341,11 @@
   "container.wayaround.sawmill.next_product": "Produto do próximo tronco",
   "container.wayaround.sawmill.progress": "Corte: %s%%",
   "container.wayaround.sawmill.crank_running": "Manivela: girando",
-  "container.wayaround.sawmill.crank_stopped": "Manivela: parada"
+  "container.wayaround.sawmill.crank_stopped": "Manivela: parada",
+  "item.wayaround.raw_cod_meat": "Carne Crua de Bacalhau",
+  "item.wayaround.raw_salmon_meat": "Carne Crua de Salmão",
+  "item.wayaround.raw_tropical_fish_meat": "Carne Crua de Peixe Tropical",
+  "item.wayaround.raw_pufferfish_meat": "Carne Crua de Baiacu",
+  "item.wayaround.raw_sunfish_meat": "Carne Crua de Peixe-Lua",
+  "entity.wayaround.sunfish": "Peixe-Lua"
 }

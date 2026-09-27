@@ -2822,12 +2822,17 @@ public final class BlueManager {
 
         for (Entity entity :
                 level.getEntities(
-                        owner,
+                        (Entity) null,
                         box,
                         other ->
                                 other.isAlive()
-                                        && other != owner
                                         && !other.isSpectator()
+                                        && (
+                                        other != owner
+                                                || !net.caravidro.wayaround.infinity.InfinityManager.protects(
+                                                owner
+                                        )
+                                )
                 )) {
 
             if (entity.getBoundingBox()
@@ -3005,14 +3010,6 @@ public final class BlueManager {
             );
 
             if (collapse.age >= collapse.duration) {
-                if (shieldSaves(
-                        entity,
-                        collapse
-                )) {
-                    iterator.remove();
-                    continue;
-                }
-
                 eraseEntity(
                         level,
                         entity,
@@ -3121,12 +3118,11 @@ public final class BlueManager {
                 player.refreshDimensions();
             }
 
-            if (net.caravidro.wayaround.spectrum.SpectrumCombat.isBearer(player)) {
-                player.hurt(level.damageSources().generic(),
-                        Math.max(9.0F, player.getMaxHealth() * 0.72F));
-            } else {
-                player.hurt(level.damageSources().genericKill(), Float.MAX_VALUE);
-            }
+            player.hurt(
+                    level.damageSources()
+                            .genericKill(),
+                    Float.MAX_VALUE
+            );
 
             return;
         }

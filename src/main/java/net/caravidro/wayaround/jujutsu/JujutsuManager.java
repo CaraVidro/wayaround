@@ -133,7 +133,7 @@ public final class JujutsuManager {
                     .withStyle(ChatFormatting.DARK_PURPLE));
             player.sendSystemMessage(Component.literal(technique.displayName())
                     .withStyle(ChatFormatting.AQUA));
-            player.sendSystemMessage(Component.literal("Pressione J para usar sua técnica.")
+            player.sendSystemMessage(Component.literal("Use Shift + T e pressione 1 para usar sua técnica.")
                     .withStyle(ChatFormatting.GRAY));
         }
 

@@ -222,13 +222,21 @@ public final class VoiceClientGameEvents {
         );
 
         String label =
-                VoiceConfig.isVoiceActivation()
+                VoiceConfig.isDebugSpeechEnabled()
                         ? (
-                        talking
-                                ? "AUTO: FALANDO"
-                                : "AUTO: OUVINDO"
+                        VoiceConfig.isVoiceActivation()
+                                ? (
+                                talking
+                                        ? "TOBIAS: FALANDO"
+                                        : "TOBIAS: OUVINDO"
+                        )
+                                : "TOBIAS: PTT"
                 )
-                        : "PTT: OUVINDO";
+                        : (
+                        talking
+                                ? "MIC: FALANDO"
+                                : "MIC: OUVINDO"
+                );
 
         graphics.drawString(
                 minecraft.font,

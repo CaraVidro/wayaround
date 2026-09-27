@@ -94,6 +94,16 @@ public final class SawmillRenderer
             );
         }
 
+        if (sawmill.manualCranking()) {
+            renderCrank(
+                    sawmill.bladeAngle(),
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
+
         if (sawmill.hasInput()) {
             double z =
                     0.34

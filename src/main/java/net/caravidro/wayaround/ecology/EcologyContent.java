@@ -1,8 +1,13 @@
 package net.caravidro.wayaround.ecology;
 
 import net.caravidro.wayaround.WayAround;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -13,11 +18,41 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class EcologyContent {
 
+    public static final DeferredRegister<EntityType<?>> ENTITIES =
+            DeferredRegister.create(
+                    Registries.ENTITY_TYPE,
+                    WayAround.MODID
+            );
+
     public static final DeferredRegister.Blocks BLOCKS =
             DeferredRegister.createBlocks(WayAround.MODID);
 
     public static final DeferredRegister.Items ITEMS =
             DeferredRegister.createItems(WayAround.MODID);
+
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<SunfishEntity>
+            > SUNFISH =
+            ENTITIES.register(
+                    "sunfish",
+                    () -> EntityType.Builder
+                            .of(
+                                    SunfishEntity::new,
+                                    MobCategory.WATER_AMBIENT
+                            )
+                            .sized(
+                                    1.25F,
+                                    1.15F
+                            )
+                            .clientTrackingRange(
+                                    10
+                            )
+                            .build(
+                                    "wayaround:sunfish"
+                            )
+            );
+
 
     public static final DeferredBlock<RottingLogBlock> ROTTING_LOG =
             BLOCKS.register(
@@ -195,9 +230,76 @@ public final class EcologyContent {
                     )
             );
 
+    private static final FoodProperties RAW_FISH_MEAT =
+            new FoodProperties.Builder()
+                    .nutrition(2)
+                    .saturationModifier(0.20F)
+                    .build();
+
+    public static final DeferredItem<Item> RAW_COD_MEAT =
+            ITEMS.register(
+                    "raw_cod_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_SALMON_MEAT =
+            ITEMS.register(
+                    "raw_salmon_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_TROPICAL_FISH_MEAT =
+            ITEMS.register(
+                    "raw_tropical_fish_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_PUFFERFISH_MEAT =
+            ITEMS.register(
+                    "raw_pufferfish_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_SUNFISH_MEAT =
+            ITEMS.register(
+                    "raw_sunfish_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            new FoodProperties.Builder()
+                                                    .nutrition(3)
+                                                    .saturationModifier(
+                                                            0.28F
+                                                    )
+                                                    .build()
+                                    )
+                    )
+            );
+
     private EcologyContent() {}
 
     public static void register(IEventBus bus) {
+        ENTITIES.register(bus);
         BLOCKS.register(bus);
         ITEMS.register(bus);
     }
