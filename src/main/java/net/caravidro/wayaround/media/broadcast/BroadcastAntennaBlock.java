@@ -53,11 +53,24 @@ public final class BroadcastAntennaBlock extends BaseEntityBlock {
     protected InteractionResult useWithoutItem(
             BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!WorldFeatureRuntime.enabled(level, WorldFeature.MEDIA)) return InteractionResult.PASS;
-        if (level.getBlockEntity(pos) instanceof BroadcastAntennaBlockEntity antenna) {
+        BlockPos controller =
+                pos;
+
+        while (level.getBlockState(
+                controller.below()
+        ).is(
+                MediaContent.BROADCAST_ANTENNA.get()
+        )) {
+            controller =
+                    controller.below();
+        }
+
+        if (level.getBlockEntity(controller) instanceof BroadcastAntennaBlockEntity antenna) {
             if (!level.isClientSide) {
                 antenna.tune(player.isShiftKeyDown() ? -1 : 1);
                 player.displayClientMessage(
                         Component.literal("Antena: " + BroadcastFrequency.display(antenna.frequencyKHz())
+                                + " | altura " + antenna.towerHeight()
                                 + " | alcance ~" + Math.round(antenna.rangeBlocks()) + " blocos"),
                         true
                 );
