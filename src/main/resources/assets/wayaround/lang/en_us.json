@@ -315,5 +315,11 @@
   "block.wayaround.river_pebbles": "River Pebbles",
   "block.wayaround.river_sprig": "River Sprig",
   "block.wayaround.woodland_sorrel": "Woodland Sorrel",
-  "block.wayaround.damp_fern": "Damp Fern"
+  "block.wayaround.damp_fern": "Damp Fern",
+  "block.wayaround.meadow_sedge": "Meadow Sedge",
+  "item.wayaround.meadow_sedge": "Meadow Sedge",
+  "block.wayaround.creek_clover": "Creek Clover",
+  "item.wayaround.creek_clover": "Creek Clover",
+  "block.wayaround.shade_nettle": "Shade Nettle",
+  "item.wayaround.shade_nettle": "Shade Nettle"
 }
