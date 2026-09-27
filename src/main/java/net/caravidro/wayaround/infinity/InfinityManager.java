@@ -11,7 +11,9 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
+import net.caravidro.wayaround.cursed.ImmortalWheelManager;
 import net.caravidro.wayaround.network.InfinityVisualPayload;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -21,10 +23,14 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -46,6 +52,10 @@ public final class InfinityManager {
 
     private static final Map<UUID, FrozenOrientation>
             FROZEN_ORIENTATION =
+            new HashMap<>();
+
+    private static final Map<UUID, ProjectileBrake>
+            PROJECTILE_BRAKES =
             new HashMap<>();
 
     private static final double VISUAL_RANGE =
@@ -230,11 +240,146 @@ public final class InfinityManager {
         return true;
     }
 
+    public static void onIncomingDamage(
+            LivingIncomingDamageEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof ServerPlayer defender)
+                || !isInfinityActive(
+                        defender
+                )) {
+            return;
+        }
+
+        DamageSource source =
+                event.getSource();
+
+        Entity attackerEntity =
+                source.getEntity();
+
+        Entity directEntity =
+                source.getDirectEntity();
+
+        /*
+         * Infinity is a barrier against external attacks. Environmental/self
+         * damage is intentionally left alone; entity-caused melee, projectiles,
+         * explosions and similar attacks are denied here.
+         */
+        if (attackerEntity == null
+                && directEntity == null) {
+            return;
+        }
+
+        if (attackerEntity
+                instanceof ServerPlayer attacker
+                && attacker != defender
+                && isTrueMelee(
+                        source,
+                        attacker,
+                        defender
+                )
+                && ImmortalWheelManager.hasWheel(
+                        attacker
+                )) {
+
+            float penetration =
+                    ImmortalWheelManager
+                            .adaptToInfinityMelee(
+                                    attacker
+                            );
+
+            event.setAmount(
+                    Math.max(
+                            0.0F,
+                            event.getAmount()
+                                    * penetration
+                    )
+            );
+
+            return;
+        }
+
+        event.setAmount(
+                0.0F
+        );
+    }
+
+    public static void onKnockBack(
+            LivingKnockBackEvent event
+    ) {
+        if (event.getEntity()
+                instanceof ServerPlayer player
+                && isInfinityActive(
+                        player
+                )) {
+
+            /*
+             * Damage and motion are separate vanilla systems. Blocking only
+             * damage still lets explosions/punches shove the owner around.
+             */
+            event.setCanceled(
+                    true
+            );
+        }
+    }
+
+    public static boolean isInfinityActive(
+            ServerPlayer player
+    ) {
+        InfinityState state =
+                ACTIVE.get(
+                        player.getUUID()
+                );
+
+        return state != null
+                && state.confidence
+                        >= MIN_ACTIVE_CONFIDENCE
+                && hasSpectrum(
+                        player
+                );
+    }
+
+    private static boolean isTrueMelee(
+            DamageSource source,
+            ServerPlayer attacker,
+            ServerPlayer defender
+    ) {
+        if (source.is(
+                DamageTypeTags.IS_PROJECTILE
+        )) {
+            return false;
+        }
+
+        Entity direct =
+                source.getDirectEntity();
+
+        if (direct != attacker
+                || source.getEntity()
+                        != attacker) {
+            return false;
+        }
+
+        return attacker.distanceToSqr(
+                defender
+        ) <= 20.25;
+    }
+
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
         MinecraftServer server =
                 event.getServer();
+
+        long tick =
+                server.getTickCount();
+
+        PROJECTILE_BRAKES.values()
+                .removeIf(
+                        brake ->
+                                tick
+                                        - brake.lastSeenTick
+                                        > 40L
+                );
 
         Iterator<Map.Entry<UUID, InfinityState>>
                 iterator =
@@ -288,7 +433,8 @@ public final class InfinityManager {
                     owner,
                     center,
                     radius,
-                    state.confidence
+                    state.confidence,
+                    tick
             );
 
             if ((server.getTickCount()
@@ -310,7 +456,8 @@ public final class InfinityManager {
             ServerPlayer owner,
             Vec3 center,
             float radius,
-            float confidence
+            float confidence,
+            long tick
     ) {
         AABB area =
                 new AABB(
@@ -321,9 +468,6 @@ public final class InfinityManager {
                         center.y + radius,
                         center.z + radius
                 );
-
-        Vec3 ownerMotion =
-                owner.getDeltaMovement();
 
         for (Entity entity :
                 level.getEntities(
@@ -341,6 +485,18 @@ public final class InfinityManager {
                 continue;
             }
 
+            if (entity instanceof Projectile projectile) {
+                slowProjectile(
+                        level,
+                        projectile,
+                        center,
+                        radius,
+                        confidence,
+                        tick
+                );
+                continue;
+            }
+
             Vec3 relative =
                     entity.position()
                             .subtract(
@@ -350,8 +506,16 @@ public final class InfinityManager {
             double distance =
                     relative.length();
 
+            double interactionRadius =
+                    entity instanceof LivingEntity
+                            ? Math.min(
+                                    radius,
+                                    2.75
+                            )
+                            : radius;
+
             if (distance < 0.08
-                    || distance >= radius) {
+                    || distance >= interactionRadius) {
 
                 continue;
             }
@@ -365,7 +529,7 @@ public final class InfinityManager {
             double proximity =
                     1.0
                             - distance
-                                    / radius;
+                                    / interactionRadius;
 
             double influence =
                     Mth.clamp(
@@ -383,11 +547,6 @@ public final class InfinityManager {
             Vec3 velocity =
                     entity.getDeltaMovement();
 
-            double approaching =
-                    -velocity.dot(
-                            outward
-                    );
-
             double damping =
                     Math.max(
                             0.0,
@@ -401,50 +560,6 @@ public final class InfinityManager {
                     velocity.scale(
                             damping
                     );
-
-            /*
-             * Walking toward an incoming object effectively makes the
-             * remaining distance disappear faster. At high confidence this
-             * becomes a visible recoil: arrows start travelling backwards.
-             */
-            double ownerClosing =
-                    ownerMotion.dot(
-                            outward
-                    );
-
-            if (entity instanceof Projectile
-                    && ownerClosing > 0.0) {
-
-                next =
-                        next.add(
-                                outward.scale(
-                                        ownerClosing
-                                                * influence
-                                                * (
-                                                0.85
-                                                        + proximity
-                                                                * 2.40
-                                        )
-                                )
-                        );
-            }
-
-            if (entity instanceof Projectile
-                    && approaching > 0.0
-                    && influence > 0.74) {
-
-                next =
-                        next.add(
-                                outward.scale(
-                                        approaching
-                                                * (
-                                                influence
-                                                        - 0.70
-                                        )
-                                                * 1.55
-                                )
-                        );
-            }
 
             if (influence > 0.965) {
                 next =
@@ -510,12 +625,163 @@ public final class InfinityManager {
         }
     }
 
+    private static void slowProjectile(
+            ServerLevel level,
+            Projectile projectile,
+            Vec3 center,
+            float radius,
+            float confidence,
+            long tick
+    ) {
+        Vec3 offset =
+                projectile.position()
+                        .subtract(
+                                center
+                        );
+
+        double distance =
+                offset.length();
+
+        if (distance >= radius) {
+            return;
+        }
+
+        Vec3 velocity =
+                projectile.getDeltaMovement();
+
+        double speed =
+                velocity.length();
+
+        ProjectileBrake brake =
+                PROJECTILE_BRAKES.computeIfAbsent(
+                        projectile.getUUID(),
+                        ignored ->
+                                new ProjectileBrake(
+                                        Math.max(
+                                                0.001,
+                                                speed
+                                        ),
+                                        speed > 0.001
+                                                ? velocity.normalize()
+                                                : new Vec3(
+                                                        0.0,
+                                                        0.0,
+                                                        1.0
+                                                ),
+                                        tick
+                                )
+                );
+
+        brake.lastSeenTick =
+                tick;
+
+        /*
+         * Faster projectiles get fewer braking ticks. A normal arrow eases
+         * down visibly; a bullet sheds most speed in a handful of ticks, but
+         * never teleports straight from full speed to zero.
+         */
+        double stopTicks =
+                Mth.clamp(
+                        24.0
+                                - brake.entrySpeed
+                                        * 2.25,
+                        5.0,
+                        18.0
+                );
+
+        double age =
+                tick
+                        - brake.enteredTick
+                        + 1.0;
+
+        double confidenceScale =
+                0.60
+                        + confidence
+                                * 0.40;
+
+        double progress =
+                Mth.clamp(
+                        age
+                                / stopTicks
+                                * confidenceScale,
+                        0.0,
+                        1.0
+                );
+
+        double factor =
+                Math.pow(
+                        1.0 - progress,
+                        1.65
+                );
+
+        double targetSpeed =
+                brake.entrySpeed
+                        * factor;
+
+        double nextSpeed =
+                Math.min(
+                        speed,
+                        targetSpeed
+                );
+
+        Vec3 direction =
+                speed > 0.001
+                        ? velocity.normalize()
+                        : brake.entryDirection;
+
+        double hardStopDistance =
+                Math.max(
+                        1.75,
+                        Math.min(
+                                2.65,
+                                radius * 0.20
+                        )
+                );
+
+        if (distance
+                <= hardStopDistance
+                || progress >= 0.995) {
+
+            nextSpeed =
+                    0.0;
+        }
+
+        projectile.setDeltaMovement(
+                direction.scale(
+                        nextSpeed
+                )
+        );
+
+        projectile.fallDistance =
+                0.0F;
+
+        /*
+         * Fast rounds get a sparse neutral trail while braking. This is debug
+         * feedback for bullets and also makes their deceleration readable.
+         */
+        if (brake.entrySpeed >= 5.0
+                && (tick & 1L) == 0L) {
+
+            level.sendParticles(
+                    ParticleTypes.CRIT,
+                    projectile.getX(),
+                    projectile.getY(),
+                    projectile.getZ(),
+                    1,
+                    0.02,
+                    0.02,
+                    0.02,
+                    0.0
+            );
+        }
+    }
+
     private static float radiusFor(
             float confidence
     ) {
-        return 2.75F
+        return 3.25F
                 + confidence
-                        * 7.75F;
+                        * 9.50F;
     }
 
     private static void sendVisual(
@@ -552,6 +818,32 @@ public final class InfinityManager {
     public static void clearAll() {
         ACTIVE.clear();
         FROZEN_ORIENTATION.clear();
+        PROJECTILE_BRAKES.clear();
+    }
+
+    private static final class ProjectileBrake {
+        private final double entrySpeed;
+        private final Vec3 entryDirection;
+        private final long enteredTick;
+        private long lastSeenTick;
+
+        private ProjectileBrake(
+                double entrySpeed,
+                Vec3 entryDirection,
+                long enteredTick
+        ) {
+            this.entrySpeed =
+                    entrySpeed;
+
+            this.entryDirection =
+                    entryDirection;
+
+            this.enteredTick =
+                    enteredTick;
+
+            this.lastSeenTick =
+                    enteredTick;
+        }
     }
 
     private static final class FrozenOrientation {
