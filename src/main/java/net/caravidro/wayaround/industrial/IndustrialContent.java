@@ -188,6 +188,9 @@ public final class IndustrialContent {
                                         output.accept(
                                                 WayAroundContent.JUSTICE_EXECUTION_BLADE.get()
                                         );
+                                        output.accept(
+                                                WayAroundContent.DEBUG_TURRET_ITEM.get()
+                                        );
                                     }
                             )
                             .build()
