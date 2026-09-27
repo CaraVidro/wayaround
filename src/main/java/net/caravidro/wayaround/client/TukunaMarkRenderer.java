@@ -41,6 +41,7 @@ public final class TukunaMarkRenderer {
 
     private static final long SPEECH_OPEN_GRACE_TICKS = 4L;
     private static final long SPEECH_VISIBLE_TICKS = 16L;
+    private static final long SPEECH_AUDIO_DUCK_TICKS = 6L;
 
     private TukunaMarkRenderer() {}
 
@@ -110,6 +111,40 @@ public final class TukunaMarkRenderer {
                 );
             }
         }
+    }
+
+    public static boolean isSpeaking(
+            UUID body
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.level == null
+                || body == null) {
+            return false;
+        }
+
+        SpeechState speech =
+                SPEECH.get(
+                        body
+                );
+
+        if (speech == null) {
+            return false;
+        }
+
+        long silence =
+                minecraft.level
+                        .getGameTime()
+                        - speech.lastPulseTick;
+
+        /*
+         * Voice frames pulse roughly every two ticks. Keep a short 300 ms
+         * grace so music ducking does not chatter between syllables, while the
+         * visual cheek-mouth can linger longer for readability.
+         */
+        return silence
+                <= SPEECH_AUDIO_DUCK_TICKS;
     }
 
     @SubscribeEvent

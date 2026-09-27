@@ -61,6 +61,36 @@ public final class TukunaPossessionClient {
         return possessed;
     }
 
+    /**
+     * True only on the receptacle's own client while the Tukuna controller
+     * currently projecting through that body is speaking.
+     *
+     * The controller entity carries the receptacle skin during possession, so
+     * speech pulses are keyed to the controller UUID. The local receptacle is
+     * recovered through the existing controller->body visual link.
+     */
+    public static boolean shouldDuckContractMusicForSpeech() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (!possessed
+                || minecraft.player == null
+                || minecraft.level == null) {
+            return false;
+        }
+
+        UUID controller =
+                controllerForBody(
+                        minecraft.player
+                                .getUUID()
+                );
+
+        return controller != null
+                && TukunaMarkRenderer.isSpeaking(
+                        controller
+                );
+    }
+
     public static void setVisualLink(
             UUID controller,
             UUID body,
