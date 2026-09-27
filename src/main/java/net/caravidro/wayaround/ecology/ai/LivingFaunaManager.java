@@ -759,14 +759,23 @@ public final class LivingFaunaManager {
 
                 } else if (fish
                         instanceof AquaticPredator predator) {
+                    boolean yielding =
+                            predatorCompetitionBehavior(
+                                    level,
+                                    fish,
+                                    predator
+                            );
+
                     boolean scavenging =
-                            scavengePredatorMeat(
+                            !yielding
+                                    && scavengePredatorMeat(
                                     level,
                                     fish
                             );
 
                     occupied =
-                            scavenging
+                            yielding
+                                    || scavenging
                                     || huntFish(
                                     level,
                                     fish,
@@ -1352,6 +1361,10 @@ public final class LivingFaunaManager {
                                                 && candidate != hunter
                                                 && !(candidate instanceof AquaticPredator)
                                                 && !(candidate instanceof WhaleEntity)
+                                                && predatorAcceptsPrey(
+                                                hunter,
+                                                candidate
+                                        )
                                                 && (
                                                 !(candidate instanceof SunfishEntity)
                                                         || fishSize(candidate) < fishSize(hunter) * 0.75F
@@ -1360,7 +1373,14 @@ public final class LivingFaunaManager {
                         .stream()
                         .min(
                                 java.util.Comparator.comparingDouble(
-                                        hunter::distanceToSqr
+                                        candidate ->
+                                                hunter.distanceToSqr(
+                                                        candidate
+                                                )
+                                                        / preyPreference(
+                                                        hunter,
+                                                        candidate
+                                                )
                                 )
                         )
                         .orElse(null);
@@ -1863,6 +1883,47 @@ public final class LivingFaunaManager {
             return false;
         }
 
+        /*
+         * Reef residents flee INTO habitat rather than blindly away from it.
+         * This makes coral an actual survival resource for clownfish and
+         * seahorses.
+         */
+        if (fish instanceof ClownfishEntity
+                || fish instanceof SeahorseEntity) {
+            BlockPos coral =
+                    nearestCoral(
+                            level,
+                            fish.blockPosition(),
+                            10
+                    );
+
+            if (coral != null) {
+                BlockPos refuge =
+                        waterBesideCoral(
+                                level,
+                                coral,
+                                fish.blockPosition()
+                        );
+
+                fish.getNavigation()
+                        .moveTo(
+                                refuge.getX() + 0.5,
+                                refuge.getY() + 0.35,
+                                refuge.getZ() + 0.5,
+                                1.54
+                        );
+
+                fish.getPersistentData()
+                        .putLong(
+                                FISH_SCARED_UNTIL,
+                                level.getGameTime()
+                                        + 180L
+                        );
+
+                return true;
+            }
+        }
+
         Vec3 away =
                 fish.position()
                         .subtract(
@@ -1881,6 +1942,65 @@ public final class LivingFaunaManager {
 
         away =
                 away.normalize();
+
+        /*
+         * Flying fish use the surface as an escape dimension. If a predator
+         * corners one near open air, it bursts out of the water instead of
+         * trying to outswim a barracuda in a straight line.
+         */
+        if (fish instanceof FlyingFishEntity) {
+            boolean nearSurface =
+                    false;
+
+            for (int dy = 1;
+                 dy <= 3;
+                 dy++) {
+                if (!level.getFluidState(
+                        fish.blockPosition()
+                                .above(
+                                        dy
+                                )
+                ).is(
+                        FluidTags.WATER
+                )) {
+                    nearSurface =
+                            true;
+                    break;
+                }
+            }
+
+            if (nearSurface) {
+                fish.setDeltaMovement(
+                        away.x * 0.92,
+                        0.52,
+                        away.z * 0.92
+                );
+
+                fish.hasImpulse =
+                        true;
+
+                fish.getPersistentData()
+                        .putLong(
+                                FISH_SCARED_UNTIL,
+                                level.getGameTime()
+                                        + 180L
+                        );
+
+                level.sendParticles(
+                        ParticleTypes.SPLASH,
+                        fish.getX(),
+                        fish.getY(),
+                        fish.getZ(),
+                        9,
+                        0.22,
+                        0.08,
+                        0.22,
+                        0.10
+                );
+
+                return true;
+            }
+        }
 
         double escapeDistance =
                 fish instanceof SardineEntity
@@ -1920,6 +2040,402 @@ public final class LivingFaunaManager {
                                 + 160L
                 );
 
+        if (fish instanceof SardineEntity) {
+            List<AbstractFish> school =
+                    level.getEntitiesOfClass(
+                            AbstractFish.class,
+                            fish.getBoundingBox()
+                                    .inflate(
+                                            8.0,
+                                            4.0,
+                                            8.0
+                                    ),
+                            other ->
+                                    other instanceof SardineEntity
+                                            && other != fish
+                                            && other.isAlive()
+                    );
+
+            int warned =
+                    0;
+
+            for (AbstractFish member :
+                    school) {
+                member.getPersistentData()
+                        .putLong(
+                                FISH_SCARED_UNTIL,
+                                level.getGameTime()
+                                        + 120L
+                        );
+
+                Vec3 memberTarget =
+                        member.position()
+                                .add(
+                                        away.scale(
+                                                7.5
+                                        )
+                                );
+
+                member.getNavigation()
+                        .moveTo(
+                                memberTarget.x,
+                                memberTarget.y,
+                                memberTarget.z,
+                                1.70
+                        );
+
+                if (++warned >= 12) {
+                    break;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean predatorCompetitionBehavior(
+            ServerLevel level,
+            AbstractFish fish,
+            AquaticPredator predator
+    ) {
+        AbstractFish stronger =
+                level.getEntitiesOfClass(
+                                AbstractFish.class,
+                                fish.getBoundingBox()
+                                        .inflate(
+                                                9.0,
+                                                5.0,
+                                                9.0
+                                        ),
+                                other ->
+                                        other != fish
+                                                && other.isAlive()
+                                                && other instanceof AquaticPredator
+                                                && (
+                                                predatorRank(
+                                                        other
+                                                )
+                                                        > predatorRank(
+                                                        fish
+                                                )
+                                                        || (
+                                                        predatorRank(
+                                                                other
+                                                        )
+                                                                == predatorRank(
+                                                                fish
+                                                        )
+                                                                && fishSize(
+                                                                other
+                                                        )
+                                                                > fishSize(
+                                                                fish
+                                                        )
+                                                                * 1.28F
+                                                )
+                                        )
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        fish::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (stronger == null) {
+            return false;
+        }
+
+        Vec3 away =
+                fish.position()
+                        .subtract(
+                                stronger.position()
+                        );
+
+        if (away.lengthSqr()
+                < 0.001) {
+            return false;
+        }
+
+        Vec3 target =
+                fish.position()
+                        .add(
+                                away.normalize()
+                                        .scale(
+                                                8.5
+                                        )
+                        );
+
+        fish.getNavigation()
+                .moveTo(
+                        target.x,
+                        target.y,
+                        target.z,
+                        Math.max(
+                                1.20,
+                                predator.huntSpeed()
+                                        * 0.92
+                        )
+                );
+
+        return true;
+    }
+
+    private static int predatorRank(
+            AbstractFish fish
+    ) {
+        if (fish instanceof ReefSharkEntity) {
+            return 3;
+        }
+
+        if (fish instanceof BarracudaEntity) {
+            return 2;
+        }
+
+        if (fish instanceof MorayEelEntity) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static boolean predatorAcceptsPrey(
+            AbstractFish hunter,
+            AbstractFish prey
+    ) {
+        /*
+         * Jellyfish are not generic fish-shaped calories. Reef predators
+         * generally ignore them, which also gives small fish a reason to react
+         * to jellyfish without sharks constantly deleting the population.
+         */
+        if (prey instanceof JellyfishEntity) {
+            return false;
+        }
+
+        if (hunter instanceof MorayEelEntity) {
+            return !(prey instanceof MantaRayEntity)
+                    && !(prey instanceof OarfishEntity)
+                    && !(prey instanceof SunfishEntity);
+        }
+
+        if (hunter instanceof BarracudaEntity) {
+            return !(prey instanceof MantaRayEntity)
+                    && !(prey instanceof OarfishEntity);
+        }
+
+        return true;
+    }
+
+    private static double preyPreference(
+            AbstractFish hunter,
+            AbstractFish prey
+    ) {
+        if (hunter instanceof MorayEelEntity) {
+            if (prey instanceof ClownfishEntity
+                    || prey instanceof SeahorseEntity) {
+                return 4.2;
+            }
+
+            if (prey.getType()
+                    == EntityType.TROPICAL_FISH
+                    || prey.getType()
+                    == EntityType.PUFFERFISH) {
+                return 2.4;
+            }
+
+            return 0.85;
+        }
+
+        if (hunter instanceof BarracudaEntity) {
+            if (prey instanceof SardineEntity
+                    || prey instanceof FlyingFishEntity
+                    || prey instanceof LanternfishEntity) {
+                return 4.0;
+            }
+
+            if (prey.getType()
+                    == EntityType.SALMON
+                    || prey.getType()
+                    == EntityType.COD) {
+                return 2.0;
+            }
+
+            return 1.0;
+        }
+
+        if (hunter instanceof ReefSharkEntity) {
+            if (prey.getType()
+                    == EntityType.SALMON
+                    || prey.getType()
+                    == EntityType.COD
+                    || prey instanceof FlyingFishEntity) {
+                return 2.6;
+            }
+
+            if (prey instanceof SardineEntity) {
+                return 1.7;
+            }
+
+            return 1.0;
+        }
+
+        return 1.0;
+    }
+
+    private static boolean avoidJellyfishBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (fish instanceof JellyfishEntity
+                || fish instanceof WhaleEntity
+                || fish instanceof MantaRayEntity
+                || fish instanceof OarfishEntity
+                || fish instanceof SunfishEntity
+                || fish instanceof AquaticPredator
+                || fishSize(
+                fish
+        ) > 1.55F) {
+            return false;
+        }
+
+        JellyfishEntity jelly =
+                level.getEntitiesOfClass(
+                                JellyfishEntity.class,
+                                fish.getBoundingBox()
+                                        .inflate(
+                                                4.5,
+                                                3.0,
+                                                4.5
+                                        ),
+                                other ->
+                                        other.isAlive()
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        fish::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (jelly == null) {
+            return false;
+        }
+
+        Vec3 away =
+                fish.position()
+                        .subtract(
+                                jelly.position()
+                        );
+
+        if (away.lengthSqr()
+                < 0.001) {
+            return false;
+        }
+
+        Vec3 target =
+                fish.position()
+                        .add(
+                                away.normalize()
+                                        .scale(
+                                                4.8
+                                        )
+                        );
+
+        fish.getNavigation()
+                .moveTo(
+                        target.x,
+                        target.y,
+                        target.z,
+                        fish instanceof SardineEntity
+                                ? 1.48
+                                : 1.18
+                );
+
+        return true;
+    }
+
+    private static boolean mantaDraftBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat()
+                > 0.085F) {
+            return false;
+        }
+
+        MantaRayEntity manta =
+                level.getEntitiesOfClass(
+                                MantaRayEntity.class,
+                                fish.getBoundingBox()
+                                        .inflate(
+                                                11.0,
+                                                5.0,
+                                                11.0
+                                        ),
+                                other ->
+                                        other.isAlive()
+                                                && fishSize(
+                                                other
+                                        ) >= 0.75F
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        fish::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (manta == null) {
+            return false;
+        }
+
+        Vec3 behind =
+                manta.getLookAngle()
+                        .multiply(
+                                -2.8,
+                                0.0,
+                                -2.8
+                        );
+
+        double side =
+                (
+                        fish.getId()
+                                & 1
+                ) == 0
+                        ? 0.85
+                        : -0.85;
+
+        Vec3 right =
+                new Vec3(
+                        -manta.getLookAngle().z,
+                        0.0,
+                        manta.getLookAngle().x
+                );
+
+        Vec3 target =
+                manta.position()
+                        .add(
+                                behind
+                        )
+                        .add(
+                                right.scale(
+                                        side
+                                )
+                        );
+
+        fish.getNavigation()
+                .moveTo(
+                        target.x,
+                        target.y,
+                        target.z,
+                        fish instanceof SardineEntity
+                                ? 1.36
+                                : 1.18
+                );
+
         return true;
     }
 
@@ -1927,6 +2443,22 @@ public final class LivingFaunaManager {
             ServerLevel level,
             AbstractFish fish
     ) {
+        if (avoidJellyfishBehavior(
+                level,
+                fish
+        )) {
+            return true;
+        }
+
+        if ((fish instanceof SardineEntity
+                || fish instanceof FlyingFishEntity)
+                && mantaDraftBehavior(
+                level,
+                fish
+        )) {
+            return true;
+        }
+
         if (fish.getType()
                 == EntityType.SALMON) {
             return salmonCurrentBehavior(

@@ -391,5 +391,6 @@
   "item.wayaround.clownfish_spawn_egg": "Clownfish Spawn Egg",
   "item.wayaround.flying_fish_spawn_egg": "Flying Fish Spawn Egg",
   "item.wayaround.lanternfish_spawn_egg": "Lanternfish Spawn Egg",
-  "item.wayaround.moray_eel_spawn_egg": "Moray Eel Spawn Egg"
+  "item.wayaround.moray_eel_spawn_egg": "Moray Eel Spawn Egg",
+  "itemGroup.wayaround.area_001": "AREA 001"
 }

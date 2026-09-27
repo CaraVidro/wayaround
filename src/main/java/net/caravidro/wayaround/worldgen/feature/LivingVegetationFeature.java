@@ -150,10 +150,17 @@ public final class LivingVegetationFeature
                             z
                     );
 
-            if (!level.getFluidState(pos)
-                    .is(
-                            FluidTags.WATER
-                    )) {
+            /*
+             * Only occupy a genuinely empty water block.
+             *
+             * Checking FluidState alone was too permissive: coral fans,
+             * seagrass, kelp and other waterlogged content also report WATER,
+             * so the feature could overwrite a perfectly good vanilla reef.
+             */
+            if (!isEmptyOceanCell(
+                    level,
+                    pos
+            )) {
                 continue;
             }
 
@@ -238,10 +245,9 @@ public final class LivingVegetationFeature
                                 oz
                         );
 
-                if (level.getFluidState(
+                if (isEmptyOceanCell(
+                        level,
                         neighbor
-                ).is(
-                        FluidTags.WATER
                 )
                         && validOceanFloor(
                         level.getBlockState(
@@ -276,12 +282,31 @@ public final class LivingVegetationFeature
                 || state.is(Blocks.STONE)
                 || state.is(Blocks.DEEPSLATE)
                 || state.is(Blocks.MUD)
-                || state.is(Blocks.DIRT)
-                || state.is(Blocks.TUBE_CORAL_BLOCK)
-                || state.is(Blocks.BRAIN_CORAL_BLOCK)
-                || state.is(Blocks.BUBBLE_CORAL_BLOCK)
-                || state.is(Blocks.FIRE_CORAL_BLOCK)
-                || state.is(Blocks.HORN_CORAL_BLOCK);
+                || state.is(Blocks.DIRT);
+    }
+
+    private static boolean isEmptyOceanCell(
+            WorldGenLevel level,
+            BlockPos pos
+    ) {
+        BlockState state =
+                level.getBlockState(
+                        pos
+                );
+
+        /*
+         * Exact WATER is intentional. A coral fan can contain water, but it is
+         * not a water block and therefore survives untouched. The same rule
+         * protects seagrass, kelp and other features from this second layer.
+         */
+        return state.is(
+                Blocks.WATER
+        )
+                && level.getFluidState(
+                pos
+        ).is(
+                FluidTags.WATER
+        );
     }
 
     private static int densityFor(String biome) {

@@ -391,5 +391,6 @@
   "item.wayaround.clownfish_spawn_egg": "Ovo Gerador de Peixe-Palhaço",
   "item.wayaround.flying_fish_spawn_egg": "Ovo Gerador de Peixe-Voador",
   "item.wayaround.lanternfish_spawn_egg": "Ovo Gerador de Peixe-Lanterna",
-  "item.wayaround.moray_eel_spawn_egg": "Ovo Gerador de Moreia"
+  "item.wayaround.moray_eel_spawn_egg": "Ovo Gerador de Moreia",
+  "itemGroup.wayaround.area_001": "ÁREA 001"
 }
