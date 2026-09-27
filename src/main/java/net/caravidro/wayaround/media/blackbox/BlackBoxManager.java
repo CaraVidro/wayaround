@@ -15,15 +15,21 @@ import net.caravidro.wayaround.worldstate.WorldEvent;
 import net.caravidro.wayaround.worldstate.WorldStateService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.PlayLevelSoundEvent;
 import net.neoforged.neoforge.event.ServerChatEvent;
 import net.neoforged.neoforge.event.entity.item.ItemExpireEvent;
 import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
@@ -181,6 +187,111 @@ public final class BlackBoxManager {
                     speakerName,
                     gain,
                     filtered
+            );
+        }
+    }
+
+    @SubscribeEvent
+    public static void onSoundAtPosition(
+            PlayLevelSoundEvent.AtPosition event
+    ) {
+        if (!(event.getLevel()
+                instanceof ServerLevel level)
+                || event.getSound() == null) {
+            return;
+        }
+
+        captureSound(
+                level,
+                event.getPosition(),
+                event.getSound()
+                        .value()
+                        .location()
+                        .toString(),
+                event.getSource(),
+                event.getNewVolume(),
+                event.getNewPitch()
+        );
+    }
+
+    @SubscribeEvent
+    public static void onSoundAtEntity(
+            PlayLevelSoundEvent.AtEntity event
+    ) {
+        if (!(event.getLevel()
+                instanceof ServerLevel level)
+                || event.getSound() == null) {
+            return;
+        }
+
+        captureSound(
+                level,
+                event.getEntity()
+                        .position(),
+                event.getSound()
+                        .value()
+                        .location()
+                        .toString(),
+                event.getSource(),
+                event.getNewVolume(),
+                event.getNewPitch()
+        );
+    }
+
+    private static void captureSound(
+            ServerLevel level,
+            Vec3 sourcePosition,
+            String soundId,
+            SoundSource source,
+            float sourceVolume,
+            float pitch
+    ) {
+        for (ActiveBox active :
+                List.copyOf(
+                        ACTIVE.values()
+                )) {
+            if (!active.dimension()
+                    .equals(
+                            level.dimension()
+                    )) {
+                continue;
+            }
+
+            if (!(level.getBlockEntity(
+                    active.position()
+            )
+                    instanceof BlackBoxBlockEntity box)
+                    || !box.isCaptureEnabled()) {
+                continue;
+            }
+
+            double distance =
+                    sourcePosition.distanceTo(
+                            Vec3.atCenterOf(
+                                    active.position()
+                            )
+                    );
+
+            if (distance > RANGE) {
+                continue;
+            }
+
+            float fadedVolume =
+                    Math.max(
+                            0.01F,
+                            sourceVolume
+                                    * gain(
+                                    distance
+                            )
+                    );
+
+            BlackBoxRecordingStore.sound(
+                    active.recordingId(),
+                    level.getGameTime(),
+                    soundId,
+                    source.name(),
+                    fadedVolume,
+                    pitch
             );
         }
     }
@@ -494,6 +605,48 @@ public final class BlackBoxManager {
                                     ChatFormatting.DARK_GRAY
                             )
             );
+
+            return;
+        }
+
+        if (entry
+                instanceof BlackBoxRecordingStore.SoundEntry sound) {
+            try {
+                ResourceLocation id =
+                        ResourceLocation.parse(
+                                sound.soundId()
+                        );
+
+                SoundEvent event =
+                        SoundEvent.createVariableRangeEvent(
+                                id
+                        );
+
+                SoundSource source =
+                        SoundSource.valueOf(
+                                sound.source()
+                        );
+
+                player.connection.send(
+                        new ClientboundSoundPacket(
+                                Holder.direct(
+                                        event
+                                ),
+                                source,
+                                player.getX(),
+                                player.getY(),
+                                player.getZ(),
+                                Math.max(
+                                        0.01F,
+                                        sound.volume()
+                                ),
+                                sound.pitch(),
+                                player.getRandom()
+                                        .nextLong()
+                        )
+                );
+            } catch (Exception ignored) {
+            }
 
             return;
         }
