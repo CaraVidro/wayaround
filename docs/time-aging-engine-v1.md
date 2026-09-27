@@ -140,3 +140,15 @@ The foundation is intentionally suitable for:
 The rule is the same as other Way Around foundations:
 
 > domain systems own their detailed simulation; Time & Aging owns shared long-term condition.
+
+
+## World State milestones
+
+A tracked Assembly machine can emit long-term history:
+
+- `wayaround:structure_abandoned` after at least five tracked Minecraft days of inactivity plus visible temporal condition;
+- `wayaround:structure_reactivated` when an abandoned machine becomes active again.
+
+The payload records assembly type, age, inactive time, weathering, corrosion and organic growth.
+
+Because these are normal World State events, Black Boxes and future archaeology/history systems can consume them without importing the Time Engine.
