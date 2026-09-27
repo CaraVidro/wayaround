@@ -1040,20 +1040,30 @@ public final class ImaginaryBetaManager {
                 level.getEntitiesOfClass(
                         LivingEntity.class,
                         area,
-                        entity ->
-                                entity.isAlive()
-                                        && entity != owner
+                        entity -> {
+                            if (!entity.isAlive()) {
+                                return false;
+                            }
+
+                            if (entity == owner
+                                    && net.caravidro.wayaround.infinity.InfinityManager.protects(
+                                    owner
+                            )) {
+                                return false;
+                            }
+
+                            return true;
+                        }
                 )) {
 
-            living.igniteForSeconds(10.0F);
+            living.igniteForSeconds(
+                    10.0F
+            );
 
-            if (living instanceof ServerPlayer spectrum
-                    && net.caravidro.wayaround.spectrum.SpectrumCombat.isBearer(spectrum)) {
-                spectrum.hurt(level.damageSources().generic(),
-                        Math.max(12.0F, spectrum.getMaxHealth() * 0.85F));
-            } else {
-                living.hurt(level.damageSources().genericKill(), Float.MAX_VALUE);
-            }
+            living.hurt(
+                    level.damageSources().genericKill(),
+                    Float.MAX_VALUE
+            );
         }
     }
 
@@ -2303,6 +2313,11 @@ public final class ImaginaryBetaManager {
                 Level.ExplosionInteraction.TNT
         );
 
+        erasePurpleCore(
+                level,
+                fusion
+        );
+
         applyPurpleNukeShockwave(
                 level,
                 fusion
@@ -2475,6 +2490,61 @@ public final class ImaginaryBetaManager {
                     0.22,
                     0.12,
                     0.035
+            );
+        }
+    }
+
+    private static void erasePurpleCore(
+            ServerLevel level,
+            PurpleFusion fusion
+    ) {
+        double radius =
+                PURPLE_CRATER_RADIUS_XZ
+                        + 2.0;
+
+        AABB area =
+                new AABB(
+                        fusion.center.x - radius,
+                        fusion.center.y - radius,
+                        fusion.center.z - radius,
+                        fusion.center.x + radius,
+                        fusion.center.y + radius,
+                        fusion.center.z + radius
+                );
+
+        ServerPlayer owner =
+                level.getServer()
+                        .getPlayerList()
+                        .getPlayer(
+                                fusion.owner
+                        );
+
+        for (LivingEntity living :
+                level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        area,
+                        LivingEntity::isAlive
+                )) {
+
+            if (living.position()
+                    .distanceToSqr(
+                            fusion.center
+                    )
+                    > radius * radius) {
+                continue;
+            }
+
+            if (living == owner
+                    && owner != null
+                    && net.caravidro.wayaround.infinity.InfinityManager.protects(
+                    owner
+            )) {
+                continue;
+            }
+
+            living.hurt(
+                    level.damageSources().genericKill(),
+                    Float.MAX_VALUE
             );
         }
     }
