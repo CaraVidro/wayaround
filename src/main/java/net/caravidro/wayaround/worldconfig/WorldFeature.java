@@ -117,6 +117,12 @@ public enum WorldFeature {
             "Accessory slots and cosmetic wearable objects."
     ),
 
+    TIME_AGING(
+            WorldFeatureCategory.SYSTEMS,
+            "Time & Aging",
+            "Persistent age, abandonment, weathering, corrosion and organic growth."
+    ),
+
     VOICE_CHAT(
             WorldFeatureCategory.SYSTEMS,
             "Voice Chat",
