@@ -6,6 +6,7 @@ import java.util.List;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
 import net.caravidro.wayaround.industrial.assembly.AssemblyEngine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyHistory;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
@@ -265,6 +266,12 @@ public final class MechanicalTransmissionBlockEntity
     private void fail(
             ServerLevel server
     ) {
+        AssemblyHistory.recordFailure(
+                server,
+                this,
+                "mechanical_component_failure"
+        );
+
         ItemStack remains =
                 part.isEmpty()
                         ? defaultPart()
