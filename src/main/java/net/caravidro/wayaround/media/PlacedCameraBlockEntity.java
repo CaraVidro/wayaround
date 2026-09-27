@@ -66,6 +66,17 @@ public final class PlacedCameraBlockEntity extends BlockEntity {
         return true;
     }
 
+    public void setFrequencyKHz(
+            int frequencyKHz
+    ) {
+        this.frequencyKHz =
+                BroadcastFrequency.clamp(
+                        frequencyKHz
+                );
+
+        setChanged();
+    }
+
     public void tuneFrequency(int direction) {
         frequencyKHz = BroadcastFrequency.step(frequencyKHz, direction);
         setChanged();
