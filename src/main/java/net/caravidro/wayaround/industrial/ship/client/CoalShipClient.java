@@ -2,6 +2,7 @@ package net.caravidro.wayaround.industrial.ship.client;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
+import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -16,6 +17,7 @@ public final class CoalShipClient {
         event.registerEntityRenderer(CoalShipContent.COAL_SHIP_ENTITY.get(), CoalShipRenderer::new);
         event.registerEntityRenderer(CoalShipContent.CARAVEL_ENTITY.get(), CaravelRenderer::new);
         event.registerEntityRenderer(CoalShipContent.GREAT_SHIP_ENTITY.get(), GreatShipRenderer::new);
+        event.registerEntityRenderer(ExperimentalShipContent.ASSEMBLY_SHIP.get(), AssemblyShipRenderer::new);
     }
 
     @SubscribeEvent
