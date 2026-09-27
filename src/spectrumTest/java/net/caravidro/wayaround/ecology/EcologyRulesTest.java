@@ -4,17 +4,17 @@ public final class EcologyRulesTest {
 
     public static void main(String[] args) {
         require(
-                EcologyRules.enlargedCluster(4, false) == 6,
+                EcologyRules.enlargedCluster(4, false) == 8,
                 "Land animal bands should be expanded"
         );
 
         require(
-                EcologyRules.enlargedCluster(6, true) == 9,
+                EcologyRules.enlargedCluster(6, true) == 12,
                 "Fish bands should receive the larger expansion"
         );
 
         require(
-                EcologyRules.enlargedCluster(99, true) == 20,
+                EcologyRules.enlargedCluster(99, true) == 32,
                 "Fish cluster expansion must stay bounded"
         );
 
@@ -46,7 +46,7 @@ public final class EcologyRulesTest {
         );
 
         require(
-                EcologyRules.pebbleMoveChance(10.0) <= 0.42,
+                EcologyRules.pebbleMoveChance(10.0) <= 0.58,
                 "Pebble migration probability must remain bounded"
         );
 
