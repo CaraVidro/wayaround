@@ -1,7 +1,18 @@
 package net.caravidro.wayaround.industrial.power;
 
+import java.util.Collection;
+import java.util.List;
+
+import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyEngine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.interaction.StructuralDamage;
+import net.caravidro.wayaround.interaction.StructuralReceiver;
+import net.caravidro.wayaround.interaction.WorldForce;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -9,6 +20,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -27,7 +39,8 @@ import net.minecraft.world.level.block.state.BlockState;
  * the load that passed through it.
  */
 public final class MechanicalTransmissionBlockEntity
-        extends BlockEntity {
+        extends BlockEntity
+        implements AssemblyMachine, StructuralReceiver {
 
     private ItemStack part =
             ItemStack.EMPTY;
@@ -390,6 +403,184 @@ public final class MechanicalTransmissionBlockEntity
         return profile == null
                 ? 0.82F
                 : profile.durabilityScore();
+    }
+
+
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                WayAround.MODID,
+                getBlockState()
+                        .getBlock()
+                        instanceof MechanicalGearboxBlock
+                        ? "mechanical_gearbox"
+                        : "mechanical_shaft"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        AssemblyPartProfile profile =
+                partProfile();
+
+        if (profile == null
+                && level
+                instanceof ServerLevel server) {
+            ensureProfile(
+                    server
+            );
+
+            profile =
+                    partProfile();
+        }
+
+        if (profile == null) {
+            return List.of();
+        }
+
+        return List.of(
+                new AssemblyPartNode(
+                        "body",
+                        getBlockState()
+                                .getBlock()
+                                instanceof MechanicalGearboxBlock
+                                ? "gearbox"
+                                : "shaft",
+                        profile,
+                        true,
+                        1.0F
+                )
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        return List.of();
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        return Math.max(
+                lastLoad,
+                peakLoad * 0.35F
+        );
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        if (!(level
+                instanceof ServerLevel server)) {
+            return;
+        }
+
+        ensureProfile(
+                server
+        );
+
+        AssemblyPartProfile profile =
+                partProfile();
+
+        if (profile == null) {
+            return;
+        }
+
+        profile.applyWear(
+                Math.max(
+                        0.0F,
+                        fraction
+                )
+        );
+
+        AssemblyItemData.writePart(
+                part,
+                profile
+        );
+
+        if (profile.durabilityScore()
+                <= 0.015F) {
+            fail(
+                    server
+            );
+
+            return;
+        }
+
+        sync();
+    }
+
+    @Override
+    public BlockPos structuralPosition() {
+        return worldPosition;
+    }
+
+    @Override
+    public float structuralIntegrity() {
+        return assemblySnapshot()
+                .structuralIntegrity();
+    }
+
+    @Override
+    public void receiveWorldForce(
+            WorldForce force,
+            float localMagnitude
+    ) {
+        float normalized =
+                Math.min(
+                        4.0F,
+                        Math.max(
+                                0.0F,
+                                localMagnitude
+                        )
+                );
+
+        lastLoad =
+                Math.max(
+                        lastLoad,
+                        normalized
+                );
+
+        peakLoad =
+                Math.max(
+                        peakLoad,
+                        normalized
+                );
+
+        applyAssemblyWear(
+                AssemblyEngine.externalWearFraction(
+                        this,
+                        normalized
+                )
+        );
+    }
+
+    @Override
+    public void receiveStructuralDamage(
+            StructuralDamage damage
+    ) {
+        float normalized =
+                Math.min(
+                        6.0F,
+                        damage.amount()
+                                * 0.20F
+                                + damage.impulse()
+                                        * 0.12F
+                );
+
+        applyAssemblyWear(
+                AssemblyEngine.externalWearFraction(
+                        this,
+                        normalized
+                )
+                        + damage.amount()
+                                * 0.0025F
+        );
     }
 
     private void sync() {
