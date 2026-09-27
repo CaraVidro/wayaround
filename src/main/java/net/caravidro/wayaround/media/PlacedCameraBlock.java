@@ -5,10 +5,13 @@ import com.mojang.serialization.MapCodec;
 import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.network.PlacedCameraPickupS2CPayload;
+import net.caravidro.wayaround.media.broadcast.BroadcastFrequency;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -93,6 +96,50 @@ public final class PlacedCameraBlock
     }
 
     @Override
+    protected ItemInteractionResult useItemOn(
+            ItemStack stack,
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            InteractionHand hand,
+            BlockHitResult hit
+    ) {
+        if (!stack.is(MediaContent.BROADCAST_ANTENNA_ITEM.get())) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
+        if (!(level.getBlockEntity(pos) instanceof PlacedCameraBlockEntity camera)
+                || !camera.isOwner(player.getUUID())) {
+            return ItemInteractionResult.FAIL;
+        }
+
+        if (!level.isClientSide) {
+            if (!camera.installIntegratedAntenna()) {
+                player.displayClientMessage(
+                        net.minecraft.network.chat.Component.literal("A câmera já tem uma antena integrada."),
+                        true
+                );
+                return ItemInteractionResult.FAIL;
+            }
+
+            if (!player.getAbilities().instabuild) {
+                stack.shrink(1);
+            }
+
+            player.displayClientMessage(
+                    net.minecraft.network.chat.Component.literal(
+                            "Antena integrada: " + BroadcastFrequency.display(camera.frequencyKHz())
+                                    + " | alcance ~" + Math.round(camera.integratedRangeBlocks()) + " blocos"
+                    ),
+                    true
+            );
+        }
+
+        return ItemInteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    @Override
     protected InteractionResult useWithoutItem(
             BlockState state,
             Level level,
@@ -118,6 +165,23 @@ public final class PlacedCameraBlock
             return InteractionResult.FAIL;
         }
 
+        if (player.isShiftKeyDown()
+                && camera.hasIntegratedAntenna()) {
+            camera.tuneFrequency(1);
+
+            player.displayClientMessage(
+                    net.minecraft.network.chat.Component.literal(
+                            "Câmera: " + BroadcastFrequency.display(camera.frequencyKHz())
+                    ),
+                    true
+            );
+
+            return InteractionResult.CONSUME;
+        }
+
+        boolean hadIntegratedAntenna =
+                camera.hasIntegratedAntenna();
+
         level.removeBlock(
                 pos,
                 false
@@ -140,6 +204,13 @@ public final class PlacedCameraBlock
             MediaInventory.giveOrDrop(
                     player,
                     cameraItem
+            );
+        }
+
+        if (hadIntegratedAntenna) {
+            MediaInventory.giveOrDrop(
+                    player,
+                    new ItemStack(MediaContent.BROADCAST_ANTENNA_ITEM.get())
             );
         }
 

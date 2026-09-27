@@ -6,6 +6,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.media.MediaInventory;
 import net.caravidro.wayaround.media.VhsData;
+import net.caravidro.wayaround.media.broadcast.BroadcastManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -71,9 +72,17 @@ public record RecordingFinishedC2SPayload(
         context.enqueueWork(
                 () -> {
                     if (!(context.player()
-                            instanceof ServerPlayer player)
-                            || !valid(payload)) {
+                            instanceof ServerPlayer player)) {
 
+                        return;
+                    }
+
+                    BroadcastManager.setHandheldCamera(
+                            player,
+                            false
+                    );
+
+                    if (!valid(payload)) {
                         return;
                     }
 

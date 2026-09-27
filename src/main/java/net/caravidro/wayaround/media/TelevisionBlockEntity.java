@@ -1,5 +1,8 @@
 package net.caravidro.wayaround.media;
 
+import net.caravidro.wayaround.media.broadcast.BroadcastFrequency;
+import net.caravidro.wayaround.media.broadcast.BroadcastManager;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -36,6 +39,9 @@ public final class TelevisionBlockEntity
 
     private boolean startBeepPlayed;
 
+    private int frequencyKHz =
+            BroadcastFrequency.DEFAULT_KHZ;
+
     private float clientTapePrevious;
     private float clientTapeProgress;
     private boolean clientHadTape;
@@ -67,6 +73,20 @@ public final class TelevisionBlockEntity
     public boolean hasTapeLoaded() {
         return !tape.isEmpty()
                 && !ejected;
+    }
+
+    public int frequencyKHz() {
+        return frequencyKHz;
+    }
+
+    public void tuneFrequency(int direction) {
+        frequencyKHz =
+                BroadcastFrequency.step(
+                        frequencyKHz,
+                        direction
+                );
+
+        sync();
     }
 
     public boolean isCountingDown() {
@@ -292,6 +312,14 @@ public final class TelevisionBlockEntity
             BlockState state,
             TelevisionBlockEntity television
     ) {
+        if (level instanceof net.minecraft.server.level.ServerLevel server
+                && level.getGameTime() % 20L == Math.floorMod(pos.asLong(), 20L)) {
+            BroadcastManager.heartbeatTelevision(
+                    server,
+                    pos
+            );
+        }
+
         if (television.isCountingDown()) {
             int number =
                     television.countdownNumber();
@@ -450,6 +478,11 @@ public final class TelevisionBlockEntity
                 "Ejected",
                 ejected
         );
+
+        tag.putInt(
+                "BroadcastFrequencyKHz",
+                frequencyKHz
+        );
     }
 
     @Override
@@ -488,6 +521,17 @@ public final class TelevisionBlockEntity
                 tag.getBoolean(
                         "Ejected"
                 );
+
+        frequencyKHz =
+                BroadcastFrequency.clamp(
+                        tag.contains(
+                                "BroadcastFrequencyKHz"
+                        )
+                                ? tag.getInt(
+                                "BroadcastFrequencyKHz"
+                        )
+                                : BroadcastFrequency.DEFAULT_KHZ
+                );
     }
 
     @Override
@@ -516,6 +560,11 @@ public final class TelevisionBlockEntity
         tag.putBoolean(
                 "Ejected",
                 ejected
+        );
+
+        tag.putInt(
+                "BroadcastFrequencyKHz",
+                frequencyKHz
         );
 
         return tag;
