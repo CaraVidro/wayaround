@@ -303,5 +303,12 @@
   "turret.wayaround.off": "Off",
   "message.wayaround.immortal_wheel.family.infinity_melee": "Infinity (melee)",
   "block.wayaround.black_box": "Black Box",
-  "item.wayaround.black_box": "Black Box"
+  "item.wayaround.black_box": "Black Box",
+  "item.wayaround.ship_body": "Ship Body",
+  "item.wayaround.ship_mast": "Ship Mast",
+  "item.wayaround.ship_sail": "Ship Sail",
+  "item.wayaround.ship_anchor": "Ship Anchor",
+  "item.wayaround.anchor_chain": "Anchor Chain",
+  "item.wayaround.ship_chair": "Ship Chair",
+  "entity.wayaround.assembly_ship": "Experimental Assembly Ship"
 }
