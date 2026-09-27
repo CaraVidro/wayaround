@@ -41,12 +41,12 @@ public final class WayAroundNetwork {
         );
         registrar.playToClient(ThermalGlowPayload.TYPE, ThermalGlowPayload.STREAM_CODEC, ThermalGlowPayload::handle);
         registrar.playToClient(FugaArrowPayload.TYPE, FugaArrowPayload.STREAM_CODEC, FugaArrowPayload::handle);
-        registrar.playToClient(FrostPayload.TYPE, FrostPayload.STREAM_CODEC, FrostPayload::handle);
+        registrar.playToClient(FrostPayload.TYPE, FrostPayload.STREAM_CODEC, ClientPayloadBridge::handleFrost);
 
         registrar.playToClient(
                 BlizzardStatePayload.TYPE,
                 BlizzardStatePayload.STREAM_CODEC,
-                BlizzardStatePayload::handle
+                ClientPayloadBridge::handleBlizzard
         );
 
         registrar.playToServer(
