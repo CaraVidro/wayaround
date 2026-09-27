@@ -6,7 +6,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldstate.WorldEventTypes;
+import net.caravidro.wayaround.worldstate.WorldStateService;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -533,9 +536,7 @@ public final class JusticeSenseManager {
             float confidence,
             String detail
     ) {
-        JusticeSenseData.get(
-                offender.server
-        ).record(
+        JusticeIncident incident =
                 new JusticeIncident(
                         type,
                         offender.getUUID(),
@@ -554,7 +555,58 @@ public final class JusticeSenseManager {
                                 .getGameTime(),
                         confidence,
                         detail
-                )
+                );
+
+        JusticeSenseData.get(
+                offender.server
+        ).record(
+                incident
+        );
+
+        CompoundTag history =
+                new CompoundTag();
+
+        history.putString(
+                "incidentType",
+                type.name()
+        );
+
+        history.putString(
+                "offenderName",
+                offender.getGameProfile()
+                        .getName()
+        );
+
+        if (victim != null) {
+            history.putUUID(
+                    "victim",
+                    victim
+            );
+        }
+
+        history.putString(
+                "victimName",
+                victimName == null
+                        ? ""
+                        : victimName
+        );
+
+        history.putFloat(
+                "confidence",
+                confidence
+        );
+
+        history.putString(
+                "detail",
+                detail
+        );
+
+        WorldStateService.record(
+                offender.serverLevel(),
+                WorldEventTypes.JUSTICE_INCIDENT,
+                pos,
+                offender.getUUID(),
+                history
         );
 
         WayAround.LOGGER.info(
