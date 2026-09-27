@@ -972,6 +972,484 @@ public final class LivingFaunaManager {
         return true;
     }
 
+    private static boolean huntFish(
+            ServerLevel level,
+            ReefSharkEntity shark
+    ) {
+        AbstractFish prey =
+                level.getEntitiesOfClass(
+                                AbstractFish.class,
+                                shark.getBoundingBox()
+                                        .inflate(
+                                                18.0,
+                                                8.0,
+                                                18.0
+                                        ),
+                                candidate ->
+                                        candidate.isAlive()
+                                                && candidate != shark
+                                                && !(candidate instanceof ReefSharkEntity)
+                                                && (
+                                                !(candidate instanceof SunfishEntity)
+                                                        || fishSize(candidate) < fishSize(shark) * 0.75F
+                                        )
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        shark::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (prey == null) {
+            return false;
+        }
+
+        shark.getNavigation()
+                .moveTo(
+                        prey.getX(),
+                        prey.getY(),
+                        prey.getZ(),
+                        1.48
+                );
+
+        prey.getPersistentData()
+                .putLong(
+                        FISH_SCARED_UNTIL,
+                        level.getGameTime()
+                                + 160L
+                );
+
+        if (shark.distanceToSqr(
+                prey
+        ) <= 1.65 * 1.65) {
+            CompoundTag data =
+                    shark.getPersistentData();
+
+            long now =
+                    level.getGameTime();
+
+            if (now >= data.getLong(
+                    NEXT_PREDATOR_BITE
+            )) {
+                prey.hurt(
+                        level.damageSources()
+                                .mobAttack(
+                                        shark
+                                ),
+                        4.5F
+                                + fishSize(
+                                shark
+                        )
+                                        * 1.5F
+                );
+
+                level.playSound(
+                        null,
+                        prey.blockPosition(),
+                        SoundEvents.GENERIC_EAT,
+                        SoundSource.NEUTRAL,
+                        0.85F,
+                        0.72F
+                                + level.random.nextFloat()
+                                        * 0.18F
+                );
+
+                level.sendParticles(
+                        ParticleTypes.BUBBLE,
+                        prey.getX(),
+                        prey.getY(),
+                        prey.getZ(),
+                        12,
+                        0.28,
+                        0.18,
+                        0.28,
+                        0.06
+                );
+
+                data.putLong(
+                        NEXT_PREDATOR_BITE,
+                        now
+                                + 22L
+                                + level.random.nextInt(
+                                18
+                        )
+                );
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean fleePredator(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        ReefSharkEntity predator =
+                level.getEntitiesOfClass(
+                                ReefSharkEntity.class,
+                                fish.getBoundingBox()
+                                        .inflate(
+                                                15.0,
+                                                7.0,
+                                                15.0
+                                        ),
+                                shark ->
+                                        shark.isAlive()
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        fish::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (predator == null) {
+            return false;
+        }
+
+        Vec3 away =
+                fish.position()
+                        .subtract(
+                                predator.position()
+                        );
+
+        if (away.lengthSqr()
+                < 0.0001) {
+            away =
+                    new Vec3(
+                            level.random.nextDouble() - 0.5,
+                            0.0,
+                            level.random.nextDouble() - 0.5
+                    );
+        }
+
+        away =
+                away.normalize();
+
+        double escapeDistance =
+                fish instanceof SardineEntity
+                        ? 13.0
+                        : 9.0;
+
+        Vec3 target =
+                fish.position()
+                        .add(
+                                away.scale(
+                                        escapeDistance
+                                )
+                        )
+                        .add(
+                                0.0,
+                                (
+                                        level.random.nextDouble() - 0.5
+                                )
+                                        * 3.0,
+                                0.0
+                        );
+
+        fish.getNavigation()
+                .moveTo(
+                        target.x,
+                        target.y,
+                        target.z,
+                        fish instanceof SardineEntity
+                                ? 1.82
+                                : 1.48
+                );
+
+        fish.getPersistentData()
+                .putLong(
+                        FISH_SCARED_UNTIL,
+                        level.getGameTime()
+                                + 160L
+                );
+
+        return true;
+    }
+
+    private static boolean speciesBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (fish.getType()
+                == EntityType.SALMON) {
+            return salmonCurrentBehavior(
+                    level,
+                    fish
+            );
+        }
+
+        if (fish
+                instanceof SunfishEntity) {
+            return sunfishOpenWaterBehavior(
+                    level,
+                    fish
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.PUFFERFISH) {
+            return pufferSpacingBehavior(
+                    level,
+                    fish
+            );
+        }
+
+        return false;
+    }
+
+    /**
+     * Salmon do not surface to breathe: they use gills. Their special V2
+     * behavior instead favors moving/oxygenated water and occasional upstream
+     * holding runs.
+     */
+    private static boolean salmonCurrentBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat()
+                > 0.22F) {
+            return false;
+        }
+
+        BlockPos origin =
+                fish.blockPosition();
+
+        Vec3 local =
+                WaterDynamics.currentAround(
+                        level,
+                        origin
+                );
+
+        double localSpeed =
+                WaterDynamics.speed(
+                        local
+                );
+
+        BlockPos best =
+                null;
+
+        double bestSpeed =
+                localSpeed;
+
+        for (int dx = -5; dx <= 5; dx += 2) {
+            for (int dy = -2; dy <= 2; dy += 2) {
+                for (int dz = -5; dz <= 5; dz += 2) {
+                    BlockPos candidate =
+                            origin.offset(
+                                    dx,
+                                    dy,
+                                    dz
+                            );
+
+                    if (!level.getFluidState(
+                            candidate
+                    ).is(
+                            FluidTags.WATER
+                    )) {
+                        continue;
+                    }
+
+                    Vec3 flow =
+                            WaterDynamics.currentAround(
+                                    level,
+                                    candidate
+                            );
+
+                    double speed =
+                            WaterDynamics.speed(
+                                    flow
+                            );
+
+                    if (speed > bestSpeed + 0.018) {
+                        bestSpeed =
+                                speed;
+
+                        best =
+                                candidate.immutable();
+                    }
+                }
+            }
+        }
+
+        if (best != null) {
+            fish.getNavigation()
+                    .moveTo(
+                            best.getX() + 0.5,
+                            best.getY() + 0.5,
+                            best.getZ() + 0.5,
+                            1.28
+                    );
+
+            return true;
+        }
+
+        if (localSpeed > 0.045) {
+            Vec3 upstream =
+                    local.normalize()
+                            .scale(
+                                    -5.5
+                            );
+
+            Vec3 target =
+                    fish.position()
+                            .add(
+                                    upstream
+                            );
+
+            fish.getNavigation()
+                    .moveTo(
+                            target.x,
+                            target.y,
+                            target.z,
+                            1.32
+                    );
+
+            /*
+             * Wake/turbulence only. These bubbles are not presented as the
+             * salmon breathing air.
+             */
+            level.sendParticles(
+                    ParticleTypes.BUBBLE,
+                    fish.getX(),
+                    fish.getY(),
+                    fish.getZ(),
+                    3,
+                    0.12,
+                    0.10,
+                    0.12,
+                    0.015
+            );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean sunfishOpenWaterBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat()
+                > 0.075F) {
+            return false;
+        }
+
+        BlockPos origin =
+                fish.blockPosition();
+
+        for (int attempt = 0;
+             attempt < 8;
+             attempt++) {
+            BlockPos candidate =
+                    origin.offset(
+                            level.random.nextInt(17) - 8,
+                            level.random.nextInt(7) - 3,
+                            level.random.nextInt(17) - 8
+                    );
+
+            if (level.getFluidState(
+                    candidate
+            ).is(
+                    FluidTags.WATER
+            )
+                    && level.getFluidState(
+                    candidate.above()
+            ).is(
+                    FluidTags.WATER
+            )
+                    && level.getFluidState(
+                    candidate.below()
+            ).is(
+                    FluidTags.WATER
+            )) {
+                fish.getNavigation()
+                        .moveTo(
+                                candidate.getX() + 0.5,
+                                candidate.getY() + 0.5,
+                                candidate.getZ() + 0.5,
+                                0.72
+                        );
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean pufferSpacingBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        List<AbstractFish> crowd =
+                level.getEntitiesOfClass(
+                        AbstractFish.class,
+                        fish.getBoundingBox()
+                                .inflate(
+                                        3.0,
+                                        2.0,
+                                        3.0
+                                ),
+                        other ->
+                                other != fish
+                                        && other.isAlive()
+                );
+
+        if (crowd.size() < 5) {
+            return false;
+        }
+
+        Vec3 center =
+                Vec3.ZERO;
+
+        for (AbstractFish other :
+                crowd) {
+            center =
+                    center.add(
+                            other.position()
+                    );
+        }
+
+        center =
+                center.scale(
+                        1.0 / crowd.size()
+                );
+
+        Vec3 away =
+                fish.position()
+                        .subtract(
+                                center
+                        );
+
+        if (away.lengthSqr() < 0.001) {
+            return false;
+        }
+
+        Vec3 target =
+                fish.position()
+                        .add(
+                                away.normalize()
+                                        .scale(
+                                                4.0
+                                        )
+                        );
+
+        fish.getNavigation()
+                .moveTo(
+                        target.x,
+                        target.y,
+                        target.z,
+                        0.92
+                );
+
+        return true;
+    }
+
     private static boolean isOwnSpeciesMeat(
             AbstractFish fish,
             ItemStack stack
@@ -1431,9 +1909,15 @@ public final class LivingFaunaManager {
                         AbstractFish.class,
                         fish.getBoundingBox()
                                 .inflate(
-                                        18.0,
-                                        7.0,
-                                        18.0
+                                        fish instanceof SardineEntity
+                                                ? 28.0
+                                                : 18.0,
+                                        fish instanceof SardineEntity
+                                                ? 10.0
+                                                : 7.0,
+                                        fish instanceof SardineEntity
+                                                ? 28.0
+                                                : 18.0
                                 ),
                         other ->
                                 other.isAlive()
@@ -1474,13 +1958,20 @@ public final class LivingFaunaManager {
                                 center
                         );
 
-        if (distance > 6.5) {
+        double cohesionDistance =
+                fish instanceof SardineEntity
+                        ? 4.2
+                        : 6.5;
+
+        if (distance > cohesionDistance) {
             fish.getNavigation()
                     .moveTo(
                             center.x,
                             center.y,
                             center.z,
-                            1.12
+                            fish instanceof SardineEntity
+                                    ? 1.62
+                                    : 1.12
                     );
 
             return;
