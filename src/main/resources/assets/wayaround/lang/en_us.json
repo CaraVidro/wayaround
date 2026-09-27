@@ -310,5 +310,10 @@
   "item.wayaround.ship_anchor": "Ship Anchor",
   "item.wayaround.anchor_chain": "Anchor Chain",
   "item.wayaround.ship_chair": "Ship Chair",
-  "entity.wayaround.assembly_ship": "Experimental Assembly Ship"
+  "entity.wayaround.assembly_ship": "Experimental Assembly Ship",
+  "block.wayaround.rotting_log": "Rotting Log",
+  "block.wayaround.river_pebbles": "River Pebbles",
+  "block.wayaround.river_sprig": "River Sprig",
+  "block.wayaround.woodland_sorrel": "Woodland Sorrel",
+  "block.wayaround.damp_fern": "Damp Fern"
 }
