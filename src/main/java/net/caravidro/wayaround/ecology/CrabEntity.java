@@ -24,16 +24,11 @@ public final class CrabEntity extends PathfinderMob {
 
     @Override
     protected void registerGoals() {
-        goalSelector.add(0, new FloatGoal(this));
-        goalSelector.add(1, new PanicGoal(this, 1.45));
-        goalSelector.add(4, new RandomStrollGoal(this, 0.72, 70));
-        goalSelector.add(6, new LookAtPlayerGoal(this, Player.class, 5.0F));
-        goalSelector.add(7, new RandomLookAroundGoal(this));
-    }
-
-    @Override
-    public boolean canBreatheUnderwater() {
-        return true;
+        goalSelector.addGoal(0, new FloatGoal(this));
+        goalSelector.addGoal(1, new PanicGoal(this, 1.45));
+        goalSelector.addGoal(4, new RandomStrollGoal(this, 0.72, 70));
+        goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 5.0F));
+        goalSelector.addGoal(7, new RandomLookAroundGoal(this));
     }
 
     @Override
