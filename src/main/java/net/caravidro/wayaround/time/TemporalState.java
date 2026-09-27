@@ -13,6 +13,7 @@ public final class TemporalState {
     private float corrosion;
     private float organicGrowth;
     private float moistureMemory;
+    private boolean abandonmentRecorded;
 
     public long ageTicks() { return ageTicks; }
     public long inactiveTicks() { return inactiveTicks; }
@@ -21,6 +22,8 @@ public final class TemporalState {
     public float corrosion() { return corrosion; }
     public float organicGrowth() { return organicGrowth; }
     public float moistureMemory() { return moistureMemory; }
+    public boolean abandonmentRecorded() { return abandonmentRecorded; }
+    public void markAbandonmentRecorded(boolean value) { abandonmentRecorded = value; }
 
     void advance(
             long elapsed,
@@ -80,6 +83,7 @@ public final class TemporalState {
         tag.putFloat("Corrosion", corrosion);
         tag.putFloat("OrganicGrowth", organicGrowth);
         tag.putFloat("MoistureMemory", moistureMemory);
+        tag.putBoolean("AbandonmentRecorded", abandonmentRecorded);
         return tag;
     }
 
@@ -92,6 +96,7 @@ public final class TemporalState {
         state.corrosion = Mth.clamp(tag.getFloat("Corrosion"), 0.0F, 1.0F);
         state.organicGrowth = Mth.clamp(tag.getFloat("OrganicGrowth"), 0.0F, 1.0F);
         state.moistureMemory = Mth.clamp(tag.getFloat("MoistureMemory"), 0.0F, 1.0F);
+        state.abandonmentRecorded = tag.getBoolean("AbandonmentRecorded");
         return state;
     }
 
