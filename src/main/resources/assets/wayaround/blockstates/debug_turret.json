@@ -1,0 +1,20 @@
+{
+  "multipart": [
+    {
+      "when": {"facing": "north"},
+      "apply": {"model": "wayaround:block/debug_turret"}
+    },
+    {
+      "when": {"facing": "east"},
+      "apply": {"model": "wayaround:block/debug_turret", "y": 90}
+    },
+    {
+      "when": {"facing": "south"},
+      "apply": {"model": "wayaround:block/debug_turret", "y": 180}
+    },
+    {
+      "when": {"facing": "west"},
+      "apply": {"model": "wayaround:block/debug_turret", "y": 270}
+    }
+  ]
+}
