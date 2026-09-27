@@ -101,6 +101,8 @@ public final class EcologyContent {
                     "sardine_spawn_egg",
                     properties -> new SpawnEggItem(
                             SARDINE.get(),
+                            0xAEBAC4,
+                            0x6F8799,
                             properties
                     )
             );
@@ -110,6 +112,8 @@ public final class EcologyContent {
                     "sunfish_spawn_egg",
                     properties -> new SpawnEggItem(
                             SUNFISH.get(),
+                            0xAAA89C,
+                            0xE1D9BE,
                             properties
                     )
             );
@@ -119,6 +123,8 @@ public final class EcologyContent {
                     "reef_shark_spawn_egg",
                     properties -> new SpawnEggItem(
                             REEF_SHARK.get(),
+                            0x59656A,
+                            0xD4D5CE,
                             properties
                     )
             );
