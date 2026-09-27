@@ -1,0 +1,14 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": [
+    "minecraft:warm_ocean",
+    "minecraft:lukewarm_ocean",
+    "minecraft:deep_lukewarm_ocean"
+  ],
+  "spawners": {
+    "type": "wayaround:manta_ray",
+    "weight": 3,
+    "minCount": 1,
+    "maxCount": 3
+  }
+}
