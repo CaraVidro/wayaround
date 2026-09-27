@@ -166,9 +166,14 @@ public final class RiverPebbleBlock
         Direction direction =
                 WaterDynamics.dominantDirection(current);
 
+        double moveChance =
+                EcologyRules.pebbleMoveChance(
+                        speed
+                );
+
         if (direction == null
-                || speed < 0.045
-                || random.nextDouble() > Math.min(0.42, speed * 1.8)) {
+                || moveChance <= 0.0
+                || random.nextDouble() > moveChance) {
             return;
         }
 
