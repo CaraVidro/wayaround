@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.MediaContent;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.worldstate.WorldEvent;
 import net.caravidro.wayaround.worldstate.WorldEventTypes;
 import net.caravidro.wayaround.worldstate.WorldStateService;
@@ -45,6 +47,10 @@ public final class BlackBoxBlockEntity
     ) {
         if (!(level
                 instanceof ServerLevel server)
+                || !WorldFeatureRuntime.enabled(
+                server,
+                WorldFeature.MEDIA
+        )
                 || sealed
                 || recording
                 || !isPowered()) {
