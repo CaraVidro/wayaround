@@ -91,6 +91,63 @@ public final class RottingLogBlock extends RotatedPillarBlock {
             }
         }
 
+        if (rot >= 2
+                && moisture > 0.30F
+                && random.nextFloat() < 0.10F) {
+
+            Direction side =
+                    Direction.Plane.HORIZONTAL
+                            .getRandomDirection(
+                                    random
+                            );
+
+            BlockPos soil =
+                    pos.relative(
+                            side
+                    );
+
+            BlockPos plantPos =
+                    soil.above();
+
+            BlockState soilState =
+                    level.getBlockState(
+                            soil
+                    );
+
+            if (soilState.is(Blocks.DIRT)
+                    || soilState.is(Blocks.COARSE_DIRT)
+                    || soilState.is(Blocks.PODZOL)) {
+                level.setBlockAndUpdate(
+                        soil,
+                        random.nextFloat() < 0.55F
+                                ? Blocks.ROOTED_DIRT.defaultBlockState()
+                                : Blocks.MOSS_BLOCK.defaultBlockState()
+                );
+            }
+
+            if (level.getBlockState(
+                    plantPos
+            ).isAir()
+                    && random.nextFloat() < 0.65F) {
+                BlockState plant =
+                        random.nextBoolean()
+                                ? EcologyContent.SHADE_NETTLE.get()
+                                        .defaultBlockState()
+                                : EcologyContent.CREEK_CLOVER.get()
+                                        .defaultBlockState();
+
+                if (plant.canSurvive(
+                        level,
+                        plantPos
+                )) {
+                    level.setBlockAndUpdate(
+                            plantPos,
+                            plant
+                    );
+                }
+            }
+        }
+
         if (state.getValue(AXIS)
                 == Direction.Axis.Y
                 && rot >= 1
