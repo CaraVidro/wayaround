@@ -220,12 +220,12 @@ public final class LivingFaunaManager {
                 Math.max(
                         1,
                         Math.min(
-                                16,
+                                64,
                                 Math.round(
                                         fishSize(
                                                 fish
                                         )
-                                                * 2.8F
+                                                * 4.0F
                                 )
                         )
                 );
@@ -939,17 +939,81 @@ public final class LivingFaunaManager {
             float roll =
                     level.random.nextFloat();
 
-            float base =
-                    sunFish
-                            ? 1.18F
-                                    + roll
-                                            * 0.32F
-                            : 0.42F
+            float anomaly =
+                    level.random.nextFloat();
+
+            float base;
+
+            if (sunFish) {
+                if (anomaly < 0.0030F) {
+                    /*
+                     * Very rare naturally gigantic ocean sunfish. These do not
+                     * require player feeding and are meant to feel like a
+                     * genuine world encounter.
+                     */
+                    base =
+                            4.75F
+                                    + level.random.nextFloat()
+                                            * 2.75F;
+
+                } else if (anomaly < 0.035F) {
+                    base =
+                            2.0F
+                                    + level.random.nextFloat()
+                                            * 1.25F;
+
+                } else if (anomaly < 0.085F) {
+                    base =
+                            0.22F
+                                    + level.random.nextFloat()
+                                            * 0.28F;
+
+                } else {
+                    base =
+                            0.88F
                                     + (float) Math.pow(
                                     roll,
-                                    1.55
+                                    1.35
                             )
-                                            * 0.86F;
+                                            * 0.92F;
+                }
+
+            } else if (anomaly < 0.0008F) {
+                /*
+                 * Roughly one in 1,250 ordinary fish may be a natural monster.
+                 * It can be several times the normal model size before ever
+                 * eating a dropped item.
+                 */
+                base =
+                        4.35F
+                                + level.random.nextFloat()
+                                        * 3.15F;
+
+            } else if (anomaly < 0.012F) {
+                base =
+                        1.75F
+                                + level.random.nextFloat()
+                                        * 1.55F;
+
+            } else if (anomaly < 0.080F) {
+                /*
+                 * Minecraft scale lets these be genuinely tiny instead of
+                 * merely "slightly smaller fish".
+                 */
+                base =
+                        0.08F
+                                + level.random.nextFloat()
+                                        * 0.20F;
+
+            } else {
+                base =
+                        0.34F
+                                + (float) Math.pow(
+                                roll,
+                                1.65
+                        )
+                                        * 1.02F;
+            }
 
             data.putFloat(
                     FISH_BASE_SIZE,
@@ -996,7 +1060,7 @@ public final class LivingFaunaManager {
 
         float base =
                 Math.max(
-                        0.35F,
+                        0.08F,
                         data.getFloat(
                                 FISH_BASE_SIZE
                         )
@@ -1062,9 +1126,25 @@ public final class LivingFaunaManager {
                             : 3.15F;
         }
 
+        /*
+         * Feeding has a practical ceiling. A naturally gigantic fish is an
+         * exception created by world generation/traits and must never shrink
+         * back toward the ordinary feeding cap.
+         */
+        float effectiveCap =
+                Math.max(
+                        cap,
+                        base
+                                + (
+                                base >= 3.5F
+                                        ? 0.55F
+                                        : 0.0F
+                        )
+                );
+
         float target =
                 Math.min(
-                        cap,
+                        effectiveCap,
                         base
                                 + mealGrowth
                                 + survivalGrowth
@@ -1105,9 +1185,9 @@ public final class LivingFaunaManager {
         if (attribute != null) {
             double target =
                     Math.max(
-                            0.30F,
+                            0.08F,
                             Math.min(
-                                    4.0F,
+                                    8.0F,
                                     scale
                             )
                     );
@@ -1135,7 +1215,7 @@ public final class LivingFaunaManager {
                 FISH_SIZE
         )) {
             return Math.max(
-                    0.30F,
+                    0.08F,
                     data.getFloat(
                             FISH_SIZE
                     )
