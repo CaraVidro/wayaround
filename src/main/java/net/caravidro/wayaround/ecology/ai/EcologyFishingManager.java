@@ -40,6 +40,9 @@ public final class EcologyFishingManager {
     private static final String BITE_READY =
             "WayAroundFishingBiteReady";
 
+    private static final String HOOKED =
+            "WayAroundFishingHooked";
+
     private static final String LAST_TUG =
             "WayAroundFishingLastTug";
 
@@ -55,13 +58,15 @@ public final class EcologyFishingManager {
     ) {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.LIVING_VEGETATION
-        )
-                || event.getServer()
-                        .getTickCount()
-                        % 5
-                        != 0) {
+        )) {
             return;
         }
+
+        boolean attractionTick =
+                event.getServer()
+                        .getTickCount()
+                        % 5
+                        == 0;
 
         for (ServerLevel level :
                 event.getServer()
@@ -74,7 +79,27 @@ public final class EcologyFishingManager {
                         player.fishing;
 
                 if (hook == null
-                        || !hook.isAlive()
+                        || !hook.isAlive()) {
+                    continue;
+                }
+
+                boolean hooked =
+                        hook.getPersistentData()
+                                .getBoolean(
+                                        HOOKED
+                                );
+
+                if (hooked) {
+                    tickHook(
+                            level,
+                            player,
+                            hook
+                    );
+
+                    continue;
+                }
+
+                if (!attractionTick
                         || !level.getFluidState(
                         hook.blockPosition()
                 ).is(
@@ -116,11 +141,21 @@ public final class EcologyFishingManager {
             );
         }
 
+        boolean wasHooked =
+                data.getBoolean(
+                        HOOKED
+                );
+
         AbstractFish target =
                 targetFish(
                         level,
                         hook
                 );
+
+        if (target == null
+                && wasHooked) {
+            return;
+        }
 
         if (target == null) {
             target =
@@ -142,6 +177,23 @@ public final class EcologyFishingManager {
 
         CompoundTag fishData =
                 target.getPersistentData();
+
+        if (data.getBoolean(
+                HOOKED
+        )) {
+            attachHookToFish(
+                    hook,
+                    target
+            );
+
+            struggleAgainstLine(
+                    level,
+                    player,
+                    target
+            );
+
+            return;
+        }
 
         if (fishData.getLong(
                 LivingFaunaManager.FISH_SCARED_UNTIL
@@ -192,9 +244,22 @@ public final class EcologyFishingManager {
                 && now >= data.getLong(
                 BITE_READY
         )) {
+            data.putBoolean(
+                    HOOKED,
+                    true
+            );
+
             fishData.putLong(
                     LivingFaunaManager.FISH_LURE_UNTIL,
                     now + 200L
+            );
+
+            target.getNavigation()
+                    .stop();
+
+            attachHookToFish(
+                    hook,
+                    target
             );
 
             level.playSound(
@@ -338,6 +403,11 @@ public final class EcologyFishingManager {
                     );
 
             if (target == null) {
+                pullLooseLine(
+                        player,
+                        hook
+                );
+
                 splashTug(
                         level,
                         hook
@@ -358,9 +428,14 @@ public final class EcologyFishingManager {
                 );
 
         boolean biting =
-                biteDistance <= 1.35
-                        && now >= data.getLong(
-                        BITE_READY
+                data.getBoolean(
+                        HOOKED
+                )
+                        || (
+                        biteDistance <= 1.35
+                                && now >= data.getLong(
+                                BITE_READY
+                        )
                 );
 
         if (!biting) {
@@ -403,6 +478,18 @@ public final class EcologyFishingManager {
             );
 
             return;
+        }
+
+        if (!data.getBoolean(
+                HOOKED
+        )) {
+            data.putBoolean(
+                    HOOKED,
+                    true
+            );
+
+            target.getNavigation()
+                    .stop();
         }
 
         Vec3 pull =
@@ -475,6 +562,11 @@ public final class EcologyFishingManager {
         target.hurtMarked =
                 true;
 
+        attachHookToFish(
+                hook,
+                target
+        );
+
         target.getPersistentData()
                 .putLong(
                         LivingFaunaManager.FISH_LURE_UNTIL,
@@ -499,6 +591,202 @@ public final class EcologyFishingManager {
         splashTug(
                 level,
                 hook
+        );
+    }
+
+    private static void attachHookToFish(
+            FishingHook hook,
+            AbstractFish fish
+    ) {
+        Vec3 mouth =
+                fish.position()
+                        .add(
+                                0.0,
+                                fish.getBbHeight()
+                                        * 0.48,
+                                0.0
+                        );
+
+        hook.setPos(
+                mouth.x,
+                mouth.y,
+                mouth.z
+        );
+
+        hook.setDeltaMovement(
+                fish.getDeltaMovement()
+        );
+    }
+
+    private static void pullLooseLine(
+            ServerPlayer player,
+            FishingHook hook
+    ) {
+        Vec3 pull =
+                player.getEyePosition()
+                        .subtract(
+                                hook.position()
+                        );
+
+        double distance =
+                pull.length();
+
+        if (distance <= 0.001) {
+            return;
+        }
+
+        Vec3 impulse =
+                pull.scale(
+                        1.0 / distance
+                )
+                        .scale(
+                                Mth.clamp(
+                                        0.18
+                                                + distance
+                                                        * 0.018,
+                                        0.18,
+                                        0.62
+                                )
+                        );
+
+        hook.setDeltaMovement(
+                hook.getDeltaMovement()
+                        .scale(
+                                0.42
+                        )
+                        .add(
+                                impulse
+                        )
+        );
+
+        hook.hasImpulse =
+                true;
+    }
+
+    private static void struggleAgainstLine(
+            ServerLevel level,
+            ServerPlayer player,
+            AbstractFish fish
+    ) {
+        if (!fish.isInWater()) {
+            return;
+        }
+
+        float size =
+                LivingFaunaManager.fishSize(
+                        fish
+                );
+
+        if (size < 1.15F
+                || level.random.nextFloat()
+                        > Math.min(
+                        0.32F,
+                        0.035F
+                                + size
+                                        * 0.052F
+                )) {
+            return;
+        }
+
+        Vec3 away =
+                fish.position()
+                        .subtract(
+                                player.position()
+                        )
+                        .multiply(
+                                1.0,
+                                0.25,
+                                1.0
+                        );
+
+        if (away.lengthSqr()
+                < 0.001) {
+            away =
+                    new Vec3(
+                            level.random.nextDouble()
+                                    - 0.5,
+                            0.15,
+                            level.random.nextDouble()
+                                    - 0.5
+                    );
+        }
+
+        Vec3 sideways =
+                new Vec3(
+                        -away.z,
+                        0.0,
+                        away.x
+                );
+
+        away =
+                away.normalize();
+
+        if (sideways.lengthSqr()
+                > 0.001) {
+            sideways =
+                    sideways.normalize()
+                            .scale(
+                                    (
+                                    level.random.nextBoolean()
+                                            ? 1.0
+                                            : -1.0
+                            )
+                                            * 0.22
+                                            * Math.min(
+                                            2.0F,
+                                            size
+                                    )
+                            );
+        }
+
+        double resistance =
+                Mth.clamp(
+                        0.045
+                                + size
+                                        * 0.050,
+                        0.06,
+                        0.28
+                );
+
+        fish.setDeltaMovement(
+                fish.getDeltaMovement()
+                        .add(
+                                away.scale(
+                                        resistance
+                                )
+                        )
+                        .add(
+                                sideways
+                        )
+        );
+
+        fish.hurtMarked =
+                true;
+
+        level.sendParticles(
+                ParticleTypes.SPLASH,
+                fish.getX(),
+                fish.getY()
+                        + fish.getBbHeight()
+                                * 0.55,
+                fish.getZ(),
+                Mth.clamp(
+                        Math.round(
+                                3.0F
+                                        + size
+                                                * 3.0F
+                        ),
+                        4,
+                        14
+                ),
+                0.18
+                        + fish.getBbWidth()
+                                * 0.16,
+                0.10,
+                0.18
+                        + fish.getBbWidth()
+                                * 0.16,
+                0.07
         );
     }
 
@@ -659,6 +947,11 @@ public final class EcologyFishingManager {
                 TARGET
         );
 
+        data.putBoolean(
+                HOOKED,
+                false
+        );
+
         return null;
     }
 
@@ -692,33 +985,19 @@ public final class EcologyFishingManager {
             return;
         }
 
-        boolean materializedFish =
-                event.getDrops()
-                        .stream()
-                        .anyMatch(
-                                stack ->
-                                        stack.is(
-                                                Items.COD
-                                        )
-                                                || stack.is(
-                                                Items.SALMON
-                                        )
-                                                || stack.is(
-                                                Items.TROPICAL_FISH
-                                        )
-                                                || stack.is(
-                                                Items.PUFFERFISH
-                                        )
-                        );
+        /*
+         * Ecological fishing owns the catch completely. Vanilla fish,
+         * treasure and junk may no longer materialize from the bobber.
+         */
+        event.getDrops()
+                .clear();
 
-        if (materializedFish) {
-            event.setCanceled(
-                    true
-            );
+        event.setCanceled(
+                true
+        );
 
-            event.damageRodBy(
-                    0
-            );
-        }
+        event.damageRodBy(
+                0
+        );
     }
 }

@@ -374,15 +374,20 @@ While the line is cast:
 - ordinary right-click creates a tug/reel pulse;
 - spaced tugs can attract the target;
 - repeated rapid tugging can frighten it away;
-- once the fish has bitten, tugs physically pull the entity toward the player;
-- larger fish resist the same pull more strongly;
+- when a fish bites, the bobber becomes physically attached to that fish and
+  follows its body every tick;
+- right-click reels the loose bobber toward the player when nothing is hooked;
+- once hooked, right-click applies line tension to the fish itself;
+- larger fish resist the same pull more strongly and can make lateral/away
+  struggle impulses while still in water;
 - close pulls include upward force so the fish itself can be dragged out of
   the water;
-- sneak + right-click retains the vanilla full retrieve/cancel behavior.
+- sneak + right-click retains the full retrieve/cancel escape hatch.
 
-The ordinary cod/salmon/tropical-fish/pufferfish fishing loot is suppressed so
-a second fish item does not materialize independently of the entity being
-caught. Treasure and non-fish fishing loot remain separate.
+Vanilla's invisible fishing bite simulation is disabled while Living Ecology is
+active. ItemFishedEvent drops are also cleared, so fish, treasure and junk no
+longer materialize from the bobber. The catch is the actual entity in the
+water.
 
 ## Sunfish
 
@@ -400,3 +405,27 @@ It uses the same ecology systems as other AbstractFish:
 Sunfish begin larger than ordinary fish and have a higher extreme-growth cap.
 Their first-pass renderer is intentionally simple/blocky; ecology and gameplay
 are the foundation before detailed art.
+
+
+### Fish diet correction
+
+Fish still forage dropped edible items, but a fish now refuses meat from its
+own species. This applies to both Way Around raw fish-meat items and the
+equivalent vanilla whole-fish item for cod, salmon, tropical fish and
+pufferfish. Sunfish refuse Raw Sunfish Meat.
+
+### Denser aquatic fauna
+
+Water is intentionally less empty.
+
+Additional biome spawn pressure now adds:
+
+- larger cod and squid presence across ordinary/cold/lukewarm oceans;
+- larger tropical-fish and pufferfish schools in warm oceans;
+- occasional extra dolphins in warm oceans;
+- more salmon and some squid in rivers/frozen rivers;
+- slightly more rare sunfish in oceans.
+
+The ecology processing budget for fish was also raised so the larger
+populations can still receive schooling, feeding, migration and growth updates
+near players.

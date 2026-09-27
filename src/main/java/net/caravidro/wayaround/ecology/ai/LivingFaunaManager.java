@@ -88,7 +88,7 @@ public final class LivingFaunaManager {
             240;
 
     private static final int MAX_FISH_PER_LEVEL =
-            260;
+            360;
 
     private LivingFaunaManager() {}
 
@@ -738,6 +738,10 @@ public final class LivingFaunaManager {
                                                         DataComponents.FOOD
                                                 )
                                                 != null
+                                                && !isOwnSpeciesMeat(
+                                                fish,
+                                                item.getItem()
+                                        )
                         )
                         .stream()
                         .min(
@@ -853,6 +857,61 @@ public final class LivingFaunaManager {
                 );
 
         return true;
+    }
+
+    private static boolean isOwnSpeciesMeat(
+            AbstractFish fish,
+            ItemStack stack
+    ) {
+        if (isSunFish(
+                fish
+        )) {
+            return stack.is(
+                    EcologyContent.RAW_SUNFISH_MEAT.get()
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.COD) {
+            return stack.is(
+                    EcologyContent.RAW_COD_MEAT.get()
+            )
+                    || stack.is(
+                    Items.COD
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.SALMON) {
+            return stack.is(
+                    EcologyContent.RAW_SALMON_MEAT.get()
+            )
+                    || stack.is(
+                    Items.SALMON
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.PUFFERFISH) {
+            return stack.is(
+                    EcologyContent.RAW_PUFFERFISH_MEAT.get()
+            )
+                    || stack.is(
+                    Items.PUFFERFISH
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.TROPICAL_FISH) {
+            return stack.is(
+                    EcologyContent.RAW_TROPICAL_FISH_MEAT.get()
+            )
+                    || stack.is(
+                    Items.TROPICAL_FISH
+            );
+        }
+
+        return false;
     }
 
     private static void ensureFishTraits(
