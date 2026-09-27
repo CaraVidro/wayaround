@@ -129,6 +129,72 @@ public final class EcologyContent {
                     )
             );
 
+    public static final DeferredBlock<EcologyPlantBlock> MEADOW_SEDGE =
+            BLOCKS.register(
+                    "meadow_sedge",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MEADOW_SEDGE_ITEM =
+            ITEMS.register(
+                    "meadow_sedge",
+                    () -> new BlockItem(
+                            MEADOW_SEDGE.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> CREEK_CLOVER =
+            BLOCKS.register(
+                    "creek_clover",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> CREEK_CLOVER_ITEM =
+            ITEMS.register(
+                    "creek_clover",
+                    () -> new BlockItem(
+                            CREEK_CLOVER.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> SHADE_NETTLE =
+            BLOCKS.register(
+                    "shade_nettle",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> SHADE_NETTLE_ITEM =
+            ITEMS.register(
+                    "shade_nettle",
+                    () -> new BlockItem(
+                            SHADE_NETTLE.get(),
+                            new Item.Properties()
+                    )
+            );
+
     private EcologyContent() {}
 
     public static void register(IEventBus bus) {
