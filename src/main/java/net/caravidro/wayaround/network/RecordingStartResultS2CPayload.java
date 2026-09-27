@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.media.client.MediaRecorder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -51,12 +50,6 @@ public record RecordingStartResultS2CPayload(
             RecordingStartResultS2CPayload payload,
             IPayloadContext context
     ) {
-        context.enqueueWork(
-                () -> MediaRecorder
-                        .onStartResult(
-                                payload.allowed(),
-                                payload.messageKey()
-                        )
-        );
+        ClientPayloadBridge.handleRecordingStart(payload, context);
     }
 }
