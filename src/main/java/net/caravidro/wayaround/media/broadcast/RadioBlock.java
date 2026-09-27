@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.RenderShape;
@@ -57,9 +58,29 @@ public final class RadioBlock extends BaseEntityBlock {
             if (!level.isClientSide) {
                 if (player.isShiftKeyDown()) radio.cycleVolume();
                 else radio.tune(1);
+                float quality =
+                        level instanceof ServerLevel server
+                                ? BroadcastManager.bestSignalQuality(
+                                        server,
+                                        pos,
+                                        radio.frequencyKHz()
+                                )
+                                : 0.0F;
+
                 player.displayClientMessage(
-                        Component.literal("Rádio: " + BroadcastFrequency.display(radio.frequencyKHz())
-                                + " | volume " + radio.volumePercent() + "%"),
+                        Component.literal(
+                                "Rádio: "
+                                        + BroadcastFrequency.display(
+                                        radio.frequencyKHz()
+                                )
+                                        + " | volume "
+                                        + radio.volumePercent()
+                                        + "% | sinal "
+                                        + Math.round(
+                                        quality * 100.0F
+                                )
+                                        + "%"
+                        ),
                         true
                 );
             }
