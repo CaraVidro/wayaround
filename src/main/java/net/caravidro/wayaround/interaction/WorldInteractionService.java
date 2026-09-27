@@ -19,10 +19,10 @@ import net.minecraft.world.phys.Vec3;
 public final class WorldInteractionService {
 
     private static final double MAX_RADIUS =
-            16.0;
+            8.0;
 
     private static final int MAX_RECEIVERS_PER_EMISSION =
-            128;
+            64;
 
     private WorldInteractionService() {
     }
