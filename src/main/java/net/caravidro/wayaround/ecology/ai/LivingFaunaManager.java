@@ -467,6 +467,15 @@ public final class LivingFaunaManager {
                         .orElse(null);
 
         if (food == null) {
+            data.putLong(
+                    NEXT_FEED_CHECK,
+                    now
+                            + 80L
+                            + level.random.nextInt(
+                            360
+                    )
+            );
+
             return false;
         }
 
@@ -655,24 +664,59 @@ public final class LivingFaunaManager {
                         fish
                 );
 
-                boolean feeding =
-                        feedFish(
+                boolean occupied;
+
+                if (fish
+                        instanceof ReefSharkEntity shark) {
+                    occupied =
+                            huntFish(
+                                    level,
+                                    shark
+                            );
+
+                } else {
+                    boolean fleeing =
+                            fleePredator(
+                                    level,
+                                    fish
+                            );
+
+                    boolean feeding =
+                            !fleeing
+                                    && feedFish(
+                                    level,
+                                    fish
+                            );
+
+                    boolean migrating =
+                            !fleeing
+                                    && !feeding
+                                    && migrateFish(
+                                    level,
+                                    fish
+                            );
+
+                    boolean speciesBehavior =
+                            !fleeing
+                                    && !feeding
+                                    && !migrating
+                                    && speciesBehavior(
+                                    level,
+                                    fish
+                            );
+
+                    occupied =
+                            fleeing
+                                    || feeding
+                                    || migrating
+                                    || speciesBehavior;
+
+                    if (!occupied) {
+                        schoolFish(
                                 level,
                                 fish
                         );
-
-                boolean migrating =
-                        migrateFish(
-                                level,
-                                fish
-                        );
-
-                if (!feeding
-                        && !migrating) {
-                    schoolFish(
-                            level,
-                            fish
-                    );
+                    }
                 }
 
                 reproduceFish(
@@ -704,12 +748,20 @@ public final class LivingFaunaManager {
         BlockPos spawn =
                 fish.blockPosition();
 
+        boolean coralAssociated =
+                fish.getType()
+                        == EntityType.TROPICAL_FISH
+                        || fish.getType()
+                        == EntityType.COD;
+
         BlockPos coral =
-                nearestCoral(
-                        level,
-                        spawn,
-                        16
-                );
+                coralAssociated
+                        ? nearestCoral(
+                                level,
+                                spawn,
+                                16
+                        )
+                        : null;
 
         BlockPos home =
                 coral == null
@@ -739,6 +791,34 @@ public final class LivingFaunaManager {
             ServerLevel level,
             AbstractFish fish
     ) {
+        CompoundTag data =
+                fish.getPersistentData();
+
+        long now =
+                level.getGameTime();
+
+        long nextCheck =
+                data.getLong(
+                        NEXT_FEED_CHECK
+                );
+
+        if (nextCheck <= 0L) {
+            nextCheck =
+                    now
+                            + level.random.nextInt(
+                            320
+                    );
+
+            data.putLong(
+                    NEXT_FEED_CHECK,
+                    nextCheck
+            );
+        }
+
+        if (now < nextCheck) {
+            return false;
+        }
+
         ItemEntity food =
                 level.getEntitiesOfClass(
                                 ItemEntity.class,
@@ -785,6 +865,15 @@ public final class LivingFaunaManager {
         if (fish.distanceToSqr(
                 food
         ) > 1.55 * 1.55) {
+            data.putLong(
+                    NEXT_FEED_CHECK,
+                    now
+                            + 40L
+                            + level.random.nextInt(
+                            100
+                    )
+            );
+
             return true;
         }
 
@@ -844,14 +933,11 @@ public final class LivingFaunaManager {
                 0.015
         );
 
-        CompoundTag fishData =
-                fish.getPersistentData();
-
-        fishData.putInt(
+        data.putInt(
                 FISH_MEALS,
                 Math.min(
                         10_000,
-                        fishData.getInt(
+                        data.getInt(
                                 FISH_MEALS
                         )
                                 + 1
@@ -868,12 +954,20 @@ public final class LivingFaunaManager {
             food.discard();
         }
 
-        fish.getPersistentData()
-                .putLong(
-                        SATIATED_UNTIL,
-                        level.getGameTime()
-                                + 7200L
-                );
+        data.putLong(
+                SATIATED_UNTIL,
+                now
+                        + 7200L
+        );
+
+        data.putLong(
+                NEXT_FEED_CHECK,
+                now
+                        + 500L
+                        + level.random.nextInt(
+                        2200
+                )
+        );
 
         return true;
     }
