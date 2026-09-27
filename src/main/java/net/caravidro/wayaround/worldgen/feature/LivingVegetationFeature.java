@@ -2,6 +2,7 @@ package net.caravidro.wayaround.worldgen.feature;
 
 import com.mojang.serialization.Codec;
 
+import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -100,40 +101,40 @@ public final class LivingVegetationFeature
 
     private static int densityFor(String biome) {
         if (biome.contains("jungle")) {
-            return 18;
+            return 34;
         }
 
         if (biome.contains("dark_forest")) {
-            return 15;
+            return 29;
         }
 
         if (biome.contains("old_growth")) {
-            return 13;
+            return 25;
         }
 
         if (biome.contains("forest")) {
-            return 11;
+            return 22;
         }
 
         if (biome.contains("taiga")
                 || biome.contains("grove")) {
-            return 10;
+            return 19;
         }
 
         if (biome.contains("river")) {
-            return 7;
+            return 14;
         }
 
         if (biome.contains("savanna")) {
-            return 5;
+            return 9;
         }
 
         if (biome.contains("meadow")) {
-            return 3;
+            return 7;
         }
 
         if (biome.contains("plains")) {
-            return 2;
+            return 6;
         }
 
         return 0;
@@ -225,7 +226,88 @@ public final class LivingVegetationFeature
             );
         }
 
+        placeUnderstory(
+                level,
+                base,
+                riverDirection != null,
+                random
+        );
+
         return true;
+    }
+
+    private static void placeUnderstory(
+            WorldGenLevel level,
+            BlockPos base,
+            boolean nearRiver,
+            RandomSource random
+    ) {
+        int attempts =
+                7
+                        + random.nextInt(9);
+
+        for (int i = 0; i < attempts; i++) {
+            BlockPos pos =
+                    base.offset(
+                            random.nextInt(9) - 4,
+                            0,
+                            random.nextInt(9) - 4
+                    );
+
+            while (pos.getY() > level.getMinBuildHeight()
+                    && level.getBlockState(pos).isAir()) {
+                pos = pos.below();
+            }
+
+            BlockPos above =
+                    pos.above();
+
+            if (!level.getBlockState(above).isAir()) {
+                continue;
+            }
+
+            BlockState ground =
+                    level.getBlockState(pos);
+
+            if (!validGround(ground)) {
+                continue;
+            }
+
+            BlockState plant;
+            float pick =
+                    random.nextFloat();
+
+            if (nearRiver
+                    && pick < 0.32F) {
+                plant =
+                        EcologyContent.RIVER_SPRIG.get()
+                                .defaultBlockState();
+
+            } else if (pick < 0.58F) {
+                plant =
+                        EcologyContent.DAMP_FERN.get()
+                                .defaultBlockState();
+
+            } else if (pick < 0.78F) {
+                plant =
+                        EcologyContent.WOODLAND_SORREL.get()
+                                .defaultBlockState();
+
+            } else {
+                plant =
+                        random.nextBoolean()
+                                ? Blocks.FERN.defaultBlockState()
+                                : Blocks.SHORT_GRASS.defaultBlockState();
+            }
+
+            if (plant.canSurvive(level, above)) {
+                level.setBlock(
+                        above,
+                        plant,
+                        2
+                );
+            }
+        }
     }
 
     private static void placeCanopy(

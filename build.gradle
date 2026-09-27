@@ -312,6 +312,14 @@ tasks.register('timeAgingRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('timeAgingRegressionTest') }
 
+// Living Ecology invariants.
+tasks.register('ecologyRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.ecology.EcologyRulesTest'
+}
+tasks.named('check') { dependsOn tasks.named('ecologyRegressionTest') }
+
 // Guard Infinity's damage ceiling and visible, bounded projectile braking.
 tasks.register('infinityRegressionTest', JavaExec) {
     dependsOn tasks.named('spectrumTestClasses')

@@ -6,6 +6,7 @@ import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.blue.ImaginaryBetaManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.content.OddityContent;
+import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.industrial.IndustrialContent;
 import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
@@ -50,6 +51,7 @@ public class WayAround {
         // Registros do mod.
         WayAroundContent.register(modEventBus);
         OddityContent.register(modEventBus);
+        EcologyContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
         WarContent.register(modEventBus);
         MediaContent.register(modEventBus);

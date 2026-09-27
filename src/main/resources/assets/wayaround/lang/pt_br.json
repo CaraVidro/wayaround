@@ -310,5 +310,10 @@
   "item.wayaround.ship_anchor": "Âncora de Navio",
   "item.wayaround.anchor_chain": "Corrente da Âncora",
   "item.wayaround.ship_chair": "Cadeira de Navio",
-  "entity.wayaround.assembly_ship": "Navio Assembly Experimental"
+  "entity.wayaround.assembly_ship": "Navio Assembly Experimental",
+  "block.wayaround.rotting_log": "Tronco em Decomposição",
+  "block.wayaround.river_pebbles": "Pedrinhas de Rio",
+  "block.wayaround.river_sprig": "Broto Ribeirinho",
+  "block.wayaround.woodland_sorrel": "Azeda do Bosque",
+  "block.wayaround.damp_fern": "Samambaia Úmida"
 }

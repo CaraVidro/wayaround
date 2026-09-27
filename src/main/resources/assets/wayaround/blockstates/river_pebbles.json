@@ -1,0 +1,164 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "count": "1",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_1",
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "count": "1",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_1",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "count": "1",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_1",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "count": "1",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_1",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "count": "2",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_2",
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "count": "2",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_2",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "count": "2",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_2",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "count": "2",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_2",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "count": "3",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_3",
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "count": "3",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_3",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "count": "3",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_3",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "count": "3",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_3",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "count": "4",
+        "facing": "north"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_4",
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "count": "4",
+        "facing": "east"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_4",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "count": "4",
+        "facing": "south"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_4",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "count": "4",
+        "facing": "west"
+      },
+      "apply": {
+        "model": "wayaround:block/river_pebbles_4",
+        "y": 270
+      }
+    }
+  ]
+}

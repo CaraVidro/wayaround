@@ -65,8 +65,8 @@ public enum WorldFeature {
 
     LIVING_VEGETATION(
             WorldFeatureCategory.WORLD,
-            "Living Vegetation",
-            "Extra vegetation generation and environmental vegetation behavior."
+            "Living Ecology",
+            "Wild vegetation, rain succession, decomposition, river sediment and autonomous wildlife ecology."
     ),
 
     ANTARCTICA(
