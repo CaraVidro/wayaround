@@ -116,7 +116,7 @@ public final class PowerContent {
         () -> new Item(new Item.Properties().stacksTo(16)));
 
     public static final DeferredItem<Item> SAWMILL_CRANK = ITEMS.register("sawmill_crank",
-        () -> new Item(new Item.Properties().stacksTo(1).durability(256)));
+        () -> new Item(new Item.Properties().stacksTo(1)));
 
     public static final DeferredBlock<SawmillBlock> SAWMILL = BLOCKS.register("sawmill",
         () -> new SawmillBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
