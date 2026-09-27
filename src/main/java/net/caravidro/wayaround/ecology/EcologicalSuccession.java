@@ -492,6 +492,99 @@ public final class EcologicalSuccession {
 
         if (!level.getFluidState(waterPos)
                 .is(FluidTags.WATER)) {
+
+            boolean nearWater =
+                    false;
+
+            for (Direction direction :
+                    Direction.Plane.HORIZONTAL) {
+                for (int distance = 1;
+                     distance <= 3;
+                     distance++) {
+                    BlockPos probe =
+                            ground.relative(
+                                    direction,
+                                    distance
+                            );
+
+                    if (level.getFluidState(
+                            probe
+                                    .above()
+                    ).is(
+                            FluidTags.WATER
+                    )
+                            || level.getFluidState(
+                            probe
+                    ).is(
+                            FluidTags.WATER
+                    )) {
+                        nearWater =
+                                true;
+                        break;
+                    }
+                }
+
+                if (nearWater) {
+                    break;
+                }
+            }
+
+            BlockState groundState =
+                    level.getBlockState(
+                            ground
+                    );
+
+            if (nearWater
+                    && level.getBlockState(
+                    waterPos
+            ).isAir()
+                    && (
+                    groundState.is(Blocks.GRAVEL)
+                            || groundState.is(Blocks.SAND)
+                            || groundState.is(Blocks.DIRT)
+                            || groundState.is(Blocks.COARSE_DIRT)
+                            || groundState.is(Blocks.STONE)
+            )
+                    && random.nextFloat()
+                            < (
+                            initial
+                                    ? 0.22F
+                                    : 0.055F
+                    )) {
+
+                Direction[] directions = {
+                        Direction.NORTH,
+                        Direction.SOUTH,
+                        Direction.EAST,
+                        Direction.WEST
+                };
+
+                level.setBlockAndUpdate(
+                        waterPos,
+                        EcologyContent.RIVER_PEBBLES.get()
+                                .defaultBlockState()
+                                .setValue(
+                                        RiverPebbleBlock.COUNT,
+                                        1
+                                                + random.nextInt(
+                                                10
+                                        )
+                                )
+                                .setValue(
+                                        RiverPebbleBlock.FACING,
+                                        directions[
+                                                random.nextInt(
+                                                        directions.length
+                                                )
+                                                ]
+                                )
+                                .setValue(
+                                        RiverPebbleBlock.WATERLOGGED,
+                                        false
+                                )
+                );
+            }
+
             return;
         }
 
@@ -599,7 +692,7 @@ public final class EcologicalSuccession {
                             .defaultBlockState()
                             .setValue(
                                     RiverPebbleBlock.COUNT,
-                                    1 + random.nextInt(4)
+                                    3 + random.nextInt(13)
                             )
                             .setValue(
                                     RiverPebbleBlock.FACING,
