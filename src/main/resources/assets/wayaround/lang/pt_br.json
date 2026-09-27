@@ -346,5 +346,6 @@
   "item.wayaround.raw_salmon_meat": "Carne Crua de Salmão",
   "item.wayaround.raw_tropical_fish_meat": "Carne Crua de Peixe Tropical",
   "item.wayaround.raw_pufferfish_meat": "Carne Crua de Baiacu",
-  "item.wayaround.raw_sunfish_meat": "Carne Crua de Peixe-Lua"
+  "item.wayaround.raw_sunfish_meat": "Carne Crua de Peixe-Lua",
+  "entity.wayaround.sunfish": "Peixe-Lua"
 }
