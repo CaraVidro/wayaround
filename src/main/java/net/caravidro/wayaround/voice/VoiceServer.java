@@ -32,10 +32,19 @@ public final class VoiceServer {
         }
 
         /*
-         * During possession the host is literally only an observer. Their mic
-         * is server-muted too, not merely hidden in the UI.
+         * Fantasma do Tukuna CONTINUA podendo falar.
+         *
+         * Spectator e apenas o estado fisico do fantasma; nao e mute. O unico
+         * jogador silenciado e o host enquanto ele esta preso assistindo a
+         * propria possessao. Assim a morte nao desliga PTT/voice activation.
          */
-        if (TukunaManager.isSilencedHost(
+        boolean tukunaGhost =
+                TukunaManager.isGhost(
+                        sender
+                );
+
+        if (!tukunaGhost
+                && TukunaManager.isSilencedHost(
                 sender
         )) {
             return;
@@ -46,9 +55,11 @@ public final class VoiceServer {
         }
 
         ServerPlayer projectionHost =
-                TukunaManager.projectedVoiceHost(
-                        sender
-                );
+                tukunaGhost
+                        ? TukunaManager.projectedVoiceHost(
+                                sender
+                        )
+                        : null;
 
         if (projectionHost != null) {
             relayProjectedGhost(
