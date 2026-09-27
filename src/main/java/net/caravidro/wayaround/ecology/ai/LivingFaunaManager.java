@@ -725,10 +725,21 @@ public final class LivingFaunaManager {
                                         == fish.getType()
                 );
 
+        boolean satiated =
+                data.getLong(
+                        SATIATED_UNTIL
+                )
+                        > now;
+
+        float reproductionChance =
+                satiated
+                        ? 0.036F
+                        : 0.016F;
+
         if (local.size() >= 22
                 || local.size() < 2
                 || level.random.nextFloat()
-                        > 0.022F) {
+                        > reproductionChance) {
             return;
         }
 
