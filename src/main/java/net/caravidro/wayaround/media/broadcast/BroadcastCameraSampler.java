@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 
 public final class BroadcastCameraSampler {
     public static final int WIDTH = 32;
@@ -65,7 +66,7 @@ public final class BroadcastCameraSampler {
                         end,
                         ClipContext.Block.COLLIDER,
                         ClipContext.Fluid.ANY,
-                        (net.minecraft.world.entity.Entity) null
+                        CollisionContext.empty()
                 ));
 
                 int color;
