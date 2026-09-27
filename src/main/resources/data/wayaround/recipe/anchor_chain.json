@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "C",
+    "C",
+    "C"
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:chain"
+    }
+  },
+  "result": {
+    "id": "wayaround:anchor_chain",
+    "count": 1
+  }
+}
