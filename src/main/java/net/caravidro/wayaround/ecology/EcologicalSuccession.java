@@ -169,7 +169,12 @@ public final class EcologicalSuccession {
             BlockPos surface,
             RandomSource random
     ) {
-        BlockPos ground = surface.below();
+        BlockPos ground =
+                ecologyGround(
+                        level,
+                        surface
+                );
+
         BlockState state = level.getBlockState(ground);
         boolean wet = humid(level, ground);
 
@@ -215,7 +220,11 @@ public final class EcologicalSuccession {
                         + random.nextInt(65) - 32;
 
                 BlockPos surface = surface(level, x, z);
-                BlockPos ground = surface.below();
+                BlockPos ground =
+                        ecologyGround(
+                                level,
+                                surface
+                        );
 
                 if (!level.hasChunkAt(ground)) {
                     continue;
@@ -619,6 +628,29 @@ public final class EcologicalSuccession {
         }
 
         return false;
+    }
+
+    private static BlockPos ecologyGround(
+            ServerLevel level,
+            BlockPos surface
+    ) {
+        BlockPos cursor =
+                surface.below();
+
+        int depth =
+                0;
+
+        while (depth < 24
+                && level.getFluidState(
+                cursor
+        ).is(FluidTags.WATER)) {
+            cursor =
+                    cursor.below();
+
+            depth++;
+        }
+
+        return cursor;
     }
 
     private static BlockPos surface(
