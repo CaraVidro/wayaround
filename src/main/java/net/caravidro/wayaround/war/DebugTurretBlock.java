@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.war;
 
 import com.mojang.serialization.MapCodec;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -44,6 +46,7 @@ public final class DebugTurretBlock extends DirectionalBlock {
         return defaultBlockState().setValue(FACING, context.getNearestLookingDirection());
     }
     private InteractionResult interact(BlockState state, Level level, BlockPos pos, Player player) {
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.WAR_WITHOUT_REASON)) return InteractionResult.FAIL;
         if (!level.isClientSide) {
             if (player.isShiftKeyDown()) state = state.cycle(AMMO);
             else state = state.cycle(ACTIVE);
@@ -64,6 +67,10 @@ public final class DebugTurretBlock extends DirectionalBlock {
     }
     @Override protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
         if (!state.getValue(ACTIVE)) return;
+        if (!WorldFeatureRuntime.enabled(level, WorldFeature.WAR_WITHOUT_REASON)) {
+            level.setBlock(pos, state.setValue(ACTIVE, false), 3);
+            return;
+        }
         // An unattended test fixture must not fill a frozen field with unbounded entities.
         if (level.getEntities((net.minecraft.world.entity.Entity) null,
                 new net.minecraft.world.phys.AABB(pos).inflate(64),

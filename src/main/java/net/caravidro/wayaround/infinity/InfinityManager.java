@@ -567,7 +567,8 @@ public final class InfinityManager {
         var wall = level.clip(new net.minecraft.world.level.ClipContext(from, entry,
                 net.minecraft.world.level.ClipContext.Block.COLLIDER,
                 net.minecraft.world.level.ClipContext.Fluid.NONE, projectile));
-        if (wall.getType() != net.minecraft.world.phys.HitResult.Type.MISS) return false;
+        if (wall.getType() != net.minecraft.world.phys.HitResult.Type.MISS
+                || hitsEntityBefore(level, projectile, from, entry)) return false;
         ServerPlayer owner = level.getServer().getPlayerList().getPlayer(nearest.owner);
         Vec3 center = owner.getEyePosition();
         double distance = entry.distanceTo(center);
@@ -587,9 +588,12 @@ public final class InfinityManager {
         var innerWall = level.clip(new net.minecraft.world.level.ClipContext(entry, next,
                 net.minecraft.world.level.ClipContext.Block.COLLIDER,
                 net.minecraft.world.level.ClipContext.Fluid.NONE, projectile));
-        if (innerWall.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
+        if (innerWall.getType() != net.minecraft.world.phys.HitResult.Type.MISS
+                || hitsEntityBefore(level, projectile, entry, next)) {
             // Let the projectile's own collision code process the wall at its reduced speed.
-            projectile.setDeltaMovement(innerWall.getLocation().subtract(from).scale(1.001));
+            Vec3 collisionStep = innerWall.getType() == net.minecraft.world.phys.HitResult.Type.MISS
+                    ? next : innerWall.getLocation();
+            projectile.setDeltaMovement(collisionStep.subtract(from).scale(1.001));
             return false;
         }
         projectile.setPos(next);
@@ -597,6 +601,16 @@ public final class InfinityManager {
         projectile.hurtMarked = true;
         projectile.hasImpulse = true;
         return true;
+    }
+
+    private static boolean hitsEntityBefore(ServerLevel level, Entity projectile, Vec3 from, Vec3 to) {
+        if (from.distanceToSqr(to) < 1.0E-9) return false;
+        return net.minecraft.world.entity.projectile.ProjectileUtil.getEntityHitResult(
+                level, projectile, from, to, new AABB(from, to).inflate(0.3),
+                candidate -> candidate.isAlive() && candidate.isPickable() && !candidate.isSpectator()
+                        && !(candidate instanceof Projectile) && !(candidate instanceof WarProjectileEntity)
+                        && !(projectile instanceof Projectile shot && shot.getOwner() == candidate)
+                        && !(projectile instanceof WarProjectileEntity round && round.ownedBy(candidate.getUUID()))) != null;
     }
 
     private static void holdProjectile(
