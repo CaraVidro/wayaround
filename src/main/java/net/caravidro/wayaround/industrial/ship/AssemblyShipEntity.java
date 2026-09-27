@@ -2066,6 +2066,9 @@ public final class AssemblyShipEntity
                 seat.x,
                 0.62,
                 seat.z
+        ).yRot(
+                -getYRot()
+                        * Mth.DEG_TO_RAD
         );
     }
 
