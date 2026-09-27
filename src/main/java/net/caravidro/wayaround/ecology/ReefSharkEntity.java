@@ -13,7 +13,9 @@ import net.minecraft.world.level.Level;
  * Rare coastal/ocean predator. Hunting behavior is orchestrated by the shared
  * LivingFaunaManager so prey species can react through the same ecology layer.
  */
-public final class ReefSharkEntity extends AbstractFish {
+public final class ReefSharkEntity
+        extends AbstractFish
+        implements AquaticPredator {
 
     public ReefSharkEntity(
             EntityType<? extends ReefSharkEntity> type,
@@ -50,5 +52,40 @@ public final class ReefSharkEntity extends AbstractFish {
     @Override
     public int getMaxSpawnClusterSize() {
         return 2;
+    }
+
+    @Override
+    public double huntRadius() {
+        return 18.0;
+    }
+
+    @Override
+    public double huntVerticalRadius() {
+        return 8.0;
+    }
+
+    @Override
+    public double huntSpeed() {
+        return 1.48;
+    }
+
+    @Override
+    public double biteReach() {
+        return 1.65;
+    }
+
+    @Override
+    public float biteBaseDamage() {
+        return 4.5F;
+    }
+
+    @Override
+    public float biteScaleDamage() {
+        return 1.5F;
+    }
+
+    @Override
+    public int scareTicks() {
+        return 160;
     }
 }
