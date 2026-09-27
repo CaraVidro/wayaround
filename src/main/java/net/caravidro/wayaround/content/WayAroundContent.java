@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.content;
 
 import net.caravidro.wayaround.content.item.VoidSpectrumItem;
+import net.caravidro.wayaround.debug.DebugTurretBlock;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.block.PrioriteBlock;
@@ -66,6 +67,22 @@ public final class WayAroundContent {
                     )
             );
 
+    public static final DeferredBlock<DebugTurretBlock> DEBUG_TURRET =
+            BLOCKS.register(
+                    "debug_turret",
+                    () -> new DebugTurretBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.METAL)
+                                    .strength(
+                                            3.5F,
+                                            6.0F
+                                    )
+                                    .sound(
+                                            SoundType.METAL
+                                    )
+                    )
+            );
+
     /*
      * BlockItem de debug / criativo.
      * Depois, se quiser, pode remover.
@@ -75,6 +92,15 @@ public final class WayAroundContent {
                     "priorite",
                     () -> new BlockItem(
                             PRIORITE.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> DEBUG_TURRET_ITEM =
+            ITEMS.register(
+                    "debug_turret",
+                    () -> new BlockItem(
+                            DEBUG_TURRET.get(),
                             new Item.Properties()
                     )
             );
