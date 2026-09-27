@@ -145,6 +145,18 @@ public final class LivingFaunaManager {
         }
 
         if (event.getEntity()
+                instanceof SardineEntity) {
+            event.setSize(
+                    Math.min(
+                            64,
+                            Math.max(
+                                    24,
+                                    event.getSize() * 3
+                            )
+                    )
+            );
+
+        } else if (event.getEntity()
                 instanceof AbstractFish) {
             event.setSize(
                     EcologyRules.enlargedCluster(
@@ -1620,6 +1632,33 @@ public final class LivingFaunaManager {
                                         * 1.02F;
             }
 
+            if (fish
+                    instanceof SardineEntity) {
+                /*
+                 * Sardines stay genuinely tiny even in a world where other
+                 * fish can occasionally become monsters.
+                 */
+                base =
+                        anomaly < 0.025F
+                                ? 0.07F
+                                        + level.random.nextFloat()
+                                                * 0.09F
+                                : 0.16F
+                                        + level.random.nextFloat()
+                                                * 0.22F;
+
+            } else if (fish
+                    instanceof ReefSharkEntity) {
+                base =
+                        anomaly < 0.006F
+                                ? 1.75F
+                                        + level.random.nextFloat()
+                                                * 1.05F
+                                : 0.90F
+                                        + level.random.nextFloat()
+                                                * 0.55F;
+            }
+
             data.putFloat(
                     FISH_BASE_SIZE,
                     base
@@ -1729,6 +1768,23 @@ public final class LivingFaunaManager {
                     )
                             ? 3.85F
                             : 3.15F;
+        }
+
+        if (fish
+                instanceof SardineEntity) {
+            cap =
+                    Math.min(
+                            cap,
+                            0.72F
+                    );
+
+        } else if (fish
+                instanceof ReefSharkEntity) {
+            cap =
+                    Math.max(
+                            cap,
+                            2.85F
+                    );
         }
 
         /*
@@ -2080,12 +2136,51 @@ public final class LivingFaunaManager {
                 )
                         > now;
 
-        float reproductionChance =
-                satiated
-                        ? 0.036F
-                        : 0.016F;
+        float reproductionChance;
 
-        if (local.size() >= 34
+        int localCap;
+
+        if (fish
+                instanceof SardineEntity) {
+            reproductionChance =
+                    satiated
+                            ? 0.085F
+                            : 0.045F;
+
+            localCap =
+                    72;
+
+        } else if (fish
+                instanceof ReefSharkEntity) {
+            reproductionChance =
+                    satiated
+                            ? 0.009F
+                            : 0.004F;
+
+            localCap =
+                    4;
+
+        } else if (fish
+                instanceof SunfishEntity) {
+            reproductionChance =
+                    satiated
+                            ? 0.014F
+                            : 0.006F;
+
+            localCap =
+                    8;
+
+        } else {
+            reproductionChance =
+                    satiated
+                            ? 0.036F
+                            : 0.016F;
+
+            localCap =
+                    34;
+        }
+
+        if (local.size() >= localCap
                 || local.size() < 2
                 || level.random.nextFloat()
                         > reproductionChance) {
