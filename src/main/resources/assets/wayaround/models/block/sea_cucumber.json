@@ -1,0 +1,42 @@
+{
+  "textures": {
+    "all": "minecraft:block/moss_block",
+    "particle": "minecraft:block/moss_block"
+  },
+  "elements": [
+    {
+      "from": [2, 0, 5],
+      "to": [14, 4, 11],
+      "faces": {
+        "down": {"texture": "#all", "cullface": "down"},
+        "up": {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "west": {"texture": "#all"},
+        "east": {"texture": "#all"}
+      }
+    },
+    {
+      "from": [4, 3, 6],
+      "to": [6, 5, 8],
+      "faces": {
+        "up": {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "west": {"texture": "#all"},
+        "east": {"texture": "#all"}
+      }
+    },
+    {
+      "from": [9, 3, 7],
+      "to": [11, 5, 9],
+      "faces": {
+        "up": {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "west": {"texture": "#all"},
+        "east": {"texture": "#all"}
+      }
+    }
+  ]
+}

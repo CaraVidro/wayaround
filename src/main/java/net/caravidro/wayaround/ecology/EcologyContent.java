@@ -146,6 +146,26 @@ public final class EcologyContent {
                             .build("wayaround:oarfish")
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<WhaleEntity>> WHALE =
+            ENTITIES.register(
+                    "whale",
+                    () -> EntityType.Builder
+                            .of(WhaleEntity::new, MobCategory.WATER_CREATURE)
+                            .sized(4.80F, 2.15F)
+                            .clientTrackingRange(16)
+                            .build("wayaround:whale")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<SeagullEntity>> SEAGULL =
+            ENTITIES.register(
+                    "seagull",
+                    () -> EntityType.Builder
+                            .of(SeagullEntity::new, MobCategory.CREATURE)
+                            .sized(0.82F, 0.48F)
+                            .clientTrackingRange(12)
+                            .build("wayaround:seagull")
+            );
+
     public static final DeferredItem<SpawnEggItem> SARDINE_SPAWN_EGG =
             ITEMS.registerItem(
                     "sardine_spawn_egg",
@@ -230,6 +250,28 @@ public final class EcologyContent {
                             OARFISH.get(),
                             0xE6E2D6,
                             0xB52F39,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> WHALE_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "whale_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            WHALE.get(),
+                            0x334B5D,
+                            0xBFCAD0,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> SEAGULL_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "seagull_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            SEAGULL.get(),
+                            0xF2F2ED,
+                            0x7D858B,
                             properties
                     )
             );
@@ -427,6 +469,94 @@ public final class EcologyContent {
                     )
             );
 
+    public static final DeferredBlock<AquaticFloorLifeBlock> SEA_CUCUMBER =
+            BLOCKS.register(
+                    "sea_cucumber",
+                    () -> new AquaticFloorLifeBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .strength(0.25F)
+                                    .sound(SoundType.GRASS)
+                                    .noCollission()
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> SEA_CUCUMBER_ITEM =
+            ITEMS.register(
+                    "sea_cucumber",
+                    () -> new BlockItem(
+                            SEA_CUCUMBER.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<AquaticFloorLifeBlock> SEA_SPONGE =
+            BLOCKS.register(
+                    "sea_sponge",
+                    () -> new AquaticFloorLifeBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .strength(0.35F)
+                                    .sound(SoundType.GRASS)
+                                    .noCollission()
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> SEA_SPONGE_ITEM =
+            ITEMS.register(
+                    "sea_sponge",
+                    () -> new BlockItem(
+                            SEA_SPONGE.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<AquaticFloorLifeBlock> SEA_LETTUCE =
+            BLOCKS.register(
+                    "sea_lettuce",
+                    () -> new AquaticFloorLifeBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .strength(0.10F)
+                                    .sound(SoundType.GRASS)
+                                    .noCollission()
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> SEA_LETTUCE_ITEM =
+            ITEMS.register(
+                    "sea_lettuce",
+                    () -> new BlockItem(
+                            SEA_LETTUCE.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<AquaticFloorLifeBlock> SEAGRASS_TUFT =
+            BLOCKS.register(
+                    "seagrass_tuft",
+                    () -> new AquaticFloorLifeBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .strength(0.10F)
+                                    .sound(SoundType.GRASS)
+                                    .noCollission()
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> SEAGRASS_TUFT_ITEM =
+            ITEMS.register(
+                    "seagrass_tuft",
+                    () -> new BlockItem(
+                            SEAGRASS_TUFT.get(),
+                            new Item.Properties()
+                    )
+            );
+
     private static final FoodProperties RAW_FISH_MEAT =
             new FoodProperties.Builder()
                     .nutrition(2)
@@ -516,6 +646,20 @@ public final class EcologyContent {
                     )
             );
 
+    public static final DeferredItem<Item> RAW_WHALE_MEAT =
+            ITEMS.register(
+                    "raw_whale_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            new FoodProperties.Builder()
+                                                    .nutrition(6)
+                                                    .saturationModifier(0.42F)
+                                                    .build()
+                                    )
+                    )
+            );
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> AGUA_WORLD =
             TABS.register(
                     "agua_world",
@@ -559,6 +703,12 @@ public final class EcologyContent {
                                                 OARFISH_SPAWN_EGG.get()
                                         );
                                         output.accept(
+                                                WHALE_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                SEAGULL_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
                                                 RAW_SARDINE_MEAT.get()
                                         );
                                         output.accept(
@@ -566,6 +716,21 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 RAW_SHARK_MEAT.get()
+                                        );
+                                        output.accept(
+                                                RAW_WHALE_MEAT.get()
+                                        );
+                                        output.accept(
+                                                SEA_CUCUMBER_ITEM.get()
+                                        );
+                                        output.accept(
+                                                SEA_SPONGE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                SEA_LETTUCE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                SEAGRASS_TUFT_ITEM.get()
                                         );
                                     }
                             )

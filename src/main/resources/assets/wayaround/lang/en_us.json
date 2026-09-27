@@ -366,5 +366,18 @@
   "item.wayaround.barracuda_spawn_egg": "Barracuda Spawn Egg",
   "item.wayaround.seahorse_spawn_egg": "Seahorse Spawn Egg",
   "item.wayaround.jellyfish_spawn_egg": "Jellyfish Spawn Egg",
-  "item.wayaround.oarfish_spawn_egg": "Oarfish Spawn Egg"
+  "item.wayaround.oarfish_spawn_egg": "Oarfish Spawn Egg",
+  "entity.wayaround.whale": "Whale",
+  "entity.wayaround.seagull": "Seagull",
+  "item.wayaround.whale_spawn_egg": "Whale Spawn Egg",
+  "item.wayaround.seagull_spawn_egg": "Seagull Spawn Egg",
+  "item.wayaround.raw_whale_meat": "Raw Whale Meat",
+  "block.wayaround.sea_cucumber": "Sea Cucumber",
+  "item.wayaround.sea_cucumber": "Sea Cucumber",
+  "block.wayaround.sea_sponge": "Sea Sponge",
+  "item.wayaround.sea_sponge": "Sea Sponge",
+  "block.wayaround.sea_lettuce": "Sea Lettuce",
+  "item.wayaround.sea_lettuce": "Sea Lettuce",
+  "block.wayaround.seagrass_tuft": "Seagrass Tuft",
+  "item.wayaround.seagrass_tuft": "Seagrass Tuft"
 }

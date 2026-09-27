@@ -2,6 +2,7 @@ package net.caravidro.wayaround.worldgen.feature;
 
 import com.mojang.serialization.Codec;
 
+import net.caravidro.wayaround.ecology.AquaticFloorLifeBlock;
 import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -55,6 +56,15 @@ public final class LivingVegetationFeature
                         .map(key -> key.location().getPath())
                         .orElse("");
 
+        if (biome.contains("ocean")) {
+            return placeOceanFloorLife(
+                    level,
+                    origin,
+                    biome,
+                    random
+            );
+        }
+
         int attempts = densityFor(biome);
 
         if (attempts <= 0) {
@@ -97,6 +107,181 @@ public final class LivingVegetationFeature
         }
 
         return placed > 0;
+    }
+
+    private static boolean placeOceanFloorLife(
+            WorldGenLevel level,
+            BlockPos origin,
+            String biome,
+            RandomSource random
+    ) {
+        int attempts =
+                biome.contains("warm_ocean")
+                        ? 42
+                        : biome.contains("deep")
+                                ? 27
+                                : 34;
+
+        int placed =
+                0;
+
+        for (int i = 0;
+             i < attempts;
+             i++) {
+            int x =
+                    origin.getX()
+                            + random.nextInt(16);
+
+            int z =
+                    origin.getZ()
+                            + random.nextInt(16);
+
+            int y =
+                    level.getHeight(
+                            Heightmap.Types.OCEAN_FLOOR_WG,
+                            x,
+                            z
+                    );
+
+            BlockPos pos =
+                    new BlockPos(
+                            x,
+                            y,
+                            z
+                    );
+
+            if (!level.getFluidState(pos)
+                    .is(
+                            FluidTags.WATER
+                    )) {
+                continue;
+            }
+
+            if (!validOceanFloor(
+                    level.getBlockState(
+                            pos.below()
+                    )
+            )) {
+                continue;
+            }
+
+            float pick =
+                    random.nextFloat();
+
+            BlockState life;
+
+            if (biome.contains("warm_ocean")
+                    && pick < 0.24F) {
+                life =
+                        EcologyContent.SEA_SPONGE.get()
+                                .defaultBlockState();
+
+            } else if (pick < 0.44F) {
+                life =
+                        EcologyContent.SEA_CUCUMBER.get()
+                                .defaultBlockState();
+
+            } else if (pick < 0.69F) {
+                life =
+                        EcologyContent.SEA_LETTUCE.get()
+                                .defaultBlockState();
+
+            } else {
+                life =
+                        EcologyContent.SEAGRASS_TUFT.get()
+                                .defaultBlockState();
+            }
+
+            life =
+                    life.setValue(
+                            AquaticFloorLifeBlock.WATERLOGGED,
+                            true
+                    );
+
+            if (!life.canSurvive(
+                    level,
+                    pos
+            )) {
+                continue;
+            }
+
+            level.setBlock(
+                    pos,
+                    life,
+                    2
+            );
+
+            placed++;
+
+            if (random.nextFloat() < 0.34F) {
+                int ox =
+                        x
+                                + random.nextInt(3)
+                                - 1;
+
+                int oz =
+                        z
+                                + random.nextInt(3)
+                                - 1;
+
+                int oy =
+                        level.getHeight(
+                                Heightmap.Types.OCEAN_FLOOR_WG,
+                                ox,
+                                oz
+                        );
+
+                BlockPos neighbor =
+                        new BlockPos(
+                                ox,
+                                oy,
+                                oz
+                        );
+
+                if (level.getFluidState(
+                        neighbor
+                ).is(
+                        FluidTags.WATER
+                )
+                        && validOceanFloor(
+                        level.getBlockState(
+                                neighbor.below()
+                        )
+                )
+                        && life.canSurvive(
+                        level,
+                        neighbor
+                )) {
+                    level.setBlock(
+                            neighbor,
+                            life,
+                            2
+                    );
+
+                    placed++;
+                }
+            }
+        }
+
+        return placed > 0;
+    }
+
+    private static boolean validOceanFloor(
+            BlockState state
+    ) {
+        return state.is(Blocks.SAND)
+                || state.is(Blocks.RED_SAND)
+                || state.is(Blocks.GRAVEL)
+                || state.is(Blocks.CLAY)
+                || state.is(Blocks.STONE)
+                || state.is(Blocks.DEEPSLATE)
+                || state.is(Blocks.MUD)
+                || state.is(Blocks.DIRT)
+                || state.is(Blocks.TUBE_CORAL_BLOCK)
+                || state.is(Blocks.BRAIN_CORAL_BLOCK)
+                || state.is(Blocks.BUBBLE_CORAL_BLOCK)
+                || state.is(Blocks.FIRE_CORAL_BLOCK)
+                || state.is(Blocks.HORN_CORAL_BLOCK);
     }
 
     private static int densityFor(String biome) {

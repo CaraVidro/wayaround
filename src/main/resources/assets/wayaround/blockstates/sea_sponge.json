@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "waterlogged=false": {
+      "model": "wayaround:block/sea_sponge"
+    },
+    "waterlogged=true": {
+      "model": "wayaround:block/sea_sponge"
+    }
+  }
+}

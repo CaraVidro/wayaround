@@ -17,6 +17,8 @@ import net.caravidro.wayaround.ecology.BarracudaEntity;
 import net.caravidro.wayaround.ecology.SeahorseEntity;
 import net.caravidro.wayaround.ecology.JellyfishEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
+import net.caravidro.wayaround.ecology.SeagullEntity;
+import net.caravidro.wayaround.ecology.WhaleEntity;
 import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
@@ -227,6 +229,10 @@ public final class LivingFaunaManager {
             meat =
                     EcologyContent.RAW_SHARK_MEAT.get();
 
+        } else if (fish instanceof WhaleEntity) {
+            meat =
+                    EcologyContent.RAW_WHALE_MEAT.get();
+
         } else if (isSunFish(
                 fish
         )) {
@@ -262,7 +268,11 @@ public final class LivingFaunaManager {
                                         fishSize(
                                                 fish
                                         )
-                                                * 4.0F
+                                                * (
+                                                fish instanceof WhaleEntity
+                                                        ? 12.0F
+                                                        : 4.0F
+                                        )
                                 )
                         )
                 );
@@ -303,6 +313,9 @@ public final class LivingFaunaManager {
             }
 
             tickAnimals(level);
+            MarineInteractionModule.tickSeagulls(
+                    level
+            );
             tickFish(level);
         }
     }
@@ -658,6 +671,14 @@ public final class LivingFaunaManager {
                     continue;
                 }
 
+                if (fish.getVehicle()
+                        instanceof SeagullEntity) {
+                    fish.setAirSupply(
+                            fish.getMaxAirSupply()
+                    );
+                    continue;
+                }
+
                 ensureFishHome(
                         level,
                         fish
@@ -675,7 +696,14 @@ public final class LivingFaunaManager {
 
                 boolean occupied;
 
-                if (fish
+                if (fish instanceof WhaleEntity whale) {
+                    occupied =
+                            whaleFilterFeedBehavior(
+                                    level,
+                                    whale
+                            );
+
+                } else if (fish
                         instanceof AquaticPredator predator) {
                     occupied =
                             huntFish(
@@ -1009,6 +1037,7 @@ public final class LivingFaunaManager {
                                         candidate.isAlive()
                                                 && candidate != hunter
                                                 && !(candidate instanceof AquaticPredator)
+                                                && !(candidate instanceof WhaleEntity)
                                                 && (
                                                 !(candidate instanceof SunfishEntity)
                                                         || fishSize(candidate) < fishSize(hunter) * 0.75F
@@ -1031,7 +1060,7 @@ public final class LivingFaunaManager {
                         prey.getX(),
                         prey.getY(),
                         prey.getZ(),
-                        1.48
+                        predator.huntSpeed()
                 );
 
         prey.getPersistentData()
@@ -1043,7 +1072,8 @@ public final class LivingFaunaManager {
 
         if (hunter.distanceToSqr(
                 prey
-        ) <= 1.65 * 1.65) {
+        ) <= predator.biteReach()
+                * predator.biteReach()) {
             CompoundTag data =
                     hunter.getPersistentData();
 
@@ -1097,6 +1127,194 @@ public final class LivingFaunaManager {
                         )
                 );
             }
+        }
+
+        return true;
+    }
+
+    private static boolean whaleFilterFeedBehavior(
+            ServerLevel level,
+            WhaleEntity whale
+    ) {
+        CompoundTag data =
+                whale.getPersistentData();
+
+        long now =
+                level.getGameTime();
+
+        if (now < data.getLong(
+                NEXT_FEED_CHECK
+        )) {
+            return false;
+        }
+
+        AbstractFish nearest =
+                level.getEntitiesOfClass(
+                                AbstractFish.class,
+                                whale.getBoundingBox()
+                                        .inflate(
+                                                22.0,
+                                                9.0,
+                                                22.0
+                                        ),
+                                fish ->
+                                        fish.isAlive()
+                                                && fish != whale
+                                                && !fish.isPassenger()
+                                                && !(fish instanceof WhaleEntity)
+                                                && !(fish instanceof AquaticPredator)
+                                                && !(fish instanceof MantaRayEntity)
+                                                && !(fish instanceof OarfishEntity)
+                                                && !(fish instanceof SunfishEntity)
+                                                && !(fish instanceof JellyfishEntity)
+                                                && fishSize(fish) <= 1.30F
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        whale::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (nearest == null) {
+            data.putLong(
+                    NEXT_FEED_CHECK,
+                    now
+                            + 120L
+                            + level.random.nextInt(
+                            180
+                    )
+            );
+
+            return false;
+        }
+
+        whale.getNavigation()
+                .moveTo(
+                        nearest.getX(),
+                        nearest.getY(),
+                        nearest.getZ(),
+                        0.92
+                );
+
+        if (whale.distanceToSqr(nearest)
+                > 3.6 * 3.6) {
+            return true;
+        }
+
+        List<AbstractFish> mouthful =
+                level.getEntitiesOfClass(
+                        AbstractFish.class,
+                        whale.getBoundingBox()
+                                .inflate(
+                                        2.8,
+                                        1.7,
+                                        2.8
+                                ),
+                        fish ->
+                                fish.isAlive()
+                                        && fish != whale
+                                        && !fish.isPassenger()
+                                        && !(fish instanceof WhaleEntity)
+                                        && !(fish instanceof AquaticPredator)
+                                        && !(fish instanceof MantaRayEntity)
+                                        && !(fish instanceof OarfishEntity)
+                                        && !(fish instanceof SunfishEntity)
+                                        && fishSize(fish) <= 1.30F
+                );
+
+        int eaten =
+                0;
+
+        for (AbstractFish prey :
+                mouthful) {
+            if (eaten >= 4) {
+                break;
+            }
+
+            level.sendParticles(
+                    ParticleTypes.BUBBLE,
+                    prey.getX(),
+                    prey.getY(),
+                    prey.getZ(),
+                    7,
+                    0.22,
+                    0.18,
+                    0.22,
+                    0.035
+            );
+
+            prey.discard();
+            eaten++;
+        }
+
+        if (eaten <= 0) {
+            return true;
+        }
+
+        data.putInt(
+                FISH_MEALS,
+                data.getInt(
+                        FISH_MEALS
+                )
+                        + eaten
+        );
+
+        data.putLong(
+                SATIATED_UNTIL,
+                now + 12000L
+        );
+
+        data.putLong(
+                NEXT_FEED_CHECK,
+                now
+                        + 420L
+                        + level.random.nextInt(
+                        520
+                )
+        );
+
+        level.playSound(
+                null,
+                whale.blockPosition(),
+                SoundEvents.GENERIC_EAT,
+                SoundSource.NEUTRAL,
+                1.35F,
+                0.55F
+        );
+
+        level.sendParticles(
+                ParticleTypes.BUBBLE,
+                whale.getX() - 1.5,
+                whale.getY(),
+                whale.getZ(),
+                24,
+                0.65,
+                0.45,
+                0.65,
+                0.055
+        );
+
+        if (!level.getFluidState(
+                whale.blockPosition()
+                        .above(2)
+        ).is(
+                FluidTags.WATER
+        )) {
+            level.sendParticles(
+                    ParticleTypes.SPLASH,
+                    whale.getX(),
+                    whale.getY()
+                            + whale.getBbHeight()
+                                    * 0.65,
+                    whale.getZ(),
+                    18,
+                    0.32,
+                    0.55,
+                    0.32,
+                    0.12
+            );
         }
 
         return true;
@@ -1664,6 +1882,12 @@ public final class LivingFaunaManager {
             );
         }
 
+        if (fish instanceof WhaleEntity) {
+            return stack.is(
+                    EcologyContent.RAW_WHALE_MEAT.get()
+            );
+        }
+
         if (isSunFish(
                 fish
         )) {
@@ -1858,6 +2082,9 @@ public final class LivingFaunaManager {
                 base = anomaly < 0.012F
                         ? 1.65F + level.random.nextFloat() * 1.25F
                         : 0.88F + level.random.nextFloat() * 0.62F;
+
+            } else if (fish instanceof WhaleEntity) {
+                base = 0.88F + level.random.nextFloat() * 0.26F;
             }
 
             data.putFloat(
@@ -2001,6 +2228,9 @@ public final class LivingFaunaManager {
 
         } else if (fish instanceof OarfishEntity) {
             cap = Math.max(cap, 3.35F);
+
+        } else if (fish instanceof WhaleEntity) {
+            cap = Math.min(cap, 1.58F);
         }
 
         /*
@@ -2405,6 +2635,10 @@ public final class LivingFaunaManager {
         } else if (fish instanceof OarfishEntity) {
             reproductionChance = satiated ? 0.006F : 0.002F;
             localCap = 3;
+
+        } else if (fish instanceof WhaleEntity) {
+            reproductionChance = satiated ? 0.003F : 0.001F;
+            localCap = 2;
 
         } else {
             reproductionChance =

@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "waterlogged=false": {
+      "model": "wayaround:block/seagrass_tuft"
+    },
+    "waterlogged=true": {
+      "model": "wayaround:block/seagrass_tuft"
+    }
+  }
+}

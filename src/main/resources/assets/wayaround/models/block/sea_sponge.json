@@ -1,0 +1,44 @@
+{
+  "textures": {
+    "all": "minecraft:block/sponge",
+    "particle": "minecraft:block/sponge"
+  },
+  "elements": [
+    {
+      "from": [3, 0, 3],
+      "to": [8, 9, 8],
+      "faces": {
+        "down": {"texture": "#all", "cullface": "down"},
+        "up": {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "west": {"texture": "#all"},
+        "east": {"texture": "#all"}
+      }
+    },
+    {
+      "from": [8, 0, 7],
+      "to": [13, 6, 12],
+      "faces": {
+        "down": {"texture": "#all", "cullface": "down"},
+        "up": {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "west": {"texture": "#all"},
+        "east": {"texture": "#all"}
+      }
+    },
+    {
+      "from": [5, 0, 10],
+      "to": [9, 4, 14],
+      "faces": {
+        "down": {"texture": "#all", "cullface": "down"},
+        "up": {"texture": "#all"},
+        "north": {"texture": "#all"},
+        "south": {"texture": "#all"},
+        "west": {"texture": "#all"},
+        "east": {"texture": "#all"}
+      }
+    }
+  ]
+}

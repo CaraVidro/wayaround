@@ -366,5 +366,18 @@
   "item.wayaround.barracuda_spawn_egg": "Ovo Gerador de Barracuda",
   "item.wayaround.seahorse_spawn_egg": "Ovo Gerador de Cavalo-Marinho",
   "item.wayaround.jellyfish_spawn_egg": "Ovo Gerador de Água-Viva",
-  "item.wayaround.oarfish_spawn_egg": "Ovo Gerador de Peixe-Remo"
+  "item.wayaround.oarfish_spawn_egg": "Ovo Gerador de Peixe-Remo",
+  "entity.wayaround.whale": "Baleia",
+  "entity.wayaround.seagull": "Gaivota",
+  "item.wayaround.whale_spawn_egg": "Ovo Gerador de Baleia",
+  "item.wayaround.seagull_spawn_egg": "Ovo Gerador de Gaivota",
+  "item.wayaround.raw_whale_meat": "Carne Crua de Baleia",
+  "block.wayaround.sea_cucumber": "Pepino-do-Mar",
+  "item.wayaround.sea_cucumber": "Pepino-do-Mar",
+  "block.wayaround.sea_sponge": "Esponja-do-Mar",
+  "item.wayaround.sea_sponge": "Esponja-do-Mar",
+  "block.wayaround.sea_lettuce": "Alface-do-Mar",
+  "item.wayaround.sea_lettuce": "Alface-do-Mar",
+  "block.wayaround.seagrass_tuft": "Tufo de Capim-Marinho",
+  "item.wayaround.seagrass_tuft": "Tufo de Capim-Marinho"
 }

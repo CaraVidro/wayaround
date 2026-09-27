@@ -20,7 +20,16 @@
     "minecraft:savanna",
     "minecraft:savanna_plateau",
     "minecraft:windswept_forest",
-    "minecraft:river"
+    "minecraft:river",
+    "minecraft:ocean",
+    "minecraft:deep_ocean",
+    "minecraft:cold_ocean",
+    "minecraft:deep_cold_ocean",
+    "minecraft:frozen_ocean",
+    "minecraft:deep_frozen_ocean",
+    "minecraft:lukewarm_ocean",
+    "minecraft:deep_lukewarm_ocean",
+    "minecraft:warm_ocean"
   ],
   "features": [
     "wayaround:living_vegetation"

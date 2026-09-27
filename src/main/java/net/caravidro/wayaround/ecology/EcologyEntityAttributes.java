@@ -124,6 +124,55 @@ public final class EcologyEntityAttributes {
         );
 
         event.register(
+                EcologyContent.WHALE.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER)
+                                && level.getFluidState(pos.above()).is(FluidTags.WATER)
+                                && level.getFluidState(pos.below()).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.SEAGULL.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) -> {
+                    var floor =
+                            level.getBlockState(
+                                    pos.below()
+                            );
+
+                    boolean shore =
+                            floor.is(Blocks.SAND)
+                                    || floor.is(Blocks.GRAVEL)
+                                    || floor.is(Blocks.STONE)
+                                    || floor.is(Blocks.SNOW_BLOCK);
+
+                    if (!shore) {
+                        return false;
+                    }
+
+                    for (int dx = -5; dx <= 5; dx++) {
+                        for (int dz = -5; dz <= 5; dz++) {
+                            if (level.getFluidState(
+                                    pos.offset(dx, -1, dz)
+                            ).is(FluidTags.WATER)
+                                    || level.getFluidState(
+                                    pos.offset(dx, 0, dz)
+                            ).is(FluidTags.WATER)) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                },
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
                 EcologyContent.CRAB.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
@@ -224,6 +273,24 @@ public final class EcologyEntityAttributes {
                 AbstractFish.createAttributes()
                         .add(Attributes.MAX_HEALTH, 26.0)
                         .add(Attributes.MOVEMENT_SPEED, 0.20)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.WHALE.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 80.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.18)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.SEAGULL.get(),
+                Mob.createMobAttributes()
+                        .add(Attributes.MAX_HEALTH, 8.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.26)
+                        .add(Attributes.FLYING_SPEED, 0.46)
+                        .add(Attributes.FOLLOW_RANGE, 32.0)
                         .build()
         );
 

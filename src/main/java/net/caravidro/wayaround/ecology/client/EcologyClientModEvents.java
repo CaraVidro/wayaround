@@ -85,6 +85,19 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.WHALE.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.WHALE
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.SEAGULL.get(),
+                SeagullRenderer::new
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.CRAB.get(),
                 CrabRenderer::new
         );

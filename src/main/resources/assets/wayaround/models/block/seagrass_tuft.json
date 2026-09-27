@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cross",
+  "textures": {
+    "cross": "minecraft:block/seagrass"
+  },
+  "render_type": "cutout"
+}

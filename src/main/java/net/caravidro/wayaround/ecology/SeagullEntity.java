@@ -1,0 +1,105 @@
+package net.caravidro.wayaround.ecology;
+
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.FlyingAnimal;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.control.FlyingMoveControl;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomFlyingGoal;
+import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * Coastal bird used by Agua World's shared marine interaction layer.
+ *
+ * A captured fish remains the real entity: it becomes a passenger and stays
+ * visibly attached to the bird until the gull finally eats it.
+ */
+public final class SeagullEntity
+        extends PathfinderMob
+        implements FlyingAnimal {
+
+    public SeagullEntity(
+            EntityType<? extends SeagullEntity> type,
+            Level level
+    ) {
+        super(type, level);
+        this.moveControl =
+                new FlyingMoveControl(
+                        this,
+                        18,
+                        true
+                );
+        this.setNoGravity(true);
+    }
+
+    @Override
+    protected void registerGoals() {
+        this.goalSelector.addGoal(
+                4,
+                new WaterAvoidingRandomFlyingGoal(
+                        this,
+                        1.05
+                )
+        );
+
+        this.goalSelector.addGoal(
+                6,
+                new LookAtPlayerGoal(
+                        this,
+                        Player.class,
+                        8.0F
+                )
+        );
+
+        this.goalSelector.addGoal(
+                7,
+                new RandomLookAroundGoal(this)
+        );
+    }
+
+    @Override
+    protected PathNavigation createNavigation(
+            Level level
+    ) {
+        return new FlyingPathNavigation(
+                this,
+                level
+        );
+    }
+
+    @Override
+    public boolean isFlying() {
+        return !this.onGround();
+    }
+
+    @Override
+    public Vec3 getPassengerRidingPosition(
+            Entity passenger
+    ) {
+        Vec3 forward =
+                this.getLookAngle()
+                        .multiply(
+                                0.32,
+                                0.0,
+                                0.32
+                        );
+
+        return this.position()
+                .add(
+                        forward.x,
+                        -0.52,
+                        forward.z
+                );
+    }
+
+    @Override
+    public int getMaxSpawnClusterSize() {
+        return 6;
+    }
+}

@@ -19,7 +19,8 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
         BARRACUDA,
         SEAHORSE,
         JELLYFISH,
-        OARFISH
+        OARFISH,
+        WHALE
     }
 
     private final Profile profile;
@@ -36,6 +37,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
         return switch (profile) {
             case MANTA_RAY -> 0.72F;
             case OARFISH -> 0.52F;
+            case WHALE -> 1.80F;
             case BARRACUDA -> 0.38F;
             case JELLYFISH -> 0.32F;
             case SEAHORSE -> 0.12F;
@@ -50,6 +52,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case JELLYFISH -> 0.18F;
             case MANTA_RAY -> 0.20F;
             case OARFISH -> 0.34F;
+            case WHALE -> 0.16F;
         };
     }
 
@@ -61,6 +64,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case SEAHORSE -> 1.0F;
             case BARRACUDA -> 1.4F;
             case OARFISH -> 2.5F;
+            case WHALE -> 0.65F;
         };
     }
 
@@ -78,6 +82,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case SEAHORSE -> seahorse(swim, pose, buffers, light);
             case JELLYFISH -> jellyfish(swim, pose, buffers, light);
             case OARFISH -> oarfish(swim, pose, buffers, light);
+            case WHALE -> whale(swim, pose, buffers, light);
         }
     }
 
@@ -424,6 +429,109 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 0.98, -0.075, -0.06,
                 0.55F, 0.15F, 0.12F,
                 0.0F, swim * 14.0F, 0.0F,
+                pose, buffers, light
+        );
+    }
+    private void whale(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -1.55, -0.48, -0.54,
+                2.80F, 0.96F, 1.08F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -1.42, -0.56, -0.45,
+                2.52F, 0.30F, 0.90F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -2.03, -0.39, -0.49,
+                0.62F, 0.78F, 0.98F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -2.10, -0.46, -0.39,
+                0.58F, 0.25F, 0.78F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -1.93, 0.05, -0.545,
+                0.07F, 0.07F, 0.035F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -1.93, 0.05, 0.51,
+                0.07F, 0.07F, 0.035F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.72, -0.22, -1.15,
+                0.78F, 0.12F, 0.72F,
+                4.0F, 0.0F, -13.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.72, -0.22, 0.43,
+                0.78F, 0.12F, 0.72F,
+                -4.0F, 0.0F, 13.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.10, 0.38, -0.09,
+                0.40F, 0.42F, 0.18F,
+                0.0F, 0.0F, -20.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                1.10, -0.20, -0.24,
+                1.15F, 0.40F, 0.48F,
+                0.0F, swim * 5.0F, 0.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                2.04, -0.10, -0.92,
+                0.50F, 0.13F, 0.80F,
+                0.0F, swim * 9.0F, -4.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                2.04, -0.10, 0.12,
+                0.50F, 0.13F, 0.80F,
+                0.0F, swim * 9.0F, 4.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -1.15, 0.47, -0.055,
+                0.12F, 0.025F, 0.11F,
                 pose, buffers, light
         );
     }
