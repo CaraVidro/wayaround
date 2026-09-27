@@ -351,6 +351,28 @@ public final class BroadcastManager {
         return best;
     }
 
+    public static float televisionSignalQuality(
+            ServerLevel level,
+            BlockPos television,
+            int frequencyKHz
+    ) {
+        BlockPos receiver =
+                receiveAntenna(
+                        level,
+                        television
+                );
+
+        if (receiver == null) {
+            return 0.0F;
+        }
+
+        return bestSignalQuality(
+                level,
+                receiver,
+                frequencyKHz
+        );
+    }
+
     public static float bestSignalQuality(
             ServerLevel level,
             BlockPos receiver,
