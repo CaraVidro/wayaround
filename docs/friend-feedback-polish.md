@@ -9,7 +9,7 @@ without creating new parallel foundations.
 
 Procedural cloud altitude bands were raised by roughly twenty blocks.
 
-- dramatic low banks now begin around Y 138 instead of Y 118;
+- procedural clouds now have a hard floor around Y 148 instead of dipping toward Y 118;
 - ordinary clouds occupy roughly Y 168–226;
 - high cells can reach roughly Y 262.
 
