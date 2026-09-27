@@ -444,3 +444,111 @@ Additional biome spawn pressure now adds:
 The ecology processing budget for fish was also raised so the larger
 populations can still receive schooling, feeding, migration and growth updates
 near players.
+
+
+## Aquatic fauna V2
+
+### Randomized feeding rhythm
+
+Fish no longer all scan/eat on the same deterministic ecology beat.
+
+Each fish stores its own `WayAroundFishNextFeedCheck` timestamp. Empty food
+searches, active pursuit and successful meals schedule different randomized
+delays, breaking the obvious synchronized feeding pattern.
+
+Eating keeps the visible/audio feedback added in V1:
+
+- generic bite/eating sound;
+- bubble wake particles;
+- particles from the actual consumed ItemStack;
+- persistent meal count used by growth.
+
+### Species behavior
+
+The shared fish layer now branches behavior by species instead of treating
+every `AbstractFish` identically.
+
+- **Salmon** favor moving water and can perform short upstream holding runs.
+  They do **not** surface to breathe; salmon respire through gills. Bubbles
+  emitted during a current run are movement/turbulence feedback.
+- **Tropical fish / cod** retain coral-aware home selection.
+- **Pufferfish** spread away from very dense mixed-fish crowds.
+- **Sunfish** prefer slow roaming through open water volumes.
+- **Sardines** are tiny, fast and strongly schooling.
+- **Reef sharks** are rare predators that actively chase smaller fish.
+- Prey detects nearby sharks and flees; sardines get the strongest escape
+  speed and distance.
+
+### Sardines
+
+`wayaround:sardine` spawns in ocean biomes in large groups.
+
+Natural body scale is intentionally tiny (roughly 0.07–0.38 in the ecology
+scale), while school reproduction can grow local groups to roughly 72 before
+population pressure stops further ecological breeding.
+
+### Reef shark
+
+`wayaround:reef_shark` is a rare ocean/coastal predator.
+
+It searches a local water volume for smaller fish, pursues them through
+vanilla navigation, applies a bite cooldown, and marks prey as scared so the
+same ecology layer can produce escape behavior.
+
+### Crabs
+
+`wayaround:crab` is a passive shoreline mob spawning on sand, gravel, stone
+or mud near water. Its renderer is simple 3D geometry built from vanilla block
+textures, matching the experimental visual language used by the Sunfish.
+
+### Fish size and meat
+
+All ecology-managed fish retain persistent individual size and meal history.
+Ordinary fish may be genuinely tiny; very rare natural anomalies can be
+multiple player-lengths without needing to be fed first. Feeding has a practical
+growth ceiling, while a naturally gigantic encounter is never shrunk back to
+that ceiling.
+
+Sardines deliberately remain small as a species. Sharks and sunfish have their
+own larger size profile.
+
+Fish death replaces vanilla whole-fish drops with species meat whose count is
+derived from body size. New species add Raw Sardine Meat and Raw Shark Meat.
+
+Physical fishing continues to hook the actual `AbstractFish` entity, so the
+new Sardine, Sunfish and Reef Shark automatically participate in the same
+bobber attraction/reeling system.
+
+## Ground-driven plant and leaf tint
+
+Way Around ecology plants use a tinted-cross model and sample the terrain below
+them client-side.
+
+Foliage tint walks downward through air/leaves until it finds the supporting
+terrain. Moss, sand, red sand, mud and snow have characteristic responses;
+other terrain falls back to the local biome grass color.
+
+Vanilla leaves are routed through the same ground lookup, making canopies
+visually inherit some of the environment under them rather than reading as one
+flat foliage color everywhere.
+
+## /timetick
+
+`/timetick [steps]` is an operator/debug command for visually testing ecology.
+
+It does **not** change Minecraft's day clock. Instead it runs a bounded number
+of succession pulses immediately:
+
+- default: 10 pulses;
+- minimum: 1;
+- maximum: 200.
+
+Each pulse performs the same rain/moisture/vegetation/sediment sampling used by
+runtime succession. Every few pulses it also samples dead/fallen-tree seeding.
+
+Example:
+
+`/timetick 80`
+
+is useful for standing in one place and watching vegetation, moss, river
+material and deadwood evolve quickly during development.
