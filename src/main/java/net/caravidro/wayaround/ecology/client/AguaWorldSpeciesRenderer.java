@@ -1,0 +1,430 @@
+package net.caravidro.wayaround.ecology.client;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.world.entity.animal.AbstractFish;
+import net.minecraft.world.level.block.Blocks;
+
+/**
+ * One renderer, multiple silhouettes. New Agua World species can be added by
+ * extending the profile enum instead of creating another nearly-identical
+ * renderer class.
+ */
+public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
+        extends AquaticBlockRenderer<T> {
+
+    public enum Profile {
+        MANTA_RAY,
+        BARRACUDA,
+        SEAHORSE,
+        JELLYFISH,
+        OARFISH
+    }
+
+    private final Profile profile;
+
+    public AguaWorldSpeciesRenderer(
+            EntityRendererProvider.Context context,
+            Profile profile
+    ) {
+        super(context, shadow(profile));
+        this.profile = profile;
+    }
+
+    private static float shadow(Profile profile) {
+        return switch (profile) {
+            case MANTA_RAY -> 0.72F;
+            case OARFISH -> 0.52F;
+            case BARRACUDA -> 0.38F;
+            case JELLYFISH -> 0.32F;
+            case SEAHORSE -> 0.12F;
+        };
+    }
+
+    @Override
+    protected float swimFrequency(T fish) {
+        return switch (profile) {
+            case BARRACUDA -> 0.56F;
+            case SEAHORSE -> 0.24F;
+            case JELLYFISH -> 0.18F;
+            case MANTA_RAY -> 0.20F;
+            case OARFISH -> 0.34F;
+        };
+    }
+
+    @Override
+    protected float bodyRollDegrees(T fish) {
+        return switch (profile) {
+            case MANTA_RAY -> 2.0F;
+            case JELLYFISH -> 0.5F;
+            case SEAHORSE -> 1.0F;
+            case BARRACUDA -> 1.4F;
+            case OARFISH -> 2.5F;
+        };
+    }
+
+    @Override
+    protected void renderFish(
+            T fish,
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        switch (profile) {
+            case MANTA_RAY -> manta(swim, pose, buffers, light);
+            case BARRACUDA -> barracuda(swim, pose, buffers, light);
+            case SEAHORSE -> seahorse(swim, pose, buffers, light);
+            case JELLYFISH -> jellyfish(swim, pose, buffers, light);
+            case OARFISH -> oarfish(swim, pose, buffers, light);
+        }
+    }
+
+    private void manta(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.48, -0.09, -0.31,
+                0.96F, 0.18F, 0.62F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.40, -0.145, -0.27,
+                0.78F, 0.10F, 0.54F,
+                pose, buffers, light
+        );
+
+        // Giant wings.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.25, -0.055, -1.02,
+                0.72F, 0.10F, 0.82F,
+                0.0F, 0.0F, -4.0F - swim * 5.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.25, -0.055, 0.20,
+                0.72F, 0.10F, 0.82F,
+                0.0F, 0.0F, 4.0F + swim * 5.0F,
+                pose, buffers, light
+        );
+
+        // Head lobes / eyes.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.65, -0.04, -0.27,
+                0.24F, 0.13F, 0.16F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.65, -0.04, 0.11,
+                0.24F, 0.13F, 0.16F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.61, 0.045, -0.315,
+                0.05F, 0.05F, 0.03F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.61, 0.045, 0.285,
+                0.05F, 0.05F, 0.03F,
+                pose, buffers, light
+        );
+
+        // Needle tail.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.41, -0.035, -0.025,
+                1.22F, 0.07F, 0.05F,
+                0.0F, swim * 7.0F, 0.0F,
+                pose, buffers, light
+        );
+    }
+
+    private void barracuda(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.66, -0.12, -0.12,
+                1.22F, 0.24F, 0.24F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.59, 0.07, -0.105,
+                1.08F, 0.09F, 0.21F,
+                pose, buffers, light
+        );
+
+        // Long jaw.
+        cuboid(
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                -0.91, -0.10, -0.11,
+                0.30F, 0.18F, 0.22F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.91, -0.13, -0.09,
+                0.28F, 0.05F, 0.18F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.82, 0.04, -0.135,
+                0.045F, 0.045F, 0.03F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.82, 0.04, 0.105,
+                0.045F, 0.045F, 0.03F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.05, 0.13, -0.055,
+                0.18F, 0.22F, 0.11F,
+                0.0F, 0.0F, -16.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.48, -0.075, -0.075,
+                0.42F, 0.15F, 0.15F,
+                0.0F, swim * 9.0F, 0.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.82, 0.00, -0.055,
+                0.30F, 0.24F, 0.11F,
+                0.0F, swim * 22.0F, 24.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.82, -0.22, -0.055,
+                0.30F, 0.24F, 0.11F,
+                0.0F, swim * 22.0F, -24.0F,
+                pose, buffers, light
+        );
+    }
+
+    private void seahorse(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        // Upright body.
+        cuboid(
+                Blocks.YELLOW_TERRACOTTA.defaultBlockState(),
+                -0.12, -0.18, -0.08,
+                0.24F, 0.50F, 0.16F,
+                0.0F, 0.0F, 5.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.ORANGE_TERRACOTTA.defaultBlockState(),
+                -0.19, 0.24, -0.075,
+                0.24F, 0.22F, 0.15F,
+                0.0F, 0.0F, -18.0F,
+                pose, buffers, light
+        );
+
+        // Long snout + eye.
+        cuboid(
+                Blocks.YELLOW_TERRACOTTA.defaultBlockState(),
+                -0.36, 0.27, -0.045,
+                0.24F, 0.08F, 0.09F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.16, 0.37, -0.095,
+                0.045F, 0.045F, 0.025F,
+                pose, buffers, light
+        );
+
+        // Tiny dorsal fin.
+        cuboid(
+                Blocks.ORANGE_STAINED_GLASS.defaultBlockState(),
+                0.08, 0.02, -0.035,
+                0.08F, 0.23F, 0.07F,
+                0.0F, swim * 9.0F, 0.0F,
+                pose, buffers, light
+        );
+
+        // Segmented curled tail.
+        cuboid(
+                Blocks.YELLOW_TERRACOTTA.defaultBlockState(),
+                -0.02, -0.42, -0.055,
+                0.13F, 0.28F, 0.11F,
+                0.0F, 0.0F, -12.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.YELLOW_TERRACOTTA.defaultBlockState(),
+                0.05, -0.55, -0.05,
+                0.23F, 0.10F, 0.10F,
+                0.0F, 0.0F, 18.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.YELLOW_TERRACOTTA.defaultBlockState(),
+                0.22, -0.51, -0.045,
+                0.10F, 0.18F, 0.09F,
+                0.0F, 0.0F, 38.0F,
+                pose, buffers, light
+        );
+    }
+
+    private void jellyfish(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        double pulse = swim * 0.035;
+
+        // Translucent bell.
+        cuboid(
+                Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                -0.34, 0.05 + pulse, -0.34,
+                0.68F, 0.30F, 0.68F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.PINK_STAINED_GLASS.defaultBlockState(),
+                -0.25, -0.06 + pulse, -0.25,
+                0.50F, 0.17F, 0.50F,
+                pose, buffers, light
+        );
+
+        // Hanging tentacles sway independently.
+        cuboid(
+                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
+                -0.22, -0.70, -0.20,
+                0.07F, 0.68F, 0.07F,
+                0.0F, 0.0F, swim * 5.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
+                0.14, -0.66, -0.17,
+                0.07F, 0.62F, 0.07F,
+                0.0F, 0.0F, -swim * 6.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
+                -0.08, -0.80, 0.12,
+                0.06F, 0.77F, 0.06F,
+                0.0F, 0.0F, swim * 7.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
+                0.05, -0.58, 0.23,
+                0.06F, 0.55F, 0.06F,
+                0.0F, 0.0F, -swim * 4.0F,
+                pose, buffers, light
+        );
+    }
+
+    private void oarfish(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        // Huge ribbon body.
+        cuboid(
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                -1.12, -0.11, -0.09,
+                2.18F, 0.22F, 0.18F,
+                0.0F, swim * 4.0F, 0.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -1.02, -0.15, -0.075,
+                1.98F, 0.08F, 0.15F,
+                pose, buffers, light
+        );
+
+        // Red dorsal ribbon.
+        for (int i = 0; i < 8; i++) {
+            cuboid(
+                    Blocks.RED_CONCRETE.defaultBlockState(),
+                    -0.96 + i * 0.24,
+                    0.10,
+                    -0.045,
+                    0.17F,
+                    0.17F + (i < 2 ? 0.11F : 0.0F),
+                    0.09F,
+                    0.0F,
+                    0.0F,
+                    -6.0F + swim * 2.0F,
+                    pose,
+                    buffers,
+                    light
+            );
+        }
+
+        // Head / eye / red feelers.
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -1.30, -0.10, -0.085,
+                0.24F, 0.20F, 0.17F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -1.26, 0.01, -0.105,
+                0.05F, 0.05F, 0.03F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.RED_CONCRETE.defaultBlockState(),
+                -1.18, 0.13, -0.045,
+                0.06F, 0.32F, 0.09F,
+                0.0F, 0.0F, -18.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.RED_CONCRETE.defaultBlockState(),
+                -1.06, 0.12, -0.04,
+                0.055F, 0.27F, 0.08F,
+                0.0F, 0.0F, -8.0F,
+                pose, buffers, light
+        );
+
+        // Tiny tapered tail.
+        cuboid(
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                0.98, -0.075, -0.06,
+                0.55F, 0.15F, 0.12F,
+                0.0F, swim * 14.0F, 0.0F,
+                pose, buffers, light
+        );
+    }
+}
