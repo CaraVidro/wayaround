@@ -112,3 +112,60 @@ The chord plays when:
 - gradual intent confidence crosses the active threshold for the first time.
 
 Ordinary reinforcement does not replay the full activation chord every time.
+
+
+## Spectrum and Jujutsu combat polish
+
+Spectrum melee/combat is now explicitly gated by the Shift+T Spectrum panel.
+Opening the panel activates combat mode server-side; closing it disables the
+special melee routing again.
+
+Black Flash only accepts direct empty-hand melee. Held weapons no longer
+participate in the Black Flash rhythm.
+
+Normal Orb-awakened procedural Jujutsu now shares the same Shift+T side panel.
+When no Spectrum is owned the panel becomes JUJUTSU · TÉCNICA, with slot 1
+casting the player's fixed procedural technique.
+
+Tukuna unlocks Fuga immediately on its first proper Spectrum activation.
+
+Immortal Wheel revival is resolved before Tukuna death/finger side effects, so
+a successfully revived Tukuna does not enter the ghost/finger death path.
+
+The Justice courtroom now contains actual overhead lighting rather than reading
+as a black void.
+
+Holding a Spectrum item before Orb awakening has a deliberately tiny chance to
+attune that player safely to the item Spectrum without using the normal Orb
+awakening path.
+
+### Hollow Purple
+
+The Hollow Purple core is now lethal to every living target that remains
+inside it.
+
+The caster is not inherently immune. The sole special case is the caster while
+their own Infinity is actively protecting them. With Infinity inactive, the
+caster can be killed by their own Purple.
+
+Shields and generic Spectrum ownership no longer provide a final survival
+exception.
+
+## Accessory animation
+
+Player accessories are now rendered relative to the player's current animated
+model-part poses and the pose is restored after accessory rendering.
+
+This makes head/body accessories follow crouch/movement/other player animation
+instead of behaving like rigid world-space attachments.
+
+## Environmental sound signatures
+
+A lightweight client soundscape layer adds sparse contextual audio:
+
+- coastal/ocean proximity: water ambience and occasional splashes;
+- exposed high mountains: recurring wind;
+- deep enclosed caves: spatial cave resonance.
+
+Antarctica keeps its dedicated breeze/blizzard ambience. The new layer is
+intentionally sparse rather than a permanent music loop.
