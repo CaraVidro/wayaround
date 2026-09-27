@@ -40,7 +40,8 @@ public final class BroadcastClientState {
 
             NativeImage image = new NativeImage(NativeImage.Format.RGBA, width, height, false);
             DynamicTexture dynamic = new DynamicTexture(image);
-            dynamic.setFilter(false, false);
+            // Linear filtering makes 64x36 readable when stretched over the CRT.
+            dynamic.setFilter(true, false);
 
             ResourceLocation location = Minecraft.getInstance()
                     .getTextureManager()

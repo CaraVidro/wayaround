@@ -31,6 +31,14 @@ public final class CrabEntity extends PathfinderMob {
     }
 
     @Override
+    public boolean shouldRenderAtSqrDistance(
+            double distance
+    ) {
+        return distance
+                <= 256.0 * 256.0;
+    }
+
+    @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));
         goalSelector.addGoal(1, new PanicGoal(this, 1.45));

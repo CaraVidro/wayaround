@@ -51,6 +51,14 @@ public final class MarineInteractionModule {
     private static final int PHASE_LAND = 3;
     private static final int PHASE_EAT = 4;
 
+    /*
+     * A gull can lift sardines, tropical fish, clownfish and similar prey,
+     * but not an absurd player-sized survivor. Large flying fish can also
+     * eventually grow beyond this threshold and become safe from gulls.
+     */
+    private static final float MAX_GULL_PREY_SIZE =
+            1.10F;
+
     private MarineInteractionModule() {
     }
 
@@ -387,6 +395,26 @@ public final class MarineInteractionModule {
                             GULL_PHASE,
                             PHASE_LAND
                     );
+
+                    return;
+                }
+
+                /*
+                 * Open ocean can genuinely have nowhere sensible to land.
+                 * After carrying the prey long enough, hover at a comfortable
+                 * altitude and eat it in the air instead of circling forever.
+                 */
+                if (now >= data.getLong(
+                        GULL_EAT_AT
+                )) {
+                    eatCarriedFish(
+                            level,
+                            gull,
+                            prey,
+                            now
+                    );
+
+                    return;
                 }
             }
 
@@ -702,7 +730,7 @@ public final class MarineInteractionModule {
                                         && !(fish instanceof AquaticPredator)
                                         && LivingFaunaManager.fishSize(
                                         fish
-                                ) <= 1.25F
+                                ) <= MAX_GULL_PREY_SIZE
                                         && nearSurface(
                                         level,
                                         fish.blockPosition()

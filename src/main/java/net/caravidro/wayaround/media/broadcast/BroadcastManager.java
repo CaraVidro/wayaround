@@ -826,7 +826,12 @@ public final class BroadcastManager {
     public static void tick(ServerTickEvent.Post event) {
         if (!WorldFeatureRuntime.serverEnabled(WorldFeature.MEDIA)) return;
 
-        if (event.getServer().getTickCount() % 20 != 0) return;
+        /*
+         * Live video used to update once per second. With the still-lightweight
+         * 64x36 sampler we can afford two updates per second without turning
+         * every TV into a raycast benchmark.
+         */
+        if (event.getServer().getTickCount() % 10 != 0) return;
 
         for (UUID id : List.copyOf(HANDHELD_CAMERAS)) {
             ServerPlayer player = event.getServer().getPlayerList().getPlayer(id);

@@ -41,6 +41,24 @@ public abstract class AguaWorldFishEntity extends AbstractFish {
     }
 
     @Override
+    public boolean shouldRenderAtSqrDistance(
+            double distance
+    ) {
+        double range =
+                this instanceof WhaleEntity
+                        ? 640.0
+                        : (
+                        this instanceof OarfishEntity
+                                || this instanceof MantaRayEntity
+                                ? 420.0
+                                : 320.0
+                );
+
+        return distance
+                <= range * range;
+    }
+
+    @Override
     public ItemStack getBucketItemStack() {
         // Buckets are not the primary capture mechanic in WayAround yet.
         return new ItemStack(Items.TROPICAL_FISH_BUCKET);
@@ -48,21 +66,90 @@ public abstract class AguaWorldFishEntity extends AbstractFish {
 
     @Override
     protected SoundEvent getFlopSound() {
-        return SoundEvents.COD_FLOP;
+        if (this instanceof BarracudaEntity
+                || this instanceof MorayEelEntity) {
+            return SoundEvents.GUARDIAN_FLOP;
+        }
+
+        if (this instanceof FlyingFishEntity
+                || this instanceof OarfishEntity) {
+            return SoundEvents.SALMON_FLOP;
+        }
+
+        return SoundEvents.TROPICAL_FISH_FLOP;
     }
 
     @Override
     protected SoundEvent getAmbientSound() {
-        return SoundEvents.COD_AMBIENT;
+        if (this instanceof WhaleEntity) {
+            return SoundEvents.DOLPHIN_AMBIENT_WATER;
+        }
+
+        if (this instanceof JellyfishEntity
+                || this instanceof LanternfishEntity) {
+            return SoundEvents.GLOW_SQUID_AMBIENT;
+        }
+
+        if (this instanceof BarracudaEntity
+                || this instanceof MorayEelEntity) {
+            return SoundEvents.GUARDIAN_AMBIENT;
+        }
+
+        if (this instanceof FlyingFishEntity
+                || this instanceof OarfishEntity) {
+            return SoundEvents.SALMON_AMBIENT;
+        }
+
+        return SoundEvents.TROPICAL_FISH_AMBIENT;
     }
 
     @Override
-    protected SoundEvent getHurtSound(DamageSource source) {
-        return SoundEvents.COD_HURT;
+    protected SoundEvent getHurtSound(
+            DamageSource source
+    ) {
+        if (this instanceof WhaleEntity) {
+            return SoundEvents.DOLPHIN_HURT;
+        }
+
+        if (this instanceof JellyfishEntity
+                || this instanceof LanternfishEntity) {
+            return SoundEvents.GLOW_SQUID_HURT;
+        }
+
+        if (this instanceof BarracudaEntity
+                || this instanceof MorayEelEntity) {
+            return SoundEvents.GUARDIAN_HURT;
+        }
+
+        if (this instanceof FlyingFishEntity
+                || this instanceof OarfishEntity) {
+            return SoundEvents.SALMON_HURT;
+        }
+
+        return SoundEvents.TROPICAL_FISH_HURT;
     }
 
     @Override
     protected SoundEvent getDeathSound() {
-        return SoundEvents.COD_DEATH;
+        if (this instanceof WhaleEntity) {
+            return SoundEvents.DOLPHIN_DEATH;
+        }
+
+        if (this instanceof JellyfishEntity
+                || this instanceof LanternfishEntity) {
+            return SoundEvents.GLOW_SQUID_DEATH;
+        }
+
+        if (this instanceof BarracudaEntity
+                || this instanceof MorayEelEntity) {
+            return SoundEvents.GUARDIAN_DEATH;
+        }
+
+        if (this instanceof FlyingFishEntity
+                || this instanceof OarfishEntity) {
+            return SoundEvents.SALMON_DEATH;
+        }
+
+        return SoundEvents.TROPICAL_FISH_DEATH;
     }
 }

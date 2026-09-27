@@ -76,7 +76,7 @@ public final class EcologyContent {
                                     MobCategory.WATER_AMBIENT
                             )
                             .sized(0.34F, 0.20F)
-                            .clientTrackingRange(10)
+                            .clientTrackingRange(28)
                             .build("wayaround:sardine")
             );
 
@@ -92,7 +92,7 @@ public final class EcologyContent {
                                     MobCategory.WATER_CREATURE
                             )
                             .sized(1.65F, 0.72F)
-                            .clientTrackingRange(12)
+                            .clientTrackingRange(36)
                             .build("wayaround:reef_shark")
             );
 
@@ -102,7 +102,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(MantaRayEntity::new, MobCategory.WATER_CREATURE)
                             .sized(1.90F, 0.48F)
-                            .clientTrackingRange(12)
+                            .clientTrackingRange(36)
                             .build("wayaround:manta_ray")
             );
 
@@ -112,7 +112,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(BarracudaEntity::new, MobCategory.WATER_CREATURE)
                             .sized(1.20F, 0.38F)
-                            .clientTrackingRange(12)
+                            .clientTrackingRange(36)
                             .build("wayaround:barracuda")
             );
 
@@ -122,7 +122,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(SeahorseEntity::new, MobCategory.WATER_AMBIENT)
                             .sized(0.28F, 0.48F)
-                            .clientTrackingRange(10)
+                            .clientTrackingRange(28)
                             .build("wayaround:seahorse")
             );
 
@@ -132,7 +132,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(JellyfishEntity::new, MobCategory.WATER_AMBIENT)
                             .sized(0.72F, 0.88F)
-                            .clientTrackingRange(10)
+                            .clientTrackingRange(28)
                             .build("wayaround:jellyfish")
             );
 
@@ -142,7 +142,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(OarfishEntity::new, MobCategory.WATER_CREATURE)
                             .sized(2.35F, 0.42F)
-                            .clientTrackingRange(14)
+                            .clientTrackingRange(24)
                             .build("wayaround:oarfish")
             );
 
@@ -152,7 +152,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(ClownfishEntity::new, MobCategory.WATER_AMBIENT)
                             .sized(0.42F, 0.24F)
-                            .clientTrackingRange(10)
+                            .clientTrackingRange(28)
                             .build("wayaround:clownfish")
             );
 
@@ -162,7 +162,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(FlyingFishEntity::new, MobCategory.WATER_AMBIENT)
                             .sized(0.62F, 0.26F)
-                            .clientTrackingRange(11)
+                            .clientTrackingRange(28)
                             .build("wayaround:flying_fish")
             );
 
@@ -172,7 +172,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(LanternfishEntity::new, MobCategory.WATER_AMBIENT)
                             .sized(0.38F, 0.22F)
-                            .clientTrackingRange(11)
+                            .clientTrackingRange(28)
                             .build("wayaround:lanternfish")
             );
 
@@ -182,7 +182,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(MorayEelEntity::new, MobCategory.WATER_CREATURE)
                             .sized(1.32F, 0.38F)
-                            .clientTrackingRange(12)
+                            .clientTrackingRange(36)
                             .build("wayaround:moray_eel")
             );
 
@@ -192,7 +192,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(WhaleEntity::new, MobCategory.WATER_CREATURE)
                             .sized(4.80F, 2.15F)
-                            .clientTrackingRange(16)
+                            .clientTrackingRange(28)
                             .build("wayaround:whale")
             );
 
@@ -202,7 +202,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(SpermWhaleEntity::new, MobCategory.WATER_CREATURE)
                             .sized(7.80F, 3.10F)
-                            .clientTrackingRange(20)
+                            .clientTrackingRange(36)
                             .build("wayaround:sperm_whale")
             );
 
@@ -212,7 +212,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(WhaleCarcassEntity::new, MobCategory.MISC)
                             .sized(1.55F, 0.82F)
-                            .clientTrackingRange(18)
+                            .clientTrackingRange(32)
                             .build("wayaround:whale_carcass")
             );
 
@@ -222,7 +222,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(WhaleCarcassEntity::new, MobCategory.MISC)
                             .sized(2.05F, 1.05F)
-                            .clientTrackingRange(22)
+                            .clientTrackingRange(40)
                             .build("wayaround:sperm_whale_carcass")
             );
 
@@ -232,7 +232,7 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(SeagullEntity::new, MobCategory.CREATURE)
                             .sized(0.82F, 0.48F)
-                            .clientTrackingRange(12)
+                            .clientTrackingRange(36)
                             .build("wayaround:seagull")
             );
 
@@ -413,7 +413,7 @@ public final class EcologyContent {
                                     MobCategory.CREATURE
                             )
                             .sized(0.72F, 0.34F)
-                            .clientTrackingRange(10)
+                            .clientTrackingRange(28)
                             .build("wayaround:crab")
             );
 

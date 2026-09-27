@@ -148,10 +148,11 @@ public final class SpectrumAccess {
     public static void rareHeldSpectrumAttunement(
             ServerTickEvent.Post event
     ) {
-        if ((event.getServer()
-                .getTickCount()
-                % 20L) != 0L
-                || !WorldFeatureRuntime.serverEnabled(
+        long tick =
+                event.getServer()
+                        .getTickCount();
+
+        if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.SPECTRUMS
         )) {
             return;
@@ -161,6 +162,64 @@ public final class SpectrumAccess {
                 event.getServer()
                         .getPlayerList()
                         .getPlayers()) {
+
+            /*
+             * Creative mode treats Spectrum items as buttons, not inventory
+             * loot. Taking one from the creative menu immediately installs the
+             * Spectrum identity and consumes the temporary stack. Awakening is
+             * deliberately bypassed here: this is the debug/creative workflow.
+             */
+            if (player.getAbilities()
+                    .instabuild
+                    && tick % 5L == 0L) {
+
+                var inventory =
+                        player.getInventory();
+
+                SpectrumItem creativeSpectrum =
+                        null;
+
+                int creativeSlot =
+                        -1;
+
+                for (int slot = 0;
+                     slot < inventory.getContainerSize();
+                     slot++) {
+
+                    ItemStack stack =
+                            inventory.getItem(
+                                    slot
+                            );
+
+                    if (stack.getItem()
+                            instanceof SpectrumItem found) {
+                        creativeSpectrum =
+                                found;
+                        creativeSlot =
+                                slot;
+                        break;
+                    }
+                }
+
+                if (creativeSpectrum != null) {
+                    replace(
+                            player,
+                            creativeSpectrum.spectrumType()
+                    );
+
+                    inventory.setItem(
+                            creativeSlot,
+                            ItemStack.EMPTY
+                    );
+
+                    inventory.setChanged();
+                    continue;
+                }
+            }
+
+            if (tick % 20L != 0L) {
+                continue;
+            }
 
             if (JujutsuManager.isAwakened(
                     player

@@ -10,6 +10,9 @@ import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomFlyingGoal;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -116,6 +119,31 @@ public final class SeagullEntity
                 );
             }
         }
+    }
+
+    @Override
+    public boolean shouldRenderAtSqrDistance(
+            double distance
+    ) {
+        return distance
+                <= 384.0 * 384.0;
+    }
+
+    @Override
+    protected SoundEvent getAmbientSound() {
+        return SoundEvents.PARROT_AMBIENT;
+    }
+
+    @Override
+    protected SoundEvent getHurtSound(
+            DamageSource source
+    ) {
+        return SoundEvents.PARROT_HURT;
+    }
+
+    @Override
+    protected SoundEvent getDeathSound() {
+        return SoundEvents.PARROT_DEATH;
     }
 
     @Override

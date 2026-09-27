@@ -15,17 +15,22 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 
 public final class BroadcastCameraSampler {
-    public static final int WIDTH = 32;
-    public static final int HEIGHT = 18;
-    private static final double RANGE = 48.0;
+    public static final int WIDTH = 64;
+    public static final int HEIGHT = 36;
+    private static final double RANGE = 72.0;
 
     private BroadcastCameraSampler() {}
 
     public static byte[] capture(ServerLevel level, BlockPos camera, Direction facing) {
         Vec3 origin = new Vec3(
-                camera.getX() + 0.5 + facing.getStepX() * 0.34,
+                /*
+                 * Start the ray outside the camera's own collision box.
+                 * The old 0.34 offset let many rays immediately hit the
+                 * camera block itself, producing the infamous orange TV.
+                 */
+                camera.getX() + 0.5 + facing.getStepX() * 0.86,
                 camera.getY() + 0.68,
-                camera.getZ() + 0.5 + facing.getStepZ() * 0.34
+                camera.getZ() + 0.5 + facing.getStepZ() * 0.86
         );
         Vec3 forward = new Vec3(facing.getStepX(), 0.0, facing.getStepZ()).normalize();
         return capture(level, origin, forward);
@@ -136,12 +141,30 @@ public final class BroadcastCameraSampler {
         if (state.is(Blocks.DIRT) || state.is(Blocks.COARSE_DIRT) || state.is(Blocks.ROOTED_DIRT)) return rgb(112, 83, 56);
         if (state.is(Blocks.SAND) || state.is(Blocks.SANDSTONE)) return rgb(201, 184, 119);
         if (state.is(Blocks.SNOW) || state.is(Blocks.SNOW_BLOCK) || state.is(Blocks.ICE)) return rgb(205, 224, 228);
+        if (state.is(Blocks.STONE) || state.is(Blocks.COBBLESTONE) || state.is(Blocks.ANDESITE)) return rgb(116, 118, 118);
+        if (state.is(Blocks.DEEPSLATE) || state.is(Blocks.COBBLED_DEEPSLATE)) return rgb(67, 69, 71);
+        if (state.is(Blocks.GLASS) || state.is(Blocks.GLASS_PANE)) return rgb(184, 207, 214);
+        if (state.is(BlockTags.PLANKS)) return rgb(151, 116, 73);
+        if (state.is(Blocks.BRICKS)) return rgb(151, 78, 64);
+        if (state.is(Blocks.BLACK_CONCRETE)) return rgb(23, 25, 29);
+        if (state.is(Blocks.WHITE_CONCRETE)) return rgb(207, 213, 214);
+        if (state.is(Blocks.LIGHT_GRAY_CONCRETE)) return rgb(125, 125, 115);
+        if (state.is(Blocks.GRAY_CONCRETE)) return rgb(55, 58, 62);
 
+        /*
+         * Unknown blocks still get a stable identity color, but keep the range
+         * neutral so a single unsupported block cannot turn the entire feed
+         * into an orange/brown slab.
+         */
         int hash = BuiltInRegistries.BLOCK.getKey(state.getBlock()).hashCode();
-        int r = 72 + Math.floorMod(hash, 72);
-        int g = 72 + Math.floorMod(hash >>> 7, 72);
-        int b = 72 + Math.floorMod(hash >>> 14, 72);
-        return rgb(r, g, b);
+        int base = 92 + Math.floorMod(hash, 54);
+        int variationA = Math.floorMod(hash >>> 8, 29) - 14;
+        int variationB = Math.floorMod(hash >>> 16, 29) - 14;
+        return rgb(
+                base,
+                base + variationA,
+                base + variationB
+        );
     }
 
     private static int shade(int color, double distance) {

@@ -38,6 +38,14 @@ public final class WhaleCarcassEntity
     }
 
     @Override
+    public boolean shouldRenderAtSqrDistance(
+            double distance
+    ) {
+        return distance
+                <= 768.0 * 768.0;
+    }
+
+    @Override
     protected void registerGoals() {
         // Dead things have admirably simple career goals.
     }

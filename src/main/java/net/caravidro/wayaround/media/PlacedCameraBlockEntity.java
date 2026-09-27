@@ -124,7 +124,7 @@ public final class PlacedCameraBlockEntity extends BlockEntity {
 
         if (camera.started
                 && level instanceof ServerLevel server
-                && level.getGameTime() % 20L == Math.floorMod(pos.asLong(), 20L)) {
+                && level.getGameTime() % 10L == Math.floorMod(pos.asLong(), 10L)) {
             BroadcastManager.broadcastPlacedCamera(server, camera);
         }
     }
