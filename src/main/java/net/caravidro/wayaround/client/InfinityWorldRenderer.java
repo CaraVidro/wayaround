@@ -7,7 +7,6 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.client.Minecraft;
@@ -19,6 +18,14 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
+/**
+ * Infinity is deliberately not rendered as a colored shield.
+ *
+ * This renderer approximates hot-air refraction with extremely faint,
+ * color-neutral warped cylindrical ribbons. It does not paint an obvious aura:
+ * at rest the field is almost invisible, while movement makes the air around
+ * the owner look subtly unstable.
+ */
 @EventBusSubscriber(
         modid = WayAround.MODID,
         value = Dist.CLIENT
@@ -54,18 +61,6 @@ public final class InfinityWorldRenderer {
             return;
         }
 
-        boolean renderable =
-                fields.stream()
-                        .anyMatch(
-                                field ->
-                                        field.confidence()
-                                                >= 0.18F
-                        );
-
-        if (!renderable) {
-            return;
-        }
-
         Vec3 camera =
                 event.getCamera()
                         .getPosition();
@@ -82,13 +77,20 @@ public final class InfinityWorldRenderer {
 
         float time =
                 minecraft.level
-                        .getGameTime();
+                        .getGameTime()
+                        + event.getPartialTick()
+                                .getGameTimeDeltaPartialTick(
+                                        false
+                                );
+
+        boolean drewAnything =
+                false;
 
         for (InfinityClientEffects.ClientInfinity field :
                 fields) {
 
             if (field.confidence()
-                    < 0.18F) {
+                    < 0.16F) {
 
                 continue;
             }
@@ -104,92 +106,63 @@ public final class InfinityWorldRenderer {
                             - camera.z
             );
 
-            float pulse =
-                    0.5F
-                            + 0.5F
-                                    * Mth.sin(
-                                            time * 0.12F
-                                                    + field.owner()
-                                                            .hashCode()
-                                                            * 0.01F
-                                    );
+            float confidence =
+                    field.confidence();
 
-            int shells =
-                    field.confidence()
-                            >= 0.72F
-                            ? 3
-                            : 2;
+            /*
+             * Most of the physical field stays invisible. These three bands
+             * merely hint at the space being optically bent.
+             */
+            float baseRadius =
+                    Math.max(
+                            2.0F,
+                            field.radius()
+                                    * 0.58F
+                    );
 
-            for (int shell = 0;
-                 shell < shells;
-                 shell++) {
+            heatRibbon(
+                    buffer,
+                    pose.last()
+                            .pose(),
+                    baseRadius,
+                    -1.20F,
+                    1.15F,
+                    time * 0.055F,
+                    confidence,
+                    4
+            );
 
-                pose.pushPose();
+            heatRibbon(
+                    buffer,
+                    pose.last()
+                            .pose(),
+                    baseRadius * 0.78F,
+                    -0.45F,
+                    1.85F,
+                    -time * 0.071F + 1.7F,
+                    confidence,
+                    3
+            );
 
-                float phase =
-                        time
-                                * (
-                                0.18F
-                                        + shell
-                                                * 0.09F
-                        );
-
-                pose.mulPose(
-                        Axis.YP.rotationDegrees(
-                                phase
-                                        * 13.0F
-                        )
-                );
-
-                pose.mulPose(
-                        Axis.XP.rotationDegrees(
-                                phase
-                                        * 7.0F
-                        )
-                );
-
-                float size =
-                        (
-                                1.35F
-                                        + field.confidence()
-                                                * 1.65F
-                        )
-                                * (
-                                1.0F
-                                        + shell
-                                                * 0.13F
-                                        + pulse
-                                                * 0.025F
-                        );
-
-                int alpha =
-                        Mth.clamp(
-                                Math.round(
-                                        12.0F
-                                                + field.confidence()
-                                                        * 36.0F
-                                                - shell
-                                                        * 6.0F
-                                ),
-                                7,
-                                54
-                        );
-
-                octahedron(
-                        buffer,
-                        pose.last()
-                                .pose(),
-                        size,
-                        174,
-                        232,
-                        255,
-                        alpha
-                );
-
-                pose.popPose();
-            }
+            heatRibbon(
+                    buffer,
+                    pose.last()
+                            .pose(),
+                    baseRadius * 1.07F,
+                    -1.65F,
+                    0.45F,
+                    time * 0.043F + 3.4F,
+                    confidence,
+                    2
+            );
 
             pose.popPose();
+            drewAnything =
+                    true;
+        }
+
+        if (!drewAnything) {
+            return;
         }
 
         RenderSystem.enableBlend();
@@ -210,33 +183,154 @@ public final class InfinityWorldRenderer {
         RenderSystem.disableBlend();
     }
 
-    private static void octahedron(
+    private static void heatRibbon(
             BufferBuilder buffer,
             org.joml.Matrix4f matrix,
             float radius,
-            int red,
-            int green,
-            int blue,
-            int alpha
+            float bottomY,
+            float topY,
+            float phase,
+            float confidence,
+            int baseAlpha
     ) {
-        float topY =
-                radius;
+        int segments =
+                48;
 
-        float bottomY =
-                -radius;
+        float height =
+                topY
+                        - bottomY;
 
-        triangle(buffer, matrix, 0, topY, 0, radius, 0, 0, 0, 0, radius, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, topY, 0, 0, 0, radius, -radius, 0, 0, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, topY, 0, -radius, 0, 0, 0, 0, -radius, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, topY, 0, 0, 0, -radius, radius, 0, 0, red, green, blue, alpha);
+        for (int segment = 0;
+             segment < segments;
+             segment++) {
 
-        triangle(buffer, matrix, 0, bottomY, 0, 0, 0, radius, radius, 0, 0, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, bottomY, 0, -radius, 0, 0, 0, 0, radius, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, bottomY, 0, 0, 0, -radius, -radius, 0, 0, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, bottomY, 0, radius, 0, 0, 0, 0, -radius, red, green, blue, alpha);
+            float a0 =
+                    (float) (
+                            Math.PI
+                                    * 2.0
+                                    * segment
+                                    / segments
+                    );
+
+            float a1 =
+                    (float) (
+                            Math.PI
+                                    * 2.0
+                                    * (
+                                    segment + 1
+                            )
+                                    / segments
+                    );
+
+            float wobble0 =
+                    Mth.sin(
+                            a0 * 3.0F
+                                    + phase
+                    )
+                            * (
+                            0.055F
+                                    + confidence
+                                            * 0.075F
+                    );
+
+            float wobble1 =
+                    Mth.sin(
+                            a1 * 3.0F
+                                    + phase
+                    )
+                            * (
+                            0.055F
+                                    + confidence
+                                            * 0.075F
+                    );
+
+            float r0 =
+                    radius
+                            + wobble0;
+
+            float r1 =
+                    radius
+                            + wobble1;
+
+            float yWave0 =
+                    Mth.sin(
+                            a0 * 2.0F
+                                    - phase * 1.7F
+                    )
+                            * 0.14F;
+
+            float yWave1 =
+                    Mth.sin(
+                            a1 * 2.0F
+                                    - phase * 1.7F
+                    )
+                            * 0.14F;
+
+            float x0 =
+                    Mth.cos(a0)
+                            * r0;
+
+            float z0 =
+                    Mth.sin(a0)
+                            * r0;
+
+            float x1 =
+                    Mth.cos(a1)
+                            * r1;
+
+            float z1 =
+                    Mth.sin(a1)
+                            * r1;
+
+            int alpha =
+                    Mth.clamp(
+                            Math.round(
+                                    baseAlpha
+                                            + confidence
+                                                    * 5.0F
+                                            + (
+                                            0.5F
+                                                    + 0.5F
+                                                    * Mth.sin(
+                                                    phase
+                                                            * 5.0F
+                                                            + a0
+                                            )
+                                    )
+                                                    * 2.0F
+                            ),
+                            2,
+                            12
+                    );
+
+            /*
+             * Neutral white only. Low alpha and moving geometry provide the
+             * heat-haze cue without turning Infinity into a colored bubble.
+             */
+            quad(
+                    buffer,
+                    matrix,
+                    x0,
+                    bottomY + yWave0,
+                    z0,
+                    x1,
+                    bottomY + yWave1,
+                    z1,
+                    x1,
+                    bottomY + height + yWave1,
+                    z1,
+                    x0,
+                    bottomY + height + yWave0,
+                    z0,
+                    246,
+                    246,
+                    246,
+                    alpha
+            );
+        }
     }
 
-    private static void triangle(
+    private static void quad(
             BufferBuilder buffer,
             org.joml.Matrix4f matrix,
             float ax,
@@ -248,14 +342,85 @@ public final class InfinityWorldRenderer {
             float cx,
             float cy,
             float cz,
+            float dx,
+            float dy,
+            float dz,
             int red,
             int green,
             int blue,
             int alpha
     ) {
-        vertex(buffer, matrix, ax, ay, az, red, green, blue, alpha);
-        vertex(buffer, matrix, bx, by, bz, red, green, blue, alpha);
-        vertex(buffer, matrix, cx, cy, cz, red, green, blue, alpha);
+        vertex(
+                buffer,
+                matrix,
+                ax,
+                ay,
+                az,
+                red,
+                green,
+                blue,
+                alpha
+        );
+
+        vertex(
+                buffer,
+                matrix,
+                bx,
+                by,
+                bz,
+                red,
+                green,
+                blue,
+                alpha
+        );
+
+        vertex(
+                buffer,
+                matrix,
+                cx,
+                cy,
+                cz,
+                red,
+                green,
+                blue,
+                alpha
+        );
+
+        vertex(
+                buffer,
+                matrix,
+                ax,
+                ay,
+                az,
+                red,
+                green,
+                blue,
+                alpha
+        );
+
+        vertex(
+                buffer,
+                matrix,
+                cx,
+                cy,
+                cz,
+                red,
+                green,
+                blue,
+                alpha
+        );
+
+        vertex(
+                buffer,
+                matrix,
+                dx,
+                dy,
+                dz,
+                red,
+                green,
+                blue,
+                alpha
+        );
     }
 
     private static void vertex(
