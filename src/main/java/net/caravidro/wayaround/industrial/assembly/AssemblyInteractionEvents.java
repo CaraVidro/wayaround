@@ -31,6 +31,20 @@ public final class AssemblyInteractionEvents {
             return;
         }
 
+        if (inspectGenericAssembly(
+                event
+        )) {
+            event.setCanceled(
+                    true
+            );
+
+            event.setCancellationResult(
+                    InteractionResult.SUCCESS
+            );
+
+            return;
+        }
+
         if (handleHeldInteraction(
                 event,
                 event.getItemStack()
@@ -95,6 +109,71 @@ public final class AssemblyInteractionEvents {
         PacketDistributor.sendToServer(
                 new AssemblyEmptyHandPayload()
         );
+    }
+
+    private static boolean inspectGenericAssembly(
+            PlayerInteractEvent.RightClickBlock event
+    ) {
+        if (!event.getItemStack()
+                .is(
+                        PowerContent.ASSEMBLY_GUIDE.get()
+                )) {
+            return false;
+        }
+
+        if (!(event.getLevel()
+                .getBlockEntity(
+                        event.getPos()
+                )
+                instanceof AssemblyMachine machine)) {
+            return false;
+        }
+
+        if (event.getLevel()
+                .isClientSide) {
+            return true;
+        }
+
+        if (!(event.getEntity()
+                instanceof ServerPlayer player)) {
+            return false;
+        }
+
+        AssemblySnapshot snapshot =
+                machine.assemblySnapshot();
+
+        player.displayClientMessage(
+                Component.literal(
+                        "Assembly "
+                                + snapshot.type()
+                                        .getPath()
+                                + " | integridade "
+                                + Math.round(
+                                snapshot.structuralIntegrity()
+                                        * 100.0F
+                        )
+                                + "% | qualidade "
+                                + Math.round(
+                                snapshot.workmanship()
+                                        * 100.0F
+                        )
+                                + "% | stress "
+                                + Math.round(
+                                snapshot.stressRatio()
+                                        * 100.0F
+                        )
+                                + "% | elo fraco: "
+                                + (
+                                snapshot.weakestPart()
+                                        .isBlank()
+                                        ? "-"
+                                        : snapshot.weakestPart()
+                        )
+                ),
+                true
+        );
+
+        return true;
     }
 
     private static boolean handleHeldInteraction(
