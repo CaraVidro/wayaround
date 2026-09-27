@@ -548,8 +548,15 @@ public final class BroadcastManager {
 
             if (!pos.equals(start) && !isTransmitNetworkBlock(state)) continue;
 
-            if (state.is(MediaContent.BROADCAST_ANTENNA.get())) {
-                antennas.add(pos.immutable());
+            if (state.is(MediaContent.BROADCAST_ANTENNA.get())
+                    && level.getBlockEntity(
+                    pos
+            ) instanceof BroadcastAntennaBlockEntity antenna
+                    && antenna.isTowerController()) {
+
+                antennas.add(
+                        pos.immutable()
+                );
             }
 
             if (!editorSeen && level.getBlockEntity(pos) instanceof EditorialBlockEntity editorial) {
@@ -724,9 +731,39 @@ public final class BroadcastManager {
             }
         }
 
-        for (DimensionState state : STATES.values()) {
-            long cutoff = event.getServer().getTickCount() - 200L;
-            state.recentSounds.entrySet().removeIf(entry -> entry.getValue() < cutoff);
+        for (ServerLevel level :
+                event.getServer().getAllLevels()) {
+
+            DimensionState state =
+                    STATES.get(
+                            level.dimension()
+                    );
+
+            if (state == null) {
+                continue;
+            }
+
+            long gameTime =
+                    level.getGameTime();
+
+            state.recentSounds
+                    .entrySet()
+                    .removeIf(
+                            entry ->
+                                    gameTime
+                                            - entry.getValue()
+                                            > 200L
+                    );
+
+            state.signalCache
+                    .entrySet()
+                    .removeIf(
+                            entry ->
+                                    gameTime
+                                            - entry.getValue()
+                                            .tick
+                                            > 400L
+                    );
         }
     }
 
