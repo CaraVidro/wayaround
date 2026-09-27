@@ -24,19 +24,31 @@ public final class BroadcastAntennaBlockEntity extends BlockEntity {
         setChanged();
     }
 
+    public boolean isTowerController() {
+        return level == null
+                || !level.getBlockState(
+                worldPosition.below()
+        ).is(
+                MediaContent.BROADCAST_ANTENNA.get()
+        );
+    }
+
     public int towerHeight() {
         if (level == null) return 1;
+
         int height = 1;
         BlockPos cursor = worldPosition.above();
-        while (height < 16 && level.getBlockState(cursor).is(MediaContent.BROADCAST_ANTENNA.get())) {
+
+        while (height < 16
+                && level.getBlockState(
+                cursor
+        ).is(
+                MediaContent.BROADCAST_ANTENNA.get()
+        )) {
             height++;
             cursor = cursor.above();
         }
-        cursor = worldPosition.below();
-        while (height < 16 && level.getBlockState(cursor).is(MediaContent.BROADCAST_ANTENNA.get())) {
-            height++;
-            cursor = cursor.below();
-        }
+
         return height;
     }
 
@@ -47,6 +59,7 @@ public final class BroadcastAntennaBlockEntity extends BlockEntity {
     public static void serverTick(
             Level level, BlockPos pos, BlockState state, BroadcastAntennaBlockEntity antenna) {
         if (level instanceof net.minecraft.server.level.ServerLevel server
+                && antenna.isTowerController()
                 && level.getGameTime() % 20L == 0L) {
             BroadcastManager.heartbeatAntenna(server, pos);
             BroadcastManager.tickAntenna(server, antenna);
