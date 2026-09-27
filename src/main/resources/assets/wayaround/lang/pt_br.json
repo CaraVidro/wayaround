@@ -356,5 +356,15 @@
   "itemGroup.wayaround.agua_world": "Água World",
   "item.wayaround.sardine_spawn_egg": "Ovo Gerador de Sardinha",
   "item.wayaround.sunfish_spawn_egg": "Ovo Gerador de Peixe-Lua",
-  "item.wayaround.reef_shark_spawn_egg": "Ovo Gerador de Tubarão Costeiro"
+  "item.wayaround.reef_shark_spawn_egg": "Ovo Gerador de Tubarão Costeiro",
+  "entity.wayaround.manta_ray": "Arraia-Manta",
+  "entity.wayaround.barracuda": "Barracuda",
+  "entity.wayaround.seahorse": "Cavalo-Marinho",
+  "entity.wayaround.jellyfish": "Água-Viva",
+  "entity.wayaround.oarfish": "Peixe-Remo",
+  "item.wayaround.manta_ray_spawn_egg": "Ovo Gerador de Arraia-Manta",
+  "item.wayaround.barracuda_spawn_egg": "Ovo Gerador de Barracuda",
+  "item.wayaround.seahorse_spawn_egg": "Ovo Gerador de Cavalo-Marinho",
+  "item.wayaround.jellyfish_spawn_egg": "Ovo Gerador de Água-Viva",
+  "item.wayaround.oarfish_spawn_egg": "Ovo Gerador de Peixe-Remo"
 }
