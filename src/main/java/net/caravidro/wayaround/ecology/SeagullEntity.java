@@ -2,7 +2,7 @@ package net.caravidro.wayaround.ecology;
 
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.FlyingAnimal;
+import net.minecraft.world.entity.animal.FlyingAnimal;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
