@@ -356,5 +356,15 @@
   "itemGroup.wayaround.agua_world": "Agua World",
   "item.wayaround.sardine_spawn_egg": "Sardine Spawn Egg",
   "item.wayaround.sunfish_spawn_egg": "Sunfish Spawn Egg",
-  "item.wayaround.reef_shark_spawn_egg": "Coastal Shark Spawn Egg"
+  "item.wayaround.reef_shark_spawn_egg": "Coastal Shark Spawn Egg",
+  "entity.wayaround.manta_ray": "Manta Ray",
+  "entity.wayaround.barracuda": "Barracuda",
+  "entity.wayaround.seahorse": "Seahorse",
+  "entity.wayaround.jellyfish": "Jellyfish",
+  "entity.wayaround.oarfish": "Oarfish",
+  "item.wayaround.manta_ray_spawn_egg": "Manta Ray Spawn Egg",
+  "item.wayaround.barracuda_spawn_egg": "Barracuda Spawn Egg",
+  "item.wayaround.seahorse_spawn_egg": "Seahorse Spawn Egg",
+  "item.wayaround.jellyfish_spawn_egg": "Jellyfish Spawn Egg",
+  "item.wayaround.oarfish_spawn_egg": "Oarfish Spawn Egg"
 }
