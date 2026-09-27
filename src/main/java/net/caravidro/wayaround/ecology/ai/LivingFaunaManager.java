@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.ecology.EcologyRules;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -69,24 +70,18 @@ public final class LivingFaunaManager {
         if (event.getEntity()
                 instanceof AbstractFish) {
             event.setSize(
-                    Math.min(
-                            20,
-                            Math.max(
-                                    8,
-                                    event.getSize() + 3
-                            )
+                    EcologyRules.enlargedCluster(
+                            event.getSize(),
+                            true
                     )
             );
 
         } else if (event.getEntity()
                 instanceof Animal) {
             event.setSize(
-                    Math.min(
-                            16,
-                            Math.max(
-                                    6,
-                                    event.getSize() + 2
-                            )
+                    EcologyRules.enlargedCluster(
+                            event.getSize(),
+                            false
                     )
             );
         }
@@ -597,11 +592,9 @@ public final class LivingFaunaManager {
                         / 24000L;
 
         boolean breedingMigration =
-                Math.floorMod(
-                        day,
-                        8L
-                )
-                        >= 5L;
+                EcologyRules.fishMigrationSeason(
+                        day
+                );
 
         double distance =
                 fish.blockPosition()
@@ -655,11 +648,9 @@ public final class LivingFaunaManager {
                 level.getDayTime()
                         / 24000L;
 
-        if (Math.floorMod(
-                day,
-                8L
-        )
-                < 5L) {
+        if (!EcologyRules.fishMigrationSeason(
+                day
+        )) {
             return;
         }
 
