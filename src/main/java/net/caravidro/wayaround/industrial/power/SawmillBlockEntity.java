@@ -26,7 +26,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -43,7 +47,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * Power quality, alignment, wear, fatigue and over-speed change cutting speed,
  * vibration, output yield and the quality stamped into the produced boards.
  */
-public final class SawmillBlockEntity extends BlockEntity {
+public final class SawmillBlockEntity extends BlockEntity implements MenuProvider {
 
     private static final float OPTIMAL_RPM =
             30.0F;
@@ -74,6 +78,34 @@ public final class SawmillBlockEntity extends BlockEntity {
 
     private int completedCuts;
     private boolean jammed;
+    private int manualCrankTicks;
+    private SawmillRecipe selectedRecipe =
+            SawmillRecipe.PLANKS;
+
+    private final ContainerData menuData =
+            new ContainerData() {
+                @Override
+                public int get(int index) {
+                    return switch (index) {
+                        case 0 -> selectedRecipe.ordinal();
+                        case 1 -> Math.round(progress * 1000.0F);
+                        case 2 -> manualCrankTicks;
+                        default -> 0;
+                    };
+                }
+
+                @Override
+                public void set(int index, int value) {
+                    if (index == 0) {
+                        selectRecipe(value);
+                    }
+                }
+
+                @Override
+                public int getCount() {
+                    return 3;
+                }
+            };
 
     public SawmillBlockEntity(
             BlockPos pos,
@@ -114,9 +146,20 @@ public final class SawmillBlockEntity extends BlockEntity {
         IRotationalPower source =
                 findBestSource();
 
+        boolean manual =
+                manualCrankTicks > 0;
+
+        if (manualCrankTicks > 0) {
+            manualCrankTicks--;
+        }
+
         float targetRpm =
                 source == null
-                        ? 0.0F
+                        ? (
+                        manual
+                                ? 18.0F
+                                : 0.0F
+                )
                         : source.rpm();
 
         AssemblyPartProfile bladeProfile =
@@ -130,7 +173,10 @@ public final class SawmillBlockEntity extends BlockEntity {
 
         boolean mechanicallyComplete =
                 bladeProfile != null
-                        && shaftProfile != null;
+                        && (
+                        shaftProfile != null
+                                || manual
+                );
 
         float bladePerformance =
                 bladeProfile == null
@@ -161,7 +207,8 @@ public final class SawmillBlockEntity extends BlockEntity {
         float requestedPower =
                 0.0F;
 
-        if (source != null
+        if ((source != null
+                || manual)
                 && mechanicallyComplete) {
 
             if (jammed) {
@@ -189,12 +236,19 @@ public final class SawmillBlockEntity extends BlockEntity {
         }
 
         float granted =
-                source == null
-                        || requestedPower <= 0.0F
+                requestedPower <= 0.0F
                         ? 0.0F
-                        : source.consumePower(
-                                requestedPower
-                        );
+                        : manual
+                                && source == null
+                                ? Math.min(
+                                        requestedPower,
+                                        1.85F
+                                )
+                                : source == null
+                                        ? 0.0F
+                                        : source.consumePower(
+                                                requestedPower
+                                        );
 
         lastRequestedPower =
                 requestedPower;
@@ -214,7 +268,8 @@ public final class SawmillBlockEntity extends BlockEntity {
 
         boolean spinning =
                 !jammed
-                        && source != null
+                        && (source != null
+                        || manual)
                         && mechanicallyComplete
                         && granted > 0.035F
                         && speedAbs > 0.5F;
@@ -223,8 +278,13 @@ public final class SawmillBlockEntity extends BlockEntity {
                 Mth.clamp(
                         bladePerformance
                                 * 0.58F
-                                + shaftPerformance
-                                        * 0.27F
+                                + (
+                                manual
+                                        && shaftProfile == null
+                                        ? 0.19F
+                                        : shaftPerformance
+                                                * 0.27F
+                        )
                                 + bodyPerformance
                                         * 0.15F,
                         0.25F,
@@ -1110,8 +1170,7 @@ public final class SawmillBlockEntity extends BlockEntity {
             Player player,
             ItemStack stack
     ) {
-        if (!bladeInstalled()
-                || !shaftInstalled()) {
+        if (!bladeInstalled()) {
 
             player.displayClientMessage(
                     Component.translatable(
@@ -1311,19 +1370,28 @@ public final class SawmillBlockEntity extends BlockEntity {
         }
 
         Item outputItem =
-                matchingPlanks(
-                        input
-                );
+                switch (selectedRecipe) {
+                    case PLANKS ->
+                            matchingPlanks(
+                                    input
+                            );
+
+                    case WATER_WHEEL_BOARD ->
+                            PowerContent.WATER_WHEEL_BLADE_ITEM.get();
+
+                    case WOODEN_NAILS ->
+                            PowerContent.WOODEN_NAIL.get();
+                };
 
         float quality =
                 currentCutQuality();
 
         int count =
-                quality >= 0.78F
-                        ? 6
-                        : quality >= 0.48F
-                                ? 5
-                                : 4;
+                switch (selectedRecipe) {
+                    case PLANKS -> 10;
+                    case WATER_WHEEL_BOARD -> 4;
+                    case WOODEN_NAILS -> 20;
+                };
 
         ItemStack output =
                 new ItemStack(
@@ -1371,10 +1439,49 @@ public final class SawmillBlockEntity extends BlockEntity {
                         )
                 );
 
-        AssemblyItemData.writePart(
-                output,
-                boardProfile
-        );
+        if (selectedRecipe
+                != SawmillRecipe.WOODEN_NAILS) {
+            AssemblyItemData.writePart(
+                    output,
+                    boardProfile
+            );
+        } else {
+            AssemblyPartProfile nailProfile =
+                    AssemblyPartProfile.manufactured(
+                            AssemblyPartProfile.Kind.FASTENER,
+                            AssemblyPartProfile.Material.WOOD,
+                            outputId,
+                            0,
+                            quality,
+                            Mth.clamp(
+                                    0.42F
+                                            + quality
+                                                    * 0.46F,
+                                    0.0F,
+                                    1.0F
+                            ),
+                            Mth.clamp(
+                                    0.40F
+                                            + quality
+                                                    * 0.42F,
+                                    0.0F,
+                                    1.0F
+                            ),
+                            0.24F,
+                            0.0F,
+                            Mth.clamp(
+                                    vibration
+                                            * 0.03F,
+                                    0.0F,
+                                    0.08F
+                            )
+                    );
+
+            AssemblyItemData.writePart(
+                    output,
+                    nailProfile
+            );
+        }
 
         AssemblyItemData.writeProcessStamp(
                 output,
@@ -1690,6 +1797,95 @@ public final class SawmillBlockEntity extends BlockEntity {
         }
     }
 
+    public void crank(
+            Player player
+    ) {
+        if (!bladeInstalled()) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.need_blade"
+                    ),
+                    true
+            );
+            return;
+        }
+
+        if (jammed) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.jammed"
+                    ),
+                    true
+            );
+            return;
+        }
+
+        manualCrankTicks =
+                Math.max(
+                        manualCrankTicks,
+                        40
+                );
+
+        if (level != null) {
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.LEVER_CLICK,
+                    SoundSource.BLOCKS,
+                    0.55F,
+                    0.82F
+            );
+        }
+
+        sync();
+    }
+
+    public boolean manualCranking() {
+        return manualCrankTicks > 0;
+    }
+
+    public void selectRecipe(
+            int id
+    ) {
+        selectedRecipe =
+                SawmillRecipe.byId(
+                        id
+                );
+
+        progress =
+                0.0F;
+
+        sync();
+    }
+
+    public int selectedRecipeId() {
+        return selectedRecipe.ordinal();
+    }
+
+    public ContainerData menuData() {
+        return menuData;
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable(
+                "container.wayaround.sawmill"
+        );
+    }
+
+    @Override
+    public AbstractContainerMenu createMenu(
+            int id,
+            Inventory inventory,
+            Player player
+    ) {
+        return new SawmillMenu(
+                id,
+                inventory,
+                this
+        );
+    }
+
     public void dropAssembly() {
         if (level == null) {
             return;
@@ -1787,6 +1983,27 @@ public final class SawmillBlockEntity extends BlockEntity {
         return jammed;
     }
 
+    public enum SawmillRecipe {
+        PLANKS,
+        WATER_WHEEL_BOARD,
+        WOODEN_NAILS;
+
+        public static SawmillRecipe byId(
+                int id
+        ) {
+            SawmillRecipe[] values =
+                    values();
+
+            return values[
+                    Mth.clamp(
+                            id,
+                            0,
+                            values.length - 1
+                    )
+                    ];
+        }
+    }
+
     private static float wrap(
             float value
     ) {
@@ -1875,6 +2092,11 @@ public final class SawmillBlockEntity extends BlockEntity {
         tag.putBoolean(
                 "Jammed",
                 jammed
+        );
+
+        tag.putInt(
+                "SawmillRecipe",
+                selectedRecipe.ordinal()
         );
 
         if (!body.isEmpty()) {
@@ -2013,6 +2235,17 @@ public final class SawmillBlockEntity extends BlockEntity {
                         ),
                         0.0F,
                         1.0F
+                );
+
+        selectedRecipe =
+                SawmillRecipe.byId(
+                        tag.contains(
+                                "SawmillRecipe"
+                        )
+                                ? tag.getInt(
+                                "SawmillRecipe"
+                        )
+                                : 0
                 );
 
         lastPowerRatio =
