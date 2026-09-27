@@ -6,6 +6,9 @@ import java.util.Set;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldstate.WorldEventTypes;
+import net.caravidro.wayaround.worldstate.WorldStateService;
+import net.minecraft.nbt.CompoundTag;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -76,11 +79,22 @@ public final class TimeAgingTicker {
                             continue;
                         }
 
+                        boolean active =
+                                machine.currentAssemblyLoad() > 0.025F;
+
                         var sample = TimeAgingEngine.sampleAssembly(
                                 level,
                                 blockEntity.getBlockPos(),
                                 machine,
-                                machine.currentAssemblyLoad() > 0.025F
+                                active
+                        );
+
+                        updateTemporalHistory(
+                                level,
+                                blockEntity.getBlockPos(),
+                                machine,
+                                active,
+                                sample
                         );
 
                         if (sample.wearFraction() > 0.0F) {
@@ -94,6 +108,119 @@ public final class TimeAgingTicker {
                 }
             }
         }
+    }
+
+    private static void updateTemporalHistory(
+            ServerLevel level,
+            BlockPos pos,
+            AssemblyMachine machine,
+            boolean active,
+            TimeAgingEngine.Sample sample
+    ) {
+        TemporalState state =
+                TemporalAgingData.get(level)
+                        .state(pos);
+
+        boolean neglectedLongEnough =
+                sample.inactiveTicks()
+                        >= 24000L * 5L;
+
+        boolean visiblyAged =
+                sample.weathering() >= 0.08F
+                        || sample.corrosion() >= 0.08F
+                        || sample.organicGrowth() >= 0.08F;
+
+        if (!active
+                && neglectedLongEnough
+                && visiblyAged
+                && !state.abandonmentRecorded()) {
+
+            CompoundTag payload =
+                    temporalPayload(
+                            machine,
+                            sample
+                    );
+
+            WorldStateService.record(
+                    level,
+                    WorldEventTypes.STRUCTURE_ABANDONED,
+                    pos,
+                    null,
+                    payload
+            );
+
+            state.markAbandonmentRecorded(
+                    true
+            );
+
+            TemporalAgingData.get(level)
+                    .setDirty();
+
+        } else if (active
+                && state.abandonmentRecorded()) {
+
+            CompoundTag payload =
+                    temporalPayload(
+                            machine,
+                            sample
+                    );
+
+            WorldStateService.record(
+                    level,
+                    WorldEventTypes.STRUCTURE_REACTIVATED,
+                    pos,
+                    null,
+                    payload
+            );
+
+            state.markAbandonmentRecorded(
+                    false
+            );
+
+            TemporalAgingData.get(level)
+                    .setDirty();
+        }
+    }
+
+    private static CompoundTag temporalPayload(
+            AssemblyMachine machine,
+            TimeAgingEngine.Sample sample
+    ) {
+        CompoundTag payload =
+                new CompoundTag();
+
+        payload.putString(
+                "assemblyType",
+                machine.assemblyType()
+                        .toString()
+        );
+
+        payload.putLong(
+                "ageTicks",
+                sample.ageTicks()
+        );
+
+        payload.putLong(
+                "inactiveTicks",
+                sample.inactiveTicks()
+        );
+
+        payload.putFloat(
+                "weathering",
+                sample.weathering()
+        );
+
+        payload.putFloat(
+                "corrosion",
+                sample.corrosion()
+        );
+
+        payload.putFloat(
+                "organicGrowth",
+                sample.organicGrowth()
+        );
+
+        return payload;
     }
 
     private static void tickWorldWeathering(ServerLevel level) {
