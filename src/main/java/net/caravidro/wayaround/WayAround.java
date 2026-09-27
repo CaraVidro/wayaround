@@ -7,6 +7,7 @@ import net.caravidro.wayaround.blue.ImaginaryBetaManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.ecology.EcologyContent;
+import net.caravidro.wayaround.ecology.EcologyTimeCommand;
 import net.caravidro.wayaround.industrial.IndustrialContent;
 import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
@@ -93,6 +94,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(DomainCommands::register);
         NeoForge.EVENT_BUS.addListener(TukunaDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(JujutsuCommands::register);
+        NeoForge.EVENT_BUS.addListener(EcologyTimeCommand::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);

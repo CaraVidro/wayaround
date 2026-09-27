@@ -8,6 +8,7 @@ import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.FluidTags;
@@ -107,6 +108,66 @@ public final class EcologicalSuccession {
                 mutateAroundPlayers(level);
             }
         }
+    }
+
+    public static int debugAdvance(
+            MinecraftServer server,
+            int requestedSteps
+    ) {
+        int steps =
+                Math.max(
+                        1,
+                        Math.min(
+                                200,
+                                requestedSteps
+                        )
+                );
+
+        for (ServerLevel level :
+                server.getAllLevels()) {
+            if (!level.dimension()
+                    .equals(Level.OVERWORLD)) {
+                continue;
+            }
+
+            seedLoadedPlayerArea(
+                    level
+            );
+
+            for (int pass = 0;
+                 pass < steps;
+                 pass++) {
+                mutateAroundPlayers(
+                        level
+                );
+
+                if (pass % 4 == 0) {
+                    for (ServerPlayer player :
+                            level.players()) {
+                        BlockPos probe =
+                                surface(
+                                        level,
+                                        player.blockPosition()
+                                                .getX()
+                                                + level.random.nextInt(49)
+                                                - 24,
+                                        player.blockPosition()
+                                                .getZ()
+                                                + level.random.nextInt(49)
+                                                - 24
+                                );
+
+                        TreeLifecycleManager.trySeedFallenTree(
+                                level,
+                                probe,
+                                level.random
+                        );
+                    }
+                }
+            }
+        }
+
+        return steps;
     }
 
     private static void seedLoadedPlayerArea(ServerLevel level) {

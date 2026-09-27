@@ -347,5 +347,10 @@
   "item.wayaround.raw_tropical_fish_meat": "Carne Crua de Peixe Tropical",
   "item.wayaround.raw_pufferfish_meat": "Carne Crua de Baiacu",
   "item.wayaround.raw_sunfish_meat": "Carne Crua de Peixe-Lua",
-  "entity.wayaround.sunfish": "Peixe-Lua"
+  "entity.wayaround.sunfish": "Peixe-Lua",
+  "entity.wayaround.sardine": "Sardinha",
+  "entity.wayaround.reef_shark": "Tubarão de Recife",
+  "entity.wayaround.crab": "Caranguejo",
+  "item.wayaround.raw_sardine_meat": "Carne Crua de Sardinha",
+  "item.wayaround.raw_shark_meat": "Carne Crua de Tubarão"
 }
