@@ -1,6 +1,10 @@
 package net.caravidro.wayaround.thermal;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Objects;
+
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.ThermalGlowPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
@@ -18,107 +22,657 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/** Sparse 8-block thermal cells. Only heated, loaded regions are sampled. */
+/**
+ * Sparse 8-block thermal cells.
+ *
+ * <p>This class owns transient local thermal disturbances. Callers should
+ * normally use {@link EnvironmentalTemperature}; the old public methods remain
+ * as compatibility shims for existing Way Around systems.</p>
+ */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class RegionalTemperature {
+
     private RegionalTemperature() {}
-    private static final int CELL = 8, MAX_CELLS = 4096, SAMPLES_PER_TICK = 384;
-    private static final LinkedHashMap<Cell, Heat> HEAT = new LinkedHashMap<>();
+
+    private static final int CELL = 8;
+    private static final int MAX_CELLS = 4096;
+    private static final int SAMPLES_PER_TICK = 384;
+
+    private static final LinkedHashMap<Cell, ThermalCell> CELLS =
+            new LinkedHashMap<>();
+
     private static int cursor;
+
     public interface Reaction {
-        void sample(ServerLevel level, BlockPos pos, BlockState state, double temperature);
+        void sample(
+                ServerLevel level,
+                BlockPos pos,
+                BlockState state,
+                double temperature
+        );
     }
-    private static final List<Reaction> REACTIONS = new ArrayList<>();
-    static { register(RegionalTemperature::igniteWood); register(RegionalTemperature::heatMetal); }
-    public static void register(Reaction reaction) { REACTIONS.add(Objects.requireNonNull(reaction)); }
-    private record Cell(ResourceKey<Level> dimension, int x, int y, int z) {}
-    private record Heat(double degrees, long time) {}
-    private static Cell cell(ServerLevel level, BlockPos pos) {
-        return new Cell(level.dimension(), Math.floorDiv(pos.getX(), CELL),
-                Math.floorDiv(pos.getY(), CELL), Math.floorDiv(pos.getZ(), CELL));
+
+    private static final List<Reaction> REACTIONS =
+            new ArrayList<>();
+
+    static {
+        register(
+                RegionalTemperature::igniteWood
+        );
+
+        register(
+                RegionalTemperature::heatMetal
+        );
     }
-    public static double at(ServerLevel level, BlockPos pos) {
-        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.THERMAL_SYSTEM)) return TemperatureCurve.AMBIENT;
-        Heat heat = HEAT.get(cell(level, pos));
-        return heat == null ? TemperatureCurve.AMBIENT : TemperatureCurve.cool(heat.degrees, level.getGameTime() - heat.time);
+
+    public static void register(
+            Reaction reaction
+    ) {
+        REACTIONS.add(
+                Objects.requireNonNull(
+                        reaction
+                )
+        );
     }
-    public static void pulse(ServerLevel level, Vec3 center, double radius, double degrees) {
-        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.THERMAL_SYSTEM)) return;
-        if (!Double.isFinite(degrees) || !Double.isFinite(radius)) return;
-        radius = Math.max(1, Math.min(64, radius));
-        int reach = (int)Math.ceil(radius / CELL);
-        Cell origin = cell(level, BlockPos.containing(center));
-        for (int x = -reach; x <= reach; x++) for (int y = -reach; y <= reach; y++) for (int z = -reach; z <= reach; z++) {
-            Cell key = new Cell(level.dimension(), origin.x + x, origin.y + y, origin.z + z);
-            BlockPos p = new BlockPos(key.x * CELL + 4, key.y * CELL + 4, key.z * CELL + 4);
-            double distance = Vec3.atCenterOf(p).distanceTo(center);
-            if (distance > radius + 4 || !level.hasChunkAt(p) || level.isOutsideBuildHeight(p)) continue;
-            double target = key.equals(origin) ? Math.min(TemperatureCurve.MAX, degrees) : TemperatureCurve.AMBIENT + (Math.min(TemperatureCurve.MAX, degrees) - TemperatureCurve.AMBIENT)
-                    * Math.max(0, 1 - distance / (radius + CELL));
-            Heat old = HEAT.get(key);
-            if (old == null && HEAT.size() >= MAX_CELLS) continue;
-            double current = old == null ? 20 : TemperatureCurve.cool(old.degrees, level.getGameTime() - old.time);
-            HEAT.put(key, new Heat(Math.max(current, target), level.getGameTime()));
+
+    private record Cell(
+            ResourceKey<Level> dimension,
+            int x,
+            int y,
+            int z
+    ) {
+    }
+
+    private record ThermalCell(
+            double degrees,
+            long time
+    ) {
+    }
+
+    private static Cell cell(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        return new Cell(
+                level.dimension(),
+                Math.floorDiv(
+                        pos.getX(),
+                        CELL
+                ),
+                Math.floorDiv(
+                        pos.getY(),
+                        CELL
+                ),
+                Math.floorDiv(
+                        pos.getZ(),
+                        CELL
+                )
+        );
+    }
+
+    private static BlockPos center(
+            Cell cell
+    ) {
+        return new BlockPos(
+                cell.x * CELL + CELL / 2,
+                cell.y * CELL + CELL / 2,
+                cell.z * CELL + CELL / 2
+        );
+    }
+
+    static double resolve(
+            ServerLevel level,
+            BlockPos pos,
+            double ambient
+    ) {
+        ThermalCell local =
+                CELLS.get(
+                        cell(
+                                level,
+                                pos
+                        )
+                );
+
+        if (local == null) {
+            return TemperatureCurve.clamp(
+                    ambient
+            );
         }
+
+        return TemperatureCurve.relax(
+                local.degrees,
+                ambient,
+                level.getGameTime()
+                        - local.time
+        );
     }
-    @SubscribeEvent public static void tick(ServerTickEvent.Post event) {
-        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.THERMAL_SYSTEM)) { HEAT.clear(); cursor = 0; return; }
-        if (HEAT.isEmpty()) return;
-        var server = event.getServer();
-        HEAT.entrySet().removeIf(e -> {
-            ServerLevel level = server.getLevel(e.getKey().dimension);
-            return level == null || TemperatureCurve.cool(e.getValue().degrees, level.getGameTime() - e.getValue().time) < 45;
-        });
-        var keys = new ArrayList<>(HEAT.keySet());
-        if (keys.isEmpty()) return;
-        int visits = Math.min(keys.size(), SAMPLES_PER_TICK / 8);
-        for (int i = 0; i < visits; i++) {
-            Cell key = keys.get(Math.floorMod(cursor++, keys.size()));
-            ServerLevel level = server.getLevel(key.dimension);
-            if (level == null) continue;
-            BlockPos base = new BlockPos(key.x * CELL, key.y * CELL, key.z * CELL);
-            if (!level.hasChunkAt(base)) continue;
-            double temperature = at(level, base);
-            if (server.getTickCount() % 10 == 0) {
-                for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class,
-                        new AABB(base.getX(),base.getY(),base.getZ(),base.getX()+CELL,base.getY()+CELL,base.getZ()+CELL))) {
-                    if (entity.fireImmune() || !cell(level,entity.blockPosition()).equals(key)) continue;
-                    if (level.random.nextDouble() < TemperatureCurve.chance(temperature,650,440,.75)) entity.igniteForSeconds(4);
+
+    public static double at(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        return EnvironmentalTemperature.at(
+                level,
+                pos
+        );
+    }
+
+    /** Existing absolute-target behavior, kept for compatibility. */
+    public static void pulse(
+            ServerLevel level,
+            Vec3 center,
+            double radius,
+            double degrees
+    ) {
+        pulseAbsolute(
+                level,
+                center,
+                radius,
+                degrees
+        );
+    }
+
+    public static void pulseAbsolute(
+            ServerLevel level,
+            Vec3 center,
+            double radius,
+            double targetCelsius
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.THERMAL_SYSTEM
+        )) {
+            return;
+        }
+
+        if (!Double.isFinite(
+                targetCelsius
+        )
+                || !Double.isFinite(
+                radius
+        )) {
+            return;
+        }
+
+        radius =
+                Math.max(
+                        1.0,
+                        Math.min(
+                                64.0,
+                                radius
+                        )
+                );
+
+        targetCelsius =
+                TemperatureCurve.clamp(
+                        targetCelsius
+                );
+
+        int reach =
+                (int) Math.ceil(
+                        radius / CELL
+                );
+
+        Cell origin =
+                cell(
+                        level,
+                        BlockPos.containing(
+                                center
+                        )
+                );
+
+        for (int x = -reach;
+             x <= reach;
+             x++) {
+            for (int y = -reach;
+                 y <= reach;
+                 y++) {
+                for (int z = -reach;
+                     z <= reach;
+                     z++) {
+                    Cell key =
+                            new Cell(
+                                    level.dimension(),
+                                    origin.x + x,
+                                    origin.y + y,
+                                    origin.z + z
+                            );
+
+                    BlockPos sample =
+                            center(
+                                    key
+                            );
+
+                    double distance =
+                            Vec3.atCenterOf(
+                                    sample
+                            )
+                                    .distanceTo(
+                                            center
+                                    );
+
+                    if (distance > radius + 4.0
+                            || !level.hasChunkAt(
+                            sample
+                    )
+                            || level.isOutsideBuildHeight(
+                            sample
+                    )) {
+                        continue;
+                    }
+
+                    double ambient =
+                            EnvironmentalTemperature.ambientAt(
+                                    level,
+                                    sample
+                            );
+
+                    double falloff =
+                            key.equals(
+                                    origin
+                            )
+                                    ? 1.0
+                                    : Math.max(
+                                            0.0,
+                                            1.0
+                                                    - distance
+                                                    / (radius + CELL)
+                                    );
+
+                    double target =
+                            ambient
+                                    + (targetCelsius - ambient)
+                                    * falloff;
+
+                    ThermalCell old =
+                            CELLS.get(
+                                    key
+                            );
+
+                    if (old == null
+                            && CELLS.size()
+                            >= MAX_CELLS) {
+                        continue;
+                    }
+
+                    double current =
+                            old == null
+                                    ? ambient
+                                    : TemperatureCurve.relax(
+                                            old.degrees,
+                                            ambient,
+                                            level.getGameTime()
+                                                    - old.time
+                                    );
+
+                    /*
+                     * Absolute pulses should push toward their target from
+                     * either side. Fuga heats; future cryogenic systems can
+                     * cool using the exact same field.
+                     */
+                    double chosen =
+                            targetCelsius >= ambient
+                                    ? Math.max(
+                                            current,
+                                            target
+                                    )
+                                    : Math.min(
+                                            current,
+                                            target
+                                    );
+
+                    CELLS.put(
+                            key,
+                            new ThermalCell(
+                                    TemperatureCurve.clamp(
+                                            chosen
+                                    ),
+                                    level.getGameTime()
+                            )
+                    );
                 }
             }
-            for (int sample = 0; sample < 8; sample++) {
-                BlockPos p = base.offset(level.random.nextInt(CELL), level.random.nextInt(CELL), level.random.nextInt(CELL));
-                BlockState state = level.getBlockState(p);
-                if (state.isAir() || state.hasBlockEntity() || state.getDestroySpeed(level, p) < 0) continue;
-                for (Reaction reaction : REACTIONS) reaction.sample(level, p, state, temperature);
+        }
+    }
+
+    public static void pulseDelta(
+            ServerLevel level,
+            Vec3 center,
+            double radius,
+            double deltaCelsius
+    ) {
+        BlockPos origin =
+                BlockPos.containing(
+                        center
+                );
+
+        pulseAbsolute(
+                level,
+                center,
+                radius,
+                EnvironmentalTemperature.at(
+                        level,
+                        origin
+                )
+                        + deltaCelsius
+        );
+    }
+
+    @SubscribeEvent
+    public static void tick(
+            ServerTickEvent.Post event
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.THERMAL_SYSTEM
+        )) {
+            CELLS.clear();
+            cursor = 0;
+            return;
+        }
+
+        if (CELLS.isEmpty()) {
+            return;
+        }
+
+        var server =
+                event.getServer();
+
+        CELLS.entrySet()
+                .removeIf(
+                        entry -> {
+                            ServerLevel level =
+                                    server.getLevel(
+                                            entry.getKey()
+                                                    .dimension
+                                    );
+
+                            if (level == null) {
+                                return true;
+                            }
+
+                            BlockPos pos =
+                                    center(
+                                            entry.getKey()
+                                    );
+
+                            double ambient =
+                                    EnvironmentalTemperature.ambientAt(
+                                            level,
+                                            pos
+                                    );
+
+                            double temperature =
+                                    TemperatureCurve.relax(
+                                            entry.getValue()
+                                                    .degrees,
+                                            ambient,
+                                            level.getGameTime()
+                                                    - entry.getValue()
+                                                    .time
+                                    );
+
+                            return Math.abs(
+                                    temperature - ambient
+                            ) < 4.0;
+                        }
+                );
+
+        var keys =
+                new ArrayList<>(
+                        CELLS.keySet()
+                );
+
+        if (keys.isEmpty()) {
+            return;
+        }
+
+        int visits =
+                Math.min(
+                        keys.size(),
+                        SAMPLES_PER_TICK / 8
+                );
+
+        for (int index = 0;
+             index < visits;
+             index++) {
+            Cell key =
+                    keys.get(
+                            Math.floorMod(
+                                    cursor++,
+                                    keys.size()
+                            )
+                    );
+
+            ServerLevel level =
+                    server.getLevel(
+                            key.dimension
+                    );
+
+            if (level == null) {
+                continue;
+            }
+
+            BlockPos base =
+                    new BlockPos(
+                            key.x * CELL,
+                            key.y * CELL,
+                            key.z * CELL
+                    );
+
+            if (!level.hasChunkAt(
+                    base
+            )) {
+                continue;
+            }
+
+            double temperature =
+                    EnvironmentalTemperature.at(
+                            level,
+                            base
+                    );
+
+            if (server.getTickCount()
+                    % 10 == 0) {
+                for (LivingEntity entity :
+                        level.getEntitiesOfClass(
+                                LivingEntity.class,
+                                new AABB(
+                                        base.getX(),
+                                        base.getY(),
+                                        base.getZ(),
+                                        base.getX() + CELL,
+                                        base.getY() + CELL,
+                                        base.getZ() + CELL
+                                )
+                        )) {
+                    if (entity.fireImmune()
+                            || !cell(
+                            level,
+                            entity.blockPosition()
+                    ).equals(
+                            key
+                    )) {
+                        continue;
+                    }
+
+                    if (level.random.nextDouble()
+                            < TemperatureCurve.chance(
+                            temperature,
+                            650,
+                            440,
+                            .75
+                    )) {
+                        entity.igniteForSeconds(
+                                4
+                        );
+                    }
+                }
+            }
+
+            for (int sampleIndex = 0;
+                 sampleIndex < 8;
+                 sampleIndex++) {
+                BlockPos pos =
+                        base.offset(
+                                level.random.nextInt(
+                                        CELL
+                                ),
+                                level.random.nextInt(
+                                        CELL
+                                ),
+                                level.random.nextInt(
+                                        CELL
+                                )
+                        );
+
+                BlockState state =
+                        level.getBlockState(
+                                pos
+                        );
+
+                if (state.isAir()
+                        || state.hasBlockEntity()
+                        || state.getDestroySpeed(
+                        level,
+                        pos
+                ) < 0) {
+                    continue;
+                }
+
+                for (Reaction reaction :
+                        REACTIONS) {
+                    reaction.sample(
+                            level,
+                            pos,
+                            state,
+                            temperature
+                    );
+                }
             }
         }
     }
-    private static void igniteWood(ServerLevel level, BlockPos p, BlockState state, double temperature) {
-        if (!(state.is(BlockTags.LOGS) || state.is(BlockTags.PLANKS) || state.is(BlockTags.LEAVES))
-                || level.random.nextDouble() >= TemperatureCurve.chance(temperature, 280, 500, .5)) return;
-        for (Direction direction : Direction.values()) {
-            BlockPos firePos = p.relative(direction);
-            var fire = Blocks.FIRE.defaultBlockState();
-            if (level.hasChunkAt(firePos) && level.isEmptyBlock(firePos) && fire.canSurvive(level, firePos)) {
-                level.setBlock(firePos, fire, 3); break;
+
+    private static void igniteWood(
+            ServerLevel level,
+            BlockPos pos,
+            BlockState state,
+            double temperature
+    ) {
+        if (!(state.is(
+                BlockTags.LOGS
+        )
+                || state.is(
+                BlockTags.PLANKS
+        )
+                || state.is(
+                BlockTags.LEAVES
+        ))
+                || level.random.nextDouble()
+                >= TemperatureCurve.chance(
+                temperature,
+                280,
+                500,
+                .5
+        )) {
+            return;
+        }
+
+        for (Direction direction :
+                Direction.values()) {
+            BlockPos firePos =
+                    pos.relative(
+                            direction
+                    );
+
+            var fire =
+                    Blocks.FIRE.defaultBlockState();
+
+            if (level.hasChunkAt(
+                    firePos
+            )
+                    && level.isEmptyBlock(
+                    firePos
+            )
+                    && fire.canSurvive(
+                    level,
+                    firePos
+            )) {
+                level.setBlock(
+                        firePos,
+                        fire,
+                        3
+                );
+
+                break;
             }
         }
     }
-    private static void heatMetal(ServerLevel level, BlockPos p, BlockState state, double temperature) {
-        if (state.is(Blocks.IRON_BLOCK) && temperature > 1100) {
-            PacketDistributor.sendToPlayersNear(level, null, p.getX(), p.getY(), p.getZ(), 80,
-                    new ThermalGlowPayload(p, 100));
+
+    private static void heatMetal(
+            ServerLevel level,
+            BlockPos pos,
+            BlockState state,
+            double temperature
+    ) {
+        if (state.is(
+                Blocks.IRON_BLOCK
+        )
+                && temperature > 1100) {
+            PacketDistributor.sendToPlayersNear(
+                    level,
+                    null,
+                    pos.getX(),
+                    pos.getY(),
+                    pos.getZ(),
+                    80,
+                    new ThermalGlowPayload(
+                            pos,
+                            100
+                    )
+            );
         }
-        boolean meltable = state.is(Blocks.IRON_BLOCK) || state.is(Blocks.GOLD_BLOCK)
-                || state.is(Blocks.COPPER_BLOCK) || state.is(BlockTags.BASE_STONE_OVERWORLD)
-                || state.is(BlockTags.BASE_STONE_NETHER);
-        if (meltable && level.random.nextDouble() < TemperatureCurve.chance(temperature, 1900, 360, .16))
-            level.setBlock(p, Blocks.LAVA.defaultBlockState(), 3);
+
+        boolean meltable =
+                state.is(
+                        Blocks.IRON_BLOCK
+                )
+                        || state.is(
+                        Blocks.GOLD_BLOCK
+                )
+                        || state.is(
+                        Blocks.COPPER_BLOCK
+                )
+                        || state.is(
+                        BlockTags.BASE_STONE_OVERWORLD
+                )
+                        || state.is(
+                        BlockTags.BASE_STONE_NETHER
+                );
+
+        if (meltable
+                && level.random.nextDouble()
+                < TemperatureCurve.chance(
+                temperature,
+                1900,
+                360,
+                .16
+        )) {
+            level.setBlock(
+                    pos,
+                    Blocks.LAVA.defaultBlockState(),
+                    3
+            );
+        }
     }
-    @SubscribeEvent public static void stop(ServerStoppedEvent event) { HEAT.clear(); cursor = 0; }
+
+    @SubscribeEvent
+    public static void stop(
+            ServerStoppedEvent event
+    ) {
+        CELLS.clear();
+        cursor = 0;
+    }
 }
