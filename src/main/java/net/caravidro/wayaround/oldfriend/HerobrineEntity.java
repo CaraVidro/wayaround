@@ -1,11 +1,8 @@
 package net.caravidro.wayaround.oldfriend;
 
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 
 /**
@@ -26,12 +23,12 @@ public final class HerobrineEntity
 
         this.setPersistenceRequired();
 
-        this.setItemInHand(
-                InteractionHand.MAIN_HAND,
-                new ItemStack(
-                        Items.FLINT_AND_STEEL
-                )
-        );
+        /*
+         * Hands are assigned by the current incident. Watcher/behind
+         * appearances stay empty-handed; arson gets flint and steel.
+         */
+        this.xpReward =
+                0;
     }
 
     @Override
@@ -77,5 +74,20 @@ public final class HerobrineEntity
                     this
             );
         }
+    }
+
+    public void lookNaturallyAt(
+            double x,
+            double y,
+            double z
+    ) {
+        this.getLookControl()
+                .setLookAt(
+                        x,
+                        y,
+                        z,
+                        18.0F,
+                        14.0F
+                );
     }
 }

@@ -100,6 +100,48 @@ public final class OldFriendManager {
     private static final int ACTION_THEFT =
             2;
 
+    private static final int ACTION_WATCH =
+            3;
+
+    private static final int ACTION_BEHIND =
+            4;
+
+    private static final int PHASE_APPROACH =
+            0;
+
+    private static final int PHASE_INSPECT =
+            1;
+
+    private static final int PHASE_AFTER_ACTION =
+            2;
+
+    private static final int PHASE_LEAVE =
+            3;
+
+    private static final int PHASE_FLEE =
+            4;
+
+    private static final String SPAWNED_AT =
+            "OldFriendSpawnedAt";
+
+    private static final String TARGET_PLAYER =
+            "OldFriendTargetPlayer";
+
+    private static final String NEXT_DECISION =
+            "OldFriendNextDecision";
+
+    private static final String PAUSE_UNTIL =
+            "OldFriendPauseUntil";
+
+    private static final String NOTICE_TICKS =
+            "OldFriendNoticeTicks";
+
+    private static final String SIGN_TARGET =
+            "OldFriendSignTarget";
+
+    private static final String CHEST_OPENED =
+            "OldFriendChestOpened";
+
     private OldFriendManager() {
     }
 
@@ -247,6 +289,30 @@ public final class OldFriendManager {
                         player
                 );
             }
+
+            if (stage >= 3
+                    && player.getRandom()
+                    .nextInt(
+                            1_800
+                    ) == 0) {
+                spawnWatcher(
+                        player
+                );
+            }
+
+            /*
+             * Around three in-game days after the shrine, the "behind you"
+             * apparition enters the pool. It is intentionally rare.
+             */
+            if (stage >= 4
+                    && player.getRandom()
+                    .nextInt(
+                            1_400
+                    ) == 0) {
+                spawnBehind(
+                        player
+                );
+            }
         }
     }
 
@@ -329,7 +395,7 @@ public final class OldFriendManager {
                                                             context.getSource()
                                                                     .sendSuccess(
                                                                             () -> Component.literal(
-                                                                                    "Eventos: door, footsteps, tunnel, pyramid, sabotage, arson, theft, appear, all"
+                                                                                    "Eventos: door, footsteps, tunnel, pyramid, sabotage, arson, theft, watch, behind, appear, all"
                                                                             ),
                                                                             false
                                                                     );
@@ -377,6 +443,18 @@ public final class OldFriendManager {
                                                         eventCommand(
                                                                 "theft",
                                                                 "theft"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "watch",
+                                                                "watch"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "behind",
+                                                                "behind"
                                                         )
                                                 )
                                                 .then(
@@ -479,15 +557,16 @@ public final class OldFriendManager {
                                     ACTION_THEFT
                             );
 
-                    case "appear" -> {
-                        spawnApparition(
-                                target.serverLevel(),
-                                target.blockPosition(),
-                                0,
-                                ""
-                        );
-                        yield true;
-                    }
+                    case "watch",
+                         "appear" ->
+                            spawnWatcher(
+                                    target
+                            );
+
+                    case "behind" ->
+                            spawnBehind(
+                                    target
+                            );
 
                     case "all" -> {
                         openDoorBehind(
@@ -510,6 +589,14 @@ public final class OldFriendManager {
                         forceSabotage(
                                 target,
                                 0
+                        );
+
+                        spawnWatcher(
+                                target
+                        );
+
+                        spawnBehind(
+                                target
                         );
 
                         yield true;
@@ -616,6 +703,11 @@ public final class OldFriendManager {
     private static int stage(
             long elapsed
     ) {
+        // Three Minecraft days after activation: direct behind-you sightings.
+        if (elapsed >= 3L * 24_000L) {
+            return 4;
+        }
+
         if (elapsed >= 30L * 60L * 20L) {
             return 3;
         }
@@ -1562,25 +1654,6 @@ public final class OldFriendManager {
                         victim.getUUID()
                 );
 
-        if (blame.isBlank()) {
-            for (ServerPlayer other :
-                    victim.server
-                            .getPlayerList()
-                            .getPlayers()) {
-                if (other != victim) {
-                    blame =
-                            other.getGameProfile()
-                                    .getName();
-                    break;
-                }
-            }
-        }
-
-        if (blame.isBlank()) {
-            blame =
-                    "???";
-        }
-
         if (requestedAction == 0
                 || requestedAction == ACTION_ARSON) {
             BlockPos wood =
@@ -1703,13 +1776,23 @@ public final class OldFriendManager {
         ServerLevel level =
                 victim.serverLevel();
 
-        if (level.getEntitiesOfClass(
+        if (!level.getEntitiesOfClass(
                 HerobrineEntity.class,
-                victim.getBoundingBox()
-                        .inflate(
-                                128.0
-                        )
-        ).size() > 0) {
+                new AABB(
+                        victim.blockPosition()
+                                .offset(
+                                        -128,
+                                        -64,
+                                        -128
+                                ),
+                        victim.blockPosition()
+                                .offset(
+                                        128,
+                                        64,
+                                        128
+                                )
+                )
+        ).isEmpty()) {
             return;
         }
 
@@ -1722,12 +1805,19 @@ public final class OldFriendManager {
         if (base == null
                 || !level.hasChunkAt(
                 base
-        )
-                || playerNear(
-                level,
-                base,
-                28.0
         )) {
+            return;
+        }
+
+        /*
+         * Only the owner has to be away. Other players may be at the base and
+         * can genuinely witness what happens.
+         */
+        if (victim.distanceToSqr(
+                Vec3.atCenterOf(
+                        base
+                )
+        ) <= 48.0 * 48.0) {
             return;
         }
 
@@ -1735,15 +1825,6 @@ public final class OldFriendManager {
                 strongestAssociation(
                         victim.server,
                         victim.getUUID()
-                );
-
-        if (blame.isBlank()) {
-            return;
-        }
-
-        JusticeSenseData justice =
-                JusticeSenseData.get(
-                        victim.server
                 );
 
         boolean wooden =
@@ -1775,11 +1856,14 @@ public final class OldFriendManager {
         }
 
         List<BlockPos> chests =
-                justice.chestPositions(
-                        level,
-                        victim.getUUID(),
-                        96
-                );
+                JusticeSenseData.get(
+                                victim.server
+                        )
+                        .chestPositions(
+                                level,
+                                victim.getUUID(),
+                                96
+                        );
 
         BlockPos chest =
                 chests.stream()
@@ -1796,12 +1880,7 @@ public final class OldFriendManager {
                         )
                         .orElse(null);
 
-        if (chest != null
-                && !playerNear(
-                level,
-                chest,
-                24.0
-        )) {
+        if (chest != null) {
             spawnApparition(
                     level,
                     chest,
@@ -2054,6 +2133,24 @@ public final class OldFriendManager {
             return;
         }
 
+        spawnAt(
+                level,
+                spawn,
+                target,
+                action,
+                blame,
+                null
+        );
+    }
+
+    private static boolean spawnAt(
+            ServerLevel level,
+            BlockPos spawn,
+            BlockPos target,
+            int action,
+            String blame,
+            UUID targetPlayer
+    ) {
         HerobrineEntity entity =
                 OldFriendContent.HEROBRINE.get()
                         .create(
@@ -2061,7 +2158,7 @@ public final class OldFriendManager {
                         );
 
         if (entity == null) {
-            return;
+            return false;
         }
 
         entity.moveTo(
@@ -2090,12 +2187,14 @@ public final class OldFriendManager {
 
         data.putString(
                 BLAME,
-                blame
+                blame == null
+                        ? ""
+                        : blame
         );
 
         data.putInt(
                 PHASE,
-                0
+                PHASE_APPROACH
         );
 
         data.putLong(
@@ -2103,9 +2202,337 @@ public final class OldFriendManager {
                 level.getGameTime()
         );
 
+        data.putLong(
+                SPAWNED_AT,
+                level.getGameTime()
+        );
+
+        if (targetPlayer != null) {
+            data.putString(
+                    TARGET_PLAYER,
+                    targetPlayer.toString()
+            );
+        }
+
+        if (action == ACTION_ARSON) {
+            entity.setItemInHand(
+                    net.minecraft.world.InteractionHand.MAIN_HAND,
+                    new net.minecraft.world.item.ItemStack(
+                            Items.FLINT_AND_STEEL
+                    )
+            );
+        }
+
         level.addFreshEntity(
                 entity
         );
+
+        return true;
+    }
+
+    private static boolean spawnWatcher(
+            ServerPlayer target
+    ) {
+        ServerLevel level =
+                target.serverLevel();
+
+        if (nearbyHerobrine(
+                level,
+                target.position(),
+                40.0
+        )) {
+            return false;
+        }
+
+        BlockPos spawn =
+                findObservationSpot(
+                        target
+                );
+
+        if (spawn == null) {
+            return false;
+        }
+
+        return spawnAt(
+                level,
+                spawn,
+                target.blockPosition(),
+                ACTION_WATCH,
+                "",
+                target.getUUID()
+        );
+    }
+
+    private static boolean spawnBehind(
+            ServerPlayer target
+    ) {
+        ServerLevel level =
+                target.serverLevel();
+
+        if (nearbyHerobrine(
+                level,
+                target.position(),
+                32.0
+        )) {
+            return false;
+        }
+
+        Vec3 look =
+                target.getLookAngle()
+                        .multiply(
+                                1.0,
+                                0.0,
+                                1.0
+                        );
+
+        if (look.lengthSqr()
+                < 0.001) {
+            return false;
+        }
+
+        look =
+                look.normalize();
+
+        Vec3 right =
+                new Vec3(
+                        -look.z,
+                        0.0,
+                        look.x
+                );
+
+        Vec3 desired =
+                target.position()
+                        .subtract(
+                                look.scale(
+                                        4.5
+                                                + target.getRandom()
+                                                .nextDouble()
+                                                * 2.0
+                                )
+                        )
+                        .add(
+                                right.scale(
+                                        (
+                                                target.getRandom()
+                                                        .nextDouble()
+                                                        - 0.5
+                                        )
+                                                * 1.6
+                                )
+                        );
+
+        BlockPos spawn =
+                groundAt(
+                        level,
+                        BlockPos.containing(
+                                desired
+                        ),
+                        4
+                );
+
+        if (spawn == null
+                || !validStandingSpot(
+                level,
+                spawn
+        )) {
+            return false;
+        }
+
+        return spawnAt(
+                level,
+                spawn,
+                target.blockPosition(),
+                ACTION_BEHIND,
+                "",
+                target.getUUID()
+        );
+    }
+
+    private static BlockPos findObservationSpot(
+            ServerPlayer target
+    ) {
+        ServerLevel level =
+                target.serverLevel();
+
+        BlockPos origin =
+                target.blockPosition();
+
+        for (int attempt = 0;
+             attempt < 36;
+             attempt++) {
+            double angle =
+                    target.getRandom()
+                            .nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            int radius =
+                    8
+                            + target.getRandom()
+                            .nextInt(
+                                    11
+                            );
+
+            BlockPos rough =
+                    new BlockPos(
+                            origin.getX()
+                                    + (int) Math.round(
+                                    Math.cos(
+                                            angle
+                                    )
+                                            * radius
+                            ),
+                            origin.getY(),
+                            origin.getZ()
+                                    + (int) Math.round(
+                                    Math.sin(
+                                            angle
+                                    )
+                                            * radius
+                            )
+                    );
+
+            BlockPos candidate =
+                    groundAt(
+                            level,
+                            rough,
+                            8
+                    );
+
+            if (candidate != null
+                    && validStandingSpot(
+                    level,
+                    candidate
+            )
+                    && hasNearbyCover(
+                    level,
+                    candidate
+            )) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static BlockPos groundAt(
+            ServerLevel level,
+            BlockPos around,
+            int verticalSearch
+    ) {
+        for (int dy = verticalSearch;
+             dy >= -verticalSearch;
+             dy--) {
+            BlockPos pos =
+                    around.offset(
+                            0,
+                            dy,
+                            0
+                    );
+
+            if (validStandingSpot(
+                    level,
+                    pos
+            )) {
+                return pos;
+            }
+        }
+
+        return null;
+    }
+
+    private static boolean validStandingSpot(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        return level.hasChunkAt(
+                pos
+        )
+                && level.getBlockState(
+                pos
+        ).isAir()
+                && level.getBlockState(
+                pos.above()
+        ).isAir()
+                && level.getBlockState(
+                pos.below()
+        ).isFaceSturdy(
+                level,
+                pos.below(),
+                Direction.UP
+        )
+                && level.getFluidState(
+                pos
+        ).isEmpty();
+    }
+
+    private static boolean hasNearbyCover(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        for (BlockPos nearby :
+                BlockPos.betweenClosed(
+                        pos.offset(
+                                -2,
+                                -1,
+                                -2
+                        ),
+                        pos.offset(
+                                2,
+                                3,
+                                2
+                        )
+                )) {
+            if (nearby.equals(
+                    pos
+            )
+                    || nearby.equals(
+                    pos.above()
+            )) {
+                continue;
+            }
+
+            BlockState state =
+                    level.getBlockState(
+                            nearby
+                    );
+
+            if (state.is(
+                    BlockTags.LOGS
+            )
+                    || (
+                    !state.isAir()
+                            && state.isCollisionShapeFullBlock(
+                            level,
+                            nearby
+                    )
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean nearbyHerobrine(
+            ServerLevel level,
+            Vec3 position,
+            double radius
+    ) {
+        AABB area =
+                new AABB(
+                        position.x - radius,
+                        position.y - radius,
+                        position.z - radius,
+                        position.x + radius,
+                        position.y + radius,
+                        position.z + radius
+                );
+
+        return !level.getEntitiesOfClass(
+                HerobrineEntity.class,
+                area
+        ).isEmpty();
     }
 
     private static BlockPos findSpawn(
@@ -2185,11 +2612,76 @@ public final class OldFriendManager {
         CompoundTag data =
                 entity.getPersistentData();
 
+        int action =
+                data.getInt(
+                        ACTION
+                );
+
+        if (action == ACTION_BEHIND) {
+            tickBehindApparition(
+                    level,
+                    entity,
+                    data
+            );
+            return;
+        }
+
+        if (action == ACTION_WATCH) {
+            tickWatcher(
+                    level,
+                    entity,
+                    data
+            );
+            return;
+        }
+
         if (!data.contains(
                 TARGET
         )) {
             entity.discard();
             return;
+        }
+
+        long now =
+                level.getGameTime();
+
+        long spawnedAt =
+                data.contains(
+                        SPAWNED_AT
+                )
+                        ? data.getLong(
+                        SPAWNED_AT
+                )
+                        : now;
+
+        if (now - spawnedAt
+                > 20L * 120L) {
+            entity.discard();
+            return;
+        }
+
+        int phase =
+                data.getInt(
+                        PHASE
+                );
+
+        ServerPlayer observer =
+                observingPlayer(
+                        level,
+                        entity
+                );
+
+        if (observer != null
+                && phase != PHASE_FLEE
+                && phase != PHASE_LEAVE) {
+            enterPhase(
+                    data,
+                    PHASE_FLEE,
+                    now
+            );
+
+            phase =
+                    PHASE_FLEE;
         }
 
         BlockPos target =
@@ -2199,70 +2691,506 @@ public final class OldFriendManager {
                         )
                 );
 
-        int phase =
-                data.getInt(
-                        PHASE
-                );
-
-        long age =
-                level.getGameTime()
+        long phaseAge =
+                now
                         - data.getLong(
                         ACTION_AT
                 );
 
-        if (age > 20L * 35L) {
-            entity.discard();
+        if (phase == PHASE_FLEE) {
+            fleeLikePlayer(
+                    level,
+                    entity,
+                    observer,
+                    phaseAge
+            );
             return;
         }
 
-        if (phase == 0) {
-            entity.getNavigation()
-                    .moveTo(
-                            target.getX()
-                                    + 0.5,
-                            target.getY(),
-                            target.getZ()
-                                    + 0.5,
-                            1.18
-                    );
+        if (phase == PHASE_LEAVE) {
+            leaveLikePlayer(
+                    level,
+                    entity,
+                    target,
+                    phaseAge
+            );
+            return;
+        }
+
+        if (phase == PHASE_APPROACH) {
+            walkLikePlayerToward(
+                    level,
+                    entity,
+                    target,
+                    data,
+                    0.98
+            );
 
             if (entity.distanceToSqr(
                     Vec3.atCenterOf(
                             target
                     )
-            ) <= 3.2 * 3.2
-                    || age > 20L * 14L) {
-                performAction(
-                        level,
-                        entity,
-                        target,
-                        data.getInt(
-                                ACTION
-                        ),
-                        data.getString(
-                                BLAME
-                        )
-                );
+            ) <= 3.0 * 3.0) {
+                entity.getNavigation()
+                        .stop();
 
-                data.putInt(
-                        PHASE,
-                        1
-                );
-
-                data.putLong(
-                        ACTION_AT,
-                        level.getGameTime()
+                enterPhase(
+                        data,
+                        PHASE_INSPECT,
+                        now
                 );
             }
 
             return;
         }
 
+        int actionType =
+                data.getInt(
+                        ACTION
+                );
+
+        if (phase == PHASE_INSPECT) {
+            entity.getNavigation()
+                    .stop();
+
+            entity.lookNaturallyAt(
+                    target.getX()
+                            + 0.5,
+                    target.getY()
+                            + 0.65,
+                    target.getZ()
+                            + 0.5
+            );
+
+            if (actionType == ACTION_THEFT
+                    && !data.getBoolean(
+                    CHEST_OPENED
+            )
+                    && level.getBlockEntity(
+                    target
+            ) instanceof ChestBlockEntity) {
+                BlockState chestState =
+                        level.getBlockState(
+                                target
+                        );
+
+                level.blockEvent(
+                        target,
+                        chestState.getBlock(),
+                        1,
+                        1
+                );
+
+                data.putBoolean(
+                        CHEST_OPENED,
+                        true
+                );
+            }
+
+            if (phaseAge < (
+                    actionType == ACTION_THEFT
+                            ? 75L
+                            : 48L
+            )) {
+                return;
+            }
+
+            BlockPos sign =
+                    performSabotageAction(
+                            level,
+                            entity,
+                            target,
+                            actionType,
+                            data.getString(
+                                    BLAME
+                            )
+                    );
+
+            if (sign != null) {
+                data.putLong(
+                        SIGN_TARGET,
+                        sign.asLong()
+                );
+            }
+
+            enterPhase(
+                    data,
+                    PHASE_AFTER_ACTION,
+                    now
+            );
+
+            return;
+        }
+
+        if (phase == PHASE_AFTER_ACTION) {
+            entity.getNavigation()
+                    .stop();
+
+            if (data.contains(
+                    SIGN_TARGET
+            )) {
+                BlockPos sign =
+                        BlockPos.of(
+                                data.getLong(
+                                        SIGN_TARGET
+                                )
+                        );
+
+                entity.lookNaturallyAt(
+                        sign.getX()
+                                + 0.5,
+                        sign.getY()
+                                + 0.75,
+                        sign.getZ()
+                                + 0.5
+                );
+            } else {
+                entity.lookNaturallyAt(
+                        target.getX()
+                                + 0.5,
+                        target.getY()
+                                + 0.7,
+                        target.getZ()
+                                + 0.5
+                );
+            }
+
+            if (phaseAge >= 55L) {
+                enterPhase(
+                        data,
+                        PHASE_LEAVE,
+                        now
+                );
+            }
+        }
+    }
+
+    private static void tickWatcher(
+            ServerLevel level,
+            HerobrineEntity entity,
+            CompoundTag data
+    ) {
+        ServerPlayer target =
+                targetPlayer(
+                        level,
+                        data
+                );
+
+        if (target == null) {
+            entity.discard();
+            return;
+        }
+
+        long now =
+                level.getGameTime();
+
+        long phaseAge =
+                now
+                        - data.getLong(
+                        ACTION_AT
+                );
+
+        int phase =
+                data.getInt(
+                        PHASE
+                );
+
+        if (phase == PHASE_FLEE
+                || phase == PHASE_LEAVE) {
+            leaveLikePlayer(
+                    level,
+                    entity,
+                    target.blockPosition(),
+                    phaseAge
+            );
+            return;
+        }
+
+        entity.getNavigation()
+                .stop();
+
+        entity.lookNaturallyAt(
+                target.getX(),
+                target.getEyeY(),
+                target.getZ()
+        );
+
+        ServerPlayer observer =
+                observingPlayer(
+                        level,
+                        entity
+                );
+
+        if (observer != null
+                || phaseAge
+                > 20L * (
+                7L
+                        + level.random.nextInt(
+                                5
+                        )
+        )) {
+            /*
+             * He does not pop out. He turns away and leaves like a player who
+             * realized he was caught.
+             */
+            enterPhase(
+                    data,
+                    PHASE_LEAVE,
+                    now
+            );
+        }
+    }
+
+    private static void tickBehindApparition(
+            ServerLevel level,
+            HerobrineEntity entity,
+            CompoundTag data
+    ) {
+        ServerPlayer target =
+                targetPlayer(
+                        level,
+                        data
+                );
+
+        if (target == null) {
+            entity.discard();
+            return;
+        }
+
+        entity.getNavigation()
+                .stop();
+
+        entity.lookNaturallyAt(
+                target.getX(),
+                target.getEyeY(),
+                target.getZ()
+        );
+
+        long age =
+                level.getGameTime()
+                        - data.getLong(
+                        SPAWNED_AT
+                );
+
+        if (isLookingAt(
+                target,
+                entity,
+                0.84
+        )) {
+            int seenTicks =
+                    data.getInt(
+                            NOTICE_TICKS
+                    );
+
+            if (seenTicks >= 1) {
+                entity.discard();
+                return;
+            }
+
+            /*
+             * One server tick of grace: on a normal client this leaves roughly
+             * one visual frame/interpolation beat after the player turns.
+             */
+            data.putInt(
+                    NOTICE_TICKS,
+                    seenTicks + 1
+            );
+
+            return;
+        }
+
+        data.putInt(
+                NOTICE_TICKS,
+                0
+        );
+
+        if (age > 20L * 6L) {
+            entity.discard();
+        }
+    }
+
+    private static ServerPlayer targetPlayer(
+            ServerLevel level,
+            CompoundTag data
+    ) {
+        if (!data.contains(
+                TARGET_PLAYER
+        )) {
+            return null;
+        }
+
+        try {
+            UUID id =
+                    UUID.fromString(
+                            data.getString(
+                                    TARGET_PLAYER
+                            )
+                    );
+
+            return level.getServer()
+                    .getPlayerList()
+                    .getPlayer(
+                            id
+                    );
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private static void walkLikePlayerToward(
+            ServerLevel level,
+            HerobrineEntity entity,
+            BlockPos target,
+            CompoundTag data,
+            double speed
+    ) {
+        long now =
+                level.getGameTime();
+
+        if (now < data.getLong(
+                PAUSE_UNTIL
+        )) {
+            entity.getNavigation()
+                    .stop();
+
+            entity.lookNaturallyAt(
+                    target.getX()
+                            + 0.5
+                            + (
+                            level.random.nextDouble()
+                                    - 0.5
+                    )
+                            * 2.0,
+                    target.getY()
+                            + 0.7,
+                    target.getZ()
+                            + 0.5
+                            + (
+                            level.random.nextDouble()
+                                    - 0.5
+                    )
+                            * 2.0
+            );
+
+            return;
+        }
+
+        if (now >= data.getLong(
+                NEXT_DECISION
+        )) {
+            data.putLong(
+                    NEXT_DECISION,
+                    now
+                            + 14L
+                            + level.random.nextInt(
+                            24
+                    )
+            );
+
+            if (level.random.nextFloat()
+                    < 0.22F) {
+                data.putLong(
+                        PAUSE_UNTIL,
+                        now
+                                + 10L
+                                + level.random.nextInt(
+                                28
+                        )
+                );
+
+                entity.getNavigation()
+                        .stop();
+
+                return;
+            }
+
+            Vec3 toTarget =
+                    Vec3.atCenterOf(
+                                    target
+                            )
+                            .subtract(
+                                    entity.position()
+                            )
+                            .multiply(
+                                    1.0,
+                                    0.0,
+                                    1.0
+                            );
+
+            Vec3 side =
+                    toTarget.lengthSqr()
+                            < 0.001
+                            ? Vec3.ZERO
+                            : new Vec3(
+                            -toTarget.z,
+                            0.0,
+                            toTarget.x
+                    )
+                            .normalize()
+                            .scale(
+                                    (
+                                            level.random.nextDouble()
+                                                    - 0.5
+                                    )
+                                            * 2.6
+                            );
+
+            Vec3 waypoint =
+                    Vec3.atCenterOf(
+                                    target
+                            )
+                            .add(
+                                    side
+                            );
+
+            entity.getNavigation()
+                    .moveTo(
+                            waypoint.x,
+                            waypoint.y,
+                            waypoint.z,
+                            speed
+                                    * (
+                                    0.92
+                                            + level.random.nextDouble()
+                                            * 0.14
+                            )
+                    );
+
+            entity.lookNaturallyAt(
+                    waypoint.x,
+                    waypoint.y
+                            + 0.9,
+                    waypoint.z
+            );
+
+            if (entity.onGround()
+                    && level.random.nextFloat()
+                    < 0.055F) {
+                entity.getJumpControl()
+                        .jump();
+            }
+        }
+    }
+
+    private static void leaveLikePlayer(
+            ServerLevel level,
+            HerobrineEntity entity,
+            BlockPos from,
+            long phaseAge
+    ) {
+        ServerPlayer observer =
+                observingPlayer(
+                        level,
+                        entity
+                );
+
         Vec3 away =
                 entity.position()
                         .subtract(
-                                Vec3.atCenterOf(
-                                        target
+                                observer != null
+                                        ? observer.position()
+                                        : Vec3.atCenterOf(
+                                        from
                                 )
                         )
                         .multiply(
@@ -2272,41 +3200,229 @@ public final class OldFriendManager {
                         );
 
         if (away.lengthSqr()
-                < 0.01) {
+                < 0.001) {
             away =
                     new Vec3(
                             1.0,
                             0.0,
                             0.0
                     );
+        } else {
+            away =
+                    away.normalize();
         }
 
-        Vec3 escape =
+        Vec3 target =
                 entity.position()
                         .add(
-                                away.normalize()
-                                        .scale(
-                                                16.0
-                                        )
+                                away.scale(
+                                        14.0
+                                )
                         );
 
-        entity.getNavigation()
-                .moveTo(
-                        escape.x,
-                        escape.y,
-                        escape.z,
-                        1.46
-                );
+        if (entity.tickCount % 16 == 0
+                || entity.getNavigation()
+                .isDone()) {
+            entity.getNavigation()
+                    .moveTo(
+                            target.x,
+                            target.y,
+                            target.z,
+                            observer == null
+                                    ? 1.08
+                                    : 1.32
+                    );
 
-        if (age > 20L * 5L
-                || entity.distanceToSqr(
-                escape
-        ) < 3.0 * 3.0) {
+            entity.lookNaturallyAt(
+                    target.x,
+                    target.y
+                            + 0.7,
+                    target.z
+            );
+        }
+
+        if (entity.onGround()
+                && level.random.nextFloat()
+                < 0.035F) {
+            entity.getJumpControl()
+                    .jump();
+        }
+
+        if (observer != null
+                && entity.tickCount % 24 == 0) {
+            // Brief look back over the shoulder while walking away.
+            entity.lookNaturallyAt(
+                    observer.getX(),
+                    observer.getEyeY(),
+                    observer.getZ()
+            );
+        }
+
+        if (observer == null
+                && phaseAge > 35L
+                && nearestPlayerDistanceSqr(
+                level,
+                entity
+        ) > 18.0 * 18.0) {
             entity.discard();
         }
     }
 
-    private static void performAction(
+    private static void fleeLikePlayer(
+            ServerLevel level,
+            HerobrineEntity entity,
+            ServerPlayer observer,
+            long phaseAge
+    ) {
+        ServerPlayer threat =
+                observer != null
+                        ? observer
+                        : nearestPlayer(
+                        level,
+                        entity
+                );
+
+        BlockPos from =
+                threat != null
+                        ? threat.blockPosition()
+                        : entity.blockPosition()
+                        .offset(
+                                -4,
+                                0,
+                                0
+                        );
+
+        leaveLikePlayer(
+                level,
+                entity,
+                from,
+                phaseAge
+        );
+    }
+
+    private static ServerPlayer observingPlayer(
+            ServerLevel level,
+            HerobrineEntity entity
+    ) {
+        ServerPlayer best =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (ServerPlayer player :
+                level.players()) {
+            if (player.isSpectator()) {
+                continue;
+            }
+
+            double distance =
+                    player.distanceToSqr(
+                            entity
+                    );
+
+            if (distance > 48.0 * 48.0
+                    || !isLookingAt(
+                    player,
+                    entity,
+                    0.80
+            )) {
+                continue;
+            }
+
+            if (distance < bestDistance) {
+                bestDistance =
+                        distance;
+                best =
+                        player;
+            }
+        }
+
+        return best;
+    }
+
+    private static boolean isLookingAt(
+            ServerPlayer player,
+            Entity entity,
+            double minDot
+    ) {
+        Vec3 to =
+                entity.getEyePosition()
+                        .subtract(
+                                player.getEyePosition()
+                        );
+
+        if (to.lengthSqr()
+                < 0.001) {
+            return true;
+        }
+
+        return player.getLookAngle()
+                .dot(
+                        to.normalize()
+                )
+                >= minDot
+                && player.hasLineOfSight(
+                entity
+        );
+    }
+
+    private static ServerPlayer nearestPlayer(
+            ServerLevel level,
+            HerobrineEntity entity
+    ) {
+        return level.players()
+                .stream()
+                .min(
+                        Comparator.comparingDouble(
+                                entity::distanceToSqr
+                        )
+                )
+                .orElse(null);
+    }
+
+    private static double nearestPlayerDistanceSqr(
+            ServerLevel level,
+            HerobrineEntity entity
+    ) {
+        ServerPlayer nearest =
+                nearestPlayer(
+                        level,
+                        entity
+                );
+
+        return nearest == null
+                ? Double.MAX_VALUE
+                : nearest.distanceToSqr(
+                entity
+        );
+    }
+
+    private static void enterPhase(
+            CompoundTag data,
+            int phase,
+            long now
+    ) {
+        data.putInt(
+                PHASE,
+                phase
+        );
+
+        data.putLong(
+                ACTION_AT,
+                now
+        );
+
+        data.remove(
+                PAUSE_UNTIL
+        );
+
+        data.remove(
+                NEXT_DECISION
+        );
+    }
+
+    private static BlockPos performSabotageAction(
             ServerLevel level,
             HerobrineEntity entity,
             BlockPos target,
@@ -2314,18 +3430,24 @@ public final class OldFriendManager {
             String blame
     ) {
         if (action == ACTION_ARSON) {
+            entity.swing(
+                    net.minecraft.world.InteractionHand.MAIN_HAND
+            );
+
             ignite(
                     level,
                     target
             );
 
-            placeSignature(
-                    level,
-                    target,
-                    "- " + blame
-            );
+            if (!blame.isBlank()) {
+                return placeSignature(
+                        level,
+                        target,
+                        "- " + blame
+                );
+            }
 
-            return;
+            return null;
         }
 
         if (action == ACTION_THEFT
@@ -2365,12 +3487,28 @@ public final class OldFriendManager {
                 chest.setChanged();
             }
 
-            placeSignature(
-                    level,
+            BlockState chestState =
+                    level.getBlockState(
+                            target
+                    );
+
+            level.blockEvent(
                     target,
-                    ":) - " + blame
+                    chestState.getBlock(),
+                    1,
+                    0
             );
+
+            if (!blame.isBlank()) {
+                return placeSignature(
+                        level,
+                        target,
+                        ":) - " + blame
+                );
+            }
         }
+
+        return null;
     }
 
     private static void ignite(
@@ -2410,7 +3548,7 @@ public final class OldFriendManager {
         }
     }
 
-    private static void placeSignature(
+    private static BlockPos placeSignature(
             ServerLevel level,
             BlockPos target,
             String message
@@ -2473,8 +3611,10 @@ public final class OldFriendManager {
                     );
                 }
 
-                return;
+                return candidate;
             }
         }
+
+        return null;
     }
 }
