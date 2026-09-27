@@ -65,7 +65,7 @@ public final class BroadcastCameraSampler {
                         end,
                         ClipContext.Block.COLLIDER,
                         ClipContext.Fluid.ANY,
-                        null
+                        (net.minecraft.world.entity.Entity) null
                 ));
 
                 int color;
