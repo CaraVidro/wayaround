@@ -1717,6 +1717,10 @@ public final class AssemblyShipEntity
     private void rotateBuildDirection(
             Player player
     ) {
+        focusNearestHull(
+                player
+        );
+
         int next =
                 Math.floorMod(
                         buildDirection()
@@ -1766,6 +1770,10 @@ public final class AssemblyShipEntity
             Player player,
             ItemStack stack
     ) {
+        focusNearestHull(
+                player
+        );
+
         if (!hasHull(
                 cursorX,
                 cursorZ
@@ -1809,6 +1817,10 @@ public final class AssemblyShipEntity
             Player player,
             ItemStack stack
     ) {
+        focusNearestHull(
+                player
+        );
+
         MastModule mast =
                 masts.stream()
                         .filter(
@@ -1854,6 +1866,10 @@ public final class AssemblyShipEntity
             Player player,
             ItemStack stack
     ) {
+        focusNearestHull(
+                player
+        );
+
         if (anchor != null) {
             player.displayClientMessage(
                     Component.literal(
@@ -1890,6 +1906,10 @@ public final class AssemblyShipEntity
             Player player,
             ItemStack stack
     ) {
+        focusNearestHull(
+                player
+        );
+
         if (!hasHull(
                 cursorX,
                 cursorZ
@@ -2226,6 +2246,53 @@ public final class AssemblyShipEntity
                 + getPassengers()
                         .size()
                         * 72.0F;
+    }
+
+    private void focusNearestHull(
+            Player player
+    ) {
+        HullCell nearest =
+                hull.stream()
+                        .min(
+                                Comparator.comparingDouble(
+                                        cell ->
+                                                moduleWorldPosition(
+                                                        cell.x,
+                                                        cell.z,
+                                                        0.20
+                                                )
+                                                        .distanceToSqr(
+                                                                player.position()
+                                                        )
+                                )
+                        )
+                        .orElse(null);
+
+        if (nearest == null) {
+            return;
+        }
+
+        double distance =
+                moduleWorldPosition(
+                        nearest.x,
+                        nearest.z,
+                        0.20
+                )
+                        .distanceTo(
+                                player.position()
+                        );
+
+        if (distance > 6.5) {
+            return;
+        }
+
+        cursorX =
+                nearest.x;
+
+        cursorZ =
+                nearest.z;
+
+        syncStructure();
     }
 
     private boolean hasHull(
