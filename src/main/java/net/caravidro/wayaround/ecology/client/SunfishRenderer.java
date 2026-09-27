@@ -1,174 +1,130 @@
 package net.caravidro.wayaround.ecology.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
-
 import net.caravidro.wayaround.ecology.SunfishEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Simple blocky V1 renderer: a tall flat body with small fins. The SCALE
- * attribute from ecology growth is deliberately respected.
+ * Ocean sunfish: tall, flat and slightly absurd, as nature intended.
  */
 public final class SunfishRenderer
-        extends EntityRenderer<SunfishEntity> {
-
-    private final BlockRenderDispatcher blocks;
+        extends AquaticBlockRenderer<SunfishEntity> {
 
     public SunfishRenderer(
             EntityRendererProvider.Context context
     ) {
-        super(
-                context
-        );
-
-        blocks =
-                context.getBlockRenderDispatcher();
-
-        shadowRadius =
-                0.45F;
+        super(context, 0.48F);
     }
 
     @Override
-    public ResourceLocation getTextureLocation(
-            SunfishEntity entity
+    protected float swimFrequency(
+            SunfishEntity fish
     ) {
-        return ResourceLocation.withDefaultNamespace(
-                "textures/atlas/blocks.png"
-        );
+        return 0.20F;
     }
 
     @Override
-    public void render(
+    protected float bodyRollDegrees(
+            SunfishEntity fish
+    ) {
+        return 1.0F;
+    }
+
+    @Override
+    protected void renderFish(
             SunfishEntity fish,
-            float yaw,
-            float partialTick,
+            float swim,
             PoseStack pose,
             MultiBufferSource buffers,
             int light
     ) {
-        pose.pushPose();
-
-        float scale =
-                fish.getScale();
-
-        pose.scale(
-                scale,
-                scale,
-                scale
-        );
-
-        pose.mulPose(
-                Axis.YP.rotationDegrees(
-                        180.0F - yaw
-                )
-        );
-
-        block(
+        // Layered body makes the fish rounded instead of one giant slab.
+        cuboid(
                 Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-                -0.52,
-                -0.42,
-                -0.12,
-                1.04F,
-                0.92F,
-                0.24F,
-                pose,
-                buffers,
-                light
+                -0.43, -0.36, -0.12,
+                0.74F, 0.74F, 0.24F,
+                pose, buffers, light
         );
-
-        block(
-                Blocks.WHITE_CONCRETE.defaultBlockState(),
-                -0.34,
-                0.42,
-                -0.08,
-                0.68F,
-                0.34F,
-                0.16F,
-                pose,
-                buffers,
-                light
-        );
-
-        block(
-                Blocks.WHITE_CONCRETE.defaultBlockState(),
-                -0.30,
-                -0.67,
-                -0.07,
-                0.60F,
-                0.26F,
-                0.14F,
-                pose,
-                buffers,
-                light
-        );
-
-        block(
+        cuboid(
                 Blocks.GRAY_CONCRETE.defaultBlockState(),
-                0.46,
-                -0.12,
-                -0.06,
-                0.42F,
-                0.20F,
-                0.12F,
-                pose,
-                buffers,
-                light
+                -0.32, 0.27, -0.105,
+                0.55F, 0.28F, 0.21F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.31, -0.53, -0.10,
+                0.53F, 0.25F, 0.20F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                -0.55, -0.20, -0.105,
+                0.20F, 0.46F, 0.21F,
+                pose, buffers, light
         );
 
-        pose.popPose();
-
-        super.render(
-                fish,
-                yaw,
-                partialTick,
-                pose,
-                buffers,
-                light
+        // Tiny mouth + eyes on both visible sides.
+        cuboid(
+                Blocks.DARK_GRAY_CONCRETE.defaultBlockState(),
+                -0.585, -0.08, -0.055,
+                0.045F, 0.07F, 0.11F,
+                pose, buffers, light
         );
-    }
-
-    private void block(
-            BlockState state,
-            double x,
-            double y,
-            double z,
-            float width,
-            float height,
-            float depth,
-            PoseStack pose,
-            MultiBufferSource buffers,
-            int light
-    ) {
-        pose.pushPose();
-
-        pose.translate(
-                x,
-                y,
-                z
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.57, 0.12, -0.135,
+                0.055F, 0.055F, 0.03F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.57, 0.12, 0.105,
+                0.055F, 0.055F, 0.03F,
+                pose, buffers, light
         );
 
-        pose.scale(
-                width,
-                height,
-                depth
+        // Giant dorsal and anal fins are the unmistakable sunfish silhouette.
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.06, 0.48, -0.07,
+                0.25F, 0.43F, 0.14F,
+                0.0F, 0.0F, 8.0F + swim * 2.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.03, -0.75, -0.065,
+                0.24F, 0.36F, 0.13F,
+                0.0F, 0.0F, -8.0F - swim * 2.0F,
+                pose, buffers, light
         );
 
-        blocks.renderSingleBlock(
-                state,
-                pose,
-                buffers,
-                light,
-                OverlayTexture.NO_OVERLAY
+        // Side fins.
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.15, -0.05, -0.27,
+                0.30F, 0.08F, 0.30F,
+                -12.0F, 0.0F, swim * 6.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.15, -0.05, -0.03,
+                0.30F, 0.08F, 0.30F,
+                12.0F, 0.0F, -swim * 6.0F,
+                pose, buffers, light
         );
 
-        pose.popPose();
+        // Short clavus instead of a normal long fish tail.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.25, -0.31, -0.085,
+                0.20F, 0.65F, 0.17F,
+                0.0F, swim * 4.5F, 0.0F,
+                pose, buffers, light
+        );
     }
 }
