@@ -4,9 +4,13 @@ import net.caravidro.wayaround.WayAround;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -29,6 +33,12 @@ public final class EcologyContent {
 
     public static final DeferredRegister.Items ITEMS =
             DeferredRegister.createItems(WayAround.MODID);
+
+    public static final DeferredRegister<CreativeModeTab> TABS =
+            DeferredRegister.create(
+                    Registries.CREATIVE_MODE_TAB,
+                    WayAround.MODID
+            );
 
     public static final DeferredHolder<
             EntityType<?>,
@@ -84,6 +94,33 @@ public final class EcologyContent {
                             .sized(1.65F, 0.72F)
                             .clientTrackingRange(12)
                             .build("wayaround:reef_shark")
+            );
+
+    public static final DeferredItem<SpawnEggItem> SARDINE_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "sardine_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            SARDINE.get(),
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> SUNFISH_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "sunfish_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            SUNFISH.get(),
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> REEF_SHARK_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "reef_shark_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            REEF_SHARK.get(),
+                            properties
+                    )
             );
 
     public static final DeferredHolder<
@@ -368,11 +405,53 @@ public final class EcologyContent {
                     )
             );
 
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> AGUA_WORLD =
+            TABS.register(
+                    "agua_world",
+                    () -> CreativeModeTab.builder()
+                            .title(
+                                    Component.translatable(
+                                            "itemGroup.wayaround.agua_world"
+                                    )
+                            )
+                            .withTabsBefore(
+                                    CreativeModeTabs.SPAWN_EGGS
+                            )
+                            .icon(
+                                    () -> SUNFISH_SPAWN_EGG.get()
+                                            .getDefaultInstance()
+                            )
+                            .displayItems(
+                                    (parameters, output) -> {
+                                        output.accept(
+                                                SARDINE_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                SUNFISH_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                REEF_SHARK_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                RAW_SARDINE_MEAT.get()
+                                        );
+                                        output.accept(
+                                                RAW_SUNFISH_MEAT.get()
+                                        );
+                                        output.accept(
+                                                RAW_SHARK_MEAT.get()
+                                        );
+                                    }
+                            )
+                            .build()
+            );
+
     private EcologyContent() {}
 
     public static void register(IEventBus bus) {
         ENTITIES.register(bus);
         BLOCKS.register(bus);
         ITEMS.register(bus);
+        TABS.register(bus);
     }
 }
