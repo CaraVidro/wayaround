@@ -114,15 +114,9 @@ public final class InfinityManager {
                 player.server
                         .getTickCount();
 
-        player.serverLevel()
-                .playSound(
-                        null,
-                        player.blockPosition(),
-                        SoundEvents.AMETHYST_BLOCK_RESONATE,
-                        SoundSource.PLAYERS,
-                        0.82F,
-                        1.34F
-                );
+        playActivationSound(
+                player
+        );
 
         WayAround.LOGGER.info(
                 "[Infinity] owner={} ATIVADA NO MAXIMO",
@@ -179,6 +173,10 @@ public final class InfinityManager {
                 player.serverLevel()
                         .dimension();
 
+        boolean wasActive =
+                state.confidence
+                        >= MIN_ACTIVE_CONFIDENCE;
+
         state.confidence =
                 Mth.clamp(
                         state.confidence
@@ -187,6 +185,14 @@ public final class InfinityManager {
                         0.0F,
                         1.0F
                 );
+
+        if (!wasActive
+                && state.confidence
+                        >= MIN_ACTIVE_CONFIDENCE) {
+            playActivationSound(
+                    player
+            );
+        }
 
         state.lastReinforcedTick =
                 player.server
@@ -228,6 +234,40 @@ public final class InfinityManager {
                 );
 
         return true;
+    }
+
+    private static void playActivationSound(
+            ServerPlayer player
+    ) {
+        ServerLevel level =
+                player.serverLevel();
+
+        level.playSound(
+                null,
+                player.blockPosition(),
+                SoundEvents.BEACON_ACTIVATE,
+                SoundSource.PLAYERS,
+                0.62F,
+                0.72F
+        );
+
+        level.playSound(
+                null,
+                player.blockPosition(),
+                SoundEvents.AMETHYST_BLOCK_RESONATE,
+                SoundSource.PLAYERS,
+                0.92F,
+                1.28F
+        );
+
+        level.playSound(
+                null,
+                player.blockPosition(),
+                SoundEvents.RESPAWN_ANCHOR_CHARGE,
+                SoundSource.PLAYERS,
+                0.34F,
+                1.72F
+        );
     }
 
     public static boolean deactivate(
