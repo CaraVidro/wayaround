@@ -96,6 +96,56 @@ public final class EcologyContent {
                             .build("wayaround:reef_shark")
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<MantaRayEntity>> MANTA_RAY =
+            ENTITIES.register(
+                    "manta_ray",
+                    () -> EntityType.Builder
+                            .of(MantaRayEntity::new, MobCategory.WATER_CREATURE)
+                            .sized(1.90F, 0.48F)
+                            .clientTrackingRange(12)
+                            .build("wayaround:manta_ray")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<BarracudaEntity>> BARRACUDA =
+            ENTITIES.register(
+                    "barracuda",
+                    () -> EntityType.Builder
+                            .of(BarracudaEntity::new, MobCategory.WATER_CREATURE)
+                            .sized(1.20F, 0.38F)
+                            .clientTrackingRange(12)
+                            .build("wayaround:barracuda")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<SeahorseEntity>> SEAHORSE =
+            ENTITIES.register(
+                    "seahorse",
+                    () -> EntityType.Builder
+                            .of(SeahorseEntity::new, MobCategory.WATER_AMBIENT)
+                            .sized(0.28F, 0.48F)
+                            .clientTrackingRange(10)
+                            .build("wayaround:seahorse")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<JellyfishEntity>> JELLYFISH =
+            ENTITIES.register(
+                    "jellyfish",
+                    () -> EntityType.Builder
+                            .of(JellyfishEntity::new, MobCategory.WATER_AMBIENT)
+                            .sized(0.72F, 0.88F)
+                            .clientTrackingRange(10)
+                            .build("wayaround:jellyfish")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<OarfishEntity>> OARFISH =
+            ENTITIES.register(
+                    "oarfish",
+                    () -> EntityType.Builder
+                            .of(OarfishEntity::new, MobCategory.WATER_CREATURE)
+                            .sized(2.35F, 0.42F)
+                            .clientTrackingRange(14)
+                            .build("wayaround:oarfish")
+            );
+
     public static final DeferredItem<SpawnEggItem> SARDINE_SPAWN_EGG =
             ITEMS.registerItem(
                     "sardine_spawn_egg",
@@ -125,6 +175,61 @@ public final class EcologyContent {
                             REEF_SHARK.get(),
                             0x59656A,
                             0xD4D5CE,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> MANTA_RAY_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "manta_ray_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            MANTA_RAY.get(),
+                            0x283A45,
+                            0xE2DED2,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> BARRACUDA_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "barracuda_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            BARRACUDA.get(),
+                            0x6F8586,
+                            0xD9E0D5,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> SEAHORSE_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "seahorse_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            SEAHORSE.get(),
+                            0xD6A33A,
+                            0x70482A,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> JELLYFISH_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "jellyfish_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            JELLYFISH.get(),
+                            0xB6D9ED,
+                            0xD889D8,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> OARFISH_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "oarfish_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            OARFISH.get(),
+                            0xE6E2D6,
+                            0xB52F39,
                             properties
                     )
             );
@@ -437,6 +542,21 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 REEF_SHARK_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                MANTA_RAY_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                BARRACUDA_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                SEAHORSE_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                JELLYFISH_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                OARFISH_SPAWN_EGG.get()
                                         );
                                         output.accept(
                                                 RAW_SARDINE_MEAT.get()
