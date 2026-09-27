@@ -9,6 +9,7 @@ import net.caravidro.wayaround.block.PrioriteBlock;
 import net.caravidro.wayaround.network.FrostPayload;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.weather.BlizzardManager;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -107,6 +108,7 @@ public final class FrostManager {
          */
         return !state.isAir()
                 && !state.is(IMMUNE)
+                && !state.is(BlockTags.LEAVES)
                 && state.getFluidState().isEmpty()
                 && !state.getShape(level, pos).isEmpty();
     }
