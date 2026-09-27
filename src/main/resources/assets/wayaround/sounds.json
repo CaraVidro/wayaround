@@ -30,5 +30,21 @@
         "stream": true
       }
     ]
+  },
+  "intermission": {
+    "sounds": [
+      {
+        "name": "wayaround:intermission",
+        "stream": true
+      }
+    ]
+  },
+  "radio_static": {
+    "sounds": [
+      {
+        "name": "wayaround:radio_static",
+        "stream": true
+      }
+    ]
   }
 }

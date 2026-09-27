@@ -8,8 +8,21 @@ import net.caravidro.wayaround.media.item.CameraItem;
 import net.caravidro.wayaround.media.item.ExposedFilmRollItem;
 import net.caravidro.wayaround.media.item.PhotoItem;
 import net.caravidro.wayaround.media.item.VhsItem;
+import net.caravidro.wayaround.media.broadcast.BroadcastAntennaBlock;
+import net.caravidro.wayaround.media.broadcast.BroadcastAntennaBlockEntity;
+import net.caravidro.wayaround.media.broadcast.BroadcastCableBlock;
+import net.caravidro.wayaround.media.broadcast.BroadcastMicrophoneBlock;
+import net.caravidro.wayaround.media.broadcast.BroadcastMicrophoneBlockEntity;
+import net.caravidro.wayaround.media.broadcast.EditorialBlock;
+import net.caravidro.wayaround.media.broadcast.EditorialBlockEntity;
+import net.caravidro.wayaround.media.broadcast.HandheldMicrophoneItem;
+import net.caravidro.wayaround.media.broadcast.RadioBlock;
+import net.caravidro.wayaround.media.broadcast.RadioBlockEntity;
+import net.caravidro.wayaround.media.broadcast.TvAntennaBlock;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ArmorMaterials;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -178,6 +191,162 @@ public final class MediaContent {
                     )
             );
 
+    public static final DeferredBlock<BroadcastCableBlock> BROADCAST_CABLE =
+            BLOCKS.register(
+                    "broadcast_cable",
+                    () -> new BroadcastCableBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.METAL)
+                                    .strength(0.25F)
+                                    .sound(SoundType.COPPER)
+                                    .noCollission()
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> BROADCAST_CABLE_ITEM =
+            ITEMS.register(
+                    "broadcast_cable",
+                    () -> new BlockItem(BROADCAST_CABLE.get(), new Item.Properties())
+            );
+
+    public static final DeferredBlock<BroadcastAntennaBlock> BROADCAST_ANTENNA =
+            BLOCKS.register(
+                    "broadcast_antenna",
+                    () -> new BroadcastAntennaBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.METAL)
+                                    .strength(2.4F, 5.0F)
+                                    .sound(SoundType.METAL)
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> BROADCAST_ANTENNA_ITEM =
+            ITEMS.register(
+                    "broadcast_antenna",
+                    () -> new BlockItem(BROADCAST_ANTENNA.get(), new Item.Properties())
+            );
+
+    public static final DeferredBlock<TvAntennaBlock> TV_ANTENNA =
+            BLOCKS.register(
+                    "tv_antenna",
+                    () -> new TvAntennaBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.METAL)
+                                    .strength(1.8F, 3.0F)
+                                    .sound(SoundType.METAL)
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> TV_ANTENNA_ITEM =
+            ITEMS.register(
+                    "tv_antenna",
+                    () -> new BlockItem(TV_ANTENNA.get(), new Item.Properties())
+            );
+
+    public static final DeferredBlock<BroadcastMicrophoneBlock> BROADCAST_MICROPHONE =
+            BLOCKS.register(
+                    "broadcast_microphone",
+                    () -> new BroadcastMicrophoneBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.METAL)
+                                    .strength(1.0F, 2.0F)
+                                    .sound(SoundType.METAL)
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> BROADCAST_MICROPHONE_ITEM =
+            ITEMS.register(
+                    "broadcast_microphone",
+                    () -> new BlockItem(BROADCAST_MICROPHONE.get(), new Item.Properties())
+            );
+
+    public static final DeferredItem<HandheldMicrophoneItem> HANDHELD_MICROPHONE =
+            ITEMS.register(
+                    "handheld_microphone",
+                    () -> new HandheldMicrophoneItem(
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    public static final DeferredBlock<RadioBlock> RADIO =
+            BLOCKS.register(
+                    "radio",
+                    () -> new RadioBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.COLOR_BLACK)
+                                    .strength(1.6F, 3.0F)
+                                    .sound(SoundType.WOOD)
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> RADIO_ITEM =
+            ITEMS.register(
+                    "radio",
+                    () -> new BlockItem(RADIO.get(), new Item.Properties())
+            );
+
+    public static final DeferredBlock<EditorialBlock> EDITORIAL =
+            BLOCKS.register(
+                    "editorial",
+                    () -> new EditorialBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.COLOR_GRAY)
+                                    .strength(2.2F, 4.0F)
+                                    .sound(SoundType.METAL)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> EDITORIAL_ITEM =
+            ITEMS.register(
+                    "editorial",
+                    () -> new BlockItem(EDITORIAL.get(), new Item.Properties())
+            );
+
+    public static final DeferredItem<ArmorItem> JOURNALIST_HAT =
+            ITEMS.register(
+                    "journalist_hat",
+                    () -> new ArmorItem(
+                            ArmorMaterials.LEATHER,
+                            ArmorItem.Type.HELMET,
+                            new Item.Properties().durability(ArmorItem.Type.HELMET.getDurability(12))
+                    )
+            );
+
+    public static final DeferredItem<ArmorItem> JOURNALIST_JACKET =
+            ITEMS.register(
+                    "journalist_jacket",
+                    () -> new ArmorItem(
+                            ArmorMaterials.LEATHER,
+                            ArmorItem.Type.CHESTPLATE,
+                            new Item.Properties().durability(ArmorItem.Type.CHESTPLATE.getDurability(12))
+                    )
+            );
+
+    public static final DeferredItem<ArmorItem> JOURNALIST_PANTS =
+            ITEMS.register(
+                    "journalist_pants",
+                    () -> new ArmorItem(
+                            ArmorMaterials.LEATHER,
+                            ArmorItem.Type.LEGGINGS,
+                            new Item.Properties().durability(ArmorItem.Type.LEGGINGS.getDurability(12))
+                    )
+            );
+
+    public static final DeferredItem<ArmorItem> JOURNALIST_BOOTS =
+            ITEMS.register(
+                    "journalist_boots",
+                    () -> new ArmorItem(
+                            ArmorMaterials.LEATHER,
+                            ArmorItem.Type.BOOTS,
+                            new Item.Properties().durability(ArmorItem.Type.BOOTS.getDurability(12))
+                    )
+            );
+
     public static final DeferredBlock<BlackBoxBlock> BLACK_BOX =
             BLOCKS.register(
                     "black_box",
@@ -260,6 +429,58 @@ public final class MediaContent {
             );
 
     public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<BroadcastAntennaBlockEntity>
+            > BROADCAST_ANTENNA_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "broadcast_antenna",
+                    () -> BlockEntityType.Builder.of(
+                                    BroadcastAntennaBlockEntity::new,
+                                    BROADCAST_ANTENNA.get()
+                            )
+                            .build(null)
+            );
+
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<BroadcastMicrophoneBlockEntity>
+            > BROADCAST_MICROPHONE_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "broadcast_microphone",
+                    () -> BlockEntityType.Builder.of(
+                                    BroadcastMicrophoneBlockEntity::new,
+                                    BROADCAST_MICROPHONE.get()
+                            )
+                            .build(null)
+            );
+
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<RadioBlockEntity>
+            > RADIO_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "radio",
+                    () -> BlockEntityType.Builder.of(
+                                    RadioBlockEntity::new,
+                                    RADIO.get()
+                            )
+                            .build(null)
+            );
+
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<EditorialBlockEntity>
+            > EDITORIAL_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "editorial",
+                    () -> BlockEntityType.Builder.of(
+                                    EditorialBlockEntity::new,
+                                    EDITORIAL.get()
+                            )
+                            .build(null)
+            );
+
+    public static final DeferredHolder<
             CreativeModeTab,
             CreativeModeTab
             > MEDIA_TAB =
@@ -289,6 +510,17 @@ public final class MediaContent {
                                         output.accept(PHOTO.get());
                                         output.accept(WOODEN_CHAIR_ITEM.get());
                                         output.accept(TELEVISION_ITEM.get());
+                                        output.accept(RADIO_ITEM.get());
+                                        output.accept(HANDHELD_MICROPHONE.get());
+                                        output.accept(BROADCAST_MICROPHONE_ITEM.get());
+                                        output.accept(BROADCAST_CABLE_ITEM.get());
+                                        output.accept(BROADCAST_ANTENNA_ITEM.get());
+                                        output.accept(TV_ANTENNA_ITEM.get());
+                                        output.accept(EDITORIAL_ITEM.get());
+                                        output.accept(JOURNALIST_HAT.get());
+                                        output.accept(JOURNALIST_JACKET.get());
+                                        output.accept(JOURNALIST_PANTS.get());
+                                        output.accept(JOURNALIST_BOOTS.get());
                                         output.accept(BLACK_BOX_ITEM.get());
                                     }
                             )

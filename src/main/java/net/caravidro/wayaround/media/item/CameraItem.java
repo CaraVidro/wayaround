@@ -76,20 +76,6 @@ public final class CameraItem
             return InteractionResult.SUCCESS;
         }
 
-        if (!MediaInventory.consumeOne(
-                player,
-                MediaContent.FILM_ROLL.get()
-        )) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.media.need_film_roll"
-                    ),
-                    true
-            );
-
-            return InteractionResult.FAIL;
-        }
-
         Direction facing =
                 player.getDirection();
 
@@ -114,6 +100,21 @@ public final class CameraItem
                     player.getUUID(),
                     facing
             );
+
+            ItemStack offhand =
+                    player.getOffhandItem();
+
+            if (offhand.is(
+                    MediaContent.BROADCAST_ANTENNA_ITEM.get()
+            )
+                    && camera.installIntegratedAntenna()
+                    && !player.getAbilities()
+                    .instabuild) {
+
+                offhand.shrink(
+                        1
+                );
+            }
         }
 
         if (!player.getAbilities()

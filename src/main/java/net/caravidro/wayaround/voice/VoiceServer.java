@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.media.blackbox.BlackBoxManager;
+import net.caravidro.wayaround.media.broadcast.BroadcastManager;
 import net.caravidro.wayaround.network.VoiceFrameS2CPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -86,6 +87,11 @@ public final class VoiceServer {
                     pcm
             );
         }
+
+        BroadcastManager.captureVoice(
+                sender,
+                pcm
+        );
 
         if (projectionHost != null) {
             relayProjectedGhost(

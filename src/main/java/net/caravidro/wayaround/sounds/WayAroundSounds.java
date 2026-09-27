@@ -28,6 +28,14 @@ public final class WayAroundSounds {
             SOUNDS.register("in_my_way", () -> SoundEvent.createVariableRangeEvent(
                     ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "in_my_way")));
 
+    public static final DeferredHolder<SoundEvent, SoundEvent> INTERMISSION =
+            SOUNDS.register("intermission", () -> SoundEvent.createVariableRangeEvent(
+                    ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "intermission")));
+
+    public static final DeferredHolder<SoundEvent, SoundEvent> RADIO_STATIC =
+            SOUNDS.register("radio_static", () -> SoundEvent.createVariableRangeEvent(
+                    ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "radio_static")));
+
     private WayAroundSounds() {
     }
 

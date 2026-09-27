@@ -3,6 +3,7 @@ package net.caravidro.wayaround.network;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.media.MediaInventory;
+import net.caravidro.wayaround.media.broadcast.BroadcastManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -85,6 +86,11 @@ public record StartRecordingC2SPayload()
                         );
                         return;
                     }
+
+                    BroadcastManager.setHandheldCamera(
+                            player,
+                            true
+                    );
 
                     PacketDistributor.sendToPlayer(
                             player,

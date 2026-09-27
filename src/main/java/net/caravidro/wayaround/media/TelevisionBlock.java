@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.media.broadcast.BroadcastFrequency;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -247,6 +248,32 @@ public final class TelevisionBlock
                             false
                     );
                 }
+            }
+
+            return InteractionResult.sidedSuccess(
+                    level.isClientSide
+            );
+        }
+
+        if (level.getBlockEntity(pos)
+                instanceof TelevisionBlockEntity television
+                && !television.hasTapeLoaded()) {
+
+            if (!level.isClientSide) {
+                television.tuneFrequency(
+                        player.isShiftKeyDown()
+                                ? -1
+                                : 1
+                );
+
+                player.displayClientMessage(
+                        Component.literal(
+                                "TV: " + BroadcastFrequency.display(
+                                        television.frequencyKHz()
+                                )
+                        ),
+                        true
+                );
             }
 
             return InteractionResult.sidedSuccess(

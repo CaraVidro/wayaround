@@ -282,6 +282,30 @@ public final class WayAroundNetwork {
                 MediaRecordingChunkS2CPayload.STREAM_CODEC,
                 MediaRecordingChunkS2CPayload::handle
         );
+
+        registrar.playToServer(
+                BroadcastAmbientC2SPayload.TYPE,
+                BroadcastAmbientC2SPayload.STREAM_CODEC,
+                BroadcastAmbientC2SPayload::handle
+        );
+
+        registrar.playToClient(
+                BroadcastAudioS2CPayload.TYPE,
+                BroadcastAudioS2CPayload.STREAM_CODEC,
+                BroadcastAudioS2CPayload::handle
+        );
+
+        registrar.playToClient(
+                BroadcastImageS2CPayload.TYPE,
+                BroadcastImageS2CPayload.STREAM_CODEC,
+                BroadcastImageS2CPayload::handle
+        );
+
+        registrar.playToClient(
+                BroadcastWorldSoundS2CPayload.TYPE,
+                BroadcastWorldSoundS2CPayload.STREAM_CODEC,
+                BroadcastWorldSoundS2CPayload::handle
+        );
     }
 }
 
