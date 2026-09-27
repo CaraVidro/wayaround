@@ -25,5 +25,20 @@ public final class EcologyClientModEvents {
                 EcologyContent.SUNFISH.get(),
                 SunfishRenderer::new
         );
+
+        event.registerEntityRenderer(
+                EcologyContent.SARDINE.get(),
+                SardineRenderer::new
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.REEF_SHARK.get(),
+                ReefSharkRenderer::new
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.CRAB.get(),
+                CrabRenderer::new
+        );
     }
 }
