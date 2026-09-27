@@ -10,12 +10,15 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.caravidro.wayaround.content.WayAroundContent;
+import net.caravidro.wayaround.interaction.WorldForce;
+import net.caravidro.wayaround.interaction.WorldInteractionService;
 import net.caravidro.wayaround.network.BlueGestureS2CPayload;
 import net.caravidro.wayaround.network.BlueVisualPayload;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -1627,6 +1630,36 @@ public final class BlueManager {
                 owner == null
                         ? null
                         : owner.getUUID();
+
+        if (Math.floorMod(
+                level.getGameTime()
+                        + BlockPos.containing(
+                        center
+                ).asLong(),
+                4L
+        ) == 0L) {
+            WorldInteractionService.applyForce(
+                    level,
+                    new WorldForce(
+                            center,
+                            Vec3.ZERO,
+                            Math.min(
+                                    12.0,
+                                    radius
+                            ),
+                            Math.max(
+                                    0.12F,
+                                    power * 3.2F
+                            ),
+                            WorldForce.Kind.PULL,
+                            ResourceLocation.fromNamespaceAndPath(
+                                    "wayaround",
+                                    "blue"
+                            ),
+                            ownerId
+                    )
+            );
+        }
 
         consumeBlueBody(
                 level,
