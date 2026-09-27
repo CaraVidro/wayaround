@@ -29,6 +29,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.event.entity.living.SpawnClusterSizeEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 
 /**
  * Shared ecology layer for autonomous breeding, group cohesion and fish
@@ -56,6 +57,34 @@ public final class LivingFaunaManager {
             180;
 
     private LivingFaunaManager() {}
+
+    @SubscribeEvent
+    public static void onEntityJoin(
+            EntityJoinLevelEvent event
+    ) {
+        if (event.getLevel().isClientSide
+                || !(event.getLevel()
+                instanceof ServerLevel level)
+                || !WorldFeatureRuntime.serverEnabled(
+                WorldFeature.LIVING_VEGETATION
+        )) {
+            return;
+        }
+
+        if (event.getEntity()
+                instanceof AbstractFish fish) {
+            ensureFishHome(
+                    level,
+                    fish
+            );
+
+        } else if (event.getEntity()
+                instanceof Animal animal) {
+            ensureAnimalHome(
+                    animal
+            );
+        }
+    }
 
     @SubscribeEvent
     public static void clusterSize(
