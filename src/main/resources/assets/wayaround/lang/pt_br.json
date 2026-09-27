@@ -332,5 +332,7 @@
   "item.wayaround.journalist_hat": "Chapéu de Repórter",
   "item.wayaround.journalist_jacket": "Jaqueta de Jornalista",
   "item.wayaround.journalist_pants": "Calça de Jornalista",
-  "item.wayaround.journalist_boots": "Botas de Jornalista"
+  "item.wayaround.journalist_boots": "Botas de Jornalista",
+  "item.wayaround.sawmill_crank": "Manivela da Serra",
+  "container.wayaround.sawmill": "Serra de Bancada"
 }
