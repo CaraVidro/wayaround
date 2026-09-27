@@ -10,7 +10,8 @@ import net.caravidro.wayaround.content.item.PrioriteBucketItem;
 import net.caravidro.wayaround.content.item.TukunaFingerItem;
 import net.caravidro.wayaround.content.item.TukunaSpectrumItem;
 import net.caravidro.wayaround.content.item.JusticeSpectrumItem;
-import net.caravidro.wayaround.content.item.JusticeExecutionBladeItem;\nimport net.caravidro.wayaround.content.item.JujutsuOrbItem;
+import net.caravidro.wayaround.content.item.JusticeExecutionBladeItem;
+import net.caravidro.wayaround.content.item.JujutsuOrbItem;
 import net.caravidro.wayaround.cursed.DesmartelarSlashEntity;
 import net.caravidro.wayaround.cursed.ImmortalWheelRemnantEntity;
 
