@@ -1636,7 +1636,7 @@ public final class BlueManager {
                         + BlockPos.containing(
                         center
                 ).asLong(),
-                4L
+                8L
         ) == 0L) {
             WorldInteractionService.applyForce(
                     level,
@@ -1644,7 +1644,7 @@ public final class BlueManager {
                             center,
                             Vec3.ZERO,
                             Math.min(
-                                    12.0,
+                                    8.0,
                                     radius
                             ),
                             Math.max(
