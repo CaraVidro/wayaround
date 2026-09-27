@@ -17,19 +17,19 @@ public final class EcologyRules {
 
         if (fish) {
             return Math.min(
-                    20,
+                    32,
                     Math.max(
-                            8,
-                            safe + 3
+                            12,
+                            safe + 6
                     )
             );
         }
 
         return Math.min(
-                16,
+                22,
                 Math.max(
-                        6,
-                        safe + 2
+                        8,
+                        safe + 4
                 )
         );
     }
@@ -52,8 +52,8 @@ public final class EcologyRules {
         }
 
         return Math.min(
-                0.42,
-                currentSpeed * 1.8
+                0.58,
+                currentSpeed * 2.15
         );
     }
 
