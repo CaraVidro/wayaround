@@ -76,6 +76,8 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(JusticeDomainManager::onSoundAtEntity);
         NeoForge.EVENT_BUS.addListener(BlueManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(InfinityManager::onIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(InfinityManager::onKnockBack);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
