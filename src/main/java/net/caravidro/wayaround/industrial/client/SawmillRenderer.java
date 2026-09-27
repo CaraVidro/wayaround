@@ -94,6 +94,16 @@ public final class SawmillRenderer
             );
         }
 
+        if (sawmill.manualCranking()) {
+            renderCrank(
+                    sawmill.bladeAngle(),
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
+
         if (sawmill.hasInput()) {
             double z =
                     0.34
@@ -160,6 +170,75 @@ public final class SawmillRenderer
         renderCuboid(poseStack, bufferSource, packedLight, packedOverlay,
                 Blocks.IRON_BLOCK.defaultBlockState(),
                 0.0, 0.43, 0.0, 0.78, 0.08, 0.10, 0.0F);
+    }
+
+    private void renderCrank(
+            float angle,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay
+    ) {
+        poseStack.pushPose();
+
+        poseStack.translate(
+                0.47,
+                0.02,
+                0.05
+        );
+
+        poseStack.mulPose(
+                Axis.ZP.rotationDegrees(
+                        angle
+                )
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                0.0,
+                0.0,
+                0.0,
+                0.08,
+                0.08,
+                0.34,
+                0.0F
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.STRIPPED_OAK_LOG.defaultBlockState(),
+                0.0,
+                -0.20,
+                0.18,
+                0.08,
+                0.42,
+                0.08,
+                0.0F
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.OAK_PLANKS.defaultBlockState(),
+                0.0,
+                -0.39,
+                0.18,
+                0.11,
+                0.08,
+                0.22,
+                0.0F
+        );
+
+        poseStack.popPose();
     }
 
     private void renderSaw(
