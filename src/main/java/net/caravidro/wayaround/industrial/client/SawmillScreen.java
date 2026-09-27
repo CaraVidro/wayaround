@@ -34,32 +34,32 @@ public final class SawmillScreen
 
         addRecipeButton(
                 0,
-                "10 Tábuas",
+                "container.wayaround.sawmill.planks",
                 22
         );
 
         addRecipeButton(
                 1,
-                "4 Pás da Roda",
+                "container.wayaround.sawmill.wheel_boards",
                 48
         );
 
         addRecipeButton(
                 2,
-                "20 Pregos de Madeira",
+                "container.wayaround.sawmill.wooden_nails",
                 74
         );
     }
 
     private void addRecipeButton(
             int id,
-            String label,
+            String translationKey,
             int yOffset
     ) {
         addRenderableWidget(
                 Button.builder(
-                                Component.literal(
-                                        label
+                                Component.translatable(
+                                        translationKey
                                 ),
                                 button -> {
                                     if (minecraft != null
@@ -120,7 +120,9 @@ public final class SawmillScreen
 
         graphics.drawString(
                 font,
-                "Produto do próximo tronco",
+                Component.translatable(
+                        "container.wayaround.sawmill.next_product"
+                ),
                 leftPos + 18,
                 topPos + 8,
                 0xFF2B2118,
@@ -129,9 +131,10 @@ public final class SawmillScreen
 
         graphics.drawString(
                 font,
-                "Corte: "
-                        + menu.progressPercent()
-                        + "%",
+                Component.translatable(
+                        "container.wayaround.sawmill.progress",
+                        menu.progressPercent()
+                ),
                 leftPos + 18,
                 topPos + 104,
                 0xFF2B2118,
@@ -140,9 +143,11 @@ public final class SawmillScreen
 
         graphics.drawString(
                 font,
-                menu.manualCranking()
-                        ? "Manivela: girando"
-                        : "Manivela: parada",
+                Component.translatable(
+                        menu.manualCranking()
+                                ? "container.wayaround.sawmill.crank_running"
+                                : "container.wayaround.sawmill.crank_stopped"
+                ),
                 leftPos + 108,
                 topPos + 104,
                 menu.manualCranking()
