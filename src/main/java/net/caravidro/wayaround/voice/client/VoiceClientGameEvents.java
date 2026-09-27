@@ -162,10 +162,7 @@ public final class VoiceClientGameEvents {
     public static void onRenderGui(
             RenderGuiEvent.Post event
     ) {
-        if (!VoiceConfig
-                .isDebugSpeechEnabled()
-                || !VoiceCapture.isRunning()) {
-
+        if (!VoiceCapture.isRunning()) {
             return;
         }
 
