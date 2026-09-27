@@ -332,5 +332,7 @@
   "item.wayaround.journalist_hat": "Reporter Hat",
   "item.wayaround.journalist_jacket": "Journalist Jacket",
   "item.wayaround.journalist_pants": "Journalist Trousers",
-  "item.wayaround.journalist_boots": "Journalist Boots"
+  "item.wayaround.journalist_boots": "Journalist Boots",
+  "item.wayaround.sawmill_crank": "Sawmill Crank",
+  "container.wayaround.sawmill": "Sawmill"
 }
