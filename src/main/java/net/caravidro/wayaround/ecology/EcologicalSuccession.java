@@ -147,7 +147,7 @@ public final class EcologicalSuccession {
     ) {
         RandomSource random = level.random;
 
-        for (int i = 0; i < 72; i++) {
+        for (int i = 0; i < 112; i++) {
             int x = (chunkX << 4) + random.nextInt(16);
             int z = (chunkZ << 4) + random.nextInt(16);
             BlockPos surface = surface(level, x, z);
@@ -212,7 +212,7 @@ public final class EcologicalSuccession {
         RandomSource random = level.random;
 
         for (ServerPlayer player : level.players()) {
-            for (int i = 0; i < 26; i++) {
+            for (int i = 0; i < 42; i++) {
                 int x = player.blockPosition().getX()
                         + random.nextInt(65) - 32;
 
@@ -349,7 +349,7 @@ public final class EcologicalSuccession {
 
         if (state.is(Blocks.GRASS_BLOCK)
                 && level.getBlockState(above).isAir()
-                && random.nextFloat() < 0.30F) {
+                && random.nextFloat() < 0.48F) {
             BlockState growth =
                     random.nextFloat() < 0.18F
                             ? Blocks.FERN.defaultBlockState()
@@ -442,17 +442,29 @@ public final class EcologicalSuccession {
 
         float pick = random.nextFloat();
 
-        if (wet && pick < 0.36F) {
+        if (wet && pick < 0.22F) {
             plant =
                     EcologyContent.DAMP_FERN.get()
                             .defaultBlockState();
-        } else if (wet && pick < 0.62F) {
+        } else if (wet && pick < 0.40F) {
             plant =
                     EcologyContent.RIVER_SPRIG.get()
                             .defaultBlockState();
-        } else if (pick < 0.82F) {
+        } else if (wet && pick < 0.54F) {
+            plant =
+                    EcologyContent.CREEK_CLOVER.get()
+                            .defaultBlockState();
+        } else if (pick < 0.68F) {
             plant =
                     EcologyContent.WOODLAND_SORREL.get()
+                            .defaultBlockState();
+        } else if (pick < 0.80F) {
+            plant =
+                    EcologyContent.SHADE_NETTLE.get()
+                            .defaultBlockState();
+        } else if (pick < 0.91F) {
+            plant =
+                    EcologyContent.MEADOW_SEDGE.get()
                             .defaultBlockState();
         } else {
             plant =
@@ -519,6 +531,45 @@ public final class EcologicalSuccession {
                     ground,
                     Blocks.SAND.defaultBlockState()
             );
+
+            Direction downstream =
+                    WaterDynamics.dominantDirection(
+                            flow
+                    );
+
+            if (downstream != null
+                    && random.nextFloat() < 0.36F) {
+                BlockPos tongue =
+                        ground.relative(
+                                downstream
+                        );
+
+                BlockPos tongueWater =
+                        tongue.above();
+
+                if (level.getFluidState(
+                        tongueWater
+                ).is(
+                        FluidTags.WATER
+                )) {
+                    BlockState tongueFloor =
+                            level.getBlockState(
+                                    tongue
+                            );
+
+                    if (tongueFloor.is(Blocks.DIRT)
+                            || tongueFloor.is(Blocks.GRAVEL)
+                            || tongueFloor.is(Blocks.MUD)
+                            || tongueFloor.is(Blocks.CLAY)) {
+                        level.setBlockAndUpdate(
+                                tongue,
+                                random.nextFloat() < 0.78F
+                                        ? Blocks.SAND.defaultBlockState()
+                                        : Blocks.GRAVEL.defaultBlockState()
+                        );
+                    }
+                }
+            }
         }
 
         BlockState waterState =
