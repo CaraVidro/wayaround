@@ -123,17 +123,17 @@ public final class WorldInteractionService {
                 < MAX_RECEIVERS_PER_EMISSION) {
             AABB area =
                     new AABB(
-                            min,
-                            max.offset(
-                                    1,
-                                    1,
-                                    1
-                            )
+                            min.getX(),
+                            min.getY(),
+                            min.getZ(),
+                            max.getX() + 1.0,
+                            max.getY() + 1.0,
+                            max.getZ() + 1.0
                     );
 
             for (Entity entity :
                     level.getEntities(
-                            null,
+                            (Entity) null,
                             area,
                             candidate ->
                                     candidate
