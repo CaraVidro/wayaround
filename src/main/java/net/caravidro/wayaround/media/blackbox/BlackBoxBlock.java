@@ -107,6 +107,16 @@ public final class BlackBoxBlock
                     ),
                     3
             );
+
+            if (!level.isClientSide
+                    && level.getBlockEntity(
+                    pos
+            )
+                    instanceof BlackBoxBlockEntity box) {
+                box.onPowerChanged(
+                        powered
+                );
+            }
         }
     }
 
@@ -244,18 +254,18 @@ public final class BlackBoxBlock
     }
 
     @Override
-    public void playerDestroy(
+    public BlockState playerWillDestroy(
             Level level,
-            Player player,
             BlockPos pos,
             BlockState state,
-            @Nullable BlockEntity blockEntity,
-            ItemStack tool
+            Player player
     ) {
         if (!level.isClientSide
                 && player
                 instanceof ServerPlayer serverPlayer
-                && blockEntity
+                && level.getBlockEntity(
+                pos
+        )
                 instanceof BlackBoxBlockEntity box) {
             ItemStack sealed =
                     box.sealToItem(
@@ -277,6 +287,29 @@ public final class BlackBoxBlock
                     entity
             );
         }
+
+        return super.playerWillDestroy(
+                level,
+                pos,
+                state,
+                player
+        );
+    }
+
+    @Override
+    public void playerDestroy(
+            Level level,
+            Player player,
+            BlockPos pos,
+            BlockState state,
+            @Nullable BlockEntity blockEntity,
+            ItemStack tool
+    ) {
+        /*
+         * The sealed stack is emitted in playerWillDestroy so Creative mode
+         * follows the same forensic lifecycle. There is intentionally no
+         * ordinary block loot drop here.
+         */
     }
 
     @Override
