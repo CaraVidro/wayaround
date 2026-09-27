@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.ecology;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.time.TimeAgingEngine;
+import net.caravidro.wayaround.time.TemporalState;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
@@ -225,6 +227,20 @@ public final class EcologicalSuccession {
                 boolean wet =
                         humid(level, ground);
 
+                TemporalState temporal =
+                        null;
+
+                if (WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.TIME_AGING
+                )) {
+                    temporal =
+                            TimeAgingEngine.sampleWorldSurface(
+                                    level,
+                                    ground,
+                                    false
+                            );
+                }
+
                 if (raining) {
                     growAfterRain(
                             level,
@@ -233,18 +249,27 @@ public final class EcologicalSuccession {
                     );
                 }
 
+                float longTermGrowth =
+                        temporal == null
+                                ? 0.0F
+                                : temporal.organicGrowth();
+
                 if (wet
-                        && random.nextFloat() < 0.24F) {
+                        && random.nextFloat()
+                        < 0.24F + longTermGrowth * 0.36F) {
                     mossify(
                             level,
                             ground,
                             random,
                             0.20F
+                                    + longTermGrowth
+                                            * 0.48F
                     );
                 }
 
-                if ((raining || wet)
-                        && random.nextFloat() < 0.28F) {
+                if ((raining || wet || longTermGrowth > 0.10F)
+                        && random.nextFloat()
+                        < 0.28F + longTermGrowth * 0.30F) {
                     seedGroundPlant(
                             level,
                             ground,
@@ -264,8 +289,22 @@ public final class EcologicalSuccession {
                     );
                 }
 
-                if (raining
-                        && random.nextFloat() < 0.015F) {
+                float recruitment =
+                        temporal == null
+                                ? 0.0F
+                                : Math.min(
+                                1.0F,
+                                temporal.organicGrowth()
+                                        * 0.65F
+                                        + temporal.moistureMemory()
+                                                * 0.35F
+                        );
+
+                if ((raining || recruitment > 0.34F)
+                        && random.nextFloat()
+                        < 0.015F
+                                + recruitment
+                                        * 0.018F) {
                     tryPlaceSapling(
                             level,
                             ground,
