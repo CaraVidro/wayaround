@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "L",
+    "L",
+    "L"
+  ],
+  "key": {
+    "L": {
+      "item": "minecraft:spruce_log"
+    }
+  },
+  "result": {
+    "id": "wayaround:ship_mast",
+    "count": 1
+  }
+}
