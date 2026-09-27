@@ -11,6 +11,12 @@ import net.caravidro.wayaround.ecology.EcologyRules;
 import net.caravidro.wayaround.ecology.SunfishEntity;
 import net.caravidro.wayaround.ecology.SardineEntity;
 import net.caravidro.wayaround.ecology.ReefSharkEntity;
+import net.caravidro.wayaround.ecology.AquaticPredator;
+import net.caravidro.wayaround.ecology.MantaRayEntity;
+import net.caravidro.wayaround.ecology.BarracudaEntity;
+import net.caravidro.wayaround.ecology.SeahorseEntity;
+import net.caravidro.wayaround.ecology.JellyfishEntity;
+import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
@@ -670,11 +676,12 @@ public final class LivingFaunaManager {
                 boolean occupied;
 
                 if (fish
-                        instanceof ReefSharkEntity shark) {
+                        instanceof AquaticPredator predator) {
                     occupied =
                             huntFish(
                                     level,
-                                    shark
+                                    fish,
+                                    predator
                             );
 
                 } else {
@@ -986,30 +993,31 @@ public final class LivingFaunaManager {
 
     private static boolean huntFish(
             ServerLevel level,
-            ReefSharkEntity shark
+            AbstractFish hunter,
+            AquaticPredator predator
     ) {
         AbstractFish prey =
                 level.getEntitiesOfClass(
                                 AbstractFish.class,
-                                shark.getBoundingBox()
+                                hunter.getBoundingBox()
                                         .inflate(
-                                                18.0,
-                                                8.0,
-                                                18.0
+                                                predator.huntRadius(),
+                                                predator.huntVerticalRadius(),
+                                                predator.huntRadius()
                                         ),
                                 candidate ->
                                         candidate.isAlive()
-                                                && candidate != shark
-                                                && !(candidate instanceof ReefSharkEntity)
+                                                && candidate != hunter
+                                                && !(candidate instanceof AquaticPredator)
                                                 && (
                                                 !(candidate instanceof SunfishEntity)
-                                                        || fishSize(candidate) < fishSize(shark) * 0.75F
+                                                        || fishSize(candidate) < fishSize(hunter) * 0.75F
                                         )
                         )
                         .stream()
                         .min(
                                 java.util.Comparator.comparingDouble(
-                                        shark::distanceToSqr
+                                        hunter::distanceToSqr
                                 )
                         )
                         .orElse(null);
@@ -1018,7 +1026,7 @@ public final class LivingFaunaManager {
             return false;
         }
 
-        shark.getNavigation()
+        hunter.getNavigation()
                 .moveTo(
                         prey.getX(),
                         prey.getY(),
@@ -1030,14 +1038,14 @@ public final class LivingFaunaManager {
                 .putLong(
                         FISH_SCARED_UNTIL,
                         level.getGameTime()
-                                + 160L
+                                + predator.scareTicks()
                 );
 
-        if (shark.distanceToSqr(
+        if (hunter.distanceToSqr(
                 prey
         ) <= 1.65 * 1.65) {
             CompoundTag data =
-                    shark.getPersistentData();
+                    hunter.getPersistentData();
 
             long now =
                     level.getGameTime();
@@ -1048,13 +1056,13 @@ public final class LivingFaunaManager {
                 prey.hurt(
                         level.damageSources()
                                 .mobAttack(
-                                        shark
+                                        hunter
                                 ),
-                        4.5F
+                        predator.biteBaseDamage()
                                 + fishSize(
-                                shark
+                                hunter
                         )
-                                        * 1.5F
+                                        * predator.biteScaleDamage()
                 );
 
                 level.playSound(
@@ -1098,17 +1106,19 @@ public final class LivingFaunaManager {
             ServerLevel level,
             AbstractFish fish
     ) {
-        ReefSharkEntity predator =
+        AbstractFish predator =
                 level.getEntitiesOfClass(
-                                ReefSharkEntity.class,
+                                AbstractFish.class,
                                 fish.getBoundingBox()
                                         .inflate(
                                                 15.0,
                                                 7.0,
                                                 15.0
                                         ),
-                                shark ->
-                                        shark.isAlive()
+                                candidate ->
+                                        candidate.isAlive()
+                                                && candidate != fish
+                                                && candidate instanceof AquaticPredator
                         )
                         .stream()
                         .min(
@@ -1657,6 +1667,23 @@ public final class LivingFaunaManager {
                                 : 0.90F
                                         + level.random.nextFloat()
                                                 * 0.55F;
+
+            } else if (fish instanceof SeahorseEntity) {
+                base = 0.24F + level.random.nextFloat() * 0.22F;
+
+            } else if (fish instanceof MantaRayEntity) {
+                base = 0.92F + level.random.nextFloat() * 0.48F;
+
+            } else if (fish instanceof BarracudaEntity) {
+                base = 0.62F + level.random.nextFloat() * 0.48F;
+
+            } else if (fish instanceof JellyfishEntity) {
+                base = 0.48F + level.random.nextFloat() * 0.58F;
+
+            } else if (fish instanceof OarfishEntity) {
+                base = anomaly < 0.012F
+                        ? 1.65F + level.random.nextFloat() * 1.25F
+                        : 0.88F + level.random.nextFloat() * 0.62F;
             }
 
             data.putFloat(
@@ -1785,6 +1812,21 @@ public final class LivingFaunaManager {
                             cap,
                             2.85F
                     );
+
+        } else if (fish instanceof SeahorseEntity) {
+            cap = Math.min(cap, 0.82F);
+
+        } else if (fish instanceof MantaRayEntity) {
+            cap = Math.max(cap, 2.65F);
+
+        } else if (fish instanceof BarracudaEntity) {
+            cap = Math.min(cap, 1.95F);
+
+        } else if (fish instanceof JellyfishEntity) {
+            cap = Math.min(cap, 2.10F);
+
+        } else if (fish instanceof OarfishEntity) {
+            cap = Math.max(cap, 3.35F);
         }
 
         /*
