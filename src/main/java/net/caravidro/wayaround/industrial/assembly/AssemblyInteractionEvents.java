@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.assembly;
 
 import net.caravidro.wayaround.industrial.power.PowerContent;
+import net.caravidro.wayaround.time.TimeAgingEngine;
 import net.caravidro.wayaround.network.AssemblyEmptyHandPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -148,6 +149,12 @@ public final class AssemblyInteractionEvents {
                         event.getPos()
                 );
 
+        TimeAgingEngine.Snapshot temporal =
+                TimeAgingEngine.snapshot(
+                        player.serverLevel(),
+                        event.getPos()
+                );
+
         player.displayClientMessage(
                 Component.literal(
                         "Assembly "
@@ -185,6 +192,21 @@ public final class AssemblyInteractionEvents {
                                 + "% íntegra, "
                                 + network.criticalMachines()
                                 + " crítico(s)"
+                                + " | idade "
+                                + String.format(
+                                java.util.Locale.ROOT,
+                                "%.1f",
+                                temporal.ageTicks() / 24000.0
+                        )
+                                + "d | corrosão "
+                                + Math.round(
+                                temporal.corrosion() * 100.0F
+                        )
+                                + "% | tempo "
+                                + Math.round(
+                                temporal.weathering() * 100.0F
+                        )
+                                + "%"
                 ),
                 true
         );
