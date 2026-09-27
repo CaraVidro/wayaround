@@ -160,13 +160,49 @@ public final class LivingFaunaManager {
                                                 == animal.getType()
                         );
 
-                EcologyBrain.apply(
-                        animal,
-                        EcologyBrain.groupIntent(
-                                animal,
-                                group
-                        )
+                ensureAnimalHome(
+                        animal
                 );
+
+                boolean foraging =
+                        forageAnimal(
+                                level,
+                                animal
+                        );
+
+                if (!foraging) {
+                    EcologyBrain.Intent groupIntent =
+                            EcologyBrain.groupIntent(
+                                    animal,
+                                    group
+                            );
+
+                    if (groupIntent.type()
+                            != EcologyBrain.IntentType.NONE) {
+                        EcologyBrain.apply(
+                                animal,
+                                groupIntent
+                        );
+                    } else {
+                        BlockPos home =
+                                BlockPos.of(
+                                        animal.getPersistentData()
+                                                .getLong(
+                                                        HOME
+                                                )
+                                );
+
+                        EcologyBrain.apply(
+                                animal,
+                                EcologyBrain.homeIntent(
+                                        animal,
+                                        Vec3.atCenterOf(
+                                                home
+                                        )
+                                )
+                        );
+                    }
+                }
 
                 autonomousBreed(
                         level,
@@ -180,6 +216,89 @@ public final class LivingFaunaManager {
                 }
             }
         }
+    }
+
+    private static void ensureAnimalHome(
+            Animal animal
+    ) {
+        CompoundTag data =
+                animal.getPersistentData();
+
+        if (!data.contains(
+                HOME
+        )) {
+            data.putLong(
+                    HOME,
+                    animal.blockPosition()
+                            .asLong()
+            );
+        }
+    }
+
+    private static boolean forageAnimal(
+            ServerLevel level,
+            Animal animal
+    ) {
+        ItemEntity food =
+                level.getEntitiesOfClass(
+                                ItemEntity.class,
+                                animal.getBoundingBox()
+                                        .inflate(
+                                                6.0,
+                                                3.0,
+                                                6.0
+                                        ),
+                                item ->
+                                        item.isAlive()
+                                                && animal.isFood(
+                                                item.getItem()
+                                        )
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        animal::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (food == null) {
+            return false;
+        }
+
+        animal.getNavigation()
+                .moveTo(
+                        food.getX(),
+                        food.getY(),
+                        food.getZ(),
+                        animal
+                                instanceof net.minecraft.world.entity.animal.FlyingAnimal
+                                ? 1.18
+                                : 1.02
+                );
+
+        if (animal.distanceToSqr(
+                food
+        ) <= 1.45 * 1.45) {
+            food.getItem()
+                    .shrink(
+                            1
+                    );
+
+            if (food.getItem()
+                    .isEmpty()) {
+                food.discard();
+            }
+
+            animal.getPersistentData()
+                    .putLong(
+                            SATIATED_UNTIL,
+                            level.getGameTime()
+                                    + 6000L
+                    );
+        }
+
+        return true;
     }
 
     private static void autonomousBreed(
@@ -368,13 +487,18 @@ public final class LivingFaunaManager {
                         9
                 );
 
+        BlockPos home =
+                coral == null
+                        ? spawn
+                        : waterBesideCoral(
+                                level,
+                                coral,
+                                spawn
+                        );
+
         data.putLong(
                 HOME,
-                (
-                        coral == null
-                                ? spawn
-                                : coral
-                ).asLong()
+                home.asLong()
         );
 
         data.putLong(
@@ -485,13 +609,8 @@ public final class LivingFaunaManager {
                                 home
                         );
 
-        boolean coralResident =
-                nearestCoral(
-                        level,
-                        fish.blockPosition(),
-                        6
-                )
-                        != null;
+        boolean nearHome =
+                distance <= 12.0 * 12.0;
 
         if (breedingMigration
                 && distance > 4.0 * 4.0) {
@@ -504,7 +623,7 @@ public final class LivingFaunaManager {
                     );
 
         } else if (!breedingMigration
-                && !coralResident
+                && !nearHome
                 && distance > 10.0 * 10.0) {
             fish.getNavigation()
                     .moveTo(
@@ -681,6 +800,54 @@ public final class LivingFaunaManager {
         }
 
         return best;
+    }
+
+    private static BlockPos waterBesideCoral(
+            ServerLevel level,
+            BlockPos coral,
+            BlockPos fallback
+    ) {
+        BlockPos best =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dy = -2; dy <= 2; dy++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    BlockPos pos =
+                            coral.offset(
+                                    dx,
+                                    dy,
+                                    dz
+                            );
+
+                    if (!level.getFluidState(
+                            pos
+                    ).is(FluidTags.WATER)) {
+                        continue;
+                    }
+
+                    double distance =
+                            fallback.distSqr(
+                                    pos
+                            );
+
+                    if (distance < bestDistance) {
+                        bestDistance =
+                                distance;
+
+                        best =
+                                pos.immutable();
+                    }
+                }
+            }
+        }
+
+        return best == null
+                ? fallback
+                : best;
     }
 
     private static boolean isCoral(
