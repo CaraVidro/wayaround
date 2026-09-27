@@ -2,7 +2,6 @@ package net.caravidro.wayaround.network;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.caravidro.wayaround.client.FrostRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -37,9 +36,10 @@ public record FrostPayload(ResourceLocation dimension, long chunk, boolean repla
 
     @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
-    public static void handle(FrostPayload payload, IPayloadContext context) {
-        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
-            context.enqueueWork(() -> FrostRenderer.receive(payload));
-        }
+    public static void handle(
+            FrostPayload payload,
+            IPayloadContext context
+    ) {
+        ClientPayloadBridge.handleFrost(payload, context);
     }
 }
