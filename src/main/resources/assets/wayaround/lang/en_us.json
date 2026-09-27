@@ -289,5 +289,17 @@
     "item.wayaround.spectral_glasses": "Spectral Glasses",
     "item.wayaround.work_gloves": "Work Gloves",
     "item.wayaround.engineer_cape": "Engineer's Cape",
-    "item.wayaround.wind_boots": "Wind Boots"
+    "item.wayaround.wind_boots": "Wind Boots",
+    "block.wayaround.debug_turret": "Debug Turret",
+    "message.wayaround.debug_turret": "Debug Turret: %s — %s | Shift + click: ammo; click: toggle.",
+    "message.wayaround.infinity.adaptation": "Wheel: next melee strike penetrates Infinity at %s%%.",
+    "turret.wayaround.arrow": "Arrow",
+    "turret.wayaround.snowball": "Snowball",
+    "turret.wayaround.glock": "Glock bullet",
+    "turret.wayaround.shotgun": "Shotgun pellets",
+    "turret.wayaround.machine_gun": "Machine gun bullet",
+    "turret.wayaround.rocket": "Rocket",
+    "turret.wayaround.on": "On",
+    "turret.wayaround.off": "Off",
+    "message.wayaround.immortal_wheel.family.infinity_melee": "Infinity (melee)"
 }

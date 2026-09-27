@@ -74,6 +74,15 @@ public final class InfinityManager {
     private static final float MIN_ACTIVE_CONFIDENCE =
             0.08F;
 
+    public static boolean protects(Entity entity) {
+        if (entity.level().isClientSide) return entity.isAlive()
+                && entity.getPersistentData().getBoolean("WayAroundInfinityActive");
+        if (!(entity instanceof ServerPlayer player) || !player.isAlive()) return false;
+        InfinityState state = ACTIVE.get(player.getUUID());
+        return state != null && state.confidence >= MIN_ACTIVE_CONFIDENCE
+                && state.dimension.equals(player.level().dimension()) && hasSpectrum(player);
+    }
+
     public static boolean activateMax(
             ServerPlayer player
     ) {
@@ -384,6 +393,8 @@ public final class InfinityManager {
                 continue;
             }
 
+            if (protects(entity)) continue;
+
             boolean projectileLike =
                     entity instanceof Projectile
                             || entity instanceof WarProjectileEntity;
@@ -435,43 +446,7 @@ public final class InfinityManager {
                             1.0
                     );
 
-            if (projectileLike) {
-                /*
-                 * OUTER FIELD: slowdown only. No "momentum broken", no
-                 * gravity, no release logic. The projectile is allowed to
-                 * penetrate deeper before the inner latch is reached.
-                 */
-                Vec3 velocity =
-                        entity.getDeltaMovement();
-
-                double damping =
-                        Math.max(
-                                0.12,
-                                1.0
-                                        - influence
-                                                * influence
-                                                * 0.74
-                        );
-
-                entity.setDeltaMovement(
-                        velocity.scale(
-                                damping
-                        )
-                );
-
-                if (distance
-                        <= stopRadiusFor(
-                                confidence
-                        )) {
-                    holdProjectile(
-                            level,
-                            entity,
-                            state
-                    );
-                }
-
-                continue;
-            }
+            if (projectileLike) continue;
 
             /*
              * Non-projectile Infinity behaviour stays as before: living
@@ -556,6 +531,72 @@ public final class InfinityManager {
             entity.fallDistance =
                     0.0F;
         }
+    }
+
+    /** Swept entry prevents even rounds faster than the field diameter tunnelling. */
+    public static boolean advanceProjectile(ServerLevel level, Entity projectile) {
+        if (HELD_PROJECTILES.containsKey(projectile.getUUID())) {
+            projectile.setPos(projectile.position().add(projectile.getDeltaMovement()));
+            projectile.hurtMarked = true;
+            projectile.hasImpulse = true;
+            return true;
+        }
+        // Released rounds have spent their momentum: let them fall without being recaptured.
+        if (DRAINED_PROJECTILES.containsKey(projectile.getUUID())
+                || projectile instanceof WarProjectileEntity round && round.momentumBroken()) return false;
+        Vec3 from = projectile.position();
+        Vec3 velocity = projectile.getDeltaMovement();
+        Vec3 to = from.add(velocity);
+        InfinityState nearest = null;
+        Vec3 entry = null;
+        double best = Double.POSITIVE_INFINITY;
+        for (InfinityState state : ACTIVE.values()) {
+            ServerPlayer owner = level.getServer().getPlayerList().getPlayer(state.owner);
+            if (owner == null || !protects(owner) || owner.level() != level
+                    || projectile instanceof Projectile p && p.getOwner() == owner
+                    || projectile instanceof WarProjectileEntity w && w.ownedBy(state.owner)) continue;
+            Vec3 hit = segmentSphereEntry(from, to, owner.getEyePosition(), radiusFor(state.confidence));
+            if (hit != null && from.distanceToSqr(hit) < best) {
+                best = from.distanceToSqr(hit);
+                entry = hit;
+                nearest = state;
+            }
+        }
+        if (nearest == null) return false;
+        // Respect a wall BEFORE the field, rather than transporting rounds through it.
+        var wall = level.clip(new net.minecraft.world.level.ClipContext(from, entry,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, projectile));
+        if (wall.getType() != net.minecraft.world.phys.HitResult.Type.MISS) return false;
+        ServerPlayer owner = level.getServer().getPlayerList().getPlayer(nearest.owner);
+        Vec3 center = owner.getEyePosition();
+        double distance = entry.distanceTo(center);
+        double gap = Math.max(0, distance - stopRadiusFor(nearest.confidence));
+        double speed = velocity.length();
+        // Fast rounds shed most of their speed on entry, but retain several visible steps.
+        double nextSpeed = InfinityMath.slowedSpeed(speed, gap);
+        if (gap < 0.08 || nextSpeed < 0.015) {
+            projectile.setPos(entry);
+            holdProjectile(level, projectile, nearest);
+            projectile.hurtMarked = true;
+            projectile.hasImpulse = true;
+            return true;
+        }
+        Vec3 nextVelocity = velocity.normalize().scale(nextSpeed);
+        Vec3 next = entry.add(nextVelocity);
+        var innerWall = level.clip(new net.minecraft.world.level.ClipContext(entry, next,
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, projectile));
+        if (innerWall.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
+            // Let the projectile's own collision code process the wall at its reduced speed.
+            projectile.setDeltaMovement(innerWall.getLocation().subtract(from).scale(1.001));
+            return false;
+        }
+        projectile.setPos(next);
+        projectile.setDeltaMovement(nextVelocity);
+        projectile.hurtMarked = true;
+        projectile.hasImpulse = true;
+        return true;
     }
 
     private static void holdProjectile(
@@ -839,99 +880,6 @@ public final class InfinityManager {
         }
     }
 
-    /**
-     * Continuous A->B test for fast War projectiles. Only the INNER stop
-     * sphere is clipped. The outer Infinity volume merely slows them.
-     *
-     * Crossing this sphere is also the moment hysteresis becomes armed:
-     * HELD_PROJECTILES remembers which Infinity caught the round, so the much
-     * larger release radius cannot affect projectiles that were never stopped.
-     */
-    public static Vec3 captureWarProjectileOnSegment(
-            ServerLevel level,
-            WarProjectileEntity projectile,
-            Vec3 from,
-            Vec3 to
-    ) {
-        Vec3 nearest =
-                null;
-
-        InfinityState nearestState =
-                null;
-
-        double nearestDistance =
-                Double.POSITIVE_INFINITY;
-
-        for (InfinityState state :
-                ACTIVE.values()) {
-            if (state.confidence
-                    < MIN_ACTIVE_CONFIDENCE
-                    || state.owner.equals(
-                            projectile.ownerId()
-                    )
-                    || !state.dimension.equals(
-                            level.dimension()
-                    )) {
-                continue;
-            }
-
-            ServerPlayer owner =
-                    level.getServer()
-                            .getPlayerList()
-                            .getPlayer(
-                                    state.owner
-                            );
-
-            if (owner == null
-                    || !owner.isAlive()
-                    || owner.serverLevel() != level
-                    || !hasSpectrum(
-                            owner
-                    )) {
-                continue;
-            }
-
-            Vec3 hit =
-                    segmentSphereEntry(
-                            from,
-                            to,
-                            owner.getEyePosition(),
-                            stopRadiusFor(
-                                    state.confidence
-                            )
-                    );
-
-            if (hit == null) {
-                continue;
-            }
-
-            double distance =
-                    from.distanceToSqr(
-                            hit
-                    );
-
-            if (distance < nearestDistance) {
-                nearestDistance =
-                        distance;
-                nearest =
-                        hit;
-                nearestState =
-                        state;
-            }
-        }
-
-        if (nearest != null
-                && nearestState != null) {
-            holdProjectile(
-                    level,
-                    projectile,
-                    nearestState
-            );
-        }
-
-        return nearest;
-    }
-
     private static Vec3 segmentSphereEntry(
             Vec3 from,
             Vec3 to,
@@ -1045,9 +993,9 @@ public final class InfinityManager {
     private static float radiusFor(
             float confidence
     ) {
-        return 2.75F
+        return 3.25F
                 + confidence
-                        * 7.75F;
+                        * 9.25F;
     }
 
     private static void sendVisual(

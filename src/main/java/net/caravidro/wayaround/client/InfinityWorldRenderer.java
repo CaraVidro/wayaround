@@ -1,285 +1,86 @@
 package net.caravidro.wayaround.client;
 
+import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
-
+import com.mojang.blaze3d.vertex.*;
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import org.lwjgl.opengl.GL30;
 
-@EventBusSubscriber(
-        modid = WayAround.MODID,
-        value = Dist.CLIENT
-)
+/** Samples a COPY of the scene: colorless heat refraction, never framebuffer feedback. */
+@EventBusSubscriber(modid = WayAround.MODID, value = Dist.CLIENT)
 public final class InfinityWorldRenderer {
+    private static ShaderInstance shader;
+    private static TextureTarget scene;
+    private InfinityWorldRenderer() {}
 
-    private InfinityWorldRenderer() {
+    @EventBusSubscriber(modid = WayAround.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
+    public static final class Registration {
+        @SubscribeEvent public static void shaders(RegisterShadersEvent event) throws java.io.IOException {
+            event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                    ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "infinity_refraction"),
+                    DefaultVertexFormat.POSITION_TEX), instance -> shader = instance);
+        }
     }
 
-    @SubscribeEvent
-    public static void render(
-            RenderLevelStageEvent event
-    ) {
-        if (event.getStage()
-                != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
-
-            return;
-        }
-
-        Minecraft minecraft =
-                Minecraft.getInstance();
-
-        if (minecraft.level == null
-                || minecraft.player == null) {
-
-            return;
-        }
-
-        var fields =
-                InfinityClientEffects.visualFields();
-
-        if (fields.isEmpty()) {
-            return;
-        }
-
-        boolean renderable =
-                fields.stream()
-                        .anyMatch(
-                                field ->
-                                        field.confidence()
-                                                >= 0.18F
-                        );
-
-        if (!renderable) {
-            return;
-        }
-
-        Vec3 camera =
-                event.getCamera()
-                        .getPosition();
-
-        PoseStack pose =
-                event.getPoseStack();
-
-        BufferBuilder buffer =
-                Tesselator.getInstance()
-                        .begin(
-                                VertexFormat.Mode.TRIANGLES,
-                                DefaultVertexFormat.POSITION_COLOR
-                        );
-
-        float time =
-                minecraft.level
-                        .getGameTime();
-
-        for (InfinityClientEffects.ClientInfinity field :
-                fields) {
-
-            if (field.confidence()
-                    < 0.18F) {
-
-                continue;
-            }
-
-            pose.pushPose();
-
-            pose.translate(
-                    field.position().x
-                            - camera.x,
-                    field.position().y
-                            - camera.y,
-                    field.position().z
-                            - camera.z
-            );
-
-            float pulse =
-                    0.5F
-                            + 0.5F
-                                    * Mth.sin(
-                                            time * 0.12F
-                                                    + field.owner()
-                                                            .hashCode()
-                                                            * 0.01F
-                                    );
-
-            int shells =
-                    field.confidence()
-                            >= 0.72F
-                            ? 3
-                            : 2;
-
-            for (int shell = 0;
-                 shell < shells;
-                 shell++) {
-
-                pose.pushPose();
-
-                float phase =
-                        time
-                                * (
-                                0.18F
-                                        + shell
-                                                * 0.09F
-                        );
-
-                pose.mulPose(
-                        Axis.YP.rotationDegrees(
-                                phase
-                                        * 13.0F
-                        )
-                );
-
-                pose.mulPose(
-                        Axis.XP.rotationDegrees(
-                                phase
-                                        * 7.0F
-                        )
-                );
-
-                float size =
-                        (
-                                1.35F
-                                        + field.confidence()
-                                                * 1.65F
-                        )
-                                * (
-                                1.0F
-                                        + shell
-                                                * 0.13F
-                                        + pulse
-                                                * 0.025F
-                        );
-
-                int alpha =
-                        Mth.clamp(
-                                Math.round(
-                                        12.0F
-                                                + field.confidence()
-                                                        * 36.0F
-                                                - shell
-                                                        * 6.0F
-                                ),
-                                7,
-                                54
-                        );
-
-                octahedron(
-                        buffer,
-                        pose.last()
-                                .pose(),
-                        size,
-                        174,
-                        232,
-                        255,
-                        alpha
-                );
-
-                pose.popPose();
-            }
-
-            pose.popPose();
-        }
-
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+    @SubscribeEvent public static void render(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || shader == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return;
+        var fields = InfinityClientEffects.visualFields();
+        if (fields.stream().noneMatch(field -> field.confidence() >= 0.08F)) return;
+        var target = mc.getMainRenderTarget();
+        if (scene == null) scene = new TextureTarget(target.width, target.height, false, Minecraft.ON_OSX);
+        else if (scene.width != target.width || scene.height != target.height)
+            scene.resize(target.width, target.height, Minecraft.ON_OSX);
+        GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, target.frameBufferId);
+        GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, scene.frameBufferId);
+        GL30.glBlitFramebuffer(0, 0, target.width, target.height, 0, 0, scene.width, scene.height,
+                GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST);
+        target.bindWrite(false);
+        shader.setSampler("SceneSampler", scene.getColorTextureId());
+        shader.safeGetUniform("ScreenSize").set((float) target.width, (float) target.height);
+        shader.safeGetUniform("Time").set((float) (mc.level.getGameTime() % 24000)
+                + event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        RenderSystem.setShader(() -> shader);
         RenderSystem.enableDepthTest();
         RenderSystem.depthMask(false);
         RenderSystem.disableCull();
-        RenderSystem.setShader(
-                GameRenderer::getPositionColorShader
-        );
-
-        BufferUploader.drawWithShader(
-                buffer.buildOrThrow()
-        );
-
-        RenderSystem.enableCull();
-        RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
-    }
-
-    private static void octahedron(
-            BufferBuilder buffer,
-            org.joml.Matrix4f matrix,
-            float radius,
-            int red,
-            int green,
-            int blue,
-            int alpha
-    ) {
-        float topY =
-                radius;
-
-        float bottomY =
-                -radius;
-
-        triangle(buffer, matrix, 0, topY, 0, radius, 0, 0, 0, 0, radius, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, topY, 0, 0, 0, radius, -radius, 0, 0, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, topY, 0, -radius, 0, 0, 0, 0, -radius, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, topY, 0, 0, 0, -radius, radius, 0, 0, red, green, blue, alpha);
-
-        triangle(buffer, matrix, 0, bottomY, 0, 0, 0, radius, radius, 0, 0, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, bottomY, 0, -radius, 0, 0, 0, 0, radius, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, bottomY, 0, 0, 0, -radius, -radius, 0, 0, red, green, blue, alpha);
-        triangle(buffer, matrix, 0, bottomY, 0, radius, 0, 0, 0, 0, -radius, red, green, blue, alpha);
-    }
-
-    private static void triangle(
-            BufferBuilder buffer,
-            org.joml.Matrix4f matrix,
-            float ax,
-            float ay,
-            float az,
-            float bx,
-            float by,
-            float bz,
-            float cx,
-            float cy,
-            float cz,
-            int red,
-            int green,
-            int blue,
-            int alpha
-    ) {
-        vertex(buffer, matrix, ax, ay, az, red, green, blue, alpha);
-        vertex(buffer, matrix, bx, by, bz, red, green, blue, alpha);
-        vertex(buffer, matrix, cx, cy, cz, red, green, blue, alpha);
-    }
-
-    private static void vertex(
-            BufferBuilder buffer,
-            org.joml.Matrix4f matrix,
-            float x,
-            float y,
-            float z,
-            int red,
-            int green,
-            int blue,
-            int alpha
-    ) {
-        buffer.addVertex(
-                        matrix,
-                        x,
-                        y,
-                        z
-                )
-                .setColor(
-                        red,
-                        green,
-                        blue,
-                        alpha
-                );
+        try {
+            var camera = event.getCamera().getPosition();
+            var pose = event.getPoseStack();
+            for (var field : fields) {
+                if (field.confidence() < 0.08F) continue;
+                var owner = mc.level.getPlayerByUUID(field.owner());
+                var center = owner == null ? field.position() : owner.getEyePosition(
+                        event.getPartialTick().getGameTimeDeltaPartialTick(false));
+                float radius = 2.0F + field.confidence() * 1.8F;
+                pose.pushPose();
+                pose.translate(center.x - camera.x, center.y - camera.y, center.z - camera.z);
+                // A camera-facing circular lens has smooth edges even viewed from inside.
+                pose.mulPose(event.getCamera().rotation());
+                shader.safeGetUniform("Strength").set(field.confidence());
+                var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+                var matrix = pose.last().pose();
+                buffer.addVertex(matrix, -radius, -radius, 0).setUv(0, 0);
+                buffer.addVertex(matrix, radius, -radius, 0).setUv(1, 0);
+                buffer.addVertex(matrix, radius, radius, 0).setUv(1, 1);
+                buffer.addVertex(matrix, -radius, radius, 0).setUv(0, 1);
+                BufferUploader.drawWithShader(buffer.buildOrThrow());
+                pose.popPose();
+            }
+        } finally {
+            RenderSystem.enableCull();
+            RenderSystem.depthMask(true);
+            RenderSystem.defaultBlendFunc();
+        }
     }
 }

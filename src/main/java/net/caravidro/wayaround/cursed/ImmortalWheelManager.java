@@ -105,6 +105,25 @@ public final class ImmortalWheelManager {
     private static final Map<UUID, Regeneration> REGENERATING =
             new HashMap<>();
 
+    /** The first blocked melee hit teaches the wheel; only later hits penetrate. */
+    public static float learnInfinityMelee(ServerPlayer attacker) {
+        if (!hasWheel(attacker)) return 0.0F;
+        Adaptation adaptation = ADAPTATIONS
+                .computeIfAbsent(attacker.getUUID(), ignored -> new HashMap<>())
+                .computeIfAbsent("infinity_melee", ignored -> new Adaptation());
+        float allowed = net.caravidro.wayaround.infinity.InfinityMath.meleeFraction(adaptation.steps);
+        long now = attacker.server.getTickCount();
+        // Sweep damage and repeated callbacks in the same swing are one lesson.
+        if (now - adaptation.lastHitTick >= 10 && adaptation.steps < 15) {
+            adaptation.lastHitTick = now;
+            adaptation.steps++;
+            spin(attacker, "infinity_melee", Math.min(5, (adaptation.steps + 2) / 3));
+            attacker.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                    "message.wayaround.infinity.adaptation", adaptation.steps * 5), true);
+        }
+        return allowed;
+    }
+
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)
@@ -1472,7 +1491,7 @@ public final class ImmortalWheelManager {
             highest =
                     Math.max(
                             highest,
-                            adaptation.steps
+                            Math.min(5, adaptation.steps)
                     );
         }
 

@@ -1377,7 +1377,7 @@ public final class ImaginaryBetaManager {
                                     0.0
                             );
 
-            living.setDeltaMovement(
+            if (!net.caravidro.wayaround.infinity.InfinityManager.protects(living)) living.setDeltaMovement(
                     living.getDeltaMovement()
                             .add(
                                     knockback
@@ -1708,7 +1708,7 @@ public final class ImaginaryBetaManager {
                     )
             );
 
-            living.setDeltaMovement(
+            if (!net.caravidro.wayaround.infinity.InfinityManager.protects(living)) living.setDeltaMovement(
                     living.getDeltaMovement()
                             .add(
                                     direction.scale(
@@ -2535,7 +2535,7 @@ public final class ImaginaryBetaManager {
                     )
             );
 
-            living.setDeltaMovement(
+            if (!net.caravidro.wayaround.infinity.InfinityManager.protects(living)) living.setDeltaMovement(
                     living.getDeltaMovement()
                             .add(
                                     direction.scale(

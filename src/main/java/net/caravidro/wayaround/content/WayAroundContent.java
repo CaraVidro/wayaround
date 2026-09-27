@@ -52,6 +52,12 @@ public final class WayAroundContent {
      * =========================================================
      */
 
+    public static final DeferredBlock<net.caravidro.wayaround.war.DebugTurretBlock> DEBUG_TURRET =
+            BLOCKS.register("debug_turret", () -> new net.caravidro.wayaround.war.DebugTurretBlock(
+                    BlockBehaviour.Properties.of().strength(3.0F).sound(SoundType.METAL)));
+    public static final DeferredItem<BlockItem> DEBUG_TURRET_ITEM =
+            ITEMS.register("debug_turret", () -> new BlockItem(DEBUG_TURRET.get(), new Item.Properties()));
+
     public static final DeferredBlock<Block> PRIORITE =
             BLOCKS.register(
                     "priorite",

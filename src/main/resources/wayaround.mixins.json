@@ -11,7 +11,8 @@
     "NoiseRouterMixin",
     "AntarcticSurfaceMixin",
     "AntarcticWaterFreezingMixin",
-    "TukunaMobPickupMixin"
+    "TukunaMobPickupMixin",
+    "InfinityPushMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",

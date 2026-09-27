@@ -289,5 +289,17 @@
     "item.wayaround.spectral_glasses": "Óculos Spectrais",
     "item.wayaround.work_gloves": "Luvas de Trabalho",
     "item.wayaround.engineer_cape": "Capa do Engenheiro",
-    "item.wayaround.wind_boots": "Botas do Vento"
+    "item.wayaround.wind_boots": "Botas do Vento",
+    "block.wayaround.debug_turret": "Debug Turret",
+    "message.wayaround.debug_turret": "Debug Turret: %s — %s | Shift + clique: munição; clique: ligar/desligar.",
+    "message.wayaround.infinity.adaptation": "Wheel: próximo golpe atravessa %s%% da Infinidade.",
+    "turret.wayaround.arrow": "Flecha",
+    "turret.wayaround.snowball": "Bola de neve",
+    "turret.wayaround.glock": "Bala de Glock",
+    "turret.wayaround.shotgun": "Chumbos de escopeta",
+    "turret.wayaround.machine_gun": "Bala de metralhadora",
+    "turret.wayaround.rocket": "Foguete",
+    "turret.wayaround.on": "Ligada",
+    "turret.wayaround.off": "Desligada",
+    "message.wayaround.immortal_wheel.family.infinity_melee": "Infinidade (corpo a corpo)"
 }

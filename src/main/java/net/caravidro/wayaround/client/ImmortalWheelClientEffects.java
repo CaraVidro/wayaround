@@ -427,7 +427,7 @@ public final class ImmortalWheelClientEffects {
     ) {
         String safe =
                 switch (family) {
-                    case "arrow",
+                    case "infinity_melee", "arrow",
                             "projectile",
                             "explosion",
                             "fire",

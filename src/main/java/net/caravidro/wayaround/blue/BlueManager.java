@@ -1796,7 +1796,7 @@ public final class BlueManager {
                                     )
                             );
 
-            entity.setDeltaMovement(
+            if (!net.caravidro.wayaround.infinity.InfinityManager.protects(entity)) entity.setDeltaMovement(
                     next
             );
 
@@ -2924,7 +2924,7 @@ public final class BlueManager {
                                             * 0.24
                             );
 
-            entity.setDeltaMovement(
+            if (!net.caravidro.wayaround.infinity.InfinityManager.protects(entity)) entity.setDeltaMovement(
                     inward.scale(
                             0.22
                                     + progress
@@ -3052,7 +3052,7 @@ public final class BlueManager {
                     away.normalize();
         }
 
-        living.setDeltaMovement(
+        if (!net.caravidro.wayaround.infinity.InfinityManager.protects(living)) living.setDeltaMovement(
                 away.scale(
                         1.05
                 )

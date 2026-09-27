@@ -123,6 +123,7 @@ public final class WarContent {
                             )
                             .displayItems(
                                     (parameters, output) -> {
+                                        output.accept(net.caravidro.wayaround.content.WayAroundContent.DEBUG_TURRET_ITEM.get());
                                         output.accept(
                                                 GLOCK.get()
                                         );

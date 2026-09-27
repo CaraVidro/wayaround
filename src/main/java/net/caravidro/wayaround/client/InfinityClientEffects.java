@@ -111,6 +111,12 @@ public final class InfinityClientEffects {
                                         > 8L
                 );
 
+        for (var player : minecraft.level.players()) {
+            ClientInfinity field = FIELDS.get(player.getUUID());
+            player.getPersistentData().putBoolean("WayAroundInfinityActive",
+                    field != null && field.confidence() >= 0.08F);
+        }
+
         float influence =
                 strongestInfluence(
                         minecraft
@@ -187,137 +193,10 @@ public final class InfinityClientEffects {
         );
     }
 
-    @SubscribeEvent
-    public static void onGui(
-            RenderGuiEvent.Post event
-    ) {
-        Minecraft minecraft =
-                Minecraft.getInstance();
-
-        if (minecraft.player == null
-                || minecraft.level == null) {
-
-            return;
-        }
-
-        float remote =
-                currentInfluence;
-
-        float owned =
-                ownedConfidence(
-                        minecraft.player
-                                .getUUID()
-                );
-
-        float shimmer =
-                Math.max(
-                        remote,
-                        owned * 0.34F
-                );
-
-        if (shimmer
-                < 0.08F) {
-
-            return;
-        }
-
-        GuiGraphics graphics =
-                event.getGuiGraphics();
-
-        int width =
-                minecraft.getWindow()
-                        .getGuiScaledWidth();
-
-        int height =
-                minecraft.getWindow()
-                        .getGuiScaledHeight();
-
-        int edge =
-                Math.max(
-                        3,
-                        Math.round(
-                                5.0F
-                                        + shimmer
-                                                * 20.0F
-                        )
-                );
-
-        int alpha =
-                Mth.clamp(
-                        Math.round(
-                                18.0F
-                                        + shimmer
-                                                * 58.0F
-                        ),
-                        0,
-                        95
-                );
-
-        int color =
-                alpha << 24
-                        | 0x8FDFFF;
-
-        graphics.fill(
-                0,
-                0,
-                width,
-                edge,
-                color
-        );
-
-        graphics.fill(
-                0,
-                height - edge,
-                width,
-                height,
-                color
-        );
-
-        graphics.fill(
-                0,
-                0,
-                edge,
-                height,
-                color
-        );
-
-        graphics.fill(
-                width - edge,
-                0,
-                width,
-                height,
-                color
-        );
-
-        if (remote > 0.72F) {
-            int veilAlpha =
-                    Mth.clamp(
-                            Math.round(
-                                    (
-                                            remote
-                                                    - 0.72F
-                                    )
-                                            / 0.28F
-                                            * 52.0F
-                            ),
-                            0,
-                            52
-                    );
-
-            graphics.fill(
-                    0,
-                    0,
-                    width,
-                    height,
-                    veilAlpha << 24
-                            | 0xDFF7FF
-            );
-        }
-    }
-
     private static float strongestInfluence(
             Minecraft minecraft
     ) {
+        if (ownedConfidence(minecraft.player.getUUID()) >= 0.08F) return 0;
         float best =
                 0.0F;
 

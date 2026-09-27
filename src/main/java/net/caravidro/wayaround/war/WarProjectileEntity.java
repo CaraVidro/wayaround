@@ -102,7 +102,7 @@ public final class WarProjectileEntity extends Entity {
             Vec3 velocity
     ) {
         ownerId =
-                owner.getUUID();
+                owner == null ? null : owner.getUUID();
 
         entityData.set(
                 KIND,
@@ -198,6 +198,11 @@ public final class WarProjectileEntity extends Entity {
             return;
         }
 
+        if (InfinityManager.advanceProjectile(level, this)) {
+            tickCount--; // Field time does not consume the round's free-flight lifetime.
+            return;
+        }
+
         WarGunItem.Kind kind =
                 kind();
 
@@ -245,57 +250,6 @@ public final class WarProjectileEntity extends Entity {
                     velocity.scale(
                             0.999
                     );
-        }
-
-        /*
-         * Fast bullets test the entire next segment against the INNER stop
-         * radius. They are allowed to travel through the outer slowdown field
-         * first. Only crossing this inner radius latches InfinityHeld.
-         */
-        Vec3 from =
-                position();
-
-        Vec3 predicted =
-                from.add(
-                        velocity
-                );
-
-        if (!infinityHeld()) {
-            Vec3 infinityStop =
-                    InfinityManager.captureWarProjectileOnSegment(
-                            level,
-                            this,
-                            from,
-                            predicted
-                    );
-
-            if (infinityStop != null) {
-                setPos(
-                        infinityStop.x,
-                        infinityStop.y,
-                        infinityStop.z
-                );
-
-                setDeltaMovement(
-                        Vec3.ZERO
-                );
-
-                level.sendParticles(
-                        ParticleTypes.END_ROD,
-                        infinityStop.x,
-                        infinityStop.y,
-                        infinityStop.z,
-                        kind.rocket()
-                                ? 12
-                                : 3,
-                        0.06,
-                        0.06,
-                        0.06,
-                        0.008
-                );
-
-                return;
-            }
         }
 
         /*
@@ -486,13 +440,7 @@ public final class WarProjectileEntity extends Entity {
             if (impact.entity
                     instanceof LivingEntity living) {
                 living.hurt(
-                        owner != null
-                                ? level.damageSources()
-                                .playerAttack(
-                                        owner
-                                )
-                                : level.damageSources()
-                                .generic(),
+                        level.damageSources().thrown(this, owner),
                         entityData.get(
                                 DAMAGE
                         )
@@ -516,13 +464,7 @@ public final class WarProjectileEntity extends Entity {
         if (impact.entity
                 instanceof LivingEntity living) {
             living.hurt(
-                    owner != null
-                            ? level.damageSources()
-                            .playerAttack(
-                                    owner
-                            )
-                            : level.damageSources()
-                            .generic(),
+                    level.damageSources().thrown(this, owner),
                     entityData.get(
                             DAMAGE
                     )
