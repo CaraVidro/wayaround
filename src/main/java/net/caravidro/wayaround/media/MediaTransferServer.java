@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.MediaRecordingChunkS2CPayload;
+import net.caravidro.wayaround.network.MediaRecordingOfferS2CPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.MinecraftServer;
@@ -150,12 +151,79 @@ public final class MediaTransferServer {
         }
     }
 
+    /**
+     * Metadata phase only. This MUST NOT start a file transfer.
+     *
+     * The client receives the exact size and asks the player for consent.
+     * Only MediaRecordingApproveC2SPayload may reach approveDownload().
+     */
     public static synchronized void request(
             ServerPlayer player,
             String recordingId
     ) {
-        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.MEDIA)) return;
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.MEDIA
+        )) {
+            return;
+        }
+
         if (!validId(
+                recordingId
+        )) {
+            return;
+        }
+
+        Path path =
+                recordingPath(
+                        player.server,
+                        recordingId
+                );
+
+        try {
+            if (!Files.isRegularFile(
+                    path
+            )) {
+                return;
+            }
+
+            long length =
+                    Files.size(
+                            path
+                    );
+
+            if (length <= 0L
+                    || length > MAX_RECORDING_BYTES) {
+                return;
+            }
+
+            PacketDistributor.sendToPlayer(
+                    player,
+                    new MediaRecordingOfferS2CPayload(
+                            recordingId,
+                            length
+                    )
+            );
+
+        } catch (Exception exception) {
+            WayAround.LOGGER.warn(
+                    "[Media] nao consegui consultar gravacao {}: {}",
+                    recordingId,
+                    exception.getMessage()
+            );
+        }
+    }
+
+    /**
+     * Starts transfer only after the client explicitly approved the offer.
+     */
+    public static synchronized void approveDownload(
+            ServerPlayer player,
+            String recordingId
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.MEDIA
+        )
+                || !validId(
                 recordingId
         )) {
             return;
@@ -163,7 +231,6 @@ public final class MediaTransferServer {
 
         for (DownloadSession session
                 : DOWNLOADS) {
-
             if (session.playerId
                     .equals(
                             player.getUUID()
@@ -172,7 +239,6 @@ public final class MediaTransferServer {
                     .equals(
                             recordingId
                     )) {
-
                 return;
             }
         }
@@ -197,7 +263,6 @@ public final class MediaTransferServer {
 
             if (length <= 0L
                     || length > MAX_RECORDING_BYTES) {
-
                 return;
             }
 
@@ -210,9 +275,17 @@ public final class MediaTransferServer {
                     )
             );
 
+            WayAround.LOGGER.info(
+                    "[Media] download autorizado pelo jogador {}: {} ({} bytes)",
+                    player.getGameProfile()
+                            .getName(),
+                    recordingId,
+                    length
+            );
+
         } catch (Exception exception) {
             WayAround.LOGGER.warn(
-                    "[Media] nao consegui preparar download {}: {}",
+                    "[Media] nao consegui iniciar download aprovado {}: {}",
                     recordingId,
                     exception.getMessage()
             );

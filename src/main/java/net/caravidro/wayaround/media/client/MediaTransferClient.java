@@ -6,12 +6,19 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 
+import net.caravidro.wayaround.network.MediaRecordingApproveC2SPayload;
 import net.caravidro.wayaround.network.MediaRecordingRequestC2SPayload;
 import net.caravidro.wayaround.network.MediaRecordingUploadC2SPayload;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class MediaTransferClient {
@@ -28,6 +35,9 @@ public final class MediaTransferClient {
     private static final long MAX_RECORDING_BYTES =
             96L * 1024L * 1024L;
 
+    private static final long DECLINE_COOLDOWN_MS =
+            5L * 60L * 1000L;
+
     private static final Queue<UploadTask>
             UPLOADS =
             new ArrayDeque<>();
@@ -38,6 +48,23 @@ public final class MediaTransferClient {
 
     private static final Map<String, Long>
             REQUESTED_AT =
+            new HashMap<>();
+
+    /*
+     * A recording is allowed to touch disk only while its exact server-advertised
+     * size exists in this map. A malicious/buggy server cannot bypass the UI by
+     * sending MediaRecordingChunkS2CPayload directly.
+     */
+    private static final Map<String, Long>
+            APPROVED_DOWNLOADS =
+            new HashMap<>();
+
+    private static final Set<String>
+            PENDING_CONSENT =
+            new HashSet<>();
+
+    private static final Map<String, Long>
+            DECLINED_UNTIL =
             new HashMap<>();
 
     public static void queueUpload(
@@ -118,7 +145,11 @@ public final class MediaTransferClient {
         }
     }
 
-    public static void request(
+    /**
+     * Ask the server for metadata only. No file content is transferred by this
+     * request anymore.
+     */
+    public static synchronized void request(
             String recordingId
     ) {
         if (RecordingStore.find(
@@ -131,6 +162,25 @@ public final class MediaTransferClient {
 
         long now =
                 System.currentTimeMillis();
+
+        Long declined =
+                DECLINED_UNTIL.get(
+                        recordingId
+                );
+
+        if (declined != null
+                && now < declined) {
+            return;
+        }
+
+        if (PENDING_CONSENT.contains(
+                recordingId
+        )
+                || APPROVED_DOWNLOADS.containsKey(
+                recordingId
+        )) {
+            return;
+        }
 
         Long previous =
                 REQUESTED_AT.get(
@@ -156,13 +206,137 @@ public final class MediaTransferClient {
         );
     }
 
+    /**
+     * Called after the server returns file metadata. Still no bytes are written.
+     * The player sees source, purpose, destination and exact size before deciding.
+     */
+    public static synchronized void offer(
+            String recordingId,
+            long totalLength
+    ) {
+        if (totalLength <= 0L
+                || totalLength > MAX_RECORDING_BYTES
+                || RecordingStore.find(
+                recordingId
+        ).isPresent()) {
+            return;
+        }
+
+        try {
+            UUID.fromString(
+                    recordingId
+            );
+        } catch (Exception exception) {
+            return;
+        }
+
+        if (PENDING_CONSENT.contains(
+                recordingId
+        )
+                || APPROVED_DOWNLOADS.containsKey(
+                recordingId
+        )) {
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft == null) {
+            return;
+        }
+
+        PENDING_CONSENT.add(
+                recordingId
+        );
+
+        Screen parent =
+                minecraft.screen;
+
+        double mebibytes =
+                totalLength
+                        / (1024.0 * 1024.0);
+
+        String size =
+                String.format(
+                        java.util.Locale.ROOT,
+                        "%.1f MB",
+                        mebibytes
+                );
+
+        minecraft.setScreen(
+                new ConfirmScreen(
+                        accepted -> {
+                            synchronized (MediaTransferClient.class) {
+                                PENDING_CONSENT.remove(
+                                        recordingId
+                                );
+
+                                REQUESTED_AT.remove(
+                                        recordingId
+                                );
+
+                                if (accepted) {
+                                    APPROVED_DOWNLOADS.put(
+                                            recordingId,
+                                            totalLength
+                                    );
+
+                                    PacketDistributor.sendToServer(
+                                            new MediaRecordingApproveC2SPayload(
+                                                    recordingId
+                                            )
+                                    );
+
+                                } else {
+                                    DECLINED_UNTIL.put(
+                                            recordingId,
+                                            System.currentTimeMillis()
+                                                    + DECLINE_COOLDOWN_MS
+                                    );
+                                }
+                            }
+
+                            Minecraft current =
+                                    Minecraft.getInstance();
+
+                            if (current != null) {
+                                current.setScreen(
+                                        parent
+                                );
+                            }
+                        },
+                        Component.literal(
+                                "Download Way Around recording?"
+                        ),
+                        Component.literal(
+                                "The current Minecraft server wants to send "
+                                        + size
+                                        + " of in-game VHS/TV media. It will be saved in wayaround-recordings so this recording can play. No file data is downloaded unless you choose Yes."
+                        )
+                )
+        );
+    }
+
     public static synchronized void acceptChunk(
             String recordingId,
             long totalLength,
             long offset,
             byte[] data
     ) {
-        if (totalLength <= 0L
+        Long approvedLength =
+                APPROVED_DOWNLOADS.get(
+                        recordingId
+                );
+
+        /*
+         * Consent is enforced at the file-writing boundary, not just by trusting
+         * the normal server handshake.
+         */
+        if (approvedLength == null
+                || approvedLength.longValue()
+                != totalLength
+                || totalLength <= 0L
                 || totalLength > MAX_RECORDING_BYTES
                 || offset < 0L
                 || data == null
@@ -232,6 +406,14 @@ public final class MediaTransferClient {
                 REQUESTED_AT.remove(
                         recordingId
                 );
+
+                APPROVED_DOWNLOADS.remove(
+                        recordingId
+                );
+
+                DECLINED_UNTIL.remove(
+                        recordingId
+                );
             }
 
         } catch (Exception exception) {
@@ -239,6 +421,10 @@ public final class MediaTransferClient {
                     DOWNLOADS.remove(
                             recordingId
                     );
+
+            APPROVED_DOWNLOADS.remove(
+                    recordingId
+            );
 
             if (task != null) {
                 task.close();

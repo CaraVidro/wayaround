@@ -5,6 +5,7 @@ import java.util.List;
 import net.caravidro.wayaround.voice.VoiceConstants;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -27,6 +28,7 @@ public final class VoiceSettingsScreen
     private Button debugButton;
     private Button microphoneButton;
     private Button outputButton;
+    private Button modelButton;
 
     public VoiceSettingsScreen(
             Screen parent
@@ -37,7 +39,8 @@ public final class VoiceSettingsScreen
                 )
         );
 
-        this.parent = parent;
+        this.parent =
+                parent;
     }
 
     @Override
@@ -47,12 +50,28 @@ public final class VoiceSettingsScreen
         reloadMicrophones();
         reloadOutputs();
 
-        int buttonWidth = 260;
-        int buttonHeight = 20;
+        int buttonWidth =
+                Math.min(
+                        300,
+                        this.width - 24
+                );
+
+        int buttonHeight =
+                20;
+
         int x =
-                (this.width - buttonWidth) / 2;
+                (this.width - buttonWidth)
+                        / 2;
+
+        /*
+         * Compact enough for the common 240px GUI height while leaving room
+         * for the explicit model-download control.
+         */
         int y =
-                this.height / 2 - 68;
+                Math.max(
+                        82,
+                        this.height / 2 - 42
+                );
 
         enabledButton =
                 this.addRenderableWidget(
@@ -81,33 +100,6 @@ public final class VoiceSettingsScreen
                                 .build()
                 );
 
-        modeButton =
-                this.addRenderableWidget(
-                        Button.builder(
-                                        modeLabel(),
-                                        button -> {
-                                            VoiceConfig.setActivationMode(
-                                                    VoiceConfig
-                                                            .getActivationMode()
-                                                            .next()
-                                            );
-
-                                            VoiceCapture.stop();
-
-                                            button.setMessage(
-                                                    modeLabel()
-                                            );
-                                        }
-                                )
-                                .bounds(
-                                        x,
-                                        y + 104,
-                                        buttonWidth,
-                                        buttonHeight
-                                )
-                                .build()
-                );
-
         debugButton =
                 this.addRenderableWidget(
                         Button.builder(
@@ -126,7 +118,7 @@ public final class VoiceSettingsScreen
                                 )
                                 .bounds(
                                         x,
-                                        y + 26,
+                                        y + 24,
                                         buttonWidth,
                                         buttonHeight
                                 )
@@ -146,8 +138,7 @@ public final class VoiceSettingsScreen
                                                     (microphoneIndex + 1)
                                                             % microphones.size();
 
-                                            VoiceDevices.InputDevice
-                                                    device =
+                                            VoiceDevices.InputDevice device =
                                                     microphones.get(
                                                             microphoneIndex
                                                     );
@@ -165,7 +156,7 @@ public final class VoiceSettingsScreen
                                 )
                                 .bounds(
                                         x,
-                                        y + 52,
+                                        y + 48,
                                         buttonWidth,
                                         buttonHeight
                                 )
@@ -203,7 +194,50 @@ public final class VoiceSettingsScreen
                                 )
                                 .bounds(
                                         x,
-                                        y + 78,
+                                        y + 72,
+                                        buttonWidth,
+                                        buttonHeight
+                                )
+                                .build()
+                );
+
+        modeButton =
+                this.addRenderableWidget(
+                        Button.builder(
+                                        modeLabel(),
+                                        button -> {
+                                            VoiceConfig.setActivationMode(
+                                                    VoiceConfig
+                                                            .getActivationMode()
+                                                            .next()
+                                            );
+
+                                            VoiceCapture.stop();
+
+                                            button.setMessage(
+                                                    modeLabel()
+                                            );
+                                        }
+                                )
+                                .bounds(
+                                        x,
+                                        y + 96,
+                                        buttonWidth,
+                                        buttonHeight
+                                )
+                                .build()
+                );
+
+        modelButton =
+                this.addRenderableWidget(
+                        Button.builder(
+                                        modelLabel(),
+                                        button ->
+                                                requestModelInstallConsent()
+                                )
+                                .bounds(
+                                        x,
+                                        y + 120,
                                         buttonWidth,
                                         buttonHeight
                                 )
@@ -232,7 +266,7 @@ public final class VoiceSettingsScreen
                         )
                         .bounds(
                                 x,
-                                y + 130,
+                                y + 144,
                                 buttonWidth,
                                 buttonHeight
                         )
@@ -244,16 +278,78 @@ public final class VoiceSettingsScreen
                                 Component.literal(
                                         "Concluido"
                                 ),
-                                button -> onClose()
+                                button ->
+                                        onClose()
                         )
                         .bounds(
                                 x,
-                                y + 164,
+                                y + 168,
                                 buttonWidth,
                                 buttonHeight
                         )
                         .build()
         );
+    }
+
+    private void requestModelInstallConsent() {
+        if (this.minecraft == null
+                || VoskSpeechRecognizer.isPreparing()) {
+            return;
+        }
+
+        if (VoskSpeechRecognizer.isModelInstalled()) {
+            VoskSpeechRecognizer.warmUpAsync();
+            return;
+        }
+
+        /*
+         * Informed consent required by Modrinth:
+         * - what: Portuguese Vosk speech model
+         * - size: about 31 MB
+         * - source: alphacephei.com
+         * - destination: local Way Around config/model directory
+         * - purpose: offline/local speech recognition
+         *
+         * No network request is issued before the player chooses Yes.
+         */
+        this.minecraft.setScreen(
+                new ConfirmScreen(
+                        accepted -> {
+                            if (this.minecraft == null) {
+                                return;
+                            }
+
+                            this.minecraft.setScreen(
+                                    this
+                            );
+
+                            if (accepted) {
+                                VoskSpeechRecognizer
+                                        .installWithUserConsentAsync();
+                            }
+                        },
+                        Component.literal(
+                                "Download Way Around speech model?"
+                        ),
+                        Component.literal(
+                                "Downloads about 31 MB from alphacephei.com and stores it locally for offline Portuguese speech recognition. No download occurs unless you choose Yes."
+                        )
+                )
+        );
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        if (modelButton != null) {
+            modelButton.setMessage(
+                    modelLabel()
+            );
+
+            modelButton.active =
+                    !VoskSpeechRecognizer.isPreparing();
+        }
     }
 
     private void reloadMicrophones() {
@@ -309,6 +405,24 @@ public final class VoiceSettingsScreen
         );
     }
 
+    private Component modelLabel() {
+        if (VoskSpeechRecognizer.isPreparing()) {
+            return Component.literal(
+                    "Modelo de fala: BAIXANDO..."
+            );
+        }
+
+        if (VoskSpeechRecognizer.isModelInstalled()) {
+            return Component.literal(
+                    "Modelo de fala: INSTALADO"
+            );
+        }
+
+        return Component.literal(
+                "Instalar modelo de fala (~31 MB)..."
+        );
+    }
+
     private Component microphoneLabel() {
         if (microphones == null
                 || microphones.isEmpty()) {
@@ -333,7 +447,8 @@ public final class VoiceSettingsScreen
         }
 
         return Component.literal(
-                "Microfone: " + name
+                "Microfone: "
+                        + name
         );
     }
 
@@ -361,14 +476,17 @@ public final class VoiceSettingsScreen
         }
 
         return Component.literal(
-                "Saida: " + name
+                "Saida: "
+                        + name
         );
     }
 
     @Override
     public void onClose() {
         if (this.minecraft != null) {
-            this.minecraft.setScreen(parent);
+            this.minecraft.setScreen(
+                    parent
+            );
         }
     }
 
@@ -390,7 +508,7 @@ public final class VoiceSettingsScreen
                 this.font,
                 this.title,
                 this.width / 2,
-                20,
+                16,
                 0xFFFFFF
         );
 
@@ -402,7 +520,7 @@ public final class VoiceSettingsScreen
                                 : "Push to Talk: segure V para falar"
                 ),
                 this.width / 2,
-                38,
+                32,
                 0xA0A0A0
         );
 
@@ -413,7 +531,7 @@ public final class VoiceSettingsScreen
                                 .statusText()
                 ),
                 this.width / 2,
-                50,
+                44,
                 VoskSpeechRecognizer
                         .isModelInstalled()
                         ? 0x55FF55
@@ -423,10 +541,10 @@ public final class VoiceSettingsScreen
         graphics.drawCenteredString(
                 this.font,
                 Component.literal(
-                        "Vosk offline: palavras | Way Around: pitch, intensidade e alongamento"
+                        "Modelo Vosk opcional: nenhum arquivo e baixado automaticamente"
                 ),
                 this.width / 2,
-                62,
+                56,
                 0x777777
         );
 
@@ -440,7 +558,7 @@ public final class VoiceSettingsScreen
                                 + " blocos"
                 ),
                 this.width / 2,
-                74,
+                68,
                 0x777777
         );
 

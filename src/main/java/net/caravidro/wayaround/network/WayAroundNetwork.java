@@ -254,6 +254,18 @@ public final class WayAroundNetwork {
         );
 
         registrar.playToClient(
+                MediaRecordingOfferS2CPayload.TYPE,
+                MediaRecordingOfferS2CPayload.STREAM_CODEC,
+                MediaRecordingOfferS2CPayload::handle
+        );
+
+        registrar.playToServer(
+                MediaRecordingApproveC2SPayload.TYPE,
+                MediaRecordingApproveC2SPayload.STREAM_CODEC,
+                MediaRecordingApproveC2SPayload::handle
+        );
+
+        registrar.playToClient(
                 MediaRecordingChunkS2CPayload.TYPE,
                 MediaRecordingChunkS2CPayload.STREAM_CODEC,
                 MediaRecordingChunkS2CPayload::handle

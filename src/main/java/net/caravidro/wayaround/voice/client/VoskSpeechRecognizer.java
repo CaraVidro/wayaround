@@ -108,7 +108,13 @@ public final class VoskSpeechRecognizer {
     }
 
     public static void warmUpAsync() {
+        /*
+         * Modrinth safety requirement: warmup is NEVER allowed to initiate a
+         * file download. If the model is absent, the user must install it from
+         * the Voice settings screen after an explicit confirmation prompt.
+         */
         if (model != null
+                || !isModelInstalled()
                 || !WARMUP_STARTED.compareAndSet(
                         false,
                         true
@@ -181,7 +187,81 @@ public final class VoskSpeechRecognizer {
                     );
         }
 
-        return "Modelo local: sera baixado (31 MB)";
+        return "Modelo local: nao instalado - download manual";
+    }
+
+    /**
+     * The only code path permitted to download the Vosk model.
+     *
+     * Callers must obtain informed user consent immediately before invoking
+     * this method. warmUpAsync() and recognize() intentionally cannot download.
+     */
+    public static void installWithUserConsentAsync() {
+        if (model != null) {
+            return;
+        }
+
+        if (isModelInstalled()) {
+            warmUpAsync();
+            return;
+        }
+
+        if (!PREPARING.compareAndSet(
+                false,
+                true
+        )) {
+            return;
+        }
+
+        Thread thread =
+                new Thread(
+                        () -> {
+                            try {
+                                WayAround.LOGGER.info(
+                                        "[Voice/Vosk] download autorizado pelo usuario; source={}",
+                                        MODEL_URL
+                                );
+
+                                downloadAndInstallModel();
+
+                                synchronized (VoskSpeechRecognizer.class) {
+                                    if (model == null) {
+                                        model =
+                                                new Model(
+                                                        modelDirectory()
+                                                                .toAbsolutePath()
+                                                                .toString()
+                                                );
+                                    }
+                                }
+
+                                lastError = "";
+
+                            } catch (Throwable throwable) {
+                                lastError =
+                                        describeThrowable(
+                                                throwable
+                                        );
+
+                                logNativeFailure(
+                                        "consented-install",
+                                        throwable
+                                );
+
+                            } finally {
+                                PREPARING.set(
+                                        false
+                                );
+                            }
+                        },
+                        "WayAround-VoskConsentedInstall"
+                );
+
+        thread.setDaemon(
+                true
+        );
+
+        thread.start();
     }
 
     public static Result recognize(
@@ -423,10 +503,17 @@ public final class VoskSpeechRecognizer {
     private static Model ensureModel()
             throws Exception {
 
-        Model existing = model;
+        Model existing =
+                model;
 
         if (existing != null) {
             return existing;
+        }
+
+        if (!isModelInstalled()) {
+            throw new IllegalStateException(
+                    "modelo Vosk nao instalado; abra Way Around Voice e autorize o download manual"
+            );
         }
 
         synchronized (VoskSpeechRecognizer.class) {
@@ -434,27 +521,20 @@ public final class VoskSpeechRecognizer {
                 return model;
             }
 
-            PREPARING.set(true);
+            /*
+             * Loading an already-installed local model is allowed. No network
+             * access occurs here.
+             */
+            model =
+                    new Model(
+                            modelDirectory()
+                                    .toAbsolutePath()
+                                    .toString()
+                    );
 
-            try {
-                if (!isModelInstalled()) {
-                    downloadAndInstallModel();
-                }
+            lastError = "";
 
-                model =
-                        new Model(
-                                modelDirectory()
-                                        .toAbsolutePath()
-                                        .toString()
-                        );
-
-                lastError = "";
-
-                return model;
-
-            } finally {
-                PREPARING.set(false);
-            }
+            return model;
         }
     }
 
