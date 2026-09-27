@@ -27,6 +27,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.living.SpawnClusterSizeEvent;
 
 /**
  * Shared ecology layer for autonomous breeding, group cohesion and fish
@@ -54,6 +55,42 @@ public final class LivingFaunaManager {
             180;
 
     private LivingFaunaManager() {}
+
+    @SubscribeEvent
+    public static void clusterSize(
+            SpawnClusterSizeEvent event
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.LIVING_VEGETATION
+        )) {
+            return;
+        }
+
+        if (event.getEntity()
+                instanceof AbstractFish) {
+            event.setSize(
+                    Math.min(
+                            20,
+                            Math.max(
+                                    8,
+                                    event.getSize() + 3
+                            )
+                    )
+            );
+
+        } else if (event.getEntity()
+                instanceof Animal) {
+            event.setSize(
+                    Math.min(
+                            16,
+                            Math.max(
+                                    6,
+                                    event.getSize() + 2
+                            )
+                    )
+            );
+        }
+    }
 
     @SubscribeEvent
     public static void tick(ServerTickEvent.Post event) {
