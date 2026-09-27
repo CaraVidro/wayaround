@@ -869,13 +869,10 @@ public final class FrostRenderer {
          */
         float alpha =
                 Math.min(
-                        0.92F,
-
-                        0.12F
-                                +
-                                layers
-                                *
-                                0.18F
+                        0.97F,
+                        0.14F
+                                + layers
+                                        * 0.205F
                 );
 
         out.addVertex(
