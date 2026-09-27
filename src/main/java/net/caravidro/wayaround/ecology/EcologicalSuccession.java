@@ -58,8 +58,8 @@ public final class EcologicalSuccession {
         int centerZ =
                 spawn.getZ() >> 4;
 
-        for (int cx = centerX - 1; cx <= centerX + 1; cx++) {
-            for (int cz = centerZ - 1; cz <= centerZ + 1; cz++) {
+        for (int cx = centerX - 2; cx <= centerX + 2; cx++) {
+            for (int cz = centerZ - 2; cz <= centerZ + 2; cz++) {
                 BlockPos probe =
                         new BlockPos(
                                 (cx << 4) + 8,
