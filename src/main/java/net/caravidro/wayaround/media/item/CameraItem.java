@@ -76,20 +76,6 @@ public final class CameraItem
             return InteractionResult.SUCCESS;
         }
 
-        if (!MediaInventory.consumeOne(
-                player,
-                MediaContent.FILM_ROLL.get()
-        )) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.media.need_film_roll"
-                    ),
-                    true
-            );
-
-            return InteractionResult.FAIL;
-        }
-
         Direction facing =
                 player.getDirection();
 
