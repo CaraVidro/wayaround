@@ -19,9 +19,11 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.caravidro.wayaround.interaction.StructuralDamage;
 import net.caravidro.wayaround.interaction.StructuralReceiver;
 import net.caravidro.wayaround.interaction.WorldForce;
+import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -365,9 +367,39 @@ public final class AssemblyShipEntity
                 spanX
                         + spanZ;
 
+        int longitudinalX =
+                0;
+
+        int longitudinalZ =
+                0;
+
+        for (HullCell cell :
+                hull) {
+            if (cell.orientation == 1
+                    || cell.orientation == 3) {
+                longitudinalX++;
+            } else {
+                longitudinalZ++;
+            }
+        }
+
+        double orientationX =
+                longitudinalX
+                        / (double) Math.max(
+                        1,
+                        hull.size()
+                );
+
+        double orientationZ =
+                longitudinalZ
+                        / (double) Math.max(
+                        1,
+                        hull.size()
+                );
+
         /*
-         * A long narrow hull resists sideways motion much more than forward
-         * motion. A square raft has roughly equal drag on both axes.
+         * Shape AND the direction of each snapped body segment contribute.
+         * Moving along a segment is cheaper than dragging it broadside.
          */
         double dragX =
                 0.985
@@ -375,7 +407,9 @@ public final class AssemblyShipEntity
                                 * (
                                 spanZ
                                         / totalSpan
-                        );
+                        )
+                        - orientationZ
+                                * 0.012;
 
         double dragZ =
                 0.985
@@ -383,7 +417,9 @@ public final class AssemblyShipEntity
                                 * (
                                 spanX
                                         / totalSpan
-                        );
+                        )
+                        - orientationX
+                                * 0.012;
 
         local =
                 new Vec3(
@@ -1036,6 +1072,24 @@ public final class AssemblyShipEntity
                     FluidTags.LAVA
             );
 
+            double environmentalTemperature =
+                    EnvironmentalTemperature.at(
+                            level,
+                            pos
+                    );
+
+            if (!water
+                    && environmentalTemperature > 285.0
+                    && level.random.nextDouble()
+                            < Math.min(
+                            0.35,
+                            (environmentalTemperature - 285.0)
+                                    / 1400.0
+                    )) {
+                externalFire =
+                        true;
+            }
+
             if (externalFire) {
                 cell.burnTicks =
                         Math.max(
@@ -1080,6 +1134,16 @@ public final class AssemblyShipEntity
                             0.08,
                             0.18,
                             0.01
+                    );
+                }
+
+                if (level.getGameTime()
+                        % 20L == 0L) {
+                    EnvironmentalTemperature.pulseAbsolute(
+                            level,
+                            world,
+                            2.4,
+                            340.0
                     );
                 }
 
@@ -1245,14 +1309,32 @@ public final class AssemblyShipEntity
                             )
             );
 
+            Vec3 lever =
+                    attacker == null
+                            ? Vec3.ZERO
+                            : attacker.position()
+                                    .subtract(
+                                            position()
+                                    )
+                                    .multiply(
+                                            1.0,
+                                            0.0,
+                                            1.0
+                                    );
+
+            double rotationalImpulse =
+                    lever.x
+                            * impulseDirection.z
+                            - lever.z
+                                    * impulseDirection.x;
+
             yawVelocity +=
-                    (float) (
-                            (
-                                    impulseDirection.x
-                                            - impulseDirection.z
-                            )
+                    (float) Mth.clamp(
+                            rotationalImpulse
                                     * shove
-                                    * 2.0
+                                    * 2.8,
+                            -0.42,
+                            0.42
                     );
         }
 
@@ -1386,6 +1468,48 @@ public final class AssemblyShipEntity
                 player.getItemInHand(
                         hand
                 );
+
+        if (held.is(
+                PowerContent.ASSEMBLY_GUIDE.get()
+        )) {
+            if (!level().isClientSide) {
+                var snapshot =
+                        assemblySnapshot();
+
+                player.displayClientMessage(
+                        Component.literal(
+                                "Navio Assembly | "
+                                        + hull.size()
+                                        + " body(s) | massa "
+                                        + Math.round(
+                                        totalMass()
+                                )
+                                        + " | integridade "
+                                        + Math.round(
+                                        snapshot.structuralIntegrity()
+                                                * 100.0F
+                                )
+                                        + "% | stress "
+                                        + Math.round(
+                                        snapshot.stressRatio()
+                                                * 100.0F
+                                )
+                                        + "% | velocidade "
+                                        + String.format(
+                                        java.util.Locale.ROOT,
+                                        "%.3f",
+                                        getDeltaMovement()
+                                                .horizontalDistance()
+                                )
+                        ),
+                        true
+                );
+            }
+
+            return InteractionResult.sidedSuccess(
+                    level().isClientSide
+            );
+        }
 
         if (held.is(
                 ExperimentalShipContent.SHIP_BODY.get()
