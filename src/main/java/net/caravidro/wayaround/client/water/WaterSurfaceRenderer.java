@@ -317,14 +317,28 @@ public final class WaterSurfaceRenderer {
                     ) * 0.25
                             - base;
 
-            int textureNoise =
-                    Math.floorMod(
-                            x * 73428767
-                                    ^ z * 912931
-                                    ^ (int) (time / 10L) * 19937,
-                            13
+            double textureWave =
+                    Math.sin(
+                            x * 1.37
+                                    + z * 0.73
+                                    + time * 0.031
                     )
-                            - 6;
+                            * 3.8
+                            + Math.sin(
+                            x * 0.41
+                                    - z * 1.61
+                                    - time * 0.019
+                    )
+                                    * 2.4;
+
+            int textureNoise =
+                    Mth.clamp(
+                            (int) Math.round(
+                                    textureWave
+                            ),
+                            -6,
+                            6
+                    );
 
             int crest =
                     Mth.clamp(
