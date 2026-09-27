@@ -234,28 +234,28 @@ public final class InfinityClientEffects {
 
         int edge =
                 Math.max(
-                        3,
+                        1,
                         Math.round(
-                                5.0F
+                                1.0F
                                         + shimmer
-                                                * 20.0F
+                                                * 4.0F
                         )
                 );
 
         int alpha =
                 Mth.clamp(
                         Math.round(
-                                18.0F
+                                3.0F
                                         + shimmer
-                                                * 58.0F
+                                                * 10.0F
                         ),
                         0,
-                        95
+                        14
                 );
 
         int color =
                 alpha << 24
-                        | 0x8FDFFF;
+                        | 0xF4F4F4;
 
         graphics.fill(
                 0,
@@ -289,30 +289,11 @@ public final class InfinityClientEffects {
                 color
         );
 
-        if (remote > 0.72F) {
-            int veilAlpha =
-                    Mth.clamp(
-                            Math.round(
-                                    (
-                                            remote
-                                                    - 0.72F
-                                    )
-                                            / 0.28F
-                                            * 52.0F
-                            ),
-                            0,
-                            52
-                    );
-
-            graphics.fill(
-                    0,
-                    0,
-                    width,
-                    height,
-                    veilAlpha << 24
-                            | 0xDFF7FF
-            );
-        }
+        /*
+         * No colored full-screen veil: the world renderer carries the visual
+         * language now. These faint neutral edges only hint that the camera is
+         * entering heavily distorted space.
+         */
     }
 
     private static float strongestInfluence(
