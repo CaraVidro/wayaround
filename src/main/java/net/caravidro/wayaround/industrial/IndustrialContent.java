@@ -3,6 +3,7 @@ package net.caravidro.wayaround.industrial;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
+import net.caravidro.wayaround.industrial.power.SawmillMenu;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
 import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
 import net.minecraft.core.registries.Registries;
@@ -44,6 +45,8 @@ public final class IndustrialContent {
                     ReforcedBlasterBlockEntity::new, REFORCED_BLASTER.get()).build(null));
     public static final DeferredHolder<MenuType<?>, MenuType<ReforcedBlasterMenu>> BLASTER_MENU = MENUS.register("reforced_blaster",
             () -> new MenuType<>(ReforcedBlasterMenu::new, FeatureFlags.VANILLA_SET));
+    public static final DeferredHolder<MenuType<?>, MenuType<SawmillMenu>> SAWMILL_MENU = MENUS.register("sawmill",
+            () -> new MenuType<>(SawmillMenu::new, FeatureFlags.VANILLA_SET));
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> INDUSTRIALIZATION =
             TABS.register(
                     "industrialization",
@@ -141,6 +144,9 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 PowerContent.SAWMILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.SAWMILL_CRANK.get()
                                         );
                                         output.accept(
                                                 PowerContent.MECHANICAL_SHAFT_ITEM.get()
