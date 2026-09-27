@@ -72,9 +72,10 @@ hydropower.
 
 `wayaround:river_pebbles`
 
-Pebbles are a low-profile, waterloggable block with four density states.
+Pebbles are a low-profile, waterloggable block with fifteen density states.
 
-A single block position may visually contain 1-4 stones.
+A single block position may visually contain 1-15 stones. Dense piles build
+visible upper layers instead of only widening one flat stone cluster.
 
 The cluster has horizontal orientation, giving repeated patches visual
 variation. Multi-stone models also rotate individual stones so stacks read
@@ -214,7 +215,9 @@ habitat instead of permanently wandering away.
 Fish detect dropped ItemEntities with food components.
 
 They swim toward nearby food, consume one item at close range and remember a
-temporary satiated state.
+temporary satiated state. Eating now produces an audible bite plus bubbles and
+crumb particles from the consumed item. Each meal is also recorded as
+persistent growth history.
 
 Satiated fish receive a modest, bounded increase in reproductive success
 during migration season. Food therefore matters ecologically without becoming
@@ -320,3 +323,80 @@ reproductive home.
 
 Natural spawn cluster limits are larger for both fish and land/flying animals,
 while ecological reproduction remains locally bounded.
+
+
+## Persistent fish size and survival growth
+
+Every fish now has persistent ecological size state.
+
+A newly observed fish receives a randomized baseline, so the same species can
+naturally contain genuinely tiny and noticeably large individuals.
+
+Growth then depends on two things:
+
+- meals actually eaten from dropped food;
+- survival time in the world.
+
+The growth curve is deliberately gated. A fish cannot become gigantic merely
+because it existed for a few minutes. Higher size caps require progressively
+more meals, and long-lived well-fed fish can eventually reach roughly
+player-scale or beyond.
+
+The SCALE attribute is used, so size changes the actual entity dimensions
+rather than being a renderer-only trick.
+
+Size also affects fishing resistance and meat yield.
+
+### Fish meat
+
+Killing fish no longer treats the whole entity as one ready-made vanilla fish
+item.
+
+Living Ecology replaces the common fish-item drop with species meat:
+
+- Raw Cod Meat;
+- Raw Salmon Meat;
+- Raw Tropical Fish Meat;
+- Raw Pufferfish Meat;
+- Raw Sunfish Meat.
+
+Yield scales with the fish's persistent size, within a bounded maximum.
+
+## Physical fishing
+
+Fishing is now based on the actual fish population.
+
+A cast bobber in water can attract a nearby real AbstractFish. The fish swims
+toward the bobber and physically approaches it before a bite is possible.
+
+While the line is cast:
+
+- ordinary right-click creates a tug/reel pulse;
+- spaced tugs can attract the target;
+- repeated rapid tugging can frighten it away;
+- once the fish has bitten, tugs physically pull the entity toward the player;
+- larger fish resist the same pull more strongly;
+- close pulls include upward force so the fish itself can be dragged out of
+  the water;
+- sneak + right-click retains the vanilla full retrieve/cancel behavior.
+
+The ordinary cod/salmon/tropical-fish/pufferfish fishing loot is suppressed so
+a second fish item does not materialize independently of the entity being
+caught. Treasure and non-fish fishing loot remain separate.
+
+## Sunfish
+
+wayaround:sunfish is a dedicated rare ocean fish entity.
+
+It uses the same ecology systems as other AbstractFish:
+
+- food;
+- growth;
+- schooling;
+- reproductive-home memory;
+- physical fishing;
+- size-dependent meat.
+
+Sunfish begin larger than ordinary fish and have a higher extreme-growth cap.
+Their first-pass renderer is intentionally simple/blocky; ecology and gameplay
+are the foundation before detailed art.
