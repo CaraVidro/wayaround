@@ -12,6 +12,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.AssemblyAdvancements;
 import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
 import net.caravidro.wayaround.industrial.assembly.AssemblyEngine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyHistory;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
@@ -1983,6 +1984,12 @@ public final class WaterWheelHubBlockEntity
                 1.35,
                 1.35,
                 0.07
+        );
+
+        AssemblyHistory.recordFailure(
+                level,
+                this,
+                "water_wheel_structural_collapse"
         );
 
         level.destroyBlock(
