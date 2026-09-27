@@ -124,10 +124,17 @@ public final class SawmillMenu
             return true;
         }
 
-        return machine.getBlockPos()
-                .distToCenterSqr(
-                        player.position()
-                )
+        return player.distanceToSqr(
+                machine.getBlockPos()
+                        .getX()
+                        + 0.5,
+                machine.getBlockPos()
+                        .getY()
+                        + 0.5,
+                machine.getBlockPos()
+                        .getZ()
+                        + 0.5
+        )
                 <= 64.0;
     }
 }
