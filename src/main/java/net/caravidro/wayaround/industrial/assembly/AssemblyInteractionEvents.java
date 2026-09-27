@@ -31,6 +31,20 @@ public final class AssemblyInteractionEvents {
             return;
         }
 
+        if (inspectGenericAssembly(
+                event
+        )) {
+            event.setCanceled(
+                    true
+            );
+
+            event.setCancellationResult(
+                    InteractionResult.SUCCESS
+            );
+
+            return;
+        }
+
         if (handleHeldInteraction(
                 event,
                 event.getItemStack()
@@ -95,6 +109,87 @@ public final class AssemblyInteractionEvents {
         PacketDistributor.sendToServer(
                 new AssemblyEmptyHandPayload()
         );
+    }
+
+    private static boolean inspectGenericAssembly(
+            PlayerInteractEvent.RightClickBlock event
+    ) {
+        if (!event.getItemStack()
+                .is(
+                        PowerContent.ASSEMBLY_GUIDE.get()
+                )) {
+            return false;
+        }
+
+        if (!(event.getLevel()
+                .getBlockEntity(
+                        event.getPos()
+                )
+                instanceof AssemblyMachine machine)) {
+            return false;
+        }
+
+        if (event.getLevel()
+                .isClientSide) {
+            return true;
+        }
+
+        if (!(event.getEntity()
+                instanceof ServerPlayer player)) {
+            return false;
+        }
+
+        AssemblySnapshot snapshot =
+                machine.assemblySnapshot();
+
+        AssemblyNetworkSnapshot network =
+                AssemblyNetworkScanner.inspect(
+                        player.serverLevel(),
+                        event.getPos()
+                );
+
+        player.displayClientMessage(
+                Component.literal(
+                        "Assembly "
+                                + snapshot.type()
+                                        .getPath()
+                                + " | integridade "
+                                + Math.round(
+                                snapshot.structuralIntegrity()
+                                        * 100.0F
+                        )
+                                + "% | qualidade "
+                                + Math.round(
+                                snapshot.workmanship()
+                                        * 100.0F
+                        )
+                                + "% | stress "
+                                + Math.round(
+                                snapshot.stressRatio()
+                                        * 100.0F
+                        )
+                                + "% | elo fraco: "
+                                + (
+                                snapshot.weakestPart()
+                                        .isBlank()
+                                        ? "-"
+                                        : snapshot.weakestPart()
+                        )
+                                + " | rede "
+                                + network.machines()
+                                + " nó(s), "
+                                + Math.round(
+                                network.averageIntegrity()
+                                        * 100.0F
+                        )
+                                + "% íntegra, "
+                                + network.criticalMachines()
+                                + " crítico(s)"
+                ),
+                true
+        );
+
+        return true;
     }
 
     private static boolean handleHeldInteraction(

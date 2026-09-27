@@ -285,8 +285,8 @@ tasks.named('check') { dependsOn tasks.named('checkPact') }
 // Deterministic thermal rules run without a game client.
 sourceSets {
     spectrumTest {
-        compileClasspath += sourceSets.main.output
-        runtimeClasspath += sourceSets.main.output
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
     }
 }
 tasks.register('spectrumRegressionTest', JavaExec) {
@@ -295,6 +295,14 @@ tasks.register('spectrumRegressionTest', JavaExec) {
     mainClass = 'net.caravidro.wayaround.thermal.TemperatureCurveTest'
 }
 tasks.named('check') { dependsOn tasks.named('spectrumRegressionTest') }
+
+// Generic Assembly Engine invariants.
+tasks.register('assemblyRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.assembly.AssemblyEngineTest'
+}
+tasks.named('check') { dependsOn tasks.named('assemblyRegressionTest') }
 
 // Guard Infinity's damage ceiling and visible, bounded projectile braking.
 tasks.register('infinityRegressionTest', JavaExec) {

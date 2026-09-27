@@ -2,14 +2,24 @@ package net.caravidro.wayaround.industrial.power;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.AssemblyAdvancements;
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyEngine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyHistory;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.interaction.StructuralDamage;
+import net.caravidro.wayaround.interaction.StructuralReceiver;
+import net.caravidro.wayaround.interaction.WorldForce;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
@@ -25,6 +35,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -41,7 +52,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 public final class WaterWheelHubBlockEntity
-        extends BlockEntity {
+        extends BlockEntity
+        implements AssemblyMachine, StructuralReceiver {
 
     public static final int MAX_PLATES =
             32;
@@ -1974,6 +1986,12 @@ public final class WaterWheelHubBlockEntity
                 0.07
         );
 
+        AssemblyHistory.recordFailure(
+                level,
+                this,
+                "water_wheel_structural_collapse"
+        );
+
         level.destroyBlock(
                 worldPosition,
                 false
@@ -2491,6 +2509,338 @@ public final class WaterWheelHubBlockEntity
                 .getValue(
                         WaterWheelHubBlock.FACING
                 ).getAxis();
+    }
+
+
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                WayAround.MODID,
+                "water_wheel"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        List<AssemblyPartNode> nodes =
+                new ArrayList<>();
+
+        AssemblyPartProfile frame =
+                AssemblyPartProfile.legacy(
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.WOOD,
+                        ResourceLocation.fromNamespaceAndPath(
+                                WayAround.MODID,
+                                "water_wheel_hub"
+                        ),
+                        0,
+                        frameWear
+                                / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+                );
+
+        nodes.add(
+                new AssemblyPartNode(
+                        "frame",
+                        "frame",
+                        frame,
+                        WaterWheelHubBlock.hasSupport(
+                                level,
+                                worldPosition,
+                                getBlockState()
+                        ),
+                        2.4F
+                )
+        );
+
+        for (int index = 0;
+             index < plates.size();
+             index++) {
+            Plate plate =
+                    plates.get(
+                            index
+                    );
+
+            nodes.add(
+                    new AssemblyPartNode(
+                            "plate_" + index,
+                            "paddle",
+                            plate.profile,
+                            plate.nailed,
+                            (float) Math.max(
+                                    0.25,
+                                    plate.mass()
+                            )
+                    )
+            );
+        }
+
+        return List.copyOf(
+                nodes
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        List<AssemblyConnection> connections =
+                new ArrayList<>();
+
+        for (int index = 0;
+             index < plates.size();
+             index++) {
+            Plate plate =
+                    plates.get(
+                            index
+                    );
+
+            float nailCondition =
+                    0.10F;
+
+            float wear =
+                    Math.min(
+                            1.0F,
+                            plate.wear
+                                    / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+                    );
+
+            if (plate.nailed
+                    && !plate.nail.isEmpty()) {
+                int durability =
+                        Math.max(
+                                1,
+                                AssemblyItemData.nailDurability(
+                                        plate.nail
+                                )
+                        );
+
+                nailCondition =
+                        Math.max(
+                                0.05F,
+                                1.0F
+                                        - plate.nailWear
+                                                / (float) durability
+                        );
+            }
+
+            connections.add(
+                    new AssemblyConnection(
+                            "frame",
+                            "plate_" + index,
+                            plate.nailed
+                                    ? AssemblyConnection.Type.FASTENED
+                                    : AssemblyConnection.Type.CONTACT,
+                            plate.nailed
+                                    ? 0.55F
+                                            + nailCondition
+                                                    * 0.45F
+                                    : 0.12F,
+                            wear
+                    )
+            );
+        }
+
+        return List.copyOf(
+                connections
+        );
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        return (float) (
+                Math.abs(
+                        torque
+                )
+                        + lastMechanicalLoad
+                        + (
+                        jammed
+                                ? 2.0
+                                : 0.0
+                )
+        );
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        float wear =
+                Mth.clamp(
+                        fraction,
+                        0.0F,
+                        1.0F
+                );
+
+        if (wear <= 0.0F) {
+            return;
+        }
+
+        frameWear =
+                Math.min(
+                        AssemblyItemData.MAX_COMPONENT_WEAR,
+                        frameWear
+                                + Math.max(
+                                1,
+                                Math.round(
+                                        wear
+                                                * AssemblyItemData.MAX_COMPONENT_WEAR
+                                )
+                        )
+                );
+
+        for (Plate plate :
+                plates) {
+            float plateWear =
+                    wear
+                            * (
+                            plate.nailed
+                                    ? 0.80F
+                                    : 1.15F
+                    );
+
+            plate.profile.applyWear(
+                    plateWear
+            );
+
+            plate.wear =
+                    Math.min(
+                            AssemblyItemData.MAX_COMPONENT_WEAR,
+                            Math.max(
+                                    plate.wear,
+                                    Math.round(
+                                            plate.profile.wear()
+                                                    * AssemblyItemData.MAX_COMPONENT_WEAR
+                                    )
+                            )
+                    );
+
+            if (plate.nailed
+                    && !plate.nail.isEmpty()) {
+                plate.nailWear +=
+                        Math.max(
+                                1,
+                                Math.round(
+                                        wear
+                                                * AssemblyItemData.nailDurability(
+                                                plate.nail
+                                        )
+                                                * 0.30F
+                                )
+                        );
+
+                if (plate.nailWear
+                        >= AssemblyItemData.nailDurability(
+                        plate.nail
+                )) {
+                    plate.nailed =
+                            false;
+
+                    plate.nail =
+                            ItemStack.EMPTY;
+
+                    plate.nailWear =
+                            0;
+                }
+            }
+        }
+
+        if (frameWear
+                >= 9_150
+                && failureCountdown < 0) {
+            failureCountdown =
+                    40;
+        }
+
+        sync();
+    }
+
+    @Override
+    public BlockPos structuralPosition() {
+        return worldPosition;
+    }
+
+    @Override
+    public float structuralIntegrity() {
+        return assemblySnapshot()
+                .structuralIntegrity();
+    }
+
+    @Override
+    public void receiveWorldForce(
+            WorldForce force,
+            float localMagnitude
+    ) {
+        float normalized =
+                Math.min(
+                        8.0F,
+                        Math.max(
+                                0.0F,
+                                localMagnitude
+                        )
+                );
+
+        pendingMechanicalLoad +=
+                normalized
+                        * 0.28F;
+
+        applyAssemblyWear(
+                AssemblyEngine.externalWearFraction(
+                        this,
+                        normalized
+                )
+        );
+
+        if (force.kind()
+                == WorldForce.Kind.PULL
+                && normalized > 1.35F) {
+            for (Plate plate :
+                    plates) {
+                if (plate.nailed
+                        || level == null
+                        || level.random.nextFloat()
+                                > Math.min(
+                                0.55F,
+                                normalized
+                                        * 0.10F
+                        )) {
+                    continue;
+                }
+
+                plate.looseSwingVelocity +=
+                        normalized
+                                * (
+                                level.random.nextBoolean()
+                                        ? 1.0F
+                                        : -1.0F
+                        );
+            }
+        }
+    }
+
+    @Override
+    public void receiveStructuralDamage(
+            StructuralDamage damage
+    ) {
+        float normalized =
+                Math.min(
+                        10.0F,
+                        damage.amount()
+                                * 0.24F
+                                + damage.impulse()
+                                        * 0.18F
+                );
+
+        applyAssemblyWear(
+                AssemblyEngine.externalWearFraction(
+                        this,
+                        normalized
+                )
+                        + damage.amount()
+                                * 0.0020F
+        );
     }
 
     /**
