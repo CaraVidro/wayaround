@@ -5,6 +5,16 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class WayAroundNetwork {
 
+    /**
+     * Bump this whenever the payload set/codec contract changes.
+     *
+     * Keeping this at "1" across many development builds allowed old and new
+     * WayAround jars to claim network compatibility and then decode different
+     * packet layouts after login.
+     */
+    public static final String PROTOCOL_VERSION =
+            "2";
+
     private WayAroundNetwork() {
     }
 
@@ -13,7 +23,7 @@ public final class WayAroundNetwork {
     ) {
 
         PayloadRegistrar registrar =
-                event.registrar("1");
+                event.registrar(PROTOCOL_VERSION);
 
         registrar.playToServer(SpectrumInputPayload.TYPE, SpectrumInputPayload.STREAM_CODEC, SpectrumInputPayload::handle);
         registrar.playToServer(

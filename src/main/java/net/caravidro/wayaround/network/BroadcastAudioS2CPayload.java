@@ -1,14 +1,12 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.media.client.BroadcastAudioClient;
 import net.caravidro.wayaround.voice.VoiceConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record BroadcastAudioS2CPayload(
@@ -42,9 +40,13 @@ public record BroadcastAudioS2CPayload(
     @Override
     public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
-    public static void handle(BroadcastAudioS2CPayload payload, IPayloadContext context) {
-        if (!FMLEnvironment.dist.isClient()) return;
-        context.enqueueWork(() -> BroadcastAudioClient.enqueue(
-                payload.pcm(), payload.quality(), payload.volume(), payload.effect()));
+    public static void handle(
+            BroadcastAudioS2CPayload payload,
+            IPayloadContext context
+    ) {
+        ClientPayloadBridge.handleBroadcastAudio(
+                payload,
+                context
+        );
     }
 }

@@ -1,12 +1,10 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.media.client.MediaTransferClient;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
@@ -57,16 +55,9 @@ public record MediaRecordingOfferS2CPayload(
             MediaRecordingOfferS2CPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () ->
-                        MediaTransferClient.offer(
-                                payload.recordingId(),
-                                payload.totalLength()
-                        )
+        ClientPayloadBridge.handleMediaOffer(
+                payload,
+                context
         );
     }
 }

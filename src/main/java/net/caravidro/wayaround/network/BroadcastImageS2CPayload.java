@@ -1,13 +1,11 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.media.client.BroadcastClientState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record BroadcastImageS2CPayload(
@@ -35,7 +33,9 @@ public record BroadcastImageS2CPayload(
                             buf.readBlockPos(),
                             buf.readVarInt(),
                             buf.readVarInt(),
-                            buf.readByteArray(12_288),
+                            buf.readByteArray(
+                                    MediaNetworkLimits.BROADCAST_RGB_BYTES
+                            ),
                             buf.readFloat(),
                             buf.readVarInt()
                     )
@@ -44,10 +44,13 @@ public record BroadcastImageS2CPayload(
     @Override
     public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
-    public static void handle(BroadcastImageS2CPayload payload, IPayloadContext context) {
-        if (!FMLEnvironment.dist.isClient()) return;
-        context.enqueueWork(() -> BroadcastClientState.receiveImage(
-                payload.television(), payload.width(), payload.height(),
-                payload.rgb(), payload.quality(), payload.effect()));
+    public static void handle(
+            BroadcastImageS2CPayload payload,
+            IPayloadContext context
+    ) {
+        ClientPayloadBridge.handleBroadcastImage(
+                payload,
+                context
+        );
     }
 }

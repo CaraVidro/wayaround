@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.network.MediaNetworkLimits;
 import net.caravidro.wayaround.network.MediaRecordingChunkS2CPayload;
 import net.caravidro.wayaround.network.MediaRecordingOfferS2CPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
@@ -31,18 +32,6 @@ public final class MediaTransferServer {
 
     private MediaTransferServer() {
     }
-
-    private static final long MAX_RECORDING_BYTES =
-            96L * 1024L * 1024L;
-
-    private static final int MAX_UPLOAD_CHUNK =
-            24 * 1024;
-
-    private static final int DOWNLOAD_CHUNK =
-            256 * 1024;
-
-    private static final int DOWNLOAD_CHUNKS_PER_TICK =
-            2;
 
     private static final Map<String, UploadSession>
             UPLOADS =
@@ -64,11 +53,11 @@ public final class MediaTransferServer {
                 recordingId
         )
                 || totalLength <= 0L
-                || totalLength > MAX_RECORDING_BYTES
+                || totalLength > MediaNetworkLimits.MAX_RECORDING_BYTES
                 || offset < 0L
                 || data == null
                 || data.length == 0
-                || data.length > MAX_UPLOAD_CHUNK
+                || data.length > MediaNetworkLimits.MAX_UPLOAD_CHUNK
                 || offset + data.length
                 > totalLength) {
 
@@ -192,7 +181,7 @@ public final class MediaTransferServer {
                     );
 
             if (length <= 0L
-                    || length > MAX_RECORDING_BYTES) {
+                    || length > MediaNetworkLimits.MAX_RECORDING_BYTES) {
                 return;
             }
 
@@ -262,7 +251,7 @@ public final class MediaTransferServer {
                     );
 
             if (length <= 0L
-                    || length > MAX_RECORDING_BYTES) {
+                    || length > MediaNetworkLimits.MAX_RECORDING_BYTES) {
                 return;
             }
 
@@ -302,7 +291,7 @@ public final class MediaTransferServer {
 
         synchronized (MediaTransferServer.class) {
             int budget =
-                    DOWNLOAD_CHUNKS_PER_TICK;
+                    MediaNetworkLimits.MediaNetworkLimits.DOWNLOAD_CHUNKS_PER_TICK;
 
             Iterator<DownloadSession> iterator =
                     DOWNLOADS.iterator();
@@ -507,7 +496,7 @@ public final class MediaTransferServer {
 
             int length =
                     (int) Math.min(
-                            DOWNLOAD_CHUNK,
+                            MediaNetworkLimits.DOWNLOAD_CHUNK,
                             totalLength - offset
                     );
 

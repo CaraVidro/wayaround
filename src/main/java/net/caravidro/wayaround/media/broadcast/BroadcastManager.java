@@ -44,6 +44,25 @@ public final class BroadcastManager {
     private static final int DEVICE_TTL = 100;
     private static final int MAX_TOPOLOGY = 768;
 
+    /*
+     * Protect the normal Minecraft connection from TV/voice fan-out.
+     * Budgets are per receiver and reset every server tick.
+     */
+    private static final int MAX_IMAGE_PACKETS_PER_PLAYER_PER_TICK =
+            4;
+
+    private static final int MAX_AUDIO_PACKETS_PER_PLAYER_PER_TICK =
+            6;
+
+    private static int realtimeBudgetTick =
+            Integer.MIN_VALUE;
+
+    private static final Map<UUID, Integer> IMAGE_PACKET_BUDGET =
+            new HashMap<>();
+
+    private static final Map<UUID, Integer> AUDIO_PACKET_BUDGET =
+            new HashMap<>();
+
     private static final Map<ResourceKey<Level>, DimensionState> STATES = new HashMap<>();
     private static final Set<UUID> HANDHELD_CAMERAS = ConcurrentHashMap.newKeySet();
 
@@ -596,6 +615,14 @@ public final class BroadcastManager {
             float falloff = (float) Math.max(0.0, 1.0 - distance / audibleRadius);
             float volume = Mth.clamp(deviceVolume * falloff, 0.0F, 1.0F);
             if (volume <= 0.01F) continue;
+            if (!allowRealtimePacket(
+                    level,
+                    player,
+                    AUDIO_PACKET_BUDGET,
+                    MAX_AUDIO_PACKETS_PER_PLAYER_PER_TICK
+            )) {
+                continue;
+            }
 
             PacketDistributor.sendToPlayer(
                     player,
@@ -655,6 +682,14 @@ public final class BroadcastManager {
 
         for (ServerPlayer player : level.players()) {
             if (player.position().distanceToSqr(center) > 48.0 * 48.0) continue;
+            if (!allowRealtimePacket(
+                    level,
+                    player,
+                    IMAGE_PACKET_BUDGET,
+                    MAX_IMAGE_PACKETS_PER_PLAYER_PER_TICK
+            )) {
+                continue;
+            }
 
             PacketDistributor.sendToPlayer(
                     player,
@@ -668,6 +703,45 @@ public final class BroadcastManager {
                     )
             );
         }
+    }
+
+    private static boolean allowRealtimePacket(
+            ServerLevel level,
+            ServerPlayer player,
+            Map<UUID, Integer> budget,
+            int limit
+    ) {
+        int tick =
+                level.getServer()
+                        .getTickCount();
+
+        if (tick != realtimeBudgetTick) {
+            realtimeBudgetTick =
+                    tick;
+
+            IMAGE_PACKET_BUDGET.clear();
+            AUDIO_PACKET_BUDGET.clear();
+        }
+
+        UUID playerId =
+                player.getUUID();
+
+        int used =
+                budget.getOrDefault(
+                        playerId,
+                        0
+                );
+
+        if (used >= limit) {
+            return false;
+        }
+
+        budget.put(
+                playerId,
+                used + 1
+        );
+
+        return true;
     }
 
     private static Topology topology(ServerLevel level, BlockPos start) {
