@@ -457,6 +457,70 @@ public final class WarProjectileEntity extends Entity {
                     Level.ExplosionInteraction.TNT
             );
 
+            if (owner != null
+                    && owner.isAlive()) {
+                Vec3 away =
+                        owner.position()
+                                .add(
+                                        0.0,
+                                        0.9,
+                                        0.0
+                                )
+                                .subtract(
+                                        impact.location
+                                );
+
+                double distance =
+                        away.length();
+
+                if (distance < 7.5) {
+                    Vec3 direction =
+                            distance < 0.001
+                                    ? new Vec3(
+                                            0.0,
+                                            1.0,
+                                            0.0
+                                    )
+                                    : away.scale(
+                                            1.0 / distance
+                                    );
+
+                    double strength =
+                            Mth.clamp(
+                                    1.0
+                                            - distance / 7.5,
+                                    0.0,
+                                    1.0
+                            );
+
+                    Vec3 launch =
+                            direction.scale(
+                                    1.15
+                                            * strength
+                            )
+                                    .add(
+                                            0.0,
+                                            0.46
+                                                    + 0.92
+                                                            * strength,
+                                            0.0
+                                    );
+
+                    owner.setDeltaMovement(
+                            owner.getDeltaMovement()
+                                    .add(
+                                            launch
+                                    )
+                    );
+
+                    owner.hurtMarked =
+                            true;
+
+                    owner.fallDistance =
+                            0.0F;
+                }
+            }
+
             discard();
             return;
         }

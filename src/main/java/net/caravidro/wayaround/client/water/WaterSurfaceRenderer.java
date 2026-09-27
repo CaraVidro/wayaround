@@ -308,14 +308,78 @@ public final class WaterSurfaceRenderer {
                 continue;
             }
 
+            double averageWave =
+                    (
+                            y00
+                                    + y10
+                                    + y11
+                                    + y01
+                    ) * 0.25
+                            - base;
+
+            double textureWave =
+                    Math.sin(
+                            x * 1.37
+                                    + z * 0.73
+                                    + time * 0.031
+                    )
+                            * 3.8
+                            + Math.sin(
+                            x * 0.41
+                                    - z * 1.61
+                                    - time * 0.019
+                    )
+                                    * 2.4;
+
+            int textureNoise =
+                    Mth.clamp(
+                            (int) Math.round(
+                                    textureWave
+                            ),
+                            -6,
+                            6
+                    );
+
+            int crest =
+                    Mth.clamp(
+                            (int) Math.round(
+                                    averageWave
+                                            / Math.max(
+                                            0.001,
+                                            amplitude
+                                    )
+                                            * 8.0
+                            ),
+                            -8,
+                            8
+                    );
+
             int red =
-                    surface.red;
+                    Mth.clamp(
+                            surface.red
+                                    + textureNoise / 3
+                                    + crest / 3,
+                            0,
+                            255
+                    );
 
             int green =
-                    surface.green;
+                    Mth.clamp(
+                            surface.green
+                                    + textureNoise / 2
+                                    + crest / 2,
+                            0,
+                            255
+                    );
 
             int blue =
-                    surface.blue;
+                    Mth.clamp(
+                            surface.blue
+                                    + textureNoise
+                                    + crest,
+                            0,
+                            255
+                    );
 
             float edgeFade =
                     1.0F;

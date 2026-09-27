@@ -234,8 +234,16 @@ public final class LivingCloudRenderer {
 
             int alpha =
                     inside
-                            ? 46
-                            : 226;
+                            ? 34
+                            : Mth.clamp(
+                                    Math.round(
+                                            176.0F
+                                                    + cell.storm()
+                                                            * 24.0F
+                                    ),
+                                    168,
+                                    200
+                            );
 
             int brightness =
                     Mth.clamp(

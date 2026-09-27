@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    " SI",
+    "S  "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_nugget"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "wayaround:sawmill_crank",
+    "count": 1
+  }
+}

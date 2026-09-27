@@ -6,6 +6,7 @@ import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -127,6 +128,16 @@ public final class SawmillBlock extends BaseEntityBlock {
             return ItemInteractionResult.SUCCESS;
         }
 
+        if (stack.is(PowerContent.SAWMILL_CRANK.get())) {
+            if (!level.isClientSide) {
+                sawmill.crank(
+                        player
+                );
+            }
+
+            return ItemInteractionResult.SUCCESS;
+        }
+
         if (stack.is(ItemTags.LOGS)) {
             if (!level.isClientSide) sawmill.insertLog(player, stack);
             return ItemInteractionResult.SUCCESS;
@@ -148,11 +159,20 @@ public final class SawmillBlock extends BaseEntityBlock {
         }
 
         if (!level.isClientSide) {
-            if (player.isShiftKeyDown()) sawmill.removeLast(player);
-            else sawmill.describe(player);
+            if (player.isShiftKeyDown()) {
+                sawmill.removeLast(
+                        player
+                );
+            } else if (player instanceof ServerPlayer serverPlayer) {
+                serverPlayer.openMenu(
+                        sawmill
+                );
+            }
         }
 
-        return InteractionResult.SUCCESS;
+        return InteractionResult.sidedSuccess(
+                level.isClientSide
+        );
     }
 
     @Override

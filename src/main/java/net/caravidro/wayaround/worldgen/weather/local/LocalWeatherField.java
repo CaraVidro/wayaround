@@ -237,22 +237,22 @@ public final class LocalWeatherField {
              * mountains for the player to enter them.
              */
             height =
-                    118.0
+                    138.0
                             + heightRoll / 0.14
-                                    * 31.0;
+                                    * 32.0;
         } else if (heightRoll > 0.86) {
             /*
              * High thin-looking masses break the old perfectly level ceiling.
              */
             height =
-                    202.0
+                    222.0
                             + (
                             heightRoll - 0.86
                     ) / 0.14
-                                    * 38.0;
+                                    * 40.0;
         } else {
             height =
-                    148.0
+                    168.0
                             + (
                             heightRoll - 0.14
                     ) / 0.72
@@ -271,6 +271,17 @@ public final class LocalWeatherField {
                     )
                             * 18.0;
         }
+
+        /*
+         * Large-front offsets must not undo the raised cloud floor. Mountains
+         * may still enter a low bank, but ordinary terrain should no longer
+         * feel as if the cloud ceiling is sitting directly above the player.
+         */
+        height =
+                Math.max(
+                        148.0,
+                        height
+                );
 
         return new CloudCell(
                 seed,

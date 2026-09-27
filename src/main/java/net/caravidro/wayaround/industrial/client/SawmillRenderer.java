@@ -118,6 +118,16 @@ public final class SawmillRenderer
             );
         }
 
+        if (sawmill.manualCranking()) {
+            renderCrank(
+                    sawmill.bladeAngle(),
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
+
         poseStack.popPose();
     }
 
@@ -224,6 +234,64 @@ public final class SawmillRenderer
                 0.16,
                 0.16,
                 0.12,
+                0.0F
+        );
+
+        poseStack.popPose();
+    }
+
+    private void renderCrank(
+            float angle,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay
+    ) {
+        poseStack.pushPose();
+
+        /*
+         * Side-mounted hand crank. It turns with the same phase as the blade,
+         * making manual operation readable from outside the machine.
+         */
+        poseStack.translate(
+                0.49,
+                0.0,
+                0.0
+        );
+
+        poseStack.mulPose(
+                Axis.XP.rotationDegrees(
+                        angle
+                )
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                0.0,
+                0.18,
+                0.0,
+                0.055,
+                0.34,
+                0.055,
+                0.0F
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.STRIPPED_OAK_LOG.defaultBlockState(),
+                0.0,
+                0.34,
+                0.10,
+                0.075,
+                0.075,
+                0.24,
                 0.0F
         );
 

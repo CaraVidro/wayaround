@@ -332,5 +332,14 @@
   "item.wayaround.journalist_hat": "Chapéu de Repórter",
   "item.wayaround.journalist_jacket": "Jaqueta de Jornalista",
   "item.wayaround.journalist_pants": "Calça de Jornalista",
-  "item.wayaround.journalist_boots": "Botas de Jornalista"
+  "item.wayaround.journalist_boots": "Botas de Jornalista",
+  "item.wayaround.sawmill_crank": "Manivela da Serra",
+  "container.wayaround.sawmill": "Serra de Bancada",
+  "container.wayaround.sawmill.planks": "10 Tábuas",
+  "container.wayaround.sawmill.wheel_boards": "4 Tábuas da Roda",
+  "container.wayaround.sawmill.wooden_nails": "20 Pregos de Madeira",
+  "container.wayaround.sawmill.next_product": "Produto do próximo tronco",
+  "container.wayaround.sawmill.progress": "Corte: %s%%",
+  "container.wayaround.sawmill.crank_running": "Manivela: girando",
+  "container.wayaround.sawmill.crank_stopped": "Manivela: parada"
 }

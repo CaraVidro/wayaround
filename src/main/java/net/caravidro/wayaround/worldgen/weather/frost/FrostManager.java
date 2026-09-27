@@ -9,6 +9,7 @@ import net.caravidro.wayaround.block.PrioriteBlock;
 import net.caravidro.wayaround.network.FrostPayload;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.weather.BlizzardManager;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -100,13 +101,15 @@ public final class FrostManager {
     public static boolean eligible(Level level, BlockPos pos, BlockState state) {
         /*
          * Frost now applies to every physical block unless it is explicitly
-         * immune. This intentionally includes wood, leaves, ores, white
-         * blocks, quartz, glass, etc.
+         * immune. Wood, ores, quartz and glass may accumulate it, but living
+         * leaves are intentionally excluded: fully white foliage looked like
+         * a material swap instead of snow exposure.
          *
          * Natural polar terrain is kept out through #wayaround:frost_immune.
          */
         return !state.isAir()
                 && !state.is(IMMUNE)
+                && !state.is(BlockTags.LEAVES)
                 && state.getFluidState().isEmpty()
                 && !state.getShape(level, pos).isEmpty();
     }
