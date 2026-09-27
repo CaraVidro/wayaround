@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cross",
+  "textures": {
+    "cross": "minecraft:block/fern"
+  },
+  "render_type": "cutout"
+}
