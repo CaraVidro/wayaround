@@ -320,6 +320,26 @@ public final class BlackBoxBlockEntity
         }
     }
 
+    public void onPowerChanged(
+            boolean powered
+    ) {
+        if (!(level
+                instanceof ServerLevel server)
+                || !recording
+                || sealed
+                || recordingId == null) {
+            return;
+        }
+
+        BlackBoxRecordingStore.marker(
+                recordingId,
+                server.getGameTime(),
+                powered
+                        ? "POWER RESTORED / RECORDING RESUMED"
+                        : "POWER LOST / RECORDING PAUSED"
+        );
+    }
+
     public boolean isPowered() {
         return getBlockState()
                 .getValue(
