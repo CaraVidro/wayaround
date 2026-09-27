@@ -296,6 +296,14 @@ tasks.register('spectrumRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('spectrumRegressionTest') }
 
+// Generic Assembly Engine invariants.
+tasks.register('assemblyRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.assembly.AssemblyEngineTest'
+}
+tasks.named('check') { dependsOn tasks.named('assemblyRegressionTest') }
+
 // Guard Infinity's damage ceiling and visible, bounded projectile braking.
 tasks.register('infinityRegressionTest', JavaExec) {
     dependsOn tasks.named('spectrumTestClasses')
