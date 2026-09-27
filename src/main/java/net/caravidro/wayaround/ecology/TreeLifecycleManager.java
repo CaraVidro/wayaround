@@ -98,6 +98,80 @@ public final class TreeLifecycleManager {
         }
     }
 
+    public static void tryFallStandingDead(
+            ServerLevel level,
+            BlockPos anySegment,
+            RandomSource random
+    ) {
+        BlockPos base =
+                anySegment;
+
+        while (level.getBlockState(
+                base.below()
+        ).is(
+                EcologyContent.ROTTING_LOG.get()
+        )) {
+            base =
+                    base.below();
+        }
+
+        for (StandingDead dead : DEAD_TREES) {
+            if (dead.dimension()
+                    .equals(
+                            level.dimension()
+                    )
+                    && dead.base()
+                    .equals(
+                            base
+                    )) {
+                return;
+            }
+        }
+
+        List<BlockPos> logs =
+                new ArrayList<>();
+
+        BlockPos cursor =
+                base;
+
+        while (logs.size() < 14
+                && level.getBlockState(
+                cursor
+        ).is(
+                EcologyContent.ROTTING_LOG.get()
+        )
+                && level.getBlockState(
+                cursor
+        ).getValue(
+                RotatedPillarBlock.AXIS
+        )
+                == Direction.Axis.Y) {
+            logs.add(
+                    cursor.immutable()
+            );
+
+            cursor =
+                    cursor.above();
+        }
+
+        if (logs.size() < 3) {
+            return;
+        }
+
+        beginFall(
+                level,
+                new Tree(
+                        base.immutable(),
+                        List.copyOf(
+                                logs
+                        )
+                ),
+                randomHorizontal(
+                        random
+                )
+        );
+    }
+
     public static void trySeedFallenTree(
             ServerLevel level,
             BlockPos near,
