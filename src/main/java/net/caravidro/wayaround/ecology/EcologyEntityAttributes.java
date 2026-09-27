@@ -73,6 +73,57 @@ public final class EcologyEntityAttributes {
         );
 
         event.register(
+                EcologyContent.MANTA_RAY.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER)
+                                && level.getFluidState(pos.above()).is(FluidTags.WATER)
+                                && level.getFluidState(pos.below()).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.BARRACUDA.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER)
+                                && level.getFluidState(pos.above()).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.SEAHORSE.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.JELLYFISH.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER)
+                                && level.getFluidState(pos.above()).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.OARFISH.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER)
+                                && level.getFluidState(pos.above()).is(FluidTags.WATER)
+                                && level.getFluidState(pos.below()).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
                 EcologyContent.CRAB.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
@@ -133,6 +184,46 @@ public final class EcologyEntityAttributes {
                 AbstractFish.createAttributes()
                         .add(Attributes.MAX_HEALTH, 24.0)
                         .add(Attributes.MOVEMENT_SPEED, 0.30)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.MANTA_RAY.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 18.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.24)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.BARRACUDA.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 12.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.38)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.SEAHORSE.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 3.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.16)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.JELLYFISH.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 6.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.12)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.OARFISH.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 26.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.20)
                         .build()
         );
 
