@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.media.client.MediaRecorder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -55,12 +54,6 @@ public record PlacedCameraStartS2CPayload(
             PlacedCameraStartS2CPayload payload,
             IPayloadContext context
     ) {
-        context.enqueueWork(
-                () -> MediaRecorder
-                        .startPlaced(
-                                payload.position(),
-                                payload.facing()
-                        )
-        );
+        ClientPayloadBridge.handlePlacedCameraStart(payload, context);
     }
 }
