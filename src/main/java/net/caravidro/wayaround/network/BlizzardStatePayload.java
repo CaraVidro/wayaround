@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.ClientBlizzardState;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -49,13 +48,6 @@ public record BlizzardStatePayload(
             BlizzardStatePayload payload,
             IPayloadContext context
     ) {
-
-        /*
-         * Como este payload é registrado como playToClient,
-         * este handler só é executado no cliente.
-         */
-        ClientBlizzardState.receive(
-                payload.intensity()
-        );
+        ClientPayloadBridge.handleBlizzard(payload, context);
     }
 }
