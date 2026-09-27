@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.network.PlacedCameraPickupS2CPayload;
 import net.caravidro.wayaround.media.broadcast.BroadcastFrequency;
+import net.caravidro.wayaround.media.broadcast.BroadcastCameraData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -192,6 +193,14 @@ public final class PlacedCameraBlock
                         MediaContent.CAMERA.get()
                 );
 
+        if (hadIntegratedAntenna) {
+            BroadcastCameraData.write(
+                    cameraItem,
+                    true,
+                    camera.frequencyKHz()
+            );
+        }
+
         if (player.getMainHandItem()
                 .isEmpty()) {
 
@@ -204,13 +213,6 @@ public final class PlacedCameraBlock
             MediaInventory.giveOrDrop(
                     player,
                     cameraItem
-            );
-        }
-
-        if (hadIntegratedAntenna) {
-            MediaInventory.giveOrDrop(
-                    player,
-                    new ItemStack(MediaContent.BROADCAST_ANTENNA_ITEM.get())
             );
         }
 

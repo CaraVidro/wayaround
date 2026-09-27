@@ -5,11 +5,13 @@ import com.mojang.serialization.MapCodec;
 import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.media.broadcast.BroadcastFrequency;
+import net.caravidro.wayaround.media.broadcast.BroadcastManager;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
@@ -266,11 +268,26 @@ public final class TelevisionBlock
                                 : 1
                 );
 
-                player.displayClientMessage(
-                        Component.literal(
-                                "TV: " + BroadcastFrequency.display(
+                float quality =
+                        level instanceof ServerLevel server
+                                ? BroadcastManager.televisionSignalQuality(
+                                        server,
+                                        pos,
                                         television.frequencyKHz()
                                 )
+                                : 0.0F;
+
+                player.displayClientMessage(
+                        Component.literal(
+                                "TV: "
+                                        + BroadcastFrequency.display(
+                                        television.frequencyKHz()
+                                )
+                                        + " | sinal "
+                                        + Math.round(
+                                        quality * 100.0F
+                                )
+                                        + "%"
                         ),
                         true
                 );

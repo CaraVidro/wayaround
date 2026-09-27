@@ -6,9 +6,12 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.media.MediaClientBridge;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.media.MediaInventory;
+import net.caravidro.wayaround.media.broadcast.BroadcastCameraData;
+import net.caravidro.wayaround.media.broadcast.BroadcastFrequency;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -103,8 +106,28 @@ public final class MediaClientEvents {
 
         int x = 8;
         int y = 8;
-        int width = 154;
-        int height = 48;
+        int width = 170;
+
+        ItemStack heldCamera =
+                minecraft.player
+                        .getMainHandItem()
+                        .is(
+                                MediaContent.CAMERA.get()
+                        )
+                        ? minecraft.player
+                                .getMainHandItem()
+                        : minecraft.player
+                                .getOffhandItem();
+
+        boolean broadcastCamera =
+                BroadcastCameraData.hasIntegratedAntenna(
+                        heldCamera
+                );
+
+        int height =
+                broadcastCamera
+                        ? 60
+                        : 48;
 
         graphics.fill(
                 x,
@@ -207,6 +230,24 @@ public final class MediaClientEvents {
                 0xFF838383,
                 false
         );
+
+        if (broadcastCamera) {
+            graphics.drawString(
+                    minecraft.font,
+                    Component.literal(
+                            "TX "
+                                    + BroadcastFrequency.display(
+                                    BroadcastCameraData.frequencyKHz(
+                                            heldCamera
+                                    )
+                            )
+                    ),
+                    x + 7,
+                    y + 46,
+                    0xFF76C9FF,
+                    false
+            );
+        }
     }
 
     @SubscribeEvent

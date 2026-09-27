@@ -5,6 +5,8 @@ import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.media.MediaInventory;
 import net.caravidro.wayaround.media.PlacedCameraBlock;
 import net.caravidro.wayaround.media.PlacedCameraBlockEntity;
+import net.caravidro.wayaround.media.broadcast.BroadcastCameraData;
+import net.caravidro.wayaround.media.broadcast.BroadcastFrequency;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -101,19 +103,38 @@ public final class CameraItem
                     facing
             );
 
-            ItemStack offhand =
-                    player.getOffhandItem();
+            ItemStack cameraStack =
+                    context.getItemInHand();
 
-            if (offhand.is(
-                    MediaContent.BROADCAST_ANTENNA_ITEM.get()
-            )
-                    && camera.installIntegratedAntenna()
-                    && !player.getAbilities()
-                    .instabuild) {
-
-                offhand.shrink(
-                        1
+            if (BroadcastCameraData.hasIntegratedAntenna(
+                    cameraStack
+            )) {
+                camera.installIntegratedAntenna();
+                camera.setFrequencyKHz(
+                        BroadcastCameraData.frequencyKHz(
+                                cameraStack
+                        )
                 );
+            } else {
+                ItemStack offhand =
+                        player.getOffhandItem();
+
+                if (offhand.is(
+                        MediaContent.BROADCAST_ANTENNA_ITEM.get()
+                )
+                        && camera.installIntegratedAntenna()) {
+
+                    camera.setFrequencyKHz(
+                            BroadcastFrequency.DEFAULT_KHZ
+                    );
+
+                    if (!player.getAbilities()
+                            .instabuild) {
+                        offhand.shrink(
+                                1
+                        );
+                    }
+                }
             }
         }
 
@@ -138,6 +159,74 @@ public final class CameraItem
 
         if (!WorldFeatureRuntime.enabled(level, WorldFeature.MEDIA)) {
             return InteractionResultHolder.pass(stack);
+        }
+
+        if (!level.isClientSide
+                && player.isShiftKeyDown()) {
+
+            ItemStack other =
+                    hand == InteractionHand.MAIN_HAND
+                            ? player.getOffhandItem()
+                            : player.getMainHandItem();
+
+            if (other.is(
+                    MediaContent.BROADCAST_ANTENNA_ITEM.get()
+            )
+                    && !BroadcastCameraData.hasIntegratedAntenna(
+                    stack
+            )) {
+
+                if (BroadcastCameraData.installAntenna(
+                        stack
+                )) {
+                    if (!player.getAbilities()
+                            .instabuild) {
+                        other.shrink(
+                                1
+                        );
+                    }
+
+                    player.displayClientMessage(
+                            Component.literal(
+                                    "Antena integrada à câmera em "
+                                            + BroadcastFrequency.display(
+                                            BroadcastCameraData.frequencyKHz(
+                                                    stack
+                                            )
+                                    )
+                            ),
+                            true
+                    );
+                }
+
+                return InteractionResultHolder.consume(
+                        stack
+                );
+            }
+
+            if (BroadcastCameraData.hasIntegratedAntenna(
+                    stack
+            )) {
+                int frequency =
+                        BroadcastCameraData.tune(
+                                stack,
+                                1
+                        );
+
+                player.displayClientMessage(
+                        Component.literal(
+                                "Câmera transmissora: "
+                                        + BroadcastFrequency.display(
+                                        frequency
+                                )
+                        ),
+                        true
+                );
+
+                return InteractionResultHolder.consume(
+                        stack
+                );
+            }
         }
 
         player.startUsingItem(
