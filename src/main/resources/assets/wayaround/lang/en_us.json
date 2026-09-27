@@ -346,5 +346,6 @@
   "item.wayaround.raw_salmon_meat": "Raw Salmon Meat",
   "item.wayaround.raw_tropical_fish_meat": "Raw Tropical Fish Meat",
   "item.wayaround.raw_pufferfish_meat": "Raw Pufferfish Meat",
-  "item.wayaround.raw_sunfish_meat": "Raw Sunfish Meat"
+  "item.wayaround.raw_sunfish_meat": "Raw Sunfish Meat",
+  "entity.wayaround.sunfish": "Sunfish"
 }
