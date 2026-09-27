@@ -553,10 +553,20 @@ public final class TreeLifecycleManager {
                         z
                 );
 
+        BlockPos support =
+                target.below();
+
         if (!level.getBlockState(target)
                 .canBeReplaced()
                 || !level.getFluidState(target)
-                        .isEmpty()) {
+                        .isEmpty()
+                || !level.getFluidState(support)
+                        .isEmpty()
+                || !level.getBlockState(support)
+                        .isCollisionShapeFullBlock(
+                                level,
+                                support
+                        )) {
             return;
         }
 
