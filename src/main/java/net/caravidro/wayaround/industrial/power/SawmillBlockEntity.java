@@ -2099,6 +2099,11 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                 selectedRecipe.ordinal()
         );
 
+        tag.putInt(
+                "ManualCrankTicks",
+                manualCrankTicks
+        );
+
         if (!body.isEmpty()) {
             tag.put(
                     "Body",
