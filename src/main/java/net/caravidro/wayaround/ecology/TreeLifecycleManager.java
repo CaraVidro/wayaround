@@ -33,6 +33,9 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class TreeLifecycleManager {
 
+    private static final List<StandingDead> DEAD_TREES =
+            new ArrayList<>();
+
     private static final List<PendingFall> FALLS =
             new ArrayList<>();
 
@@ -83,10 +86,11 @@ public final class TreeLifecycleManager {
                                 * 0.006;
 
         if (random.nextDouble() < Math.min(0.02, chance)) {
-            beginFall(
+            markDead(
                     level,
                     tree,
-                    randomHorizontal(random)
+                    randomHorizontal(random),
+                    random
             );
         }
     }
@@ -106,10 +110,11 @@ public final class TreeLifecycleManager {
         if (tree != null
                 && tree.height() >= 4
                 && random.nextFloat() < 0.18F) {
-            beginFall(
+            markDead(
                     level,
                     tree,
-                    randomHorizontal(random)
+                    randomHorizontal(random),
+                    random
             );
             return;
         }
@@ -126,6 +131,42 @@ public final class TreeLifecycleManager {
 
     @SubscribeEvent
     public static void tick(ServerTickEvent.Post event) {
+        if (!DEAD_TREES.isEmpty()) {
+            Iterator<StandingDead> deadIterator =
+                    DEAD_TREES.iterator();
+
+            while (deadIterator.hasNext()) {
+                StandingDead dead =
+                        deadIterator.next();
+
+                if (event.getServer().getTickCount()
+                        < dead.fallAt()) {
+                    continue;
+                }
+
+                ServerLevel level =
+                        event.getServer()
+                                .getLevel(
+                                        dead.dimension()
+                                );
+
+                deadIterator.remove();
+
+                if (level == null) {
+                    continue;
+                }
+
+                beginFall(
+                        level,
+                        new Tree(
+                                dead.base(),
+                                dead.logs()
+                        ),
+                        dead.direction()
+                );
+            }
+        }
+
         if (FALLS.isEmpty()) {
             return;
         }
@@ -202,7 +243,74 @@ public final class TreeLifecycleManager {
 
     @SubscribeEvent
     public static void stop(ServerStoppedEvent event) {
+        DEAD_TREES.clear();
         FALLS.clear();
+    }
+
+    private static void markDead(
+            ServerLevel level,
+            Tree tree,
+            Direction direction,
+            RandomSource random
+    ) {
+        for (int i = 0; i < tree.logs().size(); i++) {
+            BlockPos pos =
+                    tree.logs().get(i);
+
+            BlockState current =
+                    level.getBlockState(pos);
+
+            Direction.Axis axis =
+                    current.hasProperty(
+                            RotatedPillarBlock.AXIS
+                    )
+                            ? current.getValue(
+                            RotatedPillarBlock.AXIS
+                    )
+                            : Direction.Axis.Y;
+
+            level.setBlockAndUpdate(
+                    pos,
+                    EcologyContent.ROTTING_LOG.get()
+                            .defaultBlockState()
+                            .setValue(
+                                    RotatedPillarBlock.AXIS,
+                                    axis
+                            )
+                            .setValue(
+                                    RottingLogBlock.ROT,
+                                    i == 0
+                                            ? 1
+                                            : 0
+                            )
+            );
+        }
+
+        level.playSound(
+                null,
+                tree.base(),
+                SoundEvents.AXE_STRIP,
+                SoundSource.BLOCKS,
+                0.55F,
+                0.62F
+        );
+
+        DEAD_TREES.add(
+                new StandingDead(
+                        level.dimension(),
+                        tree.base(),
+                        direction,
+                        List.copyOf(
+                                tree.logs()
+                        ),
+                        level.getServer()
+                                .getTickCount()
+                                + 240
+                                + random.nextInt(
+                                1400
+                        )
+                )
+        );
     }
 
     private static void beginFall(
@@ -466,6 +574,15 @@ public final class TreeLifecycleManager {
         private int height() {
             return logs.size();
         }
+    }
+
+    private record StandingDead(
+            net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension,
+            BlockPos base,
+            Direction direction,
+            List<BlockPos> logs,
+            int fallAt
+    ) {
     }
 
     private static final class PendingFall {
