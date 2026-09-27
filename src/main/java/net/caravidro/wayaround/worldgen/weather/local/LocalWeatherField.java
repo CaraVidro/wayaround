@@ -237,22 +237,22 @@ public final class LocalWeatherField {
              * mountains for the player to enter them.
              */
             height =
-                    118.0
+                    138.0
                             + heightRoll / 0.14
-                                    * 31.0;
+                                    * 32.0;
         } else if (heightRoll > 0.86) {
             /*
              * High thin-looking masses break the old perfectly level ceiling.
              */
             height =
-                    202.0
+                    222.0
                             + (
                             heightRoll - 0.86
                     ) / 0.14
-                                    * 38.0;
+                                    * 40.0;
         } else {
             height =
-                    148.0
+                    168.0
                             + (
                             heightRoll - 0.14
                     ) / 0.72
