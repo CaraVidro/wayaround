@@ -1,8 +1,5 @@
 package net.caravidro.wayaround.ecology;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -20,7 +17,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /**
@@ -31,13 +28,63 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class EcologicalSuccession {
 
-    private static final Set<String> SEEDED_SESSION_CHUNKS =
-            new HashSet<>();
-
     private static final int RUNTIME_INTERVAL =
             80;
 
     private EcologicalSuccession() {}
+
+    @SubscribeEvent
+    public static void started(
+            ServerStartedEvent event
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.LIVING_VEGETATION
+        )) {
+            return;
+        }
+
+        ServerLevel level =
+                event.getServer()
+                        .overworld();
+
+        BlockPos spawn =
+                level.getSharedSpawnPos();
+
+        int centerX =
+                spawn.getX() >> 4;
+
+        int centerZ =
+                spawn.getZ() >> 4;
+
+        for (int cx = centerX - 1; cx <= centerX + 1; cx++) {
+            for (int cz = centerZ - 1; cz <= centerZ + 1; cz++) {
+                BlockPos probe =
+                        new BlockPos(
+                                (cx << 4) + 8,
+                                spawn.getY(),
+                                (cz << 4) + 8
+                        );
+
+                if (!level.hasChunkAt(
+                        probe
+                )) {
+                    continue;
+                }
+
+                if (EcologyWorldData.get(level)
+                        .markSeeded(
+                                cx,
+                                cz
+                        )) {
+                    seedChunk(
+                            level,
+                            cx,
+                            cz
+                    );
+                }
+            }
+        }
+    }
 
     @SubscribeEvent
     public static void tick(ServerTickEvent.Post event) {
@@ -60,11 +107,6 @@ public final class EcologicalSuccession {
         }
     }
 
-    @SubscribeEvent
-    public static void stop(ServerStoppedEvent event) {
-        SEEDED_SESSION_CHUNKS.clear();
-    }
-
     private static void seedLoadedPlayerArea(ServerLevel level) {
         for (ServerPlayer player : level.players()) {
             int centerX = player.blockPosition().getX() >> 4;
@@ -82,14 +124,11 @@ public final class EcologicalSuccession {
                         continue;
                     }
 
-                    String key =
-                            level.dimension().location()
-                                    + ":"
-                                    + cx
-                                    + ":"
-                                    + cz;
-
-                    if (!SEEDED_SESSION_CHUNKS.add(key)) {
+                    if (!EcologyWorldData.get(level)
+                            .markSeeded(
+                                    cx,
+                                    cz
+                            )) {
                         continue;
                     }
 
