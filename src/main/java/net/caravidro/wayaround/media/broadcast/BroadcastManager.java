@@ -283,6 +283,57 @@ public final class BroadcastManager {
         );
     }
 
+    public static float bestSignalQuality(
+            ServerLevel level,
+            BlockPos receiver,
+            int frequencyKHz
+    ) {
+        DimensionState dimension =
+                state(
+                        level
+                );
+
+        float best =
+                0.0F;
+
+        for (long antennaLong :
+                fresh(
+                        dimension.antennas,
+                        level.getGameTime()
+                )) {
+
+            BlockPos antennaPos =
+                    BlockPos.of(
+                            antennaLong
+                    );
+
+            BroadcastAntennaBlockEntity antenna =
+                    antenna(
+                            level,
+                            antennaPos
+                    );
+
+            if (antenna == null
+                    || antenna.frequencyKHz()
+                            != frequencyKHz) {
+                continue;
+            }
+
+            best =
+                    Math.max(
+                            best,
+                            signalQuality(
+                                    level,
+                                    antennaPos,
+                                    receiver,
+                                    antenna.rangeBlocks()
+                            )
+                    );
+        }
+
+        return best;
+    }
+
     public static boolean holdingHandheldMicrophone(Player player) {
         return isHandheldMicrophone(player.getMainHandItem())
                 || isHandheldMicrophone(player.getOffhandItem());
@@ -700,7 +751,41 @@ public final class BroadcastManager {
             ServerLevel level = player.serverLevel();
             DimensionState state = state(level);
 
+            ItemStack heldCamera =
+                    player.getMainHandItem()
+                            .is(
+                                    MediaContent.CAMERA.get()
+                            )
+                            ? player.getMainHandItem()
+                            : player.getOffhandItem();
+
             byte[] image = null;
+
+            if (heldCamera.is(
+                    MediaContent.CAMERA.get()
+            )
+                    && BroadcastCameraData.hasIntegratedAntenna(
+                    heldCamera
+            )) {
+
+                image =
+                        BroadcastCameraSampler.capture(
+                                level,
+                                player.getEyePosition(),
+                                player.getLookAngle()
+                        );
+
+                emitImage(
+                        level,
+                        player.blockPosition(),
+                        BroadcastCameraData.frequencyKHz(
+                                heldCamera
+                        ),
+                        960.0,
+                        image,
+                        BroadcastEffect.CLEAN
+                );
+            }
 
             for (long antennaLong : fresh(state.antennas, level.getGameTime())) {
                 BlockPos antennaPos = BlockPos.of(antennaLong);
