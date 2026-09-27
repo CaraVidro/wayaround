@@ -1,16 +1,11 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.ClientBlizzardState;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-
 import net.minecraft.resources.ResourceLocation;
-
-import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record BlizzardStatePayload(
         float intensity
@@ -27,7 +22,7 @@ public record BlizzardStatePayload(
     public static final StreamCodec<
             RegistryFriendlyByteBuf,
             BlizzardStatePayload
-    > STREAM_CODEC =
+            > STREAM_CODEC =
             StreamCodec.of(
                     (buffer, payload) ->
                             buffer.writeFloat(
@@ -43,19 +38,5 @@ public record BlizzardStatePayload(
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
-    }
-
-    public static void handle(
-            BlizzardStatePayload payload,
-            IPayloadContext context
-    ) {
-
-        /*
-         * Como este payload é registrado como playToClient,
-         * este handler só é executado no cliente.
-         */
-        ClientBlizzardState.receive(
-                payload.intensity()
-        );
     }
 }
