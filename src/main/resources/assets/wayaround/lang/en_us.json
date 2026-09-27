@@ -341,5 +341,10 @@
   "container.wayaround.sawmill.next_product": "Next log product",
   "container.wayaround.sawmill.progress": "Cut: %s%%",
   "container.wayaround.sawmill.crank_running": "Crank: turning",
-  "container.wayaround.sawmill.crank_stopped": "Crank: stopped"
+  "container.wayaround.sawmill.crank_stopped": "Crank: stopped",
+  "item.wayaround.raw_cod_meat": "Raw Cod Meat",
+  "item.wayaround.raw_salmon_meat": "Raw Salmon Meat",
+  "item.wayaround.raw_tropical_fish_meat": "Raw Tropical Fish Meat",
+  "item.wayaround.raw_pufferfish_meat": "Raw Pufferfish Meat",
+  "item.wayaround.raw_sunfish_meat": "Raw Sunfish Meat"
 }
