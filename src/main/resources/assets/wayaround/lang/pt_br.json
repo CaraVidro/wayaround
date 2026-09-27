@@ -315,5 +315,11 @@
   "block.wayaround.river_pebbles": "Pedrinhas de Rio",
   "block.wayaround.river_sprig": "Broto Ribeirinho",
   "block.wayaround.woodland_sorrel": "Azeda do Bosque",
-  "block.wayaround.damp_fern": "Samambaia Úmida"
+  "block.wayaround.damp_fern": "Samambaia Úmida",
+  "block.wayaround.meadow_sedge": "Capim de Várzea",
+  "item.wayaround.meadow_sedge": "Capim de Várzea",
+  "block.wayaround.creek_clover": "Trevo de Riacho",
+  "item.wayaround.creek_clover": "Trevo de Riacho",
+  "block.wayaround.shade_nettle": "Urtiga de Sombra",
+  "item.wayaround.shade_nettle": "Urtiga de Sombra"
 }
