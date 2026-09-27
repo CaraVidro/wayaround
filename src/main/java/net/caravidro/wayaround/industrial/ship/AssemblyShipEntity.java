@@ -1524,7 +1524,7 @@ public final class AssemblyShipEntity
                 ExperimentalShipContent.SHIP_BODY.get()
         )) {
             if (!level().isClientSide) {
-                addBody(
+                snapNextBody(
                         player,
                         held
                 );
@@ -1632,7 +1632,7 @@ public final class AssemblyShipEntity
         return InteractionResult.PASS;
     }
 
-    private void addBody(
+    public boolean snapNextBody(
             Player player,
             ItemStack stack
     ) {
@@ -1645,7 +1645,7 @@ public final class AssemblyShipEntity
                     true
             );
 
-            return;
+            return false;
         }
 
         int direction =
@@ -1674,7 +1674,7 @@ public final class AssemblyShipEntity
                     true
             );
 
-            return;
+            return false;
         }
 
         hull.add(
@@ -1710,6 +1710,8 @@ public final class AssemblyShipEntity
                 ),
                 true
         );
+
+        return true;
     }
 
     private void rotateBuildDirection(
