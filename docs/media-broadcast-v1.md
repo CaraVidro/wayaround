@@ -155,3 +155,73 @@ source while keeping the normal film/VHS workflow.
 
 The transport is shared so future mixers, repeaters, recording decks, studio
 switchers or multiple camera inputs do not need their own separate radio model.
+
+
+## Studio V2 polish
+
+### Persistent camera transmitter attachment
+
+A Broadcast Antenna can now become a persistent attachment on a Camera item.
+
+While holding the Camera:
+
+- sneak + use with a Broadcast Antenna in the other hand installs it;
+- sneak + use again cycles the integrated transmitter frequency.
+
+The attachment and frequency are stored on the camera ItemStack.
+
+When the camera is placed, the placed camera inherits both values.
+
+When the camera is picked back up, the antenna remains attached instead of
+being returned as a separate item.
+
+This allows one persistent field camera to move between handheld and tripod
+broadcast work.
+
+### Handheld camera uplink
+
+Recording with a normal handheld Camera can use the nearest broadcast tower
+within 128 blocks as its uplink.
+
+Only one tower is selected, preventing the same reporter from accidentally
+appearing on multiple stations at once.
+
+A Camera with an integrated antenna does not need a nearby tower.
+
+Its own transmitter uses the stored frequency and approximately 960 blocks of
+free-space range.
+
+The camera HUD displays `TX <frequency>` while an integrated transmitter is
+installed.
+
+### Wireless microphone uplink
+
+The Wireless Microphone also selects the nearest active broadcast tower within
+128 blocks instead of feeding every tower in range.
+
+The selected tower still owns:
+
+- broadcast frequency;
+- long-distance range;
+- Editorial state/effects;
+- obstruction loss toward receivers.
+
+### Receiver diagnostics
+
+Tuning a Radio now reports approximate received signal quality.
+
+Tuning a live Television reports the same quality measured at its physically
+connected TV Antenna.
+
+This is useful when testing tower height, terrain blocking and receiver
+placement.
+
+### Camera POV rule
+
+Live placed-camera images continue to come from
+`BroadcastCameraSampler`, which raycasts a bounded 32x18 view from the
+camera's own location/facing.
+
+The player's ordinary viewpoint is not switched to the placed camera for live
+broadcast. The operator can walk around normally while the stationary camera
+continues transmitting.
