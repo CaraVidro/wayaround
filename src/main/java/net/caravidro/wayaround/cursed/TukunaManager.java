@@ -2157,7 +2157,17 @@ public final class TukunaManager {
                 );
             }
 
-            host.setCamera(
+            /*
+             * A camera pode seguir o espirito, mas o servidor decide quais
+             * chunks enviar usando a posicao REAL do ServerPlayer host.
+             *
+             * Se deixarmos o host parado onde a possessao comecou, a camera
+             * entra em chunks que nunca foram enviados e o cliente parece
+             * congelar. Mantemos o espectador fisicamente junto do corpo
+             * possuido, sem dar controle a ele.
+             */
+            syncPossessionSpectator(
+                    host,
                     spirit
             );
 
@@ -2227,6 +2237,68 @@ public final class TukunaManager {
 
                 iterator.remove();
             }
+        }
+    }
+
+    private static void syncPossessionSpectator(
+            ServerPlayer host,
+            ServerPlayer spirit
+    ) {
+        boolean differentLevel =
+                host.serverLevel()
+                        != spirit.serverLevel();
+
+        boolean differentChunk =
+                !host.chunkPosition()
+                        .equals(
+                                spirit.chunkPosition()
+                        );
+
+        /*
+         * Chunk changes are the important boundary. The small distance
+         * fallback also repairs desyncs caused by teleports/knockback without
+         * spamming a teleport packet every server tick.
+         */
+        boolean driftedTooFar =
+                host.position()
+                        .distanceToSqr(
+                                spirit.position()
+                        )
+                        > 144.0;
+
+        if (differentLevel
+                || differentChunk
+                || driftedTooFar) {
+
+            if (differentLevel) {
+                /*
+                 * Never carry a camera target across dimensions while the
+                 * underlying player is still in the old level.
+                 */
+                host.setCamera(
+                        host
+                );
+            }
+
+            teleportTo(
+                    host,
+                    spirit.serverLevel(),
+                    spirit.position(),
+                    spirit.getYRot(),
+                    spirit.getXRot()
+            );
+        }
+
+        /*
+         * setCamera may be reset by a dimension transfer, death or another
+         * vanilla spectator action. Reassert it only when necessary.
+         */
+        if (host.getCamera()
+                != spirit) {
+
+            host.setCamera(
+                    spirit
+            );
         }
     }
 
