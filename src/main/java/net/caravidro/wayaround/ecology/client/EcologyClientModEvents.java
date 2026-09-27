@@ -85,6 +85,38 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.CLOWNFISH.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.CLOWNFISH
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.FLYING_FISH.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.FLYING_FISH
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.LANTERNFISH.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.LANTERNFISH
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.MORAY_EEL.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.MORAY_EEL
+                )
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.WHALE.get(),
                 context -> new AguaWorldSpeciesRenderer<>(
                         context,

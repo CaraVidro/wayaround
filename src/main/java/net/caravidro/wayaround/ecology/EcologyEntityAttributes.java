@@ -124,6 +124,43 @@ public final class EcologyEntityAttributes {
         );
 
         event.register(
+                EcologyContent.CLOWNFISH.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.FLYING_FISH.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.LANTERNFISH.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER)
+                                && level.getFluidState(pos.above()).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
+                EcologyContent.MORAY_EEL.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
                 EcologyContent.WHALE.get(),
                 SpawnPlacementTypes.IN_WATER,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
@@ -284,6 +321,38 @@ public final class EcologyEntityAttributes {
                 AbstractFish.createAttributes()
                         .add(Attributes.MAX_HEALTH, 26.0)
                         .add(Attributes.MOVEMENT_SPEED, 0.20)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.CLOWNFISH.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 4.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.28)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.FLYING_FISH.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 5.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.34)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.LANTERNFISH.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 4.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.25)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.MORAY_EEL.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 18.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.27)
                         .build()
         );
 

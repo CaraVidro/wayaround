@@ -535,19 +535,68 @@ public final class MarineInteractionModule {
                 true
         );
 
+        /*
+         * Do not aim at the carcass center. The rendered body is intentionally
+         * much larger than its small collision core so it can beach partly
+         * inside terrain. Gulls pick an accessible edge based on their current
+         * approach direction.
+         */
+        Vec3 side =
+                gull.position()
+                        .subtract(
+                                carcass.position()
+                        )
+                        .multiply(
+                                1.0,
+                                0.0,
+                                1.0
+                        );
+
+        if (side.lengthSqr()
+                < 0.001) {
+            side =
+                    new Vec3(
+                            1.0,
+                            0.0,
+                            0.0
+                    );
+        } else {
+            side =
+                    side.normalize();
+        }
+
+        double edge =
+                carcass.getType()
+                        == net.caravidro.wayaround.ecology.EcologyContent.SPERM_WHALE_CARCASS.get()
+                        ? 1.85
+                        : 1.25;
+
+        Vec3 feedingPoint =
+                carcass.position()
+                        .add(
+                                side.scale(
+                                        edge
+                                )
+                        )
+                        .add(
+                                0.0,
+                                0.72,
+                                0.0
+                        );
+
         gull.getMoveControl()
                 .setWantedPosition(
-                        carcass.getX(),
-                        carcass.getY()
-                                + carcass.getBbHeight()
-                                        + 0.35,
-                        carcass.getZ(),
+                        feedingPoint.x,
+                        feedingPoint.y,
+                        feedingPoint.z,
                         1.18
                 );
 
-        if (gull.distanceToSqr(
-                carcass
-        ) > 2.7 * 2.7) {
+        if (gull.position()
+                .distanceToSqr(
+                        feedingPoint
+                )
+                > 1.35 * 1.35) {
             return true;
         }
 

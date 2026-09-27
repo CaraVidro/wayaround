@@ -1,0 +1,10 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": "minecraft:warm_ocean",
+  "spawners": {
+    "type": "wayaround:clownfish",
+    "weight": 10,
+    "minCount": 3,
+    "maxCount": 8
+  }
+}

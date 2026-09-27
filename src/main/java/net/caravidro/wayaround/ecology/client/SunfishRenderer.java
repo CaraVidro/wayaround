@@ -118,6 +118,43 @@ public final class SunfishRenderer
                 pose, buffers, light
         );
 
+        // Attacks leave persistent scar stages, derived from synchronized health.
+        float healthRatio =
+                fish.getMaxHealth() <= 0.0F
+                        ? 1.0F
+                        : fish.getHealth()
+                                / fish.getMaxHealth();
+
+        if (healthRatio < 0.93F) {
+            cuboid(
+                    Blocks.RED_NETHER_BRICKS.defaultBlockState(),
+                    -0.18, 0.06, -0.137,
+                    0.06F, 0.24F, 0.028F,
+                    0.0F, 0.0F, 18.0F,
+                    pose, buffers, light
+            );
+        }
+
+        if (healthRatio < 0.79F) {
+            cuboid(
+                    Blocks.NETHERRACK.defaultBlockState(),
+                    0.04, -0.21, 0.112,
+                    0.055F, 0.28F, 0.028F,
+                    0.0F, 0.0F, -22.0F,
+                    pose, buffers, light
+            );
+        }
+
+        if (healthRatio < 0.66F) {
+            cuboid(
+                    Blocks.RED_NETHER_BRICKS.defaultBlockState(),
+                    -0.32, -0.31, -0.138,
+                    0.05F, 0.21F, 0.03F,
+                    0.0F, 0.0F, 31.0F,
+                    pose, buffers, light
+            );
+        }
+
         // Short clavus instead of a normal long fish tail.
         cuboid(
                 Blocks.GRAY_CONCRETE.defaultBlockState(),

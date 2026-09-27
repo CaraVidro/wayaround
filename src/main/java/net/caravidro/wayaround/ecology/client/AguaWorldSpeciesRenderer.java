@@ -20,6 +20,10 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
         SEAHORSE,
         JELLYFISH,
         OARFISH,
+        CLOWNFISH,
+        FLYING_FISH,
+        LANTERNFISH,
+        MORAY_EEL,
         WHALE,
         SPERM_WHALE
     }
@@ -40,6 +44,10 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case OARFISH -> 0.52F;
             case WHALE -> 1.80F;
             case SPERM_WHALE -> 2.85F;
+            case CLOWNFISH -> 0.18F;
+            case FLYING_FISH -> 0.24F;
+            case LANTERNFISH -> 0.16F;
+            case MORAY_EEL -> 0.34F;
             case BARRACUDA -> 0.38F;
             case JELLYFISH -> 0.32F;
             case SEAHORSE -> 0.12F;
@@ -49,6 +57,10 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
     @Override
     protected float swimFrequency(T fish) {
         return switch (profile) {
+            case CLOWNFISH -> 0.52F;
+            case FLYING_FISH -> 0.62F;
+            case LANTERNFISH -> 0.45F;
+            case MORAY_EEL -> 0.40F;
             case BARRACUDA -> 0.56F;
             case SEAHORSE -> 0.24F;
             case JELLYFISH -> 0.18F;
@@ -65,6 +77,10 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case MANTA_RAY -> 2.0F;
             case JELLYFISH -> 0.5F;
             case SEAHORSE -> 1.0F;
+            case CLOWNFISH -> 1.8F;
+            case FLYING_FISH -> 1.4F;
+            case LANTERNFISH -> 1.1F;
+            case MORAY_EEL -> 2.2F;
             case BARRACUDA -> 1.4F;
             case OARFISH -> 2.5F;
             case WHALE -> 0.65F;
@@ -81,6 +97,10 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             int light
     ) {
         switch (profile) {
+            case CLOWNFISH -> clownfish(swim, pose, buffers, light);
+            case FLYING_FISH -> flyingFish(swim, pose, buffers, light);
+            case LANTERNFISH -> lanternfish(swim, pose, buffers, light);
+            case MORAY_EEL -> moray(swim, pose, buffers, light);
             case MANTA_RAY -> manta(swim, pose, buffers, light);
             case BARRACUDA -> barracuda(swim, pose, buffers, light);
             case SEAHORSE -> seahorse(swim, pose, buffers, light);
@@ -702,6 +722,196 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 Blocks.BLACK_CONCRETE.defaultBlockState(),
                 -2.58, 0.77, -0.22,
                 0.16F, 0.03F, 0.14F,
+                pose, buffers, light
+        );
+    }
+    private void clownfish(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        cuboid(
+                Blocks.ORANGE_CONCRETE.defaultBlockState(),
+                -0.42, -0.15, -0.13,
+                0.72F, 0.30F, 0.26F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.20, -0.16, -0.135,
+                0.11F, 0.32F, 0.27F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                0.12, -0.14, -0.13,
+                0.09F, 0.28F, 0.26F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.39, 0.03, -0.155,
+                0.045F, 0.045F, 0.03F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.ORANGE_CONCRETE.defaultBlockState(),
+                0.24, -0.04, -0.055,
+                0.34F, 0.08F, 0.11F,
+                0.0F, swim * 18.0F, 0.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.ORANGE_CONCRETE.defaultBlockState(),
+                -0.06, 0.13, -0.05,
+                0.18F, 0.20F, 0.10F,
+                0.0F, 0.0F, -12.0F,
+                pose, buffers, light
+        );
+    }
+
+    private void flyingFish(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        cuboid(
+                Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState(),
+                -0.56, -0.11, -0.10,
+                1.00F, 0.22F, 0.20F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.48, -0.16, -0.085,
+                0.84F, 0.09F, 0.17F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.50, 0.03, -0.125,
+                0.045F, 0.045F, 0.03F,
+                pose, buffers, light
+        );
+
+        // Huge wing-like pectoral fins.
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.18, -0.01, -0.72,
+                0.62F, 0.055F, 0.62F,
+                0.0F, 0.0F, -7.0F - swim * 3.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.18, -0.01, 0.10,
+                0.62F, 0.055F, 0.62F,
+                0.0F, 0.0F, 7.0F + swim * 3.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState(),
+                0.38, -0.04, -0.045,
+                0.38F, 0.08F, 0.09F,
+                0.0F, swim * 19.0F, 0.0F,
+                pose, buffers, light
+        );
+    }
+
+    private void lanternfish(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        int glow =
+                0x00F000F0;
+
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.46, -0.13, -0.12,
+                0.78F, 0.26F, 0.24F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.CYAN_CONCRETE.defaultBlockState(),
+                -0.34, -0.155, -0.135,
+                0.11F, 0.055F, 0.27F,
+                pose, buffers, glow
+        );
+        cuboid(
+                Blocks.SEA_LANTERN.defaultBlockState(),
+                -0.02, -0.155, -0.135,
+                0.10F, 0.055F, 0.27F,
+                pose, buffers, glow
+        );
+        cuboid(
+                Blocks.CYAN_CONCRETE.defaultBlockState(),
+                0.22, -0.135, -0.12,
+                0.08F, 0.05F, 0.24F,
+                pose, buffers, glow
+        );
+        cuboid(
+                Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState(),
+                0.28, -0.035, -0.05,
+                0.34F, 0.07F, 0.10F,
+                0.0F, swim * 16.0F, 0.0F,
+                pose, buffers, glow
+        );
+    }
+
+    private void moray(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        // Long segmented body gives a visible serpentine bend.
+        for (int i = 0; i < 6; i++) {
+            cuboid(
+                    i < 2
+                            ? Blocks.GREEN_TERRACOTTA.defaultBlockState()
+                            : Blocks.MOSS_BLOCK.defaultBlockState(),
+                    -0.88 + i * 0.30,
+                    -0.10,
+                    -0.10,
+                    0.34F,
+                    0.20F,
+                    0.20F,
+                    0.0F,
+                    swim * (i * 4.2F),
+                    0.0F,
+                    pose,
+                    buffers,
+                    light
+            );
+        }
+
+        cuboid(
+                Blocks.GREEN_TERRACOTTA.defaultBlockState(),
+                -1.14, -0.13, -0.14,
+                0.34F, 0.26F, 0.28F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -1.06, 0.04, -0.165,
+                0.05F, 0.05F, 0.03F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -1.20, -0.15, -0.11,
+                0.22F, 0.055F, 0.22F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.MOSS_BLOCK.defaultBlockState(),
+                0.86, -0.055, -0.055,
+                0.42F, 0.11F, 0.11F,
+                0.0F, swim * 18.0F, 0.0F,
                 pose, buffers, light
         );
     }

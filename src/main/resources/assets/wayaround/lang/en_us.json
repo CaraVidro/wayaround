@@ -383,5 +383,13 @@
   "entity.wayaround.sperm_whale": "Sperm Whale",
   "entity.wayaround.whale_carcass": "Whale Carcass",
   "entity.wayaround.sperm_whale_carcass": "Sperm Whale Carcass",
-  "item.wayaround.sperm_whale_spawn_egg": "Sperm Whale Spawn Egg"
+  "item.wayaround.sperm_whale_spawn_egg": "Sperm Whale Spawn Egg",
+  "entity.wayaround.clownfish": "Clownfish",
+  "entity.wayaround.flying_fish": "Flying Fish",
+  "entity.wayaround.lanternfish": "Lanternfish",
+  "entity.wayaround.moray_eel": "Moray Eel",
+  "item.wayaround.clownfish_spawn_egg": "Clownfish Spawn Egg",
+  "item.wayaround.flying_fish_spawn_egg": "Flying Fish Spawn Egg",
+  "item.wayaround.lanternfish_spawn_egg": "Lanternfish Spawn Egg",
+  "item.wayaround.moray_eel_spawn_egg": "Moray Eel Spawn Egg"
 }

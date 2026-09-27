@@ -4,7 +4,6 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.animal.AbstractFish;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -14,7 +13,7 @@ import net.minecraft.world.level.Level;
  * LivingFaunaManager so prey species can react through the same ecology layer.
  */
 public final class ReefSharkEntity
-        extends AbstractFish
+        extends AguaWorldFishEntity
         implements AquaticPredator {
 
     public ReefSharkEntity(

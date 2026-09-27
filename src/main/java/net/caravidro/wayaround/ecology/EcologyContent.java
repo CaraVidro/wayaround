@@ -146,6 +146,46 @@ public final class EcologyContent {
                             .build("wayaround:oarfish")
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<ClownfishEntity>> CLOWNFISH =
+            ENTITIES.register(
+                    "clownfish",
+                    () -> EntityType.Builder
+                            .of(ClownfishEntity::new, MobCategory.WATER_AMBIENT)
+                            .sized(0.42F, 0.24F)
+                            .clientTrackingRange(10)
+                            .build("wayaround:clownfish")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<FlyingFishEntity>> FLYING_FISH =
+            ENTITIES.register(
+                    "flying_fish",
+                    () -> EntityType.Builder
+                            .of(FlyingFishEntity::new, MobCategory.WATER_AMBIENT)
+                            .sized(0.62F, 0.26F)
+                            .clientTrackingRange(11)
+                            .build("wayaround:flying_fish")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<LanternfishEntity>> LANTERNFISH =
+            ENTITIES.register(
+                    "lanternfish",
+                    () -> EntityType.Builder
+                            .of(LanternfishEntity::new, MobCategory.WATER_AMBIENT)
+                            .sized(0.38F, 0.22F)
+                            .clientTrackingRange(11)
+                            .build("wayaround:lanternfish")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<MorayEelEntity>> MORAY_EEL =
+            ENTITIES.register(
+                    "moray_eel",
+                    () -> EntityType.Builder
+                            .of(MorayEelEntity::new, MobCategory.WATER_CREATURE)
+                            .sized(1.32F, 0.38F)
+                            .clientTrackingRange(12)
+                            .build("wayaround:moray_eel")
+            );
+
     public static final DeferredHolder<EntityType<?>, EntityType<WhaleEntity>> WHALE =
             ENTITIES.register(
                     "whale",
@@ -171,7 +211,7 @@ public final class EcologyContent {
                     "whale_carcass",
                     () -> EntityType.Builder
                             .of(WhaleCarcassEntity::new, MobCategory.MISC)
-                            .sized(4.90F, 1.85F)
+                            .sized(1.55F, 0.82F)
                             .clientTrackingRange(18)
                             .build("wayaround:whale_carcass")
             );
@@ -181,7 +221,7 @@ public final class EcologyContent {
                     "sperm_whale_carcass",
                     () -> EntityType.Builder
                             .of(WhaleCarcassEntity::new, MobCategory.MISC)
-                            .sized(7.90F, 2.45F)
+                            .sized(2.05F, 1.05F)
                             .clientTrackingRange(22)
                             .build("wayaround:sperm_whale_carcass")
             );
@@ -280,6 +320,50 @@ public final class EcologyContent {
                             OARFISH.get(),
                             0xE6E2D6,
                             0xB52F39,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> CLOWNFISH_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "clownfish_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            CLOWNFISH.get(),
+                            0xF07E21,
+                            0xF4F1E8,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> FLYING_FISH_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "flying_fish_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            FLYING_FISH.get(),
+                            0x678DA3,
+                            0xD7E5E8,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> LANTERNFISH_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "lanternfish_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            LANTERNFISH.get(),
+                            0x14222C,
+                            0x58F6D8,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> MORAY_EEL_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "moray_eel_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            MORAY_EEL.get(),
+                            0x6C6B32,
+                            0xC7C076,
                             properties
                     )
             );
@@ -742,6 +826,18 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 OARFISH_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                CLOWNFISH_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                FLYING_FISH_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                LANTERNFISH_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                MORAY_EEL_SPAWN_EGG.get()
                                         );
                                         output.accept(
                                                 WHALE_SPAWN_EGG.get()

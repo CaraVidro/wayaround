@@ -36,6 +36,14 @@ public final class SeagullEntity
                         true
                 );
         this.setNoGravity(true);
+        this.setPersistenceRequired();
+    }
+
+    @Override
+    public boolean removeWhenFarAway(
+            double distanceToClosestPlayer
+    ) {
+        return false;
     }
 
     @Override

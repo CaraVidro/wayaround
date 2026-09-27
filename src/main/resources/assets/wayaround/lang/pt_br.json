@@ -383,5 +383,13 @@
   "entity.wayaround.sperm_whale": "Cachalote",
   "entity.wayaround.whale_carcass": "Carcaça de Baleia",
   "entity.wayaround.sperm_whale_carcass": "Carcaça de Cachalote",
-  "item.wayaround.sperm_whale_spawn_egg": "Ovo Gerador de Cachalote"
+  "item.wayaround.sperm_whale_spawn_egg": "Ovo Gerador de Cachalote",
+  "entity.wayaround.clownfish": "Peixe-Palhaço",
+  "entity.wayaround.flying_fish": "Peixe-Voador",
+  "entity.wayaround.lanternfish": "Peixe-Lanterna",
+  "entity.wayaround.moray_eel": "Moreia",
+  "item.wayaround.clownfish_spawn_egg": "Ovo Gerador de Peixe-Palhaço",
+  "item.wayaround.flying_fish_spawn_egg": "Ovo Gerador de Peixe-Voador",
+  "item.wayaround.lanternfish_spawn_egg": "Ovo Gerador de Peixe-Lanterna",
+  "item.wayaround.moray_eel_spawn_egg": "Ovo Gerador de Moreia"
 }

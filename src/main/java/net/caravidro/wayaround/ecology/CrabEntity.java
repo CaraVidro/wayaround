@@ -20,6 +20,14 @@ public final class CrabEntity extends PathfinderMob {
             Level level
     ) {
         super(type, level);
+        this.setPersistenceRequired();
+    }
+
+    @Override
+    public boolean removeWhenFarAway(
+            double distanceToClosestPlayer
+    ) {
+        return false;
     }
 
     @Override

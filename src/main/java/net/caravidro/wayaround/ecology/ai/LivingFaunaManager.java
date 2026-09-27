@@ -16,6 +16,10 @@ import net.caravidro.wayaround.ecology.MantaRayEntity;
 import net.caravidro.wayaround.ecology.BarracudaEntity;
 import net.caravidro.wayaround.ecology.SeahorseEntity;
 import net.caravidro.wayaround.ecology.JellyfishEntity;
+import net.caravidro.wayaround.ecology.ClownfishEntity;
+import net.caravidro.wayaround.ecology.FlyingFishEntity;
+import net.caravidro.wayaround.ecology.LanternfishEntity;
+import net.caravidro.wayaround.ecology.MorayEelEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.SeagullEntity;
 import net.caravidro.wayaround.ecology.SpermWhaleEntity;
@@ -1939,6 +1943,27 @@ public final class LivingFaunaManager {
             );
         }
 
+        if (fish instanceof ClownfishEntity) {
+            return seahorseCoralBehavior(
+                    level,
+                    fish
+            );
+        }
+
+        if (fish instanceof FlyingFishEntity) {
+            return flyingFishBurstBehavior(
+                    level,
+                    fish
+            );
+        }
+
+        if (fish instanceof LanternfishEntity) {
+            return oarfishDepthBehavior(
+                    level,
+                    fish
+            );
+        }
+
         if (fish instanceof MantaRayEntity) {
             return mantaCurrentGlide(level, fish);
         }
@@ -2119,6 +2144,82 @@ public final class LivingFaunaManager {
                 deepest.getY() + 0.5,
                 deepest.getZ() + 0.5,
                 0.90
+        );
+
+        return true;
+    }
+
+    private static boolean flyingFishBurstBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat()
+                > 0.11F) {
+            return false;
+        }
+
+        BlockPos pos =
+                fish.blockPosition();
+
+        boolean nearSurface =
+                false;
+
+        for (int dy = 1;
+             dy <= 3;
+             dy++) {
+            if (!level.getFluidState(
+                    pos.above(dy)
+            ).is(
+                    FluidTags.WATER
+            )) {
+                nearSurface =
+                        true;
+                break;
+            }
+        }
+
+        if (!nearSurface) {
+            fish.getNavigation()
+                    .moveTo(
+                            fish.getX(),
+                            fish.getY()
+                                    + 3.0,
+                            fish.getZ(),
+                            1.28
+                    );
+
+            return true;
+        }
+
+        Vec3 forward =
+                fish.getLookAngle()
+                        .multiply(
+                                0.78,
+                                0.0,
+                                0.78
+                        );
+
+        fish.setDeltaMovement(
+                forward.x,
+                0.43
+                        + level.random.nextDouble()
+                                * 0.12,
+                forward.z
+        );
+
+        fish.hasImpulse =
+                true;
+
+        level.sendParticles(
+                ParticleTypes.SPLASH,
+                fish.getX(),
+                fish.getY(),
+                fish.getZ(),
+                7,
+                0.16,
+                0.06,
+                0.16,
+                0.08
         );
 
         return true;
@@ -2575,6 +2676,18 @@ public final class LivingFaunaManager {
                                         + level.random.nextFloat()
                                                 * 0.55F;
 
+            } else if (fish instanceof ClownfishEntity) {
+                base = 0.28F + level.random.nextFloat() * 0.24F;
+
+            } else if (fish instanceof FlyingFishEntity) {
+                base = 0.46F + level.random.nextFloat() * 0.34F;
+
+            } else if (fish instanceof LanternfishEntity) {
+                base = 0.24F + level.random.nextFloat() * 0.24F;
+
+            } else if (fish instanceof MorayEelEntity) {
+                base = 0.72F + level.random.nextFloat() * 0.46F;
+
             } else if (fish instanceof SeahorseEntity) {
                 base = 0.24F + level.random.nextFloat() * 0.22F;
 
@@ -2725,6 +2838,24 @@ public final class LivingFaunaManager {
                             cap,
                             2.85F
                     );
+
+        } else if (fish instanceof ClownfishEntity) {
+            cap = Math.min(cap, 0.92F);
+
+        } else if (fish instanceof FlyingFishEntity) {
+            cap = Math.min(cap, 1.34F);
+
+        } else if (fish instanceof LanternfishEntity) {
+            cap = Math.min(cap, 0.88F);
+
+        } else if (fish instanceof MorayEelEntity) {
+            cap = Math.min(
+                    Math.max(
+                            cap,
+                            1.45F
+                    ),
+                    2.05F
+            );
 
         } else if (fish instanceof SeahorseEntity) {
             cap = Math.min(cap, 0.82F);
@@ -3136,6 +3267,22 @@ public final class LivingFaunaManager {
 
             localCap =
                     8;
+
+        } else if (fish instanceof ClownfishEntity) {
+            reproductionChance = satiated ? 0.055F : 0.022F;
+            localCap = 26;
+
+        } else if (fish instanceof FlyingFishEntity) {
+            reproductionChance = satiated ? 0.042F : 0.018F;
+            localCap = 22;
+
+        } else if (fish instanceof LanternfishEntity) {
+            reproductionChance = satiated ? 0.058F : 0.024F;
+            localCap = 30;
+
+        } else if (fish instanceof MorayEelEntity) {
+            reproductionChance = satiated ? 0.012F : 0.004F;
+            localCap = 5;
 
         } else if (fish instanceof BarracudaEntity) {
             reproductionChance = satiated ? 0.018F : 0.007F;
