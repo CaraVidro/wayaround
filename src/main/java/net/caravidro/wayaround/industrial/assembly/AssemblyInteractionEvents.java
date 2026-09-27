@@ -142,6 +142,12 @@ public final class AssemblyInteractionEvents {
         AssemblySnapshot snapshot =
                 machine.assemblySnapshot();
 
+        AssemblyNetworkSnapshot network =
+                AssemblyNetworkScanner.inspect(
+                        player.serverLevel(),
+                        event.getPos()
+                );
+
         player.displayClientMessage(
                 Component.literal(
                         "Assembly "
@@ -169,6 +175,16 @@ public final class AssemblyInteractionEvents {
                                         ? "-"
                                         : snapshot.weakestPart()
                         )
+                                + " | rede "
+                                + network.machines()
+                                + " nó(s), "
+                                + Math.round(
+                                network.averageIntegrity()
+                                        * 100.0F
+                        )
+                                + "% íntegra, "
+                                + network.criticalMachines()
+                                + " crítico(s)"
                 ),
                 true
         );
