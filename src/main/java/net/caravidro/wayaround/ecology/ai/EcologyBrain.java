@@ -2,6 +2,8 @@ package net.caravidro.wayaround.ecology.ai;
 
 import java.util.List;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.FlyingAnimal;
 import net.minecraft.world.phys.Vec3;
@@ -172,6 +174,168 @@ public final class EcologyBrain {
                         )
                                 / 28.0
                 )
+        );
+    }
+
+    public static Intent shelterIntent(
+            ServerLevel level,
+            Animal animal
+    ) {
+        if (!level.isRainingAt(
+                animal.blockPosition()
+                        .above()
+        )) {
+            return Intent.none();
+        }
+
+        BlockPos origin =
+                animal.blockPosition();
+
+        BlockPos best =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (int dx = -8; dx <= 8; dx += 2) {
+            for (int dz = -8; dz <= 8; dz += 2) {
+                BlockPos candidate =
+                        origin.offset(
+                                dx,
+                                0,
+                                dz
+                        );
+
+                BlockPos ground =
+                        level.getHeightmapPos(
+                                net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                candidate
+                        );
+
+                if (level.canSeeSky(
+                        ground
+                )) {
+                    continue;
+                }
+
+                if (!level.getBlockState(
+                        ground.below()
+                ).isSolidRender(
+                        level,
+                        ground.below()
+                )) {
+                    continue;
+                }
+
+                double distance =
+                        origin.distSqr(
+                                ground
+                        );
+
+                if (distance < bestDistance) {
+                    bestDistance =
+                            distance;
+
+                    best =
+                            ground.immutable();
+                }
+            }
+        }
+
+        if (best == null) {
+            return Intent.none();
+        }
+
+        boolean flying =
+                animal instanceof FlyingAnimal;
+
+        Vec3 target =
+                Vec3.atCenterOf(
+                        best
+                );
+
+        if (flying) {
+            target =
+                    target.add(
+                            0.0,
+                            1.8,
+                            0.0
+                    );
+        }
+
+        return new Intent(
+                IntentType.SHELTER,
+                target,
+                flying
+                        ? 1.22
+                        : 1.05,
+                0.72F
+        );
+    }
+
+    public static Intent exploreIntent(
+            ServerLevel level,
+            Animal animal,
+            Vec3 home
+    ) {
+        if (animal.getNavigation()
+                .isInProgress()) {
+            return Intent.none();
+        }
+
+        if (level.random.nextFloat()
+                > 0.12F) {
+            return Intent.none();
+        }
+
+        double radius =
+                animal instanceof FlyingAnimal
+                        ? 18.0
+                        : 12.0;
+
+        double angle =
+                level.random.nextDouble()
+                        * Math.PI
+                        * 2.0;
+
+        Vec3 center =
+                home == null
+                        ? animal.position()
+                        : home;
+
+        Vec3 target =
+                new Vec3(
+                        center.x
+                                + Math.cos(
+                                angle
+                        )
+                                        * radius,
+                        animal.getY(),
+                        center.z
+                                + Math.sin(
+                                angle
+                        )
+                                        * radius
+                );
+
+        if (animal instanceof FlyingAnimal) {
+            target =
+                    target.add(
+                            0.0,
+                            2.0
+                                    + level.random.nextDouble()
+                                            * 4.0,
+                            0.0
+                    );
+        }
+
+        return new Intent(
+                IntentType.EXPLORE,
+                target,
+                animal instanceof FlyingAnimal
+                        ? 1.12
+                        : 0.92,
+                0.30F
         );
     }
 
