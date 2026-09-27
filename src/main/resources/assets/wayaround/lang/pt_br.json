@@ -349,8 +349,12 @@
   "item.wayaround.raw_sunfish_meat": "Carne Crua de Peixe-Lua",
   "entity.wayaround.sunfish": "Peixe-Lua",
   "entity.wayaround.sardine": "Sardinha",
-  "entity.wayaround.reef_shark": "Tubarão de Recife",
+  "entity.wayaround.reef_shark": "Tubarão Costeiro",
   "entity.wayaround.crab": "Caranguejo",
   "item.wayaround.raw_sardine_meat": "Carne Crua de Sardinha",
-  "item.wayaround.raw_shark_meat": "Carne Crua de Tubarão"
+  "item.wayaround.raw_shark_meat": "Carne Crua de Tubarão",
+  "itemGroup.wayaround.agua_world": "Água World",
+  "item.wayaround.sardine_spawn_egg": "Ovo Gerador de Sardinha",
+  "item.wayaround.sunfish_spawn_egg": "Ovo Gerador de Peixe-Lua",
+  "item.wayaround.reef_shark_spawn_egg": "Ovo Gerador de Tubarão Costeiro"
 }
