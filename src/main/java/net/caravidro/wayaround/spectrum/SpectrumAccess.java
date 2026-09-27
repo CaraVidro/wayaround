@@ -168,21 +168,19 @@ public final class SpectrumAccess {
                 continue;
             }
 
-            ItemStack held =
-                    player.getMainHandItem();
+            SpectrumItem spectrum =
+                    player.getMainHandItem()
+                            .getItem()
+                            instanceof SpectrumItem mainSpectrum
+                            ? mainSpectrum
+                            : player.getOffhandItem()
+                                    .getItem()
+                                    instanceof SpectrumItem offhandSpectrum
+                                    ? offhandSpectrum
+                                    : null;
 
-            if (!(held.getItem()
-                    instanceof SpectrumItem spectrum)) {
-                held =
-                        player.getOffhandItem();
-
-                if (!(held.getItem()
-                        instanceof SpectrumItem offhandSpectrum)) {
-                    continue;
-                }
-
-                spectrum =
-                        offhandSpectrum;
+            if (spectrum == null) {
+                continue;
             }
 
             /*
