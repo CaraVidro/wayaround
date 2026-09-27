@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.BlueClientEffects;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -51,10 +50,6 @@ public record BlueGestureS2CPayload(
             BlueGestureS2CPayload payload,
             IPayloadContext context
     ) {
-        context.enqueueWork(
-                () -> BlueClientEffects.playGesture(
-                        payload.gesture()
-                )
-        );
+        ClientPayloadBridge.handleBlueGesture(payload, context);
     }
 }
