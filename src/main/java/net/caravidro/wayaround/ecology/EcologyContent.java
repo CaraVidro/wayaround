@@ -54,6 +54,55 @@ public final class EcologyContent {
             );
 
 
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<SardineEntity>
+            > SARDINE =
+            ENTITIES.register(
+                    "sardine",
+                    () -> EntityType.Builder
+                            .of(
+                                    SardineEntity::new,
+                                    MobCategory.WATER_AMBIENT
+                            )
+                            .sized(0.34F, 0.20F)
+                            .clientTrackingRange(10)
+                            .build("wayaround:sardine")
+            );
+
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<ReefSharkEntity>
+            > REEF_SHARK =
+            ENTITIES.register(
+                    "reef_shark",
+                    () -> EntityType.Builder
+                            .of(
+                                    ReefSharkEntity::new,
+                                    MobCategory.WATER_CREATURE
+                            )
+                            .sized(1.65F, 0.72F)
+                            .clientTrackingRange(12)
+                            .build("wayaround:reef_shark")
+            );
+
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<CrabEntity>
+            > CRAB =
+            ENTITIES.register(
+                    "crab",
+                    () -> EntityType.Builder
+                            .of(
+                                    CrabEntity::new,
+                                    MobCategory.CREATURE
+                            )
+                            .sized(0.72F, 0.34F)
+                            .clientTrackingRange(10)
+                            .build("wayaround:crab")
+            );
+
+
     public static final DeferredBlock<RottingLogBlock> ROTTING_LOG =
             BLOCKS.register(
                     "rotting_log",
@@ -291,6 +340,29 @@ public final class EcologyContent {
                                                     .saturationModifier(
                                                             0.28F
                                                     )
+                                                    .build()
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_SARDINE_MEAT =
+            ITEMS.register(
+                    "raw_sardine_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(RAW_FISH_MEAT)
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_SHARK_MEAT =
+            ITEMS.register(
+                    "raw_shark_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            new FoodProperties.Builder()
+                                                    .nutrition(4)
+                                                    .saturationModifier(0.34F)
                                                     .build()
                                     )
                     )
