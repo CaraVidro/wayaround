@@ -1,0 +1,52 @@
+{
+  "variants": {
+    "axis=y,rot=0": {
+      "model": "wayaround:block/rotting_log_0"
+    },
+    "axis=x,rot=0": {
+      "model": "wayaround:block/rotting_log_0",
+      "x": 90,
+      "y": 90
+    },
+    "axis=z,rot=0": {
+      "model": "wayaround:block/rotting_log_0",
+      "x": 90
+    },
+    "axis=y,rot=1": {
+      "model": "wayaround:block/rotting_log_1"
+    },
+    "axis=x,rot=1": {
+      "model": "wayaround:block/rotting_log_1",
+      "x": 90,
+      "y": 90
+    },
+    "axis=z,rot=1": {
+      "model": "wayaround:block/rotting_log_1",
+      "x": 90
+    },
+    "axis=y,rot=2": {
+      "model": "wayaround:block/rotting_log_2"
+    },
+    "axis=x,rot=2": {
+      "model": "wayaround:block/rotting_log_2",
+      "x": 90,
+      "y": 90
+    },
+    "axis=z,rot=2": {
+      "model": "wayaround:block/rotting_log_2",
+      "x": 90
+    },
+    "axis=y,rot=3": {
+      "model": "wayaround:block/rotting_log_3"
+    },
+    "axis=x,rot=3": {
+      "model": "wayaround:block/rotting_log_3",
+      "x": 90,
+      "y": 90
+    },
+    "axis=z,rot=3": {
+      "model": "wayaround:block/rotting_log_3",
+      "x": 90
+    }
+  }
+}
