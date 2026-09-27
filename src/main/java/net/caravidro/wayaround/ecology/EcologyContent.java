@@ -3,6 +3,7 @@ package net.caravidro.wayaround.ecology;
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -192,6 +193,72 @@ public final class EcologyContent {
                     () -> new BlockItem(
                             SHADE_NETTLE.get(),
                             new Item.Properties()
+                    )
+            );
+
+    private static final FoodProperties RAW_FISH_MEAT =
+            new FoodProperties.Builder()
+                    .nutrition(2)
+                    .saturationModifier(0.20F)
+                    .build();
+
+    public static final DeferredItem<Item> RAW_COD_MEAT =
+            ITEMS.register(
+                    "raw_cod_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_SALMON_MEAT =
+            ITEMS.register(
+                    "raw_salmon_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_TROPICAL_FISH_MEAT =
+            ITEMS.register(
+                    "raw_tropical_fish_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_PUFFERFISH_MEAT =
+            ITEMS.register(
+                    "raw_pufferfish_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            RAW_FISH_MEAT
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<Item> RAW_SUNFISH_MEAT =
+            ITEMS.register(
+                    "raw_sunfish_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(
+                                            new FoodProperties.Builder()
+                                                    .nutrition(3)
+                                                    .saturationModifier(
+                                                            0.28F
+                                                    )
+                                                    .build()
+                                    )
                     )
             );
 
