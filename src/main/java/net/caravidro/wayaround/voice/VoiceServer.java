@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.caravidro.wayaround.cursed.TukunaManager;
+import net.caravidro.wayaround.media.blackbox.BlackBoxManager;
 import net.caravidro.wayaround.network.VoiceFrameS2CPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -65,6 +66,26 @@ public final class VoiceServer {
                 TukunaManager.projectedVoiceHost(
                         sender
                 );
+
+        if (projectionHost != null) {
+            BlackBoxManager.captureVoice(
+                    projectionHost.serverLevel(),
+                    projectionHost.position(),
+                    sender.getUUID(),
+                    sender.getGameProfile()
+                            .getName(),
+                    pcm
+            );
+        } else {
+            BlackBoxManager.captureVoice(
+                    sender.serverLevel(),
+                    sender.position(),
+                    sender.getUUID(),
+                    sender.getGameProfile()
+                            .getName(),
+                    pcm
+            );
+        }
 
         if (projectionHost != null) {
             relayProjectedGhost(

@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.power;
 
+import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -64,6 +65,16 @@ public final class SteamEngineBlockEntity extends BlockEntity {
             if (step.consumeCoal()) engine.coal--;
             engine.buffer.add(step.generated());
             boolean lit = engine.fuel > 0;
+
+            if (lit) {
+                EnvironmentalTemperature.pulseAbsolute(
+                        server,
+                        net.minecraft.world.phys.Vec3.atCenterOf(pos),
+                        6.0,
+                        70.0 + engine.heat * 2.4
+                );
+            }
+
             if (state.getValue(SteamEngineBlock.LIT) != lit) {
                 level.setBlock(pos, state.setValue(SteamEngineBlock.LIT, lit), 3);
             }

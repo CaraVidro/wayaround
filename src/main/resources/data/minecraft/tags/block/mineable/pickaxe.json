@@ -1,9 +1,10 @@
 {
-    "replace":  false,
-    "values":  [
-                   "wayaround:reforced_blaster",
-                   "wayaround:solar_panel",
-                   "wayaround:energy_cable",
-                   "wayaround:steam_engine"
-               ]
+  "replace": false,
+  "values": [
+    "wayaround:reforced_blaster",
+    "wayaround:solar_panel",
+    "wayaround:energy_cable",
+    "wayaround:steam_engine",
+    "wayaround:black_box"
+  ]
 }

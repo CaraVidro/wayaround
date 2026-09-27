@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "wayaround:block/black_box"
+    },
+    "powered=true": {
+      "model": "wayaround:block/black_box_powered"
+    }
+  }
+}

@@ -1,6 +1,9 @@
 package net.caravidro.wayaround.media;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.media.blackbox.BlackBoxBlock;
+import net.caravidro.wayaround.media.blackbox.BlackBoxBlockEntity;
+import net.caravidro.wayaround.media.blackbox.BlackBoxItem;
 import net.caravidro.wayaround.media.item.CameraItem;
 import net.caravidro.wayaround.media.item.ExposedFilmRollItem;
 import net.caravidro.wayaround.media.item.PhotoItem;
@@ -175,6 +178,35 @@ public final class MediaContent {
                     )
             );
 
+    public static final DeferredBlock<BlackBoxBlock> BLACK_BOX =
+            BLOCKS.register(
+                    "black_box",
+                    () -> new BlackBoxBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(
+                                            MapColor.COLOR_ORANGE
+                                    )
+                                    .strength(
+                                            18.0F,
+                                            3_600_000.0F
+                                    )
+                                    .sound(
+                                            SoundType.METAL
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<BlackBoxItem> BLACK_BOX_ITEM =
+            ITEMS.register(
+                    "black_box",
+                    () -> new BlackBoxItem(
+                            BLACK_BOX.get(),
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .fireResistant()
+                    )
+            );
+
     public static final DeferredHolder<
             BlockEntityType<?>,
             BlockEntityType<PlacedCameraBlockEntity>
@@ -215,6 +247,19 @@ public final class MediaContent {
             );
 
     public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<BlackBoxBlockEntity>
+            > BLACK_BOX_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "black_box",
+                    () -> BlockEntityType.Builder.of(
+                                    BlackBoxBlockEntity::new,
+                                    BLACK_BOX.get()
+                            )
+                            .build(null)
+            );
+
+    public static final DeferredHolder<
             CreativeModeTab,
             CreativeModeTab
             > MEDIA_TAB =
@@ -244,6 +289,7 @@ public final class MediaContent {
                                         output.accept(PHOTO.get());
                                         output.accept(WOODEN_CHAIR_ITEM.get());
                                         output.accept(TELEVISION_ITEM.get());
+                                        output.accept(BLACK_BOX_ITEM.get());
                                     }
                             )
                             .build()

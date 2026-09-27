@@ -28,6 +28,70 @@ public final class ColdExposure {
         return new State(cold, tremor);
     }
 
+    public static State stepTemperature(
+            State previous,
+            boolean exposed,
+            double temperatureCelsius
+    ) {
+        double cold = finiteClamp(
+                previous.cold(),
+                MAX_COLD
+        );
+
+        double tremor = Math.max(
+                0,
+                finiteClamp(
+                        previous.tremor(),
+                        1
+                )
+                        - 1.0 / RECOVERY_SECONDS
+        );
+
+        if (exposed) {
+            double severity =
+                    Math.max(
+                            0,
+                            Math.min(
+                                    1,
+                                    (5.0 - temperatureCelsius)
+                                            / 60.0
+                            )
+                    );
+
+            cold =
+                    Math.min(
+                            MAX_COLD,
+                            cold
+                                    + 0.04
+                                    + severity * 1.90
+                    );
+
+            if (cold >= 10) {
+                tremor =
+                        Math.max(
+                                tremor,
+                                Math.min(
+                                        1,
+                                        0.2
+                                                + (cold - 10)
+                                                / 100
+                                )
+                        );
+            }
+        } else {
+            cold =
+                    Math.max(
+                            0,
+                            cold - 1
+                    );
+        }
+
+        return new State(
+                cold,
+                tremor
+        );
+    }
+
     public static double nightFactor(long dayTime) {
         long time = Math.floorMod(dayTime, 24000L);
         if (time >= 11500 && time < 14500) return smoothstep((time - 11500) / 3000.0);
