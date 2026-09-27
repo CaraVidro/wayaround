@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyRules;
+import net.caravidro.wayaround.ecology.SunfishEntity;
 import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -874,19 +875,16 @@ public final class LivingFaunaManager {
                 FISH_BASE_SIZE
         )) {
             boolean sunFish =
-                    fish.getType()
-                            == EntityType.TROPICAL_FISH
-                            && level.random.nextFloat()
-                                    < 0.0065F;
+                    fish instanceof SunfishEntity;
 
             float roll =
                     level.random.nextFloat();
 
             float base =
                     sunFish
-                            ? 1.30F
+                            ? 1.18F
                                     + roll
-                                            * 0.35F
+                                            * 0.32F
                             : 0.42F
                                     + (float) Math.pow(
                                     roll,
