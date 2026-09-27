@@ -86,24 +86,26 @@ public final class ShipBodyItem
                 level.getEntitiesOfClass(
                                 AssemblyShipEntity.class,
                                 new AABB(
-                                        location.x - 3.0,
-                                        location.y - 2.0,
-                                        location.z - 3.0,
-                                        location.x + 3.0,
-                                        location.y + 2.0,
-                                        location.z + 3.0
+                                        location.x - 48.0,
+                                        location.y - 12.0,
+                                        location.z - 48.0,
+                                        location.x + 48.0,
+                                        location.y + 12.0,
+                                        location.z + 48.0
                                 ),
                                 ship ->
                                         ship.isAlive()
+                                                && ship.distanceToHullSqr(
+                                                location
+                                        ) <= 9.0
                         )
                         .stream()
                         .min(
                                 java.util.Comparator.comparingDouble(
                                         ship ->
-                                                ship.position()
-                                                        .distanceToSqr(
-                                                                location
-                                                        )
+                                                ship.distanceToHullSqr(
+                                                        location
+                                                )
                                 )
                         )
                         .orElse(null);
