@@ -169,6 +169,13 @@ public final class RiverPebbleBlock
         double moveChance =
                 EcologyRules.pebbleMoveChance(
                         speed
+                )
+                        / (
+                        0.72
+                                + state.getValue(
+                                COUNT
+                        )
+                                        * 0.34
                 );
 
         if (direction == null
@@ -177,8 +184,38 @@ public final class RiverPebbleBlock
             return;
         }
 
+        int tumbleDistance =
+                speed > 0.22
+                        && state.getValue(
+                        COUNT
+                ) <= 2
+                        && random.nextFloat() < 0.36F
+                        ? 2
+                        : 1;
+
         BlockPos target =
-                pos.relative(direction);
+                pos.relative(
+                        direction,
+                        tumbleDistance
+                );
+
+        /*
+         * Fast flow may roll a small stone over one water cell, but never
+         * teleport through land or out of the river channel.
+         */
+        if (tumbleDistance > 1
+                && !level.getFluidState(
+                pos.relative(
+                        direction
+                )
+        ).is(
+                FluidTags.WATER
+        )) {
+            target =
+                    pos.relative(
+                            direction
+                    );
+        }
 
         BlockState targetState =
                 level.getBlockState(target);
@@ -196,7 +233,9 @@ public final class RiverPebbleBlock
                             )
                             .setValue(
                                     FACING,
-                                    direction
+                                    random.nextFloat() < 0.28F
+                                            ? direction.getClockWise()
+                                            : direction
                             )
             );
 
@@ -217,7 +256,12 @@ public final class RiverPebbleBlock
                 target,
                 defaultBlockState()
                         .setValue(COUNT, 1)
-                        .setValue(FACING, direction)
+                        .setValue(
+                                FACING,
+                                random.nextFloat() < 0.28F
+                                        ? direction.getCounterClockWise()
+                                        : direction
+                        )
                         .setValue(WATERLOGGED, true)
         );
 
