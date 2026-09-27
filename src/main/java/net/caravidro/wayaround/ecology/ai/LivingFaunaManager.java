@@ -8,8 +8,20 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyRules;
+import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -47,6 +59,27 @@ public final class LivingFaunaManager {
     private static final String SATIATED_UNTIL =
             "WayAroundEcologySatiatedUntil";
 
+    private static final String FISH_BASE_SIZE =
+            "WayAroundFishBaseSize";
+
+    private static final String FISH_SIZE =
+            "WayAroundFishSize";
+
+    private static final String FISH_MEALS =
+            "WayAroundFishMeals";
+
+    private static final String FISH_BORN =
+            "WayAroundFishBorn";
+
+    private static final String SUNFISH =
+            "WayAroundSunFish";
+
+    public static final String FISH_SCARED_UNTIL =
+            "WayAroundFishScaredUntil";
+
+    public static final String FISH_LURE_UNTIL =
+            "WayAroundFishLureUntil";
+
     private static final int INTERVAL =
             40;
 
@@ -74,6 +107,11 @@ public final class LivingFaunaManager {
         if (event.getEntity()
                 instanceof AbstractFish fish) {
             ensureFishHome(
+                    level,
+                    fish
+            );
+
+            ensureFishTraits(
                     level,
                     fish
             );
@@ -114,6 +152,96 @@ public final class LivingFaunaManager {
                     )
             );
         }
+    }
+
+    @SubscribeEvent
+    public static void fishDrops(
+            LivingDropsEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof AbstractFish fish)
+                || !WorldFeatureRuntime.serverEnabled(
+                WorldFeature.LIVING_VEGETATION
+        )) {
+            return;
+        }
+
+        event.getDrops()
+                .removeIf(
+                        drop -> {
+                            ItemStack stack =
+                                    drop.getItem();
+
+                            return stack.is(
+                                    Items.COD
+                            )
+                                    || stack.is(
+                                    Items.SALMON
+                            )
+                                    || stack.is(
+                                    Items.TROPICAL_FISH
+                            )
+                                    || stack.is(
+                                    Items.PUFFERFISH
+                            );
+                        }
+                );
+
+        Item meat;
+
+        if (isSunFish(
+                fish
+        )) {
+            meat =
+                    EcologyContent.RAW_SUNFISH_MEAT.get();
+
+        } else if (fish.getType()
+                == EntityType.COD) {
+            meat =
+                    EcologyContent.RAW_COD_MEAT.get();
+
+        } else if (fish.getType()
+                == EntityType.SALMON) {
+            meat =
+                    EcologyContent.RAW_SALMON_MEAT.get();
+
+        } else if (fish.getType()
+                == EntityType.PUFFERFISH) {
+            meat =
+                    EcologyContent.RAW_PUFFERFISH_MEAT.get();
+
+        } else {
+            meat =
+                    EcologyContent.RAW_TROPICAL_FISH_MEAT.get();
+        }
+
+        int count =
+                Math.max(
+                        1,
+                        Math.min(
+                                16,
+                                Math.round(
+                                        fishSize(
+                                                fish
+                                        )
+                                                * 2.8F
+                                )
+                        )
+                );
+
+        event.getDrops()
+                .add(
+                        new ItemEntity(
+                                fish.level(),
+                                fish.getX(),
+                                fish.getY(),
+                                fish.getZ(),
+                                new ItemStack(
+                                        meat,
+                                        count
+                                )
+                        )
+                );
     }
 
     @SubscribeEvent
@@ -497,6 +625,16 @@ public final class LivingFaunaManager {
                         fish
                 );
 
+                ensureFishTraits(
+                        level,
+                        fish
+                );
+
+                updateFishGrowth(
+                        level,
+                        fish
+                );
+
                 boolean feeding =
                         feedFish(
                                 level,
@@ -626,6 +764,76 @@ public final class LivingFaunaManager {
             return true;
         }
 
+        ItemStack eaten =
+                food.getItem()
+                        .copyWithCount(
+                                1
+                        );
+
+        level.playSound(
+                null,
+                fish.blockPosition(),
+                SoundEvents.GENERIC_EAT,
+                SoundSource.NEUTRAL,
+                0.55F,
+                1.15F
+                        + level.random.nextFloat()
+                                * 0.35F
+        );
+
+        level.sendParticles(
+                ParticleTypes.BUBBLE,
+                fish.getX(),
+                fish.getY()
+                        + fish.getBbHeight()
+                                * 0.45,
+                fish.getZ(),
+                8,
+                Math.max(
+                        0.08,
+                        fish.getBbWidth()
+                                * 0.28
+                ),
+                0.10,
+                Math.max(
+                        0.08,
+                        fish.getBbWidth()
+                                * 0.28
+                ),
+                0.025
+        );
+
+        level.sendParticles(
+                new ItemParticleOption(
+                        ParticleTypes.ITEM,
+                        eaten
+                ),
+                fish.getX(),
+                fish.getY()
+                        + fish.getBbHeight()
+                                * 0.52,
+                fish.getZ(),
+                4,
+                0.12,
+                0.08,
+                0.12,
+                0.015
+        );
+
+        CompoundTag fishData =
+                fish.getPersistentData();
+
+        fishData.putInt(
+                FISH_MEALS,
+                Math.min(
+                        10_000,
+                        fishData.getInt(
+                                FISH_MEALS
+                        )
+                                + 1
+                )
+        );
+
         food.getItem()
                 .shrink(
                         1
@@ -644,6 +852,239 @@ public final class LivingFaunaManager {
                 );
 
         return true;
+    }
+
+    private static void ensureFishTraits(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        CompoundTag data =
+                fish.getPersistentData();
+
+        if (!data.contains(
+                FISH_BORN
+        )) {
+            data.putLong(
+                    FISH_BORN,
+                    level.getGameTime()
+            );
+        }
+
+        if (!data.contains(
+                FISH_BASE_SIZE
+        )) {
+            boolean sunFish =
+                    fish.getType()
+                            == EntityType.TROPICAL_FISH
+                            && level.random.nextFloat()
+                                    < 0.0065F;
+
+            float roll =
+                    level.random.nextFloat();
+
+            float base =
+                    sunFish
+                            ? 1.30F
+                                    + roll
+                                            * 0.35F
+                            : 0.42F
+                                    + (float) Math.pow(
+                                    roll,
+                                    1.55
+                            )
+                                            * 0.86F;
+
+            data.putFloat(
+                    FISH_BASE_SIZE,
+                    base
+            );
+
+            data.putFloat(
+                    FISH_SIZE,
+                    base
+            );
+
+            data.putBoolean(
+                    SUNFISH,
+                    sunFish
+            );
+
+            if (sunFish) {
+                fish.setCustomName(
+                        net.minecraft.network.chat.Component.literal(
+                                "Sun Fish"
+                        )
+                );
+
+                fish.setCustomNameVisible(
+                        false
+                );
+            }
+        }
+
+        applyFishScale(
+                fish,
+                fishSize(
+                        fish
+                )
+        );
+    }
+
+    private static void updateFishGrowth(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        CompoundTag data =
+                fish.getPersistentData();
+
+        float base =
+                Math.max(
+                        0.35F,
+                        data.getFloat(
+                                FISH_BASE_SIZE
+                        )
+                );
+
+        int meals =
+                Math.max(
+                        0,
+                        data.getInt(
+                                FISH_MEALS
+                        )
+                );
+
+        long ageTicks =
+                Math.max(
+                        0L,
+                        level.getGameTime()
+                                - data.getLong(
+                                FISH_BORN
+                        )
+                );
+
+        float ageDays =
+                ageTicks
+                        / 24000.0F;
+
+        float mealGrowth =
+                (float) Math.sqrt(
+                        meals
+                )
+                        * 0.115F;
+
+        float survivalGrowth =
+                Math.min(
+                        0.90F,
+                        Math.max(
+                                0.0F,
+                                ageDays - 1.0F
+                        )
+                                * 0.035F
+                );
+
+        float cap;
+
+        if (meals < 4) {
+            cap =
+                    1.35F;
+
+        } else if (meals < 15) {
+            cap =
+                    1.75F;
+
+        } else if (meals < 40) {
+            cap =
+                    2.35F;
+
+        } else {
+            cap =
+                    data.getBoolean(
+                            SUNFISH
+                    )
+                            ? 3.85F
+                            : 3.15F;
+        }
+
+        float target =
+                Math.min(
+                        cap,
+                        base
+                                + mealGrowth
+                                + survivalGrowth
+                );
+
+        float current =
+                fishSize(
+                        fish
+                );
+
+        float next =
+                current
+                        + (
+                        target - current
+                )
+                                * 0.08F;
+
+        data.putFloat(
+                FISH_SIZE,
+                next
+        );
+
+        applyFishScale(
+                fish,
+                next
+        );
+    }
+
+    private static void applyFishScale(
+            AbstractFish fish,
+            float scale
+    ) {
+        AttributeInstance attribute =
+                fish.getAttribute(
+                        Attributes.SCALE
+                );
+
+        if (attribute != null) {
+            attribute.setBaseValue(
+                    Math.max(
+                            0.30F,
+                            Math.min(
+                                    4.0F,
+                                    scale
+                            )
+                    )
+            );
+        }
+    }
+
+    public static float fishSize(
+            AbstractFish fish
+    ) {
+        CompoundTag data =
+                fish.getPersistentData();
+
+        if (data.contains(
+                FISH_SIZE
+        )) {
+            return Math.max(
+                    0.30F,
+                    data.getFloat(
+                            FISH_SIZE
+                    )
+            );
+        }
+
+        return 1.0F;
+    }
+
+    public static boolean isSunFish(
+            AbstractFish fish
+    ) {
+        return fish.getPersistentData()
+                .getBoolean(
+                        SUNFISH
+                );
     }
 
     private static boolean migrateFish(
