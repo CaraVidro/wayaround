@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -63,8 +64,22 @@ public final class ShipBodyItem
             );
         }
 
+        BlockHitResult blockHit =
+                (BlockHitResult) hit;
+
+        Vec3 normal =
+                Vec3.atLowerCornerOf(
+                        blockHit.getDirection()
+                                .getNormal()
+                );
+
         Vec3 location =
-                hit.getLocation();
+                hit.getLocation()
+                        .add(
+                                normal.scale(
+                                        0.56
+                                )
+                        );
 
         AssemblyShipEntity ship =
                 new AssemblyShipEntity(
