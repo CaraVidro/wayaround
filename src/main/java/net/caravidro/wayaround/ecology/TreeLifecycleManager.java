@@ -17,7 +17,10 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -327,7 +330,12 @@ public final class TreeLifecycleManager {
                                                 tree.base().getX() + 0.5,
                                                 tree.base().getY() + 0.5,
                                                 tree.base().getZ() + 0.5
-                                        ) <= 40.0 * 40.0
+                                        ) <= 48.0 * 48.0
+                                                && canSeeTree(
+                                                level,
+                                                player,
+                                                tree.base()
+                                        )
                         );
 
         level.playSound(
@@ -381,6 +389,46 @@ public final class TreeLifecycleManager {
                         level.getServer().getTickCount()
                 )
         );
+    }
+
+    private static boolean canSeeTree(
+            ServerLevel level,
+            ServerPlayer player,
+            BlockPos base
+    ) {
+        Vec3 target =
+                Vec3.atCenterOf(
+                        base.above()
+                );
+
+        var hit =
+                level.clip(
+                        new ClipContext(
+                                player.getEyePosition(),
+                                target,
+                                ClipContext.Block.OUTLINE,
+                                ClipContext.Fluid.NONE,
+                                player
+                        )
+                );
+
+        if (hit.getType()
+                == HitResult.Type.MISS) {
+            return true;
+        }
+
+        if (hit
+                instanceof net.minecraft.world.phys.BlockHitResult blockHit) {
+            BlockPos hitPos =
+                    blockHit.getBlockPos();
+
+            return hitPos.distManhattan(
+                    base
+            )
+                    <= 2;
+        }
+
+        return false;
     }
 
     private static void seedOldLog(
