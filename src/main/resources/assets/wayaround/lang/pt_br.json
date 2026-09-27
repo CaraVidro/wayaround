@@ -303,5 +303,12 @@
   "turret.wayaround.off": "Desligada",
   "message.wayaround.immortal_wheel.family.infinity_melee": "Infinidade (corpo a corpo)",
   "block.wayaround.black_box": "Black Box",
-  "item.wayaround.black_box": "Black Box"
+  "item.wayaround.black_box": "Black Box",
+  "item.wayaround.ship_body": "Ship Body",
+  "item.wayaround.ship_mast": "Poste do Navio",
+  "item.wayaround.ship_sail": "Vela de Navio",
+  "item.wayaround.ship_anchor": "Âncora de Navio",
+  "item.wayaround.anchor_chain": "Corrente da Âncora",
+  "item.wayaround.ship_chair": "Cadeira de Navio",
+  "entity.wayaround.assembly_ship": "Navio Assembly Experimental"
 }

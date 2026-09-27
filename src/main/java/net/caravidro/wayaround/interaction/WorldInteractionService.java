@@ -5,7 +5,9 @@ import java.util.Set;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -115,6 +117,52 @@ public final class WorldInteractionService {
             );
 
             receivers++;
+        }
+
+        if (receivers
+                < MAX_RECEIVERS_PER_EMISSION) {
+            AABB area =
+                    new AABB(
+                            min.getX(),
+                            min.getY(),
+                            min.getZ(),
+                            max.getX() + 1.0,
+                            max.getY() + 1.0,
+                            max.getZ() + 1.0
+                    );
+
+            for (Entity entity :
+                    level.getEntities(
+                            (Entity) null,
+                            area,
+                            candidate ->
+                                    candidate
+                                            instanceof StructuralReceiver
+                    )) {
+                if (receivers
+                        >= MAX_RECEIVERS_PER_EMISSION) {
+                    break;
+                }
+
+                StructuralReceiver receiver =
+                        (StructuralReceiver) entity;
+
+                float magnitude =
+                        force.magnitudeAt(
+                                entity.position()
+                        );
+
+                if (magnitude <= 0.001F) {
+                    continue;
+                }
+
+                receiver.receiveWorldForce(
+                        force,
+                        magnitude
+                );
+
+                receivers++;
+            }
         }
 
         return receivers;

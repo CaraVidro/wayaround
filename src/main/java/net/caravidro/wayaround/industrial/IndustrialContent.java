@@ -4,6 +4,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
+import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.flag.FeatureFlags;
@@ -147,6 +148,24 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.MECHANICAL_GEARBOX_ITEM.get()
                                         );
+                                        output.accept(
+                                                ExperimentalShipContent.SHIP_BODY.get()
+                                        );
+                                        output.accept(
+                                                ExperimentalShipContent.SHIP_MAST.get()
+                                        );
+                                        output.accept(
+                                                ExperimentalShipContent.SHIP_SAIL.get()
+                                        );
+                                        output.accept(
+                                                ExperimentalShipContent.SHIP_ANCHOR.get()
+                                        );
+                                        output.accept(
+                                                ExperimentalShipContent.ANCHOR_CHAIN.get()
+                                        );
+                                        output.accept(
+                                                ExperimentalShipContent.SHIP_CHAIR.get()
+                                        );
                                     }
                             )
                             .build()
@@ -207,6 +226,7 @@ public final class IndustrialContent {
         bus.addListener(IndustrialContent::capabilities);
         PowerContent.register(bus);
         CoalShipContent.register(bus);
+        ExperimentalShipContent.register(bus);
     }
 
     private static void capabilities(RegisterCapabilitiesEvent event) {
