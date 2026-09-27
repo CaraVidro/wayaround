@@ -123,6 +123,58 @@ public final class EcologyBrain {
         );
     }
 
+    public static Intent homeIntent(
+            Animal animal,
+            Vec3 home
+    ) {
+        if (home == null) {
+            return Intent.none();
+        }
+
+        double distance =
+                animal.position()
+                        .distanceTo(
+                                home
+                        );
+
+        boolean flying =
+                animal instanceof FlyingAnimal;
+
+        double threshold =
+                flying
+                        ? 34.0
+                        : 28.0;
+
+        if (distance <= threshold) {
+            return Intent.none();
+        }
+
+        return new Intent(
+                IntentType.RETURN_HOME,
+                flying
+                        ? home.add(
+                        0.0,
+                        2.0,
+                        0.0
+                )
+                        : new Vec3(
+                        home.x,
+                        animal.getY(),
+                        home.z
+                ),
+                flying
+                        ? 1.16
+                        : 0.98,
+                (float) Math.min(
+                        1.0,
+                        (
+                                distance - threshold
+                        )
+                                / 28.0
+                )
+        );
+    }
+
     public static void apply(
             Animal animal,
             Intent intent
