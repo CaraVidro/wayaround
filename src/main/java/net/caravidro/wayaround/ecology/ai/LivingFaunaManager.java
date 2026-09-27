@@ -9,7 +9,10 @@ import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyRules;
 import net.caravidro.wayaround.ecology.SunfishEntity;
+import net.caravidro.wayaround.ecology.SardineEntity;
+import net.caravidro.wayaround.ecology.ReefSharkEntity;
 import net.caravidro.wayaround.ecology.EcologyContent;
+import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.particles.ItemParticleOption;
@@ -59,6 +62,12 @@ public final class LivingFaunaManager {
 
     private static final String SATIATED_UNTIL =
             "WayAroundEcologySatiatedUntil";
+
+    private static final String NEXT_FEED_CHECK =
+            "WayAroundFishNextFeedCheck";
+
+    private static final String NEXT_PREDATOR_BITE =
+            "WayAroundPredatorNextBite";
 
     private static final String FISH_BASE_SIZE =
             "WayAroundFishBaseSize";
@@ -190,7 +199,17 @@ public final class LivingFaunaManager {
 
         Item meat;
 
-        if (isSunFish(
+        if (fish
+                instanceof SardineEntity) {
+            meat =
+                    EcologyContent.RAW_SARDINE_MEAT.get();
+
+        } else if (fish
+                instanceof ReefSharkEntity) {
+            meat =
+                    EcologyContent.RAW_SHARK_MEAT.get();
+
+        } else if (isSunFish(
                 fish
         )) {
             meat =
@@ -863,6 +882,20 @@ public final class LivingFaunaManager {
             AbstractFish fish,
             ItemStack stack
     ) {
+        if (fish
+                instanceof SardineEntity) {
+            return stack.is(
+                    EcologyContent.RAW_SARDINE_MEAT.get()
+            );
+        }
+
+        if (fish
+                instanceof ReefSharkEntity) {
+            return stack.is(
+                    EcologyContent.RAW_SHARK_MEAT.get()
+            );
+        }
+
         if (isSunFish(
                 fish
         )) {
