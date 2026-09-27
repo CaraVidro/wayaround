@@ -1779,18 +1779,12 @@ public final class OldFriendManager {
         if (!level.getEntitiesOfClass(
                 HerobrineEntity.class,
                 new AABB(
-                        victim.blockPosition()
-                                .offset(
-                                        -128,
-                                        -64,
-                                        -128
-                                ),
-                        victim.blockPosition()
-                                .offset(
-                                        128,
-                                        64,
-                                        128
-                                )
+                        victim.getX() - 128.0,
+                        victim.getY() - 64.0,
+                        victim.getZ() - 128.0,
+                        victim.getX() + 128.0,
+                        victim.getY() + 64.0,
+                        victim.getZ() + 128.0
                 )
         ).isEmpty()) {
             return;
