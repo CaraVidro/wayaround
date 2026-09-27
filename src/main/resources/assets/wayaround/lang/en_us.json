@@ -347,5 +347,10 @@
   "item.wayaround.raw_tropical_fish_meat": "Raw Tropical Fish Meat",
   "item.wayaround.raw_pufferfish_meat": "Raw Pufferfish Meat",
   "item.wayaround.raw_sunfish_meat": "Raw Sunfish Meat",
-  "entity.wayaround.sunfish": "Sunfish"
+  "entity.wayaround.sunfish": "Sunfish",
+  "entity.wayaround.sardine": "Sardine",
+  "entity.wayaround.reef_shark": "Reef Shark",
+  "entity.wayaround.crab": "Crab",
+  "item.wayaround.raw_sardine_meat": "Raw Sardine Meat",
+  "item.wayaround.raw_shark_meat": "Raw Shark Meat"
 }
