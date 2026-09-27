@@ -82,11 +82,20 @@ public final class BroadcastManager {
         Set<Long> emitted = new HashSet<>();
 
         if (holdingHandheldMicrophone(sender)) {
-            for (long antennaLong : fresh(state.antennas, level.getGameTime())) {
-                BlockPos antennaPos = BlockPos.of(antennaLong);
-                if (antennaPos.distSqr(sender.blockPosition()) <= 96.0 * 96.0) {
-                    emitVoiceFromAntenna(level, antennaPos, pcm, emitted);
-                }
+            BlockPos uplink =
+                    nearestAntenna(
+                            level,
+                            sender.position(),
+                            128.0
+                    );
+
+            if (uplink != null) {
+                emitVoiceFromAntenna(
+                        level,
+                        uplink,
+                        pcm,
+                        emitted
+                );
             }
         }
 
@@ -135,11 +144,23 @@ public final class BroadcastManager {
 
         if (holdingHandheldMicrophone(reporter)
                 && reporter.position().distanceToSqr(soundPosition) <= 14.0 * 14.0) {
-            for (long antennaLong : fresh(dimension.antennas, level.getGameTime())) {
-                BlockPos antennaPos = BlockPos.of(antennaLong);
-                if (antennaPos.distSqr(reporter.blockPosition()) <= 96.0 * 96.0) {
-                    emitSoundFromAntenna(level, antennaPos, sound, source, volume, pitch, emitted);
-                }
+            BlockPos uplink =
+                    nearestAntenna(
+                            level,
+                            reporter.position(),
+                            128.0
+                    );
+
+            if (uplink != null) {
+                emitSoundFromAntenna(
+                        level,
+                        uplink,
+                        sound,
+                        source,
+                        volume,
+                        pitch,
+                        emitted
+                );
             }
         }
 
@@ -281,6 +302,53 @@ public final class BroadcastManager {
                 staticVolume,
                 0.96F + level.random.nextFloat() * 0.08F
         );
+    }
+
+    private static BlockPos nearestAntenna(
+            ServerLevel level,
+            Vec3 source,
+            double maxDistance
+    ) {
+        DimensionState dimension =
+                state(
+                        level
+                );
+
+        BlockPos best =
+                null;
+
+        double bestDistance =
+                maxDistance
+                        * maxDistance;
+
+        for (long antennaLong :
+                fresh(
+                        dimension.antennas,
+                        level.getGameTime()
+                )) {
+            BlockPos candidate =
+                    BlockPos.of(
+                            antennaLong
+                    );
+
+            double distance =
+                    Vec3.atCenterOf(
+                            candidate
+                    )
+                            .distanceToSqr(
+                                    source
+                            );
+
+            if (distance <= bestDistance) {
+                bestDistance =
+                        distance;
+
+                best =
+                        candidate;
+            }
+        }
+
+        return best;
     }
 
     public static float bestSignalQuality(
@@ -787,32 +855,52 @@ public final class BroadcastManager {
                 );
             }
 
-            for (long antennaLong : fresh(state.antennas, level.getGameTime())) {
-                BlockPos antennaPos = BlockPos.of(antennaLong);
-                if (antennaPos.distSqr(player.blockPosition()) > 96.0 * 96.0) continue;
+            if (!BroadcastCameraData.hasIntegratedAntenna(
+                    heldCamera
+            )) {
+                BlockPos uplink =
+                        nearestAntenna(
+                                level,
+                                player.position(),
+                                128.0
+                        );
 
-                Topology topology = topology(level, antennaPos);
-                if (topology.mode != BroadcastMode.ON_AIR) continue;
+                if (uplink != null) {
+                    Topology topology =
+                            topology(
+                                    level,
+                                    uplink
+                            );
 
-                BroadcastAntennaBlockEntity antenna = antenna(level, antennaPos);
-                if (antenna == null) continue;
+                    BroadcastAntennaBlockEntity antenna =
+                            antenna(
+                                    level,
+                                    uplink
+                            );
 
-                if (image == null) {
-                    image = BroadcastCameraSampler.capture(
-                            level,
-                            player.getEyePosition(),
-                            player.getLookAngle()
-                    );
+                    if (topology.mode
+                            == BroadcastMode.ON_AIR
+                            && antenna != null) {
+
+                        if (image == null) {
+                            image =
+                                    BroadcastCameraSampler.capture(
+                                            level,
+                                            player.getEyePosition(),
+                                            player.getLookAngle()
+                                    );
+                        }
+
+                        emitImage(
+                                level,
+                                uplink,
+                                antenna.frequencyKHz(),
+                                antenna.rangeBlocks(),
+                                image,
+                                topology.effect
+                        );
+                    }
                 }
-
-                emitImage(
-                        level,
-                        antennaPos,
-                        antenna.frequencyKHz(),
-                        antenna.rangeBlocks(),
-                        image,
-                        topology.effect
-                );
             }
         }
 
