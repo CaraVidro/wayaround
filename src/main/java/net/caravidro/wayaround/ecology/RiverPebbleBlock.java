@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -29,7 +30,7 @@ public final class RiverPebbleBlock
         implements SimpleWaterloggedBlock {
 
     public static final IntegerProperty COUNT =
-            IntegerProperty.create("count", 1, 4);
+            IntegerProperty.create("count", 1, 15);
 
     public static final DirectionProperty FACING =
             BlockStateProperties.HORIZONTAL_FACING;
@@ -40,12 +41,46 @@ public final class RiverPebbleBlock
     public static final MapCodec<RiverPebbleBlock> CODEC =
             simpleCodec(RiverPebbleBlock::new);
 
-    private static final VoxelShape[] SHAPES = {
-            box(5, 0, 5, 11, 2, 11),
-            box(2, 0, 3, 13, 3, 12),
-            box(1, 0, 1, 15, 4, 14),
-            box(1, 0, 1, 15, 5, 15)
-    };
+    private static final VoxelShape[] SHAPES =
+            createShapes();
+
+    private static VoxelShape[] createShapes() {
+        VoxelShape[] shapes =
+                new VoxelShape[15];
+
+        for (int count = 1;
+             count <= shapes.length;
+             count++) {
+            double height =
+                    Math.min(
+                            10.0,
+                            1.8
+                                    + Math.ceil(
+                                    count / 3.0
+                            )
+                                            * 1.45
+                    );
+
+            double inset =
+                    count <= 2
+                            ? 4.0
+                            : count <= 5
+                                    ? 2.0
+                                    : 1.0;
+
+            shapes[count - 1] =
+                    box(
+                            inset,
+                            0.0,
+                            inset,
+                            16.0 - inset,
+                            height,
+                            16.0 - inset
+                    );
+        }
+
+        return shapes;
+    }
 
     public RiverPebbleBlock(BlockBehaviour.Properties properties) {
         super(properties);
@@ -76,7 +111,7 @@ public final class RiverPebbleBlock
         if (existing.is(this)) {
             return existing.setValue(
                     COUNT,
-                    Math.min(4, existing.getValue(COUNT) + 1)
+                    Math.min(15, existing.getValue(COUNT) + 1)
             );
         }
 
@@ -98,7 +133,7 @@ public final class RiverPebbleBlock
     ) {
         return !context.isSecondaryUseActive()
                 && context.getItemInHand().is(EcologyContent.RIVER_PEBBLES_ITEM.get())
-                && state.getValue(COUNT) < 4
+                && state.getValue(COUNT) < 15
                 || super.canBeReplaced(state, context);
     }
 
@@ -143,7 +178,7 @@ public final class RiverPebbleBlock
             BlockPos pos,
             CollisionContext context
     ) {
-        return SHAPES[state.getValue(COUNT) - 1];
+        return SHAPES[Mth.clamp(state.getValue(COUNT), 1, 15) - 1];
     }
 
     @Override
@@ -222,7 +257,7 @@ public final class RiverPebbleBlock
 
         if (targetState.is(this)
                 && targetState.getValue(WATERLOGGED)
-                && targetState.getValue(COUNT) < 4) {
+                && targetState.getValue(COUNT) < 15) {
 
             level.setBlockAndUpdate(
                     target,
