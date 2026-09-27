@@ -291,7 +291,7 @@ public final class MediaTransferServer {
 
         synchronized (MediaTransferServer.class) {
             int budget =
-                    MediaNetworkLimits.MediaNetworkLimits.DOWNLOAD_CHUNKS_PER_TICK;
+                    MediaNetworkLimits.DOWNLOAD_CHUNKS_PER_TICK;
 
             Iterator<DownloadSession> iterator =
                     DOWNLOADS.iterator();
