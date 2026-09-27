@@ -10,7 +10,7 @@ change because rain, water, time, death and animals are interacting.
 
 Existing worlds do not need newly generated chunks.
 
-When a server starts, loaded spawn chunks receive a conservative one-time
+When a server starts, a 5x5 loaded spawn-chunk area receives a one-time
 ecology pass. Chunks encountered later near players receive the same pass.
 
 `EcologyWorldData` remembers which chunks have already been seeded, so
@@ -50,6 +50,9 @@ Generated trees also receive an understory layer using:
 - River Sprig;
 - Woodland Sorrel;
 - Damp Fern;
+- Meadow Sedge;
+- Creek Clover;
+- Shade Nettle;
 - vanilla fern / short grass.
 
 Dense biomes remain denser than plains/savanna; this is not a uniform
@@ -74,11 +77,15 @@ Pebbles are a low-profile, waterloggable block with four density states.
 A single block position may visually contain 1-4 stones.
 
 The cluster has horizontal orientation, giving repeated patches visual
-variation.
+variation. Multi-stone models also rotate individual stones so stacks read
+like layered river material instead of duplicated cubes.
 
 Under flowing water, random ticks sample `WaterDynamics.current`.
 
-Strong enough current can move one pebble downstream:
+Strong enough current can move one pebble downstream. Faster current may
+tumble light clusters by two cells, while larger stacks resist transport more.
+
+Movement can:
 
 - into another pebble cluster, increasing its count;
 - into an empty water cell over solid riverbed.
@@ -116,17 +123,25 @@ Older logs can grow:
 
 - Woodland Sorrel;
 - Damp Fern;
+- Creek Clover;
+- Shade Nettle;
 - brown/red mushrooms in low light.
+
+Advanced fallen wood also enriches adjacent dirt into rooted dirt/moss,
+creating a small micro-habitat around decomposing trunks.
 
 Advanced rot eventually returns part of the wood to rooted dirt or moss.
 
 ## New simple plants
 
-V1 adds three lightweight world plants:
+V1 currently adds six lightweight world plants:
 
 - `wayaround:river_sprig`
 - `wayaround:woodland_sorrel`
 - `wayaround:damp_fern`
+- `wayaround:meadow_sedge`
+- `wayaround:creek_clover`
+- `wayaround:shade_nettle`
 
 They deliberately use simple cross-block rendering and are primarily world
 content, not a new special creative tab.
@@ -223,8 +238,12 @@ Local population caps and persistent cooldowns bound reproduction.
 - shelter;
 - explore.
 
-V1 implements cohesion and home behavior directly, while the remaining intent
-types are foundation points for future terrestrial/flying intelligence.
+V1 now actively uses cohesion, shelter, return-home and exploration intents.
+Foraging remains a higher-priority behavior. Flying animals receive different
+cohesion radius, altitude targets and movement speeds.
+
+The remaining intent vocabulary is intentionally reusable for future fear,
+territory, seasonal migration and predator/prey senses.
 
 This layer is intentionally higher-level than vanilla goals.
 
@@ -237,10 +256,11 @@ Living Ecology avoids full-world scans.
 
 Current V1 bounds include:
 
-- runtime ground succession: 26 sampled columns per nearby player / 80 ticks;
-- one-time chunk ecology pass: 72 samples;
-- animal processing: max 180 per level / 40 ticks;
-- fish processing: max 180 per level / 40 ticks;
+- runtime ground succession: 42 sampled columns per nearby player / 80 ticks;
+- one-time chunk ecology pass: 112 samples;
+- initial server spawn seeding: loaded 5x5 chunk area;
+- animal processing: max 240 per level / 40 ticks;
+- fish processing: max 260 per level / 40 ticks;
 - Time/Aging remains sparse/bounded;
 - tree lifecycle samples only a small fraction of succession positions.
 
@@ -280,3 +300,23 @@ Living Fauna
 Living Ecology is a foundation. A future focused content tab can consume it
 without needing to invent its own rain growth, river sediment, animal memory,
 decomposition or migration systems.
+
+
+## V1 polish notes
+
+This pass intentionally pushes the world toward a wilder baseline.
+
+Biome-aware tree attempts were raised substantially (especially jungle, dark
+forest, old growth, ordinary forest, taiga and river corridors) and generated
+trees now receive denser understory.
+
+River deposition can form short downstream sand/gravel tongues in calm pockets
+instead of only replacing one isolated floor block.
+
+Fish now use school cohesion when they are not feeding or performing their
+seasonal reproductive migration. Coral search at first observation is broader,
+so coral-associated species are more likely to remember a reef-adjacent
+reproductive home.
+
+Natural spawn cluster limits are larger for both fish and land/flying animals,
+while ecological reproduction remains locally bounded.
