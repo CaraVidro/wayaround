@@ -101,8 +101,9 @@ public final class FrostManager {
     public static boolean eligible(Level level, BlockPos pos, BlockState state) {
         /*
          * Frost now applies to every physical block unless it is explicitly
-         * immune. This intentionally includes wood, leaves, ores, white
-         * blocks, quartz, glass, etc.
+         * immune. Wood, ores, quartz and glass may accumulate it, but living
+         * leaves are intentionally excluded: fully white foliage looked like
+         * a material swap instead of snow exposure.
          *
          * Natural polar terrain is kept out through #wayaround:frost_immune.
          */
