@@ -116,8 +116,8 @@ public final class LivingFaunaManager {
         Set<UUID> touched =
                 new HashSet<>();
 
-        int processed =
-                0;
+        List<Animal> candidates =
+                new ArrayList<>();
 
         outer:
         for (var player : level.players()) {
@@ -140,76 +140,88 @@ public final class LivingFaunaManager {
                     continue;
                 }
 
-                List<Animal> group =
-                        level.getEntitiesOfClass(
-                                Animal.class,
-                                animal.getBoundingBox()
-                                        .inflate(
-                                                22.0,
-                                                10.0,
-                                                22.0
-                                        ),
-                                other ->
-                                        other.isAlive()
-                                                && other.getType()
-                                                == animal.getType()
-                        );
-
-                ensureAnimalHome(
+                candidates.add(
                         animal
                 );
 
-                boolean foraging =
-                        forageAnimal(
-                                level,
-                                animal
-                        );
-
-                if (!foraging) {
-                    EcologyBrain.Intent groupIntent =
-                            EcologyBrain.groupIntent(
-                                    animal,
-                                    group
-                            );
-
-                    if (groupIntent.type()
-                            != EcologyBrain.IntentType.NONE) {
-                        EcologyBrain.apply(
-                                animal,
-                                groupIntent
-                        );
-                    } else {
-                        BlockPos home =
-                                BlockPos.of(
-                                        animal.getPersistentData()
-                                                .getLong(
-                                                        HOME
-                                                )
-                                );
-
-                        EcologyBrain.apply(
-                                animal,
-                                EcologyBrain.homeIntent(
-                                        animal,
-                                        Vec3.atCenterOf(
-                                                home
-                                        )
-                                )
-                        );
-                    }
-                }
-
-                autonomousBreed(
-                        level,
-                        animal,
-                        group
-                );
-
-                if (++processed
+                if (candidates.size()
                         >= MAX_ANIMALS_PER_LEVEL) {
                     break outer;
                 }
             }
+        }
+
+        for (Animal animal :
+                candidates) {
+            if (animal
+                    instanceof TamableAnimal tame
+                    && tame.isTame()) {
+                continue;
+            }
+
+            List<Animal> group =
+                    candidates.stream()
+                            .filter(
+                                    other ->
+                                            other.isAlive()
+                                                    && other.getType()
+                                                    == animal.getType()
+                                                    && other.distanceToSqr(
+                                                    animal
+                                            ) <= 22.0 * 22.0
+                            )
+                            .toList();
+
+            ensureAnimalHome(
+                    animal
+            );
+
+            boolean foraging =
+                    forageAnimal(
+                            level,
+                            animal
+                    );
+
+            if (!foraging
+                    && !animal.isInLove()) {
+                EcologyBrain.Intent groupIntent =
+                        EcologyBrain.groupIntent(
+                                animal,
+                                group
+                        );
+
+                if (groupIntent.type()
+                        != EcologyBrain.IntentType.NONE) {
+                    EcologyBrain.apply(
+                            animal,
+                            groupIntent
+                    );
+                } else {
+                    BlockPos home =
+                            BlockPos.of(
+                                    animal.getPersistentData()
+                                            .getLong(
+                                                    HOME
+                                            )
+                            );
+
+                    EcologyBrain.apply(
+                            animal,
+                            EcologyBrain.homeIntent(
+                                    animal,
+                                    Vec3.atCenterOf(
+                                            home
+                                    )
+                            )
+                    );
+                }
+            }
+
+            autonomousBreed(
+                    level,
+                    animal,
+                    group
+            );
         }
     }
 
