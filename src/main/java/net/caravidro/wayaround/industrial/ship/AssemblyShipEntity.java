@@ -1179,6 +1179,8 @@ public final class AssemblyShipEntity
                     destroyed
             );
 
+            pruneUnsupportedModules();
+
             changed =
                     true;
 
@@ -1288,11 +1290,18 @@ public final class AssemblyShipEntity
             impulseDirection =
                     impulseDirection.normalize();
 
+            double waterAssist =
+                    attacker != null
+                            && attacker.isInWater()
+                            ? 1.25
+                            : 1.0;
+
             double shove =
                     (
                             4.0
                                     + amount * 0.9
                     )
+                            * waterAssist
                             / Math.max(
                             70.0,
                             totalMass()
@@ -2366,6 +2375,70 @@ public final class AssemblyShipEntity
             case 3 -> "esquerda";
             default -> "?";
         };
+    }
+
+    private void pruneUnsupportedModules() {
+        masts.removeIf(
+                mast ->
+                        !hasHull(
+                                mast.x,
+                                mast.z
+                        )
+        );
+
+        seats.removeIf(
+                seat ->
+                        !hasHull(
+                                seat.x,
+                                seat.z
+                        )
+        );
+
+        if (anchor != null
+                && !hasHull(
+                anchor.x,
+                anchor.z
+        )) {
+            anchor =
+                    null;
+
+            anchorHolding =
+                    false;
+
+            anchorHauler =
+                    null;
+
+            entityData.set(
+                    ANCHOR_DEPTH,
+                    0.0F
+            );
+
+            entityData.set(
+                    ANCHOR_LOWERING,
+                    false
+            );
+        }
+
+        if (!hull.isEmpty()
+                && !hasHull(
+                cursorX,
+                cursorZ
+        )) {
+            HullCell fallback =
+                    hull.getFirst();
+
+            cursorX =
+                    fallback.x;
+
+            cursorZ =
+                    fallback.z;
+        }
+
+        if (getPassengers()
+                .size()
+                > seats.size()) {
+            ejectPassengers();
+        }
     }
 
     private void syncStructure() {
