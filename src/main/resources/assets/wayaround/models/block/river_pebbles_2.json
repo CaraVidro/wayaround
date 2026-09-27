@@ -34,6 +34,16 @@
         "east": {
           "texture": "#stone"
         }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          8,
+          8
+        ],
+        "axis": "y",
+        "angle": 22.5,
+        "rescale": false
       }
     },
     {
@@ -66,6 +76,16 @@
         "east": {
           "texture": "#stone"
         }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          8,
+          8
+        ],
+        "axis": "y",
+        "angle": -22.5,
+        "rescale": false
       }
     }
   ]

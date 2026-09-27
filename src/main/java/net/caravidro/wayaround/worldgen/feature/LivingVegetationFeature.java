@@ -101,40 +101,40 @@ public final class LivingVegetationFeature
 
     private static int densityFor(String biome) {
         if (biome.contains("jungle")) {
-            return 34;
+            return 52;
         }
 
         if (biome.contains("dark_forest")) {
-            return 29;
+            return 46;
         }
 
         if (biome.contains("old_growth")) {
-            return 25;
+            return 40;
         }
 
         if (biome.contains("forest")) {
-            return 22;
+            return 34;
         }
 
         if (biome.contains("taiga")
                 || biome.contains("grove")) {
-            return 19;
+            return 29;
         }
 
         if (biome.contains("river")) {
-            return 14;
+            return 23;
         }
 
         if (biome.contains("savanna")) {
-            return 9;
+            return 14;
         }
 
         if (biome.contains("meadow")) {
-            return 7;
+            return 12;
         }
 
         if (biome.contains("plains")) {
-            return 6;
+            return 11;
         }
 
         return 0;
@@ -243,8 +243,8 @@ public final class LivingVegetationFeature
             RandomSource random
     ) {
         int attempts =
-                7
-                        + random.nextInt(9);
+                12
+                        + random.nextInt(15);
 
         for (int i = 0; i < attempts; i++) {
             BlockPos pos =
@@ -278,19 +278,35 @@ public final class LivingVegetationFeature
                     random.nextFloat();
 
             if (nearRiver
-                    && pick < 0.32F) {
+                    && pick < 0.22F) {
                 plant =
                         EcologyContent.RIVER_SPRIG.get()
                                 .defaultBlockState();
 
-            } else if (pick < 0.58F) {
+            } else if (nearRiver
+                    && pick < 0.36F) {
+                plant =
+                        EcologyContent.CREEK_CLOVER.get()
+                                .defaultBlockState();
+
+            } else if (pick < 0.52F) {
                 plant =
                         EcologyContent.DAMP_FERN.get()
                                 .defaultBlockState();
 
-            } else if (pick < 0.78F) {
+            } else if (pick < 0.66F) {
                 plant =
                         EcologyContent.WOODLAND_SORREL.get()
+                                .defaultBlockState();
+
+            } else if (pick < 0.78F) {
+                plant =
+                        EcologyContent.SHADE_NETTLE.get()
+                                .defaultBlockState();
+
+            } else if (pick < 0.90F) {
+                plant =
+                        EcologyContent.MEADOW_SEDGE.get()
                                 .defaultBlockState();
 
             } else {

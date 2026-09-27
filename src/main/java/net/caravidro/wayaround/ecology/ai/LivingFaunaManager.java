@@ -51,10 +51,10 @@ public final class LivingFaunaManager {
             40;
 
     private static final int MAX_ANIMALS_PER_LEVEL =
-            180;
+            240;
 
     private static final int MAX_FISH_PER_LEVEL =
-            180;
+            260;
 
     private LivingFaunaManager() {}
 
@@ -197,7 +197,7 @@ public final class LivingFaunaManager {
                                                     == animal.getType()
                                                     && other.distanceToSqr(
                                                     animal
-                                            ) <= 22.0 * 22.0
+                                            ) <= 28.0 * 28.0
                             )
                             .toList();
 
@@ -213,37 +213,57 @@ public final class LivingFaunaManager {
 
             if (!foraging
                     && !animal.isInLove()) {
-                EcologyBrain.Intent groupIntent =
-                        EcologyBrain.groupIntent(
-                                animal,
-                                group
+                BlockPos home =
+                        BlockPos.of(
+                                animal.getPersistentData()
+                                        .getLong(
+                                                HOME
+                                        )
                         );
 
-                if (groupIntent.type()
-                        != EcologyBrain.IntentType.NONE) {
-                    EcologyBrain.apply(
-                            animal,
-                            groupIntent
-                    );
-                } else {
-                    BlockPos home =
-                            BlockPos.of(
-                                    animal.getPersistentData()
-                                            .getLong(
-                                                    HOME
-                                            )
-                            );
+                Vec3 homeCenter =
+                        Vec3.atCenterOf(
+                                home
+                        );
 
-                    EcologyBrain.apply(
-                            animal,
+                EcologyBrain.Intent intent =
+                        EcologyBrain.shelterIntent(
+                                level,
+                                animal
+                        );
+
+                if (intent.type()
+                        == EcologyBrain.IntentType.NONE) {
+                    intent =
+                            EcologyBrain.groupIntent(
+                                    animal,
+                                    group
+                            );
+                }
+
+                if (intent.type()
+                        == EcologyBrain.IntentType.NONE) {
+                    intent =
                             EcologyBrain.homeIntent(
                                     animal,
-                                    Vec3.atCenterOf(
-                                            home
-                                    )
-                            )
-                    );
+                                    homeCenter
+                            );
                 }
+
+                if (intent.type()
+                        == EcologyBrain.IntentType.NONE) {
+                    intent =
+                            EcologyBrain.exploreIntent(
+                                    level,
+                                    animal,
+                                    homeCenter
+                            );
+                }
+
+                EcologyBrain.apply(
+                        animal,
+                        intent
+                );
             }
 
             autonomousBreed(
@@ -367,8 +387,8 @@ public final class LivingFaunaManager {
 
         int targetGroup =
                 animal instanceof net.minecraft.world.entity.animal.FlyingAnimal
-                        ? 10
-                        : 8;
+                        ? 14
+                        : 11;
 
         if (group.size()
                 >= targetGroup + 3) {
@@ -477,15 +497,25 @@ public final class LivingFaunaManager {
                         fish
                 );
 
-                feedFish(
-                        level,
-                        fish
-                );
+                boolean feeding =
+                        feedFish(
+                                level,
+                                fish
+                        );
 
-                migrateFish(
-                        level,
-                        fish
-                );
+                boolean migrating =
+                        migrateFish(
+                                level,
+                                fish
+                        );
+
+                if (!feeding
+                        && !migrating) {
+                    schoolFish(
+                            level,
+                            fish
+                    );
+                }
 
                 reproduceFish(
                         level,
@@ -520,7 +550,7 @@ public final class LivingFaunaManager {
                 nearestCoral(
                         level,
                         spawn,
-                        9
+                        16
                 );
 
         BlockPos home =
@@ -547,7 +577,7 @@ public final class LivingFaunaManager {
         );
     }
 
-    private static void feedFish(
+    private static boolean feedFish(
             ServerLevel level,
             AbstractFish fish
     ) {
@@ -579,7 +609,7 @@ public final class LivingFaunaManager {
                         .orElse(null);
 
         if (food == null) {
-            return;
+            return false;
         }
 
         fish.getNavigation()
@@ -593,7 +623,7 @@ public final class LivingFaunaManager {
         if (fish.distanceToSqr(
                 food
         ) > 1.55 * 1.55) {
-            return;
+            return true;
         }
 
         food.getItem()
@@ -612,9 +642,11 @@ public final class LivingFaunaManager {
                         level.getGameTime()
                                 + 7200L
                 );
+
+        return true;
     }
 
-    private static void migrateFish(
+    private static boolean migrateFish(
             ServerLevel level,
             AbstractFish fish
     ) {
@@ -656,15 +688,126 @@ public final class LivingFaunaManager {
                             1.25
                     );
 
+            return true;
+
         } else if (!breedingMigration
                 && !nearHome
-                && distance > 10.0 * 10.0) {
+                && distance > 14.0 * 14.0) {
             fish.getNavigation()
                     .moveTo(
                             home.getX() + 0.5,
                             home.getY() + 0.5,
                             home.getZ() + 0.5,
                             1.05
+                    );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void schoolFish(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        List<AbstractFish> school =
+                level.getEntitiesOfClass(
+                        AbstractFish.class,
+                        fish.getBoundingBox()
+                                .inflate(
+                                        18.0,
+                                        7.0,
+                                        18.0
+                                ),
+                        other ->
+                                other.isAlive()
+                                        && other.getType()
+                                                == fish.getType()
+                );
+
+        if (school.size() < 2) {
+            return;
+        }
+
+        double x =
+                0.0;
+
+        double y =
+                0.0;
+
+        double z =
+                0.0;
+
+        for (AbstractFish member :
+                school) {
+            x += member.getX();
+            y += member.getY();
+            z += member.getZ();
+        }
+
+        Vec3 center =
+                new Vec3(
+                        x / school.size(),
+                        y / school.size(),
+                        z / school.size()
+                );
+
+        double distance =
+                fish.position()
+                        .distanceTo(
+                                center
+                        );
+
+        if (distance > 6.5) {
+            fish.getNavigation()
+                    .moveTo(
+                            center.x,
+                            center.y,
+                            center.z,
+                            1.12
+                    );
+
+            return;
+        }
+
+        if (level.random.nextFloat()
+                < 0.08F) {
+            BlockPos home =
+                    BlockPos.of(
+                            fish.getPersistentData()
+                                    .getLong(
+                                            HOME
+                                    )
+                    );
+
+            double angle =
+                    level.random.nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            fish.getNavigation()
+                    .moveTo(
+                            home.getX()
+                                    + 0.5
+                                    + Math.cos(
+                                    angle
+                            )
+                                            * 8.0,
+                            home.getY()
+                                    + 0.5
+                                    + (
+                                    level.random.nextDouble()
+                                            - 0.5
+                            )
+                                            * 3.0,
+                            home.getZ()
+                                    + 0.5
+                                    + Math.sin(
+                                    angle
+                            )
+                                            * 8.0,
+                            1.03
                     );
         }
     }
@@ -736,7 +879,7 @@ public final class LivingFaunaManager {
                         ? 0.036F
                         : 0.016F;
 
-        if (local.size() >= 22
+        if (local.size() >= 34
                 || local.size() < 2
                 || level.random.nextFloat()
                         > reproductionChance) {
