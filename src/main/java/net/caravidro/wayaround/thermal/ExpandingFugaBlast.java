@@ -38,7 +38,7 @@ public final class ExpandingFugaBlast {
     public static void start(ServerLevel level, ServerPlayer owner, Vec3 center) {
         if (ACTIVE.size() >= 16) return;
         ACTIVE.add(new Blast(level.dimension(), owner.getUUID(), center));
-        RegionalTemperature.pulse(level, center, 42, TemperatureCurve.MAX);
+        EnvironmentalTemperature.pulseAbsolute(level, center, 42, TemperatureCurve.MAX);
     }
     @SubscribeEvent public static void tick(ServerTickEvent.Post event) {
         int checks = 0, broken = 0, particles = 0;
