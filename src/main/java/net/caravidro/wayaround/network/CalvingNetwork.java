@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.calving.ClientCalvingEffects;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -10,11 +9,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import net.minecraft.resources.ResourceLocation;
 
-import net.neoforged.api.distmarker.Dist;
 
 import net.neoforged.bus.api.SubscribeEvent;
 
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.fml.common.EventBusSubscriber;
 
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -150,20 +147,10 @@ public final class CalvingNetwork {
 
 
         public static void handle(
-
                 CalvingShakePayload payload,
-
                 IPayloadContext context
         ) {
-
-            /*
-             * Só roda a classe Minecraft client
-             * no physical CLIENT.
-             */
-
-            if (FMLEnvironment.dist == Dist.CLIENT) {
-                context.enqueueWork(() -> ClientCalvingEffects.receive(payload));
-            }
+            ClientPayloadBridge.handleCalving(payload, context);
         }
     }
 }
