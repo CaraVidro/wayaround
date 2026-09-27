@@ -92,6 +92,10 @@ public final class PhotoViewerScreen
                         image
                 );
 
+                sharpen(
+                        image
+                );
+
                 imageWidth =
                         image.getWidth();
 
@@ -306,19 +310,19 @@ public final class PhotoViewerScreen
 
                 red =
                         clamp(
-                                red * 108 / 100
-                                        + 8
+                                red * 104 / 100
+                                        + 4
                         );
 
                 green =
                         clamp(
-                                green * 103 / 100
-                                        + 4
+                                green * 101 / 100
+                                        + 2
                         );
 
                 blue =
                         clamp(
-                                blue * 82 / 100
+                                blue * 92 / 100
                         );
 
                 image.setPixelRGBA(
@@ -331,6 +335,166 @@ public final class PhotoViewerScreen
                 );
             }
         }
+    }
+
+    private static void sharpen(
+            NativeImage image
+    ) {
+        int width =
+                image.getWidth();
+
+        int height =
+                image.getHeight();
+
+        if (width < 3
+                || height < 3) {
+            return;
+        }
+
+        int[] source =
+                new int[
+                        width * height
+                        ];
+
+        for (int y = 0;
+             y < height;
+             y++) {
+            for (int x = 0;
+                 x < width;
+                 x++) {
+                source[
+                        y * width + x
+                        ] =
+                        image.getPixelRGBA(
+                                x,
+                                y
+                        );
+            }
+        }
+
+        for (int y = 1;
+             y < height - 1;
+             y++) {
+            for (int x = 1;
+                 x < width - 1;
+                 x++) {
+                int center =
+                        source[
+                                y * width + x
+                                ];
+
+                int left =
+                        source[
+                                y * width + x - 1
+                                ];
+
+                int right =
+                        source[
+                                y * width + x + 1
+                                ];
+
+                int up =
+                        source[
+                                (
+                                        y - 1
+                                )
+                                        * width
+                                        + x
+                                ];
+
+                int down =
+                        source[
+                                (
+                                        y + 1
+                                )
+                                        * width
+                                        + x
+                                ];
+
+                int red =
+                        sharpenChannel(
+                                center & 0xFF,
+                                left & 0xFF,
+                                right & 0xFF,
+                                up & 0xFF,
+                                down & 0xFF
+                        );
+
+                int green =
+                        sharpenChannel(
+                                (
+                                        center >>> 8
+                                ) & 0xFF,
+                                (
+                                        left >>> 8
+                                ) & 0xFF,
+                                (
+                                        right >>> 8
+                                ) & 0xFF,
+                                (
+                                        up >>> 8
+                                ) & 0xFF,
+                                (
+                                        down >>> 8
+                                ) & 0xFF
+                        );
+
+                int blue =
+                        sharpenChannel(
+                                (
+                                        center >>> 16
+                                ) & 0xFF,
+                                (
+                                        left >>> 16
+                                ) & 0xFF,
+                                (
+                                        right >>> 16
+                                ) & 0xFF,
+                                (
+                                        up >>> 16
+                                ) & 0xFF,
+                                (
+                                        down >>> 16
+                                ) & 0xFF
+                        );
+
+                image.setPixelRGBA(
+                        x,
+                        y,
+                        0xFF000000
+                                | (
+                                blue << 16
+                        )
+                                | (
+                                green << 8
+                        )
+                                | red
+                );
+            }
+        }
+    }
+
+    private static int sharpenChannel(
+            int center,
+            int left,
+            int right,
+            int up,
+            int down
+    ) {
+        int neighbourAverage =
+                (
+                        left
+                                + right
+                                + up
+                                + down
+                ) / 4;
+
+        return clamp(
+                Math.round(
+                        center * 1.38F
+                                - neighbourAverage * 0.38F
+                )
+        );
     }
 
     private static int clamp(

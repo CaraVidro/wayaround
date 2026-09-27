@@ -9,6 +9,7 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.justice.JusticeSenseData;
+import net.caravidro.wayaround.network.HerobrinePhotoModeS2CPayload;
 import net.caravidro.wayaround.worldstate.WorldStateService;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
@@ -43,6 +44,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * "Seu Velho Amigo" does not run as a conventional hostile-mob AI.
@@ -280,6 +282,17 @@ public final class OldFriendManager {
                                                                                     )
                                                                             );
 
+                                                                            for (ServerPlayer player :
+                                                                                    server.getPlayerList()
+                                                                                            .getPlayers()) {
+                                                                                PacketDistributor.sendToPlayer(
+                                                                                        player,
+                                                                                        new HerobrinePhotoModeS2CPayload(
+                                                                                                enabled
+                                                                                        )
+                                                                                );
+                                                                            }
+
                                                                             context.getSource()
                                                                                     .sendSuccess(
                                                                                             () -> Component.literal(
@@ -301,9 +314,19 @@ public final class OldFriendManager {
     public static void login(
             PlayerEvent.PlayerLoggedInEvent event
     ) {
-        // Photo-mode networking is installed by the media-side integration.
-        // Keeping this hook here gives that integration one stable place to
-        // query the persistent state after login.
+        if (!(event.getEntity()
+                instanceof ServerPlayer player)) {
+            return;
+        }
+
+        PacketDistributor.sendToPlayer(
+                player,
+                new HerobrinePhotoModeS2CPayload(
+                        photoMode(
+                                player.server
+                        )
+                )
+        );
     }
 
     public static boolean photoMode(

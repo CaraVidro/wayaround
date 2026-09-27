@@ -63,6 +63,10 @@ public final class ClientPayloadBridge {
         default void voiceFrame(
                 VoiceFrameS2CPayload payload
         ) {}
+
+        default void herobrinePhotoMode(
+                HerobrinePhotoModeS2CPayload payload
+        ) {}
     }
 
     private static final RealtimeClientHandlers NOOP_REALTIME =
@@ -264,6 +268,17 @@ public final class ClientPayloadBridge {
     ) {
         context.enqueueWork(
                 () -> realtimeHandlers.recordingReady(
+                        payload
+                )
+        );
+    }
+
+    public static void handleHerobrinePhotoMode(
+            HerobrinePhotoModeS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(
+                () -> realtimeHandlers.herobrinePhotoMode(
                         payload
                 )
         );

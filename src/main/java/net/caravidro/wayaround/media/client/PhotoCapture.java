@@ -9,6 +9,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.media.MediaInventory;
 import net.caravidro.wayaround.network.PhotoTakenC2SPayload;
+import net.caravidro.wayaround.oldfriend.client.HerobrinePhotoState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -106,6 +107,11 @@ public final class PhotoCapture {
                                             .getMainRenderTarget()
                             )
             ) {
+                HerobrinePhotoState.inject(
+                        image,
+                        id
+                );
+
                 image.writeToFile(
                         directory.resolve(
                                 id + ".png"

@@ -9,10 +9,12 @@ import net.caravidro.wayaround.media.client.MediaRecorder;
 import net.caravidro.wayaround.media.client.MediaTransferClient;
 import net.caravidro.wayaround.media.client.RecordedWorldSound;
 import net.caravidro.wayaround.media.client.TapeLabelScreen;
+import net.caravidro.wayaround.oldfriend.client.HerobrinePhotoState;
 import net.caravidro.wayaround.network.BroadcastAudioS2CPayload;
 import net.caravidro.wayaround.network.BroadcastImageS2CPayload;
 import net.caravidro.wayaround.network.BroadcastWorldSoundS2CPayload;
 import net.caravidro.wayaround.network.ClientPayloadBridge;
+import net.caravidro.wayaround.network.HerobrinePhotoModeS2CPayload;
 import net.caravidro.wayaround.network.MediaRecordingChunkS2CPayload;
 import net.caravidro.wayaround.network.MediaRecordingOfferS2CPayload;
 import net.caravidro.wayaround.network.PlacedCameraPickupS2CPayload;
@@ -245,6 +247,15 @@ public final class WayAroundClient {
                     ) {
                         VoicePlayback.enqueue(
                                 payload.pcm()
+                        );
+                    }
+
+                    @Override
+                    public void herobrinePhotoMode(
+                            HerobrinePhotoModeS2CPayload payload
+                    ) {
+                        HerobrinePhotoState.setEnabled(
+                                payload.enabled()
                         );
                     }
                 }
