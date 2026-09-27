@@ -18,6 +18,9 @@ public final class WorldEventTypes {
     public static final ResourceLocation BLACK_BOX_SEALED =
             id("black_box_sealed");
 
+    public static final ResourceLocation ASSEMBLY_FAILURE =
+            id("assembly_failure");
+
     private WorldEventTypes() {
     }
 
