@@ -68,7 +68,7 @@ public final class SunfishRenderer
 
         // Tiny mouth + eyes on both visible sides.
         cuboid(
-                Blocks.DARK_GRAY_CONCRETE.defaultBlockState(),
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
                 -0.585, -0.08, -0.055,
                 0.045F, 0.07F, 0.11F,
                 pose, buffers, light
