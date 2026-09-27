@@ -21,6 +21,12 @@ public final class WorldEventTypes {
     public static final ResourceLocation ASSEMBLY_FAILURE =
             id("assembly_failure");
 
+    public static final ResourceLocation STRUCTURE_ABANDONED =
+            id("structure_abandoned");
+
+    public static final ResourceLocation STRUCTURE_REACTIVATED =
+            id("structure_reactivated");
+
     private WorldEventTypes() {
     }
 
