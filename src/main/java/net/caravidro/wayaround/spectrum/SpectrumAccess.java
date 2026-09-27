@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.cursed.TukunaManager;
+import net.caravidro.wayaround.jujutsu.JujutsuManager;
 import net.caravidro.wayaround.network.SpectrumUnlockS2CPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -16,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
@@ -140,6 +142,64 @@ public final class SpectrumAccess {
             if (player.getPersistentData().getBoolean(key(type))) mask |= bit(type);
         }
         return mask;
+    }
+
+    @SubscribeEvent
+    public static void rareHeldSpectrumAttunement(
+            ServerTickEvent.Post event
+    ) {
+        if ((event.getServer()
+                .getTickCount()
+                % 20L) != 0L
+                || !WorldFeatureRuntime.serverEnabled(
+                WorldFeature.SPECTRUMS
+        )) {
+            return;
+        }
+
+        for (ServerPlayer player :
+                event.getServer()
+                        .getPlayerList()
+                        .getPlayers()) {
+
+            if (JujutsuManager.isAwakened(
+                    player
+            )) {
+                continue;
+            }
+
+            SpectrumItem spectrum =
+                    player.getMainHandItem()
+                            .getItem()
+                            instanceof SpectrumItem mainSpectrum
+                            ? mainSpectrum
+                            : player.getOffhandItem()
+                                    .getItem()
+                                    instanceof SpectrumItem offhandSpectrum
+                                    ? offhandSpectrum
+                                    : null;
+
+            if (spectrum == null) {
+                continue;
+            }
+
+            /*
+             * Once per second, about one chance in 1200.
+             * Rare enough to feel like an anomaly, but not astronomically
+             * impossible during a long survival session.
+             */
+            if (player.getRandom()
+                    .nextInt(
+                            1200
+                    ) != 0) {
+                continue;
+            }
+
+            JujutsuManager.attuneSpectrumFromItem(
+                    player,
+                    spectrum.spectrumType()
+            );
+        }
     }
 
     @SubscribeEvent

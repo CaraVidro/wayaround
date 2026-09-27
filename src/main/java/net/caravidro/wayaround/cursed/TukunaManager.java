@@ -55,6 +55,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.ServerChatEvent;
@@ -222,11 +223,12 @@ public final class TukunaManager {
     private static final Set<UUID> GHOST_NOTIFIED =
             new HashSet<>();
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onDeath(
             LivingDeathEvent event
     ) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
+        if (event.isCanceled()
+                || !(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
 
@@ -1986,8 +1988,7 @@ public final class TukunaManager {
 
         if (!hasSpectrum(
                 player
-        )
-                || effectiveTukunaFingers(player) <= 10) {
+        )) {
             return false;
         }
 
@@ -2196,7 +2197,8 @@ public final class TukunaManager {
     private static void ensureFugaUnlockMigrated(
             ServerPlayer player
     ) {
-        if (effectiveTukunaFingers(player) <= 10
+        if ((!hasSpectrum(player)
+                && effectiveTukunaFingers(player) <= 10)
                 || player.getPersistentData().getBoolean(FUGA_UNLOCK_MIGRATION_KEY)) {
             return;
         }
@@ -2222,7 +2224,8 @@ public final class TukunaManager {
     private static void promptFugaPhrase(
             ServerPlayer player
     ) {
-        if (effectiveTukunaFingers(player) <= 10) {
+        if (!hasSpectrum(player)
+                && effectiveTukunaFingers(player) <= 10) {
             return;
         }
 

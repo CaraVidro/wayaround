@@ -202,6 +202,61 @@ public final class JujutsuManager {
                 .withStyle(ChatFormatting.AQUA));
     }
 
+    public static boolean attuneSpectrumFromItem(
+            ServerPlayer player,
+            SpectrumType type
+    ) {
+        if (isAwakened(
+                player
+        )) {
+            return false;
+        }
+
+        cleanupOwnedRuntime(
+                player.getUUID()
+        );
+
+        ENERGY_VISION.remove(
+                player.getUUID()
+        );
+
+        writeSpectrum(
+                player,
+                type,
+                true
+        );
+
+        SpectrumAccess.replace(
+                player,
+                type
+        );
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "O Spectrum reagiu a você antes da Orb."
+                ).withStyle(
+                        ChatFormatting.DARK_PURPLE
+                )
+        );
+
+        player.sendSystemMessage(
+                Component.literal(
+                        "SPECTRUM: "
+                                + spectrumDisplay(
+                                type
+                        )
+                ).withStyle(
+                        ChatFormatting.LIGHT_PURPLE
+                )
+        );
+
+        recordAwakening(
+                player
+        );
+
+        return true;
+    }
+
     public static void forceSpectrum(ServerPlayer player, SpectrumType type) {
         cleanupOwnedRuntime(player.getUUID());
         ENERGY_VISION.remove(player.getUUID());

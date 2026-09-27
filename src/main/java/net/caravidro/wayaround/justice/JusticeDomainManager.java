@@ -1308,6 +1308,30 @@ public final class JusticeDomainManager {
             }
         }
 
+        /*
+         * Court lighting. The room used to be almost entirely black concrete,
+         * so the domain read as a void rather than a courtroom.
+         */
+        for (int x = -8;
+             x <= 8;
+             x += 4) {
+            for (int z = -10;
+                 z <= 10;
+                 z += 5) {
+                place(
+                        level,
+                        trial,
+                        new BlockPos(
+                                cx + x,
+                                y + 5,
+                                cz + z
+                        ),
+                        Blocks.SEA_LANTERN
+                                .defaultBlockState()
+                );
+            }
+        }
+
         for (int x = -4;
              x <= 4;
              x++) {
