@@ -141,11 +141,21 @@ public final class EcologyFishingManager {
             );
         }
 
+        boolean wasHooked =
+                data.getBoolean(
+                        HOOKED
+                );
+
         AbstractFish target =
                 targetFish(
                         level,
                         hook
                 );
+
+        if (target == null
+                && wasHooked) {
+            return;
+        }
 
         if (target == null) {
             target =
