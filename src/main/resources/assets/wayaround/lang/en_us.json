@@ -269,5 +269,6 @@
     "item.wayaround.justice_execution_blade": "Sentence Blade",
     "tooltip.wayaround.justice_blade": "Glows while a valid sentence is active. Melee reach; severe impact.",
     "tooltip.wayaround.justice_blade.target": "Sentence target: %s",
-    "itemGroup.wayaround.spectrums": "Spectrums"
+    "itemGroup.wayaround.spectrums": "Spectrums",
+    "block.wayaround.debug_turret": "Debug Turret"
 }
