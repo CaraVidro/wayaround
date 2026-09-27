@@ -392,5 +392,9 @@
   "item.wayaround.flying_fish_spawn_egg": "Flying Fish Spawn Egg",
   "item.wayaround.lanternfish_spawn_egg": "Lanternfish Spawn Egg",
   "item.wayaround.moray_eel_spawn_egg": "Moray Eel Spawn Egg",
-  "itemGroup.wayaround.area_001": "AREA 001"
+  "itemGroup.wayaround.area_001": "AREA 001",
+  "itemGroup.wayaround.old_friend": "Your Old Friend",
+  "block.wayaround.herobrine_totem": "Old Totem",
+  "entity.wayaround.herobrine": "Herobrine",
+  "item.wayaround.ban_hammer": "Ban Hammer"
 }

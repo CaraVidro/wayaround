@@ -177,6 +177,112 @@ public final class JusticeSenseData extends SavedData {
         );
     }
 
+    /**
+     * Read-only view over the ownership memory already collected by Justice
+     * Sense. Other systems (including Old Friend) reuse this instead of
+     * inventing a second, inconsistent "base detector".
+     */
+    public List<BlockPos> structurePositions(
+            Level level,
+            UUID owner,
+            int max
+    ) {
+        return ownedPositions(
+                structureOwners,
+                level,
+                owner,
+                max
+        );
+    }
+
+    public List<BlockPos> chestPositions(
+            Level level,
+            UUID owner,
+            int max
+    ) {
+        return ownedPositions(
+                chestOwners,
+                level,
+                owner,
+                max
+        );
+    }
+
+    private static List<BlockPos> ownedPositions(
+            Map<String, UUID> source,
+            Level level,
+            UUID owner,
+            int max
+    ) {
+        int limit =
+                Math.max(
+                        0,
+                        max
+                );
+
+        if (limit == 0) {
+            return List.of();
+        }
+
+        String prefix =
+                level.dimension()
+                        .location()
+                        .toString()
+                        + "|";
+
+        ArrayList<BlockPos> result =
+                new ArrayList<>(
+                        Math.min(
+                                limit,
+                                source.size()
+                        )
+                );
+
+        for (Map.Entry<String, UUID> entry :
+                source.entrySet()) {
+            if (!owner.equals(
+                    entry.getValue()
+            )) {
+                continue;
+            }
+
+            String encoded =
+                    entry.getKey();
+
+            if (!encoded.startsWith(
+                    prefix
+            )) {
+                continue;
+            }
+
+            try {
+                long packed =
+                        Long.parseLong(
+                                encoded.substring(
+                                        prefix.length()
+                                )
+                        );
+
+                result.add(
+                        BlockPos.of(
+                                packed
+                        )
+                );
+
+                if (result.size()
+                        >= limit) {
+                    break;
+                }
+            } catch (NumberFormatException ignored) {
+                // Ignore stale/corrupt ownership entries without poisoning data.
+            }
+        }
+
+        return List.copyOf(
+                result
+        );
+    }
+
     private static String key(
             Level level,
             BlockPos pos

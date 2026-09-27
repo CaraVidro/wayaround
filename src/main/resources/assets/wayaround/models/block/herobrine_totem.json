@@ -1,0 +1,36 @@
+{
+  "textures": {
+    "netherrack": "minecraft:block/netherrack",
+    "dark": "minecraft:block/obsidian",
+    "eye": "minecraft:block/white_concrete",
+    "particle": "minecraft:block/netherrack"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 16, 16],
+      "faces": {
+        "down": {"texture": "#netherrack", "cullface": "down"},
+        "up": {"texture": "#dark", "cullface": "up"},
+        "north": {"texture": "#netherrack", "cullface": "north"},
+        "south": {"texture": "#netherrack", "cullface": "south"},
+        "west": {"texture": "#netherrack", "cullface": "west"},
+        "east": {"texture": "#netherrack", "cullface": "east"}
+      }
+    },
+    {
+      "from": [3, 8, -0.01],
+      "to": [7, 11, 0.25],
+      "faces": {
+        "north": {"texture": "#eye"}
+      }
+    },
+    {
+      "from": [9, 8, -0.01],
+      "to": [13, 11, 0.25],
+      "faces": {
+        "north": {"texture": "#eye"}
+      }
+    }
+  ]
+}

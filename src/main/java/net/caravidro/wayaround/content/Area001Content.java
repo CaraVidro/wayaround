@@ -6,9 +6,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
@@ -19,10 +21,24 @@ import net.neoforged.neoforge.registries.DeferredRegister;
  */
 public final class Area001Content {
 
+    private static final DeferredRegister.Items ITEMS =
+            DeferredRegister.createItems(
+                    WayAround.MODID
+            );
+
     private static final DeferredRegister<CreativeModeTab> TABS =
             DeferredRegister.create(
                     Registries.CREATIVE_MODE_TAB,
                     WayAround.MODID
+            );
+
+    public static final DeferredItem<Item> BAN_HAMMER =
+            ITEMS.register(
+                    "ban_hammer",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                    )
             );
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> AREA_001 =
@@ -39,12 +55,15 @@ public final class Area001Content {
                             )
                             .icon(
                                     () -> new ItemStack(
-                                            Items.SPYGLASS
+                                            BAN_HAMMER.get()
                                     )
                             )
                             .displayItems(
                                     (parameters, output) -> {
-                                        // Por agora: absolutamente nada.
+                                        // Modelo apenas. Nenhuma lógica de ban.
+                                        output.accept(
+                                                BAN_HAMMER.get()
+                                        );
                                     }
                             )
                             .build()
@@ -56,6 +75,10 @@ public final class Area001Content {
     public static void register(
             IEventBus bus
     ) {
+        ITEMS.register(
+                bus
+        );
+
         TABS.register(
                 bus
         );

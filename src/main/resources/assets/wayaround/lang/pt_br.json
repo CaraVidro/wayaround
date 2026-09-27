@@ -392,5 +392,9 @@
   "item.wayaround.flying_fish_spawn_egg": "Ovo Gerador de Peixe-Voador",
   "item.wayaround.lanternfish_spawn_egg": "Ovo Gerador de Peixe-Lanterna",
   "item.wayaround.moray_eel_spawn_egg": "Ovo Gerador de Moreia",
-  "itemGroup.wayaround.area_001": "ÁREA 001"
+  "itemGroup.wayaround.area_001": "ÁREA 001",
+  "itemGroup.wayaround.old_friend": "Seu Velho Amigo",
+  "block.wayaround.herobrine_totem": "Totem Antigo",
+  "entity.wayaround.herobrine": "Herobrine",
+  "item.wayaround.ban_hammer": "Ban Hammer"
 }
