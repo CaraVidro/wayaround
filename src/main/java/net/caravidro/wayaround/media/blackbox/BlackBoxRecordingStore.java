@@ -30,6 +30,7 @@ public final class BlackBoxRecordingStore {
     private static final byte TYPE_CHAT = 2;
     private static final byte TYPE_WORLD_EVENT = 3;
     private static final byte TYPE_MARKER = 4;
+    private static final byte TYPE_SOUND = 5;
 
     private static final long MAX_BYTES =
             96L * 1024L * 1024L;
@@ -268,6 +269,65 @@ public final class BlackBoxRecordingStore {
                             1024
                     )
             );
+        } catch (Exception exception) {
+            fail(
+                    recordingId,
+                    exception
+            );
+        }
+    }
+
+    public static synchronized void sound(
+            UUID recordingId,
+            long gameTime,
+            String soundId,
+            String source,
+            float volume,
+            float pitch
+    ) {
+        Writer writer =
+                WRITERS.get(
+                        recordingId
+                );
+
+        if (writer == null) {
+            return;
+        }
+
+        try {
+            if (!writer.canWrite(
+                    768L
+            )) {
+                return;
+            }
+
+            writer.file.writeByte(
+                    TYPE_SOUND
+            );
+            writer.file.writeInt(
+                    writer.relativeTick(
+                            gameTime
+                    )
+            );
+            writer.file.writeUTF(
+                    trim(
+                            soundId,
+                            256
+                    )
+            );
+            writer.file.writeUTF(
+                    trim(
+                            source,
+                            64
+                    )
+            );
+            writer.file.writeFloat(
+                    volume
+            );
+            writer.file.writeFloat(
+                    pitch
+            );
+
         } catch (Exception exception) {
             fail(
                     recordingId,
@@ -571,7 +631,7 @@ public final class BlackBoxRecordingStore {
     }
 
     public sealed interface Entry
-            permits VoiceEntry, TextEntry, WorldEntry, MarkerEntry {
+            permits VoiceEntry, TextEntry, WorldEntry, MarkerEntry, SoundEntry {
         int tick();
     }
 
@@ -602,6 +662,15 @@ public final class BlackBoxRecordingStore {
     public record MarkerEntry(
             int tick,
             String marker
+    ) implements Entry {
+    }
+
+    public record SoundEntry(
+            int tick,
+            String soundId,
+            String source,
+            float volume,
+            float pitch
     ) implements Entry {
     }
 
@@ -693,6 +762,15 @@ public final class BlackBoxRecordingStore {
                             new MarkerEntry(
                                     tick,
                                     file.readUTF()
+                            );
+
+                    case TYPE_SOUND ->
+                            new SoundEntry(
+                                    tick,
+                                    file.readUTF(),
+                                    file.readUTF(),
+                                    file.readFloat(),
+                                    file.readFloat()
                             );
 
                     default ->
