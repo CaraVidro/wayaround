@@ -71,12 +71,14 @@ public final class BlackFlashManager {
         LivingEntity target =
                 event.getEntity();
 
-        if (target == attacker) {
+        if (target == attacker
+                || !attacker.getMainHandItem().isEmpty()
+                || !attacker.getOffhandItem().isEmpty()) {
             return;
         }
 
         /*
-         * Black Flash is a direct melee rhythm, not a projectile / Blue /
+         * Black Flash is a direct, empty-hand melee rhythm, not a projectile / Blue /
          * explosion side effect from the same player.
          */
         Entity direct =
