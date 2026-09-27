@@ -1212,6 +1212,22 @@ public final class LivingFaunaManager {
             );
         }
 
+        if (fish instanceof MantaRayEntity) {
+            return mantaCurrentGlide(level, fish);
+        }
+
+        if (fish instanceof SeahorseEntity) {
+            return seahorseCoralBehavior(level, fish);
+        }
+
+        if (fish instanceof JellyfishEntity) {
+            return jellyfishDriftBehavior(level, fish);
+        }
+
+        if (fish instanceof OarfishEntity) {
+            return oarfishDepthBehavior(level, fish);
+        }
+
         if (fish.getType()
                 == EntityType.PUFFERFISH) {
             return pufferSpacingBehavior(
@@ -1221,6 +1237,164 @@ public final class LivingFaunaManager {
         }
 
         return false;
+    }
+
+    private static boolean mantaCurrentGlide(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat() > 0.14F) {
+            return false;
+        }
+
+        Vec3 current = WaterDynamics.currentAround(
+                level,
+                fish.blockPosition()
+        );
+
+        Vec3 direction = current.lengthSqr() > 0.0004
+                ? current.normalize()
+                : fish.getLookAngle();
+
+        Vec3 target = fish.position()
+                .add(direction.scale(8.0))
+                .add(0.0, (level.random.nextDouble() - 0.5) * 2.0, 0.0);
+
+        fish.getNavigation().moveTo(
+                target.x,
+                target.y,
+                target.z,
+                0.92
+        );
+
+        return true;
+    }
+
+    private static boolean seahorseCoralBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat() > 0.18F) {
+            return false;
+        }
+
+        BlockPos coral = nearestCoral(
+                level,
+                fish.blockPosition(),
+                8
+        );
+
+        if (coral == null) {
+            return false;
+        }
+
+        BlockPos target = waterBesideCoral(
+                level,
+                coral,
+                fish.blockPosition()
+        );
+
+        fish.getNavigation().moveTo(
+                target.getX() + 0.5,
+                target.getY() + 0.5,
+                target.getZ() + 0.5,
+                0.72
+        );
+
+        return true;
+    }
+
+    private static boolean jellyfishDriftBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat() > 0.28F) {
+            return false;
+        }
+
+        Vec3 current = WaterDynamics.currentAround(
+                level,
+                fish.blockPosition()
+        );
+
+        Vec3 drift;
+        if (current.lengthSqr() > 0.0002) {
+            drift = current.normalize().scale(4.2);
+        } else {
+            Vec3 randomDrift = new Vec3(
+                    level.random.nextDouble() - 0.5,
+                    0.0,
+                    level.random.nextDouble() - 0.5
+            );
+
+            drift = randomDrift.lengthSqr() > 0.0001
+                    ? randomDrift.normalize().scale(2.4)
+                    : new Vec3(1.0, 0.0, 0.0);
+        }
+
+        double bob = Math.sin(
+                (level.getGameTime() + fish.getId() * 11L) * 0.08
+        ) * 0.65;
+
+        Vec3 target = fish.position()
+                .add(drift)
+                .add(0.0, bob, 0.0);
+
+        fish.getNavigation().moveTo(
+                target.x,
+                target.y,
+                target.z,
+                0.62
+        );
+
+        level.sendParticles(
+                ParticleTypes.BUBBLE,
+                fish.getX(),
+                fish.getY() - fish.getBbHeight() * 0.25,
+                fish.getZ(),
+                1,
+                0.08,
+                0.08,
+                0.08,
+                0.006
+        );
+
+        return true;
+    }
+
+    private static boolean oarfishDepthBehavior(
+            ServerLevel level,
+            AbstractFish fish
+    ) {
+        if (level.random.nextFloat() > 0.12F) {
+            return false;
+        }
+
+        BlockPos origin = fish.blockPosition();
+        BlockPos deepest = origin;
+
+        for (int depth = 1; depth <= 10; depth++) {
+            BlockPos candidate = origin.below(depth);
+
+            if (!level.getFluidState(candidate).is(FluidTags.WATER)) {
+                break;
+            }
+
+            deepest = candidate;
+        }
+
+        if (deepest.equals(origin)) {
+            return false;
+        }
+
+        fish.getNavigation().moveTo(
+                deepest.getX() + 0.5,
+                deepest.getY() + 0.5,
+                deepest.getZ() + 0.5,
+                0.90
+        );
+
+        return true;
     }
 
     /**
@@ -2211,6 +2385,26 @@ public final class LivingFaunaManager {
 
             localCap =
                     8;
+
+        } else if (fish instanceof BarracudaEntity) {
+            reproductionChance = satiated ? 0.018F : 0.007F;
+            localCap = 8;
+
+        } else if (fish instanceof MantaRayEntity) {
+            reproductionChance = satiated ? 0.010F : 0.004F;
+            localCap = 6;
+
+        } else if (fish instanceof SeahorseEntity) {
+            reproductionChance = satiated ? 0.060F : 0.026F;
+            localCap = 28;
+
+        } else if (fish instanceof JellyfishEntity) {
+            reproductionChance = satiated ? 0.052F : 0.024F;
+            localCap = 24;
+
+        } else if (fish instanceof OarfishEntity) {
+            reproductionChance = satiated ? 0.006F : 0.002F;
+            localCap = 3;
 
         } else {
             reproductionChance =
