@@ -219,6 +219,43 @@ public final class PulleyWheelRenderer
         );
 
         /*
+         * A real improvised pulley reads better with several rope runs instead
+         * of two perfectly clean strands. The extra pair is slightly offset
+         * along the axle so it remains visually separate without changing the
+         * mechanical link itself.
+         */
+        poseStack.pushPose();
+        poseStack.translate(
+                0.0,
+                0.0,
+                0.055
+        );
+
+        renderBeltStrand(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                dx,
+                dy,
+                nx * (beltOffset - 0.045),
+                ny * (beltOffset - 0.045)
+        );
+
+        renderBeltStrand(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                dx,
+                dy,
+                -nx * (beltOffset - 0.045),
+                -ny * (beltOffset - 0.045)
+        );
+
+        poseStack.popPose();
+
+        /*
          * Moving knots make belt motion visible without a custom texture.
          * They crawl along one strand using the driving pulley's phase.
          */
