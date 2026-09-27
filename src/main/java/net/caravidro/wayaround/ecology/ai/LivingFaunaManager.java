@@ -1044,15 +1044,25 @@ public final class LivingFaunaManager {
                 );
 
         if (attribute != null) {
-            attribute.setBaseValue(
+            double target =
                     Math.max(
                             0.30F,
                             Math.min(
                                     4.0F,
                                     scale
                             )
-                    )
-            );
+                    );
+
+            if (Math.abs(
+                    attribute.getBaseValue()
+                            - target
+            ) > 0.005) {
+                attribute.setBaseValue(
+                        target
+                );
+
+                fish.refreshDimensions();
+            }
         }
     }
 
