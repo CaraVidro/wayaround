@@ -15,10 +15,13 @@ import net.caravidro.wayaround.spectrum.SpectrumAccess;
 import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
+import net.caravidro.wayaround.worldstate.WorldEventTypes;
+import net.caravidro.wayaround.worldstate.WorldStateService;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -133,7 +136,61 @@ public final class JujutsuManager {
             player.sendSystemMessage(Component.literal("Pressione J para usar sua técnica.")
                     .withStyle(ChatFormatting.GRAY));
         }
+
+        recordAwakening(player);
         return true;
+    }
+
+    private static void recordAwakening(ServerPlayer player) {
+        CompoundTag history = new CompoundTag();
+
+        history.putString(
+                "playerName",
+                player.getGameProfile().getName()
+        );
+
+        if (isSpectrumIdentity(player)) {
+            SpectrumType type = hiddenSpectrum(player);
+
+            history.putString(
+                    "kind",
+                    SPECTRUM_KIND
+            );
+
+            history.putString(
+                    "spectrum",
+                    type == null
+                            ? "unknown"
+                            : type.path()
+            );
+        } else {
+            JujutsuTechnique technique = technique(player);
+
+            history.putString(
+                    "kind",
+                    NORMAL
+            );
+
+            if (technique != null) {
+                history.putString(
+                        "technique",
+                        technique.id()
+                );
+
+                history.putString(
+                        "displayName",
+                        technique.displayName()
+                );
+            }
+        }
+
+        WorldStateService.record(
+                player.serverLevel(),
+                WorldEventTypes.JUJUTSU_AWAKENED,
+                player.blockPosition(),
+                player.getUUID(),
+                history
+        );
     }
 
     public static void forceTechnique(ServerPlayer player, JujutsuTechnique technique) {
