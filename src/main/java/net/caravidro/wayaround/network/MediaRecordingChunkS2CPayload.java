@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.media.client.MediaTransferClient;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -63,13 +62,6 @@ public record MediaRecordingChunkS2CPayload(
             MediaRecordingChunkS2CPayload payload,
             IPayloadContext context
     ) {
-        context.enqueueWork(
-                () -> MediaTransferClient.acceptChunk(
-                        payload.recordingId(),
-                        payload.totalLength(),
-                        payload.offset(),
-                        payload.data()
-                )
-        );
+        ClientPayloadBridge.handleMediaChunk(payload, context);
     }
 }
