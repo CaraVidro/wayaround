@@ -321,5 +321,16 @@
   "block.wayaround.creek_clover": "Creek Clover",
   "item.wayaround.creek_clover": "Creek Clover",
   "block.wayaround.shade_nettle": "Shade Nettle",
-  "item.wayaround.shade_nettle": "Shade Nettle"
+  "item.wayaround.shade_nettle": "Shade Nettle",
+  "block.wayaround.radio": "Radio",
+  "block.wayaround.broadcast_microphone": "Studio Microphone",
+  "item.wayaround.handheld_microphone": "Wireless Microphone",
+  "block.wayaround.broadcast_antenna": "Broadcast Antenna",
+  "block.wayaround.tv_antenna": "TV Antenna",
+  "block.wayaround.broadcast_cable": "Broadcast Cable",
+  "block.wayaround.editorial": "Editorial Desk",
+  "item.wayaround.journalist_hat": "Reporter Hat",
+  "item.wayaround.journalist_jacket": "Journalist Jacket",
+  "item.wayaround.journalist_pants": "Journalist Trousers",
+  "item.wayaround.journalist_boots": "Journalist Boots"
 }

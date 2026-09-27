@@ -321,5 +321,16 @@
   "block.wayaround.creek_clover": "Trevo de Riacho",
   "item.wayaround.creek_clover": "Trevo de Riacho",
   "block.wayaround.shade_nettle": "Urtiga de Sombra",
-  "item.wayaround.shade_nettle": "Urtiga de Sombra"
+  "item.wayaround.shade_nettle": "Urtiga de Sombra",
+  "block.wayaround.radio": "Rádio",
+  "block.wayaround.broadcast_microphone": "Microfone de Estúdio",
+  "item.wayaround.handheld_microphone": "Microfone Sem Fio",
+  "block.wayaround.broadcast_antenna": "Antena de Transmissão",
+  "block.wayaround.tv_antenna": "Antena de TV",
+  "block.wayaround.broadcast_cable": "Cabo de Transmissão",
+  "block.wayaround.editorial": "Editoria",
+  "item.wayaround.journalist_hat": "Chapéu de Repórter",
+  "item.wayaround.journalist_jacket": "Jaqueta de Jornalista",
+  "item.wayaround.journalist_pants": "Calça de Jornalista",
+  "item.wayaround.journalist_boots": "Botas de Jornalista"
 }

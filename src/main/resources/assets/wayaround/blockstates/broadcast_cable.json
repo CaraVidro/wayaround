@@ -1,0 +1,45 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "wayaround:block/broadcast_cable_center"
+      }
+    },
+    {
+      "when": {
+        "north": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/broadcast_cable_arm",
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "east": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/broadcast_cable_arm",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "south": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/broadcast_cable_arm",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "west": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/broadcast_cable_arm",
+        "y": 270
+      }
+    }
+  ]
+}
