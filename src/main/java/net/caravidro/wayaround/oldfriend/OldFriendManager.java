@@ -6,12 +6,15 @@ import java.util.List;
 import java.util.UUID;
 
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.justice.JusticeSenseData;
 import net.caravidro.wayaround.network.HerobrinePhotoModeS2CPayload;
 import net.caravidro.wayaround.worldstate.WorldStateService;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -225,6 +228,16 @@ public final class OldFriendManager {
                 );
             }
 
+            if (stage >= 2
+                    && player.getRandom()
+                    .nextInt(
+                            6_000
+                    ) == 0) {
+                buildPyramidNear(
+                        player
+                );
+            }
+
             if (stage >= 3
                     && player.getRandom()
                     .nextInt(
@@ -307,7 +320,239 @@ public final class OldFriendManager {
                                                                 )
                                                 )
                                 )
+                                .then(
+                                        Commands.literal(
+                                                        "event"
+                                                )
+                                                .executes(
+                                                        context -> {
+                                                            context.getSource()
+                                                                    .sendSuccess(
+                                                                            () -> Component.literal(
+                                                                                    "Eventos: door, footsteps, tunnel, pyramid, sabotage, arson, theft, appear, all"
+                                                                            ),
+                                                                            false
+                                                                    );
+
+                                                            return 1;
+                                                        }
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "door",
+                                                                "door"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "footsteps",
+                                                                "footsteps"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "tunnel",
+                                                                "tunnel"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "pyramid",
+                                                                "pyramid"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "sabotage",
+                                                                "sabotage"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "arson",
+                                                                "arson"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "theft",
+                                                                "theft"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "appear",
+                                                                "appear"
+                                                        )
+                                                )
+                                                .then(
+                                                        eventCommand(
+                                                                "all",
+                                                                "all"
+                                                        )
+                                                )
+                                )
                 );
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> eventCommand(
+            String literal,
+            String eventName
+    ) {
+        return Commands.literal(
+                        literal
+                )
+                .executes(
+                        context ->
+                                triggerEvent(
+                                        context.getSource()
+                                                .getPlayerOrException(),
+                                        eventName
+                                )
+                )
+                .then(
+                        Commands.argument(
+                                        "target",
+                                        EntityArgument.player()
+                                )
+                                .executes(
+                                        context ->
+                                                triggerEvent(
+                                                        EntityArgument.getPlayer(
+                                                                context,
+                                                                "target"
+                                                        ),
+                                                        eventName
+                                                )
+                                )
+                );
+    }
+
+    private static int triggerEvent(
+            ServerPlayer target,
+            String eventName
+    ) {
+        boolean success =
+                switch (eventName) {
+                    case "door" -> {
+                        openDoorBehind(
+                                target
+                        );
+                        yield true;
+                    }
+
+                    case "footsteps" -> {
+                        caveFootsteps(
+                                target,
+                                3
+                        );
+                        yield true;
+                    }
+
+                    case "tunnel" -> {
+                        forceCarveTunnel(
+                                target
+                        );
+                        yield true;
+                    }
+
+                    case "pyramid" ->
+                            buildPyramidNear(
+                                    target
+                            );
+
+                    case "sabotage" ->
+                            forceSabotage(
+                                    target,
+                                    0
+                            );
+
+                    case "arson" ->
+                            forceSabotage(
+                                    target,
+                                    ACTION_ARSON
+                            );
+
+                    case "theft" ->
+                            forceSabotage(
+                                    target,
+                                    ACTION_THEFT
+                            );
+
+                    case "appear" -> {
+                        spawnApparition(
+                                target.serverLevel(),
+                                target.blockPosition(),
+                                0,
+                                ""
+                        );
+                        yield true;
+                    }
+
+                    case "all" -> {
+                        openDoorBehind(
+                                target
+                        );
+
+                        caveFootsteps(
+                                target,
+                                3
+                        );
+
+                        forceCarveTunnel(
+                                target
+                        );
+
+                        buildPyramidNear(
+                                target
+                        );
+
+                        forceSabotage(
+                                target,
+                                0
+                        );
+
+                        yield true;
+                    }
+
+                    default ->
+                            false;
+                };
+
+        String result =
+                success
+                        ? "ativado"
+                        : "sem alvo valido";
+
+        target.server
+                .getPlayerList()
+                .getPlayers()
+                .stream()
+                .filter(
+                        player ->
+                                player.hasPermissions(
+                                        2
+                                )
+                )
+                .forEach(
+                        operator ->
+                                operator.sendSystemMessage(
+                                        Component.literal(
+                                                "[Herobrine] "
+                                                        + eventName
+                                                        + " -> "
+                                                        + target.getGameProfile()
+                                                        .getName()
+                                                        + " ("
+                                                        + result
+                                                        + ")"
+                                        )
+                                )
+                );
+
+        return success
+                ? 1
+                : 0;
     }
 
     @SubscribeEvent
@@ -820,6 +1065,235 @@ public final class OldFriendManager {
                 : "";
     }
 
+    private static void forceCarveTunnel(
+            ServerPlayer victim
+    ) {
+        ServerLevel level =
+                victim.serverLevel();
+
+        BlockPos base =
+                baseCenter(
+                        level,
+                        victim.getUUID()
+                );
+
+        if (base == null
+                || !level.hasChunkAt(
+                base
+        )) {
+            base =
+                    victim.blockPosition();
+        }
+
+        int y =
+                Math.max(
+                        level.getMinBuildHeight()
+                                + 8,
+                        base.getY()
+                                - 7
+                                - victim.getRandom()
+                                .nextInt(
+                                        6
+                                )
+                );
+
+        double angle =
+                victim.getRandom()
+                        .nextDouble()
+                        * Math.PI
+                        * 2.0;
+
+        int distance =
+                10
+                        + victim.getRandom()
+                        .nextInt(
+                                10
+                        );
+
+        BlockPos start =
+                new BlockPos(
+                        base.getX()
+                                + (int) Math.round(
+                                Math.cos(
+                                        angle
+                                )
+                                        * distance
+                        ),
+                        y,
+                        base.getZ()
+                                + (int) Math.round(
+                                Math.sin(
+                                        angle
+                                )
+                                        * distance
+                        )
+                );
+
+        carveTunnel(
+                level,
+                start,
+                new BlockPos(
+                        base.getX(),
+                        y,
+                        base.getZ()
+                ),
+                victim.getRandom()
+                        .nextInt(
+                                1_000_000
+                        )
+        );
+    }
+
+    private static boolean buildPyramidNear(
+            ServerPlayer target
+    ) {
+        ServerLevel level =
+                target.serverLevel();
+
+        BlockPos origin =
+                target.blockPosition();
+
+        for (int attempt = 0;
+             attempt < 28;
+             attempt++) {
+            double angle =
+                    target.getRandom()
+                            .nextDouble()
+                            * Math.PI
+                            * 2.0;
+
+            int radius =
+                    12
+                            + target.getRandom()
+                            .nextInt(
+                                    18
+                            );
+
+            int x =
+                    origin.getX()
+                            + (int) Math.round(
+                            Math.cos(
+                                    angle
+                            )
+                                    * radius
+                    );
+
+            int z =
+                    origin.getZ()
+                            + (int) Math.round(
+                            Math.sin(
+                                    angle
+                            )
+                                    * radius
+                    );
+
+            int y =
+                    level.getHeight(
+                            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                            x,
+                            z
+                    );
+
+            BlockPos center =
+                    new BlockPos(
+                            x,
+                            y,
+                            z
+                    );
+
+            if (!level.hasChunkAt(
+                    center
+            )
+                    || !validPyramidSite(
+                    level,
+                    center
+            )) {
+                continue;
+            }
+
+            for (int layer = 0;
+                 layer < 4;
+                 layer++) {
+                int half =
+                        3 - layer;
+
+                int layerY =
+                        center.getY()
+                                + layer;
+
+                for (int dx = -half;
+                     dx <= half;
+                     dx++) {
+                    for (int dz = -half;
+                         dz <= half;
+                         dz++) {
+                        BlockPos pos =
+                                new BlockPos(
+                                        center.getX()
+                                                + dx,
+                                        layerY,
+                                        center.getZ()
+                                                + dz
+                                );
+
+                        if (level.getBlockState(
+                                pos
+                        ).isAir()) {
+                            level.setBlock(
+                                    pos,
+                                    Blocks.SAND
+                                            .defaultBlockState(),
+                                    3
+                            );
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean validPyramidSite(
+            ServerLevel level,
+            BlockPos center
+    ) {
+        for (int dx = -3;
+             dx <= 3;
+             dx++) {
+            for (int dz = -3;
+                 dz <= 3;
+                 dz++) {
+                BlockPos base =
+                        center.offset(
+                                dx,
+                                0,
+                                dz
+                        );
+
+                if (!level.getBlockState(
+                        base
+                ).isAir()
+                        || !level.getFluidState(
+                        base
+                ).isEmpty()
+                        || !level.getBlockState(
+                        base.below()
+                ).isFaceSturdy(
+                        level,
+                        base.below(),
+                        Direction.UP
+                )) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     private static void maybeCarveTunnel(
             ServerPlayer victim
     ) {
@@ -1059,6 +1533,168 @@ public final class OldFriendManager {
                     3
             );
         }
+    }
+
+    private static boolean forceSabotage(
+            ServerPlayer victim,
+            int requestedAction
+    ) {
+        ServerLevel level =
+                victim.serverLevel();
+
+        BlockPos base =
+                baseCenter(
+                        level,
+                        victim.getUUID()
+                );
+
+        if (base == null
+                || !level.hasChunkAt(
+                base
+        )) {
+            base =
+                    victim.blockPosition();
+        }
+
+        String blame =
+                strongestAssociation(
+                        victim.server,
+                        victim.getUUID()
+                );
+
+        if (blame.isBlank()) {
+            for (ServerPlayer other :
+                    victim.server
+                            .getPlayerList()
+                            .getPlayers()) {
+                if (other != victim) {
+                    blame =
+                            other.getGameProfile()
+                                    .getName();
+                    break;
+                }
+            }
+        }
+
+        if (blame.isBlank()) {
+            blame =
+                    "???";
+        }
+
+        if (requestedAction == 0
+                || requestedAction == ACTION_ARSON) {
+            BlockPos wood =
+                    findWoodTarget(
+                            level,
+                            base
+                    );
+
+            if (wood != null) {
+                spawnApparition(
+                        level,
+                        wood,
+                        ACTION_ARSON,
+                        blame
+                );
+
+                return true;
+            }
+
+            if (requestedAction == ACTION_ARSON) {
+                return false;
+            }
+        }
+
+        if (requestedAction == 0
+                || requestedAction == ACTION_THEFT) {
+            BlockPos chest =
+                    findOwnedOrNearbyChest(
+                            level,
+                            victim,
+                            base
+                    );
+
+            if (chest != null) {
+                spawnApparition(
+                        level,
+                        chest,
+                        ACTION_THEFT,
+                        blame
+                );
+
+                return true;
+            }
+
+            if (requestedAction == ACTION_THEFT) {
+                return false;
+            }
+        }
+
+        spawnApparition(
+                level,
+                base,
+                0,
+                blame
+        );
+
+        return true;
+    }
+
+    private static BlockPos findOwnedOrNearbyChest(
+            ServerLevel level,
+            ServerPlayer victim,
+            BlockPos base
+    ) {
+        List<BlockPos> remembered =
+                JusticeSenseData.get(
+                                victim.server
+                        )
+                        .chestPositions(
+                                level,
+                                victim.getUUID(),
+                                96
+                        );
+
+        BlockPos known =
+                remembered.stream()
+                        .filter(
+                                level::hasChunkAt
+                        )
+                        .min(
+                                Comparator.comparingDouble(
+                                        pos ->
+                                                pos.distSqr(
+                                                        base
+                                                )
+                                )
+                        )
+                        .orElse(null);
+
+        if (known != null) {
+            return known;
+        }
+
+        for (BlockPos pos :
+                BlockPos.betweenClosed(
+                        base.offset(
+                                -10,
+                                -4,
+                                -10
+                        ),
+                        base.offset(
+                                10,
+                                5,
+                                10
+                        )
+                )) {
+            if (level.getBlockEntity(
+                    pos
+            ) instanceof ChestBlockEntity) {
+                return pos.immutable();
+            }
+        }
+
+        return null;
     }
 
     private static void maybeSabotage(
