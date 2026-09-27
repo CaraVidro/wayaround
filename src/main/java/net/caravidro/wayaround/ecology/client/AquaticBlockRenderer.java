@@ -57,9 +57,16 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
 
         float scale = fish.getScale();
         pose.scale(scale, scale, scale);
+
+        /*
+         * Agua World meshes are authored nose-to-tail on the X axis. Minecraft
+         * entity yaw is expressed against the Z-forward convention, so the
+         * shared renderer needs this quarter-turn. Keeping it here fixes every
+         * fish/cetacean profile at once instead of species-specific hacks.
+         */
         pose.mulPose(
                 Axis.YP.rotationDegrees(
-                        180.0F - yaw
+                        90.0F - yaw
                 )
         );
 

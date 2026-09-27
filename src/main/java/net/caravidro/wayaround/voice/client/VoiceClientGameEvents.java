@@ -222,20 +222,16 @@ public final class VoiceClientGameEvents {
         );
 
         String label =
-                VoiceConfig.isDebugSpeechEnabled()
+                VoiceConfig.isVoiceActivation()
                         ? (
-                        VoiceConfig.isVoiceActivation()
-                                ? (
-                                talking
-                                        ? "TOBIAS: FALANDO"
-                                        : "TOBIAS: OUVINDO"
-                        )
-                                : "TOBIAS: PTT"
+                        talking
+                                ? "VOICE: FALANDO"
+                                : "VOICE: OUVINDO"
                 )
                         : (
                         talking
-                                ? "MIC: FALANDO"
-                                : "MIC: OUVINDO"
+                                ? "VOICE: FALANDO"
+                                : "VOICE: PTT"
                 );
 
         graphics.drawString(

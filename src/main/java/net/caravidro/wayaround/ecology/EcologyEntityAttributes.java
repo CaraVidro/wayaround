@@ -135,6 +135,17 @@ public final class EcologyEntityAttributes {
         );
 
         event.register(
+                EcologyContent.SPERM_WHALE.get(),
+                SpawnPlacementTypes.IN_WATER,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (type, level, reason, pos, random) ->
+                        level.getFluidState(pos).is(FluidTags.WATER)
+                                && level.getFluidState(pos.above()).is(FluidTags.WATER)
+                                && level.getFluidState(pos.below()).is(FluidTags.WATER),
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+
+        event.register(
                 EcologyContent.SEAGULL.get(),
                 SpawnPlacementTypes.ON_GROUND,
                 Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
@@ -281,6 +292,30 @@ public final class EcologyEntityAttributes {
                 AbstractFish.createAttributes()
                         .add(Attributes.MAX_HEALTH, 80.0)
                         .add(Attributes.MOVEMENT_SPEED, 0.18)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.SPERM_WHALE.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 140.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.16)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.WHALE_CARCASS.get(),
+                Mob.createMobAttributes()
+                        .add(Attributes.MAX_HEALTH, 40.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.0)
+                        .build()
+        );
+
+        event.put(
+                EcologyContent.SPERM_WHALE_CARCASS.get(),
+                Mob.createMobAttributes()
+                        .add(Attributes.MAX_HEALTH, 56.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.0)
                         .build()
         );
 

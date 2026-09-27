@@ -156,6 +156,36 @@ public final class EcologyContent {
                             .build("wayaround:whale")
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<SpermWhaleEntity>> SPERM_WHALE =
+            ENTITIES.register(
+                    "sperm_whale",
+                    () -> EntityType.Builder
+                            .of(SpermWhaleEntity::new, MobCategory.WATER_CREATURE)
+                            .sized(7.80F, 3.10F)
+                            .clientTrackingRange(20)
+                            .build("wayaround:sperm_whale")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<WhaleCarcassEntity>> WHALE_CARCASS =
+            ENTITIES.register(
+                    "whale_carcass",
+                    () -> EntityType.Builder
+                            .of(WhaleCarcassEntity::new, MobCategory.MISC)
+                            .sized(4.90F, 1.85F)
+                            .clientTrackingRange(18)
+                            .build("wayaround:whale_carcass")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<WhaleCarcassEntity>> SPERM_WHALE_CARCASS =
+            ENTITIES.register(
+                    "sperm_whale_carcass",
+                    () -> EntityType.Builder
+                            .of(WhaleCarcassEntity::new, MobCategory.MISC)
+                            .sized(7.90F, 2.45F)
+                            .clientTrackingRange(22)
+                            .build("wayaround:sperm_whale_carcass")
+            );
+
     public static final DeferredHolder<EntityType<?>, EntityType<SeagullEntity>> SEAGULL =
             ENTITIES.register(
                     "seagull",
@@ -261,6 +291,17 @@ public final class EcologyContent {
                             WHALE.get(),
                             0x334B5D,
                             0xBFCAD0,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> SPERM_WHALE_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "sperm_whale_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            SPERM_WHALE.get(),
+                            0x2C3035,
+                            0x9DA7AB,
                             properties
                     )
             );
@@ -704,6 +745,9 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 WHALE_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                SPERM_WHALE_SPAWN_EGG.get()
                                         );
                                         output.accept(
                                                 SEAGULL_SPAWN_EGG.get()

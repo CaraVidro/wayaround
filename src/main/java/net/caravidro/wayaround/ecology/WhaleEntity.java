@@ -13,7 +13,7 @@ import net.minecraft.world.level.Level;
  * population systems can see it, but putting a whale into a bucket is firmly
  * rejected.
  */
-public final class WhaleEntity
+public class WhaleEntity
         extends AguaWorldFishEntity {
 
     public WhaleEntity(

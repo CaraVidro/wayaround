@@ -20,7 +20,8 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
         SEAHORSE,
         JELLYFISH,
         OARFISH,
-        WHALE
+        WHALE,
+        SPERM_WHALE
     }
 
     private final Profile profile;
@@ -38,6 +39,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case MANTA_RAY -> 0.72F;
             case OARFISH -> 0.52F;
             case WHALE -> 1.80F;
+            case SPERM_WHALE -> 2.85F;
             case BARRACUDA -> 0.38F;
             case JELLYFISH -> 0.32F;
             case SEAHORSE -> 0.12F;
@@ -53,6 +55,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case MANTA_RAY -> 0.20F;
             case OARFISH -> 0.34F;
             case WHALE -> 0.16F;
+            case SPERM_WHALE -> 0.12F;
         };
     }
 
@@ -65,6 +68,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case BARRACUDA -> 1.4F;
             case OARFISH -> 2.5F;
             case WHALE -> 0.65F;
+            case SPERM_WHALE -> 0.42F;
         };
     }
 
@@ -80,9 +84,10 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case MANTA_RAY -> manta(swim, pose, buffers, light);
             case BARRACUDA -> barracuda(swim, pose, buffers, light);
             case SEAHORSE -> seahorse(swim, pose, buffers, light);
-            case JELLYFISH -> jellyfish(swim, pose, buffers, light);
+            case JELLYFISH -> jellyfish(fish, swim, pose, buffers, light);
             case OARFISH -> oarfish(swim, pose, buffers, light);
             case WHALE -> whale(swim, pose, buffers, light);
+            case SPERM_WHALE -> spermWhale(swim, pose, buffers, light);
         }
     }
 
@@ -210,25 +215,44 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 pose, buffers, light
         );
 
+        // Slim caudal peduncle: the old tail started too abruptly.
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                0.48, -0.07, -0.07,
+                0.50F, 0.14F, 0.14F,
+                0.0F, swim * 8.0F, 0.0F,
+                pose, buffers, light
+        );
+
+        // Forked caudal fin. Long, thin lobes read much more like barracuda.
         cuboid(
                 Blocks.GRAY_CONCRETE.defaultBlockState(),
-                0.48, -0.075, -0.075,
-                0.42F, 0.15F, 0.15F,
-                0.0F, swim * 9.0F, 0.0F,
+                0.88, 0.00, -0.045,
+                0.48F, 0.11F, 0.09F,
+                0.0F, swim * 18.0F, 34.0F,
                 pose, buffers, light
         );
         cuboid(
                 Blocks.GRAY_CONCRETE.defaultBlockState(),
-                0.82, 0.00, -0.055,
-                0.30F, 0.24F, 0.11F,
-                0.0F, swim * 22.0F, 24.0F,
+                0.88, -0.09, -0.045,
+                0.48F, 0.11F, 0.09F,
+                0.0F, swim * 18.0F, -34.0F,
+                pose, buffers, light
+        );
+
+        // Rear dorsal/anal fins give the silhouette the real double-fin taper.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.34, 0.10, -0.04,
+                0.20F, 0.15F, 0.08F,
+                0.0F, 0.0F, -12.0F,
                 pose, buffers, light
         );
         cuboid(
-                Blocks.GRAY_CONCRETE.defaultBlockState(),
-                0.82, -0.22, -0.055,
-                0.30F, 0.24F, 0.11F,
-                0.0F, swim * 22.0F, -24.0F,
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                0.34, -0.22, -0.04,
+                0.18F, 0.13F, 0.08F,
+                0.0F, 0.0F, 12.0F,
                 pose, buffers, light
         );
     }
@@ -303,6 +327,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
     }
 
     private void jellyfish(
+            T fish,
             float swim,
             PoseStack pose,
             MultiBufferSource buffers,
@@ -310,19 +335,55 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
     ) {
         double pulse = swim * 0.035;
 
-        // Translucent bell.
+        long dayTime =
+                fish.level().getDayTime()
+                        % 24000L;
+
+        boolean night =
+                dayTime >= 12500L
+                        && dayTime <= 23500L;
+
+        int jellyLight =
+                night
+                        ? 0x00F000F0
+                        : light;
+
+        /*
+         * Bioluminescence is deliberately loud at night. The body is rendered
+         * at full brightness and gains a hot cyan/magenta core instead of the
+         * daytime glass-only look.
+         */
         cuboid(
-                Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                night
+                        ? Blocks.CYAN_STAINED_GLASS.defaultBlockState()
+                        : Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
                 -0.34, 0.05 + pulse, -0.34,
                 0.68F, 0.30F, 0.68F,
-                pose, buffers, light
+                pose, buffers, jellyLight
         );
         cuboid(
-                Blocks.PINK_STAINED_GLASS.defaultBlockState(),
+                night
+                        ? Blocks.MAGENTA_STAINED_GLASS.defaultBlockState()
+                        : Blocks.PINK_STAINED_GLASS.defaultBlockState(),
                 -0.25, -0.06 + pulse, -0.25,
                 0.50F, 0.17F, 0.50F,
-                pose, buffers, light
+                pose, buffers, jellyLight
         );
+
+        if (night) {
+            cuboid(
+                    Blocks.SEA_LANTERN.defaultBlockState(),
+                    -0.13, -0.01 + pulse, -0.13,
+                    0.26F, 0.13F, 0.26F,
+                    pose, buffers, jellyLight
+            );
+            cuboid(
+                    Blocks.PURPLE_CONCRETE.defaultBlockState(),
+                    -0.19, -0.10 + pulse, -0.19,
+                    0.38F, 0.06F, 0.38F,
+                    pose, buffers, jellyLight
+            );
+        }
 
         // Hanging tentacles sway independently.
         cuboid(
@@ -330,28 +391,28 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 -0.22, -0.70, -0.20,
                 0.07F, 0.68F, 0.07F,
                 0.0F, 0.0F, swim * 5.0F,
-                pose, buffers, light
+                pose, buffers, jellyLight
         );
         cuboid(
                 Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
                 0.14, -0.66, -0.17,
                 0.07F, 0.62F, 0.07F,
                 0.0F, 0.0F, -swim * 6.0F,
-                pose, buffers, light
+                pose, buffers, jellyLight
         );
         cuboid(
                 Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
                 -0.08, -0.80, 0.12,
                 0.06F, 0.77F, 0.06F,
                 0.0F, 0.0F, swim * 7.0F,
-                pose, buffers, light
+                pose, buffers, jellyLight
         );
         cuboid(
                 Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
                 0.05, -0.58, 0.23,
                 0.06F, 0.55F, 0.06F,
                 0.0F, 0.0F, -swim * 4.0F,
-                pose, buffers, light
+                pose, buffers, jellyLight
         );
     }
 
@@ -532,6 +593,115 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 Blocks.BLACK_CONCRETE.defaultBlockState(),
                 -1.15, 0.47, -0.055,
                 0.12F, 0.025F, 0.11F,
+                pose, buffers, light
+        );
+    }
+    private void spermWhale(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        // Huge rectangular head: intentionally much more massive than WHALE.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -3.45, -0.78, -0.82,
+                1.92F, 1.56F, 1.64F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -3.48, -0.86, -0.69,
+                1.88F, 0.34F, 1.38F,
+                pose, buffers, light
+        );
+
+        // Long dark body.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -1.66, -0.65, -0.70,
+                3.95F, 1.30F, 1.40F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -1.55, -0.73, -0.58,
+                3.58F, 0.27F, 1.16F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -2.78, 0.10, -0.85,
+                0.09F, 0.09F, 0.04F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -2.78, 0.10, 0.81,
+                0.09F, 0.09F, 0.04F,
+                pose, buffers, light
+        );
+
+        // Pectoral fins.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.72, -0.34, -1.56,
+                1.12F, 0.14F, 0.92F,
+                6.0F, 0.0F, -14.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.72, -0.34, 0.64,
+                1.12F, 0.14F, 0.92F,
+                -6.0F, 0.0F, 14.0F,
+                pose, buffers, light
+        );
+
+        // Knuckled dorsal ridge.
+        for (int i = 0; i < 4; i++) {
+            cuboid(
+                    Blocks.GRAY_CONCRETE.defaultBlockState(),
+                    0.10 + i * 0.48,
+                    0.58 - i * 0.04,
+                    -0.09,
+                    0.26F,
+                    0.24F - i * 0.025F,
+                    0.18F,
+                    0.0F, 0.0F, -10.0F,
+                    pose, buffers, light
+            );
+        }
+
+        // Tail stock and enormous horizontal flukes.
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                2.05, -0.30, -0.32,
+                1.45F, 0.60F, 0.64F,
+                0.0F, swim * 4.0F, 0.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                3.25, -0.12, -1.50,
+                0.72F, 0.15F, 1.30F,
+                0.0F, swim * 8.0F, -5.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                3.25, -0.12, 0.20,
+                0.72F, 0.15F, 1.30F,
+                0.0F, swim * 8.0F, 5.0F,
+                pose, buffers, light
+        );
+
+        // Single blowhole near the left-front of the huge head.
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -2.58, 0.77, -0.22,
+                0.16F, 0.03F, 0.14F,
                 pose, buffers, light
         );
     }

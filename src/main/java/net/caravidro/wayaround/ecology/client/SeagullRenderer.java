@@ -53,7 +53,7 @@ public final class SeagullRenderer
         pose.pushPose();
         pose.mulPose(
                 Axis.YP.rotationDegrees(
-                        180.0F - yaw
+                        90.0F - yaw
                 )
         );
 

@@ -93,6 +93,30 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.SPERM_WHALE.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.SPERM_WHALE
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.WHALE_CARCASS.get(),
+                context -> new WhaleCarcassRenderer(
+                        context,
+                        false
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.SPERM_WHALE_CARCASS.get(),
+                context -> new WhaleCarcassRenderer(
+                        context,
+                        true
+                )
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.SEAGULL.get(),
                 SeagullRenderer::new
         );

@@ -74,6 +74,43 @@ public final class SeagullEntity
     }
 
     @Override
+    public void aiStep() {
+        super.aiStep();
+
+        if (this.isInWaterOrBubble()) {
+            /*
+             * A gull is allowed to get wet during a fishing dive, but it must
+             * never sit underwater until Minecraft's generic mob drowning
+             * logic kills it.
+             */
+            this.setAirSupply(
+                    this.getMaxAirSupply()
+            );
+
+            long diveUntil =
+                    this.getPersistentData()
+                            .getLong(
+                                    "WayAroundGullDiveUntil"
+                            );
+
+            if (this.level().getGameTime()
+                    > diveUntil) {
+                Vec3 motion =
+                        this.getDeltaMovement();
+
+                this.setDeltaMovement(
+                        motion.x * 0.72,
+                        Math.max(
+                                0.24,
+                                motion.y + 0.12
+                        ),
+                        motion.z * 0.72
+                );
+            }
+        }
+    }
+
+    @Override
     public boolean isFlying() {
         return !this.onGround();
     }

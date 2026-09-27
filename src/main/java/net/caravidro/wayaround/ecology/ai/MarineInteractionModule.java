@@ -9,30 +9,47 @@ import net.caravidro.wayaround.ecology.MantaRayEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.SeagullEntity;
 import net.caravidro.wayaround.ecology.SunfishEntity;
+import net.caravidro.wayaround.ecology.WhaleCarcassEntity;
 import net.caravidro.wayaround.ecology.WhaleEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.animal.AbstractFish;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Interactions whose participants belong to different ecological groups.
+ * Cross-species marine interactions.
  *
- * The seagull is intentionally not a fake damage event: the prey remains the
- * same fish entity while being physically carried.
+ * Seagulls now perform a real fishing sequence:
+ * cruise -> dive -> physically carry the fish -> climb -> land -> eat.
  */
 public final class MarineInteractionModule {
 
-    private static final String GULL_CARRY_UNTIL =
-            "WayAroundGullCarryUntil";
-
+    private static final String GULL_PHASE =
+            "WayAroundGullPhase";
+    private static final String GULL_DIVE_UNTIL =
+            "WayAroundGullDiveUntil";
     private static final String GULL_NEXT_HUNT =
             "WayAroundGullNextHunt";
+    private static final String GULL_LANDING =
+            "WayAroundGullLanding";
+    private static final String GULL_EAT_AT =
+            "WayAroundGullEatAt";
+
+    private static final int PHASE_CRUISE = 0;
+    private static final int PHASE_DIVE = 1;
+    private static final int PHASE_ASCEND = 2;
+    private static final int PHASE_LAND = 3;
+    private static final int PHASE_EAT = 4;
 
     private MarineInteractionModule() {
     }
@@ -51,9 +68,9 @@ public final class MarineInteractionModule {
             AABB area =
                     player.getBoundingBox()
                             .inflate(
-                                    64.0,
-                                    32.0,
-                                    64.0
+                                    72.0,
+                                    40.0,
+                                    72.0
                             );
 
             for (SeagullEntity gull :
@@ -86,6 +103,14 @@ public final class MarineInteractionModule {
         long now =
                 level.getGameTime();
 
+        var data =
+                gull.getPersistentData();
+
+        int phase =
+                data.getInt(
+                        GULL_PHASE
+                );
+
         AbstractFish carried =
                 gull.getPassengers()
                         .stream()
@@ -103,37 +128,366 @@ public final class MarineInteractionModule {
                     carried.getMaxAirSupply()
             );
 
-            Vec3 forward =
-                    gull.getLookAngle();
+            handleCarriedFish(
+                    level,
+                    gull,
+                    carried,
+                    phase,
+                    now
+            );
 
-            double wantedY =
+            return;
+        }
+
+        if (phase == PHASE_ASCEND
+                || phase == PHASE_LAND
+                || phase == PHASE_EAT) {
+            resetFlight(
+                    gull
+            );
+
+            phase =
+                    PHASE_CRUISE;
+        }
+
+        if (gull.isInWaterOrBubble()
+                && phase != PHASE_DIVE) {
+            escapeWater(
+                    level,
+                    gull
+            );
+
+            return;
+        }
+
+        if (scavengeWhaleCarcass(
+                level,
+                gull,
+                now
+        )) {
+            return;
+        }
+
+        if (now < data.getLong(
+                GULL_NEXT_HUNT
+        )) {
+            return;
+        }
+
+        AbstractFish prey =
+                nearestSurfacePrey(
+                        level,
+                        gull
+                );
+
+        if (prey == null) {
+            data.putInt(
+                    GULL_PHASE,
+                    PHASE_CRUISE
+            );
+
+            data.putLong(
+                    GULL_NEXT_HUNT,
+                    now
+                            + 60L
+                            + level.random.nextInt(
+                            120
+                    )
+            );
+
+            return;
+        }
+
+        data.putInt(
+                GULL_PHASE,
+                PHASE_DIVE
+        );
+
+        data.putLong(
+                GULL_DIVE_UNTIL,
+                now + 60L
+        );
+
+        gull.setNoGravity(
+                true
+        );
+
+        Vec3 dive =
+                new Vec3(
+                        prey.getX(),
+                        prey.getY()
+                                + 0.18,
+                        prey.getZ()
+                );
+
+        gull.getMoveControl()
+                .setWantedPosition(
+                        dive.x,
+                        dive.y,
+                        dive.z,
+                        1.75
+                );
+
+        gull.getNavigation()
+                .moveTo(
+                        dive.x,
+                        dive.y,
+                        dive.z,
+                        1.55
+                );
+
+        if (gull.distanceToSqr(
+                prey
+        ) <= 2.15 * 2.15) {
+            capture(
+                    level,
+                    gull,
+                    prey,
+                    now
+            );
+
+            return;
+        }
+
+        if (now >= data.getLong(
+                GULL_DIVE_UNTIL
+        )) {
+            data.putInt(
+                    GULL_PHASE,
+                    PHASE_CRUISE
+            );
+
+            data.putLong(
+                    GULL_NEXT_HUNT,
+                    now + 100L
+            );
+
+            escapeWater(
+                    level,
+                    gull
+            );
+        }
+    }
+
+    private static void capture(
+            ServerLevel level,
+            SeagullEntity gull,
+            AbstractFish prey,
+            long now
+    ) {
+        if (!prey.startRiding(
+                gull,
+                true
+        )) {
+            return;
+        }
+
+        prey.setAirSupply(
+                prey.getMaxAirSupply()
+        );
+
+        gull.getPersistentData()
+                .putInt(
+                        GULL_PHASE,
+                        PHASE_ASCEND
+                );
+
+        gull.getPersistentData()
+                .putLong(
+                        GULL_EAT_AT,
+                        now + 260L
+                );
+
+        gull.setNoGravity(
+                true
+        );
+
+        gull.setDeltaMovement(
+                gull.getDeltaMovement()
+                        .add(
+                                0.0,
+                                0.32,
+                                0.0
+                        )
+        );
+
+        level.playSound(
+                null,
+                gull.blockPosition(),
+                SoundEvents.CHICKEN_AMBIENT,
+                SoundSource.NEUTRAL,
+                0.92F,
+                1.34F
+        );
+
+        level.sendParticles(
+                ParticleTypes.SPLASH,
+                prey.getX(),
+                prey.getY(),
+                prey.getZ(),
+                16,
+                0.30,
+                0.18,
+                0.30,
+                0.10
+        );
+    }
+
+    private static void handleCarriedFish(
+            ServerLevel level,
+            SeagullEntity gull,
+            AbstractFish prey,
+            int phase,
+            long now
+    ) {
+        var data =
+                gull.getPersistentData();
+
+        if (phase == PHASE_ASCEND) {
+            gull.setNoGravity(
+                    true
+            );
+
+            double comfortY =
                     Math.max(
                             level.getSeaLevel()
-                                    + 5.0,
+                                    + 8.0,
                             gull.getY()
-                                    + 2.0
+                                    + 4.0
                     );
 
             gull.getMoveControl()
                     .setWantedPosition(
                             gull.getX()
-                                    + forward.x
-                                            * 7.0,
-                            wantedY,
+                                    + gull.getLookAngle().x
+                                            * 8.0,
+                            comfortY,
                             gull.getZ()
-                                    + forward.z
-                                            * 7.0,
-                            1.24
+                                    + gull.getLookAngle().z
+                                            * 8.0,
+                            1.42
                     );
 
-            if (now >= gull.getPersistentData()
-                    .getLong(
-                            GULL_CARRY_UNTIL
-                    )) {
+            if (gull.getY()
+                    >= level.getSeaLevel()
+                            + 6.5) {
+                BlockPos landing =
+                        findLandingSpot(
+                                level,
+                                gull.blockPosition()
+                        );
+
+                if (landing != null) {
+                    data.putLong(
+                            GULL_LANDING,
+                            landing.asLong()
+                    );
+
+                    data.putInt(
+                            GULL_PHASE,
+                            PHASE_LAND
+                    );
+                }
+            }
+
+            return;
+        }
+
+        if (phase == PHASE_LAND) {
+            BlockPos landing =
+                    BlockPos.of(
+                            data.getLong(
+                                    GULL_LANDING
+                            )
+                    );
+
+            double tx =
+                    landing.getX()
+                            + 0.5;
+            double ty =
+                    landing.getY()
+                            + 0.85;
+            double tz =
+                    landing.getZ()
+                            + 0.5;
+
+            double horizontal =
+                    Math.hypot(
+                            gull.getX() - tx,
+                            gull.getZ() - tz
+                    );
+
+            if (horizontal > 1.5
+                    || gull.getY()
+                    > ty + 1.8) {
+                gull.setNoGravity(
+                        true
+                );
+
+                gull.getMoveControl()
+                        .setWantedPosition(
+                                tx,
+                                ty,
+                                tz,
+                                1.12
+                        );
+
+                gull.getNavigation()
+                        .moveTo(
+                                tx,
+                                ty,
+                                tz,
+                                1.02
+                        );
+
+                return;
+            }
+
+            gull.setNoGravity(
+                    false
+            );
+
+            gull.getNavigation()
+                    .stop();
+
+            gull.setDeltaMovement(
+                    0.0,
+                    -0.10,
+                    0.0
+            );
+
+            if (gull.onGround()
+                    || gull.getY()
+                    <= ty + 0.25) {
+                data.putInt(
+                        GULL_PHASE,
+                        PHASE_EAT
+                );
+
+                data.putLong(
+                        GULL_EAT_AT,
+                        now + 40L
+                );
+            }
+
+            return;
+        }
+
+        if (phase == PHASE_EAT) {
+            gull.setNoGravity(
+                    false
+            );
+
+            gull.getNavigation()
+                    .stop();
+
+            if (now >= data.getLong(
+                    GULL_EAT_AT
+            )) {
                 eatCarriedFish(
                         level,
                         gull,
-                        carried,
+                        prey,
                         now
                 );
             }
@@ -141,37 +495,29 @@ public final class MarineInteractionModule {
             return;
         }
 
-        if (now < gull.getPersistentData()
-                .getLong(
-                        GULL_NEXT_HUNT
-                )) {
-            return;
-        }
+        data.putInt(
+                GULL_PHASE,
+                PHASE_ASCEND
+        );
+    }
 
-        AbstractFish prey =
+    private static boolean scavengeWhaleCarcass(
+            ServerLevel level,
+            SeagullEntity gull,
+            long now
+    ) {
+        WhaleCarcassEntity carcass =
                 level.getEntitiesOfClass(
-                                AbstractFish.class,
+                                WhaleCarcassEntity.class,
                                 gull.getBoundingBox()
                                         .inflate(
+                                                30.0,
                                                 18.0,
-                                                12.0,
-                                                18.0
+                                                30.0
                                         ),
-                                fish ->
-                                        fish.isAlive()
-                                                && !fish.isPassenger()
-                                                && !(fish instanceof WhaleEntity)
-                                                && !(fish instanceof MantaRayEntity)
-                                                && !(fish instanceof OarfishEntity)
-                                                && !(fish instanceof SunfishEntity)
-                                                && !(fish instanceof AquaticPredator)
-                                                && LivingFaunaManager.fishSize(
-                                                fish
-                                        ) <= 1.25F
-                                                && nearSurface(
-                                                level,
-                                                fish.blockPosition()
-                                        )
+                                body ->
+                                        body.isAlive()
+                                                && !body.isSkeleton()
                         )
                         .stream()
                         .min(
@@ -181,71 +527,145 @@ public final class MarineInteractionModule {
                         )
                         .orElse(null);
 
-        if (prey == null) {
-            gull.getPersistentData()
-                    .putLong(
-                            GULL_NEXT_HUNT,
-                            now
-                                    + 80L
-                                    + level.random.nextInt(
-                                    160
-                            )
-                    );
-
-            return;
+        if (carcass == null) {
+            return false;
         }
 
-        gull.getNavigation()
-                .moveTo(
-                        prey.getX(),
-                        prey.getY()
-                                + 0.7,
-                        prey.getZ(),
-                        1.58
+        gull.setNoGravity(
+                true
+        );
+
+        gull.getMoveControl()
+                .setWantedPosition(
+                        carcass.getX(),
+                        carcass.getY()
+                                + carcass.getBbHeight()
+                                        + 0.35,
+                        carcass.getZ(),
+                        1.18
                 );
 
         if (gull.distanceToSqr(
-                prey
-        ) <= 2.3 * 2.3
-                && prey.startRiding(
-                gull,
-                true
-        )) {
-            prey.setAirSupply(
-                    prey.getMaxAirSupply()
-            );
-
-            gull.getPersistentData()
-                    .putLong(
-                            GULL_CARRY_UNTIL,
-                            now
-                                    + 80L
-                                    + level.random.nextInt(
-                                    121
-                            )
-                    );
-
-            level.playSound(
-                    null,
-                    gull.blockPosition(),
-                    SoundEvents.CHICKEN_AMBIENT,
-                    SoundSource.NEUTRAL,
-                    0.9F,
-                    1.28F
-            );
-
-            level.sendParticles(
-                    ParticleTypes.SPLASH,
-                    prey.getX(),
-                    prey.getY(),
-                    prey.getZ(),
-                    10,
-                    0.24,
-                    0.12,
-                    0.24,
-                    0.08
-            );
+                carcass
+        ) > 2.7 * 2.7) {
+            return true;
         }
+
+        if (now < gull.getPersistentData()
+                .getLong(
+                        GULL_NEXT_HUNT
+                )) {
+            return true;
+        }
+
+        int consumed =
+                carcass.consumeFlesh(
+                        2
+                                + level.random.nextInt(
+                                3
+                        )
+                );
+
+        if (consumed <= 0) {
+            return false;
+        }
+
+        ItemStack flesh =
+                new ItemStack(
+                        net.caravidro.wayaround.ecology.EcologyContent.RAW_WHALE_MEAT.get()
+                );
+
+        level.playSound(
+                null,
+                gull.blockPosition(),
+                SoundEvents.GENERIC_EAT,
+                SoundSource.NEUTRAL,
+                0.72F,
+                1.22F
+                        + level.random.nextFloat()
+                                * 0.16F
+        );
+
+        level.sendParticles(
+                new ItemParticleOption(
+                        ParticleTypes.ITEM,
+                        flesh
+                ),
+                carcass.getX(),
+                carcass.getY()
+                        + carcass.getBbHeight()
+                                * 0.70,
+                carcass.getZ(),
+                8
+                        + consumed * 2,
+                0.42,
+                0.18,
+                0.42,
+                0.04
+        );
+
+        level.sendParticles(
+                ParticleTypes.POOF,
+                carcass.getX(),
+                carcass.getY()
+                        + carcass.getBbHeight()
+                                * 0.68,
+                carcass.getZ(),
+                5,
+                0.35,
+                0.14,
+                0.35,
+                0.015
+        );
+
+        gull.getPersistentData()
+                .putLong(
+                        GULL_NEXT_HUNT,
+                        now
+                                + 80L
+                                + level.random.nextInt(
+                                100
+                        )
+                );
+
+        return true;
+    }
+
+    private static AbstractFish nearestSurfacePrey(
+            ServerLevel level,
+            SeagullEntity gull
+    ) {
+        return level.getEntitiesOfClass(
+                        AbstractFish.class,
+                        gull.getBoundingBox()
+                                .inflate(
+                                        20.0,
+                                        14.0,
+                                        20.0
+                                ),
+                        fish ->
+                                fish.isAlive()
+                                        && !fish.isPassenger()
+                                        && !(fish instanceof WhaleEntity)
+                                        && !(fish instanceof MantaRayEntity)
+                                        && !(fish instanceof OarfishEntity)
+                                        && !(fish instanceof SunfishEntity)
+                                        && !(fish instanceof AquaticPredator)
+                                        && LivingFaunaManager.fishSize(
+                                        fish
+                                ) <= 1.25F
+                                        && nearSurface(
+                                        level,
+                                        fish.blockPosition()
+                                )
+                )
+                .stream()
+                .min(
+                        java.util.Comparator.comparingDouble(
+                                gull::distanceToSqr
+                        )
+                )
+                .orElse(null);
     }
 
     private static void eatCarriedFish(
@@ -254,6 +674,11 @@ public final class MarineInteractionModule {
             AbstractFish prey,
             long now
     ) {
+        ItemStack meat =
+                LivingFaunaManager.meatForFish(
+                        prey
+                );
+
         prey.stopRiding();
 
         level.playSound(
@@ -268,19 +693,38 @@ public final class MarineInteractionModule {
         );
 
         level.sendParticles(
-                ParticleTypes.POOF,
+                new ItemParticleOption(
+                        ParticleTypes.ITEM,
+                        meat
+                ),
                 gull.getX(),
                 gull.getY()
-                        - 0.38,
+                        + 0.12,
                 gull.getZ(),
-                9,
-                0.20,
+                12,
+                0.22,
+                0.16,
+                0.22,
+                0.045
+        );
+
+        level.sendParticles(
+                ParticleTypes.POOF,
+                gull.getX(),
+                gull.getY(),
+                gull.getZ(),
+                7,
+                0.22,
                 0.14,
-                0.20,
+                0.22,
                 0.02
         );
 
         prey.discard();
+
+        resetFlight(
+                gull
+        );
 
         gull.getPersistentData()
                 .putLong(
@@ -291,6 +735,163 @@ public final class MarineInteractionModule {
                                 500
                         )
                 );
+    }
+
+    private static void resetFlight(
+            SeagullEntity gull
+    ) {
+        gull.getPersistentData()
+                .putInt(
+                        GULL_PHASE,
+                        PHASE_CRUISE
+                );
+
+        gull.setNoGravity(
+                true
+        );
+    }
+
+    private static void escapeWater(
+            ServerLevel level,
+            SeagullEntity gull
+    ) {
+        gull.setNoGravity(
+                true
+        );
+
+        gull.setAirSupply(
+                gull.getMaxAirSupply()
+        );
+
+        double targetY =
+                Math.max(
+                        level.getSeaLevel()
+                                + 5.0,
+                        gull.getY()
+                                + 5.0
+                );
+
+        gull.getMoveControl()
+                .setWantedPosition(
+                        gull.getX()
+                                + gull.getLookAngle().x
+                                        * 4.0,
+                        targetY,
+                        gull.getZ()
+                                + gull.getLookAngle().z
+                                        * 4.0,
+                        1.45
+                );
+
+        gull.setDeltaMovement(
+                gull.getDeltaMovement()
+                        .add(
+                                0.0,
+                                0.18,
+                                0.0
+                        )
+        );
+    }
+
+    private static BlockPos findLandingSpot(
+            ServerLevel level,
+            BlockPos origin
+    ) {
+        BlockPos best =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (int radius = 4;
+             radius <= 36;
+             radius += 4) {
+            for (Direction direction :
+                    Direction.Plane.HORIZONTAL) {
+                for (int side = -1;
+                     side <= 1;
+                     side++) {
+                    Direction sideDirection =
+                            direction.getClockWise();
+
+                    int x =
+                            origin.getX()
+                                    + direction.getStepX()
+                                            * radius
+                                    + sideDirection.getStepX()
+                                            * side
+                                            * 3;
+
+                    int z =
+                            origin.getZ()
+                                    + direction.getStepZ()
+                                            * radius
+                                    + sideDirection.getStepZ()
+                                            * side
+                                            * 3;
+
+                    int y =
+                            level.getHeight(
+                                    Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                    x,
+                                    z
+                            );
+
+                    BlockPos spot =
+                            new BlockPos(
+                                    x,
+                                    y,
+                                    z
+                            );
+
+                    if (!level.getFluidState(
+                            spot
+                    ).isEmpty()
+                            || !level.getFluidState(
+                            spot.above()
+                    ).isEmpty()) {
+                        continue;
+                    }
+
+                    if (level.getBlockState(
+                            spot.below()
+                    ).is(
+                            Blocks.WATER
+                    )) {
+                        continue;
+                    }
+
+                    if (!level.getBlockState(
+                            spot.below()
+                    ).isFaceSturdy(
+                            level,
+                            spot.below(),
+                            Direction.UP
+                    )) {
+                        continue;
+                    }
+
+                    double distance =
+                            spot.distSqr(
+                                    origin
+                            );
+
+                    if (distance
+                            < bestDistance) {
+                        bestDistance =
+                                distance;
+                        best =
+                                spot;
+                    }
+                }
+            }
+
+            if (best != null) {
+                break;
+            }
+        }
+
+        return best;
     }
 
     private static boolean nearSurface(

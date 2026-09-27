@@ -18,6 +18,8 @@ import net.caravidro.wayaround.ecology.SeahorseEntity;
 import net.caravidro.wayaround.ecology.JellyfishEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.SeagullEntity;
+import net.caravidro.wayaround.ecology.SpermWhaleEntity;
+import net.caravidro.wayaround.ecology.WhaleCarcassEntity;
 import net.caravidro.wayaround.ecology.WhaleEntity;
 import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
@@ -33,6 +35,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -76,6 +79,12 @@ public final class LivingFaunaManager {
 
     private static final String NEXT_PREDATOR_BITE =
             "WayAroundPredatorNextBite";
+
+    private static final String NEXT_SCAVENGE_CHECK =
+            "WayAroundPredatorNextScavenge";
+
+    private static final String NEXT_WHALE_BLOW =
+            "WayAroundWhaleNextBlow";
 
     private static final String FISH_BASE_SIZE =
             "WayAroundFishBaseSize";
@@ -217,47 +226,15 @@ public final class LivingFaunaManager {
                         }
                 );
 
-        Item meat;
-
-        if (fish
-                instanceof SardineEntity) {
-            meat =
-                    EcologyContent.RAW_SARDINE_MEAT.get();
-
-        } else if (fish
-                instanceof ReefSharkEntity) {
-            meat =
-                    EcologyContent.RAW_SHARK_MEAT.get();
-
-        } else if (fish instanceof WhaleEntity) {
-            meat =
-                    EcologyContent.RAW_WHALE_MEAT.get();
-
-        } else if (isSunFish(
-                fish
-        )) {
-            meat =
-                    EcologyContent.RAW_SUNFISH_MEAT.get();
-
-        } else if (fish.getType()
-                == EntityType.COD) {
-            meat =
-                    EcologyContent.RAW_COD_MEAT.get();
-
-        } else if (fish.getType()
-                == EntityType.SALMON) {
-            meat =
-                    EcologyContent.RAW_SALMON_MEAT.get();
-
-        } else if (fish.getType()
-                == EntityType.PUFFERFISH) {
-            meat =
-                    EcologyContent.RAW_PUFFERFISH_MEAT.get();
-
-        } else {
-            meat =
-                    EcologyContent.RAW_TROPICAL_FISH_MEAT.get();
+        if (fish instanceof WhaleEntity) {
+            // Cetacean biomass remains in the persistent carcass entity.
+            return;
         }
+
+        Item meat =
+                meatForFish(
+                        fish
+                ).getItem();
 
         int count =
                 Math.max(
@@ -293,6 +270,53 @@ public final class LivingFaunaManager {
     }
 
     @SubscribeEvent
+    public static void whaleDeath(
+            LivingDeathEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof WhaleEntity whale)
+                || !(whale.level()
+                instanceof ServerLevel level)) {
+            return;
+        }
+
+        boolean sperm =
+                whale instanceof SpermWhaleEntity;
+
+        var carcassType =
+                sperm
+                        ? EcologyContent.SPERM_WHALE_CARCASS.get()
+                        : EcologyContent.WHALE_CARCASS.get();
+
+        WhaleCarcassEntity carcass =
+                carcassType.create(
+                        level
+                );
+
+        if (carcass == null) {
+            return;
+        }
+
+        carcass.moveTo(
+                whale.getX(),
+                whale.getY(),
+                whale.getZ(),
+                whale.getYRot(),
+                0.0F
+        );
+
+        carcass.setHealth(
+                sperm
+                        ? 56.0F
+                        : 40.0F
+        );
+
+        level.addFreshEntity(
+                carcass
+        );
+    }
+
+    @SubscribeEvent
     public static void tick(ServerTickEvent.Post event) {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.LIVING_VEGETATION
@@ -300,8 +324,30 @@ public final class LivingFaunaManager {
             return;
         }
 
-        if (event.getServer().getTickCount()
-                % INTERVAL != 0) {
+        int tick =
+                event.getServer()
+                        .getTickCount();
+
+        /*
+         * Dives/landings need substantially finer control than ecology
+         * population logic. Five ticks is smooth enough without scanning every
+         * entity every server tick.
+         */
+        if (tick % 5 == 0) {
+            for (ServerLevel level :
+                    event.getServer().getAllLevels()) {
+                if (level.dimension()
+                        .equals(
+                                Level.OVERWORLD
+                        )) {
+                    MarineInteractionModule.tickSeagulls(
+                            level
+                    );
+                }
+            }
+        }
+
+        if (tick % INTERVAL != 0) {
             return;
         }
 
@@ -313,9 +359,6 @@ public final class LivingFaunaManager {
             }
 
             tickAnimals(level);
-            MarineInteractionModule.tickSeagulls(
-                    level
-            );
             tickFish(level);
         }
     }
@@ -697,16 +740,30 @@ public final class LivingFaunaManager {
                 boolean occupied;
 
                 if (fish instanceof WhaleEntity whale) {
+                    boolean breathing =
+                            whaleSurfaceBreath(
+                                    level,
+                                    whale
+                            );
+
                     occupied =
-                            whaleFilterFeedBehavior(
+                            breathing
+                                    || whaleFilterFeedBehavior(
                                     level,
                                     whale
                             );
 
                 } else if (fish
                         instanceof AquaticPredator predator) {
+                    boolean scavenging =
+                            scavengePredatorMeat(
+                                    level,
+                                    fish
+                            );
+
                     occupied =
-                            huntFish(
+                            scavenging
+                                    || huntFish(
                                     level,
                                     fish,
                                     predator
@@ -1019,6 +1076,259 @@ public final class LivingFaunaManager {
         return true;
     }
 
+    public static ItemStack meatForFish(
+            AbstractFish fish
+    ) {
+        if (fish instanceof SardineEntity) {
+            return new ItemStack(
+                    EcologyContent.RAW_SARDINE_MEAT.get()
+            );
+        }
+
+        if (fish instanceof ReefSharkEntity) {
+            return new ItemStack(
+                    EcologyContent.RAW_SHARK_MEAT.get()
+            );
+        }
+
+        if (fish instanceof WhaleEntity) {
+            return new ItemStack(
+                    EcologyContent.RAW_WHALE_MEAT.get()
+            );
+        }
+
+        if (isSunFish(
+                fish
+        )) {
+            return new ItemStack(
+                    EcologyContent.RAW_SUNFISH_MEAT.get()
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.COD) {
+            return new ItemStack(
+                    EcologyContent.RAW_COD_MEAT.get()
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.SALMON) {
+            return new ItemStack(
+                    EcologyContent.RAW_SALMON_MEAT.get()
+            );
+        }
+
+        if (fish.getType()
+                == EntityType.PUFFERFISH) {
+            return new ItemStack(
+                    EcologyContent.RAW_PUFFERFISH_MEAT.get()
+            );
+        }
+
+        return new ItemStack(
+                EcologyContent.RAW_TROPICAL_FISH_MEAT.get()
+        );
+    }
+
+    private static boolean scavengePredatorMeat(
+            ServerLevel level,
+            AbstractFish predator
+    ) {
+        CompoundTag data =
+                predator.getPersistentData();
+
+        long now =
+                level.getGameTime();
+
+        if (now < data.getLong(
+                NEXT_SCAVENGE_CHECK
+        )) {
+            return false;
+        }
+
+        ItemEntity meat =
+                level.getEntitiesOfClass(
+                                ItemEntity.class,
+                                predator.getBoundingBox()
+                                        .inflate(
+                                                9.0,
+                                                5.0,
+                                                9.0
+                                        ),
+                                item ->
+                                        item.isAlive()
+                                                && isFishMeat(
+                                                item.getItem()
+                                        )
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        predator::distanceToSqr
+                                )
+                        )
+                        .orElse(null);
+
+        if (meat == null) {
+            data.putLong(
+                    NEXT_SCAVENGE_CHECK,
+                    now
+                            + 40L
+                            + level.random.nextInt(
+                            90
+                    )
+            );
+
+            return false;
+        }
+
+        predator.getNavigation()
+                .moveTo(
+                        meat.getX(),
+                        meat.getY(),
+                        meat.getZ(),
+                        1.34
+                );
+
+        if (predator.distanceToSqr(
+                meat
+        ) > 1.65 * 1.65) {
+            return true;
+        }
+
+        ItemStack stack =
+                meat.getItem();
+
+        int maxBite =
+                Math.min(
+                        3,
+                        stack.getCount()
+                );
+
+        int consumed =
+                maxBite <= 1
+                        ? 1
+                        : 1
+                                + level.random.nextInt(
+                                maxBite
+                        );
+
+        ItemStack particle =
+                stack.copyWithCount(
+                        1
+                );
+
+        stack.shrink(
+                consumed
+        );
+
+        if (stack.isEmpty()) {
+            meat.discard();
+        }
+
+        data.putInt(
+                FISH_MEALS,
+                Math.min(
+                        10_000,
+                        data.getInt(
+                                FISH_MEALS
+                        )
+                                + consumed
+                )
+        );
+
+        data.putLong(
+                SATIATED_UNTIL,
+                now + 5400L
+        );
+
+        /*
+         * A predator does not vacuum the whole drop every time. Small drops
+         * vanish; big prey commonly leave pieces behind for the ecosystem.
+         */
+        data.putLong(
+                NEXT_SCAVENGE_CHECK,
+                now
+                        + 35L
+                        + level.random.nextInt(
+                        85
+                )
+        );
+
+        level.playSound(
+                null,
+                predator.blockPosition(),
+                SoundEvents.GENERIC_EAT,
+                SoundSource.NEUTRAL,
+                0.76F,
+                0.78F
+                        + level.random.nextFloat()
+                                * 0.22F
+        );
+
+        level.sendParticles(
+                new ItemParticleOption(
+                        ParticleTypes.ITEM,
+                        particle
+                ),
+                predator.getX(),
+                predator.getY()
+                        + predator.getBbHeight()
+                                * 0.35,
+                predator.getZ(),
+                5
+                        + consumed * 2,
+                0.20,
+                0.14,
+                0.20,
+                0.035
+        );
+
+        return true;
+    }
+
+    private static boolean isFishMeat(
+            ItemStack stack
+    ) {
+        return stack.is(
+                EcologyContent.RAW_COD_MEAT.get()
+        )
+                || stack.is(
+                EcologyContent.RAW_SALMON_MEAT.get()
+        )
+                || stack.is(
+                EcologyContent.RAW_TROPICAL_FISH_MEAT.get()
+        )
+                || stack.is(
+                EcologyContent.RAW_PUFFERFISH_MEAT.get()
+        )
+                || stack.is(
+                EcologyContent.RAW_SUNFISH_MEAT.get()
+        )
+                || stack.is(
+                EcologyContent.RAW_SARDINE_MEAT.get()
+        )
+                || stack.is(
+                EcologyContent.RAW_SHARK_MEAT.get()
+        )
+                || stack.is(
+                EcologyContent.RAW_WHALE_MEAT.get()
+        )
+                || stack.is(
+                Items.COD
+        )
+                || stack.is(
+                Items.SALMON
+        )
+                || stack.is(
+                Items.TROPICAL_FISH
+        )
+                || stack.is(
+                Items.PUFFERFISH
+        );
+    }
+
     private static boolean huntFish(
             ServerLevel level,
             AbstractFish hunter,
@@ -1132,6 +1442,181 @@ public final class LivingFaunaManager {
         return true;
     }
 
+    private static boolean whaleSurfaceBreath(
+            ServerLevel level,
+            WhaleEntity whale
+    ) {
+        CompoundTag data =
+                whale.getPersistentData();
+
+        long now =
+                level.getGameTime();
+
+        long next =
+                data.getLong(
+                        NEXT_WHALE_BLOW
+                );
+
+        if (next <= 0L) {
+            data.putLong(
+                    NEXT_WHALE_BLOW,
+                    now
+                            + 500L
+                            + level.random.nextInt(
+                            900
+                    )
+            );
+
+            return false;
+        }
+
+        if (now < next) {
+            return false;
+        }
+
+        BlockPos origin =
+                whale.blockPosition();
+
+        BlockPos surface =
+                null;
+
+        for (int dy = 0;
+             dy <= 18;
+             dy++) {
+            BlockPos water =
+                    origin.above(
+                            dy
+                    );
+
+            if (!level.getFluidState(
+                    water
+            ).is(
+                    FluidTags.WATER
+            )) {
+                break;
+            }
+
+            if (!level.getFluidState(
+                    water.above()
+            ).is(
+                    FluidTags.WATER
+            )) {
+                surface =
+                        water;
+                break;
+            }
+        }
+
+        if (surface == null) {
+            whale.getNavigation()
+                    .moveTo(
+                            whale.getX(),
+                            whale.getY()
+                                    + 10.0,
+                            whale.getZ(),
+                            0.92
+                    );
+
+            return true;
+        }
+
+        if (whale.getY()
+                < surface.getY()
+                        - 2.2) {
+            whale.getNavigation()
+                    .moveTo(
+                            surface.getX()
+                                    + 0.5,
+                            surface.getY()
+                                    + 0.2,
+                            surface.getZ()
+                                    + 0.5,
+                            0.94
+                    );
+
+            return true;
+        }
+
+        boolean sperm =
+                whale instanceof SpermWhaleEntity;
+
+        int height =
+                sperm
+                        ? 9
+                        : 6;
+
+        int perLayer =
+                sperm
+                        ? 9
+                        : 6;
+
+        for (int i = 0;
+             i < height;
+             i++) {
+            double y =
+                    whale.getY()
+                            + whale.getBbHeight()
+                                    * 0.45
+                            + i * 0.42;
+
+            level.sendParticles(
+                    ParticleTypes.SPLASH,
+                    whale.getX(),
+                    y,
+                    whale.getZ(),
+                    perLayer,
+                    0.16
+                            + i * 0.025,
+                    0.08,
+                    0.16
+                            + i * 0.025,
+                    0.16
+            );
+
+            if (i % 2 == 0) {
+                level.sendParticles(
+                        ParticleTypes.CLOUD,
+                        whale.getX(),
+                        y + 0.12,
+                        whale.getZ(),
+                        sperm
+                                ? 4
+                                : 2,
+                        0.12,
+                        0.10,
+                        0.12,
+                        0.045
+                );
+            }
+        }
+
+        level.playSound(
+                null,
+                whale.blockPosition(),
+                SoundEvents.GENERIC_SPLASH,
+                SoundSource.NEUTRAL,
+                sperm
+                        ? 2.0F
+                        : 1.35F,
+                sperm
+                        ? 0.55F
+                        : 0.72F
+        );
+
+        data.putLong(
+                NEXT_WHALE_BLOW,
+                now
+                        + 800L
+                        + level.random.nextInt(
+                        sperm
+                                ? 1700
+                                : 1200
+                )
+        );
+
+        return true;
+    }
+
     private static boolean whaleFilterFeedBehavior(
             ServerLevel level,
             WhaleEntity whale
@@ -1153,9 +1638,15 @@ public final class LivingFaunaManager {
                                 AbstractFish.class,
                                 whale.getBoundingBox()
                                         .inflate(
-                                                22.0,
-                                                9.0,
-                                                22.0
+                                                whale instanceof SpermWhaleEntity
+                                                        ? 32.0
+                                                        : 22.0,
+                                                whale instanceof SpermWhaleEntity
+                                                        ? 13.0
+                                                        : 9.0,
+                                                whale instanceof SpermWhaleEntity
+                                                        ? 32.0
+                                                        : 22.0
                                         ),
                                 fish ->
                                         fish.isAlive()
@@ -1167,7 +1658,11 @@ public final class LivingFaunaManager {
                                                 && !(fish instanceof OarfishEntity)
                                                 && !(fish instanceof SunfishEntity)
                                                 && !(fish instanceof JellyfishEntity)
-                                                && fishSize(fish) <= 1.30F
+                                                && fishSize(fish) <= (
+                                                whale instanceof SpermWhaleEntity
+                                                        ? 1.85F
+                                                        : 1.30F
+                                        )
                         )
                         .stream()
                         .min(
@@ -1208,9 +1703,15 @@ public final class LivingFaunaManager {
                         AbstractFish.class,
                         whale.getBoundingBox()
                                 .inflate(
-                                        2.8,
-                                        1.7,
-                                        2.8
+                                        whale instanceof SpermWhaleEntity
+                                                ? 4.8
+                                                : 2.8,
+                                        whale instanceof SpermWhaleEntity
+                                                ? 2.6
+                                                : 1.7,
+                                        whale instanceof SpermWhaleEntity
+                                                ? 4.8
+                                                : 2.8
                                 ),
                         fish ->
                                 fish.isAlive()
@@ -1221,7 +1722,11 @@ public final class LivingFaunaManager {
                                         && !(fish instanceof MantaRayEntity)
                                         && !(fish instanceof OarfishEntity)
                                         && !(fish instanceof SunfishEntity)
-                                        && fishSize(fish) <= 1.30F
+                                        && fishSize(fish) <= (
+                                                whale instanceof SpermWhaleEntity
+                                                        ? 1.85F
+                                                        : 1.30F
+                                        )
                 );
 
         int eaten =
@@ -1229,7 +1734,11 @@ public final class LivingFaunaManager {
 
         for (AbstractFish prey :
                 mouthful) {
-            if (eaten >= 4) {
+            if (eaten >= (
+                    whale instanceof SpermWhaleEntity
+                            ? 7
+                            : 4
+            )) {
                 break;
             }
 
@@ -2083,6 +2592,9 @@ public final class LivingFaunaManager {
                         ? 1.65F + level.random.nextFloat() * 1.25F
                         : 0.88F + level.random.nextFloat() * 0.62F;
 
+            } else if (fish instanceof SpermWhaleEntity) {
+                base = 1.08F + level.random.nextFloat() * 0.34F;
+
             } else if (fish instanceof WhaleEntity) {
                 base = 0.88F + level.random.nextFloat() * 0.26F;
             }
@@ -2228,6 +2740,15 @@ public final class LivingFaunaManager {
 
         } else if (fish instanceof OarfishEntity) {
             cap = Math.max(cap, 3.35F);
+
+        } else if (fish instanceof SpermWhaleEntity) {
+            cap = Math.min(
+                    Math.max(
+                            cap,
+                            1.48F
+                    ),
+                    1.92F
+            );
 
         } else if (fish instanceof WhaleEntity) {
             cap = Math.min(cap, 1.58F);
@@ -2635,6 +3156,10 @@ public final class LivingFaunaManager {
         } else if (fish instanceof OarfishEntity) {
             reproductionChance = satiated ? 0.006F : 0.002F;
             localCap = 3;
+
+        } else if (fish instanceof SpermWhaleEntity) {
+            reproductionChance = satiated ? 0.0018F : 0.0005F;
+            localCap = 1;
 
         } else if (fish instanceof WhaleEntity) {
             reproductionChance = satiated ? 0.003F : 0.001F;

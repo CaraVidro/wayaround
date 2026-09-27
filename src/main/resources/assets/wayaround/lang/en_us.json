@@ -379,5 +379,9 @@
   "block.wayaround.sea_lettuce": "Sea Lettuce",
   "item.wayaround.sea_lettuce": "Sea Lettuce",
   "block.wayaround.seagrass_tuft": "Seagrass Tuft",
-  "item.wayaround.seagrass_tuft": "Seagrass Tuft"
+  "item.wayaround.seagrass_tuft": "Seagrass Tuft",
+  "entity.wayaround.sperm_whale": "Sperm Whale",
+  "entity.wayaround.whale_carcass": "Whale Carcass",
+  "entity.wayaround.sperm_whale_carcass": "Sperm Whale Carcass",
+  "item.wayaround.sperm_whale_spawn_egg": "Sperm Whale Spawn Egg"
 }
