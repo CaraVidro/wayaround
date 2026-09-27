@@ -114,6 +114,21 @@ public final class CameraItem
                     player.getUUID(),
                     facing
             );
+
+            ItemStack offhand =
+                    player.getOffhandItem();
+
+            if (offhand.is(
+                    MediaContent.BROADCAST_ANTENNA_ITEM.get()
+            )
+                    && camera.installIntegratedAntenna()
+                    && !player.getAbilities()
+                    .instabuild) {
+
+                offhand.shrink(
+                        1
+                );
+            }
         }
 
         if (!player.getAbilities()
