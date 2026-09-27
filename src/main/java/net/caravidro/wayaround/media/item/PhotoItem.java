@@ -14,13 +14,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 public final class PhotoItem
         extends Item {
@@ -51,33 +52,71 @@ public final class PhotoItem
         Level level =
                 context.getLevel();
 
-        BlockPos position =
-                context.getClickedPos()
-                        .relative(
-                                face
-                        );
+        BlockPos support =
+                context.getClickedPos();
 
-        ItemFrame frame =
-                new ItemFrame(
-                        level,
-                        position,
-                        face
-                );
-
-        if (!frame.survives()) {
+        if (!level.getBlockState(
+                support
+        ).isFaceSturdy(
+                level,
+                support,
+                face
+        )) {
             return InteractionResult.FAIL;
         }
 
         if (!level.isClientSide) {
-            frame.setItem(
-                    context.getItemInHand()
-                            .copyWithCount(
-                                    1
+            Vec3 normal =
+                    new Vec3(
+                            face.getStepX(),
+                            face.getStepY(),
+                            face.getStepZ()
+                    );
+
+            Vec3 surface =
+                    Vec3.atCenterOf(
+                                    support
                             )
+                            .add(
+                                    normal.scale(
+                                            0.57
+                                    )
+                            );
+
+            ItemEntity photoEntity =
+                    new ItemEntity(
+                            level,
+                            surface.x,
+                            surface.y,
+                            surface.z,
+                            context.getItemInHand()
+                                    .copyWithCount(
+                                            1
+                                    )
+                    );
+
+            /*
+             * The photo is the object on the wall now. No hidden Item Frame,
+             * no frame rotation state, no metadata swallowing. It simply sits
+             * just outside the supporting face until somebody walks up and
+             * takes it.
+             */
+            photoEntity.setNoGravity(
+                    true
             );
 
+            photoEntity.setDeltaMovement(
+                    Vec3.ZERO
+            );
+
+            photoEntity.setPickUpDelay(
+                    12
+            );
+
+            photoEntity.setUnlimitedLifetime();
+
             level.addFreshEntity(
-                    frame
+                    photoEntity
             );
 
             Player player =
