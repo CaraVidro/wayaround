@@ -157,6 +157,18 @@ public final class WayAroundNetwork {
                 SpectrumUnlockS2CPayload::handle
         );
 
+        registrar.playToServer(
+                JujutsuCastC2SPayload.TYPE,
+                JujutsuCastC2SPayload.STREAM_CODEC,
+                JujutsuCastC2SPayload::handle
+        );
+
+        registrar.playToClient(
+                EnergyVisionS2CPayload.TYPE,
+                EnergyVisionS2CPayload.STREAM_CODEC,
+                EnergyVisionS2CPayload::handle
+        );
+
         registrar.playToClient(
                 TukunaFugaVisualPayload.TYPE,
                 TukunaFugaVisualPayload.STREAM_CODEC,

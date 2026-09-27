@@ -5,6 +5,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.justice.JusticeDomainManager;
+import net.caravidro.wayaround.jujutsu.JujutsuManager;
 import net.caravidro.wayaround.network.*;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -89,6 +90,7 @@ public final class SpectrumActions {
             }
             case TUKUNA_DOMAIN -> TukunaDomainPreview.start(p);
             case JUSTICE_DOMAIN -> JusticeDomainManager.beginTrialNearest(p);
+            case TUKUNA_ENERGY_VISION, VOID_ENERGY_VISION, JUSTICE_ENERGY_VISION -> JujutsuManager.toggleEnergyVision(p);
             default -> VoiceIntentC2SPayload.execute(p,new VoiceIntentC2SPayload((byte)action.intent,
                     action==SpectrumAction.BLUE_MAX?3.0F:1.0F));
         }

@@ -17,6 +17,7 @@ import net.caravidro.wayaround.network.WayAroundNetwork;
 import net.caravidro.wayaround.justice.JusticeDomainManager;
 import net.caravidro.wayaround.justice.JusticeRewardManager;
 import net.caravidro.wayaround.justice.JusticeSenseManager;
+import net.caravidro.wayaround.jujutsu.JujutsuCommands;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.sounds.WayAroundSounds;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
@@ -89,6 +90,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(BlizzardCommand::register);
         NeoForge.EVENT_BUS.addListener(DomainCommands::register);
         NeoForge.EVENT_BUS.addListener(TukunaDebugCommands::register);
+        NeoForge.EVENT_BUS.addListener(JujutsuCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);

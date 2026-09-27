@@ -9,6 +9,8 @@ public enum SpectrumAction {
     FUGA(2, SpectrumType.TUKUNA, "Fuga / lançar", -1),
     TUKUNA_DOMAIN(3, SpectrumType.TUKUNA, "Domínio [prévia]", -1),
     FIRE_SLASH(4, SpectrumType.TUKUNA, "Desmartelar: fogo", -1),
+    TUKUNA_ENERGY_VISION(5, SpectrumType.TUKUNA, "Visão de energia", -1),
+
     BLUE(10, SpectrumType.VOID, "Técnica imaginária: azul", VoiceIntentC2SPayload.BLUE_SUMMON),
     RED(11, SpectrumType.VOID, "Vermelho / preparar", VoiceIntentC2SPayload.RED_FIRE),
     PURPLE(12, SpectrumType.VOID, "Roxo / lançar", VoiceIntentC2SPayload.PURPLE_VOID),
@@ -24,11 +26,27 @@ public enum SpectrumAction {
     INFINITY_REINFORCE(22, SpectrumType.VOID, "Infinito: reforçar", VoiceIntentC2SPayload.INFINITY_REINFORCE),
     INFINITY_OFF(23, SpectrumType.VOID, "Infinito: encerrar", VoiceIntentC2SPayload.INFINITY_OFF),
     DUAL(24, SpectrumType.VOID, "Preparar azul + vermelho", VoiceIntentC2SPayload.DUAL_PREPARE),
-    JUSTICE_DOMAIN(30, SpectrumType.JUSTICE, "Domínio: tribunal", -1);
+    VOID_ENERGY_VISION(25, SpectrumType.VOID, "Visão de energia", -1),
+
+    JUSTICE_DOMAIN(30, SpectrumType.JUSTICE, "Domínio: tribunal", -1),
+    JUSTICE_ENERGY_VISION(31, SpectrumType.JUSTICE, "Visão de energia", -1);
+
     public final int id, intent;
     public final SpectrumType spectrum;
     public final String label;
-    SpectrumAction(int id, SpectrumType spectrum, String label, int intent) { this.id=id; this.spectrum=spectrum; this.label=label; this.intent=intent; }
-    public static SpectrumAction byId(int id) { return Arrays.stream(values()).filter(a -> a.id==id).findFirst().orElse(null); }
-    public static List<SpectrumAction> forSpectrum(SpectrumType type) { return Arrays.stream(values()).filter(a -> a.spectrum==type).toList(); }
+
+    SpectrumAction(int id, SpectrumType spectrum, String label, int intent) {
+        this.id=id;
+        this.spectrum=spectrum;
+        this.label=label;
+        this.intent=intent;
+    }
+
+    public static SpectrumAction byId(int id) {
+        return Arrays.stream(values()).filter(a -> a.id==id).findFirst().orElse(null);
+    }
+
+    public static List<SpectrumAction> forSpectrum(SpectrumType type) {
+        return Arrays.stream(values()).filter(a -> a.spectrum==type).toList();
+    }
 }

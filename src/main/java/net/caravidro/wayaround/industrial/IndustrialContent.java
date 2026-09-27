@@ -186,6 +186,9 @@ public final class IndustrialContent {
                                                 WayAroundContent.TUKUNA_FINGER.get()
                                         );
                                         output.accept(
+                                                WayAroundContent.JUJUTSU_ORB.get()
+                                        );
+                                        output.accept(
                                                 WayAroundContent.JUSTICE_EXECUTION_BLADE.get()
                                         );
                                     }
