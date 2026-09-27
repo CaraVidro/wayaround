@@ -2,12 +2,10 @@ package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.voice.VoiceConstants;
-import net.caravidro.wayaround.voice.client.VoicePlayback;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record VoiceFrameS2CPayload(
@@ -50,15 +48,6 @@ public record VoiceFrameS2CPayload(
             VoiceFrameS2CPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () ->
-                        VoicePlayback.enqueue(
-                                payload.pcm()
-                        )
-        );
+        ClientPayloadBridge.handleVoiceFrame(payload, context);
     }
 }
