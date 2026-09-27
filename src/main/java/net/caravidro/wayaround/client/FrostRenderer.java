@@ -23,6 +23,7 @@ import net.minecraft.core.Direction;
 
 import net.minecraft.resources.ResourceLocation;
 
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 
 import net.minecraft.world.level.block.Block;
@@ -371,6 +372,17 @@ public final class FrostRenderer {
                         world.getBlockState(
                                 pos
                         );
+
+                /*
+                 * Old worlds may still contain cached frost entries from
+                 * before foliage was excluded server-side. Never render the
+                 * white coat on living leaves, even for stale snapshots.
+                 */
+                if (state.is(
+                        BlockTags.LEAVES
+                )) {
+                    continue;
+                }
 
                 /*
                  * O bloco mudou desde o snapshot.
