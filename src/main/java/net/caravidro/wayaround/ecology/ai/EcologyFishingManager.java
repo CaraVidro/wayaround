@@ -937,6 +937,11 @@ public final class EcologyFishingManager {
                 TARGET
         );
 
+        data.putBoolean(
+                HOOKED,
+                false
+        );
+
         return null;
     }
 
