@@ -292,12 +292,9 @@ public final class EcologicalSuccession {
                 float recruitment =
                         temporal == null
                                 ? 0.0F
-                                : Math.min(
-                                1.0F,
-                                temporal.organicGrowth()
-                                        * 0.65F
-                                        + temporal.moistureMemory()
-                                                * 0.35F
+                                : EcologyRules.recruitment(
+                                temporal.organicGrowth(),
+                                temporal.moistureMemory()
                         );
 
                 if ((raining || recruitment > 0.34F)
