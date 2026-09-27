@@ -332,6 +332,17 @@ Every fish now has persistent ecological size state.
 A newly observed fish receives a randomized baseline, so the same species can
 naturally contain genuinely tiny and noticeably large individuals.
 
+The distribution now has explicit rare tails:
+
+- some ordinary fish can spawn at only ~0.08-0.28x scale;
+- most remain in a broad ordinary range;
+- uncommon fish can naturally start around 1.75-3.3x;
+- roughly one ordinary fish in ~1,250 can be a natural giant around 4.35-7.5x;
+- sunfish have their own larger distribution and a small chance to spawn around
+  4.75-7.5x.
+
+Natural giants are not forced back down to the normal feeding cap.
+
 Growth then depends on two things:
 
 - meals actually eaten from dropped food;
@@ -360,7 +371,11 @@ Living Ecology replaces the common fish-item drop with species meat:
 - Raw Pufferfish Meat;
 - Raw Sunfish Meat.
 
-Yield scales with the fish's persistent size, within a bounded maximum.
+Yield scales with the fish's persistent size, from one cut for tiny fish up to
+a bounded stack for exceptional giants.
+
+Raw Salmon Meat deliberately uses a meat-cut silhouette rather than the vanilla
+whole-salmon icon so the drop reads as butchered fish flesh.
 
 ## Physical fishing
 
