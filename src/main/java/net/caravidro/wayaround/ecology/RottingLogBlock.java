@@ -69,14 +69,37 @@ public final class RottingLogBlock extends RotatedPillarBlock {
                 && level.getBlockState(above).isAir()
                 && random.nextFloat() < 0.12F * moisture) {
 
-            BlockState growth =
-                    rot >= 3 && random.nextBoolean()
-                            ? EcologyContent.DAMP_FERN.get().defaultBlockState()
-                            : EcologyContent.WOODLAND_SORREL.get().defaultBlockState();
+            BlockState growth;
+
+            if (rot >= 2
+                    && level.getMaxLocalRawBrightness(above) <= 9
+                    && random.nextFloat() < 0.28F) {
+                growth =
+                        random.nextBoolean()
+                                ? Blocks.BROWN_MUSHROOM.defaultBlockState()
+                                : Blocks.RED_MUSHROOM.defaultBlockState();
+
+            } else {
+                growth =
+                        rot >= 3 && random.nextBoolean()
+                                ? EcologyContent.DAMP_FERN.get().defaultBlockState()
+                                : EcologyContent.WOODLAND_SORREL.get().defaultBlockState();
+            }
 
             if (growth.canSurvive(level, above)) {
                 level.setBlockAndUpdate(above, growth);
             }
+        }
+
+        if (state.getValue(AXIS)
+                == Direction.Axis.Y
+                && rot >= 1
+                && random.nextFloat() < 0.018F) {
+            TreeLifecycleManager.tryFallStandingDead(
+                    level,
+                    pos,
+                    random
+            );
         }
 
         if (rot >= 3
