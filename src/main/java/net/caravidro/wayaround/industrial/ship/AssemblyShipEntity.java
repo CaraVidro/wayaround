@@ -2223,6 +2223,31 @@ public final class AssemblyShipEntity
         );
     }
 
+    public double distanceToHullSqr(
+            Vec3 point
+    ) {
+        double best =
+                Double.POSITIVE_INFINITY;
+
+        for (HullCell cell :
+                hull) {
+            best =
+                    Math.min(
+                            best,
+                            moduleWorldPosition(
+                                    cell.x,
+                                    cell.z,
+                                    0.12
+                            )
+                                    .distanceToSqr(
+                                            point
+                                    )
+                    );
+        }
+
+        return best;
+    }
+
     public float totalMass() {
         return 28.0F
                 + hull.size()
