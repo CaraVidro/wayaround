@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -80,6 +81,52 @@ public final class ShipBodyItem
                                         0.56
                                 )
                         );
+
+        AssemblyShipEntity nearby =
+                level.getEntitiesOfClass(
+                                AssemblyShipEntity.class,
+                                new AABB(
+                                        location.x - 3.0,
+                                        location.y - 2.0,
+                                        location.z - 3.0,
+                                        location.x + 3.0,
+                                        location.y + 2.0,
+                                        location.z + 3.0
+                                ),
+                                ship ->
+                                        ship.isAlive()
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        ship ->
+                                                ship.position()
+                                                        .distanceToSqr(
+                                                                location
+                                                        )
+                                )
+                        )
+                        .orElse(null);
+
+        if (nearby != null) {
+            if (!level.isClientSide) {
+                nearby.snapNextBody(
+                        player,
+                        stack
+                );
+            }
+
+            player.awardStat(
+                    Stats.ITEM_USED.get(
+                            this
+                    )
+            );
+
+            return InteractionResultHolder.sidedSuccess(
+                    stack,
+                    level.isClientSide
+            );
+        }
 
         AssemblyShipEntity ship =
                 new AssemblyShipEntity(
