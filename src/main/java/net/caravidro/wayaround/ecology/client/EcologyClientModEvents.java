@@ -45,6 +45,46 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.MANTA_RAY.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.MANTA_RAY
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.BARRACUDA.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.BARRACUDA
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.SEAHORSE.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.SEAHORSE
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.JELLYFISH.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.JELLYFISH
+                )
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.OARFISH.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.OARFISH
+                )
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.CRAB.get(),
                 CrabRenderer::new
         );
