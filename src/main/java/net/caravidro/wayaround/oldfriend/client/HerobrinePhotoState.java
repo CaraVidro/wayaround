@@ -46,19 +46,26 @@ public final class HerobrinePhotoState {
                         ? 0
                         : photoId.hashCode();
 
+        /*
+         * Preserve roughly player-like proportions but project him as someone
+         * standing far away in the scene. The old hard cap of 54 px made him
+         * look like a tiny doll on 1080p screenshots.
+         */
         int figureHeight =
                 Math.max(
-                        18,
+                        72,
                         Math.min(
-                                54,
-                                height / 8
+                                180,
+                                height / 7
                         )
                 );
 
         int figureWidth =
                 Math.max(
-                        6,
-                        figureHeight / 3
+                        20,
+                        Math.round(
+                                figureHeight * 0.34F
+                        )
                 );
 
         int horizontalRange =
