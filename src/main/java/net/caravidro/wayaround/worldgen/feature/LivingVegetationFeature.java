@@ -100,40 +100,40 @@ public final class LivingVegetationFeature
 
     private static int densityFor(String biome) {
         if (biome.contains("jungle")) {
-            return 18;
+            return 34;
         }
 
         if (biome.contains("dark_forest")) {
-            return 15;
+            return 29;
         }
 
         if (biome.contains("old_growth")) {
-            return 13;
+            return 25;
         }
 
         if (biome.contains("forest")) {
-            return 11;
+            return 22;
         }
 
         if (biome.contains("taiga")
                 || biome.contains("grove")) {
-            return 10;
+            return 19;
         }
 
         if (biome.contains("river")) {
-            return 7;
+            return 14;
         }
 
         if (biome.contains("savanna")) {
-            return 5;
+            return 9;
         }
 
         if (biome.contains("meadow")) {
-            return 3;
+            return 7;
         }
 
         if (biome.contains("plains")) {
-            return 2;
+            return 6;
         }
 
         return 0;
