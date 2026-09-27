@@ -342,13 +342,22 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                                 / SAFE_RPM
                 );
 
+        float shaftAlignment =
+                shaftProfile == null
+                        ? (
+                        manual
+                                ? 0.72F
+                                : 0.0F
+                )
+                        : shaftProfile.alignment();
+
         float alignmentError =
                 mechanicallyComplete
                         ? 1.0F
                                 - (
                                 bladeProfile.alignment()
                                         * 0.55F
-                                        + shaftProfile.alignment()
+                                        + shaftAlignment
                                                 * 0.30F
                                         + bodyPerformance
                                                 * 0.15F
@@ -442,10 +451,16 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                             1.0F
                     );
 
+            float drivePerformance =
+                    shaftProfile == null
+                            && manual
+                            ? 0.68F
+                            : shaftPerformance;
+
             float cuttingFactor =
                     bladePerformance
                             * 0.52F
-                            + shaftPerformance
+                            + drivePerformance
                                     * 0.18F
                             + lastPowerRatio
                                     * 0.20F

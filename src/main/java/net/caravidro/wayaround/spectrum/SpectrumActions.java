@@ -26,6 +26,7 @@ public final class SpectrumActions {
     private static final Map<UUID,Long> INPUT_DEBOUNCE=new HashMap<>();
     private static final Map<UUID,Long> FUGA_DEBOUNCE=new HashMap<>();
     private static final Set<UUID> TUKUNA_MENU_AURA=new HashSet<>();
+    private static final Set<UUID> COMBAT_MODE=new HashSet<>();
     private static final Map<UUID,Long> VOID_SKILL_AURA_UNTIL=new HashMap<>();
     private static boolean allowed(ServerPlayer p, SpectrumType type){
         return p.isAlive() && !p.isSpectator() && !TukunaManager.isSilencedHost(p)
@@ -35,11 +36,23 @@ public final class SpectrumActions {
     public static void menuState(ServerPlayer p,int spectrumOrdinal,boolean open){
         SpectrumType[] values=SpectrumType.values();
         SpectrumType type=spectrumOrdinal>=0&&spectrumOrdinal<values.length?values[spectrumOrdinal]:null;
+
+        if(open && type!=null && SpectrumAccess.has(p,type)){
+            COMBAT_MODE.add(p.getUUID());
+        }else{
+            COMBAT_MODE.remove(p.getUUID());
+        }
+
         if(open && type==SpectrumType.TUKUNA && SpectrumAccess.has(p,SpectrumType.TUKUNA)){
             TUKUNA_MENU_AURA.add(p.getUUID());
         }else{
             TUKUNA_MENU_AURA.remove(p.getUUID());
         }
+    }
+
+    public static boolean combatMode(ServerPlayer player){
+        return COMBAT_MODE.contains(player.getUUID())
+                && SpectrumAccess.hasAny(player);
     }
     public static void input(ServerPlayer p,int id,byte phase){
         if(phase==SpectrumInputPayload.CANCEL){cancel(p);return;}
@@ -159,5 +172,5 @@ public final class SpectrumActions {
         if(now%200==0){COOLDOWN.entrySet().removeIf(e->e.getValue()<now);FUGA_DEBOUNCE.entrySet().removeIf(e->e.getValue()<now);INPUT_DEBOUNCE.entrySet().removeIf(e->e.getValue()<now);}
     }
     private static final class Gesture{long started,next;boolean fire,released,firing;int shots;Gesture(long now){started=now;}}
-    @SubscribeEvent public static void stop(ServerStoppedEvent e){GESTURES.clear();COOLDOWN.clear();FUGA_DEBOUNCE.clear();INPUT_DEBOUNCE.clear();TUKUNA_MENU_AURA.clear();VOID_SKILL_AURA_UNTIL.clear();}
+    @SubscribeEvent public static void stop(ServerStoppedEvent e){GESTURES.clear();COOLDOWN.clear();FUGA_DEBOUNCE.clear();INPUT_DEBOUNCE.clear();TUKUNA_MENU_AURA.clear();COMBAT_MODE.clear();VOID_SKILL_AURA_UNTIL.clear();}
 }

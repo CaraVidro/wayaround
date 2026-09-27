@@ -162,6 +162,7 @@ public final class SpectrumMeleeClient {
     ) {
         if (minecraft.player == null
                 || minecraft.level == null
+                || !SpectrumMenu.isOpen()
                 || !minecraft.player
                         .getMainHandItem()
                         .isEmpty()

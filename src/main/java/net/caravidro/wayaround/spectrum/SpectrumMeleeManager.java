@@ -115,6 +115,7 @@ public final class SpectrumMeleeManager {
     ) {
         if (!player.isAlive()
                 || player.isSpectator()
+                || !SpectrumActions.combatMode(player)
                 || !player.getMainHandItem()
                         .isEmpty()
                 || !player.getOffhandItem()
