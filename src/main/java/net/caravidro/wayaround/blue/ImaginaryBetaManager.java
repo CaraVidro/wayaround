@@ -569,6 +569,119 @@ public final class ImaginaryBetaManager {
         }
     }
 
+    private static void repelHeldRedEntities(
+            ServerLevel level,
+            ServerPlayer owner,
+            Vec3 center,
+            boolean maximum
+    ) {
+        double radius =
+                maximum
+                        ? 7.0
+                        : 4.8;
+
+        double radiusSqr =
+                radius * radius;
+
+        AABB area =
+                new AABB(
+                        center.x - radius,
+                        center.y - radius,
+                        center.z - radius,
+                        center.x + radius,
+                        center.y + radius,
+                        center.z + radius
+                );
+
+        for (Entity entity :
+                level.getEntities(
+                        owner,
+                        area,
+                        candidate ->
+                                candidate.isAlive()
+                                        && candidate != owner
+                                        && !candidate.isSpectator()
+                )) {
+
+            Vec3 away =
+                    entity.position()
+                            .subtract(
+                                    center
+                            );
+
+            double distanceSqr =
+                    away.lengthSqr();
+
+            if (distanceSqr > radiusSqr) {
+                continue;
+            }
+
+            /*
+             * Se uma entidade estiver praticamente dentro do centro da RED,
+             * usamos a direcao oposta ao usuario para evitar vetor zero.
+             */
+            if (distanceSqr < 0.0001) {
+                away =
+                        center.subtract(
+                                owner.position()
+                        );
+
+                if (away.lengthSqr() < 0.0001) {
+                    away =
+                            owner.getLookAngle();
+                }
+            }
+
+            double distance =
+                    Math.max(
+                            0.001,
+                            Math.sqrt(
+                                    away.lengthSqr()
+                            )
+                    );
+
+            Vec3 direction =
+                    away.scale(
+                            1.0 / distance
+                    );
+
+            double closeness =
+                    Mth.clamp(
+                            1.0 - distance / radius,
+                            0.0,
+                            1.0
+                    );
+
+            double force =
+                    (
+                            maximum
+                                    ? 0.95
+                                    : 0.58
+                    )
+                            + closeness
+                                    * (
+                                    maximum
+                                            ? 1.35
+                                            : 0.82
+                            );
+
+            double lift =
+                    0.08
+                            + closeness
+                                    * (
+                                    maximum
+                                            ? 0.24
+                                            : 0.14
+                            );
+
+            entity.push(
+                    direction.x * force,
+                    lift,
+                    direction.z * force
+            );
+        }
+    }
+
     private static void tickPurpleProjectiles(
             MinecraftServer server
     ) {
@@ -856,6 +969,19 @@ public final class ImaginaryBetaManager {
                                                 2.55
                                         )
                                 );
+
+                /*
+                 * Enquanto RED esta na mao/frente do usuario, o espaco ao
+                 * redor dela funciona como uma zona de exclusao. Isso e
+                 * fisica server-side: mobs, players, itens e outras entidades
+                 * sao empurrados antes de conseguirem encostar na tecnica.
+                 */
+                repelHeldRedEntities(
+                        level,
+                        owner,
+                        red.position,
+                        red.maximum
+                );
 
                 if (red.life % 3 == 0) {
                     level.sendParticles(
