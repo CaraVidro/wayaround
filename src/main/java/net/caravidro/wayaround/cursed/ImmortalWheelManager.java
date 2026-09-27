@@ -81,6 +81,15 @@ public final class ImmortalWheelManager {
     private static final Map<UUID, Regeneration> REGENERATING =
             new HashMap<>();
 
+    /*
+     * Infinity adaptation is intentionally separate from the generic damage
+     * book. The first melee strike is completely denied; after that the wheel
+     * learns the spatial barrier in 5% penetration increments up to 75%.
+     * Ranged damage never advances this state.
+     */
+    private static final Map<UUID, InfinityAdaptation> INFINITY_ADAPTATION =
+            new HashMap<>();
+
     @SubscribeEvent
     public static void onDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)
@@ -178,6 +187,120 @@ public final class ImmortalWheelManager {
         );
     }
 
+    /**
+     * Called by Infinity when a wheel bearer attempts a real melee strike.
+     *
+     * @return fraction of the original melee damage allowed through Infinity.
+     *         First contact returns 0, then 0.05 .. 0.75.
+     */
+    public static float adaptToInfinityMelee(
+            ServerPlayer attacker
+    ) {
+        if (!hasWheel(
+                attacker
+        )) {
+            return 0.0F;
+        }
+
+        InfinityAdaptation adaptation =
+                INFINITY_ADAPTATION.computeIfAbsent(
+                        attacker.getUUID(),
+                        ignored ->
+                                new InfinityAdaptation()
+                );
+
+        /*
+         * First blocked punch teaches the wheel that the attack did not
+         * actually reach its target.
+         */
+        if (!adaptation.discovered) {
+            adaptation.discovered =
+                    true;
+
+            send(
+                    attacker,
+                    ImmortalWheelVisualPayload.HIT,
+                    "infinity_melee",
+                    1,
+                    0
+            );
+
+            return 0.0F;
+        }
+
+        adaptation.penetratingHits =
+                Math.min(
+                        15,
+                        adaptation.penetratingHits + 1
+                );
+
+        float penetration =
+                adaptation.penetratingHits
+                        * 0.05F;
+
+        int stage =
+                Math.min(
+                        MAX_STEPS,
+                        (
+                                adaptation.penetratingHits
+                                        + 2
+                        ) / 3
+                );
+
+        /*
+         * One full wheel turn every 15 percentage points:
+         * 15 / 30 / 45 / 60 / 75.
+         */
+        if (adaptation.penetratingHits % 3
+                == 0
+                && stage
+                        > adaptation.lastSpinStage) {
+
+            adaptation.lastSpinStage =
+                    stage;
+
+            spin(
+                    attacker,
+                    "infinity_melee",
+                    stage
+            );
+
+        } else {
+            send(
+                    attacker,
+                    ImmortalWheelVisualPayload.HIT,
+                    "infinity_melee",
+                    adaptation.penetratingHits % 3,
+                    stage
+            );
+        }
+
+        return Math.min(
+                0.75F,
+                penetration
+        );
+    }
+
+    public static float infinityMeleePenetration(
+            ServerPlayer attacker
+    ) {
+        InfinityAdaptation adaptation =
+                INFINITY_ADAPTATION.get(
+                        attacker.getUUID()
+                );
+
+        if (adaptation == null
+                || !adaptation.discovered) {
+            return 0.0F;
+        }
+
+        return Math.min(
+                0.75F,
+                adaptation.penetratingHits
+                        * 0.05F
+        );
+    }
+
     @SubscribeEvent
     public static void onDeath(
             LivingDeathEvent event
@@ -231,6 +354,10 @@ public final class ImmortalWheelManager {
         );
 
         ADAPTATIONS.remove(
+                player.getUUID()
+        );
+
+        INFINITY_ADAPTATION.remove(
                 player.getUUID()
         );
 
@@ -367,6 +494,10 @@ public final class ImmortalWheelManager {
                 bearer.getUUID()
         );
 
+        INFINITY_ADAPTATION.remove(
+                bearer.getUUID()
+        );
+
         PRESENT.remove(
                 bearer.getUUID()
         );
@@ -471,6 +602,7 @@ public final class ImmortalWheelManager {
                     );
 
                     ADAPTATIONS.remove(id);
+                    INFINITY_ADAPTATION.remove(id);
                 }
                 continue;
             }
@@ -493,6 +625,7 @@ public final class ImmortalWheelManager {
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         ADAPTATIONS.clear();
+        INFINITY_ADAPTATION.clear();
         PRESENT.clear();
         REGENERATING.clear();
     }
@@ -508,6 +641,10 @@ public final class ImmortalWheelManager {
         );
 
         ADAPTATIONS.remove(
+                newOwner.getUUID()
+        );
+
+        INFINITY_ADAPTATION.remove(
                 newOwner.getUUID()
         );
 
@@ -1278,6 +1415,12 @@ public final class ImmortalWheelManager {
             this.duration = duration;
             this.wasInvulnerable = wasInvulnerable;
         }
+    }
+
+    private static final class InfinityAdaptation {
+        private boolean discovered;
+        private int penetratingHits;
+        private int lastSpinStage;
     }
 
     private static final class Adaptation {
