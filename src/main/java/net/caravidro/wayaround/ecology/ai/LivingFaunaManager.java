@@ -479,15 +479,6 @@ public final class LivingFaunaManager {
                         .orElse(null);
 
         if (food == null) {
-            data.putLong(
-                    NEXT_FEED_CHECK,
-                    now
-                            + 80L
-                            + level.random.nextInt(
-                            360
-                    )
-            );
-
             return false;
         }
 
@@ -863,6 +854,15 @@ public final class LivingFaunaManager {
                         .orElse(null);
 
         if (food == null) {
+            data.putLong(
+                    NEXT_FEED_CHECK,
+                    now
+                            + 80L
+                            + level.random.nextInt(
+                            360
+                    )
+            );
+
             return false;
         }
 
