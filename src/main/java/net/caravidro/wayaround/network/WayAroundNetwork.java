@@ -15,12 +15,26 @@ public final class WayAroundNetwork {
         PayloadRegistrar registrar =
                 event.registrar("1");
 
-        registrar.playToClient(FrostPayload.TYPE, FrostPayload.STREAM_CODEC, FrostPayload::handle);
+        /*
+         * IMPORTANTE:
+         *
+         * Os handlers abaixo precisam permanecer common-safe.
+         * ClientPayloadBridge nao importa Minecraft client, Screen,
+         * renderizadores ou qualquer outra classe exclusiva do cliente.
+         *
+         * No cliente fisico, WayAroundClient instala as implementacoes reais.
+         * No dedicated server, a ponte permanece no-op.
+         */
+        registrar.playToClient(
+                FrostPayload.TYPE,
+                FrostPayload.STREAM_CODEC,
+                ClientPayloadBridge::handleFrost
+        );
 
         registrar.playToClient(
                 BlizzardStatePayload.TYPE,
                 BlizzardStatePayload.STREAM_CODEC,
-                BlizzardStatePayload::handle
+                ClientPayloadBridge::handleBlizzard
         );
     }
 }
