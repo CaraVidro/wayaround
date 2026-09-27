@@ -272,6 +272,17 @@ public final class LocalWeatherField {
                             * 18.0;
         }
 
+        /*
+         * Large-front offsets must not undo the raised cloud floor. Mountains
+         * may still enter a low bank, but ordinary terrain should no longer
+         * feel as if the cloud ceiling is sitting directly above the player.
+         */
+        height =
+                Math.max(
+                        148.0,
+                        height
+                );
+
         return new CloudCell(
                 seed,
                 gx * CELL_SPACING + jitterX + windX * drift,
