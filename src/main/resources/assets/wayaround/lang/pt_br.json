@@ -525,5 +525,20 @@
   "accessory.workshop.wool.12": "Marrom",
   "accessory.workshop.wool.13": "Verde",
   "accessory.workshop.wool.14": "Vermelho",
-  "accessory.workshop.wool.15": "Preto"
+  "accessory.workshop.wool.15": "Preto",
+  "accessory.kit.wayaround.conventional": "Convencional",
+  "accessory.kit.wayaround.object_heads": "Cabeças-Objeto",
+  "item.wayaround.formal_jacket": "Template de Roupa Formal",
+  "item.wayaround.formal_trousers": "Template de Calça Formal",
+  "item.wayaround.casual_shirt": "Template de Roupa Convencional",
+  "item.wayaround.casual_trousers": "Template de Calça Convencional",
+  "item.wayaround.watching_eye": "Olho Observador",
+  "item.wayaround.cardboard_box": "Caixa de Papelão",
+  "item.wayaround.gas_mask": "Máscara de Gás Inútil",
+  "accessory.workshop.color": "Cor: %s",
+  "accessory.workshop.clothing_hint": "Templates convencionais mudam somente a cor.",
+  "accessory.workshop.tooltip.color": "Cor: %s",
+  "tooltip.wayaround.watching_eye": "A pupila se move só o bastante para parecer que está te analisando.",
+  "tooltip.wayaround.cardboard_box": "Uma caixa de papelão. Para sua cabeça. Perfeito.",
+  "tooltip.wayaround.gas_mask": "Não protege absolutamente nada. Mas parece convincente."
 }
