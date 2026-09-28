@@ -221,7 +221,7 @@ public final class MediaRecorder {
 
             minecraft.options
                     .setCameraType(
-                            CameraType.FIRST_PERSON
+                            CameraType.THIRD_PERSON_BACK
                     );
 
             clientMessage(
@@ -264,6 +264,12 @@ public final class MediaRecorder {
 
         detachedCameraPosition =
                 null;
+
+        Minecraft.getInstance()
+                .options
+                .setCameraType(
+                        CameraType.FIRST_PERSON
+                );
 
         cameraMissingSinceNanos =
                 0L;
@@ -367,6 +373,16 @@ public final class MediaRecorder {
         if (isCameraHeld()) {
             cameraMissingSinceNanos = 0L;
             detachedCameraPosition = null;
+
+            if (minecraft.options
+                    .getCameraType()
+                    != CameraType.FIRST_PERSON) {
+                minecraft.options
+                        .setCameraType(
+                                CameraType.FIRST_PERSON
+                        );
+            }
+
             return;
         }
 
@@ -406,6 +422,11 @@ public final class MediaRecorder {
                 detachedCameraPosition =
                         camera.getPosition();
             }
+
+            minecraft.options
+                    .setCameraType(
+                            CameraType.THIRD_PERSON_BACK
+                    );
 
             clientMessage(
                     Component.translatable(
