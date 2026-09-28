@@ -2,6 +2,8 @@ package net.caravidro.wayaround.war;
 
 import java.util.List;
 
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -54,10 +56,20 @@ public final class WarGunItem extends Item {
 
         if (!level.isClientSide
                 && player instanceof ServerPlayer serverPlayer) {
-            WarBallistics.tryFire(
+            if (WarBallistics.tryFire(
                     serverPlayer,
                     kind
-            );
+            )) {
+                WayAroundAdvancements.warShot(
+                        serverPlayer
+                );
+
+                if (kind.rocket()) {
+                    WayAroundAdvancements.warRocket(
+                            serverPlayer
+                    );
+                }
+            }
         }
 
         if (kind.automatic) {
