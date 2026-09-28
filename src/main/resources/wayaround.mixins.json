@@ -15,7 +15,8 @@
     "InfinityPushMixin",
     "EcologyFishingHookMixin",
     "FireBlockMixin",
-    "FireRenderShapeMixin"
+    "FireRenderShapeMixin",
+    "FireAnimateTickMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
