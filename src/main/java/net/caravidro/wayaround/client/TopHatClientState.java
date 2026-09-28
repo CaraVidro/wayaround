@@ -86,6 +86,19 @@ public final class TopHatClientState {
         return state.instability;
     }
 
+    public static boolean adjusting(
+            UUID player
+    ) {
+        State state =
+                STATES.get(
+                        player
+                );
+
+        return state != null
+                && now()
+                < state.adjustUntil;
+    }
+
     public static float adjustStrength(
             UUID player,
             float partialTick
