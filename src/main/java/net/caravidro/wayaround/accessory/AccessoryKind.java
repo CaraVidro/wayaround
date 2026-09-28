@@ -197,6 +197,73 @@ public enum AccessoryKind {
             680
     ),
 
+    // Conventional clothing templates.
+    FORMAL_JACKET(
+            "formal_jacket",
+            AccessoryKit.CONVENTIONAL,
+            AccessorySlot.TORSO,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            700
+    ),
+    FORMAL_TROUSERS(
+            "formal_trousers",
+            AccessoryKit.CONVENTIONAL,
+            AccessorySlot.LEGS,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            640
+    ),
+    CASUAL_SHIRT(
+            "casual_shirt",
+            AccessoryKit.CONVENTIONAL,
+            AccessorySlot.TORSO,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            520
+    ),
+    CASUAL_TROUSERS(
+            "casual_trousers",
+            AccessoryKit.CONVENTIONAL,
+            AccessorySlot.LEGS,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            600
+    ),
+
+    // Object Heads: intentionally strange, mostly cosmetic.
+    WATCHING_EYE(
+            "watching_eye",
+            AccessoryKit.OBJECT_HEADS,
+            AccessorySlot.HEAD,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            520
+    ),
+    CARDBOARD_BOX(
+            "cardboard_box",
+            AccessoryKit.OBJECT_HEADS,
+            AccessorySlot.HEAD,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            420
+    ),
+    GAS_MASK(
+            "gas_mask",
+            AccessoryKit.OBJECT_HEADS,
+            AccessorySlot.FACE,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            480
+    ),
+
     // Cook.
     CHEF_HAT(
             "chef_hat",
