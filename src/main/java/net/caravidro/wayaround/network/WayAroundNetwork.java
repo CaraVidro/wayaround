@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "10";
+            "11";
 
     private WayAroundNetwork() {
     }
@@ -44,6 +44,12 @@ public final class WayAroundNetwork {
                 TopHatAdjustC2SPayload::handle
         );
 
+        registrar.playToServer(
+                TrouserPocketRetrieveC2SPayload.TYPE,
+                TrouserPocketRetrieveC2SPayload.STREAM_CODEC,
+                TrouserPocketRetrieveC2SPayload::handle
+        );
+
         registrar.playToClient(
                 AccessoryStateS2CPayload.TYPE,
                 AccessoryStateS2CPayload.STREAM_CODEC,
@@ -54,6 +60,12 @@ public final class WayAroundNetwork {
                 TopHatStateS2CPayload.TYPE,
                 TopHatStateS2CPayload.STREAM_CODEC,
                 TopHatStateS2CPayload::handle
+        );
+
+        registrar.playToClient(
+                TrouserPocketAnimationS2CPayload.TYPE,
+                TrouserPocketAnimationS2CPayload.STREAM_CODEC,
+                TrouserPocketAnimationS2CPayload::handle
         );
 
         registrar.playToClient(
