@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "id": "wayaround:nexustoetor"
+    },
+    "title": {
+      "translate": "advancements.wayaround.nexus.root.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.nexus.root.description"
+    },
+    "background": "minecraft:textures/gui/advancements/backgrounds/deepslate.png",
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "opened": {
+      "trigger": "minecraft:tick"
+    }
+  }
+}
