@@ -575,5 +575,12 @@
   "advancements.wayaround.assembly_objects.four_lines.title": "Uma Não Era Suficiente",
   "advancements.wayaround.assembly_objects.four_lines.description": "Reforce um par de polias com quatro linhas.",
   "advancements.wayaround.nexus.root.title": "...",
-  "advancements.wayaround.nexus.root.description": "Alguma coisa está do outro lado."
+  "advancements.wayaround.nexus.root.description": "Alguma coisa está do outro lado.",
+  "menu.wayaround.return.none": "Alguma coisa está diferente.",
+  "menu.wayaround.return.singleplayer": "Você voltou sozinho. §8§o- Civil Anônimo",
+  "menu.wayaround.return.multiplayer": "Nem todo mundo voltou com você. §8§o- Civil Anônimo",
+  "message.wayaround.nexus.portal_on": "NEXUSTOR // PORTAL LIGADO.",
+  "message.wayaround.nexus.portal_off": "NEXUSTOR // PORTAL DESLIGADO.",
+  "message.wayaround.nexus.no_return_signal": "NEXUS // SEM SINAL DE RETORNO.",
+  "block.wayaround.placed_photo": "Fotografia Colocada"
 }
