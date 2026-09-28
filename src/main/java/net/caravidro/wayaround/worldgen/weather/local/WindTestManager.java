@@ -159,7 +159,8 @@ public final class WindTestManager {
         long now = level.getGameTime();
         long end = current.startedAt + current.rampTicks + current.fadeTicks;
 
-        if (now >= end) {
+        if (now < current.startedAt
+                || now >= end) {
             state = State.inactive();
             broadcast(level, state);
             return;
