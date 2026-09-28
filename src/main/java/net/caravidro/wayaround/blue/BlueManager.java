@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import net.caravidro.wayaround.accessory.AccessoryGlassDamage;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.interaction.WorldForce;
 import net.caravidro.wayaround.interaction.WorldInteractionService;
@@ -2409,6 +2410,13 @@ public final class BlueManager {
                                 Block.getId(
                                         state
                                 )
+                        );
+
+                        AccessoryGlassDamage.notifyGlassBroken(
+                                level,
+                                pos,
+                                5.5,
+                                1
                         );
 
                         level.removeBlock(
