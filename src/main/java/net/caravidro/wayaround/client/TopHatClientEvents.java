@@ -94,7 +94,10 @@ public final class TopHatClientEvents {
             ) == AccessoryKind.ENGINEER_TROUSERS
                     && accessories.trouserPocket() != null
                     && !accessories.trouserPocket()
-                    .isEmpty()) {
+                    .isEmpty()
+                    && !TrouserPocketClientState.active(
+                    minecraft.player.getUUID()
+            )) {
 
                 TrouserPocketClientState.predict(
                         minecraft.player.getUUID()
