@@ -106,7 +106,10 @@ public final class FlyingTopHatRenderer
                 0.0F,
                 0.0F,
                 0.0F,
-                time
+                time,
+                entity.material(),
+                entity.size(),
+                entity.extras()
         );
 
         pose.popPose();
