@@ -93,6 +93,16 @@ public final class LocalWeatherField {
 
         warning = Math.max(warning, rain);
 
+        // Debug gusts raise wind intensity without changing cloud/rain state.
+        warning = Math.max(
+                warning,
+                WindTestManager.strengthAt(
+                        x,
+                        z,
+                        gameTime
+                )
+        );
+
         return new Sample(
                 Mth.clamp(cloud, 0.0F, 1.0F),
                 Mth.clamp(rain, 0.0F, 1.0F),
