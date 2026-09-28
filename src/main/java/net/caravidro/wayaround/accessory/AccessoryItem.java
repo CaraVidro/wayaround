@@ -197,5 +197,37 @@ public final class AccessoryItem
                     )
             );
         }
+
+        if (kind == AccessoryKind.ENGINEER_TROUSERS
+                && context.registries() != null) {
+            ItemStack pocket =
+                    TrouserPocketData.read(
+                            stack,
+                            context.registries()
+                    );
+
+            tooltip.add(
+                    Component.translatable(
+                            pocket.isEmpty()
+                                    ? "accessory.trouser_pocket.empty"
+                                    : "accessory.trouser_pocket.item",
+                            pocket.isEmpty()
+                                    ? ""
+                                    : pocket.getHoverName()
+                    ).withStyle(
+                            pocket.isEmpty()
+                                    ? ChatFormatting.DARK_GRAY
+                                    : ChatFormatting.GOLD
+                    )
+            );
+
+            tooltip.add(
+                    Component.translatable(
+                            "accessory.trouser_pocket.load_hint"
+                    ).withStyle(
+                            ChatFormatting.DARK_GRAY
+                    )
+            );
+        }
     }
 }
