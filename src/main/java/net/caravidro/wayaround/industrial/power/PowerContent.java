@@ -129,6 +129,17 @@ public final class PowerContent {
         BLOCK_ENTITIES.register("sawmill", () -> BlockEntityType.Builder.of(
             SawmillBlockEntity::new, SAWMILL.get()).build(null));
 
+    public static final DeferredBlock<ManualCrankBlock> MANUAL_CRANK = BLOCKS.register("manual_crank",
+        () -> new ManualCrankBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
+            .strength(1.6F, 2.5F).sound(SoundType.WOOD).noOcclusion().noLootTable()));
+
+    public static final DeferredItem<BlockItem> MANUAL_CRANK_ITEM = ITEMS.register("manual_crank",
+        () -> new BlockItem(MANUAL_CRANK.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ManualCrankBlockEntity>> MANUAL_CRANK_ENTITY =
+        BLOCK_ENTITIES.register("manual_crank", () -> BlockEntityType.Builder.of(
+            ManualCrankBlockEntity::new, MANUAL_CRANK.get()).build(null));
+
     public static final DeferredBlock<MechanicalShaftBlock> MECHANICAL_SHAFT = BLOCKS.register("mechanical_shaft",
         () -> new MechanicalShaftBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
             .strength(2.2F, 5.0F).sound(SoundType.METAL).noOcclusion().noLootTable()));
@@ -201,6 +212,12 @@ public final class PowerContent {
             MechanicalCapabilities.ROTATION,
             PULLEY_WHEEL_ENTITY.get(),
             (pulley, side) -> pulley.rotationOutput(side)
+        );
+
+        event.registerBlockEntity(
+            MechanicalCapabilities.ROTATION,
+            MANUAL_CRANK_ENTITY.get(),
+            (crank, side) -> crank.rotationOutput(side)
         );
     }
 }
