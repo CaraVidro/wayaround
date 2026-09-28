@@ -290,6 +290,36 @@ public final class AccessoryItem
             }
         }
 
+        if (kind == AccessoryKind.WATCHING_EYE) {
+            tooltip.add(
+                    Component.translatable(
+                            "tooltip.wayaround.watching_eye"
+                    ).withStyle(
+                            ChatFormatting.DARK_PURPLE
+                    )
+            );
+        }
+
+        if (kind == AccessoryKind.CARDBOARD_BOX) {
+            tooltip.add(
+                    Component.translatable(
+                            "tooltip.wayaround.cardboard_box"
+                    ).withStyle(
+                            ChatFormatting.GRAY
+                    )
+            );
+        }
+
+        if (kind == AccessoryKind.GAS_MASK) {
+            tooltip.add(
+                    Component.translatable(
+                            "tooltip.wayaround.gas_mask"
+                    ).withStyle(
+                            ChatFormatting.DARK_GRAY
+                    )
+            );
+        }
+
         if (kind == AccessoryKind.ENGINEER_TROUSERS
                 && context.registries() != null) {
             ItemStack pocket =
