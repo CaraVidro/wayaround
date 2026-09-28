@@ -24,5 +24,10 @@ public final class MediaClient {
                 MediaContent.TELEVISION_ENTITY.get(),
                 TelevisionRenderer::new
         );
+
+        event.registerBlockEntityRenderer(
+                MediaContent.PLACED_PHOTO_ENTITY.get(),
+                PlacedPhotoRenderer::new
+        );
     }
 }
