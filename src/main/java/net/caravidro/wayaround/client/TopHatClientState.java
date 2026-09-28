@@ -209,14 +209,25 @@ public final class TopHatClientState {
                         side * 0.22F
                 );
 
+        /*
+         * Do not accumulate head roll here. HumanoidModel reliably rebuilds
+         * head pitch/yaw every frame, but head.zRot is not guaranteed to be
+         * reset by vanilla. Using += made this tiny tilt stack render after
+         * render until the player's neck could end up ~90 degrees sideways.
+         *
+         * Keep the nod, but make the roll an absolute, bounded pose that also
+         * eases back toward neutral as the adjustment animation finishes.
+         */
         model.head.xRot +=
                 0.08F
                         * strength;
 
-        model.head.zRot +=
-                side
-                        * 0.035F
-                        * strength;
+        model.head.zRot =
+                Mth.lerp(
+                        strength,
+                        0.0F,
+                        side * 0.035F
+                );
     }
 
     private static double now() {
