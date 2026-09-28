@@ -22,7 +22,8 @@ public record AccessoryStateS2CPayload(
         int headMaterial,
         int headSize,
         int headExtras,
-        int headWoolColor
+        int headWoolColor,
+        int[] customColors
 ) implements CustomPacketPayload {
 
     public static final Type<AccessoryStateS2CPayload> TYPE =
@@ -107,6 +108,17 @@ public record AccessoryStateS2CPayload(
                         buf.writeVarInt(
                                 payload.headWoolColor()
                         );
+
+                        buf.writeVarInt(
+                                payload.customColors().length
+                        );
+
+                        for (int color :
+                                payload.customColors()) {
+                            buf.writeVarInt(
+                                    color
+                            );
+                        }
                     },
                     buf -> {
                         UUID player =
@@ -159,6 +171,39 @@ public record AccessoryStateS2CPayload(
                                 )
                                         : ItemStack.EMPTY;
 
+                        int headMaterial =
+                                buf.readVarInt();
+
+                        int headSize =
+                                buf.readVarInt();
+
+                        int headExtras =
+                                buf.readVarInt();
+
+                        int headWoolColor =
+                                buf.readVarInt();
+
+                        int colorCount =
+                                Math.min(
+                                        32,
+                                        Math.max(
+                                                0,
+                                                buf.readVarInt()
+                                        )
+                                );
+
+                        int[] customColors =
+                                new int[
+                                        colorCount
+                                        ];
+
+                        for (int i = 0;
+                             i < colorCount;
+                             i++) {
+                            customColors[i] =
+                                    buf.readVarInt();
+                        }
+
                         return new AccessoryStateS2CPayload(
                                 player,
                                 kinds,
@@ -166,10 +211,11 @@ public record AccessoryStateS2CPayload(
                                 glass,
                                 glassesMode,
                                 pocket,
-                                buf.readVarInt(),
-                                buf.readVarInt(),
-                                buf.readVarInt(),
-                                buf.readVarInt()
+                                headMaterial,
+                                headSize,
+                                headExtras,
+                                headWoolColor,
+                                customColors
                         );
                     }
             );
