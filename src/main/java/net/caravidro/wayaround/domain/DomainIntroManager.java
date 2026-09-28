@@ -51,7 +51,7 @@ public final class DomainIntroManager {
             22;
 
     private static final int CONFIRM_GRACE_TICKS =
-            14;
+            80;
 
     private static final Map<UUID, Pending> PENDING =
             new HashMap<>();

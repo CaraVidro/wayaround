@@ -225,7 +225,7 @@ public final class VoiceCapture {
             line.open(
                     VoiceConstants.audioFormat(),
                     VoiceConstants.FRAME_BYTES
-                            * 10
+                            * 4
             );
 
             line.start();
@@ -413,6 +413,11 @@ public final class VoiceCapture {
                     }
 
                     preRoll.clear();
+                    if (realtimeStarted && realtimeBatch.size() > 0) {
+                        VoiceSpeechDebug.feedRealtime(realtimeBatch.toByteArray());
+                        realtimeBatch.reset();
+                        realtimeFrames = 0;
+                    }
 
                     /*
                      * The current frame is already inside preRoll, so do not
@@ -684,6 +689,7 @@ public final class VoiceCapture {
             int lastSubmittedBytes
     ) {
         if (utterance == null
+                || VoiceSpeechDebug.isRealtimeActive()
                 || !VoiceIntentClient.wantsSpeculativeRecognition()) {
             return lastSubmittedBytes;
         }

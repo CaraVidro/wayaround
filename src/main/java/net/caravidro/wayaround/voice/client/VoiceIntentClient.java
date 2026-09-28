@@ -155,7 +155,8 @@ public final class VoiceIntentClient {
 
     public static boolean wantsContinuousRecognition() {
         return hasLocalVoidSpectrum()
-                || hasLocalTukunaSpectrum();
+                || hasLocalTukunaSpectrum()
+                || VoiceConfig.isDebugSpeechEnabled();
     }
 
     /**
@@ -227,10 +228,12 @@ public final class VoiceIntentClient {
     }
 
     private static boolean realtimeDomainCommitted;
+    private static boolean realtimePreludeStarted;
 
     public static void beginRealtimeUtterance() {
         lastRealtimeTranscript = "";
         realtimeDomainCommitted = false;
+        realtimePreludeStarted = false;
     }
 
     private static void cancelDomainPrelude() {
@@ -240,6 +243,7 @@ public final class VoiceIntentClient {
             PacketDistributor.sendToServer(new DomainPreludeC2SPayload((byte) 0));
         }
         lastDomainPreludeStyle = 0;
+        realtimePreludeStarted = false;
     }
 
     private static void prepareDomainPrelude(
@@ -284,6 +288,9 @@ public final class VoiceIntentClient {
                         minecraft.player,
                         style
                 );
+
+        if (realtimePreludeStarted) return;
+        realtimePreludeStarted = true;
 
         DomainIntroClient.previewLocal(
                 style,
@@ -1749,9 +1756,12 @@ public final class VoiceIntentClient {
                         || intent
                         == VoiceIntentC2SPayload.INFINITY_OFF;
 
+        boolean domainConfirmation = intent == VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND
+                || intent == VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND;
         if (intent
                 != VoiceIntentC2SPayload.BLUE_OUTPUT
                 && !conversationalInfinity
+                && !domainConfirmation
                 && now - lastTriggerAt
                 < TRIGGER_COOLDOWN_MS) {
 

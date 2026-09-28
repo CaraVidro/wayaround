@@ -77,6 +77,8 @@ public final class VoiceClientGameEvents {
                     VoskSpeechRecognizer.statusText()
             );
 
+            if (!connected) VoiceSpeechDebug.cancelRealtime();
+
             lastConnected =
                     connected;
 
@@ -98,6 +100,11 @@ public final class VoiceClientGameEvents {
                 VoskSpeechRecognizer
                         .warmUpAsync();
             }
+        }
+
+        if (connected && VoiceIntentClient.wantsContinuousRecognition()
+                && minecraft.player.tickCount % 20 == 0) {
+            VoiceSpeechDebug.prepareRealtime();
         }
 
         if (!connected) {
@@ -242,6 +249,15 @@ public final class VoiceClientGameEvents {
                 0xFFFFFFFF,
                 false
         );
+        if (VoiceConfig.isDebugSpeechEnabled()) {
+            String live = VoiceSpeechDebug.liveDebugText();
+            if (!live.isBlank()) {
+                String fitted = minecraft.font.plainSubstrByWidth(live,
+                        Math.max(40, minecraft.getWindow().getGuiScaledWidth() - 16));
+                graphics.fill(4, top + 23, 12 + minecraft.font.width(fitted), top + 38, 0xB0000000);
+                graphics.drawString(minecraft.font, fitted, 8, top + 27, 0xFF80FFFF, false);
+            }
+        }
     }
 
     @SubscribeEvent

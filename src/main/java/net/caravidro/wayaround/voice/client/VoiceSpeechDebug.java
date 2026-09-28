@@ -1,6 +1,9 @@
 package net.caravidro.wayaround.voice.client;
 
 import java.util.Locale;
+import java.io.ByteArrayOutputStream;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +49,7 @@ public final class VoiceSpeechDebug {
                     1,
                     0L,
                     TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<>(24),
+                    new LinkedBlockingQueue<>(),
                     runnable -> {
                         Thread thread =
                                 new Thread(
@@ -57,7 +60,7 @@ public final class VoiceSpeechDebug {
                         thread.setDaemon(true);
                         return thread;
                     },
-                    new ThreadPoolExecutor.DiscardOldestPolicy()
+                    new ThreadPoolExecutor.AbortPolicy()
             );
 
     private static final AtomicLong STREAM_GENERATION =
@@ -65,8 +68,52 @@ public final class VoiceSpeechDebug {
 
     private static volatile VoskSpeechRecognizer.StreamingSession streamSession;
 
+    private static final ByteArrayOutputStream STREAM_PCM = new ByteArrayOutputStream();
+    private static boolean drainQueued;
+    private static long pcmGeneration;
+    private static final AtomicBoolean WARM_REQUESTED = new AtomicBoolean();
+    private static VoskSpeechRecognizer.StreamingSession preparedSession;
+    private static volatile long retryWarmAt;
+    private static volatile String liveDebug = "";
+    private static volatile long liveDebugUntil;
+    private static long decodeMillis;
+    private static long queuedAtNanos;
+    private static long queueMillis;
+
+    public static boolean isRealtimeActive() { return streamSession != null; }
+
+    public static String liveDebugText() {
+        return System.currentTimeMillis() < liveDebugUntil ? liveDebug : "";
+    }
+
+    /** Prepare only already installed model data, before the first syllable. */
+    public static void prepareRealtime() {
+        if (!VoiceConfig.isEnabled() || System.currentTimeMillis() < retryWarmAt
+                || !VoiceIntentClient.wantsContinuousRecognition()
+                || !VoskSpeechRecognizer.isModelInstalled()
+                || !WARM_REQUESTED.compareAndSet(false, true)) return;
+        STREAM_WORKER.execute(() -> {
+            try {
+                if (VoiceConfig.isEnabled() && preparedSession == null && streamSession == null) {
+                    preparedSession = VoskSpeechRecognizer.openStreamingSession();
+                }
+            } catch (Throwable failure) {
+                retryWarmAt = System.currentTimeMillis() + 5_000L;
+                WayAround.LOGGER.warn("[Voice/Realtime] warmup: {}", failure.toString());
+            } finally {
+                WARM_REQUESTED.set(false);
+            }
+        });
+    }
+
     public static void beginRealtime() {
-        Minecraft.getInstance().execute(VoiceIntentClient::beginRealtimeUtterance);
+        Minecraft.getInstance().execute(() -> {
+            VoiceIntentClient.beginRealtimeUtterance();
+            if (VoiceConfig.isDebugSpeechEnabled()) {
+                liveDebug = "Tobias AO VIVO: ouvindo...";
+                liveDebugUntil = System.currentTimeMillis() + 4_000L;
+            }
+        });
         if (!VoiceIntentClient.wantsContinuousRecognition()
                 || !VoskSpeechRecognizer.isModelInstalled()) {
             return;
@@ -85,8 +132,9 @@ public final class VoiceSpeechDebug {
                     }
 
                     try {
-                        streamSession =
-                                VoskSpeechRecognizer.openStreamingSession();
+                        streamSession = preparedSession != null
+                                ? preparedSession : VoskSpeechRecognizer.openStreamingSession();
+                        preparedSession = null;
 
                     } catch (Throwable throwable) {
                         WayAround.LOGGER.debug(
@@ -107,37 +155,45 @@ public final class VoiceSpeechDebug {
             return;
         }
 
-        long generation =
-                STREAM_GENERATION.get();
+        long generation = STREAM_GENERATION.get();
+        synchronized (STREAM_PCM) {
+            if (pcmGeneration != generation) {
+                STREAM_PCM.reset();
+                pcmGeneration = generation;
+            }
+            // Bounded memory even if the native decoder stalls. Report overload.
+            if (STREAM_PCM.size() + pcm.length > 192_000) {
+                STREAM_PCM.reset();
+                WayAround.LOGGER.warn("[Voice/Realtime] decoder atrasado: audio pendente excedeu 2s");
+            }
+            if (STREAM_PCM.size() == 0) queuedAtNanos = System.nanoTime();
+            STREAM_PCM.write(pcm, 0, pcm.length);
+            if (drainQueued) return;
+            drainQueued = true;
+        }
+        STREAM_WORKER.execute(() -> drainRealtime(generation));
+    }
 
-        byte[] copy =
-                pcm.clone();
-
-        STREAM_WORKER.execute(
-                () -> {
-                    if (generation
-                            != STREAM_GENERATION.get()) {
-                        return;
-                    }
-
-                    VoskSpeechRecognizer.StreamingSession session =
-                            streamSession;
-
-                    if (session == null) {
-                        return;
-                    }
-
-                    try {
-                        dispatchRealtime(
-                                session.accept48k(
-                                        copy
-                                ),
-                                false
-                        );
-                    } catch (Throwable ignored) {
-                    }
-                }
-        );
+    private static void drainRealtime(long generation) {
+        byte[] pcm;
+        synchronized (STREAM_PCM) {
+            drainQueued = false;
+            if (pcmGeneration != generation || generation != STREAM_GENERATION.get()) return;
+            queueMillis = Math.max(0, (System.nanoTime() - queuedAtNanos) / 1_000_000L);
+            pcm = STREAM_PCM.toByteArray();
+            STREAM_PCM.reset();
+        }
+        VoskSpeechRecognizer.StreamingSession session = streamSession;
+        if (session == null || pcm.length == 0) return;
+        long started = System.nanoTime();
+        try {
+            String text = session.accept48k(pcm);
+            decodeMillis = (System.nanoTime() - started) / 1_000_000L;
+            dispatchRealtime(text, false, generation);
+        } catch (Throwable failure) {
+            WayAround.LOGGER.warn("[Voice/Realtime] decode: {}", failure.toString());
+            closeRealtimeSession();
+        }
     }
 
     public static void endRealtime() {
@@ -150,6 +206,8 @@ public final class VoiceSpeechDebug {
                             != STREAM_GENERATION.get()) {
                         return;
                     }
+
+                    drainRealtime(generation);
 
                     VoskSpeechRecognizer.StreamingSession session =
                             streamSession;
@@ -164,12 +222,13 @@ public final class VoiceSpeechDebug {
                     try {
                         dispatchRealtime(
                                 session.finish(),
-                                true
+                                true, generation
                         );
 
                     } catch (Throwable ignored) {
                     } finally {
                         session.close();
+                        prepareRealtime();
                     }
                 }
         );
@@ -179,7 +238,14 @@ public final class VoiceSpeechDebug {
         STREAM_GENERATION.incrementAndGet();
 
         STREAM_WORKER.execute(
-                VoiceSpeechDebug::closeRealtimeSession
+                () -> {
+                    closeRealtimeSession();
+                    if (preparedSession != null) {
+                        preparedSession.close();
+                        preparedSession = null;
+                    }
+                    liveDebug = "";
+                }
         );
     }
 
@@ -200,7 +266,8 @@ public final class VoiceSpeechDebug {
 
     private static void dispatchRealtime(
             String transcript,
-            boolean finalChunk
+            boolean finalChunk,
+            long generation
     ) {
         if (transcript == null
                 || transcript.isBlank()) {
@@ -219,13 +286,19 @@ public final class VoiceSpeechDebug {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        minecraft.execute(
-                () ->
-                        VoiceIntentClient.handleRealtimeTranscript(
-                                refined,
-                                finalChunk
-                        )
-        );
+        long processingMillis = decodeMillis;
+        long waitingMillis = queueMillis;
+        minecraft.execute(() -> {
+            if (generation != STREAM_GENERATION.get() || minecraft.player == null
+                    || !VoiceConfig.isEnabled()) return;
+            if (VoiceConfig.isDebugSpeechEnabled()) {
+                liveDebug = "Tobias " + (finalChunk ? "FINAL" : "AO VIVO")
+                        + " [fila " + waitingMillis + " ms; decode " + processingMillis + " ms]: " + refined;
+                liveDebugUntil = System.currentTimeMillis() + 4_000L;
+                WayAround.LOGGER.info("[Voice/Realtime] {}", liveDebug);
+            }
+            VoiceIntentClient.handleRealtimeTranscript(refined, finalChunk);
+        });
     }
 
     public static void submit(
