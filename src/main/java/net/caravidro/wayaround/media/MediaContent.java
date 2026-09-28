@@ -130,6 +130,20 @@ public final class MediaContent {
                     )
             );
 
+    public static final DeferredBlock<PlacedPhotoBlock> PLACED_PHOTO =
+            BLOCKS.register(
+                    "placed_photo",
+                    () -> new PlacedPhotoBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.COLOR_LIGHT_GRAY)
+                                    .strength(0.15F, 0.15F)
+                                    .sound(SoundType.WOOL)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .noLootTable()
+                    )
+            );
+
     public static final DeferredBlock<PlacedCameraBlock> PLACED_CAMERA =
             BLOCKS.register(
                     "placed_camera",
@@ -374,6 +388,19 @@ public final class MediaContent {
                                     .stacksTo(1)
                                     .fireResistant()
                     )
+            );
+
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<PlacedPhotoBlockEntity>
+            > PLACED_PHOTO_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "placed_photo",
+                    () -> BlockEntityType.Builder.of(
+                                    PlacedPhotoBlockEntity::new,
+                                    PLACED_PHOTO.get()
+                            )
+                            .build(null)
             );
 
     public static final DeferredHolder<
