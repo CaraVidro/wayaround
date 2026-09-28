@@ -101,6 +101,31 @@ public final class PowerContent {
         BLOCK_ENTITIES.register("assembly_workbench", () -> BlockEntityType.Builder.of(
             AssemblyWorkbenchBlockEntity::new, ASSEMBLY_WORKBENCH.get()).build(null));
 
+    public static final DeferredBlock<PulleyWheelBlock> PULLEY_WHEEL = BLOCKS.register("pulley_wheel",
+        () -> new PulleyWheelBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
+            .strength(1.8F, 2.5F).sound(SoundType.WOOD).noOcclusion().noLootTable()));
+
+    public static final DeferredItem<BlockItem> PULLEY_WHEEL_ITEM = ITEMS.register("pulley_wheel",
+        () -> new BlockItem(PULLEY_WHEEL.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<PulleyWheelBlockEntity>> PULLEY_WHEEL_ENTITY =
+        BLOCK_ENTITIES.register("pulley_wheel", () -> BlockEntityType.Builder.of(
+            PulleyWheelBlockEntity::new, PULLEY_WHEEL.get()).build(null));
+
+    public static final DeferredItem<Item> SAW_BLADE = ITEMS.register("saw_blade",
+        () -> new Item(new Item.Properties().stacksTo(16)));
+
+    public static final DeferredBlock<SawmillBlock> SAWMILL = BLOCKS.register("sawmill",
+        () -> new SawmillBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
+            .strength(2.4F, 4.0F).sound(SoundType.WOOD).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> SAWMILL_ITEM = ITEMS.register("sawmill",
+        () -> new BlockItem(SAWMILL.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SawmillBlockEntity>> SAWMILL_ENTITY =
+        BLOCK_ENTITIES.register("sawmill", () -> BlockEntityType.Builder.of(
+            SawmillBlockEntity::new, SAWMILL.get()).build(null));
+
     public static final DeferredBlock<MechanicalShaftBlock> MECHANICAL_SHAFT = BLOCKS.register("mechanical_shaft",
         () -> new MechanicalShaftBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
             .strength(2.2F, 5.0F).sound(SoundType.METAL).noOcclusion()));
@@ -167,6 +192,12 @@ public final class PowerContent {
             MechanicalCapabilities.ROTATION,
             WATER_WHEEL_HUB_ENTITY.get(),
             (hub, side) -> hub.rotationOutput(side)
+        );
+
+        event.registerBlockEntity(
+            MechanicalCapabilities.ROTATION,
+            PULLEY_WHEEL_ENTITY.get(),
+            (pulley, side) -> pulley.rotationOutput(side)
         );
     }
 }

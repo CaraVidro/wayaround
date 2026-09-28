@@ -3,19 +3,17 @@ package net.caravidro.wayaround.client;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -86,18 +84,16 @@ public final class ImmortalWheelRenderer {
                 minecraft.level
                         .getGameTime();
 
-        BufferBuilder buffer =
-                Tesselator.getInstance()
-                        .begin(
-                                VertexFormat.Mode.QUADS,
-                                DefaultVertexFormat.POSITION_COLOR
-                        );
+        MultiBufferSource.BufferSource buffers =
+                minecraft.renderBuffers()
+                        .bufferSource();
 
         for (Entry entry :
                 visible) {
 
             emitWheel(
-                    buffer,
+                    minecraft,
+                    buffers,
                     pose,
                     camera,
                     entry.player,
@@ -106,38 +102,34 @@ public final class ImmortalWheelRenderer {
             );
         }
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.enableDepthTest();
-        RenderSystem.depthMask(false);
-        RenderSystem.disableCull();
-        RenderSystem.setShader(
-                GameRenderer::getPositionColorShader
-        );
-
-        BufferUploader.drawWithShader(
-                buffer.buildOrThrow()
-        );
-
-        RenderSystem.enableCull();
-        RenderSystem.depthMask(true);
-        RenderSystem.disableBlend();
+        /*
+         * The wheel now uses the real vanilla block models/textures instead
+         * of flat RGB cubes, so the gold and emerald faces look exactly like
+         * GOLD_BLOCK and EMERALD_BLOCK.
+         */
+        buffers.endBatch();
     }
 
     private static void emitWheel(
-            BufferBuilder buffer,
+            Minecraft minecraft,
+            MultiBufferSource buffers,
             PoseStack pose,
             Vec3 camera,
             Player player,
             ImmortalWheelClientEffects.WheelVisual wheel,
             long time
     ) {
+        /*
+         * Halo anchor: slightly above the top of the player's hitbox.
+         * Keeping the anchor smoothed preserves the supernatural "following"
+         * feel without leaving the wheel floating far behind the player.
+         */
         Vec3 target =
                 player.position()
                         .add(
                                 0.0,
                                 player.getBbHeight()
-                                        + 0.86,
+                                        + 0.42,
                                 0.0
                         );
 
@@ -160,14 +152,14 @@ public final class ImmortalWheelRenderer {
                 Math.sin(
                         phase * 2.7
                 )
-                        * 0.050
+                        * 0.022
                         * shake;
 
         double jitterY =
                 Math.cos(
                         phase * 3.1
                 )
-                        * 0.036
+                        * 0.016
                         * shake;
 
         double jitterZ =
@@ -175,7 +167,7 @@ public final class ImmortalWheelRenderer {
                         phase * 2.1
                                 + 1.2
                 )
-                        * 0.050
+                        * 0.022
                         * shake;
 
         pose.pushPose();
@@ -193,8 +185,13 @@ public final class ImmortalWheelRenderer {
         );
 
         /*
-         * Vertical Dharma-wheel silhouette, attached to the holder's facing
-         * direction. It is intentionally larger than the player.
+         * IMMORTAL HALO
+         *
+         * 1) Follow the holder's yaw so the backward lean is relative to the
+         *    direction the player is facing.
+         * 2) Keep the wheel nearly horizontal above the head.
+         * 3) Lean it gently backward.
+         * 4) Spin around its own normal when adaptation triggers.
          */
         pose.mulPose(
                 Axis.YP.rotationDegrees(
@@ -203,25 +200,27 @@ public final class ImmortalWheelRenderer {
         );
 
         pose.mulPose(
-                Axis.ZP.rotationDegrees(
+                Axis.XP.rotationDegrees(
+                        -12.0F
+                )
+        );
+
+        pose.mulPose(
+                Axis.YP.rotationDegrees(
                         wheel.angle()
                 )
         );
 
         float radius =
-                1.18F;
-
-        int gold =
-                Math.min(
-                        255,
-                        205
-                                + wheel.steps()
-                                        * 8
-                );
+                0.72F;
 
         int segments =
-                18;
+                24;
 
+        /*
+         * Main thin rim. Most pieces are true gold-block models; four
+         * cardinal accents use the true emerald-block model.
+         */
         for (int index = 0;
              index < segments;
              index++) {
@@ -236,37 +235,47 @@ public final class ImmortalWheelRenderer {
             pose.pushPose();
 
             pose.mulPose(
-                    Axis.ZP.rotationDegrees(
+                    Axis.YP.rotationDegrees(
                             angle
                     )
             );
 
             pose.translate(
                     0.0F,
-                    radius,
-                    0.0F
+                    0.0F,
+                    radius
             );
 
-            pose.scale(
-                    0.18F,
-                    0.31F,
-                    0.12F
-            );
+            BlockState state =
+                    index % 6 == 0
+                            ? Blocks.EMERALD_BLOCK
+                                    .defaultBlockState()
+                            : Blocks.GOLD_BLOCK
+                                    .defaultBlockState();
 
-            cube(
-                    buffer,
-                    pose.last()
-                            .pose(),
-                    1.0F,
-                    gold,
-                    174,
-                    48,
-                    232
+            renderBlock(
+                    minecraft,
+                    buffers,
+                    pose,
+                    state,
+                    index % 6 == 0
+                            ? 0.19F
+                            : 0.17F,
+                    index % 6 == 0
+                            ? 0.095F
+                            : 0.070F,
+                    index % 6 == 0
+                            ? 0.16F
+                            : 0.13F
             );
 
             pose.popPose();
         }
 
+        /*
+         * Eight very thin spokes keep the visual identity of a "wheel"
+         * instead of turning it into a plain ring.
+         */
         int spokes =
                 8;
 
@@ -284,97 +293,90 @@ public final class ImmortalWheelRenderer {
             pose.pushPose();
 
             pose.mulPose(
-                    Axis.ZP.rotationDegrees(
+                    Axis.YP.rotationDegrees(
                             angle
                     )
             );
 
             pose.translate(
                     0.0F,
-                    radius * 0.50F,
-                    0.0F
+                    -0.012F,
+                    radius * 0.46F
             );
 
-            pose.scale(
-                    0.065F,
-                    radius * 0.52F,
-                    0.075F
-            );
-
-            cube(
-                    buffer,
-                    pose.last()
-                            .pose(),
-                    1.0F,
-                    210,
-                    180,
-                    58,
-                    220
+            renderBlock(
+                    minecraft,
+                    buffers,
+                    pose,
+                    Blocks.GOLD_BLOCK
+                            .defaultBlockState(),
+                    0.050F,
+                    0.045F,
+                    radius * 0.72F
             );
 
             pose.popPose();
         }
 
+        /*
+         * Small emerald heart in the middle. It stays extremely thin so from
+         * below it reads as an ornate jewel suspended inside the halo rather
+         * than a full block sitting on the player's head.
+         */
         pose.pushPose();
 
-        pose.scale(
-                0.31F,
-                0.31F,
-                0.18F
+        pose.mulPose(
+                Axis.YP.rotationDegrees(
+                        45.0F
+                )
         );
 
-        cube(
-                buffer,
-                pose.last()
-                        .pose(),
-                1.0F,
-                68,
-                176,
-                92,
-                244
+        renderBlock(
+                minecraft,
+                buffers,
+                pose,
+                Blocks.EMERALD_BLOCK
+                        .defaultBlockState(),
+                0.20F,
+                0.080F,
+                0.20F
         );
 
         pose.popPose();
 
         /*
-         * Four emerald/totem-like accents make the aura read as the cursed
-         * item even without relying on a static world-model texture.
+         * Tiny gold frame around the emerald center.
          */
         for (int index = 0;
              index < 4;
              index++) {
 
+            float angle =
+                    index * 90.0F;
+
             pose.pushPose();
 
             pose.mulPose(
-                    Axis.ZP.rotationDegrees(
-                            45.0F
-                                    + index
-                                            * 90.0F
+                    Axis.YP.rotationDegrees(
+                            angle
                     )
             );
 
             pose.translate(
                     0.0F,
-                    radius * 0.78F,
-                    0.0F
+                    -0.008F,
+                    0.17F
             );
 
-            pose.scale(
-                    0.13F,
-                    0.20F,
-                    0.15F
-            );
-
-            cube(
-                    buffer,
-                    pose.last()
-                            .pose(),
-                    1.0F,
-                    72,
-                    196,
-                    98,
-                    238
+            renderBlock(
+                    minecraft,
+                    buffers,
+                    pose,
+                    Blocks.GOLD_BLOCK
+                            .defaultBlockState(),
+                    0.055F,
+                    0.050F,
+                    0.16F
             );
 
             pose.popPose();
@@ -383,75 +385,43 @@ public final class ImmortalWheelRenderer {
         pose.popPose();
     }
 
-    private static void cube(
-            BufferBuilder buffer,
-            org.joml.Matrix4f matrix,
-            float half,
-            int red,
-            int green,
-            int blue,
-            int alpha
+    private static void renderBlock(
+            Minecraft minecraft,
+            MultiBufferSource buffers,
+            PoseStack pose,
+            BlockState state,
+            float scaleX,
+            float scaleY,
+            float scaleZ
     ) {
-        float min =
-                -half;
+        pose.pushPose();
 
-        float max =
-                half;
+        pose.scale(
+                scaleX,
+                scaleY,
+                scaleZ
+        );
 
-        vertex(buffer, matrix, min, min, max, red, green, blue, alpha);
-        vertex(buffer, matrix, max, min, max, red, green, blue, alpha);
-        vertex(buffer, matrix, max, min, min, red, green, blue, alpha);
-        vertex(buffer, matrix, min, min, min, red, green, blue, alpha);
+        /*
+         * Vanilla block models occupy 0..1 on each axis. Translate by half a
+         * block after scaling so every tiny block is centered on our origin.
+         */
+        pose.translate(
+                -0.5F,
+                -0.5F,
+                -0.5F
+        );
 
-        vertex(buffer, matrix, min, max, min, red, green, blue, alpha);
-        vertex(buffer, matrix, max, max, min, red, green, blue, alpha);
-        vertex(buffer, matrix, max, max, max, red, green, blue, alpha);
-        vertex(buffer, matrix, min, max, max, red, green, blue, alpha);
-
-        vertex(buffer, matrix, min, min, min, red, green, blue, alpha);
-        vertex(buffer, matrix, max, min, min, red, green, blue, alpha);
-        vertex(buffer, matrix, max, max, min, red, green, blue, alpha);
-        vertex(buffer, matrix, min, max, min, red, green, blue, alpha);
-
-        vertex(buffer, matrix, min, max, max, red, green, blue, alpha);
-        vertex(buffer, matrix, max, max, max, red, green, blue, alpha);
-        vertex(buffer, matrix, max, min, max, red, green, blue, alpha);
-        vertex(buffer, matrix, min, min, max, red, green, blue, alpha);
-
-        vertex(buffer, matrix, min, min, max, red, green, blue, alpha);
-        vertex(buffer, matrix, min, min, min, red, green, blue, alpha);
-        vertex(buffer, matrix, min, max, min, red, green, blue, alpha);
-        vertex(buffer, matrix, min, max, max, red, green, blue, alpha);
-
-        vertex(buffer, matrix, max, min, min, red, green, blue, alpha);
-        vertex(buffer, matrix, max, min, max, red, green, blue, alpha);
-        vertex(buffer, matrix, max, max, max, red, green, blue, alpha);
-        vertex(buffer, matrix, max, max, min, red, green, blue, alpha);
-    }
-
-    private static void vertex(
-            BufferBuilder buffer,
-            org.joml.Matrix4f matrix,
-            float x,
-            float y,
-            float z,
-            int red,
-            int green,
-            int blue,
-            int alpha
-    ) {
-        buffer.addVertex(
-                        matrix,
-                        x,
-                        y,
-                        z
-                )
-                .setColor(
-                        red,
-                        green,
-                        blue,
-                        alpha
+        minecraft.getBlockRenderer()
+                .renderSingleBlock(
+                        state,
+                        pose,
+                        buffers,
+                        LightTexture.FULL_BRIGHT,
+                        OverlayTexture.NO_OVERLAY
                 );
+
+        pose.popPose();
     }
 
     private record Entry(

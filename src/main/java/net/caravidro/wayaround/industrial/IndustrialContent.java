@@ -133,6 +133,15 @@ public final class IndustrialContent {
                                                 PowerContent.PRIMITIVE_AXE.get()
                                         );
                                         output.accept(
+                                                PowerContent.PULLEY_WHEEL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.SAW_BLADE.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.SAWMILL_ITEM.get()
+                                        );
+                                        output.accept(
                                                 PowerContent.MECHANICAL_SHAFT_ITEM.get()
                                         );
                                         output.accept(

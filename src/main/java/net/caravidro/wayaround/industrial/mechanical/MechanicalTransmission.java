@@ -43,7 +43,8 @@ public final class MechanicalTransmission {
                 sourceAt(
                         level,
                         start,
-                        direction.getOpposite()
+                        direction.getOpposite(),
+                        null
                 );
 
         if (direct != null
@@ -66,14 +67,67 @@ public final class MechanicalTransmission {
 
         return searchSource(
                 level,
-                start
+                start,
+                null
+        );
+    }
+
+    /**
+     * Same lookup as findSource, but refuses to resolve the consumer itself
+     * as a source when a transmission network loops back into it. Belt wheels
+     * use this so a shaft attached to a pulley cannot "discover" that same
+     * pulley and create free rotational power.
+     */
+    @Nullable
+    public static IRotationalPower findSourceExcluding(
+            Level level,
+            BlockPos consumerPos,
+            Direction direction,
+            BlockPos excludedSourcePos
+    ) {
+        BlockPos start =
+                consumerPos.relative(
+                        direction
+                );
+
+        IRotationalPower direct =
+                sourceAt(
+                        level,
+                        start,
+                        direction.getOpposite(),
+                        excludedSourcePos
+                );
+
+        if (direct != null
+                && direct.axis()
+                == direction.getAxis()) {
+            return direct;
+        }
+
+        BlockState startState =
+                level.getBlockState(
+                        start
+                );
+
+        if (!canEnterTransmission(
+                startState,
+                direction.getOpposite()
+        )) {
+            return null;
+        }
+
+        return searchSource(
+                level,
+                start,
+                excludedSourcePos
         );
     }
 
     @Nullable
     private static IRotationalPower searchSource(
             Level level,
-            BlockPos start
+            BlockPos start,
+            @Nullable BlockPos excludedSourcePos
     ) {
         ArrayDeque<BlockPos> queue =
                 new ArrayDeque<>();
@@ -122,7 +176,8 @@ public final class MechanicalTransmission {
                         sourceAt(
                                 level,
                                 neighbor,
-                                direction.getOpposite()
+                                direction.getOpposite(),
+                                excludedSourcePos
                         );
 
                 if (source != null
@@ -251,8 +306,14 @@ public final class MechanicalTransmission {
     private static IRotationalPower sourceAt(
             Level level,
             BlockPos pos,
-            Direction side
+            Direction side,
+            @Nullable BlockPos excludedSourcePos
     ) {
+        if (excludedSourcePos != null
+                && excludedSourcePos.equals(pos)) {
+            return null;
+        }
+
         IRotationalPower sided =
                 level.getCapability(
                         MechanicalCapabilities.ROTATION,
