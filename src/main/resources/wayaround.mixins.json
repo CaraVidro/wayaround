@@ -13,7 +13,8 @@
     "AntarcticWaterFreezingMixin",
     "TukunaMobPickupMixin",
     "InfinityPushMixin",
-    "EcologyFishingHookMixin"
+    "EcologyFishingHookMixin",
+    "FireBlockMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
