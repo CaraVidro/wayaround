@@ -69,10 +69,13 @@ public final class TopHatClientEvents {
              * R is contextual. A loose top hat always wins; the trouser pocket
              * only receives the key when the hat has nothing urgent to do.
              */
-            boolean topHatNeedsAttention =
+            boolean wearingTopHat =
                     accessories.kind(
                             AccessorySlot.HEAD
-                    ) == AccessoryKind.ENGINEER_CAP
+                    ) == AccessoryKind.ENGINEER_CAP;
+
+            boolean topHatNeedsAttention =
+                    wearingTopHat
                             && TopHatClientState.warningActive(
                             minecraft.player.getUUID()
                     );
@@ -86,6 +89,13 @@ public final class TopHatClientEvents {
                         new TopHatAdjustC2SPayload()
                 );
 
+                continue;
+            }
+
+            if (wearingTopHat
+                    && TopHatClientState.adjusting(
+                    minecraft.player.getUUID()
+            )) {
                 continue;
             }
 
