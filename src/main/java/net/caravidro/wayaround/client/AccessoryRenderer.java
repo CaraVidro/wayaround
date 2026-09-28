@@ -115,7 +115,8 @@ public final class AccessoryRenderer {
                 model,
                 blocks,
                 buffers,
-                light
+                light,
+                event
         );
 
         renderFace(
@@ -192,7 +193,8 @@ public final class AccessoryRenderer {
             PlayerModel<?> model,
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
-            int light
+            int light,
+            RenderPlayerEvent.Post event
     ) {
         AccessoryKind kind =
                 state.kind(
@@ -221,7 +223,8 @@ public final class AccessoryRenderer {
                             blocks,
                             buffers,
                             light,
-                            false
+                            false,
+                            event
                     );
 
             case AERO_ENGINEER_CAP ->
@@ -231,7 +234,8 @@ public final class AccessoryRenderer {
                             blocks,
                             buffers,
                             light,
-                            true
+                            true,
+                            event
                     );
 
             case CHEF_HAT ->
@@ -666,10 +670,46 @@ public final class AccessoryRenderer {
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
             int light,
-            boolean aero
+            boolean aero,
+            RenderPlayerEvent.Post event
     ) {
         if (!aero) {
-            steampunkTopHat(wear, pose, blocks, buffers, light);
+            MotionSample motion =
+                    motion(
+                            event
+                    );
+
+            float instability =
+                    TopHatClientState.instability(
+                            event.getEntity()
+                                    .getUUID()
+                    );
+
+            if (TopHatClientState.warningActive(
+                    event.getEntity()
+                            .getUUID()
+            )) {
+                instability =
+                        Math.max(
+                                instability,
+                                0.92F
+                        );
+            }
+
+            TopHatModelRenderer.render(
+                    pose,
+                    blocks,
+                    buffers,
+                    light,
+                    wear,
+                    motion.back()
+                            + motion.speed()
+                            * 0.18F,
+                    motion.side(),
+                    instability,
+                    motion.time()
+            );
+
             return;
         }
 
@@ -773,45 +813,6 @@ public final class AccessoryRenderer {
                     0
             );
         }
-    }
-
-    /** Original workshop silhouette: a tall hollow stovepipe, brass band and
-     * two tiny instruments. The aero pilot retains the low protective cap. */
-    private static void steampunkTopHat(int wear, PoseStack pose,
-            BlockRenderDispatcher blocks, MultiBufferSource buffers, int light) {
-        BlockState felt = wear == 2 ? Blocks.BROWN_TERRACOTTA.defaultBlockState()
-                : Blocks.BROWN_WOOL.defaultBlockState();
-        BlockState dark = Blocks.POLISHED_BLACKSTONE.defaultBlockState();
-        BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
-        pose.pushPose();
-        if (wear == 2) pose.mulPose(Axis.ZP.rotationDegrees(-7));
-        // Brim reaches around the head, the crown is an open ring rather than
-        // a solid block. The player's skin and hair remain visible below it.
-        piece(pose, blocks, buffers, light, dark, 0, -0.535, 0,
-                0.69, 0.045, 0.69, 0, 0, 0);
-        piece(pose, blocks, buffers, light, felt, 0, -0.755, -0.196,
-                0.455, 0.39, 0.055, 0, 0, 0);
-        piece(pose, blocks, buffers, light, felt, 0, -0.755, 0.196,
-                0.455, 0.39, 0.055, 0, 0, 0);
-        for (int side : new int[]{-1, 1}) {
-            piece(pose, blocks, buffers, light, felt, side * 0.202, -0.755, 0,
-                    0.05, 0.39, 0.39, 0, 0, 0);
-            piece(pose, blocks, buffers, light, brass, side * 0.23, -0.59, 0,
-                    0.018, 0.054, 0.42, 0, 0, 0);
-        }
-        piece(pose, blocks, buffers, light, dark, 0, -0.970, 0,
-                0.51, 0.06, 0.51, 0, 0, 0);
-        piece(pose, blocks, buffers, light, brass, 0, -0.593, -0.236,
-                0.49, 0.053, 0.023, 0, 0, 0);
-        // The little asymmetrical brass gauge is NOT the same layout as the photo.
-        if (wear < 2) {
-            gauge(pose, blocks, buffers, light, 0.115, -0.775, -0.239, 0.095, wear);
-            piece(pose, blocks, buffers, light, brass, -0.18, -0.725, -0.241,
-                    0.035, 0.27, 0.033, 0, 0, -16);
-            piece(pose, blocks, buffers, light, brass, -0.165, -0.867, -0.238,
-                    0.13, 0.025, 0.034, 0, 0, 0);
-        }
-        pose.popPose();
     }
 
     private static void gauge(PoseStack pose, BlockRenderDispatcher blocks,

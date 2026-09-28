@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 
 import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.blue.ImaginaryBetaManager;
+import net.caravidro.wayaround.accessory.TopHatContent;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.content.Area001Content;
@@ -56,6 +57,7 @@ public class WayAround {
         // Registros do mod.
         WayAroundContent.register(modEventBus);
         OddityContent.register(modEventBus);
+        TopHatContent.register(modEventBus);
         Area001Content.register(modEventBus);
         EcologyContent.register(modEventBus);
         IndustrialContent.register(modEventBus);

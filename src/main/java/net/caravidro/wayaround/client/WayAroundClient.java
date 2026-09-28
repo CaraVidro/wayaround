@@ -10,6 +10,7 @@ import net.caravidro.wayaround.media.client.MediaTransferClient;
 import net.caravidro.wayaround.media.client.RecordedWorldSound;
 import net.caravidro.wayaround.media.client.TapeLabelScreen;
 import net.caravidro.wayaround.nexus.client.NexusClientState;
+import net.caravidro.wayaround.network.TopHatStateS2CPayload;
 import net.caravidro.wayaround.oldfriend.client.HerobrinePhotoState;
 import net.caravidro.wayaround.network.BroadcastAudioS2CPayload;
 import net.caravidro.wayaround.network.BroadcastImageS2CPayload;
@@ -266,6 +267,15 @@ public final class WayAroundClient {
                             NexusStateS2CPayload payload
                     ) {
                         NexusClientState.receive(
+                                payload
+                        );
+                    }
+
+                    @Override
+                    public void topHatState(
+                            TopHatStateS2CPayload payload
+                    ) {
+                        TopHatClientState.receive(
                                 payload
                         );
                     }

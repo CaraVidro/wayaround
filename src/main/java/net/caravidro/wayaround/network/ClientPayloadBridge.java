@@ -71,6 +71,10 @@ public final class ClientPayloadBridge {
         default void nexusState(
                 NexusStateS2CPayload payload
         ) {}
+
+        default void topHatState(
+                TopHatStateS2CPayload payload
+        ) {}
     }
 
     private static final RealtimeClientHandlers NOOP_REALTIME =
@@ -272,6 +276,17 @@ public final class ClientPayloadBridge {
     ) {
         context.enqueueWork(
                 () -> realtimeHandlers.recordingReady(
+                        payload
+                )
+        );
+    }
+
+    public static void handleTopHatState(
+            TopHatStateS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(
+                () -> realtimeHandlers.topHatState(
                         payload
                 )
         );

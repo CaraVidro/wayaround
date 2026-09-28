@@ -505,6 +505,44 @@ public final class AccessoryManager {
         return stack;
     }
 
+    /**
+     * Removes an equipped accessory without putting it into the inventory.
+     * World mechanics such as the wind-blown top hat can then take ownership
+     * of the exact worn ItemStack and drop it later.
+     */
+    public static ItemStack takeEquipped(
+            ServerPlayer player,
+            AccessorySlot slot
+    ) {
+        migrateLegacySlots(
+                player
+        );
+
+        ItemStack old =
+                equippedStack(
+                        player,
+                        slot
+                );
+
+        if (old.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+
+        setEquipped(
+                player,
+                slot,
+                null,
+                0,
+                0
+        );
+
+        sync(
+                player
+        );
+
+        return old;
+    }
+
     private static void setEquipped(
             ServerPlayer player,
             AccessorySlot slot,

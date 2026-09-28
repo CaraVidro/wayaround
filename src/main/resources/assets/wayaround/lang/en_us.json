@@ -467,5 +467,9 @@
   "item.wayaround.chef_gloves": "Chef Gloves",
   "item.wayaround.chef_trousers": "Chef Trousers",
   "item.wayaround.chef_shoes": "Chef Shoes",
-  "item.wayaround.chef_apron": "Chef Apron"
+  "item.wayaround.chef_apron": "Chef Apron",
+  "entity.wayaround.flying_top_hat": "Windblown Engineer Top Hat",
+  "key.wayaround.adjust_top_hat": "Adjust top hat",
+  "key.categories.wayaround.accessories": "Way Around - Accessories",
+  "accessory.top_hat.warning": "R • SECURE TOP HAT"
 }

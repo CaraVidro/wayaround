@@ -467,5 +467,9 @@
   "item.wayaround.chef_gloves": "Luvas de Cozinheiro",
   "item.wayaround.chef_trousers": "Calça de Cozinheiro",
   "item.wayaround.chef_shoes": "Sapatos de Cozinheiro",
-  "item.wayaround.chef_apron": "Avental de Cozinheiro"
+  "item.wayaround.chef_apron": "Avental de Cozinheiro",
+  "entity.wayaround.flying_top_hat": "Cartola do Engenheiro ao Vento",
+  "key.wayaround.adjust_top_hat": "Arrumar cartola",
+  "key.categories.wayaround.accessories": "Way Around - Acessórios",
+  "accessory.top_hat.warning": "R • ARRUMAR CARTOLA"
 }
