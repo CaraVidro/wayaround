@@ -36,7 +36,8 @@
     "client.TukunaPossessionSkinMixin",
     "client.CreateWorldScreenInvoker",
     "client.CreateWorldScreenFeatureMixin",
-    "client.NexusSkyMixin"
+    "client.NexusSkyMixin",
+    "client.NexusFogMixin"
   ],
   "injectors": {
     "defaultRequire": 1
