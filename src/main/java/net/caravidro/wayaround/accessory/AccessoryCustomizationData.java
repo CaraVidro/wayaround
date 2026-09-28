@@ -47,7 +47,19 @@ public final class AccessoryCustomizationData {
     ) {
         return kind == AccessoryKind.ENGINEER_CAP
                 || kind == AccessoryKind.CUSTOM_HAT
-                || kind == AccessoryKind.SOMBRERO;
+                || kind == AccessoryKind.SOMBRERO
+                || colorOnly(
+                kind
+        );
+    }
+
+    public static boolean colorOnly(
+            AccessoryKind kind
+    ) {
+        return kind == AccessoryKind.FORMAL_JACKET
+                || kind == AccessoryKind.FORMAL_TROUSERS
+                || kind == AccessoryKind.CASUAL_SHIRT
+                || kind == AccessoryKind.CASUAL_TROUSERS;
     }
 
     public static Config read(
@@ -174,6 +186,19 @@ public final class AccessoryCustomizationData {
                         & (EXTRA_GEARS | EXTRA_CLOCK)
                         : 0;
 
+        if (colorOnly(
+                kind
+        )) {
+            return new Config(
+                    0,
+                    2,
+                    0,
+                    clampWoolColor(
+                            config.woolColor()
+                    )
+            );
+        }
+
         return new Config(
                 clampMaterial(
                         config.material()
@@ -207,6 +232,34 @@ public final class AccessoryCustomizationData {
                     2,
                     0,
                     4
+            );
+        }
+
+        if (kind == AccessoryKind.FORMAL_JACKET
+                || kind == AccessoryKind.FORMAL_TROUSERS) {
+            return new Config(
+                    0,
+                    2,
+                    0,
+                    15
+            );
+        }
+
+        if (kind == AccessoryKind.CASUAL_SHIRT) {
+            return new Config(
+                    0,
+                    2,
+                    0,
+                    11
+            );
+        }
+
+        if (kind == AccessoryKind.CASUAL_TROUSERS) {
+            return new Config(
+                    0,
+                    2,
+                    0,
+                    7
             );
         }
 
