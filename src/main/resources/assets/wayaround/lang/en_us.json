@@ -582,5 +582,11 @@
   "message.wayaround.nexus.portal_on": "NEXUSTOR // PORTAL ONLINE.",
   "message.wayaround.nexus.portal_off": "NEXUSTOR // PORTAL OFFLINE.",
   "message.wayaround.nexus.no_return_signal": "NEXUS // NO RETURN SIGNAL.",
-  "block.wayaround.placed_photo": "Placed Photograph"
+  "block.wayaround.placed_photo": "Placed Photograph",
+  "advancements.wayaround.industrial.root.title": "Industrialization",
+  "advancements.wayaround.industrial.root.description": "Stop calling everything a prototype and power something.",
+  "advancements.wayaround.industrial.first_power.title": "Now It Has Wires",
+  "advancements.wayaround.industrial.first_power.description": "Get your hands on an industrial power source.",
+  "advancements.wayaround.industrial.heavy_metal_box.title": "Angry Furnace",
+  "advancements.wayaround.industrial.heavy_metal_box.description": "Obtain a Reforced Blaster."
 }
