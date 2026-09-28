@@ -196,64 +196,55 @@ public final class PulleyWheelRenderer
         poseStack.translate(0.5, 0.5, 0.5);
         orientLocalZToAxis(poseStack, pulley.axleAxis());
 
-        renderBeltStrand(
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay,
-                dx,
-                dy,
-                nx * beltOffset,
-                ny * beltOffset
-        );
+        int lines =
+                Math.max(
+                        1,
+                        pulley.beltLines()
+                );
 
-        renderBeltStrand(
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay,
-                dx,
-                dy,
-                -nx * beltOffset,
-                -ny * beltOffset
-        );
+        for (int line = 0;
+             line < lines;
+             line++) {
+            double centered =
+                    line
+                            - (lines - 1)
+                                    * 0.5;
 
-        /*
-         * A real improvised pulley reads better with several rope runs instead
-         * of two perfectly clean strands. The extra pair is slightly offset
-         * along the axle so it remains visually separate without changing the
-         * mechanical link itself.
-         */
-        poseStack.pushPose();
-        poseStack.translate(
-                0.0,
-                0.0,
-                0.055
-        );
+            double zOffset =
+                    centered
+                            * 0.060;
 
-        renderBeltStrand(
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay,
-                dx,
-                dy,
-                nx * (beltOffset - 0.045),
-                ny * (beltOffset - 0.045)
-        );
+            poseStack.pushPose();
+            poseStack.translate(
+                    0.0,
+                    0.0,
+                    zOffset
+            );
 
-        renderBeltStrand(
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay,
-                dx,
-                dy,
-                -nx * (beltOffset - 0.045),
-                -ny * (beltOffset - 0.045)
-        );
+            renderBeltStrand(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    dx,
+                    dy,
+                    nx * beltOffset,
+                    ny * beltOffset
+            );
 
-        poseStack.popPose();
+            renderBeltStrand(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
+                    dx,
+                    dy,
+                    -nx * beltOffset,
+                    -ny * beltOffset
+            );
+
+            poseStack.popPose();
+        }
 
         /*
          * Moving knots make belt motion visible without a custom texture.
