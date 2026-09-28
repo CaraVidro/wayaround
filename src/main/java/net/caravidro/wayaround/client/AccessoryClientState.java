@@ -107,6 +107,10 @@ public final class AccessoryClientState {
                                 ? ItemStack.EMPTY
                                 : payload.trouserPocket()
                                 .copy(),
+                        payload.headMaterial(),
+                        payload.headSize(),
+                        payload.headExtras(),
+                        payload.headWoolColor(),
                         seen
                 )
         );
@@ -157,6 +161,10 @@ public final class AccessoryClientState {
             int[] glass,
             int glassesMode,
             ItemStack trouserPocket,
+            int headMaterial,
+            int headSize,
+            int headExtras,
+            int headWoolColor,
             long seenAt
     ) {
         public String path(
