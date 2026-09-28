@@ -1,14 +1,14 @@
 package net.caravidro.wayaround.client;
 
-import java.time.LocalTime;
-
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -59,7 +59,7 @@ public final class TopHatModelRenderer {
          * the brim overlap it slightly, so the hat reads as fitted instead of
          * hovering a few pixels above the skull.
          */
-        pose.translate(0.0, 0.035 - gust * 0.006, 0.0);
+        pose.translate(0.0, 0.062 - gust * 0.004, 0.0);
         pose.mulPose(Axis.XP.rotationDegrees(pitch));
         pose.mulPose(Axis.ZP.rotationDegrees(roll));
 
@@ -101,7 +101,11 @@ public final class TopHatModelRenderer {
                 0.0, -0.620, -0.248,
                 0.083, 0.052, 0.015,
                 0, 0, 0);
-        gauge(pose, blocks, buffers, light, 0.145, -0.770, -0.224, 0.112, wear);
+        frontClock(
+                pose, blocks, buffers, light,
+                0.145, -0.770, -0.224, 0.124,
+                wear, time
+        );
 
         // Moving side machinery.
         sideGear(pose, blocks, buffers, light, brass, -1, time, wear);
@@ -134,8 +138,6 @@ public final class TopHatModelRenderer {
                 }
             }
         }
-
-        renderClock(pose, blocks, buffers, light, brass, dark, wear);
 
         if (wear >= 1) {
             // Damage remains volumetric and readable from a rear-quarter angle.
@@ -311,87 +313,140 @@ public final class TopHatModelRenderer {
                 0, 0, 0);
     }
 
-    private static void renderClock(
+    /**
+     * The small instrument on the FRONT of the hat is the actual clock.
+     *
+     * It uses Minecraft's monotonically increasing gameTime rather than
+     * dayTime, so /time set day/night cannot teleport the hands. One full
+     * 24,000-tick cycle still maps to a 24-hour dial, starting from 06:00 like
+     * vanilla's normal day zero. In the Nether there is no trustworthy sky
+     * clock, so the mechanism deliberately loses its mind.
+     */
+    private static void frontClock(
             PoseStack pose,
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
             int light,
-            BlockState brass,
-            BlockState dark,
-            int wear
+            double x,
+            double y,
+            double z,
+            double diameter,
+            int wear,
+            float renderTime
     ) {
-        piece(pose, blocks, buffers, light, dark,
-                0.0, -1.075, 0.0,
-                0.348, 0.025, 0.348,
+        BlockState rim = wear >= 2
+                ? Blocks.EXPOSED_COPPER.defaultBlockState()
+                : Blocks.CUT_COPPER.defaultBlockState();
+        BlockState face = wear >= 2
+                ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
+                : Blocks.QUARTZ_BLOCK.defaultBlockState();
+
+        piece(pose, blocks, buffers, light, rim,
+                x, y, z,
+                diameter + 0.042, diameter + 0.042, 0.040,
                 0, 0, 0);
-        piece(pose, blocks, buffers, light, Blocks.QUARTZ_BLOCK.defaultBlockState(),
-                0.0, -1.091, 0.0,
-                0.305, 0.018, 0.305,
+        piece(pose, blocks, buffers, light, face,
+                x, y, z - 0.024,
+                diameter, diameter, 0.014,
                 0, 0, 0);
 
+        double radius = diameter * 0.40;
         for (int i = 0; i < 12; i++) {
-            double angle = Math.PI * 2.0 * i / 12.0;
-            double radius = 0.126;
+            double a = Math.PI * 2.0 * i / 12.0;
             boolean quarter = i % 3 == 0;
-            piece(pose, blocks, buffers, light, brass,
-                    Math.sin(angle) * radius,
-                    -1.105,
-                    -Math.cos(angle) * radius,
-                    quarter ? 0.028 : 0.017,
-                    0.014,
-                    quarter ? 0.046 : 0.031,
-                    (float) Math.toDegrees(angle), 0, 0);
+            piece(pose, blocks, buffers, light, rim,
+                    x + Math.sin(a) * radius,
+                    y - Math.cos(a) * radius,
+                    z - 0.036,
+                    quarter ? 0.014 : 0.009,
+                    quarter ? 0.021 : 0.014,
+                    0.010,
+                    0, 0, 0);
         }
 
-        // Real local system time, smoothly including sub-second motion.
-        LocalTime now = LocalTime.now();
-        double seconds = now.getSecond() + now.getNano() / 1_000_000_000.0;
-        double minutes = now.getMinute() + seconds / 60.0;
-        double hours = (now.getHour() % 12) + minutes / 60.0;
+        Minecraft minecraft = Minecraft.getInstance();
+        double partial = renderTime - Math.floor(renderTime);
+        double globalTicks = minecraft.level == null
+                ? renderTime
+                : minecraft.level.getGameTime() + partial;
 
-        clockHand(pose, blocks, buffers, light, dark,
-                minutes * 6.0, 0.115, 0.015, -1.117, 0.0);
-        clockHand(pose, blocks, buffers, light, Blocks.GOLD_BLOCK.defaultBlockState(),
-                hours * 30.0, 0.081, 0.021, -1.122, 0.0);
+        boolean nether = minecraft.level != null
+                && minecraft.level.dimension().equals(Level.NETHER);
 
-        if (wear < 2) {
-            clockHand(pose, blocks, buffers, light, Blocks.RED_TERRACOTTA.defaultBlockState(),
-                    seconds * 6.0, 0.123, 0.008, -1.127, 0.018);
+        double minuteDegrees;
+        double hourDegrees;
+        double chaosDegrees = 0.0;
+
+        if (nether) {
+            // No celestial time here: each hand hunts a different impossible hour.
+            minuteDegrees = globalTicks * 31.0;
+            hourDegrees = -globalTicks * 17.0;
+            chaosDegrees = globalTicks * 53.0;
+        } else {
+            double clockTicks = (globalTicks + 6000.0) % 24000.0;
+            double hours24 = clockTicks / 1000.0;
+            double minutes = (hours24 - Math.floor(hours24)) * 60.0;
+
+            minuteDegrees = minutes * 6.0;
+            hourDegrees = (hours24 % 12.0) * 30.0;
         }
 
-        piece(pose, blocks, buffers, light, brass,
-                0.0, -1.133, 0.0,
-                0.032, 0.018, 0.032,
-                0, 0, 0);
+        frontClockHand(
+                pose, blocks, buffers, light,
+                Blocks.POLISHED_BLACKSTONE.defaultBlockState(),
+                x, y, z - 0.043,
+                hourDegrees,
+                diameter * 0.27,
+                0.012
+        );
 
-        // Winding crown on the rear edge of the clock housing.
-        piece(pose, blocks, buffers, light, brass,
-                0.0, -1.099, 0.178,
-                0.060, 0.034, 0.036,
+        frontClockHand(
+                pose, blocks, buffers, light,
+                Blocks.GOLD_BLOCK.defaultBlockState(),
+                x, y, z - 0.047,
+                minuteDegrees,
+                diameter * 0.37,
+                0.009
+        );
+
+        if (nether && wear < 2) {
+            frontClockHand(
+                    pose, blocks, buffers, light,
+                    Blocks.RED_TERRACOTTA.defaultBlockState(),
+                    x, y, z - 0.051,
+                    chaosDegrees,
+                    diameter * 0.41,
+                    0.006
+            );
+        }
+
+        piece(pose, blocks, buffers, light, rim,
+                x, y, z - 0.056,
+                0.020, 0.020, 0.010,
                 0, 0, 0);
     }
 
-    private static void clockHand(
+    private static void frontClockHand(
             PoseStack pose,
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
             int light,
             BlockState material,
+            double centerX,
+            double centerY,
+            double z,
             double degrees,
             double length,
-            double width,
-            double y,
-            double tail
+            double width
     ) {
         double angle = Math.toRadians(degrees);
-        double center = (length - tail) * 0.5;
-        double x = Math.sin(angle) * center;
-        double z = -Math.cos(angle) * center;
+        double x = centerX + Math.sin(angle) * length * 0.5;
+        double y = centerY - Math.cos(angle) * length * 0.5;
 
         piece(pose, blocks, buffers, light, material,
                 x, y, z,
-                width, 0.010, length + tail,
-                (float) degrees, 0, 0);
+                width, length, 0.008,
+                0, 0, (float) -degrees);
     }
 
     private static void sideGear(
@@ -465,34 +520,6 @@ public final class TopHatModelRenderer {
                 0, 0, 0);
 
         pose.popPose();
-    }
-
-    private static void gauge(
-            PoseStack pose,
-            BlockRenderDispatcher blocks,
-            MultiBufferSource buffers,
-            int light,
-            double x,
-            double y,
-            double z,
-            double diameter,
-            int wear
-    ) {
-        piece(pose, blocks, buffers, light, Blocks.CUT_COPPER.defaultBlockState(),
-                x, y, z,
-                diameter + 0.040, diameter + 0.040, 0.040,
-                0, 0, 0);
-        piece(pose, blocks, buffers, light,
-                wear >= 2
-                        ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
-                        : Blocks.QUARTZ_BLOCK.defaultBlockState(),
-                x, y, z - 0.024,
-                diameter, diameter, 0.014,
-                0, 0, 0);
-        piece(pose, blocks, buffers, light, Blocks.RED_TERRACOTTA.defaultBlockState(),
-                x, y, z - 0.035,
-                diameter * 0.065, diameter * 0.62, 0.013,
-                0, 0, wear == 1 ? 30 : -24);
     }
 
     private static void piece(
