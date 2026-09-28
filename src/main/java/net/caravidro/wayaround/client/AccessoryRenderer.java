@@ -315,17 +315,7 @@ public final class AccessoryRenderer {
                     );
 
             case ENGINEER_GOGGLES ->
-                    goggles(
-                            pose,
-                            blocks,
-                            buffers,
-                            light,
-                            wear,
-                            glass,
-                            Blocks.COPPER_BLOCK.defaultBlockState(),
-                            Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
-                            false
-                    );
+                    engineerSpectacles(pose, blocks, buffers, light, wear, glass);
 
             case AERO_GOGGLES ->
                     goggles(
@@ -371,17 +361,7 @@ public final class AccessoryRenderer {
 
         switch (kind) {
             case ENGINEER_JACKET ->
-                    jacket(
-                            model,
-                            pose,
-                            blocks,
-                            buffers,
-                            light,
-                            wear,
-                            Blocks.BROWN_WOOL.defaultBlockState(),
-                            Blocks.COPPER_BLOCK.defaultBlockState(),
-                            false
-                    );
+                    steampunkWaistcoat(model, pose, blocks, buffers, light, wear);
 
             case AERO_JACKET ->
                     jacket(
@@ -521,6 +501,10 @@ public final class AccessoryRenderer {
                 fabric,
                 false
         );
+        if (kind == AccessoryKind.ENGINEER_TROUSERS) {
+            engineerTrouserDetail(model.leftLeg, pose, blocks, buffers, light, wear, true);
+            engineerTrouserDetail(model.rightLeg, pose, blocks, buffers, light, wear, false);
+        }
     }
 
     private static void renderFeet(
@@ -684,6 +668,11 @@ public final class AccessoryRenderer {
             int light,
             boolean aero
     ) {
+        if (!aero) {
+            steampunkTopHat(wear, pose, blocks, buffers, light);
+            return;
+        }
+
         BlockState cloth =
                 aero
                         ? Blocks.BLUE_WOOL.defaultBlockState()
@@ -783,6 +772,193 @@ public final class AccessoryRenderer {
                     0,
                     0
             );
+        }
+    }
+
+    /** Original workshop silhouette: a tall hollow stovepipe, brass band and
+     * two tiny instruments. The aero pilot retains the low protective cap. */
+    private static void steampunkTopHat(int wear, PoseStack pose,
+            BlockRenderDispatcher blocks, MultiBufferSource buffers, int light) {
+        BlockState felt = wear == 2 ? Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                : Blocks.BROWN_WOOL.defaultBlockState();
+        BlockState dark = Blocks.POLISHED_BLACKSTONE.defaultBlockState();
+        BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
+        pose.pushPose();
+        if (wear == 2) pose.mulPose(Axis.ZP.rotationDegrees(-7));
+        // Brim reaches around the head, the crown is an open ring rather than
+        // a solid block. The player's skin and hair remain visible below it.
+        piece(pose, blocks, buffers, light, dark, 0, -0.535, 0,
+                0.69, 0.045, 0.69, 0, 0, 0);
+        piece(pose, blocks, buffers, light, felt, 0, -0.755, -0.196,
+                0.455, 0.39, 0.055, 0, 0, 0);
+        piece(pose, blocks, buffers, light, felt, 0, -0.755, 0.196,
+                0.455, 0.39, 0.055, 0, 0, 0);
+        for (int side : new int[]{-1, 1}) {
+            piece(pose, blocks, buffers, light, felt, side * 0.202, -0.755, 0,
+                    0.05, 0.39, 0.39, 0, 0, 0);
+            piece(pose, blocks, buffers, light, brass, side * 0.23, -0.59, 0,
+                    0.018, 0.054, 0.42, 0, 0, 0);
+        }
+        piece(pose, blocks, buffers, light, dark, 0, -0.970, 0,
+                0.51, 0.06, 0.51, 0, 0, 0);
+        piece(pose, blocks, buffers, light, brass, 0, -0.593, -0.236,
+                0.49, 0.053, 0.023, 0, 0, 0);
+        // The little asymmetrical brass gauge is NOT the same layout as the photo.
+        if (wear < 2) {
+            gauge(pose, blocks, buffers, light, 0.115, -0.775, -0.239, 0.095, wear);
+            piece(pose, blocks, buffers, light, brass, -0.18, -0.725, -0.241,
+                    0.035, 0.27, 0.033, 0, 0, -16);
+            piece(pose, blocks, buffers, light, brass, -0.165, -0.867, -0.238,
+                    0.13, 0.025, 0.034, 0, 0, 0);
+        }
+        pose.popPose();
+    }
+
+    private static void gauge(PoseStack pose, BlockRenderDispatcher blocks,
+            MultiBufferSource buffers, int light, double x, double y, double z,
+            double diameter, int wear) {
+        BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
+        piece(pose, blocks, buffers, light, brass, x, y, z,
+                diameter + 0.036, diameter + 0.036, 0.039, 0, 0, 0);
+        piece(pose, blocks, buffers, light,
+                wear == 2 ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
+                        : Blocks.QUARTZ_BLOCK.defaultBlockState(),
+                x, y, z - 0.023, diameter, diameter, 0.014, 0, 0, 0);
+        piece(pose, blocks, buffers, light, Blocks.RED_TERRACOTTA.defaultBlockState(),
+                x, y, z - 0.034, diameter * 0.07, diameter * 0.60,
+                0.013, 0, 0, wear == 1 ? 30 : -24);
+    }
+
+    private static void engineerSpectacles(PoseStack pose,
+            BlockRenderDispatcher blocks, MultiBufferSource buffers,
+            int light, int wear, int glass) {
+        BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
+        BlockState strap = Blocks.DARK_OAK_PLANKS.defaultBlockState();
+        for (int side : new int[]{-1, 1}) {
+            double x = side * 0.142;
+            // Faceted octagonal rim, open center, so cracks remain readable.
+            piece(pose, blocks, buffers, light, brass, x, -0.247, -0.337,
+                    0.20, 0.027, 0.045, 0, 0, 0);
+            piece(pose, blocks, buffers, light, brass, x, -0.095, -0.337,
+                    0.20, 0.027, 0.045, 0, 0, 0);
+            for (int edge : new int[]{-1, 1}) {
+                piece(pose, blocks, buffers, light, brass,
+                        x + edge * 0.095, -0.17, -0.337,
+                        0.028, 0.123, 0.045, 0, 0, edge * 16);
+            }
+            if (glass == 0 || (glass == 1 && side < 0)) {
+                piece(pose, blocks, buffers, light,
+                        Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                        x, -0.172, -0.360, 0.16, 0.13, 0.018, 0, 0, 0);
+            } else if (glass < 2) {
+                piece(pose, blocks, buffers, light,
+                        Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                        x - 0.033, -0.195, -0.360,
+                        0.065, 0.061, 0.018, 0, 0, -15);
+            }
+            if (wear < 2) piece(pose, blocks, buffers, light, strap,
+                    side * 0.298, -0.17, -0.055,
+                    0.027, 0.055, 0.48, 0, 0, 0);
+        }
+        piece(pose, blocks, buffers, light, brass,
+                0, -0.17, -0.356, 0.080, 0.031, 0.05, 0, 0, 0);
+    }
+
+    private static void steampunkWaistcoat(PlayerModel<?> model, PoseStack pose,
+            BlockRenderDispatcher blocks, MultiBufferSource buffers,
+            int light, int wear) {
+        BlockState jacket = wear == 2 ? Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                : Blocks.BROWN_WOOL.defaultBlockState();
+        BlockState vest = wear == 2 ? Blocks.ORANGE_TERRACOTTA.defaultBlockState()
+                : Blocks.RED_TERRACOTTA.defaultBlockState();
+        BlockState leather = Blocks.DARK_OAK_PLANKS.defaultBlockState();
+        BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
+        pose.pushPose();
+        model.body.translateAndRotate(pose);
+        piece(pose, blocks, buffers, light, jacket,
+                0, 0.35, 0.163, 0.57, 0.70, 0.07, 0, 0, 0);
+        for (int side : new int[]{-1, 1}) {
+            piece(pose, blocks, buffers, light, jacket,
+                    side * 0.20, 0.33, -0.162,
+                    0.19, wear == 2 && side > 0 ? 0.51 : 0.66, 0.074,
+                    0, 0, side * 2);
+            piece(pose, blocks, buffers, light, vest,
+                    side * 0.10, 0.35, -0.208,
+                    0.19, 0.52, 0.043, 0, 0, 0);
+            piece(pose, blocks, buffers, light, leather,
+                    side * 0.22, 0.19, -0.224,
+                    0.11, 0.24, 0.033, 0, 0, side * 24);
+            piece(pose, blocks, buffers, light, brass,
+                    side * 0.23, 0.102, -0.236,
+                    0.045, 0.045, 0.024, 0, 0, 0);
+        }
+        // Jacket is tailored with a waist and an off-center tool belt.
+        piece(pose, blocks, buffers, light, leather,
+                0, 0.67, -0.185, 0.57, 0.065, 0.06, 0, 0, 0);
+        piece(pose, blocks, buffers, light, brass,
+                0.18, 0.67, -0.224, 0.105, 0.095, 0.025, 0, 0, 0);
+        for (int i = 0; i < 3 - (wear == 2 ? 1 : 0); i++) {
+            piece(pose, blocks, buffers, light, brass,
+                    0, 0.28 + i * 0.13, -0.242,
+                    0.045, 0.045, 0.018, 0, 0, 0);
+        }
+        piece(pose, blocks, buffers, light, Blocks.RED_WOOL.defaultBlockState(),
+                0, 0.09, -0.238, 0.20, 0.07, 0.028, 0, 0, 0);
+        pose.popPose();
+        sleeve(model.leftArm, pose, blocks, buffers, light, wear, jacket, brass, true);
+        sleeve(model.rightArm, pose, blocks, buffers, light, wear, jacket, brass, false);
+        for (ModelPart arm : new ModelPart[]{model.leftArm, model.rightArm}) {
+            pose.pushPose();
+            arm.translateAndRotate(pose);
+            piece(pose, blocks, buffers, light, leather,
+                    0, 0.49, -0.174, 0.26, 0.07, 0.035, 0, 0, 0);
+            if (wear < 2) piece(pose, blocks, buffers, light, brass,
+                    0, 0.53, -0.184, 0.13, 0.025, 0.021, 0, 0, 0);
+            pose.popPose();
+        }
+    }
+
+    private static void engineerTrouserDetail(ModelPart leg, PoseStack pose,
+            BlockRenderDispatcher blocks, MultiBufferSource buffers,
+            int light, int wear, boolean left) {
+        pose.pushPose();
+        leg.translateAndRotate(pose);
+        piece(pose, blocks, buffers, light, Blocks.DARK_OAK_PLANKS.defaultBlockState(),
+                0, 0.47, -0.174, 0.32, 0.062, 0.036, 0, 0, 0);
+        if (wear < 2) piece(pose, blocks, buffers, light,
+                Blocks.CUT_COPPER.defaultBlockState(),
+                left ? -0.10 : 0.10, 0.47, -0.197,
+                0.05, 0.055, 0.021, 0, 0, 0);
+        pose.popPose();
+    }
+
+    private static void engineerInstrumentHarness(PoseStack pose,
+            BlockRenderDispatcher blocks, MultiBufferSource buffers,
+            int light, int wear, MotionSample motion) {
+        BlockState leather = Blocks.DARK_OAK_PLANKS.defaultBlockState();
+        BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
+        // Two diagonal straps attach a pressure gauge and an exposed tube to
+        // the jacket. They move with the chest, not like loose backpack straps.
+        piece(pose, blocks, buffers, light, leather,
+                -0.18, 0.33, -0.228, 0.065, 0.58, 0.042, 0, 0, -23);
+        piece(pose, blocks, buffers, light, leather,
+                0.17, 0.35, -0.223, 0.065, 0.51, 0.042, 0, 0, 22);
+        piece(pose, blocks, buffers, light, brass,
+                0.23, 0.12, -0.208, 0.20, 0.07, 0.09, 0, 0, 0);
+        piece(pose, blocks, buffers, light, brass,
+                0.285, 0.29, -0.205, 0.052, 0.24, 0.046, 0, 0, 9);
+        piece(pose, blocks, buffers, light, brass,
+                0.24, 0.41, -0.208, 0.13, 0.04, 0.045, 0, 0, 0);
+        gauge(pose, blocks, buffers, light,
+                0.205, 0.31, -0.266, 0.12, wear);
+        if (wear < 2) {
+            pose.pushPose();
+            pose.translate(-0.22, 0.52, -0.265);
+            pose.mulPose(Axis.ZP.rotationDegrees(
+                    Mth.sin(motion.time() * 0.11F) * 7F));
+            gear(pose, blocks, buffers, light, brass, 0.092,
+                    motion.time() * 3F);
+            pose.popPose();
         }
     }
 
@@ -1205,6 +1381,17 @@ public final class AccessoryRenderer {
                     0, 0, 0);
         }
 
+        if (kind == AccessoryKind.ENGINEER_GLOVES
+                || kind == AccessoryKind.WORK_GLOVES) {
+            BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
+            piece(pose, blocks, buffers, light, brass,
+                    0.0, 0.48, -0.168, 0.31, 0.045, 0.045, 0, 0, 0);
+            if (wear < 2) {
+                piece(pose, blocks, buffers, light, brass,
+                        left ? -0.08 : 0.08, 0.69, -0.176,
+                        0.07, 0.12, 0.025, 0, 0, 0);
+            }
+        }
         pose.popPose();
     }
 
@@ -1294,6 +1481,13 @@ public final class AccessoryRenderer {
                 0.065,
                 wear == 2 && !left ? 0.32 : 0.50,
                 0, 0, 0);
+
+        if (kind == AccessoryKind.ENGINEER_BOOTS && wear < 2) {
+            piece(pose, blocks, buffers, light, Blocks.CUT_COPPER.defaultBlockState(),
+                    0, 0.49, -0.17, 0.31, 0.048, 0.038, 0, 0, 0);
+            piece(pose, blocks, buffers, light, Blocks.CUT_COPPER.defaultBlockState(),
+                    0, 0.65, -0.36, 0.22, 0.045, 0.03, 0, 0, 0);
+        }
 
         if ((kind == AccessoryKind.AERO_BOOTS
                 || kind == AccessoryKind.WIND_BOOTS)
@@ -1464,6 +1658,12 @@ public final class AccessoryRenderer {
                 kind == AccessoryKind.AERO_GEAR_CLUSTER
                         ? Blocks.CUT_COPPER.defaultBlockState()
                         : Blocks.COPPER_BLOCK.defaultBlockState();
+
+        if (kind == AccessoryKind.ENGINEER_GEAR_HARNESS) {
+            engineerInstrumentHarness(pose, blocks, buffers, light, wear, motion);
+            pose.popPose();
+            return;
+        }
 
         // Harness strap.
         piece(pose, blocks, buffers, light,
