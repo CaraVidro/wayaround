@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:assembly_objects/root",
+  "display": {
+    "icon": {
+      "id": "wayaround:manual_crank"
+    },
+    "title": {
+      "translate": "advancements.wayaround.assembly_objects.manual_crank.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.assembly_objects.manual_crank.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "crank": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
