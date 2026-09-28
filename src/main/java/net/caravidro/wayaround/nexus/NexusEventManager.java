@@ -828,7 +828,7 @@ public final class NexusEventManager {
         level.playSound(
                 null,
                 base,
-                SoundEvents.GENERIC_EXPLODE,
+                SoundEvents.GENERIC_EXPLODE.value(),
                 SoundSource.BLOCKS,
                 4.0F,
                 0.55F
