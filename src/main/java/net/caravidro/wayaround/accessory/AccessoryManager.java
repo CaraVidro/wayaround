@@ -1,11 +1,17 @@
 package net.caravidro.wayaround.accessory;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.network.AccessoryActionC2SPayload;
 import net.caravidro.wayaround.network.AccessoryStateS2CPayload;
+import net.caravidro.wayaround.network.TrouserPocketAnimationS2CPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -39,6 +45,18 @@ public final class AccessoryManager {
     private static final String GLASSES_MODE =
             "WayAroundAccessoryGlassesMode";
 
+    private static final String TROUSER_POCKET =
+            "WayAroundAccessoryTrouserPocket";
+
+    private static final int POCKET_ANIMATION_TICKS =
+            14;
+
+    private static final int POCKET_HANDOFF_TICKS =
+            7;
+
+    private static final Map<UUID, Long> POCKET_RETRIEVALS =
+            new HashMap<>();
+
     private AccessoryManager() {
     }
 
@@ -71,6 +89,14 @@ public final class AccessoryManager {
         AccessoryKind kind =
                 accessory.kind();
 
+        ItemStack incomingPocket =
+                kind == AccessoryKind.ENGINEER_TROUSERS
+                        ? TrouserPocketData.read(
+                        held,
+                        player.registryAccess()
+                )
+                        : ItemStack.EMPTY;
+
         ItemStack old =
                 equippedStack(
                         player,
@@ -85,6 +111,11 @@ public final class AccessoryManager {
                 AccessoryWear.glassState(
                         held
                 )
+        );
+
+        setTrouserPocket(
+                player,
+                incomingPocket
         );
 
         if (!player.getAbilities()
@@ -148,6 +179,15 @@ public final class AccessoryManager {
                 return;
             }
 
+            ItemStack incomingPocket =
+                    accessory.kind()
+                            == AccessoryKind.ENGINEER_TROUSERS
+                            ? TrouserPocketData.read(
+                            carried,
+                            player.registryAccess()
+                    )
+                            : ItemStack.EMPTY;
+
             ItemStack old =
                     equippedStack(
                             player,
@@ -162,6 +202,11 @@ public final class AccessoryManager {
                     AccessoryWear.glassState(
                             carried
                     )
+            );
+
+            setTrouserPocket(
+                    player,
+                    incomingPocket
             );
 
             player.containerMenu
@@ -502,6 +547,16 @@ public final class AccessoryManager {
                 )
         );
 
+        if (kind == AccessoryKind.ENGINEER_TROUSERS) {
+            TrouserPocketData.write(
+                    stack,
+                    trouserPocket(
+                            player
+                    ),
+                    player.registryAccess()
+            );
+        }
+
         return stack;
     }
 
@@ -572,6 +627,13 @@ public final class AccessoryManager {
                             )
                     );
 
+            if (slot == AccessorySlot.LEGS) {
+                setTrouserPocket(
+                        player,
+                        ItemStack.EMPTY
+                );
+            }
+
             return;
         }
 
@@ -611,6 +673,189 @@ public final class AccessoryManager {
                         )
                                 : 0
                 );
+
+        if (slot == AccessorySlot.LEGS
+                && kind != AccessoryKind.ENGINEER_TROUSERS) {
+            setTrouserPocket(
+                    player,
+                    ItemStack.EMPTY
+            );
+        }
+    }
+
+    public static ItemStack trouserPocket(
+            ServerPlayer player
+    ) {
+        if (equipped(
+                player,
+                AccessorySlot.LEGS
+        ) != AccessoryKind.ENGINEER_TROUSERS) {
+            return ItemStack.EMPTY;
+        }
+
+        CompoundTag root =
+                player.getPersistentData();
+
+        if (!root.contains(
+                TROUSER_POCKET
+        )) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack stack =
+                ItemStack.parseOptional(
+                        player.registryAccess(),
+                        root.getCompound(
+                                TROUSER_POCKET
+                        )
+                );
+
+        if (stack.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack single =
+                stack.copy();
+
+        single.setCount(
+                1
+        );
+
+        return single;
+    }
+
+    private static void setTrouserPocket(
+            ServerPlayer player,
+            ItemStack stack
+    ) {
+        if (stack == null
+                || stack.isEmpty()) {
+            player.getPersistentData()
+                    .remove(
+                            TROUSER_POCKET
+                    );
+            return;
+        }
+
+        ItemStack single =
+                stack.copy();
+
+        single.setCount(
+                1
+        );
+
+        player.getPersistentData()
+                .put(
+                        TROUSER_POCKET,
+                        single.save(
+                                player.registryAccess()
+                        )
+                );
+    }
+
+    public static void requestPocketRetrieve(
+            ServerPlayer player
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.ACCESSORIES
+        )
+                || equipped(
+                player,
+                AccessorySlot.LEGS
+        ) != AccessoryKind.ENGINEER_TROUSERS
+                || trouserPocket(
+                player
+        ).isEmpty()
+                || POCKET_RETRIEVALS.containsKey(
+                player.getUUID()
+        )) {
+            return;
+        }
+
+        long handoffAt =
+                player.serverLevel()
+                        .getGameTime()
+                        + POCKET_HANDOFF_TICKS;
+
+        POCKET_RETRIEVALS.put(
+                player.getUUID(),
+                handoffAt
+        );
+
+        TrouserPocketAnimationS2CPayload payload =
+                new TrouserPocketAnimationS2CPayload(
+                        player.getUUID(),
+                        POCKET_ANIMATION_TICKS
+                );
+
+        PacketDistributor.sendToPlayersNear(
+                player.serverLevel(),
+                player,
+                player.getX(),
+                player.getY(),
+                player.getZ(),
+                160.0,
+                payload
+        );
+
+        PacketDistributor.sendToPlayer(
+                player,
+                payload
+        );
+    }
+
+    private static void finishPocketRetrieve(
+            ServerPlayer player
+    ) {
+        if (equipped(
+                player,
+                AccessorySlot.LEGS
+        ) != AccessoryKind.ENGINEER_TROUSERS) {
+            return;
+        }
+
+        ItemStack pocket =
+                trouserPocket(
+                        player
+                );
+
+        if (pocket.isEmpty()) {
+            return;
+        }
+
+        ItemStack current =
+                player.getMainHandItem();
+
+        if (!current.isEmpty()) {
+            player.setItemInHand(
+                    InteractionHand.MAIN_HAND,
+                    ItemStack.EMPTY
+            );
+
+            if (!player.getInventory()
+                    .add(
+                            current
+                    )) {
+                player.drop(
+                        current,
+                        false
+                );
+            }
+        }
+
+        setTrouserPocket(
+                player,
+                ItemStack.EMPTY
+        );
+
+        player.setItemInHand(
+                InteractionHand.MAIN_HAND,
+                pocket
+        );
+
+        sync(
+                player
+        );
     }
 
     private static String key(
@@ -668,6 +913,31 @@ public final class AccessoryManager {
 
         long tick =
                 server.getTickCount();
+
+        for (ServerPlayer player :
+                server.getPlayerList()
+                        .getPlayers()) {
+            Long handoff =
+                    POCKET_RETRIEVALS.get(
+                            player.getUUID()
+                    );
+
+            if (handoff == null) {
+                continue;
+            }
+
+            if (player.serverLevel()
+                    .getGameTime()
+                    >= handoff) {
+                POCKET_RETRIEVALS.remove(
+                        player.getUUID()
+                );
+
+                finishPocketRetrieve(
+                        player
+                );
+            }
+        }
 
         if (tick % 200L == 0L) {
             for (ServerPlayer player :
@@ -783,6 +1053,9 @@ public final class AccessoryManager {
                         wear,
                         glass,
                         glassesMode(
+                                player
+                        ),
+                        trouserPocket(
                                 player
                         )
                 );
@@ -979,5 +1252,24 @@ public final class AccessoryManager {
                                         GLASSES_MODE
                                 )
                 );
+
+        if (original.getPersistentData()
+                .contains(
+                        TROUSER_POCKET
+                )) {
+            replacement.getPersistentData()
+                    .put(
+                            TROUSER_POCKET,
+                            original.getPersistentData()
+                                    .getCompound(
+                                            TROUSER_POCKET
+                                    )
+                                    .copy()
+                    );
+        }
+
+        POCKET_RETRIEVALS.remove(
+                original.getUUID()
+        );
     }
 }
