@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:story/root",
+  "display": {
+    "icon": {"id": "wayaround:nexustoetor"},
+    "title": {"translate": "advancements.wayaround.nexus.beginning_of_end.title"},
+    "description": {"translate": "advancements.wayaround.nexus.beginning_of_end.description"},
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "activated": {"trigger": "minecraft:impossible"}
+  }
+}

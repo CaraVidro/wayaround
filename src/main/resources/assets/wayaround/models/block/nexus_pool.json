@@ -1,0 +1,20 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "pool": "wayaround:block/nexus_pool",
+    "particle": "wayaround:block/nexus_pool"
+  },
+  "elements": [
+    {
+      "from": [0, 0.05, 0],
+      "to": [16, 1.2, 16],
+      "faces": {
+        "up": {"texture": "#pool"},
+        "north": {"texture": "#pool"},
+        "south": {"texture": "#pool"},
+        "west": {"texture": "#pool"},
+        "east": {"texture": "#pool"}
+      }
+    }
+  ]
+}

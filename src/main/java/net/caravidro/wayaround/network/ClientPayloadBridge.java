@@ -67,6 +67,10 @@ public final class ClientPayloadBridge {
         default void herobrinePhotoMode(
                 HerobrinePhotoModeS2CPayload payload
         ) {}
+
+        default void nexusState(
+                NexusStateS2CPayload payload
+        ) {}
     }
 
     private static final RealtimeClientHandlers NOOP_REALTIME =
@@ -268,6 +272,17 @@ public final class ClientPayloadBridge {
     ) {
         context.enqueueWork(
                 () -> realtimeHandlers.recordingReady(
+                        payload
+                )
+        );
+    }
+
+    public static void handleNexusState(
+            NexusStateS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(
+                () -> realtimeHandlers.nexusState(
                         payload
                 )
         );

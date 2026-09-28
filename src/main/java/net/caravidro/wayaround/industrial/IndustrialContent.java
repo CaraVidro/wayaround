@@ -3,6 +3,7 @@ package net.caravidro.wayaround.industrial;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
+import net.caravidro.wayaround.nexus.NexusContent;
 import net.caravidro.wayaround.industrial.power.SawmillMenu;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
 import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
@@ -153,6 +154,18 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 PowerContent.MECHANICAL_GEARBOX_ITEM.get()
+                                        );
+                                        output.accept(
+                                                NexusContent.NEXUSTOR_BASE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                NexusContent.NEXUSTOR_BODY.get()
+                                        );
+                                        output.accept(
+                                                NexusContent.NEXUSTOR_FINGERS.get()
+                                        );
+                                        output.accept(
+                                                NexusContent.NEXUSTOR_HEAD.get()
                                         );
                                         output.accept(
                                                 ExperimentalShipContent.SHIP_BODY.get()

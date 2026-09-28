@@ -18,6 +18,7 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.AntarcticClientLighting;
+import net.caravidro.wayaround.nexus.client.NexusClientState;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -244,6 +245,16 @@ public final class LivingCloudRenderer {
                                     168,
                                     200
                             );
+
+            alpha =
+                    Math.round(
+                            alpha
+                                    * NexusClientState.cloudVisibility()
+                    );
+
+            if (alpha <= 1) {
+                continue;
+            }
 
             int brightness =
                     Mth.clamp(

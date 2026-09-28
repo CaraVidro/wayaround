@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "4";
+            "5";
 
     private WayAroundNetwork() {
     }
@@ -327,6 +327,12 @@ public final class WayAroundNetwork {
                 HerobrinePhotoModeS2CPayload.TYPE,
                 HerobrinePhotoModeS2CPayload.STREAM_CODEC,
                 HerobrinePhotoModeS2CPayload::handle
+        );
+
+        registrar.playToClient(
+                NexusStateS2CPayload.TYPE,
+                NexusStateS2CPayload.STREAM_CODEC,
+                NexusStateS2CPayload::handle
         );
     }
 }

@@ -1,0 +1,18 @@
+{
+  "textures": {
+    "metal": "minecraft:block/polished_deepslate",
+    "edge": "minecraft:block/iron_block",
+    "red": "minecraft:block/redstone_block",
+    "particle": "minecraft:block/polished_deepslate"
+  },
+  "elements": [
+    {"from":[2,0,2],"to":[14,5,14],"faces":{
+      "down":{"texture":"#metal"},"up":{"texture":"#metal"},"north":{"texture":"#metal"},"south":{"texture":"#metal"},"west":{"texture":"#metal"},"east":{"texture":"#metal"}}},
+    {"from":[0,1,5],"to":[16,4,11],"faces":{
+      "down":{"texture":"#edge"},"up":{"texture":"#edge"},"north":{"texture":"#edge"},"south":{"texture":"#edge"},"west":{"texture":"#edge"},"east":{"texture":"#edge"}}},
+    {"from":[5,1,0],"to":[11,4,16],"faces":{
+      "down":{"texture":"#edge"},"up":{"texture":"#edge"},"north":{"texture":"#edge"},"south":{"texture":"#edge"},"west":{"texture":"#edge"},"east":{"texture":"#edge"}}},
+    {"from":[6,4,6],"to":[10,7,10],"faces":{
+      "down":{"texture":"#red"},"up":{"texture":"#red"},"north":{"texture":"#red"},"south":{"texture":"#red"},"west":{"texture":"#red"},"east":{"texture":"#red"}}}
+  ]
+}

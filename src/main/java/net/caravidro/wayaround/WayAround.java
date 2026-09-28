@@ -12,6 +12,7 @@ import net.caravidro.wayaround.ecology.EcologyTimeCommand;
 import net.caravidro.wayaround.industrial.IndustrialContent;
 import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
+import net.caravidro.wayaround.nexus.NexusContent;
 import net.caravidro.wayaround.oldfriend.OldFriendContent;
 import net.caravidro.wayaround.domain.DomainCommands;
 import net.caravidro.wayaround.cursed.TukunaDebugCommands;
@@ -59,6 +60,7 @@ public class WayAround {
         IndustrialContent.register(modEventBus);
         WarContent.register(modEventBus);
         MediaContent.register(modEventBus);
+        NexusContent.register(modEventBus);
         OldFriendContent.register(modEventBus);
         net.caravidro.wayaround.dream.DreamContent.register(modEventBus);
         net.neoforged.fml.ModLoadingContext.get().getActiveContainer().registerConfig(
