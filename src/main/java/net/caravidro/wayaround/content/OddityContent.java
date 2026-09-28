@@ -164,6 +164,22 @@ public final class OddityContent {
     public static final DeferredItem<AccessoryItem> AERO_GEAR_CLUSTER =
             accessory(AccessoryKind.AERO_GEAR_CLUSTER);
 
+    public static final DeferredItem<AccessoryItem> FORMAL_JACKET =
+            accessory(AccessoryKind.FORMAL_JACKET);
+    public static final DeferredItem<AccessoryItem> FORMAL_TROUSERS =
+            accessory(AccessoryKind.FORMAL_TROUSERS);
+    public static final DeferredItem<AccessoryItem> CASUAL_SHIRT =
+            accessory(AccessoryKind.CASUAL_SHIRT);
+    public static final DeferredItem<AccessoryItem> CASUAL_TROUSERS =
+            accessory(AccessoryKind.CASUAL_TROUSERS);
+
+    public static final DeferredItem<AccessoryItem> WATCHING_EYE =
+            accessory(AccessoryKind.WATCHING_EYE);
+    public static final DeferredItem<AccessoryItem> CARDBOARD_BOX =
+            accessory(AccessoryKind.CARDBOARD_BOX);
+    public static final DeferredItem<AccessoryItem> GAS_MASK =
+            accessory(AccessoryKind.GAS_MASK);
+
     public static final DeferredItem<AccessoryItem> CHEF_HAT =
             accessory(AccessoryKind.CHEF_HAT);
     public static final DeferredItem<AccessoryItem> CHEF_COAT =
