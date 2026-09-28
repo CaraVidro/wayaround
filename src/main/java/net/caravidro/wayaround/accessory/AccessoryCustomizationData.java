@@ -7,8 +7,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Persistent workshop parameters stored directly on each customizable head
- * accessory. The same compact values are mirrored while equipped.
+ * Persistent workshop parameters stored directly on each customizable
+ * accessory. Head templates use material/size/extras; conventional clothing
+ * deliberately uses only the wool-color field.
  */
 public final class AccessoryCustomizationData {
 
