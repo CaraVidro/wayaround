@@ -106,6 +106,9 @@ public final class OldFriendManager {
     private static final int ACTION_BEHIND =
             4;
 
+    private static final int ACTION_PHOTO =
+            5;
+
     private static final int PHASE_APPROACH =
             0;
 
@@ -2224,6 +2227,66 @@ public final class OldFriendManager {
         return true;
     }
 
+    public static boolean spawnPhotoApparition(
+            ServerPlayer target,
+            BlockPos feet
+    ) {
+        if (!photoMode(
+                target.server
+        )) {
+            return false;
+        }
+
+        ServerLevel level =
+                target.serverLevel();
+
+        if (!level.hasChunkAt(
+                feet
+        )
+                || !validStandingSpot(
+                level,
+                feet
+        )) {
+            return false;
+        }
+
+        double distanceSq =
+                target.distanceToSqr(
+                        Vec3.atBottomCenterOf(
+                                feet
+                        )
+                );
+
+        if (distanceSq < 8.0 * 8.0
+                || distanceSq > 96.0 * 96.0) {
+            return false;
+        }
+
+        /*
+         * One photo apparition at a time per local area. It exists in the
+         * actual level for a very short time so normal perspective, occlusion,
+         * lighting and the player-model renderer all apply to the screenshot.
+         */
+        if (nearbyHerobrine(
+                level,
+                Vec3.atBottomCenterOf(
+                        feet
+                ),
+                4.0
+        )) {
+            return false;
+        }
+
+        return spawnAt(
+                level,
+                feet,
+                target.blockPosition(),
+                ACTION_PHOTO,
+                "",
+                target.getUUID()
+        );
+    }
+
     private static boolean spawnWatcher(
             ServerPlayer target
     ) {
@@ -2611,6 +2674,15 @@ public final class OldFriendManager {
                         ACTION
                 );
 
+        if (action == ACTION_PHOTO) {
+            tickPhotoApparition(
+                    level,
+                    entity,
+                    data
+            );
+            return;
+        }
+
         if (action == ACTION_BEHIND) {
             tickBehindApparition(
                     level,
@@ -2856,6 +2928,46 @@ public final class OldFriendManager {
                         now
                 );
             }
+        }
+    }
+
+    private static void tickPhotoApparition(
+            ServerLevel level,
+            HerobrineEntity entity,
+            CompoundTag data
+    ) {
+        ServerPlayer target =
+                targetPlayer(
+                        level,
+                        data
+                );
+
+        if (target == null) {
+            entity.discard();
+            return;
+        }
+
+        entity.getNavigation()
+                .stop();
+
+        entity.lookNaturallyAt(
+                target.getX(),
+                target.getEyeY(),
+                target.getZ()
+        );
+
+        long age =
+                level.getGameTime()
+                        - data.getLong(
+                        SPAWNED_AT
+                );
+
+        /*
+         * Long enough to survive packet delivery + a handful of rendered
+         * frames, short enough that it still feels like a photographic anomaly.
+         */
+        if (age > 24L) {
+            entity.discard();
         }
     }
 
