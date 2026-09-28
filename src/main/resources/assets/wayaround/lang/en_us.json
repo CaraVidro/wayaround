@@ -421,7 +421,9 @@
   "message.wayaround.nexustor.status_active": "NEXUSTOR — %s%% | Wave %s/5 | Integrity %s%%",
   "message.wayaround.nexustor.status_complete": "NEXUSTOR — COMPLETE",
   "message.wayaround.nexustor.panel_offline": "NEXUSTOR // NO SIGNAL",
-  "message.wayaround.nexus.completed": "NEXUSTOR // OBJECTIVE COMPLETE. The sky is returning.",
+  "message.wayaround.nexus.completed": "NEXUSTOR // PROCESS COMPLETE. THE SPIRAL IS OPEN.",
   "advancements.wayaround.nexus.beginning_of_end.title": "The Beginning of the End",
-  "advancements.wayaround.nexus.beginning_of_end.description": "Activate the Nexustor."
+  "advancements.wayaround.nexus.beginning_of_end.description": "Activate the Nexustor.",
+  "advancements.wayaround.nexus.the_nexus.title": "The Nexus",
+  "advancements.wayaround.nexus.the_nexus.description": "Protect the Nexustor to completion and witness the spiral open."
 }

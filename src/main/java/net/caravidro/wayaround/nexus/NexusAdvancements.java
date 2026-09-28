@@ -13,7 +13,32 @@ public final class NexusAdvancements {
                     "nexus/beginning_of_end"
             );
 
+    private static final ResourceLocation THE_NEXUS =
+            ResourceLocation.fromNamespaceAndPath(
+                    WayAround.MODID,
+                    "nexus/the_nexus"
+            );
+
     private NexusAdvancements() {
+    }
+
+    public static void theNexus(
+            ServerPlayer player
+    ) {
+        AdvancementHolder advancement =
+                player.server
+                        .getAdvancements()
+                        .get(
+                                THE_NEXUS
+                        );
+
+        if (advancement != null) {
+            player.getAdvancements()
+                    .award(
+                            advancement,
+                            "completed"
+                    );
+        }
     }
 
     public static void beginningOfEnd(

@@ -31,7 +31,8 @@
     "client.HumanoidAnimationMixin",
     "client.TukunaPossessionSkinMixin",
     "client.CreateWorldScreenInvoker",
-    "client.CreateWorldScreenFeatureMixin"
+    "client.CreateWorldScreenFeatureMixin",
+    "client.NexusSkyMixin"
   ],
   "injectors": {
     "defaultRequire": 1

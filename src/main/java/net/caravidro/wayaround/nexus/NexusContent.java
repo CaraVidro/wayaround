@@ -202,10 +202,14 @@ public final class NexusContent {
                                     )
                             )
                             .displayItems(
-                                    (parameters, output) ->
-                                            output.accept(
-                                                    NEXUSTOETOR_ITEM.get()
-                                            )
+                                    (parameters, output) -> {
+                                        output.accept(
+                                                NEXUSTOETOR_ITEM.get()
+                                        );
+                                        output.accept(
+                                                NEXUSTOR_BASE_ITEM.get()
+                                        );
+                                    }
                             )
                             .build()
             );

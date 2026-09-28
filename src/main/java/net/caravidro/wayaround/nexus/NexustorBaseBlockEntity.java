@@ -72,7 +72,7 @@ public final class NexustorBaseBlockEntity
         }
 
         if (reactor.eventActive
-                && !reactor.complete) {
+                || reactor.complete) {
             NexusEventManager.ensure(
                     serverLevel,
                     pos
@@ -256,7 +256,7 @@ public final class NexustorBaseBlockEntity
         health = 100;
         progress = 0.0F;
         startedAt = gameTime;
-        nextWaveAt = gameTime + 180L;
+        nextWaveAt = gameTime + NexusEventManager.FIRST_WAVE_DELAY;
         sync();
     }
 
@@ -293,20 +293,45 @@ public final class NexustorBaseBlockEntity
             long nextWaveAt
     ) {
         this.wave = wave;
-        this.killsRemaining = count;
+        this.killsRemaining += Math.max(0, count);
         this.nextWaveAt = nextWaveAt;
         sync();
     }
 
     public void infectedKilled(
-            long nextWave
+            long ignoredNextWave
     ) {
-        killsRemaining = Math.max(0, killsRemaining - 1);
+        /*
+         * Killing every infected is no longer required to advance the event.
+         * Old waves can overlap with new ones and keep pressuring the core.
+         */
+        killsRemaining =
+                Math.max(
+                        0,
+                        killsRemaining - 1
+                );
 
-        if (killsRemaining == 0) {
-            progress = Math.min(1.0F, wave / 5.0F);
-            nextWaveAt = nextWave;
+        sync();
+    }
+
+    public void setProgress(
+            float value
+    ) {
+        float clamped =
+                net.minecraft.util.Mth.clamp(
+                        value,
+                        0.0F,
+                        1.0F
+                );
+
+        if (Math.abs(
+                clamped - progress
+        ) < 0.0025F) {
+            return;
         }
+
+        progress =
+                clamped;
 
         sync();
     }

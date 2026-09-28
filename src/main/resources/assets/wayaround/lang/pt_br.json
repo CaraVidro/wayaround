@@ -421,7 +421,9 @@
   "message.wayaround.nexustor.status_active": "NEXUSTOR — %s%% | Horda %s/5 | Integridade %s%%",
   "message.wayaround.nexustor.status_complete": "NEXUSTOR — COMPLETO",
   "message.wayaround.nexustor.panel_offline": "NEXUSTOR // SEM SINAL",
-  "message.wayaround.nexus.completed": "NEXUSTOR // OBJETIVO CONCLUÍDO. O céu está voltando.",
+  "message.wayaround.nexus.completed": "NEXUSTOR // PROCESSO CONCLUÍDO. A ESPIRAL ESTÁ ABERTA.",
   "advancements.wayaround.nexus.beginning_of_end.title": "O Começo do Fim",
-  "advancements.wayaround.nexus.beginning_of_end.description": "Ative o Nexustor."
+  "advancements.wayaround.nexus.beginning_of_end.description": "Ative o Nexustor.",
+  "advancements.wayaround.nexus.the_nexus.title": "The Nexus",
+  "advancements.wayaround.nexus.the_nexus.description": "Proteja o Nexustor até o fim e testemunhe a abertura da espiral."
 }

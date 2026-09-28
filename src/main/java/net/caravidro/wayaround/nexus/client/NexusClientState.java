@@ -31,20 +31,20 @@ public final class NexusClientState {
     }
 
     public static void tick() {
+        /*
+         * The Nexus event now owns the actual sky colour through a client
+         * mixin. Reach full strength quickly after activation, then fade out
+         * slowly when the portal is complete.
+         */
         float target =
                 active
-                        ? Math.min(
-                        1.0F,
-                        0.30F
-                                + progress
-                                * 0.75F
-                )
+                        ? 1.0F
                         : 0.0F;
 
         visualStrength =
                 Mth.lerp(
                         active
-                                ? 0.025F
+                                ? 0.055F
                                 : 0.018F,
                         visualStrength,
                         target

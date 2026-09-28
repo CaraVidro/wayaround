@@ -18,6 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -25,6 +26,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -49,6 +51,26 @@ public final class NexusEventManager {
 
     private static final int WAVES =
             5;
+
+    public static final long FIRST_WAVE_DELAY =
+            180L;
+
+    private static final long WAVE_INTERVAL =
+            420L;
+
+    private static final long PROCESS_DURATION =
+            FIRST_WAVE_DELAY
+                    + WAVES
+                    * WAVE_INTERVAL;
+
+    private static final double BOSS_BAR_RADIUS =
+            96.0;
+
+    private static final Map<
+            MinecraftServer,
+            Map<ReactorKey, ServerBossEvent>
+            > BOSS_BARS =
+            new HashMap<>();
 
     private NexusEventManager() {
     }
@@ -102,11 +124,6 @@ public final class NexusEventManager {
                     )
             );
         }
-
-        spawnInitialSludge(
-                level,
-                base
-        );
 
         syncState(
                 level,
@@ -164,8 +181,29 @@ public final class NexusEventManager {
             )
                     || !(level.getBlockEntity(
                     key.base()
-            ) instanceof NexustorBaseBlockEntity reactor)
-                    || !reactor.eventActive()) {
+            ) instanceof NexustorBaseBlockEntity reactor)) {
+                removeBossBar(
+                        server,
+                        key
+                );
+                iterator.remove();
+                continue;
+            }
+
+            if (reactor.complete()) {
+                tickCompletedPortal(
+                        level,
+                        key.base(),
+                        reactor
+                );
+                continue;
+            }
+
+            if (!reactor.eventActive()) {
+                removeBossBar(
+                        server,
+                        key
+                );
                 iterator.remove();
                 continue;
             }
@@ -220,28 +258,46 @@ public final class NexusEventManager {
                 reactor
         );
 
-        if (reactor.killsRemaining() > 0) {
-            return;
+        if (now % 10L == 0L) {
+            float timedProgress =
+                    net.minecraft.util.Mth.clamp(
+                            age
+                                    / (float) PROCESS_DURATION,
+                            0.0F,
+                            0.999F
+                    );
+
+            reactor.setProgress(
+                    timedProgress
+            );
+
+            updateBossBar(
+                    level,
+                    base,
+                    reactor
+            );
         }
 
-        if (now < reactor.nextWaveAt()) {
-            return;
+        /*
+         * Waves are clock-driven now. Surviving zombies from older waves stay
+         * alive and keep attacking while later waves arrive.
+         */
+        if (now >= reactor.nextWaveAt()
+                && reactor.wave() < WAVES) {
+            spawnWave(
+                    level,
+                    base,
+                    reactor
+            );
         }
 
-        if (reactor.wave() >= WAVES) {
+        if (age >= PROCESS_DURATION) {
             complete(
                     level,
                     base,
                     reactor
             );
-            return;
         }
-
-        spawnWave(
-                level,
-                base,
-                reactor
-        );
     }
 
     private static void activationVisuals(
@@ -254,36 +310,93 @@ public final class NexusEventManager {
                         base
                 );
 
-        if (age < 36L
+        if (age == 46L) {
+            spawnInitialSludge(
+                    level,
+                    base
+            );
+        }
+
+        /*
+         * Beam rises quickly only after the four fingers have had time to lock.
+         */
+        if (age >= 45L
+                && age <= 130L
                 && age % 2L == 0L) {
-            for (int y = 0;
-                 y <= 180;
-                 y += 3) {
+            double rise =
+                    net.minecraft.util.Mth.clamp(
+                            (age - 45L)
+                                    / 22.0,
+                            0.0,
+                            1.0
+                    );
+
+            double height =
+                    220.0
+                            * rise;
+
+            for (double y = 0.0;
+                 y <= height;
+                 y += 4.0) {
                 level.sendParticles(
                         DustParticleOptions.REDSTONE,
                         core.getX() + 0.5,
-                        core.getY() + 0.5 + y,
+                        core.getY() + 1.0 + y,
                         core.getZ() + 0.5,
-                        1,
-                        0.035,
-                        0.035,
-                        0.035,
+                        age > 92L ? 1 : 2,
+                        age > 92L ? 0.015 : 0.055,
+                        0.015,
+                        age > 92L ? 0.015 : 0.055,
                         0.0
                 );
             }
         }
 
-        double radius =
-                2.0 + age * 1.65;
+        if (age == 68L) {
+            for (ServerPlayer player :
+                    level.getServer()
+                            .getPlayerList()
+                            .getPlayers()) {
+                player.serverLevel()
+                        .playSound(
+                                null,
+                                player.blockPosition(),
+                                SoundEvents.LIGHTNING_BOLT_THUNDER,
+                                SoundSource.MASTER,
+                                6.0F,
+                                0.42F
+                        );
 
-        if (radius <= 150.0
+                PacketDistributor.sendToPlayer(
+                        player,
+                        new CalvingNetwork.CalvingShakePayload(
+                                base.getX() + 0.5,
+                                base.getY() + 225.0,
+                                base.getZ() + 0.5,
+                                5.6F,
+                                75
+                        )
+                );
+            }
+        }
+
+        if (age >= 68L
+                && age <= 102L
                 && age % 2L == 0L) {
+            double t =
+                    (age - 68L)
+                            / 34.0;
+
+            double radius =
+                    2.0
+                            + t * 118.0;
+
             for (int i = 0;
-                 i < 56;
+                 i < 72;
                  i++) {
                 double angle =
                         Math.PI * 2.0
-                                * i / 56.0;
+                                * i / 72.0;
 
                 level.sendParticles(
                         DustParticleOptions.REDSTONE,
@@ -292,15 +405,15 @@ public final class NexusEventManager {
                                 + Math.cos(angle)
                                 * radius,
                         base.getY()
-                                + 1.15,
+                                + 225.0,
                         base.getZ()
                                 + 0.5
                                 + Math.sin(angle)
                                 * radius,
                         1,
-                        0.02,
-                        0.02,
-                        0.02,
+                        0.03,
+                        0.03,
+                        0.03,
                         0.0
                 );
             }
@@ -362,7 +475,14 @@ public final class NexusEventManager {
 
             if (!level.hasChunkAt(spawn)
                     || !level.getBlockState(spawn).isAir()
-                    || !level.getBlockState(spawn.above()).isAir()) {
+                    || !level.getBlockState(spawn.above()).isAir()
+                    || !level.getFluidState(spawn).isEmpty()
+                    || !level.getBlockState(spawn.below())
+                    .isFaceSturdy(
+                            level,
+                            spawn.below(),
+                            Direction.UP
+                    )) {
                 continue;
             }
 
@@ -443,7 +563,7 @@ public final class NexusEventManager {
                 nextWave,
                 spawned,
                 level.getGameTime()
-                        + 20L * 60L
+                        + WAVE_INTERVAL
         );
 
         level.playSound(
@@ -769,6 +889,19 @@ public final class NexusEventManager {
     ) {
         reactor.finishEvent();
 
+        clearInfected(
+                level,
+                base
+        );
+
+        removeBossBar(
+                level.getServer(),
+                new ReactorKey(
+                        level.dimension(),
+                        base.immutable()
+                )
+        );
+
         updatePanel(
                 level,
                 base,
@@ -794,6 +927,18 @@ public final class NexusEventManager {
                     ),
                     false
             );
+
+            if (player.serverLevel() == level
+                    && player.distanceToSqr(
+                    Vec3.atCenterOf(
+                            base
+                    )
+            ) <= BOSS_BAR_RADIUS
+                    * BOSS_BAR_RADIUS) {
+                NexusAdvancements.theNexus(
+                        player
+                );
+            }
         }
 
         syncState(
@@ -809,6 +954,14 @@ public final class NexusEventManager {
             NexustorBaseBlockEntity reactor
     ) {
         reactor.failEvent();
+
+        removeBossBar(
+                level.getServer(),
+                new ReactorKey(
+                        level.dimension(),
+                        base.immutable()
+                )
+        );
 
         BlockPos core =
                 NexustorStructure.corePos(
@@ -839,6 +992,353 @@ public final class NexusEventManager {
                 base,
                 reactor
         );
+    }
+
+    private static void updateBossBar(
+            ServerLevel level,
+            BlockPos base,
+            NexustorBaseBlockEntity reactor
+    ) {
+        MinecraftServer server =
+                level.getServer();
+
+        ReactorKey key =
+                new ReactorKey(
+                        level.dimension(),
+                        base.immutable()
+                );
+
+        ServerBossEvent bar =
+                BOSS_BARS
+                        .computeIfAbsent(
+                                server,
+                                ignored ->
+                                        new HashMap<>()
+                        )
+                        .computeIfAbsent(
+                                key,
+                                ignored ->
+                                        new ServerBossEvent(
+                                                Component.literal(
+                                                        "NEXUSTOR"
+                                                ),
+                                                BossEvent.BossBarColor.RED,
+                                                BossEvent.BossBarOverlay.PROGRESS
+                                        )
+                        );
+
+        bar.setProgress(
+                net.minecraft.util.Mth.clamp(
+                        reactor.progress(),
+                        0.0F,
+                        1.0F
+                )
+        );
+
+        bar.setName(
+                Component.literal(
+                        "NEXUSTOR // "
+                                + Math.round(
+                                reactor.progress()
+                                        * 100.0F
+                        )
+                                + "% // HORDA "
+                                + reactor.wave()
+                                + "/"
+                                + WAVES
+                                + " // "
+                                + reactor.health()
+                                + "%"
+                )
+        );
+
+        Set<ServerPlayer> wanted =
+                new HashSet<>();
+
+        for (ServerPlayer player :
+                server.getPlayerList()
+                        .getPlayers()) {
+            if (player.serverLevel() == level
+                    && player.distanceToSqr(
+                    Vec3.atCenterOf(
+                            base
+                    )
+            ) <= BOSS_BAR_RADIUS
+                    * BOSS_BAR_RADIUS) {
+                wanted.add(
+                        player
+                );
+
+                if (!bar.getPlayers()
+                        .contains(
+                                player
+                        )) {
+                    bar.addPlayer(
+                            player
+                    );
+                }
+            }
+        }
+
+        for (ServerPlayer player :
+                new ArrayList<>(
+                        bar.getPlayers()
+                )) {
+            if (!wanted.contains(
+                    player
+            )) {
+                bar.removePlayer(
+                        player
+                );
+            }
+        }
+    }
+
+    private static void removeBossBar(
+            MinecraftServer server,
+            ReactorKey key
+    ) {
+        Map<ReactorKey, ServerBossEvent> bars =
+                BOSS_BARS.get(
+                        server
+                );
+
+        if (bars == null) {
+            return;
+        }
+
+        ServerBossEvent bar =
+                bars.remove(
+                        key
+                );
+
+        if (bar != null) {
+            bar.removeAllPlayers();
+        }
+
+        if (bars.isEmpty()) {
+            BOSS_BARS.remove(
+                    server
+            );
+        }
+    }
+
+    private static void clearInfected(
+            ServerLevel level,
+            BlockPos base
+    ) {
+        AABB area =
+                new AABB(
+                        base.getX() - 96.0,
+                        base.getY() - 48.0,
+                        base.getZ() - 96.0,
+                        base.getX() + 96.0,
+                        base.getY() + 64.0,
+                        base.getZ() + 96.0
+                );
+
+        for (Zombie zombie :
+                level.getEntitiesOfClass(
+                        Zombie.class,
+                        area,
+                        candidate ->
+                                candidate.getPersistentData()
+                                        .getBoolean(
+                                                "WayAroundNexusInfected"
+                                        )
+                                        && candidate.getPersistentData()
+                                        .getLong(
+                                                "WayAroundNexusBase"
+                                        )
+                                        == base.asLong()
+                )) {
+            level.sendParticles(
+                    DustParticleOptions.REDSTONE,
+                    zombie.getX(),
+                    zombie.getY()
+                            + 0.8,
+                    zombie.getZ(),
+                    10,
+                    0.28,
+                    0.48,
+                    0.28,
+                    0.01
+            );
+
+            zombie.discard();
+        }
+    }
+
+    private static void tickCompletedPortal(
+            ServerLevel level,
+            BlockPos base,
+            NexustorBaseBlockEntity reactor
+    ) {
+        long now =
+                level.getGameTime();
+
+        if (now % 6L == 0L) {
+            double time =
+                    now * 0.10;
+
+            for (int i = 0;
+                 i < 12;
+                 i++) {
+                double t =
+                        i / 11.0;
+
+                double angle =
+                        time
+                                + i * 0.82;
+
+                double radius =
+                        0.18
+                                + t * 1.45;
+
+                level.sendParticles(
+                        DustParticleOptions.REDSTONE,
+                        base.getX()
+                                + 0.5
+                                + Math.cos(angle)
+                                * radius,
+                        base.getY()
+                                + 2.45
+                                + Math.sin(angle)
+                                * radius,
+                        base.getZ()
+                                + 3.58,
+                        1,
+                        0.02,
+                        0.02,
+                        0.02,
+                        0.0
+                );
+            }
+        }
+
+        if (now % 86L == 0L) {
+            level.playSound(
+                    null,
+                    base.offset(
+                            0,
+                            2,
+                            3
+                    ),
+                    SoundEvents.PORTAL_AMBIENT,
+                    SoundSource.BLOCKS,
+                    1.7F,
+                    0.55F
+                            + level.random.nextFloat()
+                            * 0.22F
+            );
+        }
+
+        if (now % 173L == 0L) {
+            level.playSound(
+                    null,
+                    base.offset(
+                            0,
+                            2,
+                            3
+                    ),
+                    SoundEvents.SCULK_SHRIEKER_SHRIEK,
+                    SoundSource.BLOCKS,
+                    0.75F,
+                    0.38F
+            );
+        }
+
+        if (now % 40L == 0L) {
+            syncState(
+                    level,
+                    base,
+                    reactor
+            );
+        }
+    }
+
+    public static boolean finishNearest(
+            ServerPlayer player
+    ) {
+        Set<ReactorKey> keys =
+                ACTIVE.get(
+                        player.server
+                );
+
+        if (keys == null) {
+            return false;
+        }
+
+        ReactorKey best =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (ReactorKey key : keys) {
+            if (!key.dimension()
+                    .equals(
+                            player.serverLevel()
+                                    .dimension()
+                    )) {
+                continue;
+            }
+
+            ServerLevel level =
+                    player.server.getLevel(
+                            key.dimension()
+                    );
+
+            if (level == null
+                    || !(level.getBlockEntity(
+                    key.base()
+            ) instanceof NexustorBaseBlockEntity reactor)
+                    || !reactor.eventActive()) {
+                continue;
+            }
+
+            double distance =
+                    player.distanceToSqr(
+                            Vec3.atCenterOf(
+                                    key.base()
+                            )
+                    );
+
+            if (distance < bestDistance) {
+                bestDistance =
+                        distance;
+                best =
+                        key;
+            }
+        }
+
+        if (best == null) {
+            return false;
+        }
+
+        ServerLevel level =
+                player.server.getLevel(
+                        best.dimension()
+                );
+
+        if (level == null
+                || !(level.getBlockEntity(
+                best.base()
+        ) instanceof NexustorBaseBlockEntity reactor)) {
+            return false;
+        }
+
+        reactor.setProgress(
+                1.0F
+        );
+
+        complete(
+                level,
+                best.base(),
+                reactor
+        );
+
+        return true;
     }
 
     private static void syncState(
@@ -968,6 +1468,18 @@ public final class NexusEventManager {
         ACTIVE.remove(
                 event.getServer()
         );
+
+        Map<ReactorKey, ServerBossEvent> bars =
+                BOSS_BARS.remove(
+                        event.getServer()
+                );
+
+        if (bars != null) {
+            for (ServerBossEvent bar :
+                    bars.values()) {
+                bar.removeAllPlayers();
+            }
+        }
     }
 
     private record ReactorKey(

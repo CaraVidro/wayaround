@@ -1,0 +1,15 @@
+{
+  "parent": "wayaround:nexus/beginning_of_end",
+  "display": {
+    "icon": {"id": "wayaround:nexustor_base"},
+    "title": {"translate": "advancements.wayaround.nexus.the_nexus.title"},
+    "description": {"translate": "advancements.wayaround.nexus.the_nexus.description"},
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "completed": {"trigger": "minecraft:impossible"}
+  }
+}

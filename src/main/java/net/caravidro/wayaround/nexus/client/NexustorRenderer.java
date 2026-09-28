@@ -81,12 +81,20 @@ public final class NexustorRenderer
             );
         }
 
+        float fingerConnection =
+                fingerConnection(
+                        reactor,
+                        partialTick
+                );
+
         for (int finger = 0;
              finger < reactor.fingers();
              finger++) {
             renderFinger(
                     reactor,
                     FINGER_YAWS[finger],
+                    fingerConnection,
+                    partialTick,
                     pose,
                     buffers,
                     packedLight,
@@ -121,6 +129,24 @@ public final class NexustorRenderer
                 packedLight,
                 packedOverlay
         );
+
+        renderActivationEnergy(
+                reactor,
+                partialTick,
+                pose,
+                buffers,
+                packedOverlay
+        );
+
+        if (reactor.complete()) {
+            renderPortal(
+                    reactor,
+                    partialTick,
+                    pose,
+                    buffers,
+                    packedOverlay
+            );
+        }
 
         pose.popPose();
     }
@@ -432,6 +458,8 @@ public final class NexustorRenderer
     private void renderFinger(
             NexustorBaseBlockEntity reactor,
             float yaw,
+            float connection,
+            float partialTick,
             PoseStack pose,
             MultiBufferSource buffers,
             int light,
@@ -441,6 +469,42 @@ public final class NexustorRenderer
         pose.mulPose(
                 Axis.YP.rotationDegrees(
                         yaw
+                )
+        );
+
+        double renderTime =
+                reactor.getLevel() == null
+                        ? 0.0
+                        : reactor.getLevel()
+                        .getGameTime()
+                        + partialTick;
+
+        float settle =
+                1.0F - connection;
+
+        double tremor =
+                Math.sin(
+                        renderTime * 0.52
+                                + yaw * 0.017
+                )
+                        * 0.085
+                        * settle;
+
+        /*
+         * Fingers pull inward and slightly bow toward the vessel before the
+         * beam fires. Once connected they stay mechanically locked.
+         */
+        pose.translate(
+                0.0,
+                connection * 0.08,
+                -connection * 0.48
+                        + tremor
+        );
+
+        pose.mulPose(
+                Axis.XP.rotationDegrees(
+                        -connection * 5.5F
+                                + (float) tremor * 16.0F
                 )
         );
 
@@ -524,6 +588,271 @@ public final class NexustorRenderer
         );
 
         pose.popPose();
+    }
+
+    private float fingerConnection(
+            NexustorBaseBlockEntity reactor,
+            float partialTick
+    ) {
+        if (reactor.getLevel() == null
+                || !reactor.coreInstalled()) {
+            return 0.0F;
+        }
+
+        if (reactor.complete()) {
+            return 1.0F;
+        }
+
+        if (!reactor.eventActive()) {
+            return 0.0F;
+        }
+
+        double age =
+                reactor.getLevel()
+                        .getGameTime()
+                        + partialTick
+                        - reactor.startedAt();
+
+        float t =
+                (float) (
+                        (age - 4.0)
+                                / 46.0
+                );
+
+        t =
+                net.minecraft.util.Mth.clamp(
+                        t,
+                        0.0F,
+                        1.0F
+                );
+
+        return t * t
+                * (
+                3.0F
+                        - 2.0F * t
+        );
+    }
+
+    private void renderActivationEnergy(
+            NexustorBaseBlockEntity reactor,
+            float partialTick,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int overlay
+    ) {
+        if (!reactor.eventActive()
+                || reactor.getLevel() == null) {
+            return;
+        }
+
+        double age =
+                reactor.getLevel()
+                        .getGameTime()
+                        + partialTick
+                        - reactor.startedAt();
+
+        if (age < 45.0
+                || age > 130.0) {
+            return;
+        }
+
+        double rise =
+                net.minecraft.util.Mth.clamp(
+                        (float) (
+                                (age - 45.0)
+                                        / 22.0
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        rise =
+                rise * rise
+                        * (
+                        3.0
+                                - 2.0 * rise
+                );
+
+        double height =
+                220.0
+                        * rise;
+
+        double fade =
+                net.minecraft.util.Mth.clamp(
+                        (float) (
+                                (age - 88.0)
+                                        / 42.0
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        double width =
+                0.34
+                        * (
+                        1.0 - fade
+                )
+                        + 0.018
+                        * fade;
+
+        if (height > 0.5
+                && width > 0.012) {
+            cuboid(
+                    pose,
+                    buffers,
+                    LightTexture.FULL_BRIGHT,
+                    overlay,
+                    Blocks.RED_STAINED_GLASS.defaultBlockState(),
+                    0.0,
+                    4.92 + height * 0.5,
+                    0.0,
+                    width,
+                    height,
+                    width,
+                    0.0F,
+                    0.0F,
+                    0.0F
+            );
+        }
+
+        if (age >= 67.0
+                && age <= 101.0) {
+            double shock =
+                    net.minecraft.util.Mth.clamp(
+                            (float) (
+                                    (age - 67.0)
+                                            / 34.0
+                            ),
+                            0.0F,
+                            1.0F
+                    );
+
+            shock =
+                    shock * shock
+                            * (
+                            3.0
+                                    - 2.0 * shock
+                    );
+
+            double radius =
+                    2.0
+                            + shock * 118.0;
+
+            renderRing(
+                    pose,
+                    buffers,
+                    LightTexture.FULL_BRIGHT,
+                    overlay,
+                    Blocks.RED_STAINED_GLASS.defaultBlockState(),
+                    56,
+                    radius,
+                    224.8,
+                    Math.max(
+                            0.6,
+                            radius * 0.10
+                    ),
+                    0.18,
+                    0.18
+            );
+        }
+    }
+
+    private void renderPortal(
+            NexustorBaseBlockEntity reactor,
+            float partialTick,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int overlay
+    ) {
+        if (reactor.getLevel() == null) {
+            return;
+        }
+
+        double time =
+                reactor.getLevel()
+                        .getGameTime()
+                        + partialTick;
+
+        double centerY =
+                2.45;
+
+        double centerZ =
+                3.08;
+
+        /*
+         * A real-looking portal block would imply vanilla portal mechanics.
+         * This is deliberately a mechanical red spiral: dozens of glowing
+         * fragments orbit inward in a vertical plane in front of the reactor.
+         */
+        for (int i = 0;
+             i < 38;
+             i++) {
+            double t =
+                    i / 37.0;
+
+            double angle =
+                    time * 0.085
+                            + i * 0.74;
+
+            double radius =
+                    0.10
+                            + t * 1.48;
+
+            double x =
+                    Math.cos(angle)
+                            * radius;
+
+            double y =
+                    centerY
+                            + Math.sin(angle)
+                            * radius;
+
+            cuboid(
+                    pose,
+                    buffers,
+                    LightTexture.FULL_BRIGHT,
+                    overlay,
+                    i % 5 == 0
+                            ? Blocks.CRYING_OBSIDIAN.defaultBlockState()
+                            : Blocks.REDSTONE_BLOCK.defaultBlockState(),
+                    x,
+                    y,
+                    centerZ,
+                    0.16
+                            + (
+                            1.0 - t
+                    ) * 0.07,
+                    0.16
+                            + (
+                            1.0 - t
+                    ) * 0.07,
+                    0.08,
+                    0.0F,
+                    0.0F,
+                    (float) Math.toDegrees(
+                            angle
+                    )
+            );
+        }
+
+        cuboid(
+                pose,
+                buffers,
+                LightTexture.FULL_BRIGHT,
+                overlay,
+                Blocks.RED_STAINED_GLASS.defaultBlockState(),
+                0.0,
+                centerY,
+                centerZ + 0.025,
+                0.34,
+                0.34,
+                0.055,
+                0.0F,
+                0.0F,
+                (float) (
+                        time * 4.0
+                )
+        );
     }
 
     private void renderPanel(
@@ -775,7 +1104,7 @@ public final class NexustorRenderer
 
     @Override
     public int getViewDistance() {
-        return 192;
+        return 320;
     }
 
     @Override
