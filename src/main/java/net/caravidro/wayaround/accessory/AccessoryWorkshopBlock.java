@@ -2,8 +2,9 @@ package net.caravidro.wayaround.accessory;
 
 import com.mojang.serialization.MapCodec;
 
-import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.network.AccessoryWorkshopOpenS2CPayload;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -48,6 +49,13 @@ public final class AccessoryWorkshopBlock
             InteractionHand hand,
             BlockHitResult hit
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.ACCESSORIES
+        )) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
         if (!(stack.getItem()
                 instanceof AccessoryItem accessory)
                 || !AccessoryCustomizationData.supported(
@@ -80,6 +88,13 @@ public final class AccessoryWorkshopBlock
             Player player,
             BlockHitResult hit
     ) {
+        if (!WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.ACCESSORIES
+        )) {
+            return InteractionResult.PASS;
+        }
+
         if (level.isClientSide
                 || !(player instanceof ServerPlayer serverPlayer)) {
             return InteractionResult.sidedSuccess(
