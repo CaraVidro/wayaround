@@ -77,45 +77,69 @@ public final class AccessoryWorkshopScreen
         int y =
                 height / 2 - 72;
 
-        materialButton =
-                addRenderableWidget(
-                        Button.builder(
-                                        materialLabel(),
-                                        button -> {
-                                            material =
-                                                    (material + 1)
-                                                            % AccessoryCustomizationData.MATERIAL_COUNT;
-                                            refresh();
-                                        }
-                                )
-                                .bounds(
-                                        left,
-                                        y,
-                                        204,
-                                        20
-                                )
-                                .build()
-                );
+        if (AccessoryCustomizationData.colorOnly(
+                kind
+        )) {
+            woolButton =
+                    addRenderableWidget(
+                            Button.builder(
+                                            clothingColorLabel(),
+                                            button -> {
+                                                woolColor =
+                                                        (woolColor + 1)
+                                                                % AccessoryCustomizationData.WOOL_COLOR_COUNT;
+                                                refresh();
+                                            }
+                                    )
+                                    .bounds(
+                                            left,
+                                            y + 24,
+                                            204,
+                                            20
+                                    )
+                                    .build()
+                    );
+        } else {
+            materialButton =
+                    addRenderableWidget(
+                            Button.builder(
+                                            materialLabel(),
+                                            button -> {
+                                                material =
+                                                        (material + 1)
+                                                                % AccessoryCustomizationData.MATERIAL_COUNT;
+                                                refresh();
+                                            }
+                                    )
+                                    .bounds(
+                                            left,
+                                            y,
+                                            204,
+                                            20
+                                    )
+                                    .build()
+                    );
 
-        sizeButton =
-                addRenderableWidget(
-                        Button.builder(
-                                        sizeLabel(),
-                                        button -> {
-                                            size =
-                                                    (size + 1)
-                                                            % AccessoryCustomizationData.SIZE_STEPS;
-                                            refresh();
-                                        }
-                                )
-                                .bounds(
-                                        left,
-                                        y + 24,
-                                        204,
-                                        20
-                                )
-                                .build()
-                );
+            sizeButton =
+                    addRenderableWidget(
+                            Button.builder(
+                                            sizeLabel(),
+                                            button -> {
+                                                size =
+                                                        (size + 1)
+                                                                % AccessoryCustomizationData.SIZE_STEPS;
+                                                refresh();
+                                            }
+                                    )
+                                    .bounds(
+                                            left,
+                                            y + 24,
+                                            204,
+                                            20
+                                    )
+                                    .build()
+                    );
+        }
 
         if (kind == AccessoryKind.ENGINEER_CAP) {
             gearsButton =
@@ -157,7 +181,10 @@ public final class AccessoryWorkshopScreen
                     );
         }
 
-        if (kind == AccessoryKind.SOMBRERO) {
+        if (kind == AccessoryKind.SOMBRERO
+                && !AccessoryCustomizationData.colorOnly(
+                kind
+        )) {
             woolButton =
                     addRenderableWidget(
                             Button.builder(
@@ -242,7 +269,11 @@ public final class AccessoryWorkshopScreen
 
         if (woolButton != null) {
             woolButton.setMessage(
-                    woolLabel()
+                    AccessoryCustomizationData.colorOnly(
+                            kind
+                    )
+                            ? clothingColorLabel()
+                            : woolLabel()
             );
         }
     }
@@ -301,6 +332,17 @@ public final class AccessoryWorkshopScreen
     private Component woolLabel() {
         return Component.translatable(
                 "accessory.workshop.wool",
+                Component.translatable(
+                        AccessoryCustomizationData.woolNameKey(
+                                woolColor
+                        )
+                )
+        );
+    }
+
+    private Component clothingColorLabel() {
+        return Component.translatable(
+                "accessory.workshop.color",
                 Component.translatable(
                         AccessoryCustomizationData.woolNameKey(
                                 woolColor
@@ -430,6 +472,18 @@ public final class AccessoryWorkshopScreen
                     font,
                     Component.translatable(
                             "accessory.workshop.sombrero_hint"
+                    ),
+                    center,
+                    height / 2 + 37,
+                    0xFF9C8B73
+            );
+        } else if (AccessoryCustomizationData.colorOnly(
+                kind
+        )) {
+            graphics.drawCenteredString(
+                    font,
+                    Component.translatable(
+                            "accessory.workshop.clothing_hint"
                     ),
                     center,
                     height / 2 + 37,
