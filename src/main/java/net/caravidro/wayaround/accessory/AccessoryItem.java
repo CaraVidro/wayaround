@@ -43,6 +43,60 @@ public final class AccessoryItem
 
         if (player
                 instanceof ServerPlayer serverPlayer) {
+
+            /*
+             * Shift + use with the engineer trousers in one hand and an item
+             * in the other loads exactly one item into the physical pocket.
+             * Normal use keeps its old behaviour and equips the trousers.
+             */
+            if (kind == AccessoryKind.ENGINEER_TROUSERS
+                    && player.isShiftKeyDown()) {
+                InteractionHand sourceHand =
+                        hand == InteractionHand.MAIN_HAND
+                                ? InteractionHand.OFF_HAND
+                                : InteractionHand.MAIN_HAND;
+
+                ItemStack source =
+                        player.getItemInHand(
+                                sourceHand
+                        );
+
+                ItemStack pocket =
+                        TrouserPocketData.read(
+                                stack,
+                                serverPlayer.registryAccess()
+                        );
+
+                if (!source.isEmpty()) {
+                    if (pocket.isEmpty()) {
+                        ItemStack single =
+                                source.copy();
+
+                        single.setCount(
+                                1
+                        );
+
+                        TrouserPocketData.write(
+                                stack,
+                                single,
+                                serverPlayer.registryAccess()
+                        );
+
+                        if (!serverPlayer.getAbilities()
+                                .instabuild) {
+                            source.shrink(
+                                    1
+                            );
+                        }
+                    }
+
+                    return InteractionResultHolder.sidedSuccess(
+                            stack,
+                            level.isClientSide
+                    );
+                }
+            }
+
             AccessoryManager.equipFromHand(
                     serverPlayer,
                     hand,
