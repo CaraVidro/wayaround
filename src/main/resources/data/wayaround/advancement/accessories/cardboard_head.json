@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:accessories/first_fit",
+  "display": {
+    "icon": {
+      "id": "wayaround:cardboard_box"
+    },
+    "title": {
+      "translate": "advancements.wayaround.accessories.cardboard_head.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.accessories.cardboard_head.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "box": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
