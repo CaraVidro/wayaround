@@ -8,14 +8,12 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -25,9 +23,10 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 /**
  * Physical utility for the engineer boots.
  *
- * The boots compress deep snow under alternating feet and provide a deliberately
- * small swimming assist. The boost is intentionally capped close to vanilla
- * swimming speed. Neither effect changes the vanilla equipment slots;
+ * The boots stamp alternating square physical marks on snow without modifying
+ * the snow itself, and provide a deliberately small swimming assist. The boost
+ * is intentionally capped close to vanilla swimming speed. Neither effect
+ * changes the vanilla equipment slots;
  * they only apply while ENGINEER_BOOTS are equipped in Way Around's FEET slot.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
@@ -37,7 +36,7 @@ public final class EngineerBootsManager {
             new HashMap<>();
 
     private static final double STEP_DISTANCE_SQR =
-            0.115 * 0.115;
+            0.46 * 0.46;
 
     private static final double FOOT_OFFSET =
             0.135;
@@ -304,74 +303,50 @@ public final class EngineerBootsManager {
                         snowPos
                 );
 
-        /*
-         * Deep snow keeps a real depression. A single layer is left intact so
-         * normal paths do not become ugly full-block holes.
-         */
-        if (state.is(
-                Blocks.SNOW
-        )
-                && state.hasProperty(
-                SnowLayerBlock.LAYERS
+        if (!SnowFootprintEntity.isSnow(
+                state
         )) {
-            int layers =
-                    state.getValue(
-                            SnowLayerBlock.LAYERS
-                    );
-
-            if (layers > 1) {
-                level.setBlock(
-                        snowPos,
-                        state.setValue(
-                                SnowLayerBlock.LAYERS,
-                                layers - 1
-                        ),
-                        3
-                );
-            }
+            return;
         }
-
-        BlockState particleState =
-                state.is(
-                        Blocks.POWDER_SNOW
-                )
-                        ? Blocks.POWDER_SNOW.defaultBlockState()
-                        : Blocks.SNOW_BLOCK.defaultBlockState();
 
         double surfaceY =
-                snowPos.getY()
-                        + 1.0;
+                SnowFootprintEntity.surfaceY(
+                        snowPos,
+                        state
+                );
 
-        if (state.is(
-                Blocks.SNOW
-        )
-                && state.hasProperty(
-                SnowLayerBlock.LAYERS
-        )) {
-            surfaceY =
-                    snowPos.getY()
-                            + Math.max(
-                            1,
-                            state.getValue(
-                                    SnowLayerBlock.LAYERS
-                            ) - 1
-                    ) / 8.0;
+        AABB nearby =
+                new AABB(
+                        foot.x - 0.13,
+                        surfaceY - 0.04,
+                        foot.z - 0.13,
+                        foot.x + 0.13,
+                        surfaceY + 0.06,
+                        foot.z + 0.13
+                );
+
+        if (!level.getEntitiesOfClass(
+                SnowFootprintEntity.class,
+                nearby
+        ).isEmpty()) {
+            return;
         }
 
-        level.sendParticles(
-                new BlockParticleOption(
-                        ParticleTypes.BLOCK,
-                        particleState
-                ),
+        SnowFootprintEntity mark =
+                new SnowFootprintEntity(
+                        TopHatContent.SNOW_FOOTPRINT.get(),
+                        level
+                );
+
+        mark.configure(
+                snowPos,
                 foot.x,
-                surfaceY
-                        + 0.015,
                 foot.z,
-                4,
-                0.045,
-                0.015,
-                0.065,
-                0.012
+                0.0F
+        );
+
+        level.addFreshEntity(
+                mark
         );
     }
 
