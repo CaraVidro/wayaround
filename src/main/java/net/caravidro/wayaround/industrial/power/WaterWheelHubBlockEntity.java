@@ -91,6 +91,9 @@ public final class WaterWheelHubBlockEntity
     private int collisionSoundCooldown;
     private int looseSoundCooldown;
 
+    private int burnTicks;
+    private float burnIntensity;
+
     private final List<Plate> plates =
             new ArrayList<>();
 
@@ -210,6 +213,10 @@ public final class WaterWheelHubBlockEntity
                 state
         );
 
+        hub.tickBurning(
+                server
+        );
+
         if (Math.floorMod(
                 time + pos.asLong(),
                 8
@@ -266,9 +273,369 @@ public final class WaterWheelHubBlockEntity
                         Math.abs(hub.rpm) > 0.01F
                         || hub.jammed
                         || hub.unstableFlow
+                        || hub.burnTicks > 0
                 )) {
             hub.sync();
         }
+    }
+
+    public void ignite(
+            Player player
+    ) {
+        if (!(level instanceof ServerLevel server)) {
+            return;
+        }
+
+        burnTicks =
+                Math.max(
+                        burnTicks,
+                        20 * 45
+                );
+
+        burnIntensity =
+                Math.max(
+                        burnIntensity,
+                        0.28F
+                );
+
+        server.playSound(
+                null,
+                worldPosition,
+                SoundEvents.FLINTANDSTEEL_USE,
+                SoundSource.BLOCKS,
+                0.75F,
+                0.92F
+        );
+
+        server.playSound(
+                null,
+                worldPosition,
+                SoundEvents.FIRE_AMBIENT,
+                SoundSource.BLOCKS,
+                0.35F,
+                0.85F
+        );
+
+        if (player != null) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.water_wheel.ignited"
+                    ),
+                    true
+            );
+        }
+
+        sync();
+    }
+
+    private void tickBurning(
+            ServerLevel server
+    ) {
+        if (burnTicks <= 0
+                && burnIntensity <= 0.01F) {
+            burnTicks =
+                    0;
+            burnIntensity =
+                    0.0F;
+            return;
+        }
+
+        int totalBoards =
+                Math.max(
+                        1,
+                        plates.size()
+                );
+
+        float wetRatio =
+                Mth.clamp(
+                        wetContacts
+                                / (float) totalBoards,
+                        0.0F,
+                        1.0F
+                );
+
+        if (burnTicks > 0) {
+            burnTicks--;
+        }
+
+        /*
+         * A dry wheel rapidly opens into multiple flame fronts. Water does not
+         * instantly cancel fire; it fights the intensity while wet paddles pass
+         * through the burning area.
+         */
+        float targetIntensity =
+                burnTicks > 0
+                        ? Mth.clamp(
+                        0.38F
+                                + plates.size()
+                                        / 32.0F
+                                        * 0.48F
+                                - wetRatio
+                                        * 0.62F,
+                        0.05F,
+                        1.0F
+                )
+                        : 0.0F;
+
+        burnIntensity +=
+                (
+                        targetIntensity
+                                - burnIntensity
+                )
+                        * (
+                        targetIntensity > burnIntensity
+                                ? 0.035F
+                                : 0.075F
+                );
+
+        if (wetRatio > 0.72F
+                && burnIntensity < 0.16F) {
+            burnTicks =
+                    Math.max(
+                            0,
+                            burnTicks - 6
+                    );
+        }
+
+        if (Math.floorMod(
+                server.getGameTime()
+                        + worldPosition.asLong(),
+                5
+        ) == 0) {
+            emitBurningFeedback(
+                    server
+            );
+        }
+
+        if (Math.floorMod(
+                server.getGameTime()
+                        + worldPosition.asLong(),
+                20
+        ) == 0
+                && burnIntensity > 0.04F) {
+
+            int frameDamage =
+                    Math.max(
+                            1,
+                            Math.round(
+                                    22.0F
+                                            + burnIntensity
+                                                    * 92.0F
+                            )
+                    );
+
+            frameWear =
+                    Math.min(
+                            AssemblyItemData.MAX_COMPONENT_WEAR,
+                            frameWear
+                                    + frameDamage
+                    );
+
+            for (Plate plate :
+                    plates) {
+                if (server.random.nextFloat()
+                        > 0.34F
+                                + burnIntensity
+                                        * 0.38F) {
+                    continue;
+                }
+
+                int plateDamage =
+                        Math.max(
+                                1,
+                                Math.round(
+                                        28.0F
+                                                + burnIntensity
+                                                        * 118.0F
+                                )
+                        );
+
+                plate.wear =
+                        Math.min(
+                                AssemblyItemData.MAX_COMPONENT_WEAR,
+                                plate.wear
+                                        + plateDamage
+                        );
+
+                plate.profile.applyWear(
+                        plateDamage
+                                / (float) AssemblyItemData.MAX_COMPONENT_WEAR
+                );
+            }
+
+            setChanged();
+        }
+
+        if (burnTicks <= 0
+                && burnIntensity < 0.02F) {
+            burnIntensity =
+                    0.0F;
+
+            server.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.FIRE_EXTINGUISH,
+                    SoundSource.BLOCKS,
+                    0.35F,
+                    1.10F
+            );
+        }
+    }
+
+    private void emitBurningFeedback(
+            ServerLevel server
+    ) {
+        int flamePoints =
+                2
+                        + Math.round(
+                        burnIntensity
+                                * 7.0F
+                );
+
+        Direction.Axis axis =
+                axleAxis();
+
+        double rotation =
+                Math.toRadians(
+                        rotationDegrees
+                );
+
+        for (int i = 0;
+             i < flamePoints;
+             i++) {
+
+            double angle =
+                    rotation
+                            + server.random.nextDouble()
+                                    * Math.PI
+                                    * 2.0;
+
+            double radius =
+                    0.45
+                            + server.random.nextDouble()
+                                    * (
+                                    FRAME_RADIUS
+                                            - 0.20
+                            );
+
+            Vec3 radial =
+                    radialVector(
+                            axis,
+                            angle
+                    );
+
+            Vec3 point =
+                    Vec3.atCenterOf(
+                            worldPosition
+                    ).add(
+                            radial.scale(
+                                    radius
+                            )
+                    );
+
+            double axleJitter =
+                    (
+                            server.random.nextDouble()
+                                    - 0.5
+                    )
+                            * (
+                            doubleBody()
+                                    ? 1.30
+                                    : 0.62
+                    );
+
+            if (axis == Direction.Axis.X) {
+                point =
+                        point.add(
+                                axleJitter,
+                                0.0,
+                                0.0
+                        );
+            } else {
+                point =
+                        point.add(
+                                0.0,
+                                0.0,
+                                axleJitter
+                        );
+            }
+
+            server.sendParticles(
+                    i % 3 == 0
+                            && burnIntensity > 0.58F
+                            ? ParticleTypes.FLAME
+                            : ParticleTypes.SMALL_FLAME,
+                    point.x,
+                    point.y,
+                    point.z,
+                    burnIntensity > 0.72F
+                            ? 2
+                            : 1,
+                    0.10
+                            + burnIntensity
+                                    * 0.16,
+                    0.08,
+                    0.10
+                            + burnIntensity
+                                    * 0.16,
+                    0.008
+            );
+        }
+
+        /*
+         * Close smoke is dense and messy. A thinner signal-smoke stream is
+         * deliberately emitted much higher so a burning machine can be located
+         * from far away.
+         */
+        server.sendParticles(
+                ParticleTypes.LARGE_SMOKE,
+                worldPosition.getX()
+                        + 0.5,
+                worldPosition.getY()
+                        + 1.0,
+                worldPosition.getZ()
+                        + 0.5,
+                2
+                        + Math.round(
+                        burnIntensity
+                                * 5.0F
+                ),
+                0.65,
+                0.50,
+                0.65,
+                0.025
+        );
+
+        if (burnIntensity > 0.42F
+                && Math.floorMod(
+                server.getGameTime()
+                        + worldPosition.asLong(),
+                15
+        ) < 5) {
+            server.sendParticles(
+                    ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                    worldPosition.getX()
+                            + 0.5,
+                    worldPosition.getY()
+                            + 2.1,
+                    worldPosition.getZ()
+                            + 0.5,
+                    1,
+                    0.16,
+                    0.10,
+                    0.16,
+                    0.008
+            );
+        }
+    }
+
+    public boolean burning() {
+        return burnTicks > 0
+                || burnIntensity > 0.02F;
+    }
+
+    public float burnIntensity() {
+        return burnIntensity;
     }
 
     private void simulate(
@@ -3327,6 +3694,23 @@ public final class WaterWheelHubBlockEntity
                         )
                         : -1;
 
+        burnTicks =
+                Math.max(
+                        0,
+                        tag.getInt(
+                                "BurnTicks"
+                        )
+                );
+
+        burnIntensity =
+                Mth.clamp(
+                        tag.getFloat(
+                                "BurnIntensity"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
         plates.clear();
 
         ListTag plateList =
@@ -3557,6 +3941,16 @@ public final class WaterWheelHubBlockEntity
         tag.putInt(
                 "FailureCountdown",
                 failureCountdown
+        );
+
+        tag.putInt(
+                "BurnTicks",
+                burnTicks
+        );
+
+        tag.putFloat(
+                "BurnIntensity",
+                burnIntensity
         );
 
         ListTag plateList =
