@@ -38,6 +38,7 @@ import net.caravidro.wayaround.worldgen.weather.avalanche.AntarcticAvalanche;
 import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheCommand;
 import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheManager;
 import net.caravidro.wayaround.worldgen.weather.command.BlizzardCommand;
+import net.caravidro.wayaround.worldgen.weather.command.WindTestCommand;
 import net.caravidro.wayaround.war.WarBallistics;
 import net.caravidro.wayaround.war.WarContent;
 import net.neoforged.bus.api.IEventBus;
@@ -100,6 +101,7 @@ public class WayAround {
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
         NeoForge.EVENT_BUS.addListener(BlizzardCommand::register);
+        NeoForge.EVENT_BUS.addListener(WindTestCommand::register);
         NeoForge.EVENT_BUS.addListener(DomainCommands::register);
         NeoForge.EVENT_BUS.addListener(TukunaDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(JujutsuCommands::register);
