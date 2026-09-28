@@ -211,6 +211,15 @@ public final class SmokeVolumeEntity
         );
     }
 
+    @Override
+    public boolean shouldRenderAtSqrDistance(
+            double distance
+    ) {
+        return distance
+                < 384.0
+                * 384.0;
+    }
+
     public float lifeFraction(
             float partialTick
     ) {
