@@ -1176,6 +1176,10 @@ public final class AccessoryManager {
     ) {
         if (event.getEntity()
                 instanceof ServerPlayer player) {
+            POCKET_RETRIEVALS.remove(
+                    player.getUUID()
+            );
+
             migrateLegacySlots(
                     player
             );
