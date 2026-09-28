@@ -260,6 +260,22 @@ public final class EnhancedFireVisuals {
                 neighbors
         );
 
+        fire.smokeCooldown -=
+                STEP;
+
+        if (fire.smokeCooldown <= 0
+                && primaryInCluster(
+                level,
+                pos
+        )) {
+            spawnSmokeVolume(
+                    level,
+                    pos,
+                    fire,
+                    neighbors
+            );
+        }
+
         emitAmbientSound(
                 level,
                 pos,
@@ -625,6 +641,59 @@ public final class EnhancedFireVisuals {
             FireState fire,
             int neighbors
     ) {
+        /*
+         * Detailed fire is a near LOD only. Far players receive no fire
+         * particles at all; they see the voxel smoke volumes instead.
+         */
+        boolean anyClose =
+                false;
+
+        double closeDistance =
+                48.0;
+
+        for (ServerPlayer viewer :
+                level.players()) {
+            if (viewer.distanceToSqr(
+                    fire.x,
+                    fire.y,
+                    fire.z
+            ) <= closeDistance
+                    * closeDistance) {
+                anyClose =
+                        true;
+                break;
+            }
+        }
+
+        if (!anyClose) {
+            return;
+        }
+
+        /*
+         * Dense forests used to flicker because every fire randomized all
+         * particle positions every four ticks at the same time. Stable anchors
+         * plus staggered emission make a large fire read as one continuous
+         * surface instead of hundreds of blinking points.
+         */
+        int intervalSteps =
+                neighbors >= 5
+                        ? 3
+                        : neighbors >= 2
+                        ? 2
+                        : 1;
+
+        long visualStep =
+                level.getGameTime()
+                        / STEP;
+
+        if (Math.floorMod(
+                visualStep
+                        + fire.visualSeed,
+                intervalSteps
+        ) != 0) {
+            return;
+        }
+
         double height =
                 fire.height();
 
@@ -636,331 +705,318 @@ public final class EnhancedFireVisuals {
                         2
                                 + Math.round(
                                 fire.size
-                                        * 5.0F
+                                        * (
+                                        neighbors >= 4
+                                                ? 1.15F
+                                                : 1.70F
+                                )
                         ),
                         2,
-                        11
+                        6
                 );
 
-        /*
-         * Every fire has a persistent off-centre origin. Particles expand from
-         * this point as size grows instead of teleporting around the block on
-         * every render pass.
-         */
         for (int i = 0;
              i < fronts;
              i++) {
 
             double angle =
-                    level.random.nextDouble()
+                    fire.unit(
+                            i * 0x9E3779B97F4A7C15L
+                                    + 11L
+                    )
                             * Math.PI
                             * 2.0;
 
             double spread =
                     Math.sqrt(
-                            level.random.nextDouble()
+                            fire.unit(
+                                    i * 0xC2B2AE3D27D4EB4FL
+                                            + 37L
+                            )
                     )
-                            * radius;
+                            * radius
+                            * 0.82;
+
+            double baseHeight =
+                    0.05
+                            + fire.unit(
+                            i * 0x165667B19E3779F9L
+                                    + 71L
+                    )
+                                    * height
+                                    * 0.46;
+
+            double phase =
+                    level.getGameTime()
+                            * 0.095
+                            + i
+                                    * 1.73
+                            + (
+                            fire.visualSeed
+                                    & 255L
+                    )
+                                    * 0.013;
 
             double x =
                     fire.x
                             + Math.cos(
                             angle
                     )
-                                    * spread;
+                                    * spread
+                            + Math.sin(
+                            phase
+                    )
+                                    * 0.035;
 
             double y =
                     fire.y
-                            + 0.04
-                            + level.random.nextDouble()
-                                    * height
-                                    * 0.68;
+                            + baseHeight
+                            + Math.sin(
+                            phase
+                                    * 1.31
+                            )
+                                    * 0.045;
 
             double z =
                     fire.z
                             + Math.sin(
                             angle
                     )
-                                    * spread;
-
-            level.sendParticles(
-                    fire.size > 0.84F
-                            && i % 3 == 0
-                            ? ParticleTypes.FLAME
-                            : ParticleTypes.SMALL_FLAME,
-                    x,
-                    y,
-                    z,
-                    fire.size > 1.25F
-                            && i % 4 == 0
-                            ? 2
-                            : 1,
-                    0.025
-                            + fire.size
-                                    * 0.035,
-                    0.025
-                            + fire.size
-                                    * 0.018,
-                    0.025
-                            + fire.size
-                                    * 0.035,
-                    0.004
-                            + fire.size
-                                    * 0.006
-            );
-        }
-
-        /*
-         * Low full-bright flame particles act as an orange visual halo around
-         * the enlarged body. Minecraft's vanilla block-light channel has no RGB
-         * colour, so the actual world light remains vanilla while this gives the
-         * fire the requested warmer orange appearance.
-         */
-        int glowPoints =
-                Math.max(
-                        1,
-                        Math.round(
-                                fire.size
-                                        * 2.5F
-                        )
-                );
-
-        for (int i = 0;
-             i < glowPoints;
-             i++) {
-            double angle =
-                    Math.PI
-                            * 2.0
-                            * i
-                            / glowPoints
-                            + level.getGameTime()
-                                    * 0.035;
-
-            level.sendParticles(
-                    ParticleTypes.FLAME,
-                    fire.x
+                                    * spread
                             + Math.cos(
-                            angle
+                            phase
+                                    * 0.91
                     )
-                                    * radius
-                                    * 0.72,
-                    fire.y
-                            + 0.12
-                            + fire.size
-                                    * 0.08,
-                    fire.z
-                            + Math.sin(
-                            angle
-                    )
-                                    * radius
-                                    * 0.72,
-                    1,
-                    0.012,
-                    0.008,
-                    0.012,
-                    0.0
-            );
-        }
-
-        int closeSmoke =
-                1
-                        + Math.round(
-                        fire.size
-                                * 4.0F
-                );
-
-        level.sendParticles(
-                fire.size > 0.72F
-                        ? ParticleTypes.LARGE_SMOKE
-                        : ParticleTypes.SMOKE,
-                fire.x,
-                fire.y
-                        + height
-                                * 0.72,
-                fire.z,
-                closeSmoke,
-                radius
-                        * 0.42,
-                0.12
-                        + fire.size
-                                * 0.12,
-                radius
-                        * 0.42,
-                0.018
-                        + fire.size
-                                * 0.012
-        );
-
-        emitDistantSmoke(
-                level,
-                pos,
-                fire,
-                neighbors
-        );
-    }
-
-    private static void emitDistantSmoke(
-            ServerLevel level,
-            BlockPos pos,
-            FireState fire,
-            int neighbors
-    ) {
-        if (!primaryInCluster(
-                level,
-                pos
-        )) {
-            return;
-        }
-
-        /*
-         * Large wildfires paint multiple smoke bands high into the sky. Every
-         * band is slightly displaced in one stable pseudo-wind direction, so
-         * from far away the plume reads as a long stripe rather than a dot.
-         */
-        double viewDistance =
-                Mth.clamp(
-                        96.0
-                                + fire.size
-                                        * 94.0
-                                + Math.min(
-                                8,
-                                neighbors
-                        )
-                                        * 12.0,
-                        96.0,
-                        384.0
-                );
-
-        int period =
-                Mth.clamp(
-                        31
-                                - Math.round(
-                                fire.size
-                                        * 8.0F
-                        )
-                                - Math.min(
-                                5,
-                                neighbors
-                        ),
-                        9,
-                        28
-                );
-
-        if (Math.floorMod(
-                level.getGameTime()
-                        + pos.asLong(),
-                period
-        ) >= STEP) {
-            return;
-        }
-
-        int bands =
-                Mth.clamp(
-                        1
-                                + Math.round(
-                                fire.size
-                                        * 1.65F
-                        )
-                                + neighbors
-                                        / 4,
-                        1,
-                        7
-                );
-
-        double angle =
-                (
-                        Math.floorMod(
-                                pos.asLong(),
-                                2048L
-                        )
-                                / 2048.0
-                )
-                        * Math.PI
-                        * 2.0;
-
-        double driftX =
-                Math.cos(
-                        angle
-                );
-
-        double driftZ =
-                Math.sin(
-                        angle
-                );
-
-        for (int band = 0;
-             band < bands;
-             band++) {
-
-            double vertical =
-                    1.15
-                            + fire.size
-                                    * 1.55
-                            + band
-                                    * (
-                                    2.15
-                                            + fire.size
-                                                    * 0.32
-                            );
-
-            double drift =
-                    band
-                            * (
-                            0.36
-                                    + fire.size
-                                            * 0.22
-                    );
-
-            Vec3 smokeOrigin =
-                    new Vec3(
-                            fire.x
-                                    + driftX
-                                            * drift,
-                            fire.y
-                                    + vertical,
-                            fire.z
-                                    + driftZ
-                                            * drift
-                    );
-
-            int count =
-                    fire.size > 1.35F
-                            ? 2
-                            : 1;
+                                    * 0.035;
 
             for (ServerPlayer viewer :
                     level.players()) {
 
                 if (viewer.distanceToSqr(
-                        smokeOrigin
-                ) > viewDistance
-                        * viewDistance) {
+                        x,
+                        y,
+                        z
+                ) > closeDistance
+                        * closeDistance) {
                     continue;
                 }
 
                 level.sendParticles(
                         viewer,
-                        ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
-                        true,
-                        smokeOrigin.x,
-                        smokeOrigin.y,
-                        smokeOrigin.z,
-                        count,
-                        0.04
+                        fire.size > 0.88F
+                                && i % 3 == 0
+                                ? ParticleTypes.FLAME
+                                : ParticleTypes.SMALL_FLAME,
+                        false,
+                        x,
+                        y,
+                        z,
+                        1,
+                        0.025
                                 + fire.size
-                                        * 0.085,
-                        0.07
+                                        * 0.018,
+                        0.020,
+                        0.025
                                 + fire.size
-                                        * 0.055,
-                        0.04
+                                        * 0.018,
+                        0.004
                                 + fire.size
-                                        * 0.085,
-                        0.005
-                                + fire.size
-                                        * 0.003
+                                        * 0.004
                 );
             }
         }
+
+        /*
+         * Close smoke remains particulate and dense. It is intentionally cheap:
+         * one small emission per fire update, and only to nearby clients.
+         */
+        int smokeCount =
+                fire.size > 1.35F
+                        ? 2
+                        : 1;
+
+        double smokeY =
+                fire.y
+                        + height
+                                * 0.70;
+
+        for (ServerPlayer viewer :
+                level.players()) {
+            if (viewer.distanceToSqr(
+                    fire.x,
+                    smokeY,
+                    fire.z
+            ) > closeDistance
+                    * closeDistance) {
+                continue;
+            }
+
+            level.sendParticles(
+                    viewer,
+                    fire.size > 0.78F
+                            ? ParticleTypes.LARGE_SMOKE
+                            : ParticleTypes.SMOKE,
+                    false,
+                    fire.x,
+                    smokeY,
+                    fire.z,
+                    smokeCount,
+                    radius
+                            * 0.24,
+                    0.10
+                            + fire.size
+                                    * 0.055,
+                    radius
+                            * 0.24,
+                    0.012
+                            + fire.size
+                                    * 0.006
+            );
+        }
+    }
+
+    private static void spawnSmokeVolume(
+            ServerLevel level,
+            BlockPos pos,
+            FireState fire,
+            int neighbors
+    ) {
+        if (fire.size < 0.48F) {
+            fire.smokeCooldown =
+                    36;
+            return;
+        }
+
+        AABB localSmoke =
+                new AABB(
+                        fire.x - 18.0,
+                        fire.y - 2.0,
+                        fire.z - 18.0,
+                        fire.x + 18.0,
+                        fire.y + 38.0,
+                        fire.z + 18.0
+                );
+
+        int existing =
+                level.getEntitiesOfClass(
+                        SmokeVolumeEntity.class,
+                        localSmoke
+                ).size();
+
+        /*
+         * This is the main wildfire optimization: a large connected burn area
+         * reuses a short train of big smoke parcels instead of creating a cloud
+         * of particles for every burning block.
+         */
+        if (existing >= 10) {
+            fire.smokeCooldown =
+                    28;
+            return;
+        }
+
+        SmokeVolumeEntity smoke =
+                new SmokeVolumeEntity(
+                        FireContent.SMOKE_VOLUME.get(),
+                        level
+                );
+
+        float volumeSize =
+                Mth.clamp(
+                        0.78F
+                                + fire.size
+                                        * 0.82F
+                                + Math.min(
+                                8,
+                                neighbors
+                        )
+                                        * 0.055F,
+                        0.85F,
+                        3.70F
+                );
+
+        int lifetime =
+                Mth.clamp(
+                        190
+                                + Math.round(
+                                fire.size
+                                        * 92.0F
+                        )
+                                + Math.min(
+                                8,
+                                neighbors
+                        )
+                                        * 7,
+                        190,
+                        480
+                );
+
+        float darkness =
+                Mth.clamp(
+                        0.42F
+                                + fire.size
+                                        * 0.17F
+                                + Math.min(
+                                8,
+                                neighbors
+                        )
+                                        * 0.022F,
+                        0.42F,
+                        0.90F
+                );
+
+        smoke.configure(
+                volumeSize,
+                lifetime,
+                darkness
+        );
+
+        double offsetAngle =
+                fire.unit(
+                        level.getGameTime()
+                                / 20L
+                                + 0x4CF5AD432745937FL
+                )
+                        * Math.PI
+                        * 2.0;
+
+        double offset =
+                fire.radius()
+                        * 0.18;
+
+        smoke.setPos(
+                fire.x
+                        + Math.cos(
+                        offsetAngle
+                )
+                                * offset,
+                fire.y
+                        + fire.height()
+                                * 0.72,
+                fire.z
+                        + Math.sin(
+                        offsetAngle
+                )
+                                * offset
+        );
+
+        level.addFreshEntity(
+                smoke
+        );
+
+        fire.smokeCooldown =
+                Mth.clamp(
+                        42
+                                - Math.round(
+                                fire.size
+                                        * 8.0F
+                        )
+                                - Math.min(
+                                8,
+                                neighbors
+                        ),
+                        12,
+                        42
+                );
     }
 
     private static void mergeNearbyFire(
@@ -968,6 +1024,15 @@ public final class EnhancedFireVisuals {
             BlockPos pos,
             FireState fire
     ) {
+        if (Math.floorMod(
+                level.getGameTime()
+                        / STEP
+                        + fire.visualSeed,
+                3
+        ) != 0) {
+            return;
+        }
+
         for (int x = -1;
              x <= 1;
              x++) {
@@ -1024,29 +1089,20 @@ public final class EnhancedFireVisuals {
                                             + dz * dz
                             );
 
-                    double mergeDistance =
-                            fire.radius()
-                                    + other.radius()
-                                    + 0.18;
-
-                    if (distance > mergeDistance) {
+                    if (distance > fire.radius()
+                            + other.radius()
+                            + 0.16) {
                         continue;
                     }
 
-                    double combined =
-                            Math.min(
-                                    2.1,
-                                    fire.size
-                                            + other.size
-                            );
-
-                    level.sendParticles(
-                            ParticleTypes.FLAME,
+                    double px =
                             (
                                     fire.x
                                             + other.x
                             )
-                                    * 0.5,
+                                    * 0.5;
+
+                    double py =
                             (
                                     fire.y
                                             + other.y
@@ -1056,30 +1112,41 @@ public final class EnhancedFireVisuals {
                                     fire.height(),
                                     other.height()
                             )
-                                            * 0.26,
+                                            * 0.24;
+
+                    double pz =
                             (
                                     fire.z
                                             + other.z
                             )
-                                    * 0.5,
-                            Math.max(
-                                    2,
-                                    (int) Math.round(
-                                            combined
-                                                    * 2.0
-                                    )
-                            ),
-                            0.12
-                                    + combined
-                                            * 0.08,
-                            0.10
-                                    + combined
-                                            * 0.05,
-                            0.12
-                                    + combined
-                                            * 0.08,
-                            0.012
-                    );
+                                    * 0.5;
+
+                    for (ServerPlayer viewer :
+                            level.players()) {
+
+                        if (viewer.distanceToSqr(
+                                px,
+                                py,
+                                pz
+                        ) > 46.0
+                                * 46.0) {
+                            continue;
+                        }
+
+                        level.sendParticles(
+                                viewer,
+                                ParticleTypes.FLAME,
+                                false,
+                                px,
+                                py,
+                                pz,
+                                1,
+                                0.09,
+                                0.07,
+                                0.09,
+                                0.008
+                        );
+                    }
                 }
             }
         }
@@ -1180,6 +1247,10 @@ public final class EnhancedFireVisuals {
         private int damageCooldown;
         private int spreadCooldown =
                 18;
+        private int smokeCooldown =
+                18;
+
+        private final long visualSeed;
 
         private float size =
                 0.30F;
@@ -1187,7 +1258,8 @@ public final class EnhancedFireVisuals {
         private FireState(
                 double x,
                 double y,
-                double z
+                double z,
+                long visualSeed
         ) {
             this.x =
                     x;
@@ -1195,6 +1267,8 @@ public final class EnhancedFireVisuals {
                     y;
             this.z =
                     z;
+            this.visualSeed =
+                    visualSeed;
         }
 
         private static FireState create(
@@ -1228,7 +1302,9 @@ public final class EnhancedFireVisuals {
                     x,
                     pos.getY()
                             + 0.03,
-                    z
+                    z,
+                    pos.asLong()
+                            ^ level.random.nextLong()
             );
         }
 
@@ -1256,6 +1332,31 @@ public final class EnhancedFireVisuals {
                     y + height(),
                     z + radius
             );
+        }
+
+        private double unit(
+                long salt
+        ) {
+            long value =
+                    visualSeed
+                            ^ salt;
+
+            value ^=
+                    value >>> 30;
+            value *=
+                    0xbf58476d1ce4e5b9L;
+            value ^=
+                    value >>> 27;
+            value *=
+                    0x94d049bb133111ebL;
+            value ^=
+                    value >>> 31;
+
+            long bits =
+                    value >>> 11;
+
+            return bits
+                    * 0x1.0p-53;
         }
     }
 }
