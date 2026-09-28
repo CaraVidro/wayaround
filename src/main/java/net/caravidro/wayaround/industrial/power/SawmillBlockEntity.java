@@ -80,7 +80,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
     private boolean jammed;
     private int manualCrankTicks;
     private SawmillRecipe selectedRecipe =
-            SawmillRecipe.PLANKS;
+            SawmillRecipe.WOOD;
 
     private final ContainerData menuData =
             new ContainerData() {
@@ -1386,7 +1386,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
         Item outputItem =
                 switch (selectedRecipe) {
-                    case PLANKS ->
+                    case WOOD ->
                             matchingPlanks(
                                     input
                             );
@@ -1394,8 +1394,11 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                     case WATER_WHEEL_BOARD ->
                             PowerContent.WATER_WHEEL_BLADE_ITEM.get();
 
-                    case WOODEN_NAILS ->
-                            PowerContent.WOODEN_NAIL.get();
+                    case SHAFT ->
+                            PowerContent.MECHANICAL_SHAFT_ITEM.get();
+
+                    case WATER_WHEEL_BODY ->
+                            PowerContent.WATER_WHEEL_HUB_ITEM.get();
                 };
 
         float quality =
@@ -1403,9 +1406,10 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
         int count =
                 switch (selectedRecipe) {
-                    case PLANKS -> 10;
+                    case WOOD -> 10;
                     case WATER_WHEEL_BOARD -> 4;
-                    case WOODEN_NAILS -> 20;
+                    case SHAFT -> 2;
+                    case WATER_WHEEL_BODY -> 1;
                 };
 
         ItemStack output =
@@ -1455,38 +1459,80 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                 );
 
         if (selectedRecipe
-                != SawmillRecipe.WOODEN_NAILS) {
+                == SawmillRecipe.WATER_WHEEL_BOARD) {
             AssemblyItemData.writePart(
                     output,
                     boardProfile
             );
-        } else {
-            AssemblyPartProfile nailProfile =
+
+        } else if (selectedRecipe
+                == SawmillRecipe.SHAFT) {
+            AssemblyPartProfile shaftProfile =
                     AssemblyPartProfile.manufactured(
-                            AssemblyPartProfile.Kind.FASTENER,
+                            AssemblyPartProfile.Kind.SHAFT,
                             AssemblyPartProfile.Material.WOOD,
                             outputId,
                             0,
                             quality,
                             Mth.clamp(
-                                    0.42F
+                                    0.50F
                                             + quality
-                                                    * 0.46F,
+                                                    * 0.45F
+                                            - vibration
+                                                    * 0.12F,
                                     0.0F,
                                     1.0F
                             ),
                             Mth.clamp(
-                                    0.40F
+                                    0.56F
                                             + quality
-                                                    * 0.42F,
+                                                    * 0.40F,
                                     0.0F,
                                     1.0F
                             ),
-                            0.24F,
+                            0.52F,
                             0.0F,
                             Mth.clamp(
                                     vibration
-                                            * 0.03F,
+                                            * 0.035F,
+                                    0.0F,
+                                    0.10F
+                            )
+                    );
+
+            AssemblyItemData.writePart(
+                    output,
+                    shaftProfile
+            );
+
+        } else if (selectedRecipe
+                == SawmillRecipe.WATER_WHEEL_BODY) {
+            AssemblyPartProfile frameProfile =
+                    AssemblyPartProfile.manufactured(
+                            AssemblyPartProfile.Kind.FRAME,
+                            AssemblyPartProfile.Material.WOOD,
+                            outputId,
+                            0,
+                            quality,
+                            Mth.clamp(
+                                    0.52F
+                                            + quality
+                                                    * 0.44F,
+                                    0.0F,
+                                    1.0F
+                            ),
+                            Mth.clamp(
+                                    0.58F
+                                            + quality
+                                                    * 0.37F,
+                                    0.0F,
+                                    1.0F
+                            ),
+                            0.72F,
+                            0.0F,
+                            Mth.clamp(
+                                    vibration
+                                            * 0.025F,
                                     0.0F,
                                     0.08F
                             )
@@ -1494,17 +1540,20 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
             AssemblyItemData.writePart(
                     output,
-                    nailProfile
+                    frameProfile
             );
         }
 
-        AssemblyItemData.writeProcessStamp(
-                output,
-                "sawmill",
-                quality,
-                machineCondition(),
-                server.getGameTime()
-        );
+        if (selectedRecipe
+                != SawmillRecipe.WOOD) {
+            AssemblyItemData.writeProcessStamp(
+                    output,
+                    "sawmill",
+                    quality,
+                    machineCondition(),
+                    server.getGameTime()
+            );
+        }
 
         Block.popResource(
                 server,
@@ -1999,9 +2048,10 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
     }
 
     public enum SawmillRecipe {
-        PLANKS,
+        WOOD,
         WATER_WHEEL_BOARD,
-        WOODEN_NAILS;
+        SHAFT,
+        WATER_WHEEL_BODY;
 
         public static SawmillRecipe byId(
                 int id
