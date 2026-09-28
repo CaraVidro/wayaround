@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:war/first_shot",
+  "display": {
+    "icon": {
+      "id": "wayaround:rocket_launcher"
+    },
+    "title": {
+      "translate": "advancements.wayaround.war.overkill.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.war.overkill.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "rocket": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
