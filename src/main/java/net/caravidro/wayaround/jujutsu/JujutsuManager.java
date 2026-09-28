@@ -10,6 +10,7 @@ import java.util.SplittableRandom;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import net.caravidro.wayaround.network.EnergyVisionS2CPayload;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
 import net.caravidro.wayaround.spectrum.SpectrumType;
@@ -142,6 +143,14 @@ public final class JujutsuManager {
     }
 
     private static void recordAwakening(ServerPlayer player) {
+        /*
+         * Deliberately generic. A Spectrum awakening gets the exact same public
+         * emblem as an ordinary Jujutsu, so advancements never spoil the roll.
+         */
+        WayAroundAdvancements.jujutsuAwakened(
+                player
+        );
+
         CompoundTag history = new CompoundTag();
 
         history.putString(
