@@ -207,31 +207,48 @@ public final class AccessoryItem
                             kind
                     );
 
-            tooltip.add(
-                    Component.translatable(
-                            "accessory.workshop.tooltip.material",
-                            Component.translatable(
-                                    AccessoryCustomizationData.materialNameKey(
-                                            custom.material()
-                                    )
-                            )
-                    ).withStyle(
-                            ChatFormatting.GOLD
-                    )
-            );
+            if (AccessoryCustomizationData.colorOnly(
+                    kind
+            )) {
+                tooltip.add(
+                        Component.translatable(
+                                "accessory.workshop.tooltip.color",
+                                Component.translatable(
+                                        AccessoryCustomizationData.woolNameKey(
+                                                custom.woolColor()
+                                        )
+                                )
+                        ).withStyle(
+                                ChatFormatting.GOLD
+                        )
+                );
+            } else {
+                tooltip.add(
+                        Component.translatable(
+                                "accessory.workshop.tooltip.material",
+                                Component.translatable(
+                                        AccessoryCustomizationData.materialNameKey(
+                                                custom.material()
+                                        )
+                                )
+                        ).withStyle(
+                                ChatFormatting.GOLD
+                        )
+                );
 
-            tooltip.add(
-                    Component.translatable(
-                            kind == AccessoryKind.ENGINEER_CAP
-                                    ? "accessory.workshop.tooltip.height"
-                                    : kind == AccessoryKind.SOMBRERO
-                                    ? "accessory.workshop.tooltip.brim"
-                                    : "accessory.workshop.tooltip.size",
-                            custom.size() + 1
-                    ).withStyle(
-                            ChatFormatting.GRAY
-                    )
-            );
+                tooltip.add(
+                        Component.translatable(
+                                kind == AccessoryKind.ENGINEER_CAP
+                                        ? "accessory.workshop.tooltip.height"
+                                        : kind == AccessoryKind.SOMBRERO
+                                        ? "accessory.workshop.tooltip.brim"
+                                        : "accessory.workshop.tooltip.size",
+                                custom.size() + 1
+                        ).withStyle(
+                                ChatFormatting.GRAY
+                        )
+                );
+            }
 
             if (kind == AccessoryKind.ENGINEER_CAP) {
                 tooltip.add(
