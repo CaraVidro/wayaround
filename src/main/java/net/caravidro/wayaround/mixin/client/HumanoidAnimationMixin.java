@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.mixin.client;
 
 import net.caravidro.wayaround.client.TopHatClientState;
+import net.caravidro.wayaround.client.TrouserPocketClientState;
 import net.caravidro.wayaround.client.cinematic.PlayerAnimationController;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.PlayerModel;
@@ -68,6 +69,13 @@ public abstract class HumanoidAnimationMixin<T extends LivingEntity> {
         );
 
         TopHatClientState.applyAdjustmentPose(
+                player,
+                model,
+                ageInTicks
+                        - player.tickCount
+        );
+
+        TrouserPocketClientState.applyRetrievePose(
                 player,
                 model,
                 ageInTicks
