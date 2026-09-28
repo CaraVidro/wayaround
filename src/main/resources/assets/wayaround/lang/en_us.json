@@ -193,7 +193,7 @@
   "item.wayaround.saw_blade": "Saw Blade",
   "block.wayaround.sawmill": "Assembly Sawmill",
   "message.wayaround.pulley.refined": "Wheel refined: %s -> %s sides | Shape efficiency: %s%%",
-  "message.wayaround.pulley.status": "Pulley: %s sides | Shape %s%% | %s | RPM %s | Wheel %s%% | Belt %s%%",
+  "message.wayaround.pulley.status": "Pulley: %s sides | Shape %s%% | %s | RPM %s | Wheel %s%% | Belt %s%% | Lines %s",
   "message.wayaround.pulley.no_belt": "No belt",
   "message.wayaround.pulley.has_belt": "Rope belt connected",
   "message.wayaround.pulley.belt_first": "Rope hooked to this wheel. Use the same string on a second pulley.",
@@ -337,7 +337,6 @@
   "container.wayaround.sawmill": "Sawmill",
   "container.wayaround.sawmill.planks": "10 Planks",
   "container.wayaround.sawmill.wheel_boards": "4 Water-Wheel Boards",
-  "container.wayaround.sawmill.wooden_nails": "20 Wooden Nails",
   "container.wayaround.sawmill.next_product": "Next log product",
   "container.wayaround.sawmill.progress": "Cut: %s%%",
   "container.wayaround.sawmill.crank_running": "Crank: turning",
@@ -540,5 +539,13 @@
   "accessory.workshop.tooltip.color": "Color: %s",
   "tooltip.wayaround.watching_eye": "Its pupil moves just enough to make eye contact feel intentional.",
   "tooltip.wayaround.cardboard_box": "A cardboard box. For your head. Excellent.",
-  "tooltip.wayaround.gas_mask": "Provides absolutely no protection. Looks convincing, though."
+  "tooltip.wayaround.gas_mask": "Provides absolutely no protection. Looks convincing, though.",
+  "block.wayaround.manual_crank": "Manual Crank",
+  "item.wayaround.manual_crank": "Manual Crank",
+  "container.wayaround.sawmill.wood": "10 Planks",
+  "container.wayaround.sawmill.shafts": "2 Wooden Shafts",
+  "container.wayaround.sawmill.wheel_body": "Water-Wheel Body",
+  "message.wayaround.pulley.line_added": "Another rope line was added: %s/%s.",
+  "message.wayaround.pulley.lines_full": "This pulley pair already has the maximum %s rope lines.",
+  "message.wayaround.water_wheel.ignited": "The water wheel caught fire."
 }
