@@ -3,6 +3,9 @@ package net.caravidro.wayaround.nexus;
 import java.util.Set;
 
 import net.caravidro.wayaround.WayAround;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -14,12 +17,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
+@EventBusSubscriber(modid = WayAround.MODID)
 public final class NexusPortalManager {
 
     public static final ResourceKey<Level> NEXUS =
@@ -42,6 +45,9 @@ public final class NexusPortalManager {
 
     private static final String WARN_COOLDOWN =
             "WayAroundNexusPortalWarnCooldown";
+
+    private static final String INSIDE =
+            "WayAroundNexusInside";
 
     private NexusPortalManager() {
     }
@@ -86,6 +92,18 @@ public final class NexusPortalManager {
                 destinationAnchor(
                         base
                 );
+
+        /*
+         * Do not force-load an empty Nexus every 40 ticks just to maintain a
+         * portal nobody can see. Entering the source portal explicitly creates
+         * the destination chamber; when the Nexus chunk is already loaded we
+         * keep both sides synchronized.
+         */
+        if (!nexus.hasChunkAt(
+                destination
+        )) {
+            return;
+        }
 
         if (open) {
             ensureDestinationChamber(
@@ -215,6 +233,11 @@ public final class NexusPortalManager {
                 now + 50L
         );
 
+        data.putBoolean(
+                INSIDE,
+                true
+        );
+
         BlockPos arrival =
                 destination.offset(
                         1,
@@ -337,6 +360,11 @@ public final class NexusPortalManager {
                 now + 50L
         );
 
+        data.putBoolean(
+                INSIDE,
+                false
+        );
+
         BlockPos arrival =
                 base.offset(
                         0,
@@ -385,6 +413,117 @@ public final class NexusPortalManager {
                         "message.wayaround.nexus.no_return_signal"
                 ),
                 true
+        );
+    }
+
+    @SubscribeEvent
+    public static void clone(
+            PlayerEvent.Clone event
+    ) {
+        if (!(event.getOriginal()
+                instanceof ServerPlayer original)
+                || !(event.getEntity()
+                instanceof ServerPlayer replacement)) {
+            return;
+        }
+
+        CompoundTag source =
+                original.getPersistentData();
+
+        CompoundTag target =
+                replacement.getPersistentData();
+
+        if (source.contains(
+                RETURN_DIMENSION
+        )) {
+            target.putString(
+                    RETURN_DIMENSION,
+                    source.getString(
+                            RETURN_DIMENSION
+                    )
+            );
+        }
+
+        if (source.contains(
+                RETURN_BASE
+        )) {
+            target.putLong(
+                    RETURN_BASE,
+                    source.getLong(
+                            RETURN_BASE
+                    )
+            );
+        }
+
+        target.putBoolean(
+                INSIDE,
+                source.getBoolean(
+                        INSIDE
+                )
+        );
+    }
+
+    @SubscribeEvent
+    public static void respawn(
+            PlayerEvent.PlayerRespawnEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof ServerPlayer player)
+                || !player.getPersistentData()
+                .getBoolean(
+                        INSIDE
+                )) {
+            return;
+        }
+
+        ServerLevel nexus =
+                player.server
+                        .getLevel(
+                                NEXUS
+                        );
+
+        if (nexus == null) {
+            return;
+        }
+
+        BlockPos base =
+                BlockPos.of(
+                        player.getPersistentData()
+                                .getLong(
+                                        RETURN_BASE
+                                )
+                );
+
+        BlockPos destination =
+                destinationAnchor(
+                        base
+                );
+
+        ensureDestinationChamber(
+                nexus,
+                destination
+        );
+
+        BlockPos arrival =
+                destination.offset(
+                        1,
+                        0,
+                        -3
+                );
+
+        /*
+         * Death is not an emergency exit. If you died inside, your respawn is
+         * routed back into the Nexus. The linked Nexustor remains the only way
+         * out.
+         */
+        player.teleportTo(
+                nexus,
+                arrival.getX() + 0.5,
+                arrival.getY(),
+                arrival.getZ() + 0.5,
+                Set.of(),
+                player.getYRot(),
+                player.getXRot()
         );
     }
 
