@@ -198,6 +198,81 @@ public final class AccessoryItem
             );
         }
 
+        if (AccessoryCustomizationData.supported(
+                kind
+        )) {
+            AccessoryCustomizationData.Config custom =
+                    AccessoryCustomizationData.read(
+                            stack,
+                            kind
+                    );
+
+            tooltip.add(
+                    Component.translatable(
+                            "accessory.workshop.tooltip.material",
+                            Component.translatable(
+                                    AccessoryCustomizationData.materialNameKey(
+                                            custom.material()
+                                    )
+                            )
+                    ).withStyle(
+                            ChatFormatting.GOLD
+                    )
+            );
+
+            tooltip.add(
+                    Component.translatable(
+                            kind == AccessoryKind.ENGINEER_CAP
+                                    ? "accessory.workshop.tooltip.height"
+                                    : kind == AccessoryKind.SOMBRERO
+                                    ? "accessory.workshop.tooltip.brim"
+                                    : "accessory.workshop.tooltip.size",
+                            custom.size() + 1
+                    ).withStyle(
+                            ChatFormatting.GRAY
+                    )
+            );
+
+            if (kind == AccessoryKind.ENGINEER_CAP) {
+                tooltip.add(
+                        Component.translatable(
+                                "accessory.workshop.tooltip.extras",
+                                custom.gears()
+                                        ? Component.translatable(
+                                        "accessory.workshop.extra.gears"
+                                )
+                                        : Component.translatable(
+                                        "accessory.workshop.extra.none"
+                                ),
+                                custom.clock()
+                                        ? Component.translatable(
+                                        "accessory.workshop.extra.clock"
+                                )
+                                        : Component.translatable(
+                                        "accessory.workshop.extra.none"
+                                )
+                        ).withStyle(
+                                ChatFormatting.DARK_GRAY
+                        )
+                );
+            }
+
+            if (kind == AccessoryKind.SOMBRERO) {
+                tooltip.add(
+                        Component.translatable(
+                                "accessory.workshop.tooltip.wool",
+                                Component.translatable(
+                                        AccessoryCustomizationData.woolNameKey(
+                                                custom.woolColor()
+                                        )
+                                )
+                        ).withStyle(
+                                ChatFormatting.DARK_GRAY
+                        )
+                );
+            }
+        }
+
         if (kind == AccessoryKind.ENGINEER_TROUSERS
                 && context.registries() != null) {
             ItemStack pocket =
