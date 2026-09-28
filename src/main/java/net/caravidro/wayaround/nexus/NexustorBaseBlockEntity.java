@@ -23,6 +23,7 @@ public final class NexustorBaseBlockEntity
 
     private boolean eventActive;
     private boolean complete;
+    private boolean portalEnabled;
 
     private int wave;
     private int killsRemaining;
@@ -263,6 +264,7 @@ public final class NexustorBaseBlockEntity
     public void finishEvent() {
         eventActive = false;
         complete = true;
+        portalEnabled = true;
         wave = 5;
         killsRemaining = 0;
         health = 100;
@@ -273,6 +275,7 @@ public final class NexustorBaseBlockEntity
     public void failEvent() {
         eventActive = false;
         complete = false;
+        portalEnabled = false;
         core = false;
         killsRemaining = 0;
         progress = 0.0F;
@@ -350,6 +353,20 @@ public final class NexustorBaseBlockEntity
 
     public boolean eventActive() { return eventActive; }
     public boolean complete() { return complete; }
+    public boolean portalEnabled() { return portalEnabled; }
+
+    public boolean togglePortal() {
+        if (!complete) {
+            return false;
+        }
+
+        portalEnabled =
+                !portalEnabled;
+
+        sync();
+
+        return portalEnabled;
+    }
     public int wave() { return wave; }
     public int killsRemaining() { return killsRemaining; }
     public int health() { return health; }
@@ -383,6 +400,7 @@ public final class NexustorBaseBlockEntity
         tag.putBoolean("Core", core);
         tag.putBoolean("EventActive", eventActive);
         tag.putBoolean("Complete", complete);
+        tag.putBoolean("PortalEnabled", portalEnabled);
         tag.putInt("Wave", wave);
         tag.putInt("KillsRemaining", killsRemaining);
         tag.putInt("Health", health);
@@ -404,6 +422,10 @@ public final class NexustorBaseBlockEntity
         core = tag.getBoolean("Core");
         eventActive = tag.getBoolean("EventActive");
         complete = tag.getBoolean("Complete");
+        portalEnabled =
+                tag.contains("PortalEnabled")
+                        ? tag.getBoolean("PortalEnabled")
+                        : complete;
         wave = tag.getInt("Wave");
         killsRemaining = tag.getInt("KillsRemaining");
         health = tag.contains("Health") ? tag.getInt("Health") : 100;
