@@ -5,7 +5,6 @@ import java.util.Set;
 
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
@@ -261,33 +260,45 @@ public final class EnhancedFireVisuals {
          * thin vertical line above larger fires. Up close the ordinary smoke
          * remains much denser than this distant marker.
          */
-        if (cluster >= 2
-                && primaryInCluster(
+        if (primaryInCluster(
                 level,
                 pos
-        )
-                && Math.floorMod(
-                level.getGameTime()
-                        + pos.asLong(),
-                16
-        ) < 4) {
+        )) {
+            int smokePeriod =
+                    cluster >= 2
+                            ? 16
+                            : 28;
 
-            level.sendParticles(
-                    viewer,
-                    ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
-                    true,
-                    pos.getX()
-                            + 0.5,
-                    pos.getY()
-                            + 1.35,
-                    pos.getZ()
-                            + 0.5,
-                    1,
-                    0.08,
-                    0.05,
-                    0.08,
-                    0.004
-            );
+            if (Math.floorMod(
+                    level.getGameTime()
+                            + pos.asLong(),
+                    smokePeriod
+            ) < 4) {
+                level.sendParticles(
+                        viewer,
+                        ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                        true,
+                        pos.getX()
+                                + 0.5,
+                        pos.getY()
+                                + (
+                                cluster >= 2
+                                        ? 1.35
+                                        : 1.05
+                        ),
+                        pos.getZ()
+                                + 0.5,
+                        1,
+                        cluster >= 2
+                                ? 0.08
+                                : 0.035,
+                        0.05,
+                        cluster >= 2
+                                ? 0.08
+                                : 0.035,
+                        0.004
+                );
+            }
         }
     }
 
@@ -341,20 +352,37 @@ public final class EnhancedFireVisuals {
         long own =
                 pos.asLong();
 
-        for (Direction direction :
-                Direction.values()) {
-            BlockPos neighbor =
-                    pos.relative(
-                            direction
-                    );
+        for (int x = -1;
+             x <= 1;
+             x++) {
+            for (int y = -1;
+                 y <= 1;
+                 y++) {
+                for (int z = -1;
+                     z <= 1;
+                     z++) {
+                    if (x == 0
+                            && y == 0
+                            && z == 0) {
+                        continue;
+                    }
 
-            if (level.getBlockState(
-                    neighbor
-            ).getBlock()
-                    instanceof BaseFireBlock
-                    && neighbor.asLong()
-                    < own) {
-                return false;
+                    BlockPos neighbor =
+                            pos.offset(
+                                    x,
+                                    y,
+                                    z
+                            );
+
+                    if (level.getBlockState(
+                            neighbor
+                    ).getBlock()
+                            instanceof BaseFireBlock
+                            && neighbor.asLong()
+                            < own) {
+                        return false;
+                    }
+                }
             }
         }
 
