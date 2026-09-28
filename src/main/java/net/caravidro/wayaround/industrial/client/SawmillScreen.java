@@ -34,20 +34,26 @@ public final class SawmillScreen
 
         addRecipeButton(
                 0,
-                "container.wayaround.sawmill.planks",
-                22
+                "container.wayaround.sawmill.wood",
+                16
         );
 
         addRecipeButton(
                 1,
                 "container.wayaround.sawmill.wheel_boards",
-                48
+                40
         );
 
         addRecipeButton(
                 2,
-                "container.wayaround.sawmill.wooden_nails",
-                74
+                "container.wayaround.sawmill.shafts",
+                64
+        );
+
+        addRecipeButton(
+                3,
+                "container.wayaround.sawmill.wheel_body",
+                88
         );
     }
 
@@ -106,9 +112,9 @@ public final class SawmillScreen
         );
 
         int selectedY =
-                22
+                16
                         + menu.selectedRecipe()
-                                * 26;
+                                * 24;
 
         graphics.fill(
                 leftPos + 12,
@@ -136,7 +142,7 @@ public final class SawmillScreen
                         menu.progressPercent()
                 ),
                 leftPos + 18,
-                topPos + 104,
+                topPos + 116,
                 0xFF2B2118,
                 false
         );
@@ -149,7 +155,7 @@ public final class SawmillScreen
                                 : "container.wayaround.sawmill.crank_stopped"
                 ),
                 leftPos + 108,
-                topPos + 104,
+                topPos + 116,
                 menu.manualCranking()
                         ? 0xFF346B30
                         : 0xFF6A4932,
