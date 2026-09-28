@@ -525,5 +525,20 @@
   "accessory.workshop.wool.12": "Brown",
   "accessory.workshop.wool.13": "Green",
   "accessory.workshop.wool.14": "Red",
-  "accessory.workshop.wool.15": "Black"
+  "accessory.workshop.wool.15": "Black",
+  "accessory.kit.wayaround.conventional": "Conventional",
+  "accessory.kit.wayaround.object_heads": "Object Heads",
+  "item.wayaround.formal_jacket": "Formal Jacket Template",
+  "item.wayaround.formal_trousers": "Formal Trousers Template",
+  "item.wayaround.casual_shirt": "Casual Shirt Template",
+  "item.wayaround.casual_trousers": "Casual Trousers Template",
+  "item.wayaround.watching_eye": "Watching Eye",
+  "item.wayaround.cardboard_box": "Cardboard Box",
+  "item.wayaround.gas_mask": "Useless Gas Mask",
+  "accessory.workshop.color": "Color: %s",
+  "accessory.workshop.clothing_hint": "Conventional templates only change color.",
+  "accessory.workshop.tooltip.color": "Color: %s",
+  "tooltip.wayaround.watching_eye": "Its pupil moves just enough to make eye contact feel intentional.",
+  "tooltip.wayaround.cardboard_box": "A cardboard box. For your head. Excellent.",
+  "tooltip.wayaround.gas_mask": "Provides absolutely no protection. Looks convincing, though."
 }
