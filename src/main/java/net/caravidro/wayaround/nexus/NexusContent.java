@@ -143,6 +143,20 @@ public final class NexusContent {
                     )
             );
 
+    public static final DeferredBlock<NexusPortalBlock> NEXUS_PORTAL =
+            BLOCKS.register(
+                    "nexus_portal",
+                    () -> new NexusPortalBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.COLOR_BLACK)
+                                    .strength(-1.0F, 3600000.0F)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .lightLevel(state -> 8)
+                                    .noLootTable()
+                    )
+            );
+
     public static final DeferredBlock<NexusPoolBlock> NEXUS_POOL =
             BLOCKS.register(
                     "nexus_pool",
