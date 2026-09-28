@@ -14,7 +14,8 @@
     "TukunaMobPickupMixin",
     "InfinityPushMixin",
     "EcologyFishingHookMixin",
-    "FireBlockMixin"
+    "FireBlockMixin",
+    "FireRenderShapeMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
