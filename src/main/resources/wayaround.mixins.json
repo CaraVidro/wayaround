@@ -16,7 +16,8 @@
     "EcologyFishingHookMixin",
     "FireBlockMixin",
     "FireRenderShapeMixin",
-    "FireAnimateTickMixin"
+    "FireAnimateTickMixin",
+    "FireBlockAccessor"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
