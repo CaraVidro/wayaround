@@ -10,6 +10,7 @@ import net.caravidro.wayaround.accessory.AccessorySlot;
 import net.caravidro.wayaround.accessory.AccessoryWear;
 import net.caravidro.wayaround.network.AccessoryStateS2CPayload;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -102,6 +103,10 @@ public final class AccessoryClientState {
                         wear,
                         glass,
                         payload.glassesMode(),
+                        payload.trouserPocket() == null
+                                ? ItemStack.EMPTY
+                                : payload.trouserPocket()
+                                .copy(),
                         seen
                 )
         );
@@ -151,6 +156,7 @@ public final class AccessoryClientState {
             int[] wear,
             int[] glass,
             int glassesMode,
+            ItemStack trouserPocket,
             long seenAt
     ) {
         public String path(
