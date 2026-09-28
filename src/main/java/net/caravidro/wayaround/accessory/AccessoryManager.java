@@ -48,6 +48,18 @@ public final class AccessoryManager {
     private static final String TROUSER_POCKET =
             "WayAroundAccessoryTrouserPocket";
 
+    private static final String HEAD_MATERIAL =
+            "WayAroundAccessoryHeadMaterial";
+
+    private static final String HEAD_SIZE =
+            "WayAroundAccessoryHeadSize";
+
+    private static final String HEAD_EXTRAS =
+            "WayAroundAccessoryHeadExtras";
+
+    private static final String HEAD_WOOL_COLOR =
+            "WayAroundAccessoryHeadWoolColor";
+
     private static final int POCKET_ANIMATION_TICKS =
             14;
 
@@ -97,6 +109,16 @@ public final class AccessoryManager {
                 )
                         : ItemStack.EMPTY;
 
+        AccessoryCustomizationData.Config incomingHead =
+                AccessoryCustomizationData.supported(
+                        kind
+                )
+                        ? AccessoryCustomizationData.read(
+                        held,
+                        kind
+                )
+                        : null;
+
         ItemStack old =
                 equippedStack(
                         player,
@@ -117,6 +139,14 @@ public final class AccessoryManager {
             setTrouserPocket(
                     player,
                     incomingPocket
+            );
+        }
+
+        if (incomingHead != null) {
+            setHeadCustomization(
+                    player,
+                    kind,
+                    incomingHead
             );
         }
 
@@ -190,6 +220,16 @@ public final class AccessoryManager {
                     )
                             : ItemStack.EMPTY;
 
+            AccessoryCustomizationData.Config incomingHead =
+                    AccessoryCustomizationData.supported(
+                            accessory.kind()
+                    )
+                            ? AccessoryCustomizationData.read(
+                            carried,
+                            accessory.kind()
+                    )
+                            : null;
+
             ItemStack old =
                     equippedStack(
                             player,
@@ -211,6 +251,14 @@ public final class AccessoryManager {
                 setTrouserPocket(
                         player,
                         incomingPocket
+                );
+            }
+
+            if (incomingHead != null) {
+                setHeadCustomization(
+                        player,
+                        accessory.kind(),
+                        incomingHead
                 );
             }
 
@@ -562,6 +610,18 @@ public final class AccessoryManager {
             );
         }
 
+        if (AccessoryCustomizationData.supported(
+                kind
+        )) {
+            AccessoryCustomizationData.write(
+                    stack,
+                    kind,
+                    headCustomization(
+                            player
+                    )
+            );
+        }
+
         return stack;
     }
 
@@ -639,6 +699,12 @@ public final class AccessoryManager {
                 );
             }
 
+            if (slot == AccessorySlot.HEAD) {
+                clearHeadCustomization(
+                        player
+                );
+            }
+
             return;
         }
 
@@ -686,6 +752,127 @@ public final class AccessoryManager {
                     ItemStack.EMPTY
             );
         }
+
+        if (slot == AccessorySlot.HEAD
+                && !AccessoryCustomizationData.supported(
+                kind
+        )) {
+            clearHeadCustomization(
+                    player
+            );
+        }
+    }
+
+    public static AccessoryCustomizationData.Config headCustomization(
+            ServerPlayer player
+    ) {
+        AccessoryKind kind =
+                equipped(
+                        player,
+                        AccessorySlot.HEAD
+                );
+
+        AccessoryCustomizationData.Config defaults =
+                AccessoryCustomizationData.defaults(
+                        kind
+                );
+
+        if (!AccessoryCustomizationData.supported(
+                kind
+        )) {
+            return defaults;
+        }
+
+        CompoundTag data =
+                player.getPersistentData();
+
+        if (!data.contains(
+                HEAD_MATERIAL
+        )) {
+            return defaults;
+        }
+
+        return AccessoryCustomizationData.sanitize(
+                kind,
+                new AccessoryCustomizationData.Config(
+                        data.getInt(
+                                HEAD_MATERIAL
+                        ),
+                        data.getInt(
+                                HEAD_SIZE
+                        ),
+                        data.getInt(
+                                HEAD_EXTRAS
+                        ),
+                        data.getInt(
+                                HEAD_WOOL_COLOR
+                        )
+                )
+        );
+    }
+
+    private static void setHeadCustomization(
+            ServerPlayer player,
+            AccessoryKind kind,
+            AccessoryCustomizationData.Config config
+    ) {
+        if (!AccessoryCustomizationData.supported(
+                kind
+        )) {
+            clearHeadCustomization(
+                    player
+            );
+            return;
+        }
+
+        AccessoryCustomizationData.Config safe =
+                AccessoryCustomizationData.sanitize(
+                        kind,
+                        config
+                );
+
+        CompoundTag data =
+                player.getPersistentData();
+
+        data.putInt(
+                HEAD_MATERIAL,
+                safe.material()
+        );
+
+        data.putInt(
+                HEAD_SIZE,
+                safe.size()
+        );
+
+        data.putInt(
+                HEAD_EXTRAS,
+                safe.extras()
+        );
+
+        data.putInt(
+                HEAD_WOOL_COLOR,
+                safe.woolColor()
+        );
+    }
+
+    private static void clearHeadCustomization(
+            ServerPlayer player
+    ) {
+        CompoundTag data =
+                player.getPersistentData();
+
+        data.remove(
+                HEAD_MATERIAL
+        );
+        data.remove(
+                HEAD_SIZE
+        );
+        data.remove(
+                HEAD_EXTRAS
+        );
+        data.remove(
+                HEAD_WOOL_COLOR
+        );
     }
 
     public static ItemStack trouserPocket(
@@ -1052,6 +1239,11 @@ public final class AccessoryManager {
                     );
         }
 
+        AccessoryCustomizationData.Config head =
+                headCustomization(
+                        player
+                );
+
         AccessoryStateS2CPayload payload =
                 new AccessoryStateS2CPayload(
                         player.getUUID(),
@@ -1063,7 +1255,11 @@ public final class AccessoryManager {
                         ),
                         trouserPocket(
                                 player
-                        )
+                        ),
+                        head.material(),
+                        head.size(),
+                        head.extras(),
+                        head.woolColor()
                 );
 
         PacketDistributor.sendToPlayersNear(
@@ -1276,6 +1472,27 @@ public final class AccessoryManager {
                                     )
                                     .copy()
                     );
+        }
+
+        for (String key : new String[]{
+                HEAD_MATERIAL,
+                HEAD_SIZE,
+                HEAD_EXTRAS,
+                HEAD_WOOL_COLOR
+        }) {
+            if (original.getPersistentData()
+                    .contains(
+                            key
+                    )) {
+                replacement.getPersistentData()
+                        .putInt(
+                                key,
+                                original.getPersistentData()
+                                        .getInt(
+                                                key
+                                        )
+                        );
+            }
         }
 
         POCKET_RETRIEVALS.remove(
