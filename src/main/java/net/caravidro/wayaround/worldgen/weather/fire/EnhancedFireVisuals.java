@@ -43,6 +43,8 @@ public final class EnhancedFireVisuals {
     private static final int STEP =
             4;
 
+    private static int spreadBudget;
+
     private EnhancedFireVisuals() {
     }
 
@@ -85,6 +87,14 @@ public final class EnhancedFireVisuals {
             return;
         }
 
+        spreadBudget =
+                Math.max(
+                        72,
+                        server.getPlayerList()
+                                .getPlayerCount()
+                                * 96
+                );
+
         /*
          * Use a snapshot because a large fire may create new vanilla fire
          * blocks during this pass. Their onPlace mixin registers them in ACTIVE
@@ -112,6 +122,15 @@ public final class EnhancedFireVisuals {
 
             BlockPos pos =
                     key.pos();
+
+            if (!level.hasChunkAt(
+                    pos
+            )) {
+                ACTIVE.remove(
+                        key
+                );
+                continue;
+            }
 
             if (!(level.getBlockState(
                     pos
@@ -261,6 +280,10 @@ public final class EnhancedFireVisuals {
             int neighbors,
             boolean raining
     ) {
+        if (spreadBudget <= 0) {
+            return;
+        }
+
         if (raining
                 && level.random.nextFloat()
                 < 0.72F) {
@@ -393,6 +416,12 @@ public final class EnhancedFireVisuals {
                             fireState,
                             Block.UPDATE_ALL
                     );
+
+                    spreadBudget =
+                            Math.max(
+                                    0,
+                                    spreadBudget - 1
+                            );
 
                     inheritSpreadHeat(
                             level,
