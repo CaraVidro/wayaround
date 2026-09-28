@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.accessory.AccessoryCustomizationData;
 import net.caravidro.wayaround.accessory.AccessoryKind;
 import net.caravidro.wayaround.accessory.AccessoryMotion;
 import net.caravidro.wayaround.accessory.AccessorySlot;
@@ -226,7 +227,33 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             false,
-                            event
+                            event,
+                            state.headMaterial(),
+                            state.headSize(),
+                            state.headExtras()
+                    );
+
+            case CUSTOM_HAT ->
+                    customHat(
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            state.headMaterial(),
+                            state.headSize()
+                    );
+
+            case SOMBRERO ->
+                    sombrero(
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            state.headMaterial(),
+                            state.headSize(),
+                            state.headWoolColor()
                     );
 
             case AERO_ENGINEER_CAP ->
@@ -237,7 +264,10 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             true,
-                            event
+                            event,
+                            0,
+                            2,
+                            0
                     );
 
             case CHEF_HAT ->
@@ -682,7 +712,10 @@ public final class AccessoryRenderer {
             MultiBufferSource buffers,
             int light,
             boolean aero,
-            RenderPlayerEvent.Post event
+            RenderPlayerEvent.Post event,
+            int material,
+            int size,
+            int extras
     ) {
         if (!aero) {
             MotionSample motion =
@@ -718,7 +751,10 @@ public final class AccessoryRenderer {
                             * 0.18F,
                     motion.side(),
                     instability,
-                    motion.time()
+                    motion.time(),
+                    material,
+                    size,
+                    extras
             );
 
             return;
@@ -824,6 +860,182 @@ public final class AccessoryRenderer {
                     0
             );
         }
+    }
+
+    private static void customHat(
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int material,
+            int size
+    ) {
+        BlockState main =
+                AccessoryCustomizationData.materialState(
+                        material
+                );
+
+        BlockState trim =
+                wear >= 2
+                        ? Blocks.EXPOSED_COPPER.defaultBlockState()
+                        : Blocks.CUT_COPPER.defaultBlockState();
+
+        float scale =
+                0.84F
+                        + AccessoryCustomizationData.clampSize(
+                        size
+                ) * 0.08F;
+
+        pose.pushPose();
+        pose.translate(
+                0.0,
+                0.055,
+                0.0
+        );
+
+        // Flat brim, then a low faceted crown. All sides have actual volume.
+        piece(pose, blocks, buffers, light, Blocks.DARK_OAK_PLANKS.defaultBlockState(),
+                0.0, -0.490, 0.0,
+                0.67 * scale, 0.052, 0.58 * scale,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light, main,
+                0.0, -0.565, 0.0,
+                0.49 * scale, 0.16, 0.45 * scale,
+                0, 0, wear >= 2 ? -3 : 0);
+
+        piece(pose, blocks, buffers, light, main,
+                0.0, -0.700, 0.015,
+                0.43 * scale, 0.16, 0.39 * scale,
+                0, 0, wear >= 2 ? -5 : 0);
+
+        // Front/back band and side clamps make the model readable in 360°.
+        piece(pose, blocks, buffers, light, trim,
+                0.0, -0.610, -0.230 * scale,
+                0.45 * scale, 0.055, 0.035,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, trim,
+                0.0, -0.610, 0.230 * scale,
+                0.45 * scale, 0.055, 0.035,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, trim,
+                -0.248 * scale, -0.610, 0.0,
+                0.035, 0.055, 0.42 * scale,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, trim,
+                0.248 * scale, -0.610, 0.0,
+                0.035, 0.055, 0.42 * scale,
+                0, 0, 0);
+
+        if (wear < 2) {
+            piece(pose, blocks, buffers, light, trim,
+                    0.16 * scale, -0.615, -0.252 * scale,
+                    0.11, 0.085, 0.025,
+                    0, 0, 0);
+        }
+
+        pose.popPose();
+    }
+
+    private static void sombrero(
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int material,
+            int size,
+            int woolColor
+    ) {
+        BlockState main =
+                AccessoryCustomizationData.materialState(
+                        material
+                );
+
+        BlockState wool =
+                AccessoryCustomizationData.woolState(
+                        woolColor
+                );
+
+        double brim =
+                0.78
+                        + AccessoryCustomizationData.clampSize(
+                        size
+                ) * 0.11;
+
+        pose.pushPose();
+        pose.translate(
+                0.0,
+                0.060,
+                0.0
+        );
+
+        // Broad stepped brim. Separate edge panels keep it from looking like a slab.
+        piece(pose, blocks, buffers, light, main,
+                0.0, -0.485, 0.0,
+                brim, 0.045, brim,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light, wool,
+                0.0, -0.505, -brim * 0.48,
+                brim * 0.92, 0.032, 0.065,
+                0, 0, -3);
+        piece(pose, blocks, buffers, light, wool,
+                0.0, -0.505, brim * 0.48,
+                brim * 0.92, 0.032, 0.065,
+                0, 0, 3);
+        piece(pose, blocks, buffers, light, wool,
+                -brim * 0.48, -0.505, 0.0,
+                0.065, 0.032, brim * 0.92,
+                0, 0, 3);
+        piece(pose, blocks, buffers, light, wool,
+                brim * 0.48, -0.505, 0.0,
+                0.065, 0.032, brim * 0.92,
+                0, 0, -3);
+
+        // Crown tapers upward and is fully closed from all directions.
+        piece(pose, blocks, buffers, light, main,
+                0.0, -0.610, 0.0,
+                0.48, 0.22, 0.48,
+                0, 0, wear >= 2 ? 4 : 0);
+        piece(pose, blocks, buffers, light, main,
+                0.0, -0.760, 0.0,
+                0.39, 0.15, 0.39,
+                0, 0, wear >= 2 ? 5 : 0);
+
+        // Wool band wraps the full crown rather than only the front.
+        piece(pose, blocks, buffers, light, wool,
+                0.0, -0.635, -0.252,
+                0.49, 0.065, 0.032,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, wool,
+                0.0, -0.635, 0.252,
+                0.49, 0.065, 0.032,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, wool,
+                -0.252, -0.635, 0.0,
+                0.032, 0.065, 0.49,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, wool,
+                0.252, -0.635, 0.0,
+                0.032, 0.065, 0.49,
+                0, 0, 0);
+
+        if (wear < 2) {
+            for (int side : new int[]{-1, 1}) {
+                piece(pose, blocks, buffers, light, wool,
+                        side * brim * 0.32, -0.525, -brim * 0.37,
+                        0.055, 0.035, 0.055,
+                        0, 0, side * 12);
+                piece(pose, blocks, buffers, light, wool,
+                        side * brim * 0.32, -0.525, brim * 0.37,
+                        0.055, 0.035, 0.055,
+                        0, 0, side * -12);
+            }
+        }
+
+        pose.popPose();
     }
 
     private static void gauge(PoseStack pose, BlockRenderDispatcher blocks,
@@ -1627,35 +1839,137 @@ public final class AccessoryRenderer {
                         Blocks.BROWN_TERRACOTTA.defaultBlockState()
                 );
 
+        boolean engineer =
+                kind == AccessoryKind.ENGINEER_GLOVES
+                        || kind == AccessoryKind.WORK_GLOVES;
+
+        boolean aero =
+                kind == AccessoryKind.AERO_GLOVES;
+
+        BlockState metal =
+                aero
+                        ? Blocks.CUT_COPPER.defaultBlockState()
+                        : engineer
+                        ? Blocks.CUT_COPPER.defaultBlockState()
+                        : Blocks.IRON_BLOCK.defaultBlockState();
+
+        // Wrist cuff wraps all four sides instead of being a floating front plate.
         piece(pose, blocks, buffers, light, material,
-                0.0, 0.62, 0.0,
-                wear == 2 && !left ? 0.24 : 0.30,
-                wear == 2 && !left ? 0.20 : 0.29,
-                0.30,
+                0.0, 0.475, 0.0,
+                0.325, 0.105, 0.325,
+                0, 0, 0);
+
+        // Palm block is slightly broader and lower than the forearm.
+        piece(pose, blocks, buffers, light, material,
+                0.0, 0.610, 0.0,
+                wear == 2 && !left ? 0.255 : 0.315,
+                wear == 2 && !left ? 0.205 : 0.255,
+                0.315,
                 0, 0, wear == 2 && !left ? 5 : 0);
 
-        if (kind != AccessoryKind.CHEF_GLOVES
-                && wear < 2) {
+        // Back-of-hand armor, palm pad and both side rails make it read in 360°.
+        if (kind != AccessoryKind.CHEF_GLOVES) {
+            piece(pose, blocks, buffers, light, metal,
+                    0.0, 0.585, -0.174,
+                    0.225, 0.135, 0.034,
+                    0, 0, 0);
+
             piece(pose, blocks, buffers, light,
-                    kind == AccessoryKind.AERO_GLOVES
-                            ? Blocks.CUT_COPPER.defaultBlockState()
-                            : Blocks.IRON_BLOCK.defaultBlockState(),
-                    0.0, 0.58, -0.17,
-                    0.18, 0.10, 0.035,
+                    engineer
+                            ? Blocks.DARK_OAK_PLANKS.defaultBlockState()
+                            : material,
+                    0.0, 0.610, 0.174,
+                    0.235, 0.145, 0.032,
+                    0, 0, 0);
+
+            if (wear < 2) {
+                piece(pose, blocks, buffers, light, metal,
+                        -0.173, 0.595, 0.0,
+                        0.030, 0.135, 0.285,
+                        0, 0, 0);
+                piece(pose, blocks, buffers, light, metal,
+                        0.173, 0.595, 0.0,
+                        0.030, 0.135, 0.285,
+                        0, 0, 0);
+            }
+        }
+
+        if (engineer) {
+            BlockState brass =
+                    wear >= 2
+                            ? Blocks.EXPOSED_COPPER.defaultBlockState()
+                            : Blocks.CUT_COPPER.defaultBlockState();
+
+            // Mechanical cuff band wraps around the wrist.
+            piece(pose, blocks, buffers, light, brass,
+                    0.0, 0.470, -0.172,
+                    0.325, 0.050, 0.033,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, brass,
+                    0.0, 0.470, 0.172,
+                    0.325, 0.050, 0.033,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, brass,
+                    -0.172, 0.470, 0.0,
+                    0.033, 0.050, 0.325,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, brass,
+                    0.172, 0.470, 0.0,
+                    0.033, 0.050, 0.325,
+                    0, 0, 0);
+
+            if (wear < 2) {
+                // Small piston and hinge on the outer side of each glove.
+                double outer =
+                        left
+                                ? -0.190
+                                : 0.190;
+
+                piece(pose, blocks, buffers, light, brass,
+                        outer, 0.610, -0.055,
+                        0.055, 0.170, 0.085,
+                        0, 0, 0);
+
+                piece(pose, blocks, buffers, light,
+                        Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                        outer, 0.675, 0.020,
+                        0.070, 0.055, 0.105,
+                        0, 0, 0);
+
+                // Knuckle plates: three independent caps rather than one slab.
+                for (int i = -1; i <= 1; i++) {
+                    piece(pose, blocks, buffers, light, brass,
+                            i * 0.083, 0.700, -0.185,
+                            0.060, 0.055, 0.030,
+                            0, 0, 0);
+                }
+            }
+        } else if (aero && wear < 2) {
+            // Aero glove gets a narrow copper dorsal rail and side vents.
+            piece(pose, blocks, buffers, light, metal,
+                    0.0, 0.640, -0.190,
+                    0.075, 0.210, 0.028,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, Blocks.IRON_BARS.defaultBlockState(),
+                    left ? -0.183 : 0.183, 0.620, 0.0,
+                    0.026, 0.145, 0.210,
                     0, 0, 0);
         }
 
-        if (kind == AccessoryKind.ENGINEER_GLOVES
-                || kind == AccessoryKind.WORK_GLOVES) {
-            BlockState brass = Blocks.CUT_COPPER.defaultBlockState();
-            piece(pose, blocks, buffers, light, brass,
-                    0.0, 0.48, -0.168, 0.31, 0.045, 0.045, 0, 0, 0);
-            if (wear < 2) {
-                piece(pose, blocks, buffers, light, brass,
-                        left ? -0.08 : 0.08, 0.69, -0.176,
-                        0.07, 0.12, 0.025, 0, 0, 0);
-            }
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.GRAY_WOOL.defaultBlockState(),
+                    left ? -0.075 : 0.075,
+                    0.635,
+                    0.180,
+                    0.095,
+                    0.095,
+                    0.020,
+                    0,
+                    0,
+                    left ? -8 : 8);
         }
+
         pose.popPose();
     }
 
