@@ -227,9 +227,11 @@ public final class WaterWheelHubBlockEntity
             );
         }
 
-        hub.tickBurning(
+        if (hub.tickBurning(
                 server
-        );
+        )) {
+            return;
+        }
 
         if (Math.floorMod(
                 time + pos.asLong(),
@@ -438,7 +440,7 @@ public final class WaterWheelHubBlockEntity
         return false;
     }
 
-    private void tickBurning(
+    private boolean tickBurning(
             ServerLevel server
     ) {
         if (burnTicks <= 0
@@ -447,7 +449,7 @@ public final class WaterWheelHubBlockEntity
                     0;
             burnIntensity =
                     0.0F;
-            return;
+            return false;
         }
 
         int totalBoards =
@@ -517,6 +519,88 @@ public final class WaterWheelHubBlockEntity
             );
         }
 
+        /*
+         * Fire consumes the actual wooden assembly, not just a wear number.
+         * Once the blaze is established, paddles disappear from the renderer
+         * every few ticks. Nothing is dropped: the wood was burned.
+         */
+        if (burnIntensity > 0.34F
+                && !plates.isEmpty()
+                && Math.floorMod(
+                server.getGameTime()
+                        + worldPosition.asLong(),
+                burnIntensity > 0.72F
+                        ? 6
+                        : 10
+        ) == 0) {
+
+            int removeCount =
+                    burnIntensity > 0.82F
+                            ? 2
+                            : 1;
+
+            for (int i = 0;
+                 i < removeCount
+                         && !plates.isEmpty();
+                 i++) {
+
+                int index =
+                        server.random.nextInt(
+                                plates.size()
+                        );
+
+                Plate removed =
+                        plates.remove(
+                                index
+                        );
+
+                double angle =
+                        removed.anchorAngle
+                                + Math.toRadians(
+                                rotationDegrees
+                        );
+
+                Vec3 point =
+                        Vec3.atCenterOf(
+                                worldPosition
+                        ).add(
+                                radialVector(
+                                        axleAxis(),
+                                        angle
+                                ).scale(
+                                        removed.anchorRadius
+                                )
+                        );
+
+                server.sendParticles(
+                        ParticleTypes.FLAME,
+                        point.x,
+                        point.y,
+                        point.z,
+                        5,
+                        0.28,
+                        0.24,
+                        0.28,
+                        0.025
+                );
+
+                server.sendParticles(
+                        ParticleTypes.LARGE_SMOKE,
+                        point.x,
+                        point.y + 0.18,
+                        point.z,
+                        4,
+                        0.24,
+                        0.20,
+                        0.24,
+                        0.022
+                );
+            }
+
+            setChanged();
+            sync();
+        }
+
         if (Math.floorMod(
                 server.getGameTime()
                         + worldPosition.asLong(),
@@ -528,9 +612,9 @@ public final class WaterWheelHubBlockEntity
                     Math.max(
                             1,
                             Math.round(
-                                    22.0F
+                                    260.0F
                                             + burnIntensity
-                                                    * 92.0F
+                                                    * 640.0F
                             )
                     );
 
@@ -554,9 +638,9 @@ public final class WaterWheelHubBlockEntity
                         Math.max(
                                 1,
                                 Math.round(
-                                        28.0F
+                                        380.0F
                                                 + burnIntensity
-                                                        * 118.0F
+                                                        * 820.0F
                                 )
                         );
 
@@ -576,6 +660,71 @@ public final class WaterWheelHubBlockEntity
             setChanged();
         }
 
+        boolean frameGone =
+                frameWear
+                        >= Math.round(
+                        AssemblyItemData.MAX_COMPONENT_WEAR
+                                * 0.64F
+                );
+
+        boolean paddlesGone =
+                plates.isEmpty()
+                        && burnIntensity > 0.42F;
+
+        if ((frameGone
+                && burnIntensity > 0.58F)
+                || paddlesGone) {
+
+            Vec3 center =
+                    Vec3.atCenterOf(
+                            worldPosition
+                    );
+
+            server.sendParticles(
+                    ParticleTypes.FLAME,
+                    center.x,
+                    center.y,
+                    center.z,
+                    18,
+                    1.15,
+                    1.15,
+                    1.15,
+                    0.045
+            );
+
+            server.sendParticles(
+                    ParticleTypes.LARGE_SMOKE,
+                    center.x,
+                    center.y + 0.45,
+                    center.z,
+                    24,
+                    1.35,
+                    1.05,
+                    1.35,
+                    0.035
+            );
+
+            server.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.WOOD_BREAK,
+                    SoundSource.BLOCKS,
+                    1.15F,
+                    0.68F
+            );
+
+            /*
+             * No drops: the assembly has been consumed by the fire. Supports
+             * remain, but the wheel body and all remaining wooden parts vanish.
+             */
+            server.destroyBlock(
+                    worldPosition,
+                    false
+            );
+
+            return true;
+        }
+
         if (burnTicks <= 0
                 && burnIntensity < 0.02F) {
             burnIntensity =
@@ -590,6 +739,8 @@ public final class WaterWheelHubBlockEntity
                     1.10F
             );
         }
+
+        return false;
     }
 
     private void emitBurningFeedback(
