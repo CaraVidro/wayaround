@@ -889,6 +889,12 @@ public final class NexusEventManager {
     ) {
         reactor.finishEvent();
 
+        NexusPortalManager.sync(
+                level,
+                base,
+                reactor
+        );
+
         clearInfected(
                 level,
                 base
@@ -928,17 +934,6 @@ public final class NexusEventManager {
                     false
             );
 
-            if (player.serverLevel() == level
-                    && player.distanceToSqr(
-                    Vec3.atCenterOf(
-                            base
-                    )
-            ) <= BOSS_BAR_RADIUS
-                    * BOSS_BAR_RADIUS) {
-                NexusAdvancements.theNexus(
-                        player
-                );
-            }
         }
 
         syncState(
@@ -1249,6 +1244,12 @@ public final class NexusEventManager {
         }
 
         if (now % 40L == 0L) {
+            NexusPortalManager.sync(
+                    level,
+                    base,
+                    reactor
+            );
+
             syncState(
                     level,
                     base,
