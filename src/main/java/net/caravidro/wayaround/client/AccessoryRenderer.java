@@ -17,6 +17,8 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -484,6 +486,19 @@ public final class AccessoryRenderer {
                             Blocks.BROWN_WOOL.defaultBlockState();
                 };
 
+        if (kind == AccessoryKind.ENGINEER_TROUSERS) {
+            engineerTrousers(
+                    model,
+                    pose,
+                    blocks,
+                    buffers,
+                    light,
+                    wear,
+                    state.trouserPocket()
+            );
+            return;
+        }
+
         trousers(
                 model.leftLeg,
                 pose,
@@ -505,10 +520,6 @@ public final class AccessoryRenderer {
                 fabric,
                 false
         );
-        if (kind == AccessoryKind.ENGINEER_TROUSERS) {
-            engineerTrouserDetail(model.leftLeg, pose, blocks, buffers, light, wear, true);
-            engineerTrouserDetail(model.rightLeg, pose, blocks, buffers, light, wear, false);
-        }
     }
 
     private static void renderFeet(
@@ -919,17 +930,269 @@ public final class AccessoryRenderer {
         }
     }
 
-    private static void engineerTrouserDetail(ModelPart leg, PoseStack pose,
-            BlockRenderDispatcher blocks, MultiBufferSource buffers,
-            int light, int wear, boolean left) {
+    private static void engineerTrousers(
+            PlayerModel<?> model,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            ItemStack pocketItem
+    ) {
+        BlockState cloth =
+                wear >= 2
+                        ? Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                        : Blocks.BROWN_WOOL.defaultBlockState();
+
+        BlockState leather =
+                Blocks.DARK_OAK_PLANKS.defaultBlockState();
+
+        BlockState brass =
+                wear >= 2
+                        ? Blocks.EXPOSED_COPPER.defaultBlockState()
+                        : Blocks.CUT_COPPER.defaultBlockState();
+
+        /*
+         * Waist belt belongs to the torso bone, while every lower piece follows
+         * its own leg. This keeps the silhouette coherent from the back and the
+         * sides instead of looking like two painted vanilla legs.
+         */
         pose.pushPose();
-        leg.translateAndRotate(pose);
-        piece(pose, blocks, buffers, light, Blocks.DARK_OAK_PLANKS.defaultBlockState(),
-                0, 0.47, -0.174, 0.32, 0.062, 0.036, 0, 0, 0);
-        if (wear < 2) piece(pose, blocks, buffers, light,
-                Blocks.CUT_COPPER.defaultBlockState(),
-                left ? -0.10 : 0.10, 0.47, -0.197,
-                0.05, 0.055, 0.021, 0, 0, 0);
+        model.body.translateAndRotate(
+                pose
+        );
+
+        piece(pose, blocks, buffers, light, leather,
+                0.0, 0.705, 0.0,
+                0.59, 0.075, 0.36,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light, brass,
+                0.17, 0.705, -0.195,
+                0.105, 0.095, 0.028,
+                0, 0, 0);
+
+        if (wear < 2) {
+            for (int side : new int[]{-1, 1}) {
+                piece(pose, blocks, buffers, light, brass,
+                        side * 0.24, 0.705, 0.0,
+                        0.030, 0.105, 0.37,
+                        0, 0, 0);
+            }
+        }
+
+        pose.popPose();
+
+        engineerTrouserLeg(
+                model.leftLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                cloth,
+                leather,
+                brass,
+                true,
+                ItemStack.EMPTY
+        );
+
+        engineerTrouserLeg(
+                model.rightLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                cloth,
+                leather,
+                brass,
+                false,
+                pocketItem == null
+                        ? ItemStack.EMPTY
+                        : pocketItem
+        );
+    }
+
+    private static void engineerTrouserLeg(
+            ModelPart leg,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState cloth,
+            BlockState leather,
+            BlockState brass,
+            boolean left,
+            ItemStack pocketItem
+    ) {
+        pose.pushPose();
+        leg.translateAndRotate(
+                pose
+        );
+
+        double width =
+                wear >= 2 && !left
+                        ? 0.29
+                        : 0.335;
+
+        double length =
+                wear >= 2 && !left
+                        ? 0.54
+                        : 0.675;
+
+        // Main wrapped leg volume.
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.315, 0.0,
+                width, length, 0.345,
+                0, 0, wear >= 2 && !left ? 3 : 0);
+
+        // Front knee reinforcement.
+        piece(pose, blocks, buffers, light, leather,
+                0.0, 0.485, -0.182,
+                width + 0.015, 0.205, 0.035,
+                0, 0, 0);
+
+        // Rear wear panel makes the back as intentional as the front.
+        piece(pose, blocks, buffers, light,
+                wear >= 2
+                        ? Blocks.GRAY_WOOL.defaultBlockState()
+                        : Blocks.BROWN_TERRACOTTA.defaultBlockState(),
+                0.0, 0.300, 0.181,
+                width - 0.040, 0.220, 0.032,
+                0, 0, 0);
+
+        // Outer seam and inner seam.
+        double outer =
+                left
+                        ? -0.178
+                        : 0.178;
+
+        piece(pose, blocks, buffers, light, leather,
+                outer, 0.315, 0.0,
+                0.035, length - 0.045, 0.330,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light, brass,
+                -outer, 0.330, 0.0,
+                0.022, length - 0.110, 0.315,
+                0, 0, 0);
+
+        // Thigh strap wraps visually around all four sides.
+        double strapY =
+                0.205;
+
+        piece(pose, blocks, buffers, light, leather,
+                0.0, strapY, -0.180,
+                width + 0.035, 0.060, 0.035,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, leather,
+                0.0, strapY, 0.180,
+                width + 0.035, 0.060, 0.035,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, leather,
+                -0.180, strapY, 0.0,
+                0.035, 0.060, 0.335,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, leather,
+                0.180, strapY, 0.0,
+                0.035, 0.060, 0.335,
+                0, 0, 0);
+
+        if (wear < 2) {
+            piece(pose, blocks, buffers, light, brass,
+                    outer, 0.485, -0.205,
+                    0.060, 0.070, 0.025,
+                    0, 0, 0);
+
+            piece(pose, blocks, buffers, light, brass,
+                    outer, 0.485, 0.205,
+                    0.060, 0.070, 0.025,
+                    0, 0, 0);
+        }
+
+        /*
+         * Single utility pocket lives on the outside of the right thigh.
+         * Render the contained item first and the pocket wall second: depth
+         * testing naturally hides its lower half, so it actually looks tucked
+         * inside instead of pasted onto the front of the trousers.
+         */
+        if (!left) {
+            if (pocketItem != null
+                    && !pocketItem.isEmpty()) {
+                pose.pushPose();
+
+                pose.translate(
+                        0.196,
+                        0.145,
+                        0.015
+                );
+
+                pose.mulPose(
+                        Axis.YP.rotationDegrees(
+                                -90.0F
+                        )
+                );
+
+                pose.mulPose(
+                        Axis.ZP.rotationDegrees(
+                                -7.0F
+                        )
+                );
+
+                pose.scale(
+                        0.24F,
+                        0.24F,
+                        0.24F
+                );
+
+                Minecraft minecraft =
+                        Minecraft.getInstance();
+
+                minecraft.getItemRenderer()
+                        .renderStatic(
+                                pocketItem,
+                                ItemDisplayContext.FIXED,
+                                light,
+                                OverlayTexture.NO_OVERLAY,
+                                pose,
+                                buffers,
+                                minecraft.level,
+                                31
+                        );
+
+                pose.popPose();
+            }
+
+            // Pocket bag/body.
+            piece(pose, blocks, buffers, light, leather,
+                    0.205, 0.335, 0.015,
+                    0.055, 0.245, 0.285,
+                    0, 0, 0);
+
+            // Slightly raised flap and brass closure.
+            piece(pose, blocks, buffers, light, cloth,
+                    0.222, 0.225, 0.015,
+                    0.035, 0.075, 0.300,
+                    0, 0, -3);
+
+            piece(pose, blocks, buffers, light, brass,
+                    0.242, 0.260, 0.015,
+                    0.025, 0.050, 0.065,
+                    0, 0, 0);
+
+            // Rear hinge/rivet detail keeps the pocket readable from behind.
+            piece(pose, blocks, buffers, light, brass,
+                    0.215, 0.390, 0.128,
+                    0.030, 0.035, 0.045,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, brass,
+                    0.215, 0.390, -0.098,
+                    0.030, 0.035, 0.045,
+                    0, 0, 0);
+        }
+
         pose.popPose();
     }
 
