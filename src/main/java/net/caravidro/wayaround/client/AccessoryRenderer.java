@@ -1,35 +1,39 @@
 package net.caravidro.wayaround.client;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.accessory.AccessoryKind;
+import net.caravidro.wayaround.accessory.AccessoryMotion;
+import net.caravidro.wayaround.accessory.AccessorySlot;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
+import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderPlayerEvent;
-import org.joml.Matrix4f;
 
 /**
- * Procedural 3D accessories attached directly to vanilla PlayerModel bones.
+ * Procedural textured clothing attached directly to vanilla PlayerModel bones.
  *
- * No flat "sticker" quads: glasses, gloves and boots are small volumetric
- * cuboids, while the engineer cape is a chain of thin hinged cuboids whose
- * angle responds to player velocity.
+ * Every solid piece is rendered through Minecraft's BlockRenderDispatcher,
+ * which means the equipment uses real vanilla block textures rather than flat
+ * debug colours. Bone-local placement makes sleeves/boots/hats follow whatever
+ * pose an animation has already applied to the player model.
  */
 @EventBusSubscriber(
         modid = WayAround.MODID,
@@ -37,7 +41,8 @@ import org.joml.Matrix4f;
 )
 public final class AccessoryRenderer {
 
-    private AccessoryRenderer() {}
+    private AccessoryRenderer() {
+    }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void render(
@@ -56,12 +61,7 @@ public final class AccessoryRenderer {
                 );
 
         if (state == null
-                || (
-                state.head().isBlank()
-                        && state.hands().isBlank()
-                        && state.torso().isBlank()
-                        && state.feet().isBlank()
-        )) {
+                || state.empty()) {
             return;
         }
 
@@ -72,12 +72,18 @@ public final class AccessoryRenderer {
                 event.getRenderer()
                         .getModel();
 
+        BlockRenderDispatcher blocks =
+                Minecraft.getInstance()
+                        .getBlockRenderer();
+
+        MultiBufferSource buffers =
+                event.getMultiBufferSource();
+
+        int light =
+                event.getPackedLight();
+
         pose.pushPose();
 
-        /*
-         * RenderPlayerEvent.Post fires after vanilla unwinds the living model
-         * transform. Rebuild it before attaching boxes to ModelPart pivots.
-         */
         float bodyYaw =
                 Mth.rotLerp(
                         event.getPartialTick(),
@@ -103,109 +109,188 @@ public final class AccessoryRenderer {
                 0.0D
         );
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableCull();
-        RenderSystem.depthMask(
-                true
-        );
-        RenderSystem.setShader(
-                GameRenderer::getPositionColorShader
+        renderHead(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light
         );
 
-        BufferBuilder buffer =
-                Tesselator.getInstance()
-                        .begin(
-                                VertexFormat.Mode.QUADS,
-                                DefaultVertexFormat.POSITION_COLOR
-                        );
-
-        if ("spectral_glasses".equals(
-                state.head()
-        )) {
-            renderGlasses(
-                    buffer,
-                    pose,
-                    model.head,
-                    state.glassesMode()
-            );
-        }
-
-        if ("work_gloves".equals(
-                state.hands()
-        )) {
-            renderGlove(
-                    buffer,
-                    pose,
-                    model.leftArm
-            );
-
-            renderGlove(
-                    buffer,
-                    pose,
-                    model.rightArm
-            );
-        }
-
-        if ("engineer_cape".equals(
-                state.torso()
-        )) {
-            renderCape(
-                    buffer,
-                    pose,
-                    model.body,
-                    event
-            );
-        }
-
-        if ("wind_boots".equals(
-                state.feet()
-        )) {
-            renderBoot(
-                    buffer,
-                    pose,
-                    model.leftLeg
-            );
-
-            renderBoot(
-                    buffer,
-                    pose,
-                    model.rightLeg
-            );
-        }
-
-        BufferUploader.drawWithShader(
-                buffer.buildOrThrow()
+        renderFace(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light
         );
 
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+        renderTorso(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light
+        );
+
+        renderHands(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light
+        );
+
+        renderLegs(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light
+        );
+
+        renderFeet(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light
+        );
+
+        renderBack(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light,
+                event
+        );
+
+        renderExtra(
+                state,
+                pose,
+                model,
+                blocks,
+                buffers,
+                light,
+                event
+        );
 
         pose.popPose();
     }
 
-    private static void renderGlasses(
-            BufferBuilder buffer,
+    private static void renderHead(
+            AccessoryClientState.State state,
             PoseStack pose,
-            ModelPart head,
-            int mode
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
     ) {
-        pose.pushPose();
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.HEAD
+                );
 
-        head.translateAndRotate(
+        if (kind == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.HEAD
+                );
+
+        pose.pushPose();
+        model.head.translateAndRotate(
                 pose
         );
 
-        if (mode == 1) {
-            /*
-             * Forehead/crown mode: move the frame up and tip it slightly back,
-             * as if the player pushed the glasses above the eyes.
-             */
+        switch (kind) {
+            case ENGINEER_CAP ->
+                    engineerCap(
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            false
+                    );
+
+            case AERO_ENGINEER_CAP ->
+                    engineerCap(
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            true
+                    );
+
+            case CHEF_HAT ->
+                    chefHat(
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light
+                    );
+
+            default -> {
+            }
+        }
+
+        pose.popPose();
+    }
+
+    private static void renderFace(
+            AccessoryClientState.State state,
+            PoseStack pose,
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.FACE
+                );
+
+        if (kind == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.FACE
+                );
+
+        int glass =
+                state.glass(
+                        AccessorySlot.FACE
+                );
+
+        pose.pushPose();
+        model.head.translateAndRotate(
+                pose
+        );
+
+        boolean crown =
+                kind == AccessoryKind.SPECTRAL_GLASSES
+                        && state.glassesMode() == 1;
+
+        if (crown) {
             pose.translate(
-                    0.0F,
-                    -0.115F,
-                    0.020F
+                    0.0,
+                    -0.11,
+                    0.018
             );
 
             pose.mulPose(
@@ -215,260 +300,1421 @@ public final class AccessoryRenderer {
             );
         }
 
-        Matrix4f matrix =
-                pose.last()
-                        .pose();
+        switch (kind) {
+            case SPECTRAL_GLASSES ->
+                    goggles(
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            glass,
+                            Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                            Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                            false
+                    );
 
-        float y0 =
-                -0.315F;
+            case ENGINEER_GOGGLES ->
+                    goggles(
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            glass,
+                            Blocks.COPPER_BLOCK.defaultBlockState(),
+                            Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                            false
+                    );
 
-        float y1 =
-                -0.185F;
+            case AERO_GOGGLES ->
+                    goggles(
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            glass,
+                            Blocks.CUT_COPPER.defaultBlockState(),
+                            Blocks.TINTED_GLASS.defaultBlockState(),
+                            true
+                    );
 
-        // Dark frame around each lens.
-        box(
-                buffer,
-                matrix,
-                -0.238F,
-                y0,
-                -0.316F,
-                -0.018F,
-                y1,
-                -0.282F,
-                24, 29, 38, 255
-        );
-
-        box(
-                buffer,
-                matrix,
-                0.018F,
-                y0,
-                -0.316F,
-                0.238F,
-                y1,
-                -0.282F,
-                24, 29, 38, 255
-        );
-
-        // Slightly smaller translucent blue glass sitting inside the frame.
-        box(
-                buffer,
-                matrix,
-                -0.216F,
-                y0 + 0.020F,
-                -0.320F,
-                -0.040F,
-                y1 - 0.020F,
-                -0.316F,
-                68, 208, 255, 145
-        );
-
-        box(
-                buffer,
-                matrix,
-                0.040F,
-                y0 + 0.020F,
-                -0.320F,
-                0.216F,
-                y1 - 0.020F,
-                -0.316F,
-                68, 208, 255, 145
-        );
-
-        // Bridge.
-        box(
-                buffer,
-                matrix,
-                -0.040F,
-                -0.272F,
-                -0.321F,
-                0.040F,
-                -0.238F,
-                -0.288F,
-                24, 29, 38, 255
-        );
-
-        // Short 3D temples wrapping toward the sides of the head.
-        box(
-                buffer,
-                matrix,
-                -0.264F,
-                -0.278F,
-                -0.284F,
-                -0.226F,
-                -0.236F,
-                0.055F,
-                24, 29, 38, 255
-        );
-
-        box(
-                buffer,
-                matrix,
-                0.226F,
-                -0.278F,
-                -0.284F,
-                0.264F,
-                -0.236F,
-                0.055F,
-                24, 29, 38, 255
-        );
+            default -> {
+            }
+        }
 
         pose.popPose();
     }
 
-    private static void renderGlove(
-            BufferBuilder buffer,
+    private static void renderTorso(
+            AccessoryClientState.State state,
             PoseStack pose,
-            ModelPart arm
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.TORSO
+                );
+
+        if (kind == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.TORSO
+                );
+
+        switch (kind) {
+            case ENGINEER_JACKET ->
+                    jacket(
+                            model,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            Blocks.BROWN_WOOL.defaultBlockState(),
+                            Blocks.COPPER_BLOCK.defaultBlockState(),
+                            false
+                    );
+
+            case AERO_JACKET ->
+                    jacket(
+                            model,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            Blocks.BLUE_WOOL.defaultBlockState(),
+                            Blocks.CUT_COPPER.defaultBlockState(),
+                            true
+                    );
+
+            case CHEF_COAT ->
+                    chefCoat(
+                            model,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear
+                    );
+
+            default -> {
+            }
+        }
+    }
+
+    private static void renderHands(
+            AccessoryClientState.State state,
+            PoseStack pose,
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.HANDS
+                );
+
+        if (kind == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.HANDS
+                );
+
+        BlockState fabric =
+                switch (kind) {
+                    case CHEF_GLOVES ->
+                            Blocks.WHITE_WOOL.defaultBlockState();
+                    case AERO_GLOVES ->
+                            Blocks.GRAY_WOOL.defaultBlockState();
+                    default ->
+                            Blocks.BROWN_WOOL.defaultBlockState();
+                };
+
+        glove(
+                model.leftArm,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                fabric,
+                true,
+                kind
+        );
+
+        glove(
+                model.rightArm,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                fabric,
+                false,
+                kind
+        );
+    }
+
+    private static void renderLegs(
+            AccessoryClientState.State state,
+            PoseStack pose,
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.LEGS
+                );
+
+        if (kind == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.LEGS
+                );
+
+        BlockState fabric =
+                switch (kind) {
+                    case AERO_TROUSERS ->
+                            Blocks.BLUE_WOOL.defaultBlockState();
+                    case CHEF_TROUSERS ->
+                            Blocks.LIGHT_GRAY_WOOL.defaultBlockState();
+                    default ->
+                            Blocks.BROWN_WOOL.defaultBlockState();
+                };
+
+        trousers(
+                model.leftLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                fabric,
+                true
+        );
+
+        trousers(
+                model.rightLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                fabric,
+                false
+        );
+    }
+
+    private static void renderFeet(
+            AccessoryClientState.State state,
+            PoseStack pose,
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.FEET
+                );
+
+        if (kind == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.FEET
+                );
+
+        BlockState shell =
+                switch (kind) {
+                    case CHEF_SHOES ->
+                            Blocks.BLACK_WOOL.defaultBlockState();
+                    case AERO_BOOTS,
+                         WIND_BOOTS ->
+                            Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+                    default ->
+                            Blocks.BROWN_TERRACOTTA.defaultBlockState();
+                };
+
+        boot(
+                model.leftLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                shell,
+                true,
+                kind
+        );
+
+        boot(
+                model.rightLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                shell,
+                false,
+                kind
+        );
+    }
+
+    private static void renderBack(
+            AccessoryClientState.State state,
+            PoseStack pose,
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            RenderPlayerEvent.Post event
+    ) {
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.BACK
+                );
+
+        if (kind == null
+                || !kind.motion()
+                .cloth()) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.BACK
+                );
+
+        BlockState cloth =
+                kind == AccessoryKind.AERO_CAPE
+                        ? Blocks.DARK_OAK_PLANKS.defaultBlockState()
+                        : Blocks.BROWN_WOOL.defaultBlockState();
+
+        cape(
+                model.body,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                cloth,
+                event
+        );
+    }
+
+    private static void renderExtra(
+            AccessoryClientState.State state,
+            PoseStack pose,
+            PlayerModel<?> model,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            RenderPlayerEvent.Post event
+    ) {
+        AccessoryKind kind =
+                state.kind(
+                        AccessorySlot.EXTRA
+                );
+
+        if (kind == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.EXTRA
+                );
+
+        switch (kind) {
+            case ENGINEER_GEAR_HARNESS,
+                 AERO_GEAR_CLUSTER ->
+                    gearHarness(
+                            model.body,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            kind,
+                            event
+                    );
+
+            case CHEF_APRON ->
+                    apron(
+                            model.body,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            event
+                    );
+
+            default -> {
+            }
+        }
+    }
+
+    private static void engineerCap(
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            boolean aero
+    ) {
+        BlockState cloth =
+                aero
+                        ? Blocks.BLUE_WOOL.defaultBlockState()
+                        : Blocks.BROWN_WOOL.defaultBlockState();
+
+        BlockState metal =
+                aero
+                        ? Blocks.CUT_COPPER.defaultBlockState()
+                        : Blocks.COPPER_BLOCK.defaultBlockState();
+
+        piece(
+                pose,
+                blocks,
+                buffers,
+                light,
+                cloth,
+                0.0,
+                -0.535,
+                0.0,
+                0.56,
+                0.13,
+                0.56,
+                0,
+                0,
+                wear == 2 ? -4 : 0
+        );
+
+        piece(
+                pose,
+                blocks,
+                buffers,
+                light,
+                cloth,
+                0.0,
+                -0.625,
+                0.045,
+                0.45,
+                0.12,
+                0.42,
+                0,
+                0,
+                wear == 2 ? -7 : 0
+        );
+
+        piece(
+                pose,
+                blocks,
+                buffers,
+                light,
+                aero
+                        ? metal
+                        : Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                0.0,
+                -0.525,
+                -0.35,
+                wear == 2 ? 0.30 : 0.48,
+                0.055,
+                0.22,
+                0,
+                wear == 1 ? -4 : wear == 2 ? -9 : -2,
+                0
+        );
+
+        if (wear < 2) {
+            piece(
+                    pose,
+                    blocks,
+                    buffers,
+                    light,
+                    metal,
+                    -0.24,
+                    -0.585,
+                    0.0,
+                    0.055,
+                    0.16,
+                    0.58,
+                    0,
+                    0,
+                    0
+            );
+        }
+
+        if (wear >= 1) {
+            piece(
+                    pose,
+                    blocks,
+                    buffers,
+                    light,
+                    Blocks.DARK_OAK_PLANKS.defaultBlockState(),
+                    0.17,
+                    -0.65,
+                    -0.12,
+                    0.16,
+                    0.045,
+                    0.15,
+                    12,
+                    0,
+                    0
+            );
+        }
+    }
+
+    /**
+     * Intentionally leaves a hollow centre above the player's head. The future
+     * rat system can use AccessoryKind#ratHost and place a passenger in that
+     * cavity without the hat model needing to be rebuilt.
+     */
+    private static void chefHat(
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        BlockState white =
+                wear == 0
+                        ? Blocks.WHITE_WOOL.defaultBlockState()
+                        : wear == 1
+                        ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
+                        : Blocks.GRAY_WOOL.defaultBlockState();
+
+        piece(pose, blocks, buffers, light, white,
+                0.0, -0.54, 0.0,
+                0.57, 0.13, 0.57,
+                0, 0, wear == 2 ? 6 : 0);
+
+        double y =
+                wear == 2
+                        ? -0.69
+                        : -0.75;
+
+        double spread =
+                0.20;
+
+        piece(pose, blocks, buffers, light, white,
+                -spread, y, -spread,
+                0.34, 0.30, 0.34,
+                0, 0, -4);
+
+        piece(pose, blocks, buffers, light, white,
+                spread, y, -spread,
+                wear == 2 ? 0.25 : 0.34, 0.30, 0.34,
+                0, 0, wear == 2 ? 15 : 4);
+
+        piece(pose, blocks, buffers, light, white,
+                -spread, y - 0.02, spread,
+                0.34, wear == 1 ? 0.27 : 0.31, 0.34,
+                0, 0, 3);
+
+        if (wear < 2) {
+            piece(pose, blocks, buffers, light, white,
+                    spread, y - 0.03, spread,
+                    0.34, 0.32, 0.34,
+                    0, 0, -3);
+        }
+
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.BROWN_WOOL.defaultBlockState(),
+                    -0.17, -0.57, -0.31,
+                    0.12, 0.06, 0.08,
+                    0, 0, 0);
+        }
+    }
+
+    private static void goggles(
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            int glass,
+            BlockState frame,
+            BlockState lens,
+            boolean aero
+    ) {
+        double y =
+                -0.25;
+
+        double z =
+                -0.315;
+
+        double lensWidth =
+                aero
+                        ? 0.185
+                        : 0.17;
+
+        piece(pose, blocks, buffers, light, frame,
+                -0.14, y, z,
+                0.24, 0.16, 0.045,
+                0, 0, wear == 2 ? -5 : 0);
+
+        piece(pose, blocks, buffers, light, frame,
+                0.14, y, z,
+                wear == 2 ? 0.19 : 0.24, 0.16, 0.045,
+                0, 0, wear == 2 ? 7 : 0);
+
+        piece(pose, blocks, buffers, light, frame,
+                0.0, y, z - 0.006,
+                0.09, 0.045, 0.055,
+                0, 0, 0);
+
+        // Intact lenses.
+        if (glass == 0) {
+            piece(pose, blocks, buffers, light, lens,
+                    -0.14, y, z - 0.027,
+                    lensWidth, 0.105, 0.018,
+                    0, 0, 0);
+
+            piece(pose, blocks, buffers, light, lens,
+                    0.14, y, z - 0.027,
+                    lensWidth, 0.105, 0.018,
+                    0, 0, 0);
+        } else if (glass == 1) {
+            // One lens remains mostly intact; the other is visibly fragmented.
+            piece(pose, blocks, buffers, light, lens,
+                    -0.14, y, z - 0.027,
+                    lensWidth, 0.105, 0.018,
+                    0, 0, 0);
+
+            piece(pose, blocks, buffers, light, lens,
+                    0.105, y - 0.012, z - 0.027,
+                    lensWidth * 0.48, 0.075, 0.018,
+                    0, 0, 13);
+
+            piece(pose, blocks, buffers, light,
+                    Blocks.IRON_BARS.defaultBlockState(),
+                    0.16, y, z - 0.045,
+                    0.025, 0.14, 0.018,
+                    0, 0, 28);
+        } else {
+            // Broken: tiny shards only, frames stay.
+            piece(pose, blocks, buffers, light, lens,
+                    -0.185, y + 0.02, z - 0.027,
+                    0.065, 0.05, 0.018,
+                    0, 0, -18);
+
+            if (wear < 2) {
+                piece(pose, blocks, buffers, light, lens,
+                        0.18, y - 0.025, z - 0.027,
+                        0.055, 0.04, 0.018,
+                        0, 0, 24);
+            }
+        }
+
+        // Side straps.
+        if (wear < 2) {
+            piece(pose, blocks, buffers, light,
+                    aero
+                            ? Blocks.BROWN_WOOL.defaultBlockState()
+                            : frame,
+                    -0.285, y, -0.08,
+                    0.035, 0.055, 0.45,
+                    0, 0, 0);
+
+            piece(pose, blocks, buffers, light,
+                    aero
+                            ? Blocks.BROWN_WOOL.defaultBlockState()
+                            : frame,
+                    0.285, y, -0.08,
+                    0.035, 0.055, 0.45,
+                    0, 0, 0);
+        }
+    }
+
+    private static void jacket(
+            PlayerModel<?> model,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState cloth,
+            BlockState metal,
+            boolean aero
     ) {
         pose.pushPose();
+        model.body.translateAndRotate(
+                pose
+        );
 
+        BlockState wornCloth =
+                wornFabric(
+                        cloth,
+                        wear,
+                        aero
+                                ? Blocks.GRAY_WOOL.defaultBlockState()
+                                : Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                );
+
+        piece(pose, blocks, buffers, light, wornCloth,
+                0.0, 0.34, -0.155,
+                0.54, 0.70, 0.075,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light, wornCloth,
+                0.0, 0.34, 0.155,
+                0.54, wear == 2 ? 0.59 : 0.70, 0.075,
+                0, 0, wear == 2 ? 2 : 0);
+
+        piece(pose, blocks, buffers, light, metal,
+                -0.22, 0.12, -0.205,
+                0.09, 0.10, 0.055,
+                0, 0, 0);
+
+        if (wear < 2) {
+            piece(pose, blocks, buffers, light, metal,
+                    0.22, 0.12, -0.205,
+                    0.09, 0.10, 0.055,
+                    0, 0, 0);
+        }
+
+        // Belt / lower hem.
+        piece(pose, blocks, buffers, light,
+                Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                0.0, 0.68, 0.0,
+                0.58, 0.075, 0.33,
+                0, 0, 0);
+
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    aero
+                            ? Blocks.BROWN_WOOL.defaultBlockState()
+                            : Blocks.DARK_OAK_PLANKS.defaultBlockState(),
+                    wear == 2 ? -0.12 : 0.13,
+                    0.46,
+                    -0.205,
+                    0.17,
+                    0.13,
+                    0.035,
+                    wear == 2 ? 8 : -5,
+                    0,
+                    0);
+        }
+
+        pose.popPose();
+
+        sleeve(
+                model.leftArm,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                wornCloth,
+                metal,
+                true
+        );
+
+        sleeve(
+                model.rightArm,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                wornCloth,
+                metal,
+                false
+        );
+    }
+
+    private static void sleeve(
+            ModelPart arm,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState cloth,
+            BlockState metal,
+            boolean left
+    ) {
+        pose.pushPose();
         arm.translateAndRotate(
                 pose
         );
 
-        Matrix4f matrix =
-                pose.last()
-                        .pose();
+        double length =
+                wear == 2
+                        && !left
+                        ? 0.42
+                        : 0.58;
 
-        // Main glove shell around the lower third of the arm.
-        box(
-                buffer,
-                matrix,
-                -0.142F,
-                0.455F,
-                -0.142F,
-                0.142F,
-                0.755F,
-                0.142F,
-                62, 52, 43, 255
-        );
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.28, 0.0,
+                0.31, length, 0.31,
+                0, 0, 0);
 
-        // Raised cuff gives the otherwise simple model a clear 3D silhouette.
-        box(
-                buffer,
-                matrix,
-                -0.154F,
-                0.425F,
-                -0.154F,
-                0.154F,
-                0.505F,
-                0.154F,
-                93, 73, 52, 255
-        );
-
-        // Small steel plate on the back of the hand.
-        box(
-                buffer,
-                matrix,
-                -0.090F,
-                0.560F,
-                -0.162F,
-                0.090F,
-                0.690F,
-                -0.142F,
-                118, 124, 129, 255
-        );
+        if (wear < 2
+                || left) {
+            piece(pose, blocks, buffers, light, metal,
+                    0.0, 0.48, -0.17,
+                    0.20, 0.11, 0.035,
+                    0, 0, 0);
+        }
 
         pose.popPose();
     }
 
-    private static void renderBoot(
-            BufferBuilder buffer,
+    private static void chefCoat(
+            PlayerModel<?> model,
             PoseStack pose,
-            ModelPart leg
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear
+    ) {
+        BlockState cloth =
+                wear == 0
+                        ? Blocks.WHITE_WOOL.defaultBlockState()
+                        : wear == 1
+                        ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
+                        : Blocks.GRAY_WOOL.defaultBlockState();
+
+        pose.pushPose();
+        model.body.translateAndRotate(
+                pose
+        );
+
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.34, -0.16,
+                0.55, wear == 2 ? 0.61 : 0.72, 0.075,
+                0, 0, wear == 2 ? -2 : 0);
+
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.34, 0.15,
+                0.54, 0.70, 0.07,
+                0, 0, 0);
+
+        // Double-breasted buttons.
+        for (int i = 0;
+             i < 3;
+             i++) {
+            if (wear == 2
+                    && i == 2) {
+                continue;
+            }
+
+            double y =
+                    0.20
+                            + i * 0.16;
+
+            piece(pose, blocks, buffers, light,
+                    Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                    -0.08, y, -0.207,
+                    0.035, 0.035, 0.025,
+                    0, 0, 0);
+
+            piece(pose, blocks, buffers, light,
+                    Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                    0.08, y, -0.207,
+                    0.035, 0.035, 0.025,
+                    0, 0, 0);
+        }
+
+        // Red neck cloth gives the kit a readable silhouette.
+        piece(pose, blocks, buffers, light,
+                Blocks.RED_WOOL.defaultBlockState(),
+                0.0, 0.08, -0.21,
+                0.22, 0.07, 0.035,
+                0, 0, 0);
+
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.BROWN_WOOL.defaultBlockState(),
+                    0.15, 0.47, -0.21,
+                    0.15, 0.11, 0.025,
+                    -8, 0, 0);
+        }
+
+        pose.popPose();
+
+        sleeve(model.leftArm, pose, blocks, buffers, light,
+                wear, cloth, Blocks.LIGHT_GRAY_WOOL.defaultBlockState(), true);
+
+        sleeve(model.rightArm, pose, blocks, buffers, light,
+                wear, cloth, Blocks.LIGHT_GRAY_WOOL.defaultBlockState(), false);
+    }
+
+    private static void glove(
+            ModelPart arm,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState fabric,
+            boolean left,
+            AccessoryKind kind
     ) {
         pose.pushPose();
+        arm.translateAndRotate(
+                pose
+        );
 
+        BlockState material =
+                wornFabric(
+                        fabric,
+                        wear,
+                        Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                );
+
+        piece(pose, blocks, buffers, light, material,
+                0.0, 0.62, 0.0,
+                wear == 2 && !left ? 0.24 : 0.30,
+                wear == 2 && !left ? 0.20 : 0.29,
+                0.30,
+                0, 0, wear == 2 && !left ? 5 : 0);
+
+        if (kind != AccessoryKind.CHEF_GLOVES
+                && wear < 2) {
+            piece(pose, blocks, buffers, light,
+                    kind == AccessoryKind.AERO_GLOVES
+                            ? Blocks.CUT_COPPER.defaultBlockState()
+                            : Blocks.IRON_BLOCK.defaultBlockState(),
+                    0.0, 0.58, -0.17,
+                    0.18, 0.10, 0.035,
+                    0, 0, 0);
+        }
+
+        pose.popPose();
+    }
+
+    private static void trousers(
+            ModelPart leg,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState fabric,
+            boolean left
+    ) {
+        pose.pushPose();
         leg.translateAndRotate(
                 pose
         );
 
-        Matrix4f matrix =
-                pose.last()
-                        .pose();
+        BlockState material =
+                wornFabric(
+                        fabric,
+                        wear,
+                        Blocks.GRAY_WOOL.defaultBlockState()
+                );
 
-        // Boot shaft.
-        box(
-                buffer,
-                matrix,
-                -0.144F,
-                0.430F,
-                -0.145F,
-                0.144F,
-                0.755F,
-                0.150F,
-                48, 73, 95, 255
-        );
+        double length =
+                wear == 2
+                        && !left
+                        ? 0.48
+                        : 0.66;
 
-        // Toe extends toward the player's front (-Z).
-        box(
-                buffer,
-                matrix,
-                -0.148F,
-                0.615F,
-                -0.270F,
-                0.148F,
-                0.755F,
-                0.150F,
-                57, 89, 116, 255
-        );
+        piece(pose, blocks, buffers, light, material,
+                0.0, 0.31, 0.0,
+                0.31, length, 0.31,
+                0, 0, wear == 2 && !left ? 3 : 0);
 
-        // Thin sole.
-        box(
-                buffer,
-                matrix,
-                -0.158F,
-                0.735F,
-                -0.282F,
-                0.158F,
-                0.790F,
-                0.158F,
-                24, 28, 33, 255
-        );
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.BROWN_WOOL.defaultBlockState(),
+                    left ? -0.09 : 0.09,
+                    0.37,
+                    -0.17,
+                    0.11,
+                    0.14,
+                    0.025,
+                    0, 0, left ? -5 : 5);
+        }
 
         pose.popPose();
     }
 
-    private static void renderCape(
-            BufferBuilder buffer,
+    private static void boot(
+            ModelPart leg,
             PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState shell,
+            boolean left,
+            AccessoryKind kind
+    ) {
+        pose.pushPose();
+        leg.translateAndRotate(
+                pose
+        );
+
+        piece(pose, blocks, buffers, light, shell,
+                0.0, 0.61, 0.0,
+                wear == 2 && !left ? 0.26 : 0.31,
+                wear == 2 && !left ? 0.24 : 0.31,
+                0.32,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light,
+                shell,
+                0.0, 0.69, -0.12,
+                wear == 2 && !left ? 0.25 : 0.32,
+                0.16,
+                wear == 2 && !left ? 0.32 : 0.48,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light,
+                Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                0.0, 0.75, -0.10,
+                0.34,
+                0.065,
+                wear == 2 && !left ? 0.32 : 0.50,
+                0, 0, 0);
+
+        if ((kind == AccessoryKind.AERO_BOOTS
+                || kind == AccessoryKind.WIND_BOOTS)
+                && wear < 2) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.COPPER_BLOCK.defaultBlockState(),
+                    left ? -0.16 : 0.16,
+                    0.61,
+                    0.02,
+                    0.055,
+                    0.20,
+                    0.18,
+                    0, 0, 0);
+        }
+
+        pose.popPose();
+    }
+
+    private static void cape(
             ModelPart body,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState cloth,
             RenderPlayerEvent.Post event
     ) {
         pose.pushPose();
-
         body.translateAndRotate(
                 pose
         );
 
-        Vec3 movement =
+        MotionSample motion =
+                motion(
+                        event
+                );
+
+        piece(pose, blocks, buffers, light,
+                Blocks.COPPER_BLOCK.defaultBlockState(),
+                -0.21, 0.09, 0.19,
+                0.10, 0.11, 0.08,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light,
+                Blocks.COPPER_BLOCK.defaultBlockState(),
+                0.21, 0.09, 0.19,
+                0.10, 0.11, 0.08,
+                0, 0, 0);
+
+        pose.translate(
+                0.0,
+                0.06,
+                0.20
+        );
+
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        motion.side()
+                                * 8.0F
+                )
+        );
+
+        float base =
+                5.0F
+                        + motion.back()
+                                * 24.0F
+                        + motion.speed()
+                                * 30.0F
+                        + motion.fall()
+                                * 12.0F;
+
+        int segments =
+                wear == 2
+                        ? 4
+                        : 5;
+
+        for (int i = 0;
+             i < segments;
+             i++) {
+            float flutter =
+                    Mth.sin(
+                            motion.time()
+                                    * (
+                                    0.22F
+                                            + motion.speed()
+                                            * 0.55F
+                            )
+                                    + i * 0.72F
+                    )
+                            * (
+                            1.2F
+                                    + motion.wind()
+                                    * 5.5F
+                                    + motion.speed()
+                                    * 4.5F
+                    );
+
+            pose.mulPose(
+                    Axis.XP.rotationDegrees(
+                            i == 0
+                                    ? base + flutter
+                                    : 2.5F
+                                    + flutter
+                                    * (
+                                    0.45F
+                                            + i * 0.12F
+                            )
+                    )
+            );
+
+            double width =
+                    0.55
+                            - i * 0.018;
+
+            if (wear == 2
+                    && i == segments - 1) {
+                width *=
+                        0.72;
+            }
+
+            piece(pose, blocks, buffers, light,
+                    wornFabric(
+                            cloth,
+                            wear,
+                            Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                    ),
+                    wear == 2 && i == segments - 1 ? -0.07 : 0.0,
+                    0.105,
+                    0.0,
+                    width,
+                    0.22,
+                    0.045,
+                    0, 0,
+                    wear == 2 && i == segments - 1 ? -7 : 0);
+
+            pose.translate(
+                    0.0,
+                    0.215,
+                    0.0
+            );
+        }
+
+        pose.popPose();
+    }
+
+    private static void gearHarness(
+            ModelPart body,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            AccessoryKind kind,
+            RenderPlayerEvent.Post event
+    ) {
+        pose.pushPose();
+        body.translateAndRotate(
+                pose
+        );
+
+        MotionSample motion =
+                motion(
+                        event
+                );
+
+        BlockState metal =
+                kind == AccessoryKind.AERO_GEAR_CLUSTER
+                        ? Blocks.CUT_COPPER.defaultBlockState()
+                        : Blocks.COPPER_BLOCK.defaultBlockState();
+
+        // Harness strap.
+        piece(pose, blocks, buffers, light,
+                Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                kind == AccessoryKind.AERO_GEAR_CLUSTER ? 0.22 : -0.22,
+                0.38,
+                -0.205,
+                0.10,
+                0.62,
+                0.04,
+                0, 0,
+                kind == AccessoryKind.AERO_GEAR_CLUSTER ? 8 : -8);
+
+        int gears =
+                wear == 2
+                        ? 2
+                        : 3;
+
+        for (int i = 0;
+             i < gears;
+             i++) {
+            pose.pushPose();
+
+            double x =
+                    kind == AccessoryKind.AERO_GEAR_CLUSTER
+                            ? 0.30
+                            : -0.30;
+
+            double y =
+                    0.24
+                            + i * 0.19;
+
+            pose.translate(
+                    x,
+                    y,
+                    -0.245
+            );
+
+            float swing =
+                    (
+                            motion.back()
+                                    * 16.0F
+                                    + motion.side()
+                                    * (
+                                    kind == AccessoryKind.AERO_GEAR_CLUSTER
+                                            ? 11.0F
+                                            : -11.0F
+                            )
+                                    + Mth.sin(
+                                    motion.time()
+                                            * 0.32F
+                                            + i * 0.9F
+                            )
+                                    * (
+                                    2.5F
+                                            + motion.wind()
+                                            * 5.0F
+                            )
+                    )
+                            * (
+                            0.55F
+                                    + i * 0.18F
+                    );
+
+            pose.mulPose(
+                    Axis.XP.rotationDegrees(
+                            swing
+                    )
+            );
+
+            pose.mulPose(
+                    Axis.ZP.rotationDegrees(
+                            motion.side()
+                                    * 8.0F
+                                    * (
+                                    i + 1
+                            )
+                                    / gears
+                    )
+            );
+
+            double scale =
+                    0.13
+                            - i * 0.014;
+
+            gear(
+                    pose,
+                    blocks,
+                    buffers,
+                    light,
+                    metal,
+                    scale,
+                    motion.time()
+                            * (
+                            8.0F
+                                    + i * 2.0F
+                    )
+            );
+
+            // Little hanging link below each gear.
+            if (i < gears - 1) {
+                piece(pose, blocks, buffers, light,
+                        Blocks.CHAIN.defaultBlockState(),
+                        0.0, 0.13, 0.0,
+                        0.035, 0.17, 0.035,
+                        0, 0, 0);
+            }
+
+            pose.popPose();
+        }
+
+        pose.popPose();
+    }
+
+    private static void apron(
+            ModelPart body,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            RenderPlayerEvent.Post event
+    ) {
+        pose.pushPose();
+        body.translateAndRotate(
+                pose
+        );
+
+        MotionSample motion =
+                motion(
+                        event
+                );
+
+        BlockState cloth =
+                wear == 0
+                        ? Blocks.WHITE_WOOL.defaultBlockState()
+                        : wear == 1
+                        ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
+                        : Blocks.GRAY_WOOL.defaultBlockState();
+
+        // Waist strap.
+        piece(pose, blocks, buffers, light,
+                Blocks.RED_WOOL.defaultBlockState(),
+                0.0, 0.42, -0.19,
+                0.58, 0.065, 0.04,
+                0, 0, 0);
+
+        pose.translate(
+                0.0,
+                0.44,
+                -0.205
+        );
+
+        pose.mulPose(
+                Axis.XP.rotationDegrees(
+                        -motion.back()
+                                * 5.0F
+                                - motion.speed()
+                                * 3.0F
+                )
+        );
+
+        piece(pose, blocks, buffers, light, cloth,
+                wear == 2 ? -0.055 : 0.0,
+                0.20,
+                0.0,
+                wear == 2 ? 0.40 : 0.50,
+                wear == 2 ? 0.36 : 0.43,
+                0.04,
+                0, 0,
+                wear == 2 ? -5 : 0);
+
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.BROWN_WOOL.defaultBlockState(),
+                    0.11, 0.19, -0.03,
+                    0.14, 0.10, 0.025,
+                    0, 0, 6);
+        }
+
+        pose.popPose();
+    }
+
+    private static void gear(
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            BlockState metal,
+            double scale,
+            float spin
+    ) {
+        pose.pushPose();
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        spin
+                )
+        );
+
+        piece(pose, blocks, buffers, light, metal,
+                0.0, 0.0, 0.0,
+                scale * 2.4, scale * 0.50, scale * 0.42,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light, metal,
+                0.0, 0.0, 0.0,
+                scale * 0.50, scale * 2.4, scale * 0.42,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light,
+                Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                0.0, 0.0, -scale * 0.23,
+                scale * 0.60, scale * 0.60, scale * 0.22,
+                0, 0, 0);
+
+        pose.popPose();
+    }
+
+    private static BlockState wornFabric(
+            BlockState normal,
+            int wear,
+            BlockState worn
+    ) {
+        return wear == 0
+                ? normal
+                : worn;
+    }
+
+    private static MotionSample motion(
+            RenderPlayerEvent.Post event
+    ) {
+        Vec3 velocity =
                 event.getEntity()
                         .getDeltaMovement();
 
-        float horizontalSpeed =
+        float speed =
                 Mth.clamp(
-                        (float) movement.horizontalDistance(),
-                        0.0F,
-                        0.62F
-                );
-
-        float speedWeight =
-                Mth.clamp(
-                        horizontalSpeed
-                                * 3.6F,
+                        (float) velocity.horizontalDistance()
+                                * 3.2F,
                         0.0F,
                         1.0F
                 );
 
-        float fallLift =
+        float fall =
                 Mth.clamp(
                         (float) (
-                                -movement.y
-                                        * 18.0
+                                -velocity.y
+                                        * 2.8
                         ),
-                        -7.0F,
-                        17.0F
+                        -0.65F,
+                        1.0F
                 );
 
         float time =
@@ -476,277 +1722,180 @@ public final class AccessoryRenderer {
                         .tickCount
                         + event.getPartialTick();
 
-        float flutter =
-                Mth.sin(
-                        time
-                                * (
-                                0.24F
-                                        + speedWeight
-                                                * 0.42F
-                        )
-                )
-                        * (
-                        1.4F
-                                + speedWeight
-                                        * 4.8F
-                );
+        float wind =
+                0.0F;
 
-        // Metal clasps at the shoulders.
-        Matrix4f bodyMatrix =
-                pose.last()
-                        .pose();
+        float windBack =
+                0.0F;
 
-        box(
-                buffer,
-                bodyMatrix,
-                -0.245F,
-                0.015F,
-                0.128F,
-                -0.145F,
-                0.120F,
-                0.190F,
-                128, 119, 102, 255
-        );
+        float windSide =
+                0.0F;
 
-        box(
-                buffer,
-                bodyMatrix,
-                0.145F,
-                0.015F,
-                0.128F,
-                0.245F,
-                0.120F,
-                0.190F,
-                128, 119, 102, 255
-        );
-
-        /*
-         * The cloth is four thin 3D cuboids hinged together. Each segment
-         * inherits the transform of the previous one, creating a soft curve
-         * instead of a rigid rotating board.
-         */
-        pose.translate(
-                0.0F,
-                0.055F,
-                0.168F
-        );
-
-        float baseAngle =
-                4.0F
-                        + speedWeight
-                                * 27.0F
-                        + fallLift;
-
-        float hingeAngle =
-                1.8F
-                        + speedWeight
-                                * 5.2F;
-
-        int[][] colors = {
-                {116, 76, 39},
-                {104, 66, 34},
-                {91, 55, 31},
-                {77, 44, 27}
-        };
-
-        for (int segment = 0;
-             segment < 4;
-             segment++) {
-            float localFlutter =
-                    flutter
-                            * (
-                            0.30F
-                                    + segment
-                                            * 0.22F
+        if (event.getEntity()
+                .level()
+                .dimension()
+                .equals(
+                        Level.OVERWORLD
+                )) {
+            LocalWeatherField.Sample sample =
+                    LocalWeatherField.sample(
+                            event.getEntity()
+                                    .getX(),
+                            event.getEntity()
+                                    .getZ(),
+                            event.getEntity()
+                                    .level()
+                                    .getGameTime()
                     );
 
-            float angle =
-                    segment == 0
-                            ? baseAngle
-                                    + localFlutter
-                            : hingeAngle
-                                    + localFlutter;
+            wind =
+                    sample.warning();
 
+            double yaw =
+                    Math.toRadians(
+                            event.getEntity()
+                                    .getYRot()
+                    );
+
+            double forwardX =
+                    -Math.sin(
+                            yaw
+                    );
+
+            double forwardZ =
+                    Math.cos(
+                            yaw
+                    );
+
+            double rightX =
+                    Math.cos(
+                            yaw
+                    );
+
+            double rightZ =
+                    Math.sin(
+                            yaw
+                    );
+
+            windBack =
+                    (float) (
+                            -(
+                                    sample.windX()
+                                            * forwardX
+                                            + sample.windZ()
+                                            * forwardZ
+                            )
+                                    * wind
+                    );
+
+            windSide =
+                    (float) (
+                            (
+                                    sample.windX()
+                                            * rightX
+                                            + sample.windZ()
+                                            * rightZ
+                            )
+                                    * wind
+                    );
+        }
+
+        return new MotionSample(
+                time,
+                speed,
+                fall,
+                wind,
+                Mth.clamp(
+                        windBack,
+                        -1.0F,
+                        1.0F
+                ),
+                Mth.clamp(
+                        windSide,
+                        -1.0F,
+                        1.0F
+                )
+        );
+    }
+
+    private static void piece(
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            BlockState material,
+            double x,
+            double y,
+            double z,
+            double sizeX,
+            double sizeY,
+            double sizeZ,
+            float yaw,
+            float pitch,
+            float roll
+    ) {
+        pose.pushPose();
+
+        pose.translate(
+                x,
+                y,
+                z
+        );
+
+        if (yaw != 0.0F) {
             pose.mulPose(
-                    Axis.XP.rotationDegrees(
-                            angle
+                    Axis.YP.rotationDegrees(
+                            yaw
                     )
             );
+        }
 
-            float halfWidth =
-                    0.285F
-                            - segment
-                                    * 0.009F;
-
-            int[] color =
-                    colors[segment];
-
-            box(
-                    buffer,
-                    pose.last()
-                            .pose(),
-                    -halfWidth,
-                    0.0F,
-                    -0.024F,
-                    halfWidth,
-                    0.205F,
-                    0.024F,
-                    color[0],
-                    color[1],
-                    color[2],
-                    255
-            );
-
-            // Narrow seam at each hinge makes the articulated model readable.
-            if (segment < 3) {
-                box(
-                        buffer,
-                        pose.last()
-                                .pose(),
-                        -halfWidth,
-                        0.190F,
-                        -0.030F,
-                        halfWidth,
-                        0.215F,
-                        0.030F,
-                        52, 34, 25, 255
-                );
-            }
-
-            pose.translate(
-                    0.0F,
-                    0.205F,
-                    0.0F
+        if (pitch != 0.0F) {
+            pose.mulPose(
+                    Axis.XP.rotationDegrees(
+                            pitch
+                    )
             );
         }
+
+        if (roll != 0.0F) {
+            pose.mulPose(
+                    Axis.ZP.rotationDegrees(
+                            roll
+                    )
+            );
+        }
+
+        pose.scale(
+                (float) sizeX,
+                (float) sizeY,
+                (float) sizeZ
+        );
+
+        pose.translate(
+                -0.5,
+                -0.5,
+                -0.5
+        );
+
+        blocks.renderSingleBlock(
+                material,
+                pose,
+                buffers,
+                light,
+                OverlayTexture.NO_OVERLAY
+        );
 
         pose.popPose();
     }
 
-    /**
-     * Adds a real cuboid (six faces) to the current POSITION_COLOR buffer.
-     */
-    private static void box(
-            BufferBuilder buffer,
-            Matrix4f matrix,
-            float x0,
-            float y0,
-            float z0,
-            float x1,
-            float y1,
-            float z1,
-            int red,
-            int green,
-            int blue,
-            int alpha
+    private record MotionSample(
+            float time,
+            float speed,
+            float fall,
+            float wind,
+            float back,
+            float side
     ) {
-        // Front (-Z).
-        face(
-                buffer, matrix,
-                x0, y0, z0,
-                x0, y1, z0,
-                x1, y1, z0,
-                x1, y0, z0,
-                red, green, blue, alpha
-        );
-
-        // Back (+Z).
-        face(
-                buffer, matrix,
-                x1, y0, z1,
-                x1, y1, z1,
-                x0, y1, z1,
-                x0, y0, z1,
-                red, green, blue, alpha
-        );
-
-        // Left.
-        face(
-                buffer, matrix,
-                x0, y0, z1,
-                x0, y1, z1,
-                x0, y1, z0,
-                x0, y0, z0,
-                red, green, blue, alpha
-        );
-
-        // Right.
-        face(
-                buffer, matrix,
-                x1, y0, z0,
-                x1, y1, z0,
-                x1, y1, z1,
-                x1, y0, z1,
-                red, green, blue, alpha
-        );
-
-        // Top.
-        face(
-                buffer, matrix,
-                x0, y0, z1,
-                x0, y0, z0,
-                x1, y0, z0,
-                x1, y0, z1,
-                red, green, blue, alpha
-        );
-
-        // Bottom.
-        face(
-                buffer, matrix,
-                x0, y1, z0,
-                x0, y1, z1,
-                x1, y1, z1,
-                x1, y1, z0,
-                red, green, blue, alpha
-        );
-    }
-
-    private static void face(
-            BufferBuilder buffer,
-            Matrix4f matrix,
-            float ax,
-            float ay,
-            float az,
-            float bx,
-            float by,
-            float bz,
-            float cx,
-            float cy,
-            float cz,
-            float dx,
-            float dy,
-            float dz,
-            int red,
-            int green,
-            int blue,
-            int alpha
-    ) {
-        buffer.addVertex(
-                matrix,
-                ax, ay, az
-        ).setColor(
-                red, green, blue, alpha
-        );
-
-        buffer.addVertex(
-                matrix,
-                bx, by, bz
-        ).setColor(
-                red, green, blue, alpha
-        );
-
-        buffer.addVertex(
-                matrix,
-                cx, cy, cz
-        ).setColor(
-                red, green, blue, alpha
-        );
-
-        buffer.addVertex(
-                matrix,
-                dx, dy, dz
-        ).setColor(
-                red, green, blue, alpha
-        );
     }
 }
