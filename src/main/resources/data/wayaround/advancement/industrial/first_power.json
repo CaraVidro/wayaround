@@ -1,0 +1,57 @@
+{
+  "parent": "wayaround:industrial/root",
+  "display": {
+    "icon": {
+      "id": "wayaround:steam_engine"
+    },
+    "title": {
+      "translate": "advancements.wayaround.industrial.first_power.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.industrial.first_power.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "steam": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wayaround:steam_engine"
+          }
+        ]
+      }
+    },
+    "solar": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wayaround:solar_panel"
+          }
+        ]
+      }
+    },
+    "water": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "wayaround:water_generator"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "steam",
+      "solar",
+      "water"
+    ]
+  ]
+}
