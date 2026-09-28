@@ -338,14 +338,34 @@ public final class EngineerBootsManager {
                         ? Blocks.POWDER_SNOW.defaultBlockState()
                         : Blocks.SNOW_BLOCK.defaultBlockState();
 
+        double surfaceY =
+                snowPos.getY()
+                        + 1.0;
+
+        if (state.is(
+                Blocks.SNOW
+        )
+                && state.hasProperty(
+                SnowLayerBlock.LAYERS
+        )) {
+            surfaceY =
+                    snowPos.getY()
+                            + Math.max(
+                            1,
+                            state.getValue(
+                                    SnowLayerBlock.LAYERS
+                            ) - 1
+                    ) / 8.0;
+        }
+
         level.sendParticles(
                 new BlockParticleOption(
                         ParticleTypes.BLOCK,
                         particleState
                 ),
                 foot.x,
-                snowPos.getY()
-                        + 0.08,
+                surfaceY
+                        + 0.015,
                 foot.z,
                 4,
                 0.045,
