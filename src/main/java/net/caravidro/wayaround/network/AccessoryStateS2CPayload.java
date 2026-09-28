@@ -8,6 +8,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -16,7 +17,8 @@ public record AccessoryStateS2CPayload(
         String[] kinds,
         int[] wear,
         int[] glass,
-        int glassesMode
+        int glassesMode,
+        ItemStack trouserPocket
 ) implements CustomPacketPayload {
 
     public static final Type<AccessoryStateS2CPayload> TYPE =
@@ -72,6 +74,22 @@ public record AccessoryStateS2CPayload(
                         buf.writeVarInt(
                                 payload.glassesMode()
                         );
+
+                        boolean hasPocket =
+                                payload.trouserPocket() != null
+                                        && !payload.trouserPocket()
+                                        .isEmpty();
+
+                        buf.writeBoolean(
+                                hasPocket
+                        );
+
+                        if (hasPocket) {
+                            ItemStack.STREAM_CODEC.encode(
+                                    buf,
+                                    payload.trouserPocket()
+                            );
+                        }
                     },
                     buf -> {
                         UUID player =
@@ -114,12 +132,23 @@ public record AccessoryStateS2CPayload(
                                     buf.readByte();
                         }
 
+                        int glassesMode =
+                                buf.readVarInt();
+
+                        ItemStack pocket =
+                                buf.readBoolean()
+                                        ? ItemStack.STREAM_CODEC.decode(
+                                        buf
+                                )
+                                        : ItemStack.EMPTY;
+
                         return new AccessoryStateS2CPayload(
                                 player,
                                 kinds,
                                 wear,
                                 glass,
-                                buf.readVarInt()
+                                glassesMode,
+                                pocket
                         );
                     }
             );
