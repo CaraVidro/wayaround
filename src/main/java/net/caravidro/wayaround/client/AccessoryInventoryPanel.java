@@ -1,6 +1,9 @@
 package net.caravidro.wayaround.client;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.accessory.AccessoryKind;
+import net.caravidro.wayaround.accessory.AccessorySlot;
+import net.caravidro.wayaround.accessory.AccessoryWear;
 import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.network.AccessoryActionC2SPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
@@ -17,11 +20,11 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Four accessory slots embedded around the vanilla player preview.
+ * Accessory sockets around the vanilla player preview.
  *
- * Vanilla offhand sits at inventory-relative (77,62). The accessory column
- * deliberately uses y=8/26/44/80, leaving the offhand slot itself untouched
- * in the middle of the stack.
+ * V1.1.1 expands the original four cosmetic sockets into body-aware slots so
+ * complete kits can coexist: hat + goggles + coat + gloves + trousers + boots
+ * + cape + utility piece.
  */
 @EventBusSubscriber(
         modid = WayAround.MODID,
@@ -29,28 +32,44 @@ import net.neoforged.neoforge.network.PacketDistributor;
 )
 public final class AccessoryInventoryPanel {
 
-    private AccessoryInventoryPanel() {}
-
     private static final int SLOT_SIZE =
             18;
 
-    private static final int SLOT_X =
-            77;
+    private static final int[] SLOT_X = {
+            77,
+            97,
+            77,
+            77,
+            97,
+            77,
+            97,
+            97
+    };
 
-    // AccessorySlot ordinal order: HEAD, HANDS, TORSO, FEET.
     private static final int[] SLOT_Y = {
             8,
+            8,
             44,
+            26,
+            44,
+            80,
             26,
             80
     };
 
     private static final String[] EMPTY_MARKS = {
             "H",
+            "O",
             "M",
             "T",
-            "F"
+            "L",
+            "P",
+            "C",
+            "+"
     };
+
+    private AccessoryInventoryPanel() {
+    }
 
     @SubscribeEvent
     public static void render(
@@ -85,24 +104,20 @@ public final class AccessoryInventoryPanel {
         GuiGraphics graphics =
                 event.getGuiGraphics();
 
-        for (int slot = 0;
-             slot < 4;
-             slot++) {
-            int x =
-                    left
-                            + SLOT_X;
+        AccessorySlot[] slots =
+                AccessorySlot.values();
 
-            int y =
-                    top
-                            + SLOT_Y[slot];
-
+        for (int ordinal = 0;
+             ordinal < slots.length;
+             ordinal++) {
             drawSlot(
                     graphics,
                     minecraft,
                     state,
-                    slot,
-                    x,
-                    y,
+                    slots[ordinal],
+                    ordinal,
+                    left + SLOT_X[ordinal],
+                    top + SLOT_Y[ordinal],
                     event.getMouseX(),
                     event.getMouseY()
             );
@@ -113,7 +128,8 @@ public final class AccessoryInventoryPanel {
             GuiGraphics graphics,
             Minecraft minecraft,
             AccessoryClientState.State state,
-            int slot,
+            AccessorySlot slot,
+            int ordinal,
             int x,
             int y,
             double mouseX,
@@ -127,10 +143,6 @@ public final class AccessoryInventoryPanel {
                         y
                 );
 
-        /*
-         * Three-layer border mirrors vanilla's recessed inventory language
-         * without adding another detached panel.
-         */
         graphics.fill(
                 x,
                 y,
@@ -157,19 +169,37 @@ public final class AccessoryInventoryPanel {
                         : 0xFF15151A
         );
 
-        String path =
+        AccessoryKind kind =
                 state == null
-                        ? ""
-                        : state.forSlot(
+                        ? null
+                        : state.kind(
                                 slot
                         );
 
         ItemStack stack =
-                stackFor(
-                        path
-                );
+                kind == null
+                        ? ItemStack.EMPTY
+                        : OddityContent.accessoryStack(
+                                kind
+                        );
 
-        if (!stack.isEmpty()) {
+        if (!stack.isEmpty()
+                && state != null) {
+            AccessoryWear.setWear(
+                    stack,
+                    kind,
+                    state.wear(
+                            slot
+                    )
+            );
+
+            AccessoryWear.setGlassState(
+                    stack,
+                    state.glass(
+                            slot
+                    )
+            );
+
             graphics.renderItem(
                     stack,
                     x + 1,
@@ -178,7 +208,7 @@ public final class AccessoryInventoryPanel {
         } else {
             graphics.drawString(
                     minecraft.font,
-                    EMPTY_MARKS[slot],
+                    EMPTY_MARKS[ordinal],
                     x + 6,
                     y + 5,
                     hovered
@@ -197,29 +227,11 @@ public final class AccessoryInventoryPanel {
                     0x22FFFFFF
             );
 
-            Component label =
-                    switch (slot) {
-                        case 0 ->
-                                Component.literal(
-                                        "Accessory: Head"
-                                );
-                        case 1 ->
-                                Component.literal(
-                                        "Accessory: Hands"
-                                );
-                        case 2 ->
-                                Component.literal(
-                                        "Accessory: Torso"
-                                );
-                        default ->
-                                Component.literal(
-                                        "Accessory: Feet"
-                                );
-                    };
-
             graphics.renderTooltip(
                     minecraft.font,
-                    label,
+                    Component.translatable(
+                            slot.translationKey()
+                    ),
                     (int) mouseX,
                     (int) mouseY
             );
@@ -248,16 +260,17 @@ public final class AccessoryInventoryPanel {
         int top =
                 screen.getGuiTop();
 
-        for (int slot = 0;
-             slot < 4;
-             slot++) {
+        AccessorySlot[] slots =
+                AccessorySlot.values();
+
+        for (int ordinal = 0;
+             ordinal < slots.length;
+             ordinal++) {
             int x =
-                    left
-                            + SLOT_X;
+                    left + SLOT_X[ordinal];
 
             int y =
-                    top
-                            + SLOT_Y[slot];
+                    top + SLOT_Y[ordinal];
 
             if (!inside(
                     event.getMouseX(),
@@ -275,7 +288,7 @@ public final class AccessoryInventoryPanel {
 
             PacketDistributor.sendToServer(
                     new AccessoryActionC2SPayload(
-                            (byte) slot,
+                            (byte) ordinal,
                             action
                     )
             );
@@ -298,31 +311,5 @@ public final class AccessoryInventoryPanel {
                 && mouseX < x + SLOT_SIZE
                 && mouseY >= y
                 && mouseY < y + SLOT_SIZE;
-    }
-
-    private static ItemStack stackFor(
-            String path
-    ) {
-        if (path == null
-                || path.isBlank()) {
-            return ItemStack.EMPTY;
-        }
-
-        return switch (path) {
-            case "spectral_glasses" ->
-                    OddityContent.SPECTRAL_GLASSES.get()
-                            .getDefaultInstance();
-            case "work_gloves" ->
-                    OddityContent.WORK_GLOVES.get()
-                            .getDefaultInstance();
-            case "engineer_cape" ->
-                    OddityContent.ENGINEER_CAPE.get()
-                            .getDefaultInstance();
-            case "wind_boots" ->
-                    OddityContent.WIND_BOOTS.get()
-                            .getDefaultInstance();
-            default ->
-                    ItemStack.EMPTY;
-        };
     }
 }

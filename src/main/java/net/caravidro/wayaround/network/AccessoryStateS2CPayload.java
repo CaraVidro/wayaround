@@ -13,10 +13,9 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record AccessoryStateS2CPayload(
         UUID player,
-        String head,
-        String hands,
-        String torso,
-        String feet,
+        String[] kinds,
+        int[] wear,
+        int[] glass,
         int glassesMode
 ) implements CustomPacketPayload {
 
@@ -37,31 +36,92 @@ public record AccessoryStateS2CPayload(
                         buf.writeUUID(
                                 payload.player()
                         );
-                        buf.writeUtf(
-                                payload.head()
+
+                        int count =
+                                Math.min(
+                                        payload.kinds().length,
+                                        Math.min(
+                                                payload.wear().length,
+                                                payload.glass().length
+                                        )
+                                );
+
+                        buf.writeVarInt(
+                                count
                         );
-                        buf.writeUtf(
-                                payload.hands()
-                        );
-                        buf.writeUtf(
-                                payload.torso()
-                        );
-                        buf.writeUtf(
-                                payload.feet()
-                        );
+
+                        for (int i = 0;
+                             i < count;
+                             i++) {
+                            buf.writeUtf(
+                                    payload.kinds()[i]
+                            );
+
+                            buf.writeVarInt(
+                                    Math.max(
+                                            0,
+                                            payload.wear()[i]
+                                    )
+                            );
+
+                            buf.writeByte(
+                                    payload.glass()[i]
+                            );
+                        }
+
                         buf.writeVarInt(
                                 payload.glassesMode()
                         );
                     },
-                    buf ->
-                            new AccessoryStateS2CPayload(
-                                    buf.readUUID(),
-                                    buf.readUtf(),
-                                    buf.readUtf(),
-                                    buf.readUtf(),
-                                    buf.readUtf(),
-                                    buf.readVarInt()
-                            )
+                    buf -> {
+                        UUID player =
+                                buf.readUUID();
+
+                        int count =
+                                Math.min(
+                                        32,
+                                        Math.max(
+                                                0,
+                                                buf.readVarInt()
+                                        )
+                                );
+
+                        String[] kinds =
+                                new String[
+                                        count
+                                        ];
+
+                        int[] wear =
+                                new int[
+                                        count
+                                        ];
+
+                        int[] glass =
+                                new int[
+                                        count
+                                        ];
+
+                        for (int i = 0;
+                             i < count;
+                             i++) {
+                            kinds[i] =
+                                    buf.readUtf();
+
+                            wear[i] =
+                                    buf.readVarInt();
+
+                            glass[i] =
+                                    buf.readByte();
+                        }
+
+                        return new AccessoryStateS2CPayload(
+                                player,
+                                kinds,
+                                wear,
+                                glass,
+                                buf.readVarInt()
+                        );
+                    }
             );
 
     @Override

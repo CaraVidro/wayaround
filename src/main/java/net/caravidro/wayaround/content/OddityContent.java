@@ -76,45 +76,91 @@ public final class OddityContent {
                     )
             );
 
+    private static final java.util.EnumMap<
+            AccessoryKind,
+            DeferredItem<AccessoryItem>
+            > ACCESSORY_ITEMS =
+            new java.util.EnumMap<>(
+                    AccessoryKind.class
+            );
+
+    private static DeferredItem<AccessoryItem> accessory(
+            AccessoryKind kind
+    ) {
+        DeferredItem<AccessoryItem> item =
+                ITEMS.register(
+                        kind.path(),
+                        () -> new AccessoryItem(
+                                kind,
+                                new Item.Properties()
+                                        .stacksTo(1)
+                                        .durability(
+                                                kind.maxWear()
+                                        )
+                        )
+                );
+
+        ACCESSORY_ITEMS.put(
+                kind,
+                item
+        );
+
+        return item;
+    }
+
     public static final DeferredItem<AccessoryItem> SPECTRAL_GLASSES =
-            ITEMS.register(
-                    "spectral_glasses",
-                    () -> new AccessoryItem(
-                            AccessoryKind.SPECTRAL_GLASSES,
-                            new Item.Properties()
-                                    .stacksTo(1)
-                    )
-            );
-
+            accessory(AccessoryKind.SPECTRAL_GLASSES);
     public static final DeferredItem<AccessoryItem> WORK_GLOVES =
-            ITEMS.register(
-                    "work_gloves",
-                    () -> new AccessoryItem(
-                            AccessoryKind.WORK_GLOVES,
-                            new Item.Properties()
-                                    .stacksTo(1)
-                    )
-            );
-
+            accessory(AccessoryKind.WORK_GLOVES);
     public static final DeferredItem<AccessoryItem> ENGINEER_CAPE =
-            ITEMS.register(
-                    "engineer_cape",
-                    () -> new AccessoryItem(
-                            AccessoryKind.ENGINEER_CAPE,
-                            new Item.Properties()
-                                    .stacksTo(1)
-                    )
-            );
-
+            accessory(AccessoryKind.ENGINEER_CAPE);
     public static final DeferredItem<AccessoryItem> WIND_BOOTS =
-            ITEMS.register(
-                    "wind_boots",
-                    () -> new AccessoryItem(
-                            AccessoryKind.WIND_BOOTS,
-                            new Item.Properties()
-                                    .stacksTo(1)
-                    )
-            );
+            accessory(AccessoryKind.WIND_BOOTS);
+
+    public static final DeferredItem<AccessoryItem> ENGINEER_CAP =
+            accessory(AccessoryKind.ENGINEER_CAP);
+    public static final DeferredItem<AccessoryItem> ENGINEER_GOGGLES =
+            accessory(AccessoryKind.ENGINEER_GOGGLES);
+    public static final DeferredItem<AccessoryItem> ENGINEER_JACKET =
+            accessory(AccessoryKind.ENGINEER_JACKET);
+    public static final DeferredItem<AccessoryItem> ENGINEER_GLOVES =
+            accessory(AccessoryKind.ENGINEER_GLOVES);
+    public static final DeferredItem<AccessoryItem> ENGINEER_TROUSERS =
+            accessory(AccessoryKind.ENGINEER_TROUSERS);
+    public static final DeferredItem<AccessoryItem> ENGINEER_BOOTS =
+            accessory(AccessoryKind.ENGINEER_BOOTS);
+    public static final DeferredItem<AccessoryItem> ENGINEER_GEAR_HARNESS =
+            accessory(AccessoryKind.ENGINEER_GEAR_HARNESS);
+
+    public static final DeferredItem<AccessoryItem> AERO_ENGINEER_CAP =
+            accessory(AccessoryKind.AERO_ENGINEER_CAP);
+    public static final DeferredItem<AccessoryItem> AERO_GOGGLES =
+            accessory(AccessoryKind.AERO_GOGGLES);
+    public static final DeferredItem<AccessoryItem> AERO_JACKET =
+            accessory(AccessoryKind.AERO_JACKET);
+    public static final DeferredItem<AccessoryItem> AERO_GLOVES =
+            accessory(AccessoryKind.AERO_GLOVES);
+    public static final DeferredItem<AccessoryItem> AERO_TROUSERS =
+            accessory(AccessoryKind.AERO_TROUSERS);
+    public static final DeferredItem<AccessoryItem> AERO_BOOTS =
+            accessory(AccessoryKind.AERO_BOOTS);
+    public static final DeferredItem<AccessoryItem> AERO_CAPE =
+            accessory(AccessoryKind.AERO_CAPE);
+    public static final DeferredItem<AccessoryItem> AERO_GEAR_CLUSTER =
+            accessory(AccessoryKind.AERO_GEAR_CLUSTER);
+
+    public static final DeferredItem<AccessoryItem> CHEF_HAT =
+            accessory(AccessoryKind.CHEF_HAT);
+    public static final DeferredItem<AccessoryItem> CHEF_COAT =
+            accessory(AccessoryKind.CHEF_COAT);
+    public static final DeferredItem<AccessoryItem> CHEF_GLOVES =
+            accessory(AccessoryKind.CHEF_GLOVES);
+    public static final DeferredItem<AccessoryItem> CHEF_TROUSERS =
+            accessory(AccessoryKind.CHEF_TROUSERS);
+    public static final DeferredItem<AccessoryItem> CHEF_SHOES =
+            accessory(AccessoryKind.CHEF_SHOES);
+    public static final DeferredItem<AccessoryItem> CHEF_APRON =
+            accessory(AccessoryKind.CHEF_APRON);
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab>
             SPECTRAL_OBJECTS =
@@ -149,6 +195,10 @@ public final class OddityContent {
                             .build()
             );
 
+    /*
+     * Keep the historical registry id "aceculture" so existing worlds do not
+     * get a duplicate tab id. The visible name is now literally Acessórios.
+     */
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab>
             ACECULTURE =
             TABS.register(
@@ -156,30 +206,26 @@ public final class OddityContent {
                     () -> CreativeModeTab.builder()
                             .title(
                                     Component.translatable(
-                                            "itemGroup.wayaround.aceculture"
+                                            "itemGroup.wayaround.accessories"
                                     )
                             )
                             .withTabsBefore(
                                     CreativeModeTabs.SPAWN_EGGS
                             )
                             .icon(
-                                    () -> SPECTRAL_GLASSES.get()
+                                    () -> ENGINEER_GOGGLES.get()
                                             .getDefaultInstance()
                             )
                             .displayItems(
                                     (parameters, output) -> {
-                                        output.accept(
-                                                SPECTRAL_GLASSES.get()
-                                        );
-                                        output.accept(
-                                                WORK_GLOVES.get()
-                                        );
-                                        output.accept(
-                                                ENGINEER_CAPE.get()
-                                        );
-                                        output.accept(
-                                                WIND_BOOTS.get()
-                                        );
+                                        for (AccessoryKind kind :
+                                                AccessoryKind.values()) {
+                                            output.accept(
+                                                    accessoryStack(
+                                                            kind
+                                                    )
+                                            );
+                                        }
                                     }
                             )
                             .build()
@@ -192,20 +238,15 @@ public final class OddityContent {
             return ItemStack.EMPTY;
         }
 
-        return switch (kind) {
-            case SPECTRAL_GLASSES ->
-                    SPECTRAL_GLASSES.get()
-                            .getDefaultInstance();
-            case WORK_GLOVES ->
-                    WORK_GLOVES.get()
-                            .getDefaultInstance();
-            case ENGINEER_CAPE ->
-                    ENGINEER_CAPE.get()
-                            .getDefaultInstance();
-            case WIND_BOOTS ->
-                    WIND_BOOTS.get()
-                            .getDefaultInstance();
-        };
+        DeferredItem<AccessoryItem> item =
+                ACCESSORY_ITEMS.get(
+                        kind
+                );
+
+        return item == null
+                ? ItemStack.EMPTY
+                : item.get()
+                .getDefaultInstance();
     }
 
     public static void register(

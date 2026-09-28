@@ -22,12 +22,8 @@ public final class AccessoryItem
             AccessoryKind kind,
             Properties properties
     ) {
-        super(
-                properties
-        );
-
-        this.kind =
-                kind;
+        super(properties);
+        this.kind = kind;
     }
 
     public AccessoryKind kind() {
@@ -67,24 +63,85 @@ public final class AccessoryItem
             List<Component> tooltip,
             TooltipFlag flag
     ) {
-        String hint =
-                switch (kind) {
-                    case SPECTRAL_GLASSES ->
-                            "Right-click the head slot: eyes / forehead.";
-                    case WORK_GLOVES ->
-                            "A pair of reinforced decorative gloves.";
-                    case ENGINEER_CAPE ->
-                            "Its cloth reacts to your movement.";
-                    case WIND_BOOTS ->
-                            "Light boots. Decorative, for now.";
-                };
+        int stage =
+                AccessoryWear.stage(
+                        stack,
+                        kind
+                );
 
         tooltip.add(
-                Component.literal(
-                        hint
+                Component.translatable(
+                        kind.kit()
+                                .translationKey()
                 ).withStyle(
-                        ChatFormatting.GRAY
+                        ChatFormatting.DARK_AQUA
                 )
         );
+
+        tooltip.add(
+                Component.translatable(
+                        switch (stage) {
+                            case 1 ->
+                                    "accessory.wear.worn";
+                            case 2 ->
+                                    "accessory.wear.ruined";
+                            default ->
+                                    "accessory.wear.intact";
+                        }
+                ).withStyle(
+                        stage == 0
+                                ? ChatFormatting.GRAY
+                                : stage == 1
+                                ? ChatFormatting.YELLOW
+                                : ChatFormatting.RED
+                )
+        );
+
+        if (kind.breakableGlass()) {
+            int glass =
+                    AccessoryWear.glassState(
+                            stack
+                    );
+
+            tooltip.add(
+                    Component.translatable(
+                            switch (glass) {
+                                case 1 ->
+                                        "accessory.glass.cracked";
+                                case 2 ->
+                                        "accessory.glass.broken";
+                                default ->
+                                        "accessory.glass.intact";
+                            }
+                    ).withStyle(
+                            glass == 0
+                                    ? ChatFormatting.AQUA
+                                    : glass == 1
+                                    ? ChatFormatting.GOLD
+                                    : ChatFormatting.DARK_RED
+                    )
+            );
+        }
+
+        if (kind.motion()
+                != AccessoryMotion.NONE) {
+            tooltip.add(
+                    Component.translatable(
+                            "accessory.secondary_motion"
+                    ).withStyle(
+                            ChatFormatting.DARK_GRAY
+                    )
+            );
+        }
+
+        if (kind.ratHost()) {
+            tooltip.add(
+                    Component.translatable(
+                            "accessory.rat_ready"
+                    ).withStyle(
+                            ChatFormatting.DARK_GRAY
+                    )
+            );
+        }
     }
 }

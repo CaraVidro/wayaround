@@ -2,9 +2,13 @@ package net.caravidro.wayaround.accessory;
 
 public enum AccessorySlot {
     HEAD,
+    FACE,
     HANDS,
     TORSO,
-    FEET;
+    LEGS,
+    FEET,
+    BACK,
+    EXTRA;
 
     public static AccessorySlot byOrdinal(
             int ordinal
@@ -16,5 +20,10 @@ public enum AccessorySlot {
                 && ordinal < values.length
                 ? values[ordinal]
                 : null;
+    }
+
+    public String translationKey() {
+        return "accessory.slot.wayaround."
+                + name().toLowerCase();
     }
 }

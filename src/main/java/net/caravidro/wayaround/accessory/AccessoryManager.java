@@ -8,6 +8,7 @@ import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -17,23 +18,29 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
- * Server-side accessory equipment state.
+ * Server-owned accessory loadout.
  *
- * Accessories are intentionally cosmetic by default. This manager only owns
- * equip/unequip, visual modes and multiplayer synchronization; gameplay buffs
- * must be explicit features of an individual accessory instead of being baked
- * into the slot system.
+ * The old implementation stored only a kind per slot. V1.1.1 keeps wear and
+ * breakable-glass state with the equipped item as well, so taking a garment
+ * off gives the same battered object back instead of a fresh copy.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class AccessoryManager {
 
-    private AccessoryManager() {}
-
     private static final String PREFIX =
             "WayAroundAccessory_";
 
+    private static final String WEAR_PREFIX =
+            "WayAroundAccessoryWear_";
+
+    private static final String GLASS_PREFIX =
+            "WayAroundAccessoryGlass_";
+
     private static final String GLASSES_MODE =
             "WayAroundAccessoryGlassesMode";
+
+    private AccessoryManager() {
+    }
 
     public static void equipFromHand(
             ServerPlayer player,
@@ -46,6 +53,10 @@ public final class AccessoryManager {
             return;
         }
 
+        migrateLegacySlots(
+                player
+        );
+
         ItemStack held =
                 player.getItemInHand(
                         hand
@@ -53,15 +64,15 @@ public final class AccessoryManager {
 
         if (held.isEmpty()
                 || held.getItem()
-                        != accessory) {
+                != accessory) {
             return;
         }
 
         AccessoryKind kind =
                 accessory.kind();
 
-        AccessoryKind old =
-                equipped(
+        ItemStack old =
+                equippedStack(
                         player,
                         kind.slot()
                 );
@@ -69,24 +80,22 @@ public final class AccessoryManager {
         setEquipped(
                 player,
                 kind.slot(),
-                kind
+                kind,
+                held.getDamageValue(),
+                AccessoryWear.glassState(
+                        held
+                )
         );
 
         if (!player.getAbilities()
                 .instabuild) {
-            held.shrink(
-                    1
-            );
+            held.shrink(1);
         }
 
-        if (old != null) {
-            giveOrDrop(
-                    player,
-                    OddityContent.accessoryStack(
-                            old
-                    )
-            );
-        }
+        giveOrDrop(
+                player,
+                old
+        );
 
         sync(
                 player
@@ -103,6 +112,10 @@ public final class AccessoryManager {
         )) {
             return;
         }
+
+        migrateLegacySlots(
+                player
+        );
 
         AccessorySlot slot =
                 AccessorySlot.byOrdinal(
@@ -135,8 +148,8 @@ public final class AccessoryManager {
                 return;
             }
 
-            AccessoryKind old =
-                    equipped(
+            ItemStack old =
+                    equippedStack(
                             player,
                             slot
                     );
@@ -144,16 +157,16 @@ public final class AccessoryManager {
             setEquipped(
                     player,
                     slot,
-                    accessory.kind()
+                    accessory.kind(),
+                    carried.getDamageValue(),
+                    AccessoryWear.glassState(
+                            carried
+                    )
             );
 
             player.containerMenu
                     .setCarried(
-                            old == null
-                                    ? ItemStack.EMPTY
-                                    : OddityContent.accessoryStack(
-                                    old
-                            )
+                            old
                     );
 
             sync(
@@ -163,27 +176,27 @@ public final class AccessoryManager {
             return;
         }
 
-        AccessoryKind old =
-                equipped(
+        ItemStack old =
+                equippedStack(
                         player,
                         slot
                 );
 
-        if (old == null) {
+        if (old.isEmpty()) {
             return;
         }
 
         setEquipped(
                 player,
                 slot,
-                null
+                null,
+                0,
+                0
         );
 
         player.containerMenu
                 .setCarried(
-                        OddityContent.accessoryStack(
-                                old
-                        )
+                        old
                 );
 
         sync(
@@ -195,11 +208,15 @@ public final class AccessoryManager {
             ServerPlayer player,
             AccessorySlot slot
     ) {
-        if (slot != AccessorySlot.HEAD
-                || equipped(
-                player,
-                slot
-        ) != AccessoryKind.SPECTRAL_GLASSES) {
+        AccessoryKind equipped =
+                equipped(
+                        player,
+                        slot
+                );
+
+        if (slot != AccessorySlot.FACE
+                || equipped
+                != AccessoryKind.SPECTRAL_GLASSES) {
             return;
         }
 
@@ -232,6 +249,62 @@ public final class AccessoryManager {
         );
     }
 
+    public static int equippedWear(
+            ServerPlayer player,
+            AccessorySlot slot
+    ) {
+        AccessoryKind kind =
+                equipped(
+                        player,
+                        slot
+                );
+
+        if (kind == null) {
+            return 0;
+        }
+
+        return Mth.clamp(
+                player.getPersistentData()
+                        .getInt(
+                                wearKey(
+                                        slot
+                                )
+                        ),
+                0,
+                Math.max(
+                        0,
+                        kind.maxWear() - 1
+                )
+        );
+    }
+
+    public static int equippedGlass(
+            ServerPlayer player,
+            AccessorySlot slot
+    ) {
+        AccessoryKind kind =
+                equipped(
+                        player,
+                        slot
+                );
+
+        if (kind == null
+                || !kind.breakableGlass()) {
+            return 0;
+        }
+
+        return Mth.clamp(
+                player.getPersistentData()
+                        .getInt(
+                                glassKey(
+                                        slot
+                                )
+                        ),
+                0,
+                2
+        );
+    }
+
     public static int glassesMode(
             ServerPlayer player
     ) {
@@ -244,20 +317,221 @@ public final class AccessoryManager {
         );
     }
 
-    private static void setEquipped(
+    public static void damageSlot(
             ServerPlayer player,
             AccessorySlot slot,
-            AccessoryKind kind
+            int amount
     ) {
-        String key =
-                key(
+        AccessoryKind kind =
+                equipped(
+                        player,
+                        slot
+                );
+
+        if (kind == null
+                || amount <= 0) {
+            return;
+        }
+
+        int next =
+                Mth.clamp(
+                        equippedWear(
+                                player,
+                                slot
+                        )
+                                + amount,
+                        0,
+                        Math.max(
+                                0,
+                                kind.maxWear() - 1
+                        )
+                );
+
+        player.getPersistentData()
+                .putInt(
+                        wearKey(
+                                slot
+                        ),
+                        next
+                );
+    }
+
+    public static void damageAll(
+            ServerPlayer player,
+            int amount
+    ) {
+        for (AccessorySlot slot :
+                AccessorySlot.values()) {
+            damageSlot(
+                    player,
+                    slot,
+                    amount
+            );
+        }
+
+        sync(
+                player
+        );
+    }
+
+    public static boolean damageBreakableGlass(
+            ServerPlayer player,
+            int severity
+    ) {
+        boolean changed =
+                false;
+
+        for (AccessorySlot slot :
+                AccessorySlot.values()) {
+            AccessoryKind kind =
+                    equipped(
+                            player,
+                            slot
+                    );
+
+            if (kind == null
+                    || !kind.breakableGlass()) {
+                continue;
+            }
+
+            int old =
+                    equippedGlass(
+                            player,
+                            slot
+                    );
+
+            int next =
+                    Mth.clamp(
+                            old
+                                    + Math.max(
+                                    1,
+                                    severity
+                            ),
+                            0,
+                            2
+                    );
+
+            if (next == old) {
+                continue;
+            }
+
+            player.getPersistentData()
+                    .putInt(
+                            glassKey(
+                                    slot
+                            ),
+                            next
+                    );
+
+            damageSlot(
+                    player,
+                    slot,
+                    12
+                            * Math.max(
+                            1,
+                            severity
+                    )
+            );
+
+            changed =
+                    true;
+        }
+
+        if (changed) {
+            sync(
+                    player
+            );
+        }
+
+        return changed;
+    }
+
+    public static boolean hasRatHost(
+            ServerPlayer player
+    ) {
+        for (AccessorySlot slot :
+                AccessorySlot.values()) {
+            AccessoryKind kind =
+                    equipped(
+                            player,
+                            slot
+                    );
+
+            if (kind != null
+                    && kind.ratHost()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static ItemStack equippedStack(
+            ServerPlayer player,
+            AccessorySlot slot
+    ) {
+        AccessoryKind kind =
+                equipped(
+                        player,
                         slot
                 );
 
         if (kind == null) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack stack =
+                OddityContent.accessoryStack(
+                        kind
+                );
+
+        AccessoryWear.setWear(
+                stack,
+                kind,
+                equippedWear(
+                        player,
+                        slot
+                )
+        );
+
+        AccessoryWear.setGlassState(
+                stack,
+                equippedGlass(
+                        player,
+                        slot
+                )
+        );
+
+        return stack;
+    }
+
+    private static void setEquipped(
+            ServerPlayer player,
+            AccessorySlot slot,
+            AccessoryKind kind,
+            int wear,
+            int glass
+    ) {
+        if (kind == null) {
             player.getPersistentData()
                     .remove(
-                            key
+                            key(
+                                    slot
+                            )
+                    );
+
+            player.getPersistentData()
+                    .remove(
+                            wearKey(
+                                    slot
+                            )
+                    );
+
+            player.getPersistentData()
+                    .remove(
+                            glassKey(
+                                    slot
+                            )
                     );
 
             return;
@@ -265,8 +539,39 @@ public final class AccessoryManager {
 
         player.getPersistentData()
                 .putString(
-                        key,
+                        key(
+                                slot
+                        ),
                         kind.path()
+                );
+
+        player.getPersistentData()
+                .putInt(
+                        wearKey(
+                                slot
+                        ),
+                        Mth.clamp(
+                                wear,
+                                0,
+                                Math.max(
+                                        0,
+                                        kind.maxWear() - 1
+                                )
+                        )
+                );
+
+        player.getPersistentData()
+                .putInt(
+                        glassKey(
+                                slot
+                        ),
+                        kind.breakableGlass()
+                                ? Mth.clamp(
+                                glass,
+                                0,
+                                2
+                        )
+                                : 0
                 );
     }
 
@@ -274,6 +579,20 @@ public final class AccessoryManager {
             AccessorySlot slot
     ) {
         return PREFIX
+                + slot.name();
+    }
+
+    private static String wearKey(
+            AccessorySlot slot
+    ) {
+        return WEAR_PREFIX
+                + slot.name();
+    }
+
+    private static String glassKey(
+            AccessorySlot slot
+    ) {
+        return GLASS_PREFIX
                 + slot.name();
     }
 
@@ -312,9 +631,41 @@ public final class AccessoryManager {
         long tick =
                 server.getTickCount();
 
+        if (tick % 200L == 0L) {
+            for (ServerPlayer player :
+                    server.getPlayerList()
+                            .getPlayers()) {
+                migrateLegacySlots(
+                        player
+                );
+
+                int wear =
+                        player.isOnFire()
+                                ? 4
+                                : player.isSprinting()
+                                ? 2
+                                : player.getDeltaMovement()
+                                .horizontalDistanceSqr()
+                                > 0.0025
+                                ? 1
+                                : 0;
+
+                if (wear > 0) {
+                    for (AccessorySlot slot :
+                            AccessorySlot.values()) {
+                        damageSlot(
+                                player,
+                                slot,
+                                wear
+                        );
+                    }
+                }
+            }
+        }
+
         /*
-         * Changes sync immediately; this slow refresh exists only so players
-         * entering another player's tracking range receive the cosmetic state.
+         * Changes sync immediately; this slower refresh also handles players
+         * entering another player's tracking range.
          */
         if (tick % 40L != 0L) {
             return;
@@ -338,33 +689,61 @@ public final class AccessoryManager {
             return;
         }
 
+        migrateLegacySlots(
+                player
+        );
+
+        AccessorySlot[] slots =
+                AccessorySlot.values();
+
+        String[] kinds =
+                new String[
+                        slots.length
+                        ];
+
+        int[] wear =
+                new int[
+                        slots.length
+                        ];
+
+        int[] glass =
+                new int[
+                        slots.length
+                        ];
+
+        for (int i = 0;
+             i < slots.length;
+             i++) {
+            AccessoryKind kind =
+                    equipped(
+                            player,
+                            slots[i]
+                    );
+
+            kinds[i] =
+                    kind == null
+                            ? ""
+                            : kind.path();
+
+            wear[i] =
+                    equippedWear(
+                            player,
+                            slots[i]
+                    );
+
+            glass[i] =
+                    equippedGlass(
+                            player,
+                            slots[i]
+                    );
+        }
+
         AccessoryStateS2CPayload payload =
                 new AccessoryStateS2CPayload(
                         player.getUUID(),
-                        path(
-                                equipped(
-                                        player,
-                                        AccessorySlot.HEAD
-                                )
-                        ),
-                        path(
-                                equipped(
-                                        player,
-                                        AccessorySlot.HANDS
-                                )
-                        ),
-                        path(
-                                equipped(
-                                        player,
-                                        AccessorySlot.TORSO
-                                )
-                        ),
-                        path(
-                                equipped(
-                                        player,
-                                        AccessorySlot.FEET
-                                )
-                        ),
+                        kinds,
+                        wear,
+                        glass,
                         glassesMode(
                                 player
                         )
@@ -386,12 +765,98 @@ public final class AccessoryManager {
         );
     }
 
-    private static String path(
-            AccessoryKind kind
+    private static void migrateLegacySlots(
+            ServerPlayer player
     ) {
-        return kind == null
-                ? ""
-                : kind.path();
+        AccessoryKind oldHead =
+                AccessoryKind.byPath(
+                        player.getPersistentData()
+                                .getString(
+                                        key(
+                                                AccessorySlot.HEAD
+                                        )
+                                )
+                );
+
+        if (oldHead
+                == AccessoryKind.SPECTRAL_GLASSES
+                && equipped(
+                player,
+                AccessorySlot.FACE
+        ) == null) {
+            int wear =
+                    player.getPersistentData()
+                            .getInt(
+                                    wearKey(
+                                            AccessorySlot.HEAD
+                                    )
+                            );
+
+            int glass =
+                    player.getPersistentData()
+                            .getInt(
+                                    glassKey(
+                                            AccessorySlot.HEAD
+                                    )
+                            );
+
+            setEquipped(
+                    player,
+                    AccessorySlot.HEAD,
+                    null,
+                    0,
+                    0
+            );
+
+            setEquipped(
+                    player,
+                    AccessorySlot.FACE,
+                    oldHead,
+                    wear,
+                    glass
+            );
+        }
+
+        AccessoryKind oldTorso =
+                AccessoryKind.byPath(
+                        player.getPersistentData()
+                                .getString(
+                                        key(
+                                                AccessorySlot.TORSO
+                                        )
+                                )
+                );
+
+        if (oldTorso
+                == AccessoryKind.ENGINEER_CAPE
+                && equipped(
+                player,
+                AccessorySlot.BACK
+        ) == null) {
+            int wear =
+                    player.getPersistentData()
+                            .getInt(
+                                    wearKey(
+                                            AccessorySlot.TORSO
+                                    )
+                            );
+
+            setEquipped(
+                    player,
+                    AccessorySlot.TORSO,
+                    null,
+                    0,
+                    0
+            );
+
+            setEquipped(
+                    player,
+                    AccessorySlot.BACK,
+                    oldTorso,
+                    wear,
+                    0
+            );
+        }
     }
 
     @SubscribeEvent
@@ -400,6 +865,10 @@ public final class AccessoryManager {
     ) {
         if (event.getEntity()
                 instanceof ServerPlayer player) {
+            migrateLegacySlots(
+                    player
+            );
+
             sync(
                     player
             );
@@ -419,7 +888,7 @@ public final class AccessoryManager {
 
         for (AccessorySlot slot :
                 AccessorySlot.values()) {
-            String value =
+            String kind =
                     original.getPersistentData()
                             .getString(
                                     key(
@@ -427,15 +896,41 @@ public final class AccessoryManager {
                                     )
                             );
 
-            if (!value.isBlank()) {
+            if (!kind.isBlank()) {
                 replacement.getPersistentData()
                         .putString(
                                 key(
                                         slot
                                 ),
-                                value
+                                kind
                         );
             }
+
+            replacement.getPersistentData()
+                    .putInt(
+                            wearKey(
+                                    slot
+                            ),
+                            original.getPersistentData()
+                                    .getInt(
+                                            wearKey(
+                                                    slot
+                                            )
+                                    )
+                    );
+
+            replacement.getPersistentData()
+                    .putInt(
+                            glassKey(
+                                    slot
+                            ),
+                            original.getPersistentData()
+                                    .getInt(
+                                            glassKey(
+                                                    slot
+                                            )
+                                    )
+                    );
         }
 
         replacement.getPersistentData()

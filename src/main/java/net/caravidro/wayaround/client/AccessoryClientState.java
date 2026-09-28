@@ -1,9 +1,13 @@
 package net.caravidro.wayaround.client;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import net.caravidro.wayaround.accessory.AccessoryKind;
+import net.caravidro.wayaround.accessory.AccessorySlot;
+import net.caravidro.wayaround.accessory.AccessoryWear;
 import net.caravidro.wayaround.network.AccessoryStateS2CPayload;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -17,10 +21,11 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 )
 public final class AccessoryClientState {
 
-    private AccessoryClientState() {}
-
     private static final Map<UUID, State> STATES =
             new HashMap<>();
+
+    private AccessoryClientState() {
+    }
 
     public static void receive(
             AccessoryStateS2CPayload payload
@@ -33,13 +38,69 @@ public final class AccessoryClientState {
                         ? 0L
                         : minecraft.level.getGameTime();
 
+        int count =
+                AccessorySlot.values()
+                        .length;
+
+        String[] kinds =
+                new String[
+                        count
+                        ];
+
+        int[] wear =
+                new int[
+                        count
+                        ];
+
+        int[] glass =
+                new int[
+                        count
+                        ];
+
+        Arrays.fill(
+                kinds,
+                ""
+        );
+
+        System.arraycopy(
+                payload.kinds(),
+                0,
+                kinds,
+                0,
+                Math.min(
+                        count,
+                        payload.kinds().length
+                )
+        );
+
+        System.arraycopy(
+                payload.wear(),
+                0,
+                wear,
+                0,
+                Math.min(
+                        count,
+                        payload.wear().length
+                )
+        );
+
+        System.arraycopy(
+                payload.glass(),
+                0,
+                glass,
+                0,
+                Math.min(
+                        count,
+                        payload.glass().length
+                )
+        );
+
         STATES.put(
                 payload.player(),
                 new State(
-                        payload.head(),
-                        payload.hands(),
-                        payload.torso(),
-                        payload.feet(),
+                        kinds,
+                        wear,
+                        glass,
                         payload.glassesMode(),
                         seen
                 )
@@ -72,7 +133,8 @@ public final class AccessoryClientState {
         STATES.entrySet()
                 .removeIf(
                         entry ->
-                                now - entry.getValue().seenAt()
+                                now - entry.getValue()
+                                        .seenAt()
                                         > 100L
                                 && (
                                 minecraft.player == null
@@ -85,23 +147,80 @@ public final class AccessoryClientState {
     }
 
     public record State(
-            String head,
-            String hands,
-            String torso,
-            String feet,
+            String[] kinds,
+            int[] wear,
+            int[] glass,
             int glassesMode,
             long seenAt
     ) {
-        public String forSlot(
-                int ordinal
+        public String path(
+                AccessorySlot slot
         ) {
-            return switch (ordinal) {
-                case 0 -> head;
-                case 1 -> hands;
-                case 2 -> torso;
-                case 3 -> feet;
-                default -> "";
-            };
+            int ordinal =
+                    slot.ordinal();
+
+            return ordinal >= 0
+                    && ordinal < kinds.length
+                    ? kinds[ordinal]
+                    : "";
+        }
+
+        public AccessoryKind kind(
+                AccessorySlot slot
+        ) {
+            return AccessoryKind.byPath(
+                    path(
+                            slot
+                    )
+            );
+        }
+
+        public int wear(
+                AccessorySlot slot
+        ) {
+            int ordinal =
+                    slot.ordinal();
+
+            return ordinal >= 0
+                    && ordinal < wear.length
+                    ? wear[ordinal]
+                    : 0;
+        }
+
+        public int wearStage(
+                AccessorySlot slot
+        ) {
+            return AccessoryWear.stage(
+                    kind(
+                            slot
+                    ),
+                    wear(
+                            slot
+                    )
+            );
+        }
+
+        public int glass(
+                AccessorySlot slot
+        ) {
+            int ordinal =
+                    slot.ordinal();
+
+            return ordinal >= 0
+                    && ordinal < glass.length
+                    ? glass[ordinal]
+                    : 0;
+        }
+
+        public boolean empty() {
+            for (String kind : kinds) {
+                if (kind != null
+                        && !kind.isBlank()) {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
