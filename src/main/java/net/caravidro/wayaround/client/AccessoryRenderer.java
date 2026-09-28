@@ -1,5 +1,9 @@
 package net.caravidro.wayaround.client;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
@@ -46,6 +50,9 @@ public final class AccessoryRenderer {
 
     private AccessoryRenderer() {
     }
+
+    private static final Map<UUID, float[]> EYE_PUPILS =
+            new HashMap<>();
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void render(
@@ -279,6 +286,24 @@ public final class AccessoryRenderer {
                             light
                     );
 
+            case WATCHING_EYE ->
+                    watchingEye(
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            event
+                    );
+
+            case CARDBOARD_BOX ->
+                    cardboardBox(
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light
+                    );
+
             default -> {
             }
         }
@@ -366,6 +391,15 @@ public final class AccessoryRenderer {
                             true
                     );
 
+            case GAS_MASK ->
+                    gasMask(
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light
+                    );
+
             default -> {
             }
         }
@@ -420,6 +454,36 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             wear
+                    );
+
+            case FORMAL_JACKET ->
+                    formalJacket(
+                            model,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            AccessoryCustomizationData.woolState(
+                                    state.customColor(
+                                            AccessorySlot.TORSO
+                                    )
+                            )
+                    );
+
+            case CASUAL_SHIRT ->
+                    casualShirt(
+                            model,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            AccessoryCustomizationData.woolState(
+                                    state.customColor(
+                                            AccessorySlot.TORSO
+                                    )
+                            )
                     );
 
             default -> {
@@ -525,6 +589,25 @@ public final class AccessoryRenderer {
                     light,
                     wear,
                     state.trouserPocket()
+            );
+            return;
+        }
+
+        if (kind == AccessoryKind.FORMAL_TROUSERS
+                || kind == AccessoryKind.CASUAL_TROUSERS) {
+            conventionalTrousers(
+                    model,
+                    pose,
+                    blocks,
+                    buffers,
+                    light,
+                    wear,
+                    AccessoryCustomizationData.woolState(
+                            state.customColor(
+                                    AccessorySlot.LEGS
+                            )
+                    ),
+                    kind == AccessoryKind.FORMAL_TROUSERS
             );
             return;
         }
@@ -860,6 +943,624 @@ public final class AccessoryRenderer {
                     0
             );
         }
+    }
+
+    private static void watchingEye(
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            RenderPlayerEvent.Post event
+    ) {
+        BlockState white =
+                Blocks.QUARTZ_BLOCK.defaultBlockState();
+        BlockState iris =
+                Blocks.CYAN_CONCRETE.defaultBlockState();
+        BlockState pupil =
+                Blocks.BLACK_CONCRETE.defaultBlockState();
+
+        // Hollow six-sided shell replaces the visual silhouette of the head.
+        piece(pose, blocks, buffers, light, white,
+                0.0, -0.255, 0.305,
+                0.625, 0.575, 0.040,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, white,
+                -0.305, -0.255, 0.0,
+                0.040, 0.575, 0.625,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, white,
+                0.305, -0.255, 0.0,
+                0.040, 0.575, 0.625,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, white,
+                0.0, -0.535, 0.0,
+                0.625, 0.040, 0.625,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, white,
+                0.0, 0.025, 0.0,
+                0.625, 0.040, 0.625,
+                0, 0, 0);
+
+        // Front sclera is a frame around the moving iris.
+        piece(pose, blocks, buffers, light, white,
+                0.0, -0.462, -0.315,
+                0.625, 0.155, 0.035,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, white,
+                0.0, -0.048, -0.315,
+                0.625, 0.155, 0.035,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, white,
+                -0.250, -0.255, -0.315,
+                0.125, 0.300, 0.035,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, white,
+                0.250, -0.255, -0.315,
+                0.125, 0.300, 0.035,
+                0, 0, 0);
+
+        float[] offset =
+                eyePupilOffset(
+                        event
+                );
+
+        double pupilX =
+                offset[0];
+
+        double pupilY =
+                offset[1];
+
+        piece(pose, blocks, buffers, light, iris,
+                pupilX, -0.255 + pupilY, -0.342,
+                0.285, 0.285, 0.032,
+                0, 0, 0);
+
+        piece(pose, blocks, buffers, light, pupil,
+                pupilX, -0.255 + pupilY, -0.366,
+                0.130, 0.130, 0.026,
+                0, 0, 0);
+
+        // Tiny reflected glint makes the eye feel wet/alive at a glance.
+        piece(pose, blocks, buffers, light,
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                pupilX - 0.033,
+                -0.292 + pupilY,
+                -0.384,
+                0.035, 0.035, 0.012,
+                0, 0, 0);
+    }
+
+    private static float[] eyePupilOffset(
+            RenderPlayerEvent.Post event
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        Vec3 camera =
+                minecraft.gameRenderer
+                        .getMainCamera()
+                        .getPosition();
+
+        Vec3 eye =
+                event.getEntity()
+                        .getEyePosition();
+
+        double dx =
+                camera.x
+                        - eye.x;
+        double dy =
+                camera.y
+                        - eye.y;
+        double dz =
+                camera.z
+                        - eye.z;
+
+        double horizontal =
+                Math.sqrt(
+                        dx * dx
+                                + dz * dz
+                );
+
+        float targetYaw =
+                (float) Math.toDegrees(
+                        Math.atan2(
+                                -dx,
+                                dz
+                        )
+                );
+
+        float relativeYaw =
+                Mth.wrapDegrees(
+                        targetYaw
+                                - event.getEntity()
+                                .getYHeadRot()
+                );
+
+        float targetPitch =
+                (float) -Math.toDegrees(
+                        Math.atan2(
+                                dy,
+                                Math.max(
+                                        0.001,
+                                        horizontal
+                                )
+                        )
+                );
+
+        float relativePitch =
+                Mth.wrapDegrees(
+                        targetPitch
+                                - event.getEntity()
+                                .getXRot()
+                );
+
+        float wantedX =
+                Mth.clamp(
+                        relativeYaw
+                                / 75.0F
+                                * 0.078F,
+                        -0.078F,
+                        0.078F
+                );
+
+        float wantedY =
+                Mth.clamp(
+                        relativePitch
+                                / 65.0F
+                                * 0.060F,
+                        -0.060F,
+                        0.060F
+                );
+
+        float[] current =
+                EYE_PUPILS.computeIfAbsent(
+                        event.getEntity()
+                                .getUUID(),
+                        ignored ->
+                                new float[]{
+                                        0.0F,
+                                        0.0F
+                                }
+                );
+
+        float time =
+                event.getEntity()
+                        .tickCount;
+
+        wantedX +=
+                Mth.sin(
+                        time * 0.035F
+                ) * 0.006F;
+
+        wantedY +=
+                Mth.cos(
+                        time * 0.027F
+                ) * 0.004F;
+
+        current[0] =
+                Mth.lerp(
+                        0.14F,
+                        current[0],
+                        wantedX
+                );
+
+        current[1] =
+                Mth.lerp(
+                        0.14F,
+                        current[1],
+                        wantedY
+                );
+
+        return current;
+    }
+
+    private static void cardboardBox(
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        BlockState cardboard =
+                wear >= 2
+                        ? Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                        : Blocks.BROWN_WOOL.defaultBlockState();
+
+        BlockState tape =
+                Blocks.SMOOTH_SANDSTONE.defaultBlockState();
+
+        // Four walls + roof. Bottom stays open around the neck.
+        piece(pose, blocks, buffers, light, cardboard,
+                0.0, -0.260, -0.335,
+                0.700, 0.610, 0.045,
+                0, 0, wear >= 2 ? 3 : 0);
+        piece(pose, blocks, buffers, light, cardboard,
+                0.0, -0.260, 0.335,
+                0.700, 0.610, 0.045,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, cardboard,
+                -0.335, -0.260, 0.0,
+                0.045, 0.610, 0.700,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, cardboard,
+                0.335, -0.260, 0.0,
+                0.045, 0.610, 0.700,
+                0, 0, wear >= 1 ? -3 : 0);
+        piece(pose, blocks, buffers, light, cardboard,
+                0.0, -0.565, 0.0,
+                0.700, 0.045, 0.700,
+                0, 0, 0);
+
+        // Packing tape crosses the top and continues down front/back.
+        piece(pose, blocks, buffers, light, tape,
+                0.0, -0.590, 0.0,
+                0.095, 0.018, 0.705,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, tape,
+                0.0, -0.250, -0.362,
+                0.095, 0.520, 0.018,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, tape,
+                0.0, -0.250, 0.362,
+                0.095, 0.520, 0.018,
+                0, 0, 0);
+
+        // Cut-out viewing slits.
+        piece(pose, blocks, buffers, light,
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.145, -0.275, -0.370,
+                0.155, 0.070, 0.020,
+                0, 0, -4);
+        piece(pose, blocks, buffers, light,
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                0.145, -0.275, -0.370,
+                0.155, 0.070, 0.020,
+                0, 0, 4);
+
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.DARK_OAK_PLANKS.defaultBlockState(),
+                    0.230, -0.455, -0.372,
+                    0.150, 0.040, 0.018,
+                    0, 0, -18);
+        }
+    }
+
+    private static void gasMask(
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        BlockState rubber =
+                wear >= 2
+                        ? Blocks.GRAY_CONCRETE.defaultBlockState()
+                        : Blocks.BLACK_CONCRETE.defaultBlockState();
+
+        BlockState metal =
+                Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+
+        // Main face seal.
+        piece(pose, blocks, buffers, light, rubber,
+                0.0, -0.155, -0.327,
+                0.470, 0.360, 0.060,
+                0, 0, 0);
+
+        // Twin glass lenses with thick rims.
+        for (int side : new int[]{-1, 1}) {
+            double x =
+                    side * 0.145;
+
+            piece(pose, blocks, buffers, light, metal,
+                    x, -0.230, -0.371,
+                    0.175, 0.155, 0.035,
+                    0, 0, 0);
+
+            piece(pose, blocks, buffers, light,
+                    Blocks.TINTED_GLASS.defaultBlockState(),
+                    x, -0.230, -0.395,
+                    0.125, 0.105, 0.018,
+                    0, 0, 0);
+        }
+
+        // Nose bridge and useless filter canister.
+        piece(pose, blocks, buffers, light, rubber,
+                0.0, -0.105, -0.385,
+                0.145, 0.180, 0.075,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, metal,
+                0.0, 0.025, -0.410,
+                0.205, 0.150, 0.115,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light,
+                Blocks.IRON_BARS.defaultBlockState(),
+                0.0, 0.028, -0.475,
+                0.150, 0.095, 0.025,
+                0, 0, 0);
+
+        // Side and rear straps make the mask readable from 360°.
+        if (wear < 2) {
+            piece(pose, blocks, buffers, light, rubber,
+                    -0.295, -0.210, -0.025,
+                    0.035, 0.050, 0.560,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, rubber,
+                    0.295, -0.210, -0.025,
+                    0.035, 0.050, 0.560,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, rubber,
+                    0.0, -0.210, 0.278,
+                    0.560, 0.050, 0.035,
+                    0, 0, 0);
+        }
+    }
+
+    private static void formalJacket(
+            PlayerModel<?> model,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState suit
+    ) {
+        pose.pushPose();
+        model.body.translateAndRotate(
+                pose
+        );
+
+        // Full conventional suit shell, intentionally cleaner than engineer gear.
+        piece(pose, blocks, buffers, light, suit,
+                0.0, 0.340, -0.160,
+                0.555, 0.700, 0.070,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, suit,
+                0.0, 0.340, 0.160,
+                0.555, 0.700, 0.070,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, suit,
+                -0.292, 0.340, 0.0,
+                0.035, 0.680, 0.300,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, suit,
+                0.292, 0.340, 0.0,
+                0.035, 0.680, 0.300,
+                0, 0, 0);
+
+        // Shirt, lapels, tie and buttons.
+        piece(pose, blocks, buffers, light,
+                Blocks.WHITE_WOOL.defaultBlockState(),
+                0.0, 0.245, -0.205,
+                0.185, 0.420, 0.028,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, suit,
+                -0.125, 0.235, -0.225,
+                0.150, 0.350, 0.028,
+                0, 0, -16);
+        piece(pose, blocks, buffers, light, suit,
+                0.125, 0.235, -0.225,
+                0.150, 0.350, 0.028,
+                0, 0, 16);
+        piece(pose, blocks, buffers, light,
+                Blocks.RED_WOOL.defaultBlockState(),
+                0.0, 0.245, -0.244,
+                0.055, 0.300, 0.022,
+                0, 0, 0);
+
+        for (int i = 0; i < 3; i++) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.POLISHED_BLACKSTONE.defaultBlockState(),
+                    0.105, 0.300 + i * 0.120, -0.238,
+                    0.028, 0.028, 0.018,
+                    0, 0, 0);
+        }
+
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.GRAY_WOOL.defaultBlockState(),
+                    -0.180, 0.505, -0.235,
+                    0.120, 0.090, 0.020,
+                    0, 0, -8);
+        }
+
+        pose.popPose();
+
+        formalSleeve(model.leftArm, pose, blocks, buffers, light, suit, true, wear);
+        formalSleeve(model.rightArm, pose, blocks, buffers, light, suit, false, wear);
+    }
+
+    private static void formalSleeve(
+            ModelPart arm,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            BlockState suit,
+            boolean left,
+            int wear
+    ) {
+        pose.pushPose();
+        arm.translateAndRotate(
+                pose
+        );
+
+        piece(pose, blocks, buffers, light, suit,
+                0.0, 0.315, 0.0,
+                wear >= 2 && !left ? 0.265 : 0.310,
+                wear >= 2 && !left ? 0.480 : 0.610,
+                0.310,
+                0, 0, wear >= 2 && !left ? 5 : 0);
+
+        piece(pose, blocks, buffers, light,
+                Blocks.WHITE_WOOL.defaultBlockState(),
+                0.0, 0.595, -0.165,
+                0.250, 0.055, 0.030,
+                0, 0, 0);
+
+        pose.popPose();
+    }
+
+    private static void casualShirt(
+            PlayerModel<?> model,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState cloth
+    ) {
+        pose.pushPose();
+        model.body.translateAndRotate(
+                pose
+        );
+
+        // Simple T-shirt volume with front/back/side readability.
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.310, -0.158,
+                0.545, 0.620, 0.065,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.310, 0.158,
+                0.545, 0.620, 0.065,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, cloth,
+                -0.286, 0.300, 0.0,
+                0.035, 0.590, 0.300,
+                0, 0, 0);
+        piece(pose, blocks, buffers, light, cloth,
+                0.286, 0.300, 0.0,
+                0.035, 0.590, 0.300,
+                0, 0, 0);
+
+        // Collar ring impression.
+        piece(pose, blocks, buffers, light,
+                Blocks.LIGHT_GRAY_WOOL.defaultBlockState(),
+                0.0, 0.045, -0.195,
+                0.245, 0.055, 0.025,
+                0, 0, 0);
+
+        if (wear >= 1) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.GRAY_WOOL.defaultBlockState(),
+                    0.190, 0.440, -0.205,
+                    0.115, 0.085, 0.020,
+                    0, 0, 7);
+        }
+
+        pose.popPose();
+
+        casualSleeve(model.leftArm, pose, blocks, buffers, light, cloth, true, wear);
+        casualSleeve(model.rightArm, pose, blocks, buffers, light, cloth, false, wear);
+    }
+
+    private static void casualSleeve(
+            ModelPart arm,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            BlockState cloth,
+            boolean left,
+            int wear
+    ) {
+        pose.pushPose();
+        arm.translateAndRotate(
+                pose
+        );
+
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.130, 0.0,
+                wear >= 2 && !left ? 0.255 : 0.315,
+                wear >= 2 && !left ? 0.170 : 0.245,
+                0.315,
+                0, 0, wear >= 2 && !left ? 6 : 0);
+
+        pose.popPose();
+    }
+
+    private static void conventionalTrousers(
+            PlayerModel<?> model,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState cloth,
+            boolean formal
+    ) {
+        conventionalTrouserLeg(
+                model.leftLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                cloth,
+                true,
+                formal
+        );
+
+        conventionalTrouserLeg(
+                model.rightLeg,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                cloth,
+                false,
+                formal
+        );
+    }
+
+    private static void conventionalTrouserLeg(
+            ModelPart leg,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            BlockState cloth,
+            boolean left,
+            boolean formal
+    ) {
+        pose.pushPose();
+        leg.translateAndRotate(
+                pose
+        );
+
+        piece(pose, blocks, buffers, light, cloth,
+                0.0, 0.315, 0.0,
+                wear >= 2 && !left ? 0.270 : 0.315,
+                wear >= 2 && !left ? 0.510 : 0.665,
+                0.315,
+                0, 0, wear >= 2 && !left ? 4 : 0);
+
+        if (formal) {
+            // Thin front/back crease gives the suit trousers their tailored look.
+            piece(pose, blocks, buffers, light,
+                    Blocks.POLISHED_BLACKSTONE.defaultBlockState(),
+                    0.0, 0.340, -0.170,
+                    0.025, 0.545, 0.020,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light,
+                    Blocks.POLISHED_BLACKSTONE.defaultBlockState(),
+                    0.0, 0.340, 0.170,
+                    0.025, 0.545, 0.020,
+                    0, 0, 0);
+        } else {
+            // Casual side pocket stitch.
+            piece(pose, blocks, buffers, light,
+                    Blocks.LIGHT_GRAY_WOOL.defaultBlockState(),
+                    left ? -0.155 : 0.155,
+                    0.210,
+                    -0.135,
+                    0.025, 0.155, 0.100,
+                    0, 0, left ? -10 : 10);
+        }
+
+        pose.popPose();
     }
 
     private static void customHat(
