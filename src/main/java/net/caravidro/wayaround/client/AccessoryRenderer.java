@@ -1467,27 +1467,32 @@ public final class AccessoryRenderer {
                 0.32,
                 0, 0, 0);
 
+        /*
+         * Engineer footwear is deliberately blocky. The old front extension
+         * looked like a normal shoe/toe; this keeps the whole boot footprint a
+         * compact square around the vanilla foot.
+         */
         piece(pose, blocks, buffers, light,
                 shell,
-                0.0, 0.69, -0.12,
-                wear == 2 && !left ? 0.25 : 0.32,
-                0.16,
-                wear == 2 && !left ? 0.32 : 0.48,
+                0.0, 0.68, 0.0,
+                wear == 2 && !left ? 0.26 : 0.33,
+                0.18,
+                wear == 2 && !left ? 0.27 : 0.34,
                 0, 0, 0);
 
         piece(pose, blocks, buffers, light,
                 Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
-                0.0, 0.75, -0.10,
-                0.34,
+                0.0, 0.76, 0.0,
+                wear == 2 && !left ? 0.28 : 0.36,
                 0.065,
-                wear == 2 && !left ? 0.32 : 0.50,
+                wear == 2 && !left ? 0.29 : 0.36,
                 0, 0, 0);
 
         if (kind == AccessoryKind.ENGINEER_BOOTS && wear < 2) {
             piece(pose, blocks, buffers, light, Blocks.CUT_COPPER.defaultBlockState(),
                     0, 0.49, -0.17, 0.31, 0.048, 0.038, 0, 0, 0);
             piece(pose, blocks, buffers, light, Blocks.CUT_COPPER.defaultBlockState(),
-                    0, 0.65, -0.36, 0.22, 0.045, 0.03, 0, 0, 0);
+                    0, 0.68, -0.18, 0.22, 0.045, 0.03, 0, 0, 0);
         }
 
         if ((kind == AccessoryKind.AERO_BOOTS
