@@ -39,6 +39,7 @@ import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheCommand;
 import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheManager;
 import net.caravidro.wayaround.worldgen.weather.command.BlizzardCommand;
 import net.caravidro.wayaround.worldgen.weather.command.WindTestCommand;
+import net.caravidro.wayaround.worldgen.weather.fire.FireContent;
 import net.caravidro.wayaround.war.WarBallistics;
 import net.caravidro.wayaround.war.WarContent;
 import net.neoforged.bus.api.IEventBus;
@@ -59,6 +60,7 @@ public class WayAround {
         WayAroundContent.register(modEventBus);
         OddityContent.register(modEventBus);
         TopHatContent.register(modEventBus);
+        FireContent.register(modEventBus);
         Area001Content.register(modEventBus);
         EcologyContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
