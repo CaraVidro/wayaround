@@ -3,6 +3,7 @@ package net.caravidro.wayaround.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import net.caravidro.wayaround.accessory.AccessoryCustomizationData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -31,9 +32,41 @@ public final class TopHatModelRenderer {
             float instability,
             float time
     ) {
-        BlockState felt = wear >= 2
-                ? Blocks.BROWN_TERRACOTTA.defaultBlockState()
-                : Blocks.BROWN_WOOL.defaultBlockState();
+        render(
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                windBack,
+                windSide,
+                instability,
+                time,
+                0,
+                2,
+                AccessoryCustomizationData.EXTRA_GEARS
+                        | AccessoryCustomizationData.EXTRA_CLOCK
+        );
+    }
+
+    public static void render(
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            float windBack,
+            float windSide,
+            float instability,
+            float time,
+            int material,
+            int size,
+            int extras
+    ) {
+        BlockState felt =
+                AccessoryCustomizationData.materialState(
+                        material
+                );
         BlockState underside = Blocks.DARK_OAK_PLANKS.defaultBlockState();
         BlockState dark = Blocks.POLISHED_BLACKSTONE.defaultBlockState();
         BlockState brass = wear >= 2
@@ -69,6 +102,29 @@ public final class TopHatModelRenderer {
                 windBack, windSide, gust, time, wear
         );
 
+        float heightScale =
+                0.70F
+                        + AccessoryCustomizationData.clampSize(
+                        size
+                ) * 0.15F;
+
+        pose.pushPose();
+        pose.translate(
+                0.0,
+                -0.49,
+                0.0
+        );
+        pose.scale(
+                1.0F,
+                heightScale,
+                1.0F
+        );
+        pose.translate(
+                0.0,
+                0.49,
+                0.0
+        );
+
         // Three tapered crown levels keep the silhouette interesting from 360°.
         crownRing(pose, blocks, buffers, light, felt, 0.455, 0.420, -0.650, 0.235);
         crownRing(pose, blocks, buffers, light, felt, 0.430, 0.398, -0.835, 0.165);
@@ -101,30 +157,38 @@ public final class TopHatModelRenderer {
                 0.0, -0.620, -0.248,
                 0.083, 0.052, 0.015,
                 0, 0, 0);
-        frontClock(
-                pose, blocks, buffers, light,
-                0.145, -0.770, -0.224, 0.124,
-                wear, time
-        );
+        if ((extras
+                & AccessoryCustomizationData.EXTRA_CLOCK)
+                != 0) {
+            frontClock(
+                    pose, blocks, buffers, light,
+                    0.145, -0.770, -0.224, 0.124,
+                    wear, time
+            );
+        }
 
-        // Moving side machinery.
-        sideGear(pose, blocks, buffers, light, brass, -1, time, wear);
-        sideGear(pose, blocks, buffers, light, brass, 1, -time * 0.83F, wear);
+        if ((extras
+                & AccessoryCustomizationData.EXTRA_GEARS)
+                != 0) {
+            // Moving side machinery.
+            sideGear(pose, blocks, buffers, light, brass, -1, time, wear);
+            sideGear(pose, blocks, buffers, light, brass, 1, -time * 0.83F, wear);
 
-        // Rear tank + pipe + valve, so the back is not a blank wall.
-        piece(pose, blocks, buffers, light, copper,
-                0.105, -0.765, 0.235,
-                0.105, 0.295, 0.070,
-                0, 0, -5);
-        piece(pose, blocks, buffers, light, dark,
-                0.105, -0.615, 0.238,
-                0.125, 0.040, 0.080,
-                0, 0, 0);
-        piece(pose, blocks, buffers, light, copper,
-                0.040, -0.900, 0.235,
-                0.165, 0.045, 0.050,
-                0, 0, 0);
-        valve(pose, blocks, buffers, light, -0.145, -0.755, 0.238, time);
+            // Rear tank + pipe + valve make the machinery readable from behind.
+            piece(pose, blocks, buffers, light, copper,
+                    0.105, -0.765, 0.235,
+                    0.105, 0.295, 0.070,
+                    0, 0, -5);
+            piece(pose, blocks, buffers, light, dark,
+                    0.105, -0.615, 0.238,
+                    0.125, 0.040, 0.080,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light, copper,
+                    0.040, -0.900, 0.235,
+                    0.165, 0.045, 0.050,
+                    0, 0, 0);
+            valve(pose, blocks, buffers, light, -0.145, -0.755, 0.238, time);
+        }
 
         // Rivets on all four faces.
         if (wear < 2) {
@@ -151,6 +215,7 @@ public final class TopHatModelRenderer {
                     0, 0, wear >= 2 ? 16 : 6);
         }
 
+        pose.popPose();
         pose.popPose();
     }
 
