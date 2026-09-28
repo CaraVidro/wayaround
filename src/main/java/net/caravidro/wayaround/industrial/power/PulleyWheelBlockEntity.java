@@ -32,12 +32,15 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
     public static final int MIN_SIDES = 4;
     public static final int MAX_SIDES = 24;
     public static final int MAX_BELT_DISTANCE = 16;
+    public static final int MAX_BELT_LINES = 4;
     public static final String ITEM_SIDES_KEY = "WayAroundPulleySides";
 
     private static final String LINK_SELECTION_KEY = "WayAroundPulleyLinkPos";
 
     private int sides = MIN_SIDES;
     @Nullable private BlockPos linkedPos;
+
+    private int beltLines;
 
     private ItemStack wheelPart =
             ItemStack.EMPTY;
@@ -198,11 +201,24 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         float beltGeometry = Mth.clamp(0.99F - (float) distance * 0.012F, 0.76F, 0.98F);
         float beltCondition = beltConditionFactor();
 
+        float lineFactor =
+                Mth.clamp(
+                        0.88F
+                                + Math.max(
+                                1,
+                                beltLines
+                        )
+                                        * 0.04F,
+                        0.92F,
+                        1.0F
+                );
+
         return own
                 * peer.shapeEfficiency()
                 * peer.wheelConditionFactor()
                 * beltGeometry
-                * beltCondition;
+                * beltCondition
+                * lineFactor;
     }
 
     public float shapeEfficiency() {
@@ -345,6 +361,10 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
         belt.applyWear(
                 0.00022F
+                        / Math.max(
+                        1,
+                        beltLines
+                )
                         * (
                         0.30F
                                 + Math.min(
@@ -386,9 +406,18 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         ItemStack remains =
                 beltPart.isEmpty()
                         ? new ItemStack(
-                        Items.STRING
+                        Items.STRING,
+                        Math.max(
+                                1,
+                                beltLines
+                        )
                 )
-                        : beltPart.copy();
+                        : beltPart.copyWithCount(
+                        Math.max(
+                                1,
+                                beltLines
+                        )
+                );
 
         Block.popResource(
                 server,
@@ -402,6 +431,9 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         beltPart =
                 ItemStack.EMPTY;
 
+        beltLines =
+                0;
+
         if (worldPosition.equals(
                 peer.linkedPos
         )) {
@@ -410,6 +442,9 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
             peer.beltPart =
                     ItemStack.EMPTY;
+
+            peer.beltLines =
+                    0;
 
             peer.sync();
         }
@@ -540,7 +575,8 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                         Math.round(wheelConditionFactor() * 100.0F),
                         linkedPos == null
                                 ? 100
-                                : Math.round(beltConditionFactor() * 100.0F)
+                                : Math.round(beltConditionFactor() * 100.0F),
+                        beltLines
                 ),
                 true
         );
@@ -548,6 +584,82 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
     public void useString(Player player, ItemStack stack) {
         if (level == null || level.isClientSide) return;
+
+        if (linkedPos != null) {
+            PulleyWheelBlockEntity peer =
+                    linkedPulley();
+
+            if (peer == null) {
+                linkedPos =
+                        null;
+                beltLines =
+                        0;
+                beltPart =
+                        ItemStack.EMPTY;
+                sync();
+                return;
+            }
+
+            if (beltLines >= MAX_BELT_LINES) {
+                player.displayClientMessage(
+                        Component.translatable(
+                                "message.wayaround.pulley.lines_full",
+                                MAX_BELT_LINES
+                        ),
+                        true
+                );
+                return;
+            }
+
+            beltLines++;
+            peer.beltLines =
+                    beltLines;
+
+            if (beltPart.isEmpty()) {
+                beltPart =
+                        stack.copyWithCount(
+                                1
+                        );
+            }
+
+            beltPart.setCount(
+                    beltLines
+            );
+
+            peer.beltPart =
+                    beltPart.copy();
+
+            if (!player.getAbilities().instabuild) {
+                stack.consume(
+                        1,
+                        player
+                );
+            }
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.WOOL_PLACE,
+                    SoundSource.BLOCKS,
+                    0.65F,
+                    1.04F
+                            + beltLines
+                                    * 0.035F
+            );
+
+            peer.sync();
+            sync();
+
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.pulley.line_added",
+                            beltLines,
+                            MAX_BELT_LINES
+                    ),
+                    true
+            );
+            return;
+        }
 
         CompoundTag data = AssemblyItemData.customData(stack);
 
@@ -614,6 +726,11 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         first.linkedPos = worldPosition.immutable();
         linkedPos = first.worldPosition.immutable();
 
+        first.beltLines =
+                1;
+        beltLines =
+                1;
+
         ItemStack installedBelt =
                 stack.copyWithCount(
                         1
@@ -679,17 +796,30 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         ItemStack removedBelt =
                 beltPart.isEmpty()
                         ? new ItemStack(
-                        Items.STRING
+                        Items.STRING,
+                        Math.max(
+                                1,
+                                beltLines
+                        )
                 )
-                        : beltPart.copy();
+                        : beltPart.copyWithCount(
+                        Math.max(
+                                1,
+                                beltLines
+                        )
+                );
 
         beltPart =
                 ItemStack.EMPTY;
+
+        beltLines =
+                0;
 
         if (level != null && level.getBlockEntity(old) instanceof PulleyWheelBlockEntity peer) {
             if (worldPosition.equals(peer.linkedPos)) {
                 peer.linkedPos = null;
                 peer.beltPart = ItemStack.EMPTY;
+                peer.beltLines = 0;
                 peer.sync();
             }
         }
@@ -730,17 +860,31 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                     worldPosition,
                     beltPart.isEmpty()
                             ? new ItemStack(
-                            Items.STRING
+                            Items.STRING,
+                            Math.max(
+                                    1,
+                                    beltLines
+                            )
                     )
-                            : beltPart.copy()
+                            : beltPart.copyWithCount(
+                            Math.max(
+                                    1,
+                                    beltLines
+                            )
+                    )
             );
 
             beltPart =
                     ItemStack.EMPTY;
 
+            beltLines =
+                    0;
+
             if (server.getBlockEntity(old) instanceof PulleyWheelBlockEntity peer
                     && worldPosition.equals(peer.linkedPos)) {
                 peer.linkedPos = null;
+                peer.beltLines = 0;
+                peer.beltPart = ItemStack.EMPTY;
                 peer.sync();
             }
         }
@@ -795,6 +939,10 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         return linkedPos;
     }
 
+    public int beltLines() {
+        return beltLines;
+    }
+
     public float rpm() {
         return rpm;
     }
@@ -829,6 +977,7 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         tag.putFloat("Rotation", rotationDegrees);
         tag.putFloat("MechanicalPower", mechanicalPower);
         tag.putBoolean("HasLink", linkedPos != null);
+        tag.putInt("BeltLines", beltLines);
         if (linkedPos != null) tag.putLong("LinkedPos", linkedPos.asLong());
 
         if (!wheelPart.isEmpty()) {
@@ -884,6 +1033,13 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                         )
                 )
                         : ItemStack.EMPTY;
+
+        if (!beltPart.isEmpty()
+                && beltLines > 0) {
+            beltPart.setCount(
+                    beltLines
+            );
+        }
     }
 
     @Override
