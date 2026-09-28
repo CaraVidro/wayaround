@@ -159,10 +159,34 @@ public final class NexustorBaseBlock extends BaseEntityBlock {
 
         if (!level.isClientSide
                 && player instanceof ServerPlayer serverPlayer) {
-            serverPlayer.displayClientMessage(
-                    reactor.status(),
-                    false
-            );
+
+            if (reactor.complete()
+                    && player.isShiftKeyDown()) {
+
+                boolean enabled =
+                        reactor.togglePortal();
+
+                NexusPortalManager.sync(
+                        serverPlayer.serverLevel(),
+                        pos,
+                        reactor
+                );
+
+                serverPlayer.displayClientMessage(
+                        Component.translatable(
+                                enabled
+                                        ? "message.wayaround.nexus.portal_on"
+                                        : "message.wayaround.nexus.portal_off"
+                        ),
+                        false
+                );
+
+            } else {
+                serverPlayer.displayClientMessage(
+                        reactor.status(),
+                        false
+                );
+            }
         }
 
         return InteractionResult.sidedSuccess(
