@@ -41,7 +41,12 @@ public final class NexustorBaseBlock extends BaseEntityBlock {
     protected RenderShape getRenderShape(
             BlockState state
     ) {
-        return RenderShape.MODEL;
+        /*
+         * Exactly like the Water Wheel: this block is only the physical
+         * interaction/collision anchor. The entire Nexustor is rendered
+         * procedurally by NexustorRenderer.
+         */
+        return RenderShape.INVISIBLE;
     }
 
     @Override

@@ -31,6 +31,13 @@ public final class NexustorBaseBlockEntity
     private long startedAt;
     private long nextWaveAt;
 
+    /*
+     * V1.1.1 initially built the reactor from real world blocks. The special
+     * renderer replaces that architecture; this flag cleans those generated
+     * blocks once when an old test-world reactor is loaded.
+     */
+    private boolean visualMigrated;
+
     public NexustorBaseBlockEntity(
             BlockPos pos,
             BlockState state
@@ -50,6 +57,18 @@ public final class NexustorBaseBlockEntity
     ) {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
+        }
+
+        if (!reactor.visualMigrated) {
+            NexustorStructure.cleanupLegacyGeometry(
+                    serverLevel,
+                    pos
+            );
+
+            reactor.visualMigrated =
+                    true;
+
+            reactor.sync();
         }
 
         if (reactor.eventActive
@@ -80,11 +99,6 @@ public final class NexustorBaseBlockEntity
         }
 
         bodies++;
-        NexustorStructure.buildBodyLayer(
-                level,
-                worldPosition,
-                bodies
-        );
         consume(player, stack);
         tell(player, "message.wayaround.nexustor.body_added", bodies, 3);
         sync();
@@ -113,11 +127,6 @@ public final class NexustorBaseBlockEntity
             return;
         }
 
-        NexustorStructure.buildFinger(
-                level,
-                worldPosition,
-                fingers
-        );
         fingers++;
         consume(player, stack);
         tell(player, "message.wayaround.nexustor.finger_added", fingers, 4);
@@ -147,10 +156,6 @@ public final class NexustorBaseBlockEntity
         }
 
         head = true;
-        NexustorStructure.buildHead(
-                level,
-                worldPosition
-        );
         consume(player, stack);
         tell(player, "message.wayaround.nexustor.head_added");
         sync();
@@ -179,10 +184,6 @@ public final class NexustorBaseBlockEntity
         }
 
         core = true;
-        NexustorStructure.insertCore(
-                level,
-                worldPosition
-        );
         consume(player, stack);
 
         if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
@@ -272,6 +273,7 @@ public final class NexustorBaseBlockEntity
     public void failEvent() {
         eventActive = false;
         complete = false;
+        core = false;
         killsRemaining = 0;
         progress = 0.0F;
         sync();
@@ -316,6 +318,11 @@ public final class NexustorBaseBlockEntity
         sync();
     }
 
+    public int bodies() { return bodies; }
+    public int fingers() { return fingers; }
+    public boolean headInstalled() { return head; }
+    public boolean coreInstalled() { return core; }
+
     public boolean eventActive() { return eventActive; }
     public boolean complete() { return complete; }
     public int wave() { return wave; }
@@ -357,6 +364,7 @@ public final class NexustorBaseBlockEntity
         tag.putFloat("Progress", progress);
         tag.putLong("StartedAt", startedAt);
         tag.putLong("NextWaveAt", nextWaveAt);
+        tag.putBoolean("VisualMigrated", visualMigrated);
     }
 
     @Override
@@ -377,6 +385,7 @@ public final class NexustorBaseBlockEntity
         progress = tag.getFloat("Progress");
         startedAt = tag.getLong("StartedAt");
         nextWaveAt = tag.getLong("NextWaveAt");
+        visualMigrated = tag.getBoolean("VisualMigrated");
     }
 
     @Override

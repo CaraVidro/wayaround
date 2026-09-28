@@ -25,5 +25,10 @@ public final class NexusClientModEvents {
                 NexusContent.NEXUS_SLUDGE.get(),
                 NexusSludgeRenderer::new
         );
+
+        event.registerBlockEntityRenderer(
+                NexusContent.NEXUSTOR_BASE_ENTITY.get(),
+                NexustorRenderer::new
+        );
     }
 }
