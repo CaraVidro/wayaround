@@ -46,6 +46,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseFireBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -213,6 +214,19 @@ public final class WaterWheelHubBlockEntity
                 state
         );
 
+        if (hub.burnTicks <= 0
+                && Math.floorMod(
+                time + pos.asLong(),
+                20
+        ) == 0
+                && hub.touchesFire(
+                server
+        )) {
+            hub.ignite(
+                    null
+            );
+        }
+
         hub.tickBurning(
                 server
         );
@@ -326,6 +340,102 @@ public final class WaterWheelHubBlockEntity
         }
 
         sync();
+    }
+
+    private boolean touchesFire(
+            ServerLevel level
+    ) {
+        BlockPos min =
+                worldPosition.offset(
+                        -3,
+                        -3,
+                        -3
+                );
+
+        BlockPos max =
+                worldPosition.offset(
+                        3,
+                        3,
+                        3
+                );
+
+        for (BlockPos check :
+                BlockPos.betweenClosed(
+                        min,
+                        max
+                )) {
+
+            if (!(level.getBlockState(
+                    check
+            ).getBlock()
+                    instanceof BaseFireBlock)) {
+                continue;
+            }
+
+            double dx =
+                    check.getX()
+                            + 0.5
+                            - (
+                            worldPosition.getX()
+                                    + 0.5
+                    );
+
+            double dy =
+                    check.getY()
+                            + 0.5
+                            - (
+                            worldPosition.getY()
+                                    + 0.5
+                    );
+
+            double dz =
+                    check.getZ()
+                            + 0.5
+                            - (
+                            worldPosition.getZ()
+                                    + 0.5
+                    );
+
+            Direction.Axis axis =
+                    axleAxis();
+
+            double axial =
+                    axis == Direction.Axis.X
+                            ? Math.abs(
+                            dx
+                    )
+                            : Math.abs(
+                            dz
+                    );
+
+            double radialA =
+                    dy;
+
+            double radialB =
+                    axis == Direction.Axis.X
+                            ? dz
+                            : dx;
+
+            double radius =
+                    Math.sqrt(
+                            radialA
+                                    * radialA
+                                    + radialB
+                                    * radialB
+                    );
+
+            if (axial <= (
+                    doubleBody()
+                            ? 1.15
+                            : 0.72
+            )
+                    && radius <= FRAME_RADIUS
+                            + 0.55) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void tickBurning(
@@ -612,20 +722,38 @@ public final class WaterWheelHubBlockEntity
                         + worldPosition.asLong(),
                 15
         ) < 5) {
-            server.sendParticles(
-                    ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
-                    worldPosition.getX()
-                            + 0.5,
-                    worldPosition.getY()
-                            + 2.1,
-                    worldPosition.getZ()
-                            + 0.5,
-                    1,
-                    0.16,
-                    0.10,
-                    0.16,
-                    0.008
-            );
+            Vec3 smokeOrigin =
+                    Vec3.atCenterOf(
+                            worldPosition
+                    ).add(
+                            0.0,
+                            1.6,
+                            0.0
+                    );
+
+            for (ServerPlayer viewer :
+                    server.getPlayers(
+                            candidate ->
+                                    candidate.distanceToSqr(
+                                            smokeOrigin
+                                    )
+                                            <= 128.0
+                                            * 128.0
+                    )) {
+                server.sendParticles(
+                        viewer,
+                        ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                        true,
+                        smokeOrigin.x,
+                        smokeOrigin.y,
+                        smokeOrigin.z,
+                        1,
+                        0.16,
+                        0.10,
+                        0.16,
+                        0.008
+                );
+            }
         }
     }
 
