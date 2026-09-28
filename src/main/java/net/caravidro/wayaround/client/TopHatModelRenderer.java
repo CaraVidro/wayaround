@@ -439,14 +439,36 @@ public final class TopHatModelRenderer {
             double length,
             double width
     ) {
-        double angle = Math.toRadians(degrees);
-        double x = centerX + Math.sin(angle) * length * 0.5;
-        double y = centerY - Math.cos(angle) * length * 0.5;
+        /*
+         * Rotate the hand around the actual brass pin. The previous version
+         * first moved the cuboid to a calculated midpoint and then rotated the
+         * cuboid around its own centre; tiny transform differences made the
+         * root appear detached from the dial.
+         */
+        pose.pushPose();
+        pose.translate(
+                centerX,
+                centerY,
+                z
+        );
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        (float) -degrees
+                )
+        );
 
-        piece(pose, blocks, buffers, light, material,
-                x, y, z,
-                width, length, 0.008,
-                0, 0, (float) -degrees);
+        piece(
+                pose, blocks, buffers, light, material,
+                0.0,
+                -length * 0.5,
+                0.0,
+                width,
+                length,
+                0.008,
+                0, 0, 0
+        );
+
+        pose.popPose();
     }
 
     private static void sideGear(
