@@ -35,6 +35,26 @@ public final class TopHatContent {
                             )
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<SnowFootprintEntity>> SNOW_FOOTPRINT =
+            ENTITIES.register(
+                    "snow_footprint",
+                    () -> EntityType.Builder
+                            .of(
+                                    SnowFootprintEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    0.34F,
+                                    0.03F
+                            )
+                            .clientTrackingRange(10)
+                            .updateInterval(10)
+                            .build(
+                                    "wayaround:snow_footprint"
+                            )
+            );
+
+
     private TopHatContent() {
     }
 
