@@ -193,6 +193,11 @@ public final class TopHatClientEvents {
                     TopHatContent.FLYING_TOP_HAT.get(),
                     FlyingTopHatRenderer::new
             );
+
+            event.registerEntityRenderer(
+                    TopHatContent.SNOW_FOOTPRINT.get(),
+                    SnowFootprintRenderer::new
+            );
         }
     }
 }
