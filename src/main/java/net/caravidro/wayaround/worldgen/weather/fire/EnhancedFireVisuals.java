@@ -11,6 +11,8 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.BaseFireBlock;
@@ -187,6 +189,12 @@ public final class EnhancedFireVisuals {
                 neighbors
         );
 
+        emitAmbientSound(
+                level,
+                pos,
+                fire
+        );
+
         mergeNearbyFire(
                 level,
                 pos,
@@ -228,6 +236,51 @@ public final class EnhancedFireVisuals {
                     seconds
             );
         }
+    }
+
+    private static void emitAmbientSound(
+            ServerLevel level,
+            BlockPos pos,
+            FireState fire
+    ) {
+        int interval =
+                Mth.clamp(
+                        44
+                                - Math.round(
+                                fire.size
+                                        * 12.0F
+                        ),
+                        24,
+                        42
+                );
+
+        if (Math.floorMod(
+                level.getGameTime()
+                        + pos.asLong(),
+                interval
+        ) >= STEP) {
+            return;
+        }
+
+        level.playSound(
+                null,
+                fire.x,
+                fire.y
+                        + Math.min(
+                        0.55,
+                        fire.height()
+                                * 0.35
+                ),
+                fire.z,
+                SoundEvents.FIRE_AMBIENT,
+                SoundSource.BLOCKS,
+                0.38F
+                        + fire.size
+                                * 0.16F,
+                0.88F
+                        + level.random.nextFloat()
+                                * 0.22F
+        );
     }
 
     private static void renderFire(
