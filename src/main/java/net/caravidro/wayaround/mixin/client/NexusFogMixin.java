@@ -75,7 +75,7 @@ public abstract class NexusFogMixin {
         RenderSystem.setShaderFogEnd(
                 Math.min(
                         farPlaneDistance,
-                        112.0F
+                        160.0F
                 )
         );
     }
