@@ -469,7 +469,10 @@
   "item.wayaround.chef_shoes": "Sapatos de Cozinheiro",
   "item.wayaround.chef_apron": "Avental de Cozinheiro",
   "entity.wayaround.flying_top_hat": "Cartola do Engenheiro ao Vento",
-  "key.wayaround.adjust_top_hat": "Arrumar cartola",
+  "key.wayaround.adjust_top_hat": "Ação de acessório",
   "key.categories.wayaround.accessories": "Way Around - Acessórios",
-  "accessory.top_hat.warning": "R • ARRUMAR CARTOLA"
+  "accessory.top_hat.warning": "R • ARRUMAR CARTOLA",
+  "accessory.trouser_pocket.empty": "Bolso: vazio",
+  "accessory.trouser_pocket.item": "Bolso: %s",
+  "accessory.trouser_pocket.load_hint": "Agache + use com um item na outra mão para guardar uma unidade."
 }
