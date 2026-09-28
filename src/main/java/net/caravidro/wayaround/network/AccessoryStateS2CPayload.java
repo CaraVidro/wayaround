@@ -18,7 +18,11 @@ public record AccessoryStateS2CPayload(
         int[] wear,
         int[] glass,
         int glassesMode,
-        ItemStack trouserPocket
+        ItemStack trouserPocket,
+        int headMaterial,
+        int headSize,
+        int headExtras,
+        int headWoolColor
 ) implements CustomPacketPayload {
 
     public static final Type<AccessoryStateS2CPayload> TYPE =
@@ -90,6 +94,19 @@ public record AccessoryStateS2CPayload(
                                     payload.trouserPocket()
                             );
                         }
+
+                        buf.writeVarInt(
+                                payload.headMaterial()
+                        );
+                        buf.writeVarInt(
+                                payload.headSize()
+                        );
+                        buf.writeVarInt(
+                                payload.headExtras()
+                        );
+                        buf.writeVarInt(
+                                payload.headWoolColor()
+                        );
                     },
                     buf -> {
                         UUID player =
@@ -148,7 +165,11 @@ public record AccessoryStateS2CPayload(
                                 wear,
                                 glass,
                                 glassesMode,
-                                pocket
+                                pocket,
+                                buf.readVarInt(),
+                                buf.readVarInt(),
+                                buf.readVarInt(),
+                                buf.readVarInt()
                         );
                     }
             );
