@@ -50,6 +50,24 @@ public enum AccessoryKind {
             false,
             520
     ),
+    CUSTOM_HAT(
+            "custom_hat",
+            AccessoryKit.UTILITY,
+            AccessorySlot.HEAD,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            500
+    ),
+    SOMBRERO(
+            "sombrero",
+            AccessoryKit.UTILITY,
+            AccessorySlot.HEAD,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            520
+    ),
     ENGINEER_GOGGLES(
             "engineer_goggles",
             AccessoryKit.ENGINEER,
