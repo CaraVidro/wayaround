@@ -22,6 +22,24 @@ public final class FlyingTopHatEntity extends Entity {
                     EntityDataSerializers.INT
             );
 
+    private static final EntityDataAccessor<Integer> MATERIAL =
+            SynchedEntityData.defineId(
+                    FlyingTopHatEntity.class,
+                    EntityDataSerializers.INT
+            );
+
+    private static final EntityDataAccessor<Integer> SIZE =
+            SynchedEntityData.defineId(
+                    FlyingTopHatEntity.class,
+                    EntityDataSerializers.INT
+            );
+
+    private static final EntityDataAccessor<Integer> EXTRAS =
+            SynchedEntityData.defineId(
+                    FlyingTopHatEntity.class,
+                    EntityDataSerializers.INT
+            );
+
     private int groundedTicks;
 
     public FlyingTopHatEntity(
@@ -42,6 +60,22 @@ public final class FlyingTopHatEntity extends Entity {
                 WEAR,
                 0
         );
+
+        builder.define(
+                MATERIAL,
+                0
+        );
+
+        builder.define(
+                SIZE,
+                2
+        );
+
+        builder.define(
+                EXTRAS,
+                AccessoryCustomizationData.EXTRA_GEARS
+                        | AccessoryCustomizationData.EXTRA_CLOCK
+        );
     }
 
     public int wear() {
@@ -59,6 +93,47 @@ public final class FlyingTopHatEntity extends Entity {
                         0,
                         wear
                 )
+        );
+    }
+
+    public void setCustomization(
+            AccessoryCustomizationData.Config config
+    ) {
+        AccessoryCustomizationData.Config safe =
+                AccessoryCustomizationData.sanitize(
+                        AccessoryKind.ENGINEER_CAP,
+                        config
+                );
+
+        entityData.set(
+                MATERIAL,
+                safe.material()
+        );
+        entityData.set(
+                SIZE,
+                safe.size()
+        );
+        entityData.set(
+                EXTRAS,
+                safe.extras()
+        );
+    }
+
+    public int material() {
+        return entityData.get(
+                MATERIAL
+        );
+    }
+
+    public int size() {
+        return entityData.get(
+                SIZE
+        );
+    }
+
+    public int extras() {
+        return entityData.get(
+                EXTRAS
         );
     }
 
@@ -154,6 +229,17 @@ public final class FlyingTopHatEntity extends Entity {
                     wear()
             );
 
+            AccessoryCustomizationData.write(
+                    stack,
+                    AccessoryKind.ENGINEER_CAP,
+                    new AccessoryCustomizationData.Config(
+                            material(),
+                            size(),
+                            extras(),
+                            4
+                    )
+            );
+
             ItemEntity item =
                     new ItemEntity(
                             level(),
@@ -193,6 +279,30 @@ public final class FlyingTopHatEntity extends Entity {
                 tag.getInt(
                         "GroundedTicks"
                 );
+
+        setCustomization(
+                new AccessoryCustomizationData.Config(
+                        tag.getInt(
+                                "Material"
+                        ),
+                        tag.contains(
+                                "Size"
+                        )
+                                ? tag.getInt(
+                                "Size"
+                        )
+                                : 2,
+                        tag.contains(
+                                "Extras"
+                        )
+                                ? tag.getInt(
+                                "Extras"
+                        )
+                                : AccessoryCustomizationData.EXTRA_GEARS
+                                | AccessoryCustomizationData.EXTRA_CLOCK,
+                        4
+                )
+        );
     }
 
     @Override
@@ -207,6 +317,21 @@ public final class FlyingTopHatEntity extends Entity {
         tag.putInt(
                 "GroundedTicks",
                 groundedTicks
+        );
+
+        tag.putInt(
+                "Material",
+                material()
+        );
+
+        tag.putInt(
+                "Size",
+                size()
+        );
+
+        tag.putInt(
+                "Extras",
+                extras()
         );
     }
 }
