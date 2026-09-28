@@ -113,10 +113,12 @@ public final class AccessoryManager {
                 )
         );
 
-        setTrouserPocket(
-                player,
-                incomingPocket
-        );
+        if (kind == AccessoryKind.ENGINEER_TROUSERS) {
+            setTrouserPocket(
+                    player,
+                    incomingPocket
+            );
+        }
 
         if (!player.getAbilities()
                 .instabuild) {
@@ -204,10 +206,13 @@ public final class AccessoryManager {
                     )
             );
 
-            setTrouserPocket(
-                    player,
-                    incomingPocket
-            );
+            if (accessory.kind()
+                    == AccessoryKind.ENGINEER_TROUSERS) {
+                setTrouserPocket(
+                        player,
+                        incomingPocket
+                );
+            }
 
             player.containerMenu
                     .setCarried(
@@ -905,6 +910,7 @@ public final class AccessoryManager {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.ACCESSORIES
         )) {
+            POCKET_RETRIEVALS.clear();
             return;
         }
 
