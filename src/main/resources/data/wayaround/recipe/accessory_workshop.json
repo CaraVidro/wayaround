@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CIC",
+    "PWP",
+    "PPP"
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:copper_ingot"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "P": {
+      "item": "minecraft:dark_oak_planks"
+    },
+    "W": {
+      "item": "minecraft:crafting_table"
+    }
+  },
+  "result": {
+    "id": "wayaround:accessory_workshop",
+    "count": 1
+  }
+}
