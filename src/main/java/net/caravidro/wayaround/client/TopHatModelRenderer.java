@@ -98,7 +98,7 @@ public final class TopHatModelRenderer {
 
         renderBrim(
                 pose, blocks, buffers, light,
-                dark, underside,
+                felt, underside,
                 windBack, windSide, gust, time, wear
         );
 
@@ -142,7 +142,7 @@ public final class TopHatModelRenderer {
         }
 
         // Top lid and lip.
-        piece(pose, blocks, buffers, light, dark,
+        piece(pose, blocks, buffers, light, felt,
                 0.0, -1.035, 0.0,
                 0.455, 0.050, 0.420,
                 0, 0, 0);
