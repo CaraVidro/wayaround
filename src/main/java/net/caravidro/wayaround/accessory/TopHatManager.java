@@ -271,6 +271,13 @@ public final class TopHatManager {
                 stack.getDamageValue()
         );
 
+        hat.setCustomization(
+                AccessoryCustomizationData.read(
+                        stack,
+                        AccessoryKind.ENGINEER_CAP
+                )
+        );
+
         hat.moveTo(
                 player.getX(),
                 player.getEyeY()
