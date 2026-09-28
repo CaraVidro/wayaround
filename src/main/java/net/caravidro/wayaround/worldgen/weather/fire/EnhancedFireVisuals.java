@@ -518,12 +518,6 @@ public final class EnhancedFireVisuals {
             BlockPos pos,
             FireState fire
     ) {
-        GlobalPos ownKey =
-                GlobalPos.of(
-                        level.dimension(),
-                        pos
-                );
-
         for (int x = -1;
              x <= 1;
              x++) {
