@@ -49,6 +49,33 @@ public final class TrouserPocketClientState {
         );
     }
 
+    public static boolean active(
+            UUID player
+    ) {
+        State state =
+                STATES.get(
+                        player
+                );
+
+        if (state == null) {
+            return false;
+        }
+
+        double age =
+                now()
+                        - state.startedAt;
+
+        if (age < 0.0
+                || age >= state.duration) {
+            STATES.remove(
+                    player
+            );
+            return false;
+        }
+
+        return true;
+    }
+
     public static void applyRetrievePose(
             AbstractClientPlayer player,
             PlayerModel<?> model,
