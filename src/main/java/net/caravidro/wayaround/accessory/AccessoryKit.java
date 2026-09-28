@@ -4,6 +4,8 @@ public enum AccessoryKit {
     ENGINEER("engineer"),
     AERO_ENGINEER("aero_engineer"),
     COOK("cook"),
+    CONVENTIONAL("conventional"),
+    OBJECT_HEADS("object_heads"),
     UTILITY("utility");
 
     private final String path;
