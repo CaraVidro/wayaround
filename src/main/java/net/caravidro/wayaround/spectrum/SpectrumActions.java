@@ -3,6 +3,7 @@ package net.caravidro.wayaround.spectrum;
 import java.util.*;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
+import net.caravidro.wayaround.domain.DomainIntroManager;
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.caravidro.wayaround.justice.JusticeDomainManager;
 import net.caravidro.wayaround.jujutsu.JujutsuManager;
@@ -101,8 +102,18 @@ public final class SpectrumActions {
                 FUGA_DEBOUNCE.put(p.getUUID(),now+6);
                 if(TukunaManager.isFugaCharging(p)) TukunaManager.launchFuga(p); else TukunaManager.prepareFuga(p);
             }
-            case TUKUNA_DOMAIN -> TukunaDomainPreview.start(p);
-            case JUSTICE_DOMAIN -> JusticeDomainManager.beginTrialNearest(p);
+            case TUKUNA_DOMAIN ->
+                    DomainIntroManager.requestTukuna(
+                            p
+                    );
+            case JUSTICE_DOMAIN ->
+                    DomainIntroManager.requestJustice(
+                            p
+                    );
+            case VOID_DOMAIN ->
+                    DomainIntroManager.requestVoid(
+                            p
+                    );
             case TUKUNA_ENERGY_VISION, VOID_ENERGY_VISION, JUSTICE_ENERGY_VISION -> JujutsuManager.toggleEnergyVision(p);
             default -> VoiceIntentC2SPayload.execute(p,new VoiceIntentC2SPayload((byte)action.intent,
                     action==SpectrumAction.BLUE_MAX?3.0F:1.0F));

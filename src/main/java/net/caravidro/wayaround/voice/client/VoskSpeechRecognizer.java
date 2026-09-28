@@ -97,6 +97,155 @@ public final class VoskSpeechRecognizer {
     ) {
     }
 
+    /**
+     * Persistent recognizer for live intent recognition. Unlike recognize(),
+     * this keeps Vosk's decoder state between chunks and exposes partial words
+     * while the player is still speaking.
+     */
+    public static final class StreamingSession
+            implements AutoCloseable {
+
+        private final Recognizer recognizer;
+        private String lastText = "";
+        private boolean closed;
+
+        private StreamingSession(
+                Recognizer recognizer
+        ) {
+            this.recognizer =
+                    recognizer;
+        }
+
+        public synchronized String accept48k(
+                byte[] pcm48k
+        ) {
+            if (closed
+                    || pcm48k == null
+                    || pcm48k.length < 2) {
+                return "";
+            }
+
+            byte[] pcm16k =
+                    downsample48kTo16k(
+                            pcm48k
+                    );
+
+            if (pcm16k.length < 2) {
+                return "";
+            }
+
+            boolean endpoint =
+                    recognizer.acceptWaveForm(
+                            pcm16k,
+                            pcm16k.length
+                    );
+
+            String text =
+                    textField(
+                            endpoint
+                                    ? recognizer.getResult()
+                                    : recognizer.getPartialResult(),
+                            endpoint
+                                    ? "text"
+                                    : "partial"
+                    );
+
+            if (text.isBlank()
+                    || text.equals(
+                    lastText
+            )) {
+                return "";
+            }
+
+            lastText =
+                    text;
+
+            return text;
+        }
+
+        public synchronized String finish() {
+            if (closed) {
+                return "";
+            }
+
+            String text =
+                    textField(
+                            recognizer.getFinalResult(),
+                            "text"
+                    );
+
+            if (!text.isBlank()) {
+                lastText =
+                        text;
+            }
+
+            return text;
+        }
+
+        @Override
+        public synchronized void close() {
+            if (closed) {
+                return;
+            }
+
+            closed =
+                    true;
+
+            recognizer.close();
+        }
+    }
+
+    public static StreamingSession openStreamingSession()
+            throws Exception {
+        Recognizer recognizer =
+                new Recognizer(
+                        ensureModel(),
+                        RECOGNITION_SAMPLE_RATE
+                );
+
+        recognizer.setWords(
+                false
+        );
+
+        return new StreamingSession(
+                recognizer
+        );
+    }
+
+    private static String textField(
+            String jsonText,
+            String key
+    ) {
+        if (jsonText == null
+                || jsonText.isBlank()) {
+            return "";
+        }
+
+        try {
+            JsonObject json =
+                    JsonParser.parseString(
+                                    jsonText
+                            )
+                            .getAsJsonObject();
+
+            JsonElement value =
+                    json.get(
+                            key
+                    );
+
+            if (value == null
+                    || value.isJsonNull()) {
+                return "";
+            }
+
+            return value.getAsString()
+                    .trim();
+
+        } catch (Throwable ignored) {
+            return "";
+        }
+    }
+
     public static boolean isModelInstalled() {
         return isValidModelRoot(
                 modelDirectory()

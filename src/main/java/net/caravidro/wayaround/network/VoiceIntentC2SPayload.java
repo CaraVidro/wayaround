@@ -10,7 +10,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.blue.BlueManager;
 import net.caravidro.wayaround.blue.ImaginaryBetaManager;
 import net.caravidro.wayaround.infinity.InfinityManager;
-import net.caravidro.wayaround.domain.VoidDomainManager;
+import net.caravidro.wayaround.domain.DomainIntroManager;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.cursed.TukunaManager;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -57,6 +57,7 @@ public record VoiceIntentC2SPayload(
     public static final byte RED_MAXIMUM = 17;
     public static final byte TUKUNA_DESMARTELAR_FIRE = 18;
     public static final byte TUKUNA_FUGA = 19;
+    public static final byte TUKUNA_DOMAIN_EXPAND = 20;
 
     public static final Type<VoiceIntentC2SPayload> TYPE =
             new Type<>(
@@ -143,7 +144,18 @@ public record VoiceIntentC2SPayload(
 
         if (payload.intent()
                 == TUKUNA_FUGA) {
-            net.caravidro.wayaround.spectrum.SpectrumActions.perform(player, net.caravidro.wayaround.spectrum.SpectrumAction.FUGA);
+            net.caravidro.wayaround.spectrum.SpectrumActions.perform(
+                    player,
+                    net.caravidro.wayaround.spectrum.SpectrumAction.FUGA
+            );
+            return;
+        }
+
+        if (payload.intent()
+                == TUKUNA_DOMAIN_EXPAND) {
+            DomainIntroManager.requestTukuna(
+                    player
+            );
             return;
         }
 
@@ -254,7 +266,7 @@ public record VoiceIntentC2SPayload(
                     );
 
             case VOID_DOMAIN_EXPAND ->
-                    VoidDomainManager.expand(
+                    DomainIntroManager.requestVoid(
                             player
                     );
 

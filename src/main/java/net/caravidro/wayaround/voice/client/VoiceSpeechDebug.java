@@ -4,6 +4,7 @@ import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.JusticeVoiceStatementC2SPayload;
@@ -38,6 +39,193 @@ public final class VoiceSpeechDebug {
                     },
                     new ThreadPoolExecutor.DiscardOldestPolicy()
             );
+
+    private static final ThreadPoolExecutor STREAM_WORKER =
+            new ThreadPoolExecutor(
+                    1,
+                    1,
+                    0L,
+                    TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(24),
+                    runnable -> {
+                        Thread thread =
+                                new Thread(
+                                        runnable,
+                                        "WayAround-SpeechRealtime"
+                                );
+
+                        thread.setDaemon(true);
+                        return thread;
+                    },
+                    new ThreadPoolExecutor.DiscardOldestPolicy()
+            );
+
+    private static final AtomicLong STREAM_GENERATION =
+            new AtomicLong();
+
+    private static volatile VoskSpeechRecognizer.StreamingSession streamSession;
+
+    public static void beginRealtime() {
+        if (!VoiceIntentClient.wantsContinuousRecognition()
+                || !VoskSpeechRecognizer.isModelInstalled()) {
+            return;
+        }
+
+        long generation =
+                STREAM_GENERATION.incrementAndGet();
+
+        STREAM_WORKER.execute(
+                () -> {
+                    closeRealtimeSession();
+
+                    if (generation
+                            != STREAM_GENERATION.get()) {
+                        return;
+                    }
+
+                    try {
+                        streamSession =
+                                VoskSpeechRecognizer.openStreamingSession();
+
+                    } catch (Throwable throwable) {
+                        WayAround.LOGGER.debug(
+                                "[Voice/Realtime] falha ao abrir decoder: {}",
+                                throwable.toString()
+                        );
+                    }
+                }
+        );
+    }
+
+    public static void feedRealtime(
+            byte[] pcm
+    ) {
+        if (pcm == null
+                || pcm.length == 0
+                || !VoiceIntentClient.wantsContinuousRecognition()) {
+            return;
+        }
+
+        long generation =
+                STREAM_GENERATION.get();
+
+        byte[] copy =
+                pcm.clone();
+
+        STREAM_WORKER.execute(
+                () -> {
+                    if (generation
+                            != STREAM_GENERATION.get()) {
+                        return;
+                    }
+
+                    VoskSpeechRecognizer.StreamingSession session =
+                            streamSession;
+
+                    if (session == null) {
+                        return;
+                    }
+
+                    try {
+                        dispatchRealtime(
+                                session.accept48k(
+                                        copy
+                                ),
+                                false
+                        );
+                    } catch (Throwable ignored) {
+                    }
+                }
+        );
+    }
+
+    public static void endRealtime() {
+        long generation =
+                STREAM_GENERATION.get();
+
+        STREAM_WORKER.execute(
+                () -> {
+                    if (generation
+                            != STREAM_GENERATION.get()) {
+                        return;
+                    }
+
+                    VoskSpeechRecognizer.StreamingSession session =
+                            streamSession;
+
+                    streamSession =
+                            null;
+
+                    if (session == null) {
+                        return;
+                    }
+
+                    try {
+                        dispatchRealtime(
+                                session.finish(),
+                                true
+                        );
+
+                    } catch (Throwable ignored) {
+                    } finally {
+                        session.close();
+                    }
+                }
+        );
+    }
+
+    public static void cancelRealtime() {
+        STREAM_GENERATION.incrementAndGet();
+
+        STREAM_WORKER.execute(
+                VoiceSpeechDebug::closeRealtimeSession
+        );
+    }
+
+    private static void closeRealtimeSession() {
+        VoskSpeechRecognizer.StreamingSession session =
+                streamSession;
+
+        streamSession =
+                null;
+
+        if (session != null) {
+            try {
+                session.close();
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    private static void dispatchRealtime(
+            String transcript,
+            boolean finalChunk
+    ) {
+        if (transcript == null
+                || transcript.isBlank()) {
+            return;
+        }
+
+        String refined =
+                BrazilianPortugueseSpeechNormalizer.refine(
+                        transcript
+                );
+
+        if (refined.isBlank()) {
+            return;
+        }
+
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        minecraft.execute(
+                () ->
+                        VoiceIntentClient.handleRealtimeTranscript(
+                                refined,
+                                finalChunk
+                        )
+        );
+    }
 
     public static void submit(
             byte[] pcm

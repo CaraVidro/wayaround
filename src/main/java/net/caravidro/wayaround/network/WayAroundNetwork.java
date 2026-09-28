@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "6";
+            "7";
 
     private WayAroundNetwork() {
     }
@@ -333,6 +333,12 @@ public final class WayAroundNetwork {
                 NexusStateS2CPayload.TYPE,
                 NexusStateS2CPayload.STREAM_CODEC,
                 NexusStateS2CPayload::handle
+        );
+
+        registrar.playToClient(
+                DomainIntroS2CPayload.TYPE,
+                DomainIntroS2CPayload.STREAM_CODEC,
+                DomainIntroS2CPayload::handle
         );
     }
 }

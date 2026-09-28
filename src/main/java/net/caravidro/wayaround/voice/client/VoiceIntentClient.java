@@ -91,6 +91,12 @@ public final class VoiceIntentClient {
     private static long tukunaDesmarPreparedUntil;
     private static long lastTukunaReflexDispatchAt;
 
+    private static String lastRealtimeTranscript =
+            "";
+
+    private static long realtimeDomainPrefixUntil;
+    private static long lastRealtimeDomainDispatchAt;
+
     public static boolean isEnabled() {
         return ENABLED;
     }
@@ -138,6 +144,155 @@ public final class VoiceIntentClient {
     public static boolean wantsSpeculativeRecognition() {
         return isCombatHot()
                 || hasLocalTukunaSpectrum();
+    }
+
+    public static boolean wantsContinuousRecognition() {
+        return hasLocalVoidSpectrum()
+                || hasLocalTukunaSpectrum();
+    }
+
+    /**
+     * Handles cumulative partial text from the persistent Vosk decoder.
+     * Context is re-evaluated on every meaningful partial, so "expansao de
+     * dominio" can fire as soon as "dominio" becomes stable instead of waiting
+     * for silence and a final transcript.
+     */
+    public static void handleRealtimeTranscript(
+            String transcript,
+            boolean finalChunk
+    ) {
+        if (!ENABLED
+                || transcript == null
+                || transcript.isBlank()) {
+            return;
+        }
+
+        String normalized =
+                normalize(
+                        transcript
+                );
+
+        if (normalized.isBlank()) {
+            return;
+        }
+
+        if (!finalChunk
+                && normalized.equals(
+                lastRealtimeTranscript
+        )) {
+            return;
+        }
+
+        lastRealtimeTranscript =
+                finalChunk
+                        ? ""
+                        : normalized;
+
+        long now =
+                System.currentTimeMillis();
+
+        /*
+         * Keep the old fast reflex vocabulary on the same live stream.
+         */
+        handleSpeculativeTranscript(
+                normalized
+        );
+
+        List<String> liveWords =
+                words(
+                        normalized
+                );
+
+        boolean expansion =
+                containsPrefix(
+                        liveWords,
+                        "expans",
+                        5
+                )
+                        || containsAny(
+                        liveWords,
+                        "expansion"
+                );
+
+        boolean domain =
+                containsPrefix(
+                        liveWords,
+                        "dominio",
+                        4
+                )
+                        || containsPrefix(
+                        liveWords,
+                        "domain",
+                        4
+                );
+
+        if (expansion) {
+            realtimeDomainPrefixUntil =
+                    now + 2_600L;
+        }
+
+        if (!domain
+                || (
+                !expansion
+                        && now > realtimeDomainPrefixUntil
+        )) {
+            return;
+        }
+
+        if (now - lastRealtimeDomainDispatchAt
+                < 1_450L) {
+            return;
+        }
+
+        boolean explicitTukuna =
+                liveWords.contains(
+                        "tukuna"
+                );
+
+        boolean explicitVoid =
+                liveWords.contains(
+                        "void"
+                );
+
+        byte domainIntent;
+
+        if (hasLocalTukunaSpectrum()
+                && (
+                explicitTukuna
+                        || !hasLocalVoidSpectrum()
+        )) {
+            domainIntent =
+                    VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND;
+
+        } else if (hasLocalVoidSpectrum()
+                && !explicitTukuna) {
+            domainIntent =
+                    VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND;
+
+        } else if (hasLocalTukunaSpectrum()
+                && !explicitVoid) {
+            domainIntent =
+                    VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND;
+
+        } else {
+            return;
+        }
+
+        lastRealtimeDomainDispatchAt =
+                now;
+
+        realtimeDomainPrefixUntil =
+                0L;
+
+        dispatch(
+                domainIntent,
+                -1.0F,
+                1.0F,
+                domainIntent
+                        == VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND
+                        ? "DOMINIO DE EXPANSAO / TUKUNA / LIVE"
+                        : "DOMINIO DE EXPANSAO / VOID / LIVE"
+        );
     }
 
     /**
@@ -564,6 +719,23 @@ public final class VoiceIntentClient {
                     ChatFormatting.GRAY
             );
 
+            return;
+        }
+
+        if (looksLikeVoidDomain(
+                currentWords,
+                false
+        )
+                && hasLocalTukunaSpectrum()
+                && !hasLocalVoidSpectrum()) {
+            dispatch(
+                    VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND,
+                    -1.0F,
+                    (float) globalUrgency,
+                    "DOMINIO DE EXPANSAO / TUKUNA"
+            );
+
+            clearContext();
             return;
         }
 
@@ -2624,6 +2796,17 @@ public final class VoiceIntentClient {
                         false
                 );
     }
+    private static boolean hasLocalVoidSpectrum() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        return minecraft.player != null
+                && SpectrumAccess.has(
+                minecraft.player,
+                SpectrumType.VOID
+        );
+    }
+
     private static boolean hasLocalTukunaSpectrum() {
         Minecraft minecraft =
                 Minecraft.getInstance();

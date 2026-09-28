@@ -46,6 +46,9 @@ public final class VoiceCapture {
     private static final double COMBAT_SPECULATIVE_MAX_SECONDS =
             2.2;
 
+    private static final int REALTIME_BATCH_FRAMES =
+            4;
+
     /*
      * STT is ancillary to voice transport. Never let a stuck PTT key, noisy
      * voice-activation session or broken microphone grow a ByteArrayOutputStream
@@ -198,6 +201,18 @@ public final class VoiceCapture {
         int lastSpeculativeBytes =
                 0;
 
+        ByteArrayOutputStream realtimeBatch =
+                new ByteArrayOutputStream(
+                        VoiceConstants.FRAME_BYTES
+                                * REALTIME_BATCH_FRAMES
+                );
+
+        int realtimeFrames =
+                0;
+
+        boolean realtimeStarted =
+                false;
+
         try {
             line =
                     openInputLine();
@@ -226,6 +241,12 @@ public final class VoiceCapture {
 
                 utterance =
                         new ByteArrayOutputStream();
+
+                if (VoiceIntentClient.wantsContinuousRecognition()) {
+                    VoiceSpeechDebug.beginRealtime();
+                    realtimeStarted =
+                            true;
+                }
             }
 
             while (running && generation == captureGeneration
@@ -254,6 +275,27 @@ public final class VoiceCapture {
                     publishFrame(
                             frame, generation
                     );
+
+                    if (realtimeStarted) {
+                        realtimeBatch.write(
+                                frame,
+                                0,
+                                frame.length
+                        );
+
+                        realtimeFrames++;
+
+                        if (realtimeFrames
+                                >= REALTIME_BATCH_FRAMES) {
+                            VoiceSpeechDebug.feedRealtime(
+                                    realtimeBatch.toByteArray()
+                            );
+
+                            realtimeBatch.reset();
+                            realtimeFrames =
+                                    0;
+                        }
+                    }
 
                     if (shouldTranscribe()) {
                         utterance.write(
@@ -329,6 +371,16 @@ public final class VoiceCapture {
                                     ? new ByteArrayOutputStream()
                                     : null;
 
+                    if (VoiceIntentClient.wantsContinuousRecognition()) {
+                        VoiceSpeechDebug.beginRealtime();
+                        realtimeStarted =
+                                true;
+
+                        realtimeBatch.reset();
+                        realtimeFrames =
+                                0;
+                    }
+
                     for (byte[] previous :
                             preRoll) {
 
@@ -342,6 +394,16 @@ public final class VoiceCapture {
                                     0,
                                     previous.length
                             );
+                        }
+
+                        if (realtimeStarted) {
+                            realtimeBatch.write(
+                                    previous,
+                                    0,
+                                    previous.length
+                            );
+
+                            realtimeFrames++;
                         }
                     }
 
@@ -357,6 +419,27 @@ public final class VoiceCapture {
                 publishFrame(
                         frame, generation
                 );
+
+                if (realtimeStarted) {
+                    realtimeBatch.write(
+                            frame,
+                            0,
+                            frame.length
+                    );
+
+                    realtimeFrames++;
+
+                    if (realtimeFrames
+                            >= REALTIME_BATCH_FRAMES) {
+                        VoiceSpeechDebug.feedRealtime(
+                                realtimeBatch.toByteArray()
+                        );
+
+                        realtimeBatch.reset();
+                        realtimeFrames =
+                                0;
+                    }
+                }
 
                 if (utterance != null) {
                     utterance.write(
@@ -395,6 +478,23 @@ public final class VoiceCapture {
                                     ? 0
                                     : utterance.size()
                     );
+
+                    if (realtimeStarted) {
+                        if (realtimeBatch.size() > 0) {
+                            VoiceSpeechDebug.feedRealtime(
+                                    realtimeBatch.toByteArray()
+                            );
+                        }
+
+                        VoiceSpeechDebug.endRealtime();
+
+                        realtimeStarted =
+                                false;
+
+                        realtimeBatch.reset();
+                        realtimeFrames =
+                                0;
+                    }
 
                     submitUtterance(
                             utterance
@@ -441,6 +541,16 @@ public final class VoiceCapture {
             }
 
         } finally {
+            if (realtimeStarted) {
+                if (realtimeBatch.size() > 0) {
+                    VoiceSpeechDebug.feedRealtime(
+                            realtimeBatch.toByteArray()
+                    );
+                }
+
+                VoiceSpeechDebug.endRealtime();
+            }
+
             synchronized (VoiceCapture.class) {
                 if (generation == captureGeneration) activeLine = null;
             }
