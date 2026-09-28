@@ -3,6 +3,7 @@ package net.caravidro.wayaround.content;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.accessory.AccessoryItem;
 import net.caravidro.wayaround.accessory.AccessoryKind;
+import net.caravidro.wayaround.accessory.AccessoryWorkshopBlock;
 import net.caravidro.wayaround.spectral.SpectralArmorItem;
 import net.caravidro.wayaround.spectral.SpectralCompassItem;
 import net.caravidro.wayaround.spectral.SpectralSwordItem;
@@ -16,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.Tiers;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -23,6 +25,11 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class OddityContent {
 
     private OddityContent() {}
+
+    private static final DeferredRegister.Blocks BLOCKS =
+            DeferredRegister.createBlocks(
+                    WayAround.MODID
+            );
 
     private static final DeferredRegister.Items ITEMS =
             DeferredRegister.createItems(
@@ -119,6 +126,10 @@ public final class OddityContent {
 
     public static final DeferredItem<AccessoryItem> ENGINEER_CAP =
             accessory(AccessoryKind.ENGINEER_CAP);
+    public static final DeferredItem<AccessoryItem> CUSTOM_HAT =
+            accessory(AccessoryKind.CUSTOM_HAT);
+    public static final DeferredItem<AccessoryItem> SOMBRERO =
+            accessory(AccessoryKind.SOMBRERO);
     public static final DeferredItem<AccessoryItem> ENGINEER_GOGGLES =
             accessory(AccessoryKind.ENGINEER_GOGGLES);
     public static final DeferredItem<AccessoryItem> ENGINEER_JACKET =
@@ -161,6 +172,26 @@ public final class OddityContent {
             accessory(AccessoryKind.CHEF_SHOES);
     public static final DeferredItem<AccessoryItem> CHEF_APRON =
             accessory(AccessoryKind.CHEF_APRON);
+
+    public static final DeferredBlock<AccessoryWorkshopBlock> ACCESSORY_WORKSHOP =
+            BLOCKS.register(
+                    "accessory_workshop",
+                    () -> new AccessoryWorkshopBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.WOOD)
+                                    .strength(2.5F, 4.0F)
+                                    .sound(SoundType.WOOD)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> ACCESSORY_WORKSHOP_ITEM =
+            ITEMS.register(
+                    "accessory_workshop",
+                    () -> new BlockItem(
+                            ACCESSORY_WORKSHOP.get(),
+                            new Item.Properties()
+                    )
+            );
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab>
             SPECTRAL_OBJECTS =
@@ -218,6 +249,10 @@ public final class OddityContent {
                             )
                             .displayItems(
                                     (parameters, output) -> {
+                                        output.accept(
+                                                ACCESSORY_WORKSHOP_ITEM.get()
+                                        );
+
                                         for (AccessoryKind kind :
                                                 AccessoryKind.values()) {
                                             output.accept(
@@ -252,6 +287,10 @@ public final class OddityContent {
     public static void register(
             IEventBus bus
     ) {
+        BLOCKS.register(
+                bus
+        );
+
         ITEMS.register(
                 bus
         );
