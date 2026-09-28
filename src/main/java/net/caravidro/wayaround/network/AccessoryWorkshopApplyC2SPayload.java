@@ -5,6 +5,8 @@ import net.caravidro.wayaround.accessory.AccessoryCustomizationData;
 import net.caravidro.wayaround.accessory.AccessoryItem;
 import net.caravidro.wayaround.accessory.AccessoryKind;
 import net.caravidro.wayaround.content.OddityContent;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -81,11 +83,15 @@ public record AccessoryWorkshopApplyC2SPayload(
                                     payload.blockPos()
                             );
 
-                    if (player.distanceToSqr(
-                            Vec3.atCenterOf(
-                                    pos
-                            )
-                    ) > 64.0
+                    if (!WorldFeatureRuntime.serverEnabled(
+                            WorldFeature.ACCESSORIES
+                    )
+                            || player.position()
+                            .distanceToSqr(
+                                    Vec3.atCenterOf(
+                                            pos
+                                    )
+                            ) > 64.0
                             || !player.level()
                             .getBlockState(
                                     pos
