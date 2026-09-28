@@ -150,6 +150,9 @@ public final class IndustrialContent {
                                                 PowerContent.SAWMILL_CRANK.get()
                                         );
                                         output.accept(
+                                                PowerContent.MANUAL_CRANK_ITEM.get()
+                                        );
+                                        output.accept(
                                                 PowerContent.MECHANICAL_SHAFT_ITEM.get()
                                         );
                                         output.accept(
