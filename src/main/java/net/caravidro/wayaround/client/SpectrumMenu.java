@@ -32,8 +32,22 @@ public final class SpectrumMenu {
     public static boolean isOpen(){return open;}
     @SubscribeEvent public static void register(RegisterKeyMappingsEvent e){e.register(TOGGLE);e.register(NEXT);e.register(PAGE);}
     private static List<SpectrumType> unlocked(){var p=Minecraft.getInstance().player;return p==null?List.of():Arrays.stream(SpectrumType.values()).filter(t->SpectrumAccess.has(p,t)).toList();}
-    private static List<SpectrumAction> actions(){return SpectrumAction.forSpectrum(selected);}
+    private static List<SpectrumAction> actions(){
+        var p=Minecraft.getInstance().player;
+        if(p==null)return List.of();
+        return SpectrumAction.forSpectrum(selected).stream()
+                .filter(action->SpectrumProgression.isUnlocked(p,action))
+                .toList();
+    }
     private static boolean jujutsuMode(){return unlocked().isEmpty();}
+
+    public static SpectrumType selectedSpectrum(){
+        return selected;
+    }
+
+    public static boolean isOpenFor(SpectrumType type){
+        return open && selected==type;
+    }
     private static void cancel(){
         if(Minecraft.getInstance().getConnection()!=null) PacketDistributor.sendToServer(new SpectrumInputPayload(0,SpectrumInputPayload.CANCEL));
         PRESSED.clear();
@@ -122,7 +136,7 @@ public final class SpectrumMenu {
             boolean held=PRESSED.containsValue(action.id);
             g.fill(x+3,row,x+w-3,row+12,held?0xB88A2929:0x983B3B42);
             String key=i==9?"0":Integer.toString(i+1);
-            String label=action.label;
+            String label=SpectrumProgression.label(mc.player,action);
             while(mc.font.width(label)>w-28 && label.length()>4) label=label.substring(0,label.length()-2)+"…";
             g.drawString(mc.font,key+" "+label,x+6,row+2,held?0xFFFFFF:0xDDDDDD,false);
         }

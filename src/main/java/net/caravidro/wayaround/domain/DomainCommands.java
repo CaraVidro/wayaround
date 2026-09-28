@@ -133,6 +133,33 @@ public final class DomainCommands {
                                                                         : 0
                                                 )
                                 )
+
+                                .then(
+                                        Commands.literal(
+                                                        "intro"
+                                                )
+                                                .requires(
+                                                        source ->
+                                                                source.hasPermission(
+                                                                        2
+                                                                )
+                                                )
+                                                .then(
+                                                        Commands.literal(
+                                                                        "shadows"
+                                                                )
+                                                                .executes(
+                                                                        context -> {
+                                                                            DomainIntroManager.previewShadows(
+                                                                                    context.getSource()
+                                                                                            .getPlayerOrException()
+                                                                            );
+
+                                                                            return Command.SINGLE_SUCCESS;
+                                                                        }
+                                                                )
+                                                )
+                                )
                 );
     }
 

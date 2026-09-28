@@ -9,6 +9,8 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.justice.JusticeDomainManager;
 import net.caravidro.wayaround.network.DomainIntroS2CPayload;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
+import net.caravidro.wayaround.spectrum.SpectrumActions;
+import net.caravidro.wayaround.spectrum.SpectrumProgression;
 import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.caravidro.wayaround.spectrum.TukunaDomainPreview;
 import net.minecraft.server.MinecraftServer;
@@ -31,8 +33,25 @@ public final class DomainIntroManager {
     public static final byte JUSTICE =
             3;
 
+    public static final byte SHADOWS =
+            4;
+
+    public static final byte SIMPLE =
+            0;
+
+    public static final byte APEX =
+            1;
+
+    /*
+     * The intro starts on the first live keyword. 22 ticks gives Tobias enough
+     * time to hear the rest of a normal phrase without adding a second full
+     * second AFTER the phrase has already finished.
+     */
     public static final int INTRO_TICKS =
-            20;
+            22;
+
+    private static final int CONFIRM_GRACE_TICKS =
+            14;
 
     private static final Map<UUID, Pending> PENDING =
             new HashMap<>();
@@ -46,6 +65,9 @@ public final class DomainIntroManager {
         return SpectrumAccess.has(
                 player,
                 SpectrumType.VOID
+        )
+                && SpectrumProgression.voidDomainUnlocked(
+                player
         )
                 && request(
                 player,
@@ -79,14 +101,23 @@ public final class DomainIntroManager {
         );
     }
 
-    private static boolean request(
+    /**
+     * First half of the live-voice handshake. It may start only while the
+     * Shift+T Spectrum panel is actually active server-side.
+     *
+     * PREPARED does not cast anything. A later normal domain intent confirms
+     * the same Pending object. If Tobias never hears the full phrase, it dies.
+     */
+    public static boolean prepareVoice(
             ServerPlayer player,
             byte style
     ) {
-        if (!player.isAlive()
-                || player.isSpectator()
-                || PENDING.containsKey(
-                player.getUUID()
+        if (!SpectrumActions.combatMode(
+                player
+        )
+                || !canUseStyle(
+                player,
+                style
         )) {
             return false;
         }
@@ -95,23 +126,189 @@ public final class DomainIntroManager {
                 player.server
                         .getTickCount();
 
-        PENDING.put(
-                player.getUUID(),
+        byte variant =
+                SpectrumProgression.domainVariant(
+                        player,
+                        style
+                );
+
+        Pending existing =
+                PENDING.get(
+                        player.getUUID()
+                );
+
+        if (existing != null) {
+            if (existing.style
+                    != style) {
+                return false;
+            }
+
+            existing.variant =
+                    variant;
+
+            return true;
+        }
+
+        Pending pending =
                 new Pending(
                         style,
-                        now + INTRO_TICKS
-                )
+                        variant,
+                        now + INTRO_TICKS,
+                        now
+                                + INTRO_TICKS
+                                + CONFIRM_GRACE_TICKS,
+                        false
+                );
+
+        PENDING.put(
+                player.getUUID(),
+                pending
         );
 
-        PacketDistributor.sendToPlayer(
+        sendIntro(
                 player,
-                new DomainIntroS2CPayload(
-                        style,
-                        INTRO_TICKS
-                )
+                pending
         );
 
         return true;
+    }
+
+    public static void previewShadows(
+            ServerPlayer player
+    ) {
+        PacketDistributor.sendToPlayer(
+                player,
+                new DomainIntroS2CPayload(
+                        SHADOWS,
+                        APEX,
+                        INTRO_TICKS + 8
+                )
+        );
+    }
+
+    private static boolean request(
+            ServerPlayer player,
+            byte style
+    ) {
+        if (!player.isAlive()
+                || player.isSpectator()
+                || !canUseStyle(
+                player,
+                style
+        )) {
+            return false;
+        }
+
+        long now =
+                player.server
+                        .getTickCount();
+
+        byte variant =
+                SpectrumProgression.domainVariant(
+                        player,
+                        style
+                );
+
+        Pending existing =
+                PENDING.get(
+                        player.getUUID()
+                );
+
+        if (existing != null) {
+            if (existing.style
+                    != style) {
+                return false;
+            }
+
+            existing.variant =
+                    variant;
+
+            existing.confirmed =
+                    true;
+
+            /*
+             * A phrase confirmed after the visual has technically closed but
+             * still inside the grace window should cast immediately, not replay
+             * the whole intro.
+             */
+            if (now > existing.expiresAt) {
+                PENDING.remove(
+                        player.getUUID()
+                );
+                return false;
+            }
+
+            return true;
+        }
+
+        Pending pending =
+                new Pending(
+                        style,
+                        variant,
+                        now + INTRO_TICKS,
+                        now
+                                + INTRO_TICKS
+                                + CONFIRM_GRACE_TICKS,
+                        true
+                );
+
+        PENDING.put(
+                player.getUUID(),
+                pending
+        );
+
+        sendIntro(
+                player,
+                pending
+        );
+
+        return true;
+    }
+
+    private static boolean canUseStyle(
+            ServerPlayer player,
+            byte style
+    ) {
+        return switch (style) {
+            case VOID ->
+                    SpectrumAccess.has(
+                            player,
+                            SpectrumType.VOID
+                    )
+                            && SpectrumProgression
+                            .voidDomainUnlocked(
+                                    player
+                            );
+
+            case TUKUNA ->
+                    SpectrumAccess.has(
+                            player,
+                            SpectrumType.TUKUNA
+                    );
+
+            case JUSTICE ->
+                    SpectrumAccess.has(
+                            player,
+                            SpectrumType.JUSTICE
+                    );
+
+            default ->
+                    false;
+        };
+    }
+
+    private static void sendIntro(
+            ServerPlayer player,
+            Pending pending
+    ) {
+        PacketDistributor.sendToPlayer(
+                player,
+                new DomainIntroS2CPayload(
+                        pending.style,
+                        pending.variant,
+                        INTRO_TICKS
+                )
+        );
     }
 
     @SubscribeEvent
@@ -135,7 +332,15 @@ public final class DomainIntroManager {
             Pending pending =
                     entry.getValue();
 
-            if (now < pending.executeAt()) {
+            if (now < pending.executeAt) {
+                continue;
+            }
+
+            if (!pending.confirmed) {
+                if (now >= pending.expiresAt) {
+                    iterator.remove();
+                }
+
                 continue;
             }
 
@@ -152,24 +357,34 @@ public final class DomainIntroManager {
                 continue;
             }
 
-            switch (pending.style()) {
-                case VOID ->
-                        VoidDomainManager.expand(
-                                player
-                        );
+            execute(
+                    player,
+                    pending.style
+            );
+        }
+    }
 
-                case TUKUNA ->
-                        TukunaDomainPreview.start(
-                                player
-                        );
+    private static void execute(
+            ServerPlayer player,
+            byte style
+    ) {
+        switch (style) {
+            case VOID ->
+                    VoidDomainManager.expand(
+                            player
+                    );
 
-                case JUSTICE ->
-                        JusticeDomainManager.beginTrialNearest(
-                                player
-                        );
+            case TUKUNA ->
+                    TukunaDomainPreview.start(
+                            player
+                    );
 
-                default -> {
-                }
+            case JUSTICE ->
+                    JusticeDomainManager.beginTrialNearest(
+                            player
+                    );
+
+            default -> {
             }
         }
     }
@@ -181,9 +396,35 @@ public final class DomainIntroManager {
         PENDING.clear();
     }
 
-    private record Pending(
-            byte style,
-            long executeAt
-    ) {
+    private static final class Pending {
+
+        private final byte style;
+        private byte variant;
+        private final long executeAt;
+        private final long expiresAt;
+        private boolean confirmed;
+
+        private Pending(
+                byte style,
+                byte variant,
+                long executeAt,
+                long expiresAt,
+                boolean confirmed
+        ) {
+            this.style =
+                    style;
+
+            this.variant =
+                    variant;
+
+            this.executeAt =
+                    executeAt;
+
+            this.expiresAt =
+                    expiresAt;
+
+            this.confirmed =
+                    confirmed;
+        }
     }
 }

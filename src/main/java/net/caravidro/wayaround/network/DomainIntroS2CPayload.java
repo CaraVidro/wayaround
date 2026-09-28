@@ -11,6 +11,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record DomainIntroS2CPayload(
         byte style,
+        byte variant,
         int durationTicks
 ) implements CustomPacketPayload {
 
@@ -32,12 +33,17 @@ public record DomainIntroS2CPayload(
                                 payload.style()
                         );
 
+                        buf.writeByte(
+                                payload.variant()
+                        );
+
                         buf.writeVarInt(
                                 payload.durationTicks()
                         );
                     },
                     buf ->
                             new DomainIntroS2CPayload(
+                                    buf.readByte(),
                                     buf.readByte(),
                                     buf.readVarInt()
                             )
@@ -60,6 +66,7 @@ public record DomainIntroS2CPayload(
                 () ->
                         DomainIntroClient.start(
                                 payload.style(),
+                                payload.variant(),
                                 payload.durationTicks()
                         )
         );

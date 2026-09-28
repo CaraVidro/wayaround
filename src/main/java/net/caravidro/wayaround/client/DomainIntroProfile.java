@@ -10,25 +10,55 @@ public record DomainIntroProfile(
         int secondaryText,
         int tertiaryText,
         ResourceLocation futureImage,
-        boolean useFutureImage
+        boolean useFutureImage,
+        int imageWidth,
+        int imageHeight,
+        byte pose,
+        boolean shadowParticles,
+        String phrase
 ) {
 
+    public static final byte POSE_SIMPLE =
+            0;
+
+    public static final byte POSE_VOID_APEX =
+            1;
+
+    public static final byte POSE_TUKUNA_APEX =
+            2;
+
+    public static final byte POSE_SHADOWS =
+            3;
+
     public static DomainIntroProfile forStyle(
-            byte style
+            byte style,
+            byte variant
     ) {
         return switch (style) {
             case DomainIntroManager.TUKUNA ->
                     new DomainIntroProfile(
-                            0xED050000,
-                            0xFFFF2118,
-                            0xFFFF2118,
-                            0xFFFFD04A,
-                            0xFF7A0800,
+                            0xF0050202,
+                            0xFFFF261B,
+                            0xFFFF261B,
+                            0xFFFFD34D,
+                            0xFF720900,
                             ResourceLocation.fromNamespaceAndPath(
                                     "wayaround",
-                                    "textures/gui/domain/tukuna.png"
+                                    "textures/gui/domain/tukuna_apex.png"
                             ),
-                            false
+                            variant
+                                    == DomainIntroManager.APEX,
+                            1024,
+                            256,
+                            variant
+                                    == DomainIntroManager.APEX
+                                    ? POSE_TUKUNA_APEX
+                                    : POSE_SIMPLE,
+                            false,
+                            variant
+                                    == DomainIntroManager.APEX
+                                    ? "DOMÍNIO DE EXPANSÃO ABSOLUTO"
+                                    : "DOMÍNIO DE EXPANSÃO"
                     );
 
             case DomainIntroManager.JUSTICE ->
@@ -42,7 +72,31 @@ public record DomainIntroProfile(
                                     "wayaround",
                                     "textures/gui/domain/justice.png"
                             ),
-                            false
+                            false,
+                            1024,
+                            256,
+                            POSE_SIMPLE,
+                            false,
+                            "DOMÍNIO DE EXPANSÃO"
+                    );
+
+            case DomainIntroManager.SHADOWS ->
+                    new DomainIntroProfile(
+                            0xF5030305,
+                            0xFF33333A,
+                            0xFF070708,
+                            0xFF1A1A1E,
+                            0xFF44444C,
+                            ResourceLocation.fromNamespaceAndPath(
+                                    "wayaround",
+                                    "textures/gui/domain/shadows.png"
+                            ),
+                            true,
+                            1024,
+                            256,
+                            POSE_SHADOWS,
+                            true,
+                            "DOMÍNIO DE EXPANSÃO"
                     );
 
             default ->
@@ -54,9 +108,21 @@ public record DomainIntroProfile(
                             0xFFB55CFF,
                             ResourceLocation.fromNamespaceAndPath(
                                     "wayaround",
-                                    "textures/gui/domain/void.png"
+                                    "textures/gui/domain/void_apex.png"
                             ),
-                            false
+                            variant
+                                    == DomainIntroManager.APEX,
+                            1024,
+                            256,
+                            variant
+                                    == DomainIntroManager.APEX
+                                    ? POSE_VOID_APEX
+                                    : POSE_SIMPLE,
+                            false,
+                            variant
+                                    == DomainIntroManager.APEX
+                                    ? "DOMÍNIO DE EXPANSÃO ABSOLUTO"
+                                    : "DOMÍNIO DE EXPANSÃO"
                     );
         };
     }

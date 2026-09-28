@@ -5,6 +5,7 @@ import net.caravidro.wayaround.cinematic.PlayerControlLockManager;
 import net.caravidro.wayaround.spectrum.SpectrumType;
 
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
+import net.caravidro.wayaround.spectrum.SpectrumProgression;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.blue.BlueManager;
@@ -160,6 +161,16 @@ public record VoiceIntentC2SPayload(
         }
 
         if (!hasTechniqueAccess(
+                player
+        )) {
+            return;
+        }
+
+        if ((payload.intent()
+                == PURPLE_VOID
+                || payload.intent()
+                == DUAL_PREPARE)
+                && !SpectrumProgression.voidPurpleUnlocked(
                 player
         )) {
             return;

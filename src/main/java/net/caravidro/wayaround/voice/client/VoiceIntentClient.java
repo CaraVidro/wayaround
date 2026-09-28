@@ -9,8 +9,13 @@ import java.util.Locale;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.BlueClientEffects;
 import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
+import net.caravidro.wayaround.client.DomainIntroClient;
+import net.caravidro.wayaround.client.SpectrumMenu;
+import net.caravidro.wayaround.domain.DomainIntroManager;
+import net.caravidro.wayaround.network.DomainPreludeC2SPayload;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
+import net.caravidro.wayaround.spectrum.SpectrumProgression;
 import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -94,8 +99,17 @@ public final class VoiceIntentClient {
     private static String lastRealtimeTranscript =
             "";
 
-    private static long realtimeDomainPrefixUntil;
+    private static long realtimeExpansionUntil;
+    private static long realtimeDomainUntil;
     private static long lastRealtimeDomainDispatchAt;
+
+    private static String realtimeRollingContext =
+            "";
+
+    private static long realtimeContextExpiresAt;
+
+    private static byte lastDomainPreludeStyle;
+    private static long lastDomainPreludeAt;
 
     public static boolean isEnabled() {
         return ENABLED;
@@ -176,12 +190,21 @@ public final class VoiceIntentClient {
             return;
         }
 
+        String previous =
+                lastRealtimeTranscript;
+
         if (!finalChunk
                 && normalized.equals(
-                lastRealtimeTranscript
+                previous
         )) {
             return;
         }
+
+        String delta =
+                realtimeDelta(
+                        previous,
+                        normalized
+                );
 
         lastRealtimeTranscript =
                 finalChunk
@@ -191,97 +214,121 @@ public final class VoiceIntentClient {
         long now =
                 System.currentTimeMillis();
 
+        if (now > realtimeContextExpiresAt) {
+            realtimeRollingContext =
+                    "";
+        }
+
+        if (!delta.isBlank()) {
+            realtimeRollingContext =
+                    (
+                            realtimeRollingContext
+                                    + " "
+                                    + delta
+                    )
+                            .trim();
+
+            realtimeContextExpiresAt =
+                    now + 3_200L;
+        }
+
         /*
-         * Keep the old fast reflex vocabulary on the same live stream.
+         * Reflex parsing now receives the NEW part of the sentence whenever
+         * possible instead of repeatedly re-reading a growing full utterance.
+         * The rolling context below still keeps enough history for phrases.
          */
         handleSpeculativeTranscript(
-                normalized
+                delta.isBlank()
+                        ? normalized
+                        : delta
         );
+
+        List<String> deltaWords =
+                words(
+                        delta.isBlank()
+                                ? normalized
+                                : delta
+                );
+
+        String combined =
+                (
+                        realtimeRollingContext
+                                + " "
+                                + normalized
+                )
+                        .trim();
 
         List<String> liveWords =
                 words(
-                        normalized
+                        combined
                 );
 
-        boolean expansion =
-                containsPrefix(
-                        liveWords,
-                        "expans",
-                        5
-                )
-                        || containsAny(
-                        liveWords,
-                        "expansion"
+        boolean expansionNow =
+                hasExpansionWord(
+                        deltaWords
                 );
 
-        boolean domain =
-                containsPrefix(
-                        liveWords,
-                        "dominio",
-                        4
-                )
-                        || containsPrefix(
-                        liveWords,
-                        "domain",
-                        4
+        boolean domainNow =
+                hasDomainWord(
+                        deltaWords
                 );
 
-        if (expansion) {
-            realtimeDomainPrefixUntil =
-                    now + 2_600L;
+        if (expansionNow) {
+            realtimeExpansionUntil =
+                    now + 3_200L;
         }
 
-        if (!domain
-                || (
-                !expansion
-                        && now > realtimeDomainPrefixUntil
-        )) {
-            return;
+        if (domainNow) {
+            realtimeDomainUntil =
+                    now + 3_200L;
         }
 
-        if (now - lastRealtimeDomainDispatchAt
-                < 1_450L) {
-            return;
-        }
-
-        boolean explicitTukuna =
-                liveWords.contains(
-                        "tukuna"
-                );
-
-        boolean explicitVoid =
-                liveWords.contains(
-                        "void"
-                );
-
-        byte domainIntent;
-
-        if (hasLocalTukunaSpectrum()
+        if (SpectrumMenu.isOpen()
                 && (
-                explicitTukuna
-                        || !hasLocalVoidSpectrum()
+                expansionNow
+                        || domainNow
         )) {
-            domainIntent =
-                    VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND;
+            prepareDomainPrelude(
+                    now
+            );
+        }
 
-        } else if (hasLocalVoidSpectrum()
-                && !explicitTukuna) {
-            domainIntent =
-                    VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND;
+        boolean completePair =
+                (
+                        now <= realtimeExpansionUntil
+                                && now <= realtimeDomainUntil
+                )
+                        || (
+                        hasExpansionWord(
+                                liveWords
+                        )
+                                && hasDomainWord(
+                                liveWords
+                        )
+                );
 
-        } else if (hasLocalTukunaSpectrum()
-                && !explicitVoid) {
-            domainIntent =
-                    VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND;
+        if (!completePair
+                || now - lastRealtimeDomainDispatchAt
+                < 900L) {
+            return;
+        }
 
-        } else {
+        byte domainIntent =
+                liveDomainIntent(
+                        liveWords
+                );
+
+        if (domainIntent == 0) {
             return;
         }
 
         lastRealtimeDomainDispatchAt =
                 now;
 
-        realtimeDomainPrefixUntil =
+        realtimeExpansionUntil =
+                0L;
+
+        realtimeDomainUntil =
                 0L;
 
         dispatch(
@@ -290,8 +337,224 @@ public final class VoiceIntentClient {
                 1.0F,
                 domainIntent
                         == VoiceIntentC2SPayload.TUKUNA_DOMAIN_EXPAND
-                        ? "DOMINIO DE EXPANSAO / TUKUNA / LIVE"
-                        : "DOMINIO DE EXPANSAO / VOID / LIVE"
+                        ? "DOMINIO / TUKUNA / LIVE"
+                        : "DOMINIO / VOID / LIVE"
+        );
+    }
+
+    private static void prepareDomainPrelude(
+            long now
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null
+                || minecraft.getConnection()
+                == null
+                || !SpectrumMenu.isOpen()) {
+            return;
+        }
+
+        SpectrumType selected =
+                SpectrumMenu.selectedSpectrum();
+
+        byte style;
+
+        if (selected == SpectrumType.VOID) {
+            if (!SpectrumProgression
+                    .voidDomainUnlocked(
+                            minecraft.player
+                    )) {
+                return;
+            }
+
+            style =
+                    DomainIntroManager.VOID;
+
+        } else if (selected == SpectrumType.TUKUNA) {
+            style =
+                    DomainIntroManager.TUKUNA;
+
+        } else {
+            return;
+        }
+
+        byte introVariant =
+                SpectrumProgression.domainVariant(
+                        minecraft.player,
+                        style
+                );
+
+        DomainIntroClient.previewLocal(
+                style,
+                introVariant,
+                DomainIntroManager.INTRO_TICKS
+        );
+
+        if (style == lastDomainPreludeStyle
+                && now - lastDomainPreludeAt
+                < 850L) {
+            return;
+        }
+
+        lastDomainPreludeStyle =
+                style;
+
+        lastDomainPreludeAt =
+                now;
+
+        PacketDistributor.sendToServer(
+                new DomainPreludeC2SPayload(
+                        style
+                )
+        );
+    }
+
+    private static byte liveDomainIntent(
+            List<String> words
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null) {
+            return 0;
+        }
+
+        if (SpectrumMenu.isOpen()) {
+            SpectrumType selected =
+                    SpectrumMenu.selectedSpectrum();
+
+            if (selected == SpectrumType.VOID
+                    && SpectrumProgression
+                    .voidDomainUnlocked(
+                            minecraft.player
+                    )) {
+                return VoiceIntentC2SPayload
+                        .VOID_DOMAIN_EXPAND;
+            }
+
+            if (selected == SpectrumType.TUKUNA) {
+                return VoiceIntentC2SPayload
+                        .TUKUNA_DOMAIN_EXPAND;
+            }
+        }
+
+        boolean explicitTukuna =
+                words.contains(
+                        "tukuna"
+                );
+
+        boolean explicitVoid =
+                words.contains(
+                        "void"
+                );
+
+        if (hasLocalTukunaSpectrum()
+                && (
+                explicitTukuna
+                        || !hasLocalVoidSpectrum()
+        )) {
+            return VoiceIntentC2SPayload
+                    .TUKUNA_DOMAIN_EXPAND;
+        }
+
+        if (hasLocalVoidSpectrum()
+                && !explicitTukuna
+                && SpectrumProgression
+                .voidDomainUnlocked(
+                        minecraft.player
+                )) {
+            return VoiceIntentC2SPayload
+                    .VOID_DOMAIN_EXPAND;
+        }
+
+        if (hasLocalTukunaSpectrum()
+                && !explicitVoid) {
+            return VoiceIntentC2SPayload
+                    .TUKUNA_DOMAIN_EXPAND;
+        }
+
+        return 0;
+    }
+
+    private static boolean hasExpansionWord(
+            List<String> words
+    ) {
+        return containsPrefix(
+                words,
+                "expans",
+                5
+        )
+                || containsAny(
+                words,
+                "expansion"
+        );
+    }
+
+    private static boolean hasDomainWord(
+            List<String> words
+    ) {
+        return containsPrefix(
+                words,
+                "dominio",
+                4
+        )
+                || containsPrefix(
+                words,
+                "domain",
+                4
+        );
+    }
+
+    private static String realtimeDelta(
+            String previous,
+            String current
+    ) {
+        if (previous == null
+                || previous.isBlank()) {
+            return current;
+        }
+
+        List<String> oldWords =
+                words(
+                        previous
+                );
+
+        List<String> newWords =
+                words(
+                        current
+                );
+
+        int common =
+                0;
+
+        int limit =
+                Math.min(
+                        oldWords.size(),
+                        newWords.size()
+                );
+
+        while (common < limit
+                && oldWords.get(
+                common
+        ).equals(
+                newWords.get(
+                        common
+                )
+        )) {
+            common++;
+        }
+
+        if (common >= newWords.size()) {
+            return "";
+        }
+
+        return String.join(
+                " ",
+                newWords.subList(
+                        common,
+                        newWords.size()
+                )
         );
     }
 
@@ -719,6 +982,16 @@ public final class VoiceIntentClient {
                     ChatFormatting.GRAY
             );
 
+            return;
+        }
+
+        if (looksLikeVoidDomain(
+                currentWords,
+                false
+        )
+                && now - lastRealtimeDomainDispatchAt
+                < 2_400L) {
+            clearContext();
             return;
         }
 
@@ -1326,6 +1599,18 @@ public final class VoiceIntentClient {
                     "DO... dominio preparado",
                     ChatFormatting.WHITE
             );
+        }
+
+        if (SpectrumMenu.isOpen()
+                && (
+                sawDomainPrefix
+                        || sawDomain
+        )) {
+            prepareDomainPrelude(
+                    now
+            );
+
+            return true;
         }
 
         if (sawDomain

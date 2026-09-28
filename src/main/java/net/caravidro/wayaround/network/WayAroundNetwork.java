@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "7";
+            "8";
 
     private WayAroundNetwork() {
     }
@@ -123,6 +123,12 @@ public final class WayAroundNetwork {
                 VoiceIntentC2SPayload.TYPE,
                 VoiceIntentC2SPayload.STREAM_CODEC,
                 VoiceIntentC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                DomainPreludeC2SPayload.TYPE,
+                DomainPreludeC2SPayload.STREAM_CODEC,
+                DomainPreludeC2SPayload::handle
         );
 
         registrar.playToServer(

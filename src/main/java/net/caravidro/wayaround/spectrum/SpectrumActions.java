@@ -58,7 +58,9 @@ public final class SpectrumActions {
     public static void input(ServerPlayer p,int id,byte phase){
         if(phase==SpectrumInputPayload.CANCEL){cancel(p);return;}
         SpectrumAction action=SpectrumAction.byId(id);
-        if(action==null || !allowed(p,action.spectrum)) return;
+        if(action==null
+                || !allowed(p,action.spectrum)
+                || !SpectrumProgression.isUnlocked(p,action)) return;
         long now=p.server.getTickCount();
         if(action==SpectrumAction.SLASH){
             if(phase==SpectrumInputPayload.PRESS && now>=COOLDOWN.getOrDefault(p.getUUID(),0L)){
@@ -88,7 +90,8 @@ public final class SpectrumActions {
         perform(p,action);
     }
     public static void perform(ServerPlayer p,SpectrumAction action){
-        if(!allowed(p,action.spectrum)) return;
+        if(!allowed(p,action.spectrum)
+                || !SpectrumProgression.isUnlocked(p,action)) return;
         if((action==SpectrumAction.TUKUNA_DOMAIN
                 || action==SpectrumAction.VOID_DOMAIN
                 || action==SpectrumAction.JUSTICE_DOMAIN)

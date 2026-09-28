@@ -10,9 +10,9 @@ import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -26,18 +26,79 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
 public final class DomainIntroClient {
 
     private static byte style;
+    private static byte variant;
     private static long startedAtMillis;
     private static int durationTicks;
 
     private DomainIntroClient() {
     }
 
-    public static void start(
+    /**
+     * Local speculative opening used by Tobias. A later S2C confirmation for
+     * the same style does not restart the animation.
+     */
+    public static void previewLocal(
             byte newStyle,
+            byte newVariant,
             int ticks
     ) {
+        startInternal(
+                newStyle,
+                newVariant,
+                ticks
+        );
+    }
+
+    public static void start(
+            byte newStyle,
+            byte newVariant,
+            int ticks
+    ) {
+        startInternal(
+                newStyle,
+                newVariant,
+                ticks
+        );
+    }
+
+    private static void startInternal(
+            byte newStyle,
+            byte newVariant,
+            int ticks
+    ) {
+        long now =
+                System.currentTimeMillis();
+
+        if (startedAtMillis > 0L
+                && style == newStyle) {
+            long elapsed =
+                    now - startedAtMillis;
+
+            long duration =
+                    Math.max(
+                            1,
+                            durationTicks
+                    ) * 50L;
+
+            if (elapsed < duration) {
+                variant =
+                        newVariant;
+
+                durationTicks =
+                        Math.max(
+                                durationTicks,
+                                ticks
+                        );
+
+                return;
+            }
+        }
+
         style =
                 newStyle;
+
+        variant =
+                newVariant;
 
         durationTicks =
                 Math.max(
@@ -46,7 +107,11 @@ public final class DomainIntroClient {
                 );
 
         startedAtMillis =
-                System.currentTimeMillis();
+                now;
+    }
+
+    public static boolean isRunning() {
+        return startedAtMillis > 0L;
     }
 
     @SubscribeEvent
@@ -60,7 +125,8 @@ public final class DomainIntroClient {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        if (minecraft.player == null) {
+        if (minecraft.player == null
+                || minecraft.options.hideGui) {
             startedAtMillis =
                     0L;
             return;
@@ -88,7 +154,8 @@ public final class DomainIntroClient {
 
         DomainIntroProfile profile =
                 DomainIntroProfile.forStyle(
-                        style
+                        style,
+                        variant
                 );
 
         int width =
@@ -123,8 +190,8 @@ public final class DomainIntroClient {
                                         open,
                                         2.0F,
                                         Math.max(
-                                                64.0F,
-                                                height * 0.31F
+                                                68.0F,
+                                                height * 0.32F
                                         )
                                 )
                         )
@@ -145,6 +212,57 @@ public final class DomainIntroClient {
                         )
                 );
 
+        if (bandHeight > 4) {
+            event.getGuiGraphics()
+                    .fill(
+                            0,
+                            top + 2,
+                            width,
+                            bottom,
+                            profile.background()
+                    );
+
+            renderFutureImage(
+                    event,
+                    profile,
+                    width,
+                    top + 2,
+                    bottom
+            );
+
+            /*
+             * Player is rendered BEFORE lettering and border lines so he only
+             * exists inside the graphic rather than sitting on top of the UI.
+             */
+            renderPlayer(
+                    event,
+                    profile,
+                    centerX,
+                    top,
+                    bottom,
+                    open
+            );
+
+            if (profile.shadowParticles()) {
+                renderShadowParticles(
+                        event,
+                        centerX,
+                        top,
+                        bottom,
+                        open
+                );
+            }
+
+            renderRepeatedText(
+                    event,
+                    profile,
+                    width,
+                    top,
+                    bottom
+            );
+        }
+
+        // Borders are deliberately last: the model stays behind both lines.
         event.getGuiGraphics()
                 .fill(
                         centerX - halfLine,
@@ -154,26 +272,94 @@ public final class DomainIntroClient {
                         profile.line()
                 );
 
-        if (bandHeight <= 4) {
+        if (bandHeight > 4) {
+            event.getGuiGraphics()
+                    .fill(
+                            0,
+                            bottom - 2,
+                            width,
+                            bottom,
+                            profile.line()
+                    );
+        }
+    }
+
+    private static void renderFutureImage(
+            RenderGuiEvent.Post event,
+            DomainIntroProfile profile,
+            int width,
+            int top,
+            int bottom
+    ) {
+        if (!profile.useFutureImage()) {
             return;
         }
 
-        event.getGuiGraphics()
-                .fill(
-                        0,
-                        top + 2,
-                        width,
-                        bottom,
-                        profile.background()
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.getResourceManager()
+                .getResource(
+                        profile.futureImage()
+                )
+                .isEmpty()) {
+            /*
+             * Intentionally silent: the three art files are user-provided.
+             * The text/pose UI remains the fallback until they are dropped in.
+             */
+            return;
+        }
+
+        int imageHeight =
+                Math.max(
+                        1,
+                        bottom - top
                 );
 
-        renderPlayer(
-                event,
-                centerX,
+        PoseStack pose =
+                event.getGuiGraphics()
+                        .pose();
+
+        pose.pushPose();
+        pose.translate(
+                0.0F,
                 top,
-                bottom,
-                open
+                0.0F
         );
+
+        pose.scale(
+                width
+                        / (float) profile.imageWidth(),
+                imageHeight
+                        / (float) profile.imageHeight(),
+                1.0F
+        );
+
+        event.getGuiGraphics()
+                .blit(
+                        profile.futureImage(),
+                        0,
+                        0,
+                        0,
+                        0,
+                        profile.imageWidth(),
+                        profile.imageHeight(),
+                        profile.imageWidth(),
+                        profile.imageHeight()
+                );
+
+        pose.popPose();
+    }
+
+    private static void renderRepeatedText(
+            RenderGuiEvent.Post event,
+            DomainIntroProfile profile,
+            int width,
+            int top,
+            int bottom
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
         event.getGuiGraphics()
                 .enableScissor(
@@ -184,7 +370,15 @@ public final class DomainIntroClient {
                 );
 
         String phrase =
-                "DOMÍNIO DE EXPANSÃO";
+                profile.phrase();
+
+        int phraseStep =
+                Math.max(
+                        165,
+                        minecraft.font.width(
+                                phrase
+                        ) + 42
+                );
 
         int row =
                 0;
@@ -194,7 +388,7 @@ public final class DomainIntroClient {
              y += 15) {
 
             int offset =
-                    -120
+                    -phraseStep
                             + row * 37;
 
             int color =
@@ -208,8 +402,8 @@ public final class DomainIntroClient {
                     };
 
             for (int x = offset;
-                 x < width + 150;
-                 x += 158) {
+                 x < width + phraseStep;
+                 x += phraseStep) {
                 event.getGuiGraphics()
                         .drawString(
                                 minecraft.font,
@@ -226,15 +420,6 @@ public final class DomainIntroClient {
 
         event.getGuiGraphics()
                 .disableScissor();
-
-        event.getGuiGraphics()
-                .fill(
-                        0,
-                        bottom - 2,
-                        width,
-                        bottom,
-                        profile.line()
-                );
     }
 
     private static float envelope(
@@ -296,6 +481,7 @@ public final class DomainIntroClient {
 
     private static void renderPlayer(
             RenderGuiEvent.Post event,
+            DomainIntroProfile profile,
             int centerX,
             int top,
             int bottom,
@@ -348,46 +534,10 @@ public final class DomainIntroClient {
                     0.0F
             );
 
-            model.head.xRot =
-                    0.0F;
-
-            model.head.yRot =
-                    0.0F;
-
-            model.head.zRot =
-                    0.0F;
-
-            if (style
-                    == DomainIntroManager.TUKUNA) {
-                model.rightArm.xRot =
-                        -1.50F;
-                model.rightArm.yRot =
-                        -0.45F;
-                model.rightArm.zRot =
-                        0.18F;
-
-                model.leftArm.xRot =
-                        -1.16F;
-                model.leftArm.yRot =
-                        0.62F;
-                model.leftArm.zRot =
-                        -0.32F;
-
-            } else {
-                model.rightArm.xRot =
-                        -1.30F;
-                model.rightArm.yRot =
-                        -0.40F;
-                model.rightArm.zRot =
-                        0.10F;
-
-                model.leftArm.xRot =
-                        -1.30F;
-                model.leftArm.yRot =
-                        0.40F;
-                model.leftArm.zRot =
-                        -0.10F;
-            }
+            applyPose(
+                    model,
+                    profile.pose()
+            );
 
             PoseStack pose =
                     event.getGuiGraphics()
@@ -406,11 +556,11 @@ public final class DomainIntroClient {
 
             float scale =
                     Math.min(
-                            64.0F,
+                            68.0F,
                             Math.max(
-                                    34.0F,
+                                    36.0F,
                                     (bottom - top)
-                                            * 0.62F
+                                            * 0.64F
                             )
                     )
                             * open;
@@ -471,5 +621,196 @@ public final class DomainIntroClient {
             model.rightArm.yRot = oldRightY;
             model.rightArm.zRot = oldRightZ;
         }
+    }
+
+    private static void applyPose(
+            PlayerModel<AbstractClientPlayer> model,
+            byte pose
+    ) {
+        model.head.xRot =
+                0.0F;
+
+        model.head.yRot =
+                0.0F;
+
+        model.head.zRot =
+                0.0F;
+
+        switch (pose) {
+            case DomainIntroProfile.POSE_VOID_APEX -> {
+                model.rightArm.xRot =
+                        -2.18F;
+                model.rightArm.yRot =
+                        -0.72F;
+                model.rightArm.zRot =
+                        0.34F;
+
+                model.leftArm.xRot =
+                        -1.74F;
+                model.leftArm.yRot =
+                        0.78F;
+                model.leftArm.zRot =
+                        -0.50F;
+
+                model.head.xRot =
+                        -0.10F;
+            }
+
+            case DomainIntroProfile.POSE_TUKUNA_APEX -> {
+                model.rightArm.xRot =
+                        -2.35F;
+                model.rightArm.yRot =
+                        -0.92F;
+                model.rightArm.zRot =
+                        0.48F;
+
+                model.leftArm.xRot =
+                        -1.42F;
+                model.leftArm.yRot =
+                        0.88F;
+                model.leftArm.zRot =
+                        -0.58F;
+
+                model.head.xRot =
+                        0.12F;
+            }
+
+            case DomainIntroProfile.POSE_SHADOWS -> {
+                // Both hands low, chin raised toward the top of the frame.
+                model.rightArm.xRot =
+                        0.16F;
+                model.rightArm.yRot =
+                        -0.08F;
+                model.rightArm.zRot =
+                        0.12F;
+
+                model.leftArm.xRot =
+                        0.16F;
+                model.leftArm.yRot =
+                        0.08F;
+                model.leftArm.zRot =
+                        -0.12F;
+
+                model.head.xRot =
+                        -0.48F;
+            }
+
+            default -> {
+                if (style
+                        == DomainIntroManager.TUKUNA) {
+                    model.rightArm.xRot =
+                            -1.50F;
+                    model.rightArm.yRot =
+                            -0.45F;
+                    model.rightArm.zRot =
+                            0.18F;
+
+                    model.leftArm.xRot =
+                            -1.16F;
+                    model.leftArm.yRot =
+                            0.62F;
+                    model.leftArm.zRot =
+                            -0.32F;
+
+                } else {
+                    model.rightArm.xRot =
+                            -1.30F;
+                    model.rightArm.yRot =
+                            -0.40F;
+                    model.rightArm.zRot =
+                            0.10F;
+
+                    model.leftArm.xRot =
+                            -1.30F;
+                    model.leftArm.yRot =
+                            0.40F;
+                    model.leftArm.zRot =
+                            -0.10F;
+                }
+            }
+        }
+    }
+
+    private static void renderShadowParticles(
+            RenderGuiEvent.Post event,
+            int centerX,
+            int top,
+            int bottom,
+            float open
+    ) {
+        if (open <= 0.05F) {
+            return;
+        }
+
+        long time =
+                System.currentTimeMillis();
+
+        int span =
+                Math.max(
+                        1,
+                        bottom - top
+                );
+
+        event.getGuiGraphics()
+                .enableScissor(
+                        0,
+                        top + 2,
+                        Minecraft.getInstance()
+                                .getWindow()
+                                .getGuiScaledWidth(),
+                        bottom
+                );
+
+        for (int i = 0;
+             i < 18;
+             i++) {
+            int side =
+                    (i & 1) == 0
+                            ? -1
+                            : 1;
+
+            int x =
+                    centerX
+                            + side
+                            * (
+                            10
+                                    + (
+                                    i % 5
+                            ) * 3
+                    );
+
+            int cycle =
+                    (int) (
+                            (
+                                    time / 12L
+                                            + i * 19L
+                            )
+                                    % Math.max(
+                                    24,
+                                    span
+                            )
+                    );
+
+            int y =
+                    top
+                            + span / 2
+                            + cycle / 2;
+
+            int length =
+                    2
+                            + i % 4;
+
+            event.getGuiGraphics()
+                    .fill(
+                            x,
+                            y,
+                            x + 2,
+                            y + length,
+                            0xE8000000
+                    );
+        }
+
+        event.getGuiGraphics()
+                .disableScissor();
     }
 }

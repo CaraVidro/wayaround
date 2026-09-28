@@ -46,8 +46,13 @@ public final class VoiceCapture {
     private static final double COMBAT_SPECULATIVE_MAX_SECONDS =
             2.2;
 
+    /*
+     * Tobias now feeds Vosk every capture frame (40 ms) for Void/Tukuna.
+     * There are intentionally very few speech-enabled Spectrums, so latency is
+     * more valuable here than batching four frames into a 160 ms chunk.
+     */
     private static final int REALTIME_BATCH_FRAMES =
-            4;
+            1;
 
     /*
      * STT is ancillary to voice transport. Never let a stuck PTT key, noisy
