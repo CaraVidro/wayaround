@@ -54,6 +54,8 @@ public final class SnowFootprintEntity extends Entity {
 
     public void configure(
             BlockPos support,
+            double x,
+            double z,
             float yaw
     ) {
         this.support =
@@ -64,7 +66,23 @@ public final class SnowFootprintEntity extends Entity {
                 yaw
         );
 
-        snapToSnow();
+        BlockState state =
+                level().getBlockState(
+                        support
+                );
+
+        if (isSnow(
+                state
+        )) {
+            setPos(
+                    x,
+                    surfaceY(
+                            support,
+                            state
+                    ) + 0.004,
+                    z
+            );
+        }
     }
 
     public float markYaw() {
@@ -119,12 +137,10 @@ public final class SnowFootprintEntity extends Entity {
                 );
 
         setPos(
-                support.getX()
-                        + 0.5,
+                getX(),
                 surface
                         + 0.004,
-                support.getZ()
-                        + 0.5
+                getZ()
         );
     }
 
