@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/manual_crank"
+    },
+    "facing=south": {
+      "model": "wayaround:block/manual_crank",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "wayaround:block/manual_crank",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "wayaround:block/manual_crank",
+      "y": 270
+    }
+  }
+}
