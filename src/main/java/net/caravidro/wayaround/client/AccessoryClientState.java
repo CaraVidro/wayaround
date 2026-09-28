@@ -58,6 +58,11 @@ public final class AccessoryClientState {
                         count
                         ];
 
+        int[] customColors =
+                new int[
+                        count
+                        ];
+
         Arrays.fill(
                 kinds,
                 ""
@@ -96,6 +101,17 @@ public final class AccessoryClientState {
                 )
         );
 
+        System.arraycopy(
+                payload.customColors(),
+                0,
+                customColors,
+                0,
+                Math.min(
+                        count,
+                        payload.customColors().length
+                )
+        );
+
         STATES.put(
                 payload.player(),
                 new State(
@@ -111,6 +127,7 @@ public final class AccessoryClientState {
                         payload.headSize(),
                         payload.headExtras(),
                         payload.headWoolColor(),
+                        customColors,
                         seen
                 )
         );
@@ -165,6 +182,7 @@ public final class AccessoryClientState {
             int headSize,
             int headExtras,
             int headWoolColor,
+            int[] customColors,
             long seenAt
     ) {
         public String path(
@@ -212,6 +230,18 @@ public final class AccessoryClientState {
                             slot
                     )
             );
+        }
+
+        public int customColor(
+                AccessorySlot slot
+        ) {
+            int ordinal =
+                    slot.ordinal();
+
+            return ordinal >= 0
+                    && ordinal < customColors.length
+                    ? customColors[ordinal]
+                    : 0;
         }
 
         public int glass(
