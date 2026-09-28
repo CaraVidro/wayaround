@@ -26,7 +26,8 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
  * Physical utility for the engineer boots.
  *
  * The boots compress deep snow under alternating feet and provide a deliberately
- * small swimming assist. Neither effect changes the vanilla equipment slots;
+ * small swimming assist. The boost is intentionally capped close to vanilla
+ * swimming speed. Neither effect changes the vanilla equipment slots;
  * they only apply while ENGINEER_BOOTS are equipped in Way Around's FEET slot.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
@@ -42,10 +43,10 @@ public final class EngineerBootsManager {
             0.135;
 
     private static final double SWIM_MULTIPLIER =
-            1.10;
+            1.035;
 
     private static final double MAX_SWIM_HORIZONTAL =
-            0.185;
+            0.120;
 
     private EngineerBootsManager() {
     }
