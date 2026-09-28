@@ -7,6 +7,7 @@ import net.caravidro.wayaround.accessory.AccessoryKind;
 import net.caravidro.wayaround.accessory.AccessorySlot;
 import net.caravidro.wayaround.accessory.TopHatContent;
 import net.caravidro.wayaround.network.TopHatAdjustC2SPayload;
+import net.caravidro.wayaround.network.TrouserPocketRetrieveC2SPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -60,23 +61,49 @@ public final class TopHatClientEvents {
                             minecraft.player.getUUID()
                     );
 
-            if (accessories == null
-                    || accessories.kind(
-                    AccessorySlot.HEAD
-            ) != AccessoryKind.ENGINEER_CAP
-                    || !TopHatClientState.warningActive(
-                    minecraft.player.getUUID()
-            )) {
+            if (accessories == null) {
                 continue;
             }
 
-            TopHatClientState.predictAdjust(
-                    minecraft.player.getUUID()
-            );
+            /*
+             * R is contextual. A loose top hat always wins; the trouser pocket
+             * only receives the key when the hat has nothing urgent to do.
+             */
+            boolean topHatNeedsAttention =
+                    accessories.kind(
+                            AccessorySlot.HEAD
+                    ) == AccessoryKind.ENGINEER_CAP
+                            && TopHatClientState.warningActive(
+                            minecraft.player.getUUID()
+                    );
 
-            PacketDistributor.sendToServer(
-                    new TopHatAdjustC2SPayload()
-            );
+            if (topHatNeedsAttention) {
+                TopHatClientState.predictAdjust(
+                        minecraft.player.getUUID()
+                );
+
+                PacketDistributor.sendToServer(
+                        new TopHatAdjustC2SPayload()
+                );
+
+                continue;
+            }
+
+            if (accessories.kind(
+                    AccessorySlot.LEGS
+            ) == AccessoryKind.ENGINEER_TROUSERS
+                    && accessories.trouserPocket() != null
+                    && !accessories.trouserPocket()
+                    .isEmpty()) {
+
+                TrouserPocketClientState.predict(
+                        minecraft.player.getUUID()
+                );
+
+                PacketDistributor.sendToServer(
+                        new TrouserPocketRetrieveC2SPayload()
+                );
+            }
         }
     }
 
