@@ -4,6 +4,8 @@ import javax.annotation.Nullable;
 
 import com.mojang.serialization.MapCodec;
 
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -121,6 +123,12 @@ public final class ManualCrankBlock
             crank.crank(
                     player
             );
+
+            if (player instanceof ServerPlayer serverPlayer) {
+                WayAroundAdvancements.manualCrank(
+                        serverPlayer
+                );
+            }
         }
 
         return InteractionResult.sidedSuccess(
