@@ -12,6 +12,7 @@ import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -145,6 +146,39 @@ public final class WaterWheelHubBlock
             InteractionHand hand,
             BlockHitResult hit
     ) {
+        if (stack.is(
+                Items.FLINT_AND_STEEL
+        )
+                || stack.is(
+                Items.FIRE_CHARGE
+        )) {
+
+            if (!level.isClientSide
+                    && level.getBlockEntity(
+                    pos
+            ) instanceof WaterWheelHubBlockEntity hub) {
+
+                hub.ignite(
+                        player
+                );
+
+                if (stack.is(
+                        Items.FIRE_CHARGE
+                )
+                        && !player.getAbilities()
+                        .instabuild) {
+                    stack.consume(
+                            1,
+                            player
+                    );
+                }
+            }
+
+            return ItemInteractionResult.sidedSuccess(
+                    level.isClientSide
+            );
+        }
+
         if (stack.is(
                 PowerContent.WATER_WHEEL_HUB_ITEM.get()
         )) {
