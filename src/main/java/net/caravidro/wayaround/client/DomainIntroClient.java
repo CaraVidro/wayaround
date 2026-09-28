@@ -10,7 +10,7 @@ import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.OverlayTexture;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.util.Mth;
@@ -343,8 +343,7 @@ public final class DomainIntroClient {
                     player,
                     0.0F,
                     0.0F,
-                    player.tickCount
-                            + event.getPartialTick(),
+                    player.tickCount,
                     0.0F,
                     0.0F
             );
