@@ -88,11 +88,13 @@ public final class EnhancedFireVisuals {
         }
 
         spreadBudget =
-                Math.max(
-                        72,
-                        server.getPlayerList()
+                Mth.clamp(
+                        24
+                                + server.getPlayerList()
                                 .getPlayerCount()
-                                * 96
+                                        * 32,
+                        32,
+                        128
                 );
 
         /*
@@ -276,11 +278,17 @@ public final class EnhancedFireVisuals {
             );
         }
 
-        emitAmbientSound(
+        if (neighbors < 4
+                || primaryInCluster(
                 level,
-                pos,
-                fire
-        );
+                pos
+        )) {
+            emitAmbientSound(
+                    level,
+                    pos,
+                    fire
+            );
+        }
 
         mergeNearbyFire(
                 level,
@@ -318,6 +326,22 @@ public final class EnhancedFireVisuals {
                         1,
                         5
                 );
+
+        /*
+         * Interior fire is already surrounded by burning blocks. Spending five
+         * ember searches there is wasted CPU; the low-neighbour frontier is
+         * what actually advances the wildfire.
+         */
+        if (neighbors >= 6) {
+            attempts =
+                    1;
+        } else if (neighbors >= 4) {
+            attempts =
+                    Math.min(
+                            attempts,
+                            2
+                    );
+        }
 
         int horizontalReach =
                 source.size >= 1.75F
@@ -1266,6 +1290,12 @@ public final class EnhancedFireVisuals {
         }
 
         return true;
+    }
+
+    public static void clearAll() {
+        ACTIVE.clear();
+        spreadBudget =
+                0;
     }
 
     private static final class FireState {
