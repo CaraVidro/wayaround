@@ -481,7 +481,7 @@
   "item.wayaround.sombrero": "Template de Sombrero",
   "accessory.workshop.title": "Workshop de Acessórios",
   "accessory.workshop.template": "Template: %s",
-  "accessory.workshop.need_hat": "Segure um Chapéu, Top Hat ou Sombrero para editar.",
+  "accessory.workshop.need_hat": "Segure um template de acessório customizável para editar.",
   "accessory.workshop.applied": "Customização do acessório aplicada.",
   "accessory.workshop.apply": "Aplicar",
   "accessory.workshop.material": "Textura / material: %s",
