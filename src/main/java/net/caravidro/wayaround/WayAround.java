@@ -39,6 +39,7 @@ import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheCommand;
 import net.caravidro.wayaround.worldgen.weather.avalanche.AvalancheManager;
 import net.caravidro.wayaround.worldgen.weather.command.BlizzardCommand;
 import net.caravidro.wayaround.worldgen.weather.command.WindTestCommand;
+import net.caravidro.wayaround.worldgen.weather.fire.EnhancedFireVisuals;
 import net.caravidro.wayaround.worldgen.weather.fire.FireContent;
 import net.caravidro.wayaround.war.WarBallistics;
 import net.caravidro.wayaround.war.WarContent;
@@ -130,6 +131,7 @@ public class WayAround {
         JusticeDomainManager.clearAll(event.getServer());
         JusticeRewardManager.clearAll(event.getServer());
         JusticeSenseManager.clearTransient();
+        EnhancedFireVisuals.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }
 }
