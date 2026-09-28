@@ -285,7 +285,8 @@ public final class EnhancedFireVisuals {
         mergeNearbyFire(
                 level,
                 pos,
-                fire
+                fire,
+                neighbors
         );
     }
 
@@ -670,6 +671,27 @@ public final class EnhancedFireVisuals {
         }
 
         /*
+         * In a dense wildfire we do not need a full particle emitter on every
+         * burning block. The terrain is still physically burning everywhere;
+         * this only coalesces the near visual layer.
+         */
+        if (neighbors >= 4) {
+            int visualStride =
+                    neighbors >= 7
+                            ? 3
+                            : 2;
+
+            if (Math.floorMod(
+                    pos.getX()
+                            + pos.getY()
+                            + pos.getZ(),
+                    visualStride
+            ) != 0) {
+                return;
+            }
+        }
+
+        /*
          * Dense forests used to flicker because every fire randomized all
          * particle positions every four ticks at the same time. Stable anchors
          * plus staggered emission make a large fire read as one continuous
@@ -1022,8 +1044,17 @@ public final class EnhancedFireVisuals {
     private static void mergeNearbyFire(
             ServerLevel level,
             BlockPos pos,
-            FireState fire
+            FireState fire,
+            int neighbors
     ) {
+        /*
+         * Once four or more neighbouring fires overlap, bridge particles add
+         * nothing visually and are one of the biggest particle multipliers.
+         */
+        if (neighbors >= 4) {
+            return;
+        }
+
         if (Math.floorMod(
                 level.getGameTime()
                         / STEP
