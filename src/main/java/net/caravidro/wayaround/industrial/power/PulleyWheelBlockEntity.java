@@ -2,6 +2,8 @@ package net.caravidro.wayaround.industrial.power;
 
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
+
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
@@ -658,6 +660,14 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                     ),
                     true
             );
+
+            if (beltLines >= MAX_BELT_LINES
+                    && player instanceof ServerPlayer serverPlayer) {
+                WayAroundAdvancements.reinforcedPulley(
+                        serverPlayer
+                );
+            }
+
             return;
         }
 
