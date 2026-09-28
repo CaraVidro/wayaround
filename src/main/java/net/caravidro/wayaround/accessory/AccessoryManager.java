@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.network.AccessoryActionC2SPayload;
 import net.caravidro.wayaround.network.AccessoryStateS2CPayload;
@@ -142,6 +143,22 @@ public final class AccessoryManager {
             setTrouserPocket(
                     player,
                     incomingPocket
+            );
+        }
+
+        WayAroundAdvancements.accessoryEquipped(
+                player
+        );
+
+        if (kind == AccessoryKind.CARDBOARD_BOX) {
+            WayAroundAdvancements.cardboardHead(
+                    player
+            );
+        }
+
+        if (kind == AccessoryKind.GAS_MASK) {
+            WayAroundAdvancements.uselessGasMask(
+                    player
             );
         }
 
