@@ -43,15 +43,19 @@ public final class NexustorBaseBlockEntity
     }
 
     public static void serverTick(
-            ServerLevel level,
+            net.minecraft.world.level.Level level,
             BlockPos pos,
             BlockState state,
             NexustorBaseBlockEntity reactor
     ) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
         if (reactor.eventActive
                 && !reactor.complete) {
             NexusEventManager.ensure(
-                    level,
+                    serverLevel,
                     pos
             );
         }
