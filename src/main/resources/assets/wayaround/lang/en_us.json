@@ -469,7 +469,10 @@
   "item.wayaround.chef_shoes": "Chef Shoes",
   "item.wayaround.chef_apron": "Chef Apron",
   "entity.wayaround.flying_top_hat": "Windblown Engineer Top Hat",
-  "key.wayaround.adjust_top_hat": "Adjust top hat",
+  "key.wayaround.adjust_top_hat": "Accessory action",
   "key.categories.wayaround.accessories": "Way Around - Accessories",
-  "accessory.top_hat.warning": "R • SECURE TOP HAT"
+  "accessory.top_hat.warning": "R • SECURE TOP HAT",
+  "accessory.trouser_pocket.empty": "Pocket: empty",
+  "accessory.trouser_pocket.item": "Pocket: %s",
+  "accessory.trouser_pocket.load_hint": "Sneak + use with an item in the other hand to pocket one."
 }
