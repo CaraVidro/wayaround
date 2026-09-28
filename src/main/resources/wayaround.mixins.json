@@ -37,7 +37,8 @@
     "client.CreateWorldScreenInvoker",
     "client.CreateWorldScreenFeatureMixin",
     "client.NexusSkyMixin",
-    "client.NexusFogMixin"
+    "client.NexusFogMixin",
+    "client.TitleScreenBrandingMixin"
   ],
   "injectors": {
     "defaultRequire": 1
