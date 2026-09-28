@@ -1,11 +1,13 @@
 package net.caravidro.wayaround.worldgen.weather.fire;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.mixin.FireBlockAccessor;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
@@ -16,6 +18,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.BaseFireBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -81,13 +85,15 @@ public final class EnhancedFireVisuals {
             return;
         }
 
-        Iterator<Map.Entry<GlobalPos, FireState>> iterator =
-                ACTIVE.entrySet()
-                        .iterator();
-
-        while (iterator.hasNext()) {
-            Map.Entry<GlobalPos, FireState> entry =
-                    iterator.next();
+        /*
+         * Use a snapshot because a large fire may create new vanilla fire
+         * blocks during this pass. Their onPlace mixin registers them in ACTIVE
+         * immediately; they simply begin updating on the next STEP.
+         */
+        for (Map.Entry<GlobalPos, FireState> entry :
+                new ArrayList<>(
+                        ACTIVE.entrySet()
+                )) {
 
             GlobalPos key =
                     entry.getKey();
@@ -98,7 +104,9 @@ public final class EnhancedFireVisuals {
                     );
 
             if (level == null) {
-                iterator.remove();
+                ACTIVE.remove(
+                        key
+                );
                 continue;
             }
 
@@ -109,7 +117,9 @@ public final class EnhancedFireVisuals {
                     pos
             ).getBlock()
                     instanceof BaseFireBlock)) {
-                iterator.remove();
+                ACTIVE.remove(
+                        key
+                );
                 continue;
             }
 
@@ -138,28 +148,38 @@ public final class EnhancedFireVisuals {
         float ageGrowth =
                 Mth.clamp(
                         fire.ageTicks
-                                / 240.0F,
+                                / 520.0F,
                         0.0F,
                         1.0F
                 );
 
+        boolean raining =
+                level.isRainingAt(
+                        pos
+                );
+
         /*
-         * A lone fire slowly grows from a small ignition point. Connected fire
-         * fronts push the target size farther, so several nearby flames become
-         * one physically dangerous blaze instead of duplicated sprites.
+         * The curve deliberately has room to become an inferno. A mature,
+         * connected fire is physically wider/taller than its original block
+         * and therefore becomes progressively better at starting new fronts.
          */
         float targetSize =
                 Mth.clamp(
                         0.34F
                                 + ageGrowth
-                                        * 0.64F
+                                        * 1.20F
                                 + Math.min(
-                                6,
+                                8,
                                 neighbors
                         )
-                                        * 0.105F,
-                        0.30F,
-                        1.62F
+                                        * 0.145F
+                                - (
+                                raining
+                                        ? 0.42F
+                                        : 0.0F
+                        ),
+                        0.26F,
+                        2.55F
                 );
 
         fire.size +=
@@ -167,7 +187,39 @@ public final class EnhancedFireVisuals {
                         targetSize
                                 - fire.size
                 )
-                        * 0.10F;
+                        * (
+                        targetSize > fire.size
+                                ? 0.075F
+                                : 0.13F
+                );
+
+        fire.spreadCooldown -=
+                STEP;
+
+        if (fire.spreadCooldown <= 0) {
+            spreadWildfire(
+                    level,
+                    pos,
+                    fire,
+                    neighbors,
+                    raining
+            );
+
+            fire.spreadCooldown =
+                    Mth.clamp(
+                            30
+                                    - Math.round(
+                                    fire.size
+                                            * 7.0F
+                            )
+                                    - Math.min(
+                                    10,
+                                    neighbors
+                            ),
+                            7,
+                            30
+                    );
+        }
 
         fire.damageCooldown -=
                 STEP;
@@ -200,6 +252,261 @@ public final class EnhancedFireVisuals {
                 pos,
                 fire
         );
+    }
+
+    private static void spreadWildfire(
+            ServerLevel level,
+            BlockPos sourcePos,
+            FireState source,
+            int neighbors,
+            boolean raining
+    ) {
+        if (raining
+                && level.random.nextFloat()
+                < 0.72F) {
+            return;
+        }
+
+        int attempts =
+                Mth.clamp(
+                        1
+                                + (int) Math.floor(
+                                source.size
+                        )
+                                + neighbors
+                                        / 3,
+                        1,
+                        5
+                );
+
+        int horizontalReach =
+                source.size >= 1.75F
+                        ? 4
+                        : source.size >= 1.05F
+                        ? 3
+                        : 2;
+
+        for (int attempt = 0;
+             attempt < attempts;
+             attempt++) {
+
+            for (int probe = 0;
+                 probe < 9;
+                 probe++) {
+
+                int dx =
+                        level.random.nextInt(
+                                horizontalReach
+                                        * 2
+                                        + 1
+                        )
+                                - horizontalReach;
+
+                int dz =
+                        level.random.nextInt(
+                                horizontalReach
+                                        * 2
+                                        + 1
+                        )
+                                - horizontalReach;
+
+                int dy =
+                        level.random.nextInt(
+                                4
+                        )
+                                - 1;
+
+                if (dx == 0
+                        && dy == 0
+                        && dz == 0) {
+                    continue;
+                }
+
+                BlockPos fuelPos =
+                        sourcePos.offset(
+                                dx,
+                                dy,
+                                dz
+                        );
+
+                if (!level.hasChunkAt(
+                        fuelPos
+                )
+                        || !vanillaCanBurn(
+                        level.getBlockState(
+                                fuelPos
+                        )
+                )) {
+                    continue;
+                }
+
+                Direction[] directions =
+                        Direction.values();
+
+                int start =
+                        level.random.nextInt(
+                                directions.length
+                        );
+
+                for (int side = 0;
+                     side < directions.length;
+                     side++) {
+
+                    Direction direction =
+                            directions[
+                                    (
+                                            start
+                                                    + side
+                                    )
+                                            % directions.length
+                                    ];
+
+                    BlockPos firePos =
+                            fuelPos.relative(
+                                    direction
+                            );
+
+                    if (!level.hasChunkAt(
+                            firePos
+                    )
+                            || !level.getBlockState(
+                            firePos
+                    ).isAir()) {
+                        continue;
+                    }
+
+                    var fireState =
+                            BaseFireBlock.getState(
+                                    level,
+                                    firePos
+                            );
+
+                    if (!fireState.canSurvive(
+                            level,
+                            firePos
+                    )) {
+                        continue;
+                    }
+
+                    level.setBlock(
+                            firePos,
+                            fireState,
+                            Block.UPDATE_ALL
+                    );
+
+                    inheritSpreadHeat(
+                            level,
+                            firePos,
+                            source
+                    );
+
+                    Vec3 from =
+                            new Vec3(
+                                    source.x,
+                                    source.y
+                                            + source.height()
+                                                    * 0.55,
+                                    source.z
+                            );
+
+                    Vec3 to =
+                            Vec3.atCenterOf(
+                                    firePos
+                            );
+
+                    Vec3 middle =
+                            from.add(
+                                    to
+                            ).scale(
+                                    0.5
+                            );
+
+                    level.sendParticles(
+                            ParticleTypes.SMALL_FLAME,
+                            middle.x,
+                            middle.y,
+                            middle.z,
+                            source.size > 1.55F
+                                    ? 3
+                                    : 1,
+                            Math.abs(
+                                    to.x
+                                            - from.x
+                            ) * 0.13,
+                            0.16,
+                            Math.abs(
+                                    to.z
+                                            - from.z
+                            ) * 0.13,
+                            0.018
+                    );
+
+                    break;
+                }
+
+                break;
+            }
+        }
+    }
+
+    private static boolean vanillaCanBurn(
+            net.minecraft.world.level.block.state.BlockState state
+    ) {
+        return ((FireBlockAccessor) (Object) Blocks.FIRE)
+                .wayaround$canBurn(
+                        state
+                );
+    }
+
+    private static void inheritSpreadHeat(
+            ServerLevel level,
+            BlockPos childPos,
+            FireState parent
+    ) {
+        register(
+                level,
+                childPos
+        );
+
+        FireState child =
+                ACTIVE.get(
+                        GlobalPos.of(
+                                level.dimension(),
+                                childPos
+                        )
+                );
+
+        if (child == null) {
+            return;
+        }
+
+        child.ageTicks =
+                Math.max(
+                        child.ageTicks,
+                        Math.min(
+                                260,
+                                parent.ageTicks
+                                        / 3
+                        )
+                );
+
+        child.size =
+                Math.max(
+                        child.size,
+                        Mth.clamp(
+                                0.30F
+                                        + parent.size
+                                                * 0.22F,
+                                0.30F,
+                                0.82F
+                        )
+                );
+
+        child.spreadCooldown =
+                Math.min(
+                        child.spreadCooldown,
+                        18
+                );
     }
 
     private static void damageInsideFire(
@@ -477,37 +784,36 @@ public final class EnhancedFireVisuals {
         }
 
         /*
-         * Bigger fires launch their signal smoke higher, more often and to a
-         * larger audience radius. This is what makes the column useful as a
-         * distant landmark rather than just a close particle effect.
+         * Large wildfires paint multiple smoke bands high into the sky. Every
+         * band is slightly displaced in one stable pseudo-wind direction, so
+         * from far away the plume reads as a long stripe rather than a dot.
          */
-        double smokeHeight =
-                0.90
-                        + fire.size
-                                * 1.65;
-
         double viewDistance =
                 Mth.clamp(
-                        72.0
+                        96.0
                                 + fire.size
-                                        * 88.0
+                                        * 94.0
                                 + Math.min(
-                                6,
+                                8,
                                 neighbors
                         )
-                                        * 10.0,
-                        72.0,
-                        224.0
+                                        * 12.0,
+                        96.0,
+                        384.0
                 );
 
         int period =
                 Mth.clamp(
-                        30
+                        31
                                 - Math.round(
                                 fire.size
-                                        * 10.0F
+                                        * 8.0F
+                        )
+                                - Math.min(
+                                5,
+                                neighbors
                         ),
-                        12,
+                        9,
                         28
                 );
 
@@ -519,50 +825,112 @@ public final class EnhancedFireVisuals {
             return;
         }
 
-        Vec3 smokeOrigin =
-                new Vec3(
-                        fire.x,
-                        fire.y
-                                + smokeHeight,
-                        fire.z
+        int bands =
+                Mth.clamp(
+                        1
+                                + Math.round(
+                                fire.size
+                                        * 1.65F
+                        )
+                                + neighbors
+                                        / 4,
+                        1,
+                        7
                 );
 
-        int count =
-                fire.size > 1.10F
-                        ? 2
-                        : 1;
+        double angle =
+                (
+                        Math.floorMod(
+                                pos.asLong(),
+                                2048L
+                        )
+                                / 2048.0
+                )
+                        * Math.PI
+                        * 2.0;
 
-        for (ServerPlayer viewer :
-                level.players()) {
+        double driftX =
+                Math.cos(
+                        angle
+                );
 
-            if (viewer.distanceToSqr(
-                    smokeOrigin
-            ) > viewDistance
-                    * viewDistance) {
-                continue;
+        double driftZ =
+                Math.sin(
+                        angle
+                );
+
+        for (int band = 0;
+             band < bands;
+             band++) {
+
+            double vertical =
+                    1.15
+                            + fire.size
+                                    * 1.55
+                            + band
+                                    * (
+                                    2.15
+                                            + fire.size
+                                                    * 0.32
+                            );
+
+            double drift =
+                    band
+                            * (
+                            0.36
+                                    + fire.size
+                                            * 0.22
+                    );
+
+            Vec3 smokeOrigin =
+                    new Vec3(
+                            fire.x
+                                    + driftX
+                                            * drift,
+                            fire.y
+                                    + vertical,
+                            fire.z
+                                    + driftZ
+                                            * drift
+                    );
+
+            int count =
+                    fire.size > 1.35F
+                            ? 2
+                            : 1;
+
+            for (ServerPlayer viewer :
+                    level.players()) {
+
+                if (viewer.distanceToSqr(
+                        smokeOrigin
+                ) > viewDistance
+                        * viewDistance) {
+                    continue;
+                }
+
+                level.sendParticles(
+                        viewer,
+                        ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
+                        true,
+                        smokeOrigin.x,
+                        smokeOrigin.y,
+                        smokeOrigin.z,
+                        count,
+                        0.04
+                                + fire.size
+                                        * 0.085,
+                        0.07
+                                + fire.size
+                                        * 0.055,
+                        0.04
+                                + fire.size
+                                        * 0.085,
+                        0.005
+                                + fire.size
+                                        * 0.003
+                );
             }
-
-            level.sendParticles(
-                    viewer,
-                    ParticleTypes.CAMPFIRE_SIGNAL_SMOKE,
-                    true,
-                    smokeOrigin.x,
-                    smokeOrigin.y,
-                    smokeOrigin.z,
-                    count,
-                    0.035
-                            + fire.size
-                                    * 0.075,
-                    0.06
-                            + fire.size
-                                    * 0.045,
-                    0.035
-                            + fire.size
-                                    * 0.075,
-                    0.004
-                            + fire.size
-                                    * 0.003
-            );
         }
     }
 
@@ -781,6 +1149,8 @@ public final class EnhancedFireVisuals {
 
         private int ageTicks;
         private int damageCooldown;
+        private int spreadCooldown =
+                18;
 
         private float size =
                 0.30F;
@@ -836,13 +1206,13 @@ public final class EnhancedFireVisuals {
         private double radius() {
             return 0.16
                     + size
-                            * 0.39;
+                            * 0.48;
         }
 
         private double height() {
-            return 0.42
+            return 0.44
                     + size
-                            * 0.96;
+                            * 1.12;
         }
 
         private AABB hitBox() {
