@@ -60,6 +60,9 @@ public final class AccessoryManager {
     private static final String HEAD_WOOL_COLOR =
             "WayAroundAccessoryHeadWoolColor";
 
+    private static final String CUSTOM_COLOR_PREFIX =
+            "WayAroundAccessoryCustomColor_";
+
     private static final int POCKET_ANIMATION_TICKS =
             14;
 
@@ -109,7 +112,7 @@ public final class AccessoryManager {
                 )
                         : ItemStack.EMPTY;
 
-        AccessoryCustomizationData.Config incomingHead =
+        AccessoryCustomizationData.Config incomingCustomization =
                 AccessoryCustomizationData.supported(
                         kind
                 )
@@ -142,12 +145,22 @@ public final class AccessoryManager {
             );
         }
 
-        if (incomingHead != null) {
-            setHeadCustomization(
-                    player,
-                    kind,
-                    incomingHead
-            );
+        if (incomingCustomization != null) {
+            if (AccessoryCustomizationData.colorOnly(
+                    kind
+            )) {
+                setCustomColor(
+                        player,
+                        kind.slot(),
+                        incomingCustomization.woolColor()
+                );
+            } else {
+                setHeadCustomization(
+                        player,
+                        kind,
+                        incomingCustomization
+                );
+            }
         }
 
         if (!player.getAbilities()
@@ -220,7 +233,7 @@ public final class AccessoryManager {
                     )
                             : ItemStack.EMPTY;
 
-            AccessoryCustomizationData.Config incomingHead =
+            AccessoryCustomizationData.Config incomingCustomization =
                     AccessoryCustomizationData.supported(
                             accessory.kind()
                     )
@@ -254,12 +267,23 @@ public final class AccessoryManager {
                 );
             }
 
-            if (incomingHead != null) {
-                setHeadCustomization(
-                        player,
-                        accessory.kind(),
-                        incomingHead
-                );
+            if (incomingCustomization != null) {
+                if (AccessoryCustomizationData.colorOnly(
+                        accessory.kind()
+                )) {
+                    setCustomColor(
+                            player,
+                            accessory.kind()
+                                    .slot(),
+                            incomingCustomization.woolColor()
+                    );
+                } else {
+                    setHeadCustomization(
+                            player,
+                            accessory.kind(),
+                            incomingCustomization
+                    );
+                }
             }
 
             player.containerMenu
@@ -613,12 +637,27 @@ public final class AccessoryManager {
         if (AccessoryCustomizationData.supported(
                 kind
         )) {
+            AccessoryCustomizationData.Config config =
+                    AccessoryCustomizationData.colorOnly(
+                            kind
+                    )
+                            ? new AccessoryCustomizationData.Config(
+                            0,
+                            2,
+                            0,
+                            customColor(
+                                    player,
+                                    slot
+                            )
+                    )
+                            : headCustomization(
+                            player
+                    );
+
             AccessoryCustomizationData.write(
                     stack,
                     kind,
-                    headCustomization(
-                            player
-                    )
+                    config
             );
         }
 
@@ -705,6 +744,11 @@ public final class AccessoryManager {
                 );
             }
 
+            clearCustomColor(
+                    player,
+                    slot
+            );
+
             return;
         }
 
@@ -759,6 +803,15 @@ public final class AccessoryManager {
         )) {
             clearHeadCustomization(
                     player
+            );
+        }
+
+        if (!AccessoryCustomizationData.colorOnly(
+                kind
+        )) {
+            clearCustomColor(
+                    player,
+                    slot
             );
         }
     }
@@ -873,6 +926,75 @@ public final class AccessoryManager {
         data.remove(
                 HEAD_WOOL_COLOR
         );
+    }
+
+    public static int customColor(
+            ServerPlayer player,
+            AccessorySlot slot
+    ) {
+        AccessoryKind kind =
+                equipped(
+                        player,
+                        slot
+                );
+
+        if (!AccessoryCustomizationData.colorOnly(
+                kind
+        )) {
+            return AccessoryCustomizationData.defaults(
+                    kind
+            ).woolColor();
+        }
+
+        CompoundTag data =
+                player.getPersistentData();
+
+        String key =
+                customColorKey(
+                        slot
+                );
+
+        if (!data.contains(
+                key
+        )) {
+            return AccessoryCustomizationData.defaults(
+                    kind
+            ).woolColor();
+        }
+
+        return AccessoryCustomizationData.clampWoolColor(
+                data.getInt(
+                        key
+                )
+        );
+    }
+
+    private static void setCustomColor(
+            ServerPlayer player,
+            AccessorySlot slot,
+            int color
+    ) {
+        player.getPersistentData()
+                .putInt(
+                        customColorKey(
+                                slot
+                        ),
+                        AccessoryCustomizationData.clampWoolColor(
+                                color
+                        )
+                );
+    }
+
+    private static void clearCustomColor(
+            ServerPlayer player,
+            AccessorySlot slot
+    ) {
+        player.getPersistentData()
+                .remove(
+                        customColorKey(
+                                slot
+                        )
+                );
     }
 
     public static ItemStack trouserPocket(
@@ -1071,6 +1193,13 @@ public final class AccessoryManager {
                 + slot.name();
     }
 
+    private static String customColorKey(
+            AccessorySlot slot
+    ) {
+        return CUSTOM_COLOR_PREFIX
+                + slot.name();
+    }
+
     private static void giveOrDrop(
             ServerPlayer player,
             ItemStack stack
@@ -1212,6 +1341,11 @@ public final class AccessoryManager {
                         slots.length
                         ];
 
+        int[] customColors =
+                new int[
+                        slots.length
+                        ];
+
         for (int i = 0;
              i < slots.length;
              i++) {
@@ -1237,6 +1371,12 @@ public final class AccessoryManager {
                             player,
                             slots[i]
                     );
+
+            customColors[i] =
+                    customColor(
+                            player,
+                            slots[i]
+                    );
         }
 
         AccessoryCustomizationData.Config head =
@@ -1259,7 +1399,8 @@ public final class AccessoryManager {
                         head.material(),
                         head.size(),
                         head.extras(),
-                        head.woolColor()
+                        head.woolColor(),
+                        customColors
                 );
 
         PacketDistributor.sendToPlayersNear(
@@ -1448,6 +1589,25 @@ public final class AccessoryManager {
                                             )
                                     )
                     );
+
+            String customColor =
+                    customColorKey(
+                            slot
+                    );
+
+            if (original.getPersistentData()
+                    .contains(
+                            customColor
+                    )) {
+                replacement.getPersistentData()
+                        .putInt(
+                                customColor,
+                                original.getPersistentData()
+                                        .getInt(
+                                                customColor
+                                        )
+                        );
+            }
         }
 
         replacement.getPersistentData()
