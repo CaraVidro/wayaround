@@ -575,5 +575,12 @@
   "advancements.wayaround.assembly_objects.four_lines.title": "One Wasn't Enough",
   "advancements.wayaround.assembly_objects.four_lines.description": "Reinforce a pulley pair with four lines.",
   "advancements.wayaround.nexus.root.title": "...",
-  "advancements.wayaround.nexus.root.description": "Something is on the other side."
+  "advancements.wayaround.nexus.root.description": "Something is on the other side.",
+  "menu.wayaround.return.none": "Something is different.",
+  "menu.wayaround.return.singleplayer": "You came back alone. §8§o- Anonymous Civilian",
+  "menu.wayaround.return.multiplayer": "Not everyone came back with you. §8§o- Anonymous Civilian",
+  "message.wayaround.nexus.portal_on": "NEXUSTOR // PORTAL ONLINE.",
+  "message.wayaround.nexus.portal_off": "NEXUSTOR // PORTAL OFFLINE.",
+  "message.wayaround.nexus.no_return_signal": "NEXUS // NO RETURN SIGNAL.",
+  "block.wayaround.placed_photo": "Placed Photograph"
 }
