@@ -110,6 +110,10 @@ public final class DomainIntroClient {
                 now;
     }
 
+    public static void cancel() {
+        startedAtMillis = 0L;
+    }
+
     public static boolean isRunning() {
         return startedAtMillis > 0L;
     }

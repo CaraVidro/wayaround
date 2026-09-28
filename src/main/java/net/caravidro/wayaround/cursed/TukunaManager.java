@@ -2275,7 +2275,7 @@ public final class TukunaManager {
                 );
 
         if (normalized.equals("dominio tukuna") || normalized.equals("expansao de dominio tukuna")
-                || normalized.equals("dominio") && !SpectrumAccess.has(player, SpectrumType.VOID)) {
+                || normalized.equals("dominio de expansao tukuna")) {
             net.caravidro.wayaround.spectrum.SpectrumActions.perform(player,
                     net.caravidro.wayaround.spectrum.SpectrumAction.TUKUNA_DOMAIN);
             return true;

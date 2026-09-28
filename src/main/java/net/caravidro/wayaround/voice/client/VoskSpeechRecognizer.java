@@ -158,7 +158,7 @@ public final class VoskSpeechRecognizer {
             }
 
             lastText =
-                    text;
+                    endpoint ? "" : text;
 
             return text;
         }

@@ -66,6 +66,7 @@ public final class VoiceSpeechDebug {
     private static volatile VoskSpeechRecognizer.StreamingSession streamSession;
 
     public static void beginRealtime() {
+        Minecraft.getInstance().execute(VoiceIntentClient::beginRealtimeUtterance);
         if (!VoiceIntentClient.wantsContinuousRecognition()
                 || !VoskSpeechRecognizer.isModelInstalled()) {
             return;

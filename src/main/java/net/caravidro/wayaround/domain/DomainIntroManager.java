@@ -112,6 +112,11 @@ public final class DomainIntroManager {
             ServerPlayer player,
             byte style
     ) {
+        if (style == 0) {
+            PENDING.remove(player.getUUID());
+            return true;
+        }
+        if (!player.isAlive() || player.isSpectator()) return false;
         if (!SpectrumActions.combatMode(
                 player
         )
@@ -353,7 +358,8 @@ public final class DomainIntroManager {
                             );
 
             if (player == null
-                    || !player.isAlive()) {
+                    || !player.isAlive() || player.isSpectator()
+                    || !canUseStyle(player, pending.style)) {
                 continue;
             }
 

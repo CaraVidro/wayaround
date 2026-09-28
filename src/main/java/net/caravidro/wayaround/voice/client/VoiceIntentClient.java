@@ -99,14 +99,7 @@ public final class VoiceIntentClient {
     private static String lastRealtimeTranscript =
             "";
 
-    private static long realtimeExpansionUntil;
-    private static long realtimeDomainUntil;
     private static long lastRealtimeDomainDispatchAt;
-
-    private static String realtimeRollingContext =
-            "";
-
-    private static long realtimeContextExpiresAt;
 
     private static byte lastDomainPreludeStyle;
     private static long lastDomainPreludeAt;
@@ -190,126 +183,22 @@ public final class VoiceIntentClient {
             return;
         }
 
-        String previous =
-                lastRealtimeTranscript;
-
-        if (!finalChunk
-                && normalized.equals(
-                previous
-        )) {
+        long now = System.currentTimeMillis();
+        // Vosk partials replace the hypothesis; never append retracted words.
+        if (normalized.equals(lastRealtimeTranscript) && !finalChunk) return;
+        lastRealtimeTranscript = normalized;
+        List<String> liveWords = words(normalized);
+        if (net.caravidro.wayaround.voice.DomainSpeechRules.rejected(normalized)) {
+            if (!realtimeDomainCommitted) cancelDomainPrelude();
             return;
         }
-
-        String delta =
-                realtimeDelta(
-                        previous,
-                        normalized
-                );
-
-        lastRealtimeTranscript =
-                finalChunk
-                        ? ""
-                        : normalized;
-
-        long now =
-                System.currentTimeMillis();
-
-        if (now > realtimeContextExpiresAt) {
-            realtimeRollingContext =
-                    "";
-        }
-
-        if (!delta.isBlank()) {
-            realtimeRollingContext =
-                    (
-                            realtimeRollingContext
-                                    + " "
-                                    + delta
-                    )
-                            .trim();
-
-            realtimeContextExpiresAt =
-                    now + 3_200L;
-        }
-
-        /*
-         * Reflex parsing now receives the NEW part of the sentence whenever
-         * possible instead of repeatedly re-reading a growing full utterance.
-         * The rolling context below still keeps enough history for phrases.
-         */
-        handleSpeculativeTranscript(
-                delta.isBlank()
-                        ? normalized
-                        : delta
-        );
-
-        List<String> deltaWords =
-                words(
-                        delta.isBlank()
-                                ? normalized
-                                : delta
-                );
-
-        String combined =
-                (
-                        realtimeRollingContext
-                                + " "
-                                + normalized
-                )
-                        .trim();
-
-        List<String> liveWords =
-                words(
-                        combined
-                );
-
-        boolean expansionNow =
-                hasExpansionWord(
-                        deltaWords
-                );
-
-        boolean domainNow =
-                hasDomainWord(
-                        deltaWords
-                );
-
-        if (expansionNow) {
-            realtimeExpansionUntil =
-                    now + 3_200L;
-        }
-
-        if (domainNow) {
-            realtimeDomainUntil =
-                    now + 3_200L;
-        }
-
-        if (SpectrumMenu.isOpen()
-                && (
-                expansionNow
-                        || domainNow
-        )) {
-            prepareDomainPrelude(
-                    now
-            );
-        }
-
-        boolean completePair =
-                (
-                        now <= realtimeExpansionUntil
-                                && now <= realtimeDomainUntil
-                )
-                        || (
-                        hasExpansionWord(
-                                liveWords
-                        )
-                                && hasDomainWord(
-                                liveWords
-                        )
-                );
-
-        if (!completePair
-                || now - lastRealtimeDomainDispatchAt
-                < 900L) {
+        boolean keyword = hasExpansionWord(liveWords) || hasDomainWord(liveWords);
+        if (keyword) {
+            if (SpectrumMenu.isOpen() && !realtimeDomainCommitted) prepareDomainPrelude(now);
+            if (realtimeDomainCommitted
+                    || !net.caravidro.wayaround.voice.DomainSpeechRules.complete(normalized)) return;
+        } else {
+            handleSpeculativeTranscript(normalized);
             return;
         }
 
@@ -322,14 +211,9 @@ public final class VoiceIntentClient {
             return;
         }
 
+        realtimeDomainCommitted = true;
         lastRealtimeDomainDispatchAt =
                 now;
-
-        realtimeExpansionUntil =
-                0L;
-
-        realtimeDomainUntil =
-                0L;
 
         dispatch(
                 domainIntent,
@@ -340,6 +224,22 @@ public final class VoiceIntentClient {
                         ? "DOMINIO / TUKUNA / LIVE"
                         : "DOMINIO / VOID / LIVE"
         );
+    }
+
+    private static boolean realtimeDomainCommitted;
+
+    public static void beginRealtimeUtterance() {
+        lastRealtimeTranscript = "";
+        realtimeDomainCommitted = false;
+    }
+
+    private static void cancelDomainPrelude() {
+        DomainIntroClient.cancel();
+        if (lastDomainPreludeStyle != 0
+                && Minecraft.getInstance().getConnection() != null) {
+            PacketDistributor.sendToServer(new DomainPreludeC2SPayload((byte) 0));
+        }
+        lastDomainPreludeStyle = 0;
     }
 
     private static void prepareDomainPrelude(
@@ -503,58 +403,6 @@ public final class VoiceIntentClient {
                 words,
                 "domain",
                 4
-        );
-    }
-
-    private static String realtimeDelta(
-            String previous,
-            String current
-    ) {
-        if (previous == null
-                || previous.isBlank()) {
-            return current;
-        }
-
-        List<String> oldWords =
-                words(
-                        previous
-                );
-
-        List<String> newWords =
-                words(
-                        current
-                );
-
-        int common =
-                0;
-
-        int limit =
-                Math.min(
-                        oldWords.size(),
-                        newWords.size()
-                );
-
-        while (common < limit
-                && oldWords.get(
-                common
-        ).equals(
-                newWords.get(
-                        common
-                )
-        )) {
-            common++;
-        }
-
-        if (common >= newWords.size()) {
-            return "";
-        }
-
-        return String.join(
-                " ",
-                newWords.subList(
-                        common,
-                        newWords.size()
-                )
         );
     }
 
@@ -749,6 +597,14 @@ public final class VoiceIntentClient {
                 VoiceToneAnalyzer.urgency(
                         profile
                 );
+
+        if (hasDomainWord(words(normalized)) || hasExpansionWord(words(normalized))) {
+            if (net.caravidro.wayaround.voice.DomainSpeechRules.rejected(normalized)) {
+                cancelDomainPrelude();
+                return;
+            }
+            if (!handlingChatInput && now - lastRealtimeDomainDispatchAt < 2_400L) return;
+        }
 
         if (handleExactSpectrumAction(normalized)) return;
         // These phrases go once through the server speech listener (pacts/Fuga/combo).
@@ -1571,79 +1427,13 @@ public final class VoiceIntentClient {
             return false;
         }
 
-        boolean sawDomainPrefix =
-                containsPrefix(
-                        words,
-                        "do",
-                        2
-                )
-                        || containsPrefix(
-                        words,
-                        "dom",
-                        3
-                );
-
-        boolean sawDomain =
-                containsPrefix(
-                        words,
-                        "dominio",
-                        5
-                );
-
-        if (sawDomainPrefix) {
-            reflexDomainUntil =
-                    now
-                            + REFLEX_STAGE_WINDOW_MS;
-
-            status(
-                    "DO... dominio preparado",
-                    ChatFormatting.WHITE
-            );
-        }
-
-        if (SpectrumMenu.isOpen()
-                && (
-                sawDomainPrefix
-                        || sawDomain
-        )) {
-            prepareDomainPrelude(
-                    now
-            );
-
-            return true;
-        }
-
-        if (sawDomain
-                && (
-                now <= reflexDomainUntil
-                        || looksLikeVoidDomain(
-                        words,
-                        true
-                )
-        )) {
-
-            boolean dispatched =
-                    reflexDispatch(
-                            VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND,
-                            -1.0F,
-                            urgency,
-                            "DOMINIO / REFLEXO",
-                            ChatFormatting.WHITE,
-                            now
-                    );
-
-            if (dispatched) {
-                reflexDomainUntil =
-                        0L;
-
-                clearContext();
+        // Keywords only prepare. The cumulative live parser confirms the phrase.
+        if (hasDomainWord(words) || hasExpansionWord(words)) {
+            if (SpectrumMenu.isOpen()
+                    && !net.caravidro.wayaround.voice.DomainSpeechRules.rejected(normalized)) {
+                prepareDomainPrelude(now);
             }
-
-            /*
-             * Even when this exact word is the later final STT result and the
-             * reflex cooldown suppresses a duplicate packet, consume it here.
-             */
-            return true;
+            return false;
         }
 
         if (containsPrefix(
