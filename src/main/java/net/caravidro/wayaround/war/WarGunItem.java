@@ -114,10 +114,13 @@ public final class WarGunItem extends Item {
     ) {
         if (!level.isClientSide
                 && kind.automatic
-                && living instanceof ServerPlayer player) {
-            WarBallistics.tryFire(
-                    player,
-                    kind
+                && living instanceof ServerPlayer player
+                && WarBallistics.tryFire(
+                player,
+                kind
+        )) {
+            WayAroundAdvancements.warShot(
+                    player
             );
         }
     }
