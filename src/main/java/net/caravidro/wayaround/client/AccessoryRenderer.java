@@ -1112,6 +1112,11 @@ public final class AccessoryRenderer {
                         0.060F
                 );
 
+        if (EYE_PUPILS.size()
+                > 128) {
+            EYE_PUPILS.clear();
+        }
+
         float[] current =
                 EYE_PUPILS.computeIfAbsent(
                         event.getEntity()
