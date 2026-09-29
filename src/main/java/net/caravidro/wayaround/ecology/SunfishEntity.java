@@ -454,7 +454,7 @@ public final class SunfishEntity extends AguaWorldFishEntity {
     }
 
     @Override
-    protected void addAdditionalSaveData(
+    public void addAdditionalSaveData(
             CompoundTag tag
     ) {
         super.addAdditionalSaveData(
@@ -493,7 +493,7 @@ public final class SunfishEntity extends AguaWorldFishEntity {
     }
 
     @Override
-    protected void readAdditionalSaveData(
+    public void readAdditionalSaveData(
             CompoundTag tag
     ) {
         super.readAdditionalSaveData(
