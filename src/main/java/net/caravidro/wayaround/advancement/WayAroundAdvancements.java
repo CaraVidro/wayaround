@@ -205,6 +205,19 @@ public final class WayAroundAdvancements {
         );
     }
 
+    public static void vistaSunfishBasking(
+            ServerPlayer player
+    ) {
+        vistaRoot(
+                player
+        );
+        award(
+                player,
+                "vista/sunfish_basking",
+                "seen"
+        );
+    }
+
     public static void vistaSouthernOcean(
             ServerPlayer player
     ) {
