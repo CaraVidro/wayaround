@@ -1104,13 +1104,13 @@ public final class NexustorRenderer
 
     @Override
     public int getViewDistance() {
-        return 320;
+        return 192;
     }
 
     @Override
     public boolean shouldRenderOffScreen(
             NexustorBaseBlockEntity reactor
     ) {
-        return true;
+        return false;
     }
 }
