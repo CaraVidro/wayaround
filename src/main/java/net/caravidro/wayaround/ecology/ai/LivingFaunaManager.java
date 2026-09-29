@@ -743,7 +743,20 @@ public final class LivingFaunaManager {
 
                 boolean occupied;
 
-                if (fish instanceof WhaleEntity whale) {
+                if (fish instanceof SunfishEntity sunfish
+                        && sunfish.isBasking()) {
+                    /*
+                     * Surface basking is a complete behaviour state. Do not let
+                     * migration, feeding or schooling overwrite its navigation
+                     * while the fish is lying sideways at the surface.
+                     */
+                    fish.getNavigation()
+                            .stop();
+
+                    occupied =
+                            true;
+
+                } else if (fish instanceof WhaleEntity whale) {
                     boolean breathing =
                             whaleSurfaceBreath(
                                     level,
