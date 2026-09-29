@@ -286,32 +286,32 @@ public final class WaterSurfaceRenderer {
             if (waveMode
                     == WaveMode.REALISTIC) {
                 OceanWaveField.Sample wave00 =
-                        OceanWaveField.sample(
-                                surface.profile,
+                        OceanWaveField.sampleVertex(
+                                minecraft.level,
                                 x,
                                 z,
                                 time
                         );
 
                 OceanWaveField.Sample wave10 =
-                        OceanWaveField.sample(
-                                surface.profile,
+                        OceanWaveField.sampleVertex(
+                                minecraft.level,
                                 x + 1,
                                 z,
                                 time
                         );
 
                 OceanWaveField.Sample wave11 =
-                        OceanWaveField.sample(
-                                surface.profile,
+                        OceanWaveField.sampleVertex(
+                                minecraft.level,
                                 x + 1,
                                 z + 1,
                                 time
                         );
 
                 OceanWaveField.Sample wave01 =
-                        OceanWaveField.sample(
-                                surface.profile,
+                        OceanWaveField.sampleVertex(
+                                minecraft.level,
                                 x,
                                 z + 1,
                                 time
@@ -830,15 +830,7 @@ public final class WaterSurfaceRenderer {
                                     waterColor >> 8
                                             & 255,
                                     waterColor
-                                            & 255,
-                                    WorldFeatureRuntime.clientWaveMode()
-                                            == WaveMode.REALISTIC
-                                            ? OceanWaveField.profile(
-                                            minecraft.level,
-                                            water,
-                                            time
-                                    )
-                                            : null
+                                            & 255
                             )
                     );
                 }
@@ -928,8 +920,7 @@ public final class WaterSurfaceRenderer {
             double baseY,
             int red,
             int green,
-            int blue,
-            OceanWaveField.Profile profile
+            int blue
     ) {
     }
 
