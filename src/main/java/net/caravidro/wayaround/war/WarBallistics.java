@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.war;
 
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -88,6 +89,16 @@ public final class WarBallistics {
                 player,
                 kind
         );
+
+        WayAroundAdvancements.warShot(
+                player
+        );
+
+        if (kind.rocket()) {
+            WayAroundAdvancements.warRocket(
+                    player
+            );
+        }
 
         return true;
     }
