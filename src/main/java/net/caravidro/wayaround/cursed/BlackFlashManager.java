@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.jujutsu.JujutsuManager;
 import net.caravidro.wayaround.network.PlayerCinematicPayload;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
 import net.caravidro.wayaround.spectrum.SpectrumImpact;
@@ -65,6 +66,18 @@ public final class BlackFlashManager {
                 instanceof ServerPlayer attacker)
                 || event.getAmount() <= 0.0F) {
 
+            return;
+        }
+
+        if (!JujutsuManager.isAwakened(
+                attacker
+        )
+                || !JujutsuManager.isAbilityPanelOpen(
+                attacker
+        )) {
+            STATES.remove(
+                    attacker.getUUID()
+            );
             return;
         }
 
