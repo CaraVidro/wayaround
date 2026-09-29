@@ -221,7 +221,7 @@ public final class MediaRecorder {
 
             minecraft.options
                     .setCameraType(
-                            CameraType.THIRD_PERSON_BACK
+                            CameraType.FIRST_PERSON
                     );
 
             clientMessage(
@@ -368,18 +368,17 @@ public final class MediaRecorder {
 
         if (placedCameraRecording) {
             /*
-             * The local player is normally culled from first-person rendering.
-             * A placed camera is a detached observer, so keep Minecraft in a
-             * third-person camera mode for the full recording lifetime. This
-             * makes the player itself part of the captured TV frame whenever
-             * they walk in front of the physical camera.
+             * Keep vanilla in first person so it never tries to decide whether
+             * the local camera entity should also render as a body. Hands are
+             * already canceled by MediaClientEvents. PlacedCameraPlayerRenderer
+             * draws the local player exactly once from the physical camera.
              */
             if (minecraft.options
                     .getCameraType()
-                    != CameraType.THIRD_PERSON_BACK) {
+                    != CameraType.FIRST_PERSON) {
                 minecraft.options
                         .setCameraType(
-                                CameraType.THIRD_PERSON_BACK
+                                CameraType.FIRST_PERSON
                         );
             }
 
