@@ -281,7 +281,8 @@ public final class WaterSurfaceRenderer {
                             x,
                             z,
                             time,
-                            amplitude
+                            amplitude,
+                            sea.exposure()
                     );
 
             double y10 =
@@ -290,7 +291,8 @@ public final class WaterSurfaceRenderer {
                             x + 1,
                             z,
                             time,
-                            amplitude
+                            amplitude,
+                            sea.exposure()
                     );
 
             double y11 =
@@ -299,7 +301,8 @@ public final class WaterSurfaceRenderer {
                             x + 1,
                             z + 1,
                             time,
-                            amplitude
+                            amplitude,
+                            sea.exposure()
                     );
 
             double y01 =
@@ -308,7 +311,8 @@ public final class WaterSurfaceRenderer {
                             x,
                             z + 1,
                             time,
-                            amplitude
+                            amplitude,
+                            sea.exposure()
                     );
 
             /*
