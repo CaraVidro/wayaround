@@ -589,3 +589,15 @@ Current morphs:
 Because sting behavior belongs to the morph rather than to a random contact
 roll, players can learn which jellyfish are safe by appearance.
 
+## Cat fights
+
+Cats now occasionally start short territorial tussles with another nearby adult
+cat. They approach, hiss, swipe, kick up particles and knock one another around.
+
+- tamed cats only play-fight and do not receive fight damage;
+- wild cats can inflict tiny scratches, but the system stops before a cat can be
+  killed by the ecological fight itself;
+- sitting, baby, injured or already-fighting cats are excluded;
+- fights end on separation and apply a cooldown so villages do not become
+  permanent feline arenas.
+

@@ -225,3 +225,21 @@ camera's own location/facing.
 The player's ordinary viewpoint is not switched to the placed camera for live
 broadcast. The operator can walk around normally while the stationary camera
 continues transmitting.
+
+## Alexa voice-redstone block
+
+The Media tab now includes a deliberately small-vocabulary Alexa block. Local
+speech recognition is enabled when the player is within 16 blocks of one, even
+without a Spectrum.
+
+Understood examples:
+
+- `acender lampada` / `ligar luz`: turns on one random redstone lamp within
+  30 blocks;
+- `acender todas as lampadas`: turns on every redstone lamp within 30 blocks;
+- `apagar lampada` and `apagar todas as lampadas`: matching off commands;
+- `pulso redstone`: emits a short redstone pulse from the Alexa itself.
+
+Every accepted command also pulses the Alexa's own redstone output, so ordinary
+redstone contraptions can react without needing special integration.
+
