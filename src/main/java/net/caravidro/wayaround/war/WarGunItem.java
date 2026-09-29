@@ -64,11 +64,6 @@ public final class WarGunItem extends Item {
                         serverPlayer
                 );
 
-                if (kind.rocket()) {
-                    WayAroundAdvancements.warRocket(
-                            serverPlayer
-                    );
-                }
             }
         }
 
@@ -180,7 +175,7 @@ public final class WarGunItem extends Item {
         ROCKET_LAUNCHER(
                 "tooltip.wayaround.rocket_launcher",
                 false,
-                32,
+                16,
                 1,
                 18.0F,
                 1.65,
