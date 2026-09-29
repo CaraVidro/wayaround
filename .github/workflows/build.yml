@@ -26,10 +26,28 @@ jobs:
           chmod +x gradlew
           ./gradlew build
 
+      - name: Dedicated server smoke test
+        run: |
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+          set +e
+          timeout 90s ./gradlew runServer --no-daemon > server-smoke.log 2>&1
+          code=$?
+          set -e
+          cat server-smoke.log
+
+          if grep -Eq 'Done \([0-9.]+s\)! For help' server-smoke.log; then
+            echo "Dedicated server reached ready state."
+            exit 0
+          fi
+
+          echo "Dedicated server did not reach ready state (exit=$code)."
+          exit 1
+
       - name: Upload test build
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: wayaround-1.0.5
+          name: wayaround-1.2.0
           path: build/libs/*.jar
           if-no-files-found: error
