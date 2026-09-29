@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.ecology;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
@@ -38,6 +39,38 @@ public abstract class AguaWorldFishEntity extends AbstractFish {
             double distanceToClosestPlayer
     ) {
         return true;
+    }
+
+    @Override
+    public void readAdditionalSaveData(
+            CompoundTag tag
+    ) {
+        /*
+         * Migration for oceans created before the population fix. The old base
+         * constructor forced PersistenceRequired on every wild Agua World fish,
+         * and that flag was then serialized forever. Strip only that legacy
+         * vanilla flag for ordinary wild fish before Mob reads the NBT.
+         *
+         * Named fish and fish originating from buckets retain their normal
+         * Minecraft custom-persistence path.
+         */
+        CompoundTag migrated =
+                tag.copy();
+
+        if (!migrated.contains(
+                "CustomName"
+        )
+                && !migrated.getBoolean(
+                "FromBucket"
+        )) {
+            migrated.remove(
+                    "PersistenceRequired"
+            );
+        }
+
+        super.readAdditionalSaveData(
+                migrated
+        );
     }
 
     @Override
