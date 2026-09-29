@@ -7,14 +7,14 @@
     {
       "type": "minecraft:tropical_fish",
       "weight": 18,
-      "minCount": 6,
-      "maxCount": 14
+      "minCount": 4,
+      "maxCount": 8
     },
     {
       "type": "minecraft:pufferfish",
       "weight": 6,
-      "minCount": 2,
-      "maxCount": 5
+      "minCount": 1,
+      "maxCount": 3
     },
     {
       "type": "minecraft:dolphin",
