@@ -431,6 +431,22 @@ public final class OceanWaveField {
             double z,
             long gameTime
     ) {
+        return sample(
+                level,
+                x,
+                z,
+                gameTime,
+                WaveForcing.NEUTRAL
+        );
+    }
+
+    public static Sample sample(
+            Level level,
+            double x,
+            double z,
+            long gameTime,
+            WaveForcing forcing
+    ) {
         Profile profile =
                 profile(
                         level,
@@ -446,7 +462,8 @@ public final class OceanWaveField {
                 profile,
                 x,
                 z,
-                gameTime
+                gameTime,
+                forcing
         );
     }
 
