@@ -353,10 +353,13 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             MultiBufferSource buffers,
             int light
     ) {
-        double pulse = swim * 0.035;
+        double pulse =
+                swim
+                        * 0.030;
 
         long dayTime =
-                fish.level().getDayTime()
+                fish.level()
+                        .getDayTime()
                         % 24000L;
 
         boolean night =
@@ -369,69 +372,112 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                         : light;
 
         /*
-         * Bioluminescence is deliberately loud at night. The body is rendered
-         * at full brightness and gains a hot cyan/magenta core instead of the
-         * daytime glass-only look.
+         * Bell is unmistakably ABOVE the skirt; all tentacles begin below it.
+         * Keeping the vertical anatomy explicit avoids the old "upside-down"
+         * silhouette while still using the lightweight block-mesh renderer.
          */
         cuboid(
                 night
                         ? Blocks.CYAN_STAINED_GLASS.defaultBlockState()
                         : Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
-                -0.34, 0.05 + pulse, -0.34,
+                -0.34, 0.08 + pulse, -0.34,
                 0.68F, 0.30F, 0.68F,
                 pose, buffers, jellyLight
         );
+
+        cuboid(
+                night
+                        ? Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState()
+                        : Blocks.WHITE_STAINED_GLASS.defaultBlockState(),
+                -0.27, 0.34 + pulse, -0.27,
+                0.54F, 0.16F, 0.54F,
+                pose, buffers, jellyLight
+        );
+
         cuboid(
                 night
                         ? Blocks.MAGENTA_STAINED_GLASS.defaultBlockState()
                         : Blocks.PINK_STAINED_GLASS.defaultBlockState(),
-                -0.25, -0.06 + pulse, -0.25,
-                0.50F, 0.17F, 0.50F,
+                -0.29, -0.03 + pulse, -0.29,
+                0.58F, 0.13F, 0.58F,
+                pose, buffers, jellyLight
+        );
+
+        // Slightly scalloped bell edge.
+        cuboid(
+                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
+                -0.31, -0.08 + pulse, -0.22,
+                0.18F, 0.08F, 0.18F,
+                pose, buffers, jellyLight
+        );
+        cuboid(
+                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
+                0.13, -0.08 + pulse, -0.22,
+                0.18F, 0.08F, 0.18F,
+                pose, buffers, jellyLight
+        );
+        cuboid(
+                Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
+                -0.09, -0.08 + pulse, 0.13,
+                0.18F, 0.08F, 0.18F,
                 pose, buffers, jellyLight
         );
 
         if (night) {
             cuboid(
                     Blocks.SEA_LANTERN.defaultBlockState(),
-                    -0.13, -0.01 + pulse, -0.13,
-                    0.26F, 0.13F, 0.26F,
-                    pose, buffers, jellyLight
-            );
-            cuboid(
-                    Blocks.PURPLE_CONCRETE.defaultBlockState(),
-                    -0.19, -0.10 + pulse, -0.19,
-                    0.38F, 0.06F, 0.38F,
+                    -0.12, 0.10 + pulse, -0.12,
+                    0.24F, 0.16F, 0.24F,
                     pose, buffers, jellyLight
             );
         }
 
-        // Hanging tentacles sway independently.
+        /*
+         * Oral arms sit directly under the bell and are thicker/shorter than
+         * the long outer tentacles.
+         */
+        cuboid(
+                Blocks.PINK_STAINED_GLASS.defaultBlockState(),
+                -0.12, -0.36, -0.10,
+                0.09F, 0.34F, 0.09F,
+                0.0F, 0.0F, swim * 3.5F,
+                pose, buffers, jellyLight
+        );
+        cuboid(
+                Blocks.PINK_STAINED_GLASS.defaultBlockState(),
+                0.04, -0.34, 0.03,
+                0.09F, 0.31F, 0.09F,
+                0.0F, 0.0F, -swim * 4.0F,
+                pose, buffers, jellyLight
+        );
+
+        // Long tentacles trail DOWN from the skirt.
         cuboid(
                 Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
-                -0.22, -0.70, -0.20,
-                0.07F, 0.68F, 0.07F,
+                -0.23, -0.72, -0.19,
+                0.055F, 0.64F, 0.055F,
                 0.0F, 0.0F, swim * 5.0F,
                 pose, buffers, jellyLight
         );
         cuboid(
                 Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
-                0.14, -0.66, -0.17,
-                0.07F, 0.62F, 0.07F,
-                0.0F, 0.0F, -swim * 6.0F,
+                0.17, -0.68, -0.16,
+                0.055F, 0.60F, 0.055F,
+                0.0F, 0.0F, -swim * 5.5F,
                 pose, buffers, jellyLight
         );
         cuboid(
                 Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
-                -0.08, -0.80, 0.12,
-                0.06F, 0.77F, 0.06F,
-                0.0F, 0.0F, swim * 7.0F,
+                -0.08, -0.82, 0.14,
+                0.05F, 0.74F, 0.05F,
+                0.0F, 0.0F, swim * 6.5F,
                 pose, buffers, jellyLight
         );
         cuboid(
                 Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
-                0.05, -0.58, 0.23,
-                0.06F, 0.55F, 0.06F,
-                0.0F, 0.0F, -swim * 4.0F,
+                0.08, -0.61, 0.24,
+                0.05F, 0.53F, 0.05F,
+                0.0F, 0.0F, -swim * 4.5F,
                 pose, buffers, jellyLight
         );
     }
