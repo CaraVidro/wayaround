@@ -512,13 +512,22 @@ public final class LivingFaunaManager {
                     animal
             );
 
+            boolean landAirBehavior =
+                    LandAirEcologyModule.tick(
+                            level,
+                            animal,
+                            group
+                    );
+
             boolean foraging =
-                    forageAnimal(
+                    !landAirBehavior
+                            && forageAnimal(
                             level,
                             animal
                     );
 
-            if (!foraging
+            if (!landAirBehavior
+                    && !foraging
                     && !animal.isInLove()) {
                 BlockPos home =
                         BlockPos.of(

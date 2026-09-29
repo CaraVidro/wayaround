@@ -277,14 +277,16 @@ public final class TreeLifecycleManager {
                 continue;
             }
 
-            int index =
-                    fall.sources().size()
-                            - 1
-                            - fall.step();
-
+            /*
+             * The base log is removed as soon as a watched fall begins, so the
+             * collapse never leaves that annoying one-block stump behind.
+             * Remaining trunk pieces resolve bottom-up into the fallen trunk.
+             */
             BlockPos source =
                     fall.sources()
-                            .get(index);
+                            .get(
+                                    fall.step()
+                            );
 
             level.removeBlock(
                     source,
@@ -295,7 +297,7 @@ public final class TreeLifecycleManager {
                     level,
                     fall.base(),
                     fall.direction(),
-                    fall.step() + 1,
+                    fall.step() + 2,
                     fall.rot()
             );
 
@@ -452,12 +454,51 @@ public final class TreeLifecycleManager {
             return;
         }
 
+        /*
+         * Do not keep a stump during the observed animation. Move the base
+         * segment onto the ground immediately, then stage the rest of the
+         * trunk. This also means an interrupted/restarted fall cannot strand a
+         * permanent one-block toquinho.
+         */
+        BlockPos baseSource =
+                tree.logs()
+                        .getFirst();
+
+        level.removeBlock(
+                baseSource,
+                false
+        );
+
+        placeFallenSegment(
+                level,
+                tree.base(),
+                direction,
+                1,
+                rot
+        );
+
+        List<BlockPos> remaining =
+                new ArrayList<>(
+                        tree.logs()
+                                .subList(
+                                        1,
+                                        tree.logs()
+                                                .size()
+                                )
+                );
+
+        if (remaining.isEmpty()) {
+            return;
+        }
+
         FALLS.add(
                 new PendingFall(
                         level.dimension(),
                         tree.base(),
                         direction,
-                        List.copyOf(tree.logs()),
+                        List.copyOf(
+                                remaining
+                        ),
                         rot,
                         0,
                         level.getServer().getTickCount()

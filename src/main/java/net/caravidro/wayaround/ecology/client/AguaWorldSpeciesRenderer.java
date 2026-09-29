@@ -3,9 +3,11 @@ package net.caravidro.wayaround.ecology.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.caravidro.wayaround.ecology.JellyfishEntity;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.world.entity.animal.AbstractFish;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * One renderer, multiple silhouettes. New Agua World species can be added by
@@ -364,6 +366,79 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 swim
                         * 0.030;
 
+        JellyfishEntity.JellyVariant variant =
+                fish instanceof JellyfishEntity jelly
+                        ? jelly.variant()
+                        : JellyfishEntity.JellyVariant.MOON;
+
+        BlockState bell;
+        BlockState dome;
+        BlockState skirt;
+        BlockState edge;
+        BlockState oral;
+        BlockState tentacle;
+        BlockState interior;
+
+        switch (variant) {
+            case GHOST -> {
+                bell = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
+                dome = Blocks.LIGHT_GRAY_STAINED_GLASS.defaultBlockState();
+                skirt = Blocks.CYAN_STAINED_GLASS.defaultBlockState();
+                edge = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
+                oral = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
+                tentacle = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
+                interior = Blocks.QUARTZ_BLOCK.defaultBlockState();
+            }
+            case ROSE -> {
+                bell = Blocks.PINK_STAINED_GLASS.defaultBlockState();
+                dome = Blocks.MAGENTA_STAINED_GLASS.defaultBlockState();
+                skirt = Blocks.PURPLE_STAINED_GLASS.defaultBlockState();
+                edge = Blocks.MAGENTA_STAINED_GLASS.defaultBlockState();
+                oral = Blocks.PINK_STAINED_GLASS.defaultBlockState();
+                tentacle = Blocks.MAGENTA_STAINED_GLASS.defaultBlockState();
+                interior = Blocks.PEARLESCENT_FROGLIGHT.defaultBlockState();
+            }
+            case AMBER -> {
+                bell = Blocks.ORANGE_STAINED_GLASS.defaultBlockState();
+                dome = Blocks.YELLOW_STAINED_GLASS.defaultBlockState();
+                skirt = Blocks.RED_STAINED_GLASS.defaultBlockState();
+                edge = Blocks.ORANGE_STAINED_GLASS.defaultBlockState();
+                oral = Blocks.YELLOW_STAINED_GLASS.defaultBlockState();
+                tentacle = Blocks.ORANGE_STAINED_GLASS.defaultBlockState();
+                interior = Blocks.OCHRE_FROGLIGHT.defaultBlockState();
+            }
+            case VIOLET -> {
+                bell = Blocks.PURPLE_STAINED_GLASS.defaultBlockState();
+                dome = Blocks.MAGENTA_STAINED_GLASS.defaultBlockState();
+                skirt = Blocks.BLUE_STAINED_GLASS.defaultBlockState();
+                edge = Blocks.PURPLE_STAINED_GLASS.defaultBlockState();
+                oral = Blocks.MAGENTA_STAINED_GLASS.defaultBlockState();
+                tentacle = Blocks.PURPLE_STAINED_GLASS.defaultBlockState();
+                interior = Blocks.AMETHYST_BLOCK.defaultBlockState();
+            }
+            case DEEP_RED -> {
+                bell = Blocks.RED_STAINED_GLASS.defaultBlockState();
+                dome = Blocks.RED_STAINED_GLASS.defaultBlockState();
+                skirt = Blocks.BLACK_STAINED_GLASS.defaultBlockState();
+                edge = Blocks.RED_STAINED_GLASS.defaultBlockState();
+                oral = Blocks.RED_STAINED_GLASS.defaultBlockState();
+                tentacle = Blocks.BLACK_STAINED_GLASS.defaultBlockState();
+                interior = Blocks.REDSTONE_BLOCK.defaultBlockState();
+            }
+            case MOON -> {
+                bell = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
+                dome = Blocks.CYAN_STAINED_GLASS.defaultBlockState();
+                skirt = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
+                edge = Blocks.CYAN_STAINED_GLASS.defaultBlockState();
+                oral = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
+                tentacle = Blocks.CYAN_STAINED_GLASS.defaultBlockState();
+                interior = Blocks.SEA_LANTERN.defaultBlockState();
+            }
+            default -> throw new IllegalStateException(
+                    "Unexpected jellyfish variant: " + variant
+            );
+        }
+
         long dayTime =
                 fish.level()
                         .getDayTime()
@@ -379,111 +454,118 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                         : light;
 
         /*
-         * Bell is unmistakably ABOVE the skirt; all tentacles begin below it.
-         * Keeping the vertical anatomy explicit avoids the old "upside-down"
-         * silhouette while still using the lightweight block-mesh renderer.
+         * Bell always sits above the tentacles. Variant color and anatomy are
+         * permanent, making dangerous morphs learnable by sight.
          */
         cuboid(
-                night
-                        ? Blocks.CYAN_STAINED_GLASS.defaultBlockState()
-                        : Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                bell,
                 -0.34, 0.08 + pulse, -0.34,
                 0.68F, 0.30F, 0.68F,
                 pose, buffers, jellyLight
         );
 
         cuboid(
-                night
-                        ? Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState()
-                        : Blocks.WHITE_STAINED_GLASS.defaultBlockState(),
+                dome,
                 -0.27, 0.34 + pulse, -0.27,
                 0.54F, 0.16F, 0.54F,
                 pose, buffers, jellyLight
         );
 
         cuboid(
-                night
-                        ? Blocks.MAGENTA_STAINED_GLASS.defaultBlockState()
-                        : Blocks.PINK_STAINED_GLASS.defaultBlockState(),
+                skirt,
                 -0.29, -0.03 + pulse, -0.29,
                 0.58F, 0.13F, 0.58F,
                 pose, buffers, jellyLight
         );
 
-        // Slightly scalloped bell edge.
         cuboid(
-                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
+                edge,
                 -0.31, -0.08 + pulse, -0.22,
                 0.18F, 0.08F, 0.18F,
                 pose, buffers, jellyLight
         );
         cuboid(
-                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
+                edge,
                 0.13, -0.08 + pulse, -0.22,
                 0.18F, 0.08F, 0.18F,
                 pose, buffers, jellyLight
         );
         cuboid(
-                Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
+                edge,
                 -0.09, -0.08 + pulse, 0.13,
                 0.18F, 0.08F, 0.18F,
                 pose, buffers, jellyLight
         );
 
-        if (night) {
-            cuboid(
-                    Blocks.SEA_LANTERN.defaultBlockState(),
-                    -0.12, 0.10 + pulse, -0.12,
-                    0.24F, 0.16F, 0.24F,
-                    pose, buffers, jellyLight
-            );
-        }
-
-        /*
-         * Oral arms sit directly under the bell and are thicker/shorter than
-         * the long outer tentacles.
-         */
+        // Every morph exposes a different-looking central organ.
         cuboid(
-                Blocks.PINK_STAINED_GLASS.defaultBlockState(),
-                -0.12, -0.36, -0.10,
-                0.09F, 0.34F, 0.09F,
+                interior,
+                -0.11, 0.10 + pulse, -0.11,
+                0.22F, 0.17F, 0.22F,
+                pose, buffers, jellyLight
+        );
+
+        float tentacleScale =
+                variant.tentacleScale();
+
+        float oralLength =
+                0.30F
+                        + tentacleScale
+                                * 0.07F;
+
+        cuboid(
+                oral,
+                -0.12, -0.04 - oralLength, -0.10,
+                0.09F, oralLength, 0.09F,
                 0.0F, 0.0F, swim * 3.5F,
                 pose, buffers, jellyLight
         );
         cuboid(
-                Blocks.PINK_STAINED_GLASS.defaultBlockState(),
-                0.04, -0.34, 0.03,
-                0.09F, 0.31F, 0.09F,
+                oral,
+                0.04, -0.04 - oralLength * 0.92F, 0.03,
+                0.09F, oralLength * 0.92F, 0.09F,
                 0.0F, 0.0F, -swim * 4.0F,
                 pose, buffers, jellyLight
         );
 
-        // Long tentacles trail DOWN from the skirt.
+        float longA =
+                0.64F
+                        * tentacleScale;
+        float longB =
+                0.60F
+                        * tentacleScale;
+        float longC =
+                0.74F
+                        * tentacleScale;
+        float longD =
+                0.53F
+                        * tentacleScale;
+
         cuboid(
-                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
-                -0.23, -0.72, -0.19,
-                0.055F, 0.64F, 0.055F,
+                tentacle,
+                -0.23, -0.08 - longA, -0.19,
+                0.055F, longA, 0.055F,
                 0.0F, 0.0F, swim * 5.0F,
                 pose, buffers, jellyLight
         );
         cuboid(
-                Blocks.PURPLE_STAINED_GLASS.defaultBlockState(),
-                0.17, -0.68, -0.16,
-                0.055F, 0.60F, 0.055F,
+                tentacle,
+                0.17, -0.08 - longB, -0.16,
+                0.055F, longB, 0.055F,
                 0.0F, 0.0F, -swim * 5.5F,
                 pose, buffers, jellyLight
         );
         cuboid(
-                Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
-                -0.08, -0.82, 0.14,
-                0.05F, 0.74F, 0.05F,
+                edge,
+                -0.08, -0.08 - longC, 0.14,
+                0.05F, longC, 0.05F,
                 0.0F, 0.0F, swim * 6.5F,
                 pose, buffers, jellyLight
         );
         cuboid(
-                Blocks.MAGENTA_STAINED_GLASS.defaultBlockState(),
-                0.08, -0.61, 0.24,
-                0.05F, 0.53F, 0.05F,
+                edge,
+                0.08, -0.08 - longD, 0.24,
+                0.05F, longD, 0.05F,
                 0.0F, 0.0F, -swim * 4.5F,
                 pose, buffers, jellyLight
         );
