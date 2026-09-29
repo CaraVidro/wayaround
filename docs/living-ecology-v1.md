@@ -552,3 +552,40 @@ Example:
 
 is useful for standing in one place and watching vegetation, moss, river
 material and deadwood evolve quickly during development.
+
+## Land / Air Wildlife V2 — first integration
+
+The shared land/flying ecology layer now adds a first behavioral pass above
+vanilla Goal AI:
+
+- nearby natural predators can trigger a persistent alarm;
+- alarmed herd/flock members relay that danger to nearby members and flee as a
+  group instead of reacting as isolated mobs;
+- common herbivores/chickens can forage directly from suitable terrain instead
+  of depending only on player-dropped food;
+- natural grazing is sparse and bounded so it does not strip loaded chunks;
+- untamed flying animals can seek leafy roosts during night/bad weather;
+- existing home memory, cohesion, shelter, autonomous breeding and exploration
+  remain active when no higher-priority ecological behavior owns navigation.
+
+This is intentionally the first terrestrial/aerial V2 slice. Predator/prey
+senses and natural food now have shared infrastructure that future species can
+reuse instead of each implementing separate scans.
+
+## Jellyfish morphs
+
+Jellyfish now roll one permanent morph per individual and persist it to NBT.
+Morphs differ in bell color, visible internal organ and tentacle length.
+
+Current morphs:
+
+- Moon — harmless, shorter tentacles;
+- Ghost — harmless, very long pale tentacles;
+- Rose — stinging;
+- Amber — stinging, short tentacles;
+- Violet — stronger sting and long tentacles;
+- Deep Red — strongest current sting.
+
+Because sting behavior belongs to the morph rather than to a random contact
+roll, players can learn which jellyfish are safe by appearance.
+
