@@ -1,8 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.AccessoryWorkshopScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -62,17 +60,9 @@ public record AccessoryWorkshopOpenS2CPayload(
             AccessoryWorkshopOpenS2CPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () -> Minecraft.getInstance()
-                        .setScreen(
-                                new AccessoryWorkshopScreen(
-                                        payload
-                                )
-                        )
+        ClientPayloadBridge.handleAccessoryWorkshopOpen(
+                payload,
+                context
         );
     }
 }

@@ -3,7 +3,6 @@ package net.caravidro.wayaround.network;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.AccessoryClientState;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -229,15 +228,9 @@ public record AccessoryStateS2CPayload(
             AccessoryStateS2CPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () ->
-                        AccessoryClientState.receive(
-                                payload
-                        )
+        ClientPayloadBridge.handleAccessoryState(
+                payload,
+                context
         );
     }
 }

@@ -3,7 +3,6 @@ package net.caravidro.wayaround.network;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.BlueClientEffects;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -74,15 +73,9 @@ public record BlueVisualPayload(
             BlueVisualPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () ->
-                        BlueClientEffects.receive(
-                                payload
-                        )
+        ClientPayloadBridge.handleBlueVisual(
+                payload,
+                context
         );
     }
 }

@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.DomainIntroClient;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -58,17 +57,9 @@ public record DomainIntroS2CPayload(
             DomainIntroS2CPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () ->
-                        DomainIntroClient.start(
-                                payload.style(),
-                                payload.variant(),
-                                payload.durationTicks()
-                        )
+        ClientPayloadBridge.handleDomainIntro(
+                payload,
+                context
         );
     }
 }

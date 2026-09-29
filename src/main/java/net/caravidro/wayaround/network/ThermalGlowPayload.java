@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.ThermalGlowRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -14,5 +13,13 @@ public record ThermalGlowPayload(BlockPos pos, int ticks) implements CustomPacke
     public static final StreamCodec<RegistryFriendlyByteBuf, ThermalGlowPayload> STREAM_CODEC = StreamCodec.of(
             (b,p) -> { b.writeBlockPos(p.pos); b.writeVarInt(p.ticks); }, b -> new ThermalGlowPayload(b.readBlockPos(), b.readVarInt()));
     public Type<? extends CustomPacketPayload> type() { return TYPE; }
-    public static void handle(ThermalGlowPayload p, IPayloadContext context) { context.enqueueWork(() -> ThermalGlowRenderer.receive(p)); }
+    public static void handle(
+            ThermalGlowPayload payload,
+            IPayloadContext context
+    ) {
+        ClientPayloadBridge.handleThermalGlow(
+                payload,
+                context
+        );
+    }
 }

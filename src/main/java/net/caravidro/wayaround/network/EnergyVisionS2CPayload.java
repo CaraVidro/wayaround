@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.EnergyVisionClient;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -50,8 +49,13 @@ public record EnergyVisionS2CPayload(boolean active, List<Entry> entries)
         return TYPE;
     }
 
-    public static void handle(EnergyVisionS2CPayload payload, IPayloadContext context) {
-        if (!FMLEnvironment.dist.isClient()) return;
-        context.enqueueWork(() -> EnergyVisionClient.receive(payload));
+    public static void handle(
+            EnergyVisionS2CPayload payload,
+            IPayloadContext context
+    ) {
+        ClientPayloadBridge.handleEnergyVision(
+                payload,
+                context
+        );
     }
 }

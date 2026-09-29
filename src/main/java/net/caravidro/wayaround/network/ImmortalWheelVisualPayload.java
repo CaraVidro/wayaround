@@ -3,7 +3,6 @@ package net.caravidro.wayaround.network;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.ImmortalWheelClientEffects;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -80,16 +79,9 @@ public record ImmortalWheelVisualPayload(
             ImmortalWheelVisualPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () ->
-                        ImmortalWheelClientEffects
-                                .receive(
-                                        payload
-                                )
+        ClientPayloadBridge.handleImmortalWheelVisual(
+                payload,
+                context
         );
     }
 }

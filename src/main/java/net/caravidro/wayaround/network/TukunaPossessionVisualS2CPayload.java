@@ -3,7 +3,6 @@ package net.caravidro.wayaround.network;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.TukunaPossessionClient;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -54,11 +53,9 @@ public record TukunaPossessionVisualS2CPayload(
             TukunaPossessionVisualS2CPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) return;
-        context.enqueueWork(() -> TukunaPossessionClient.setVisualLink(
-                payload.controller(),
-                payload.body(),
-                payload.active()
-        ));
+        ClientPayloadBridge.handleTukunaPossessionVisual(
+                payload,
+                context
+        );
     }
 }

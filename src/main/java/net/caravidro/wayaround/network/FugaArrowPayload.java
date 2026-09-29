@@ -2,7 +2,6 @@ package net.caravidro.wayaround.network;
 
 import java.util.UUID;
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.TukunaFugaClientEffects;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -16,5 +15,13 @@ public record FugaArrowPayload(UUID owner,double x,double y,double z,double vx,d
                 b.writeDouble(p.vx);b.writeDouble(p.vy);b.writeDouble(p.vz);b.writeVarInt(p.life);},
             b->new FugaArrowPayload(b.readUUID(),b.readDouble(),b.readDouble(),b.readDouble(),b.readDouble(),b.readDouble(),b.readDouble(),b.readVarInt()));
     public Type<? extends CustomPacketPayload> type(){return TYPE;}
-    public static void handle(FugaArrowPayload p,IPayloadContext c){c.enqueueWork(()->TukunaFugaClientEffects.receiveArrow(p));}
+    public static void handle(
+            FugaArrowPayload payload,
+            IPayloadContext context
+    ) {
+        ClientPayloadBridge.handleFugaArrow(
+                payload,
+                context
+        );
+    }
 }

@@ -3,7 +3,6 @@ package net.caravidro.wayaround.network;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.cinematic.PlayerAnimationController;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -96,16 +95,9 @@ public record PlayerCinematicPayload(
             PlayerCinematicPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () -> {
-                    if (WorldFeatureRuntime.clientEnabled(WorldFeature.CINEMATICS)) {
-                        PlayerAnimationController.receive(payload);
-                    }
-                }
+        ClientPayloadBridge.handlePlayerCinematic(
+                payload,
+                context
         );
     }
 }

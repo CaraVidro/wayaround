@@ -3,7 +3,6 @@ package net.caravidro.wayaround.network;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.client.sound.BattleThemeSound;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -62,27 +61,9 @@ public record BattleMusicS2CPayload(
             BattleMusicS2CPayload payload,
             IPayloadContext context
     ) {
-        if (!FMLEnvironment.dist.isClient()) {
-            return;
-        }
-
-        context.enqueueWork(
-                () -> {
-                    if (payload.mode()
-                            == STOP) {
-                        BattleThemeSound.stopBattle(
-                                payload.battle()
-                        );
-                        return;
-                    }
-
-                    BattleThemeSound.play(
-                            payload.battle(),
-                            payload.source(),
-                            payload.mode()
-                                    == START_DIRECT
-                    );
-                }
+        ClientPayloadBridge.handleBattleMusic(
+                payload,
+                context
         );
     }
 }
