@@ -225,6 +225,11 @@ public final class WorldFeatureSelectionScreen
                             ignored -> {
                                 if (target
                                         == WorldFeature.WATER_DYNAMICS) {
+                                    settings.set(
+                                            WorldFeature.WATER_DYNAMICS,
+                                            true
+                                    );
+
                                     settings.cycleWaveMode();
                                     rebuildControls();
                                     return;
