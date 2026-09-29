@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.ship;
 
 import net.caravidro.wayaround.worldgen.water.wave.OceanWaveField;
+import net.caravidro.wayaround.worldgen.water.wave.WaveHullResponse;
 import net.caravidro.wayaround.worldconfig.WaveMode;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -24,6 +25,9 @@ import net.minecraft.world.phys.Vec3;
 
 /** Shared water drift, anchor and onboard controls for the mod's vessels. */
 public abstract class SailingShipEntity extends ChestBoat {
+    private float wavePitch;
+    private float waveRoll;
+
     private static final EntityDataAccessor<Boolean> ANCHORED =
             SynchedEntityData.defineId(SailingShipEntity.class, EntityDataSerializers.BOOLEAN);
     private double anchorX;
@@ -84,11 +88,21 @@ public abstract class SailingShipEntity extends ChestBoat {
         ).is(
                 FluidTags.WATER
         )) {
-            OceanWaveField.Sample wave =
-                    OceanWaveField.sample(
+            WaveHullResponse.Response response =
+                    WaveHullResponse.sample(
                             level(),
-                            getX(),
-                            getZ(),
+                            position(),
+                            getYRot(),
+                            Math.max(
+                                    0.70,
+                                    getBbWidth()
+                                            * 0.42
+                            ),
+                            Math.max(
+                                    1.65,
+                                    getBbWidth()
+                                            * 0.72
+                            ),
                             level().getGameTime()
                     );
 
@@ -97,10 +111,12 @@ public abstract class SailingShipEntity extends ChestBoat {
 
             double lift =
                     net.minecraft.util.Mth.clamp(
-                            wave.height() * 0.006
-                                    + wave.verticalVelocity() * 0.16,
-                            -0.026,
-                            0.026
+                            response.meanHeight()
+                                    * 0.005
+                                    + response.meanVerticalVelocity()
+                                    * 0.15,
+                            -0.024,
+                            0.024
                     );
 
             setDeltaMovement(
@@ -108,6 +124,24 @@ public abstract class SailingShipEntity extends ChestBoat {
                     velocity.y + lift,
                     velocity.z
             );
+
+            wavePitch +=
+                    (
+                            response.targetPitch()
+                                    - wavePitch
+                    ) * 0.16F;
+
+            waveRoll +=
+                    (
+                            response.targetRoll()
+                                    - waveRoll
+                    ) * 0.14F;
+        } else if (!(this instanceof GreatShipEntity)) {
+            wavePitch *=
+                    0.82F;
+
+            waveRoll *=
+                    0.82F;
         }
 
         if (isAnchored()) {
@@ -116,6 +150,14 @@ public abstract class SailingShipEntity extends ChestBoat {
             setYRot(level().isClientSide ? yaw : anchorYaw);
         }
     }
+    public float waveVisualPitch() {
+        return wavePitch;
+    }
+
+    public float waveVisualRoll() {
+        return waveRoll;
+    }
+
     public boolean canUse(Player player) {
         return WorldFeatureRuntime.enabled(level(), WorldFeature.SHIPS)
                 && isAlive() && player.level() == level() && !player.isSpectator()
