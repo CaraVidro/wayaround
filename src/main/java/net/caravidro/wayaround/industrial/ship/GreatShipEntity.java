@@ -929,6 +929,17 @@ public final class GreatShipEntity
                 && level()
                 instanceof ServerLevel server) {
 
+            if (!isSinking()
+                    && !realHullClear(
+                    server
+            )) {
+                resolveLongHullCollision(
+                        previousPosition,
+                        previousYaw,
+                        previousSpeed
+                );
+            }
+
             refreshSeatState();
 
             if (sleeper != null) {
@@ -1010,6 +1021,124 @@ public final class GreatShipEntity
                         Optional.empty()
                 );
             }
+        }
+    }
+
+    private boolean realHullClear(
+            ServerLevel server
+    ) {
+        for (int localX = -4;
+             localX <= 4;
+             localX += 4) {
+            for (int localZ = -10;
+                 localZ <= 10;
+                 localZ += 2) {
+
+                Vec3 world =
+                        localToWorld(
+                                new Vec3(
+                                        localX,
+                                        0.35,
+                                        localZ
+                                )
+                        );
+
+                BlockPos low =
+                        BlockPos.containing(
+                                world
+                        );
+
+                if (!server.hasChunkAt(
+                        low
+                )) {
+                    return false;
+                }
+
+                if (solidHullObstacle(
+                        server.getBlockState(
+                                low
+                        )
+                )) {
+                    return false;
+                }
+
+                BlockPos high =
+                        low.above();
+
+                if (solidHullObstacle(
+                        server.getBlockState(
+                                high
+                        )
+                )) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean solidHullObstacle(
+            BlockState state
+    ) {
+        return !state.isAir()
+                && !state.getFluidState()
+                .is(
+                        FluidTags.WATER
+                );
+    }
+
+    private void resolveLongHullCollision(
+            Vec3 previousPosition,
+            float previousYaw,
+            double previousSpeed
+    ) {
+        setPos(
+                previousPosition.x,
+                previousPosition.y,
+                previousPosition.z
+        );
+
+        setYRot(
+                previousYaw
+        );
+
+        Vec3 velocity =
+                getDeltaMovement();
+
+        super.setDeltaMovement(
+                -velocity.x * 0.12,
+                Math.min(
+                        0.0,
+                        velocity.y
+                ),
+                -velocity.z * 0.12
+        );
+
+        float impact =
+                (float) Mth.clamp(
+                        (
+                                previousSpeed
+                                        - 0.055
+                        ) * 48.0,
+                        0.45,
+                        6.5
+                );
+
+        setHullIntegrity(
+                hullIntegrity()
+                        - impact
+        );
+
+        setFlooding(
+                flooding()
+                        + impact
+                        * 0.58F
+        );
+
+        if (hullIntegrity() <= 0.0F
+                || flooding() >= 100.0F) {
+            beginSinking();
         }
     }
 
