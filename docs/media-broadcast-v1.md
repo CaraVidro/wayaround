@@ -248,6 +248,8 @@ redstone contraptions can react without needing special integration.
 All client-facing networking now enters the physical client through
 `ClientPayloadBridge`. Common payload registration must never reference
 `Minecraft`, `Screen`, renderer classes or client sound classes directly.
+The S2C payload classes themselves also delegate through the bridge and contain
+no physical-client references in their handlers.
 
 This protects NeoForge dedicated servers from loading client-only classes while
 `RegisterPayloadHandlersEvent` is being dispatched.
