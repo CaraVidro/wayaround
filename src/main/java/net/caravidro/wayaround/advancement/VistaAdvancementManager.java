@@ -1,8 +1,12 @@
 package net.caravidro.wayaround.advancement;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.ecology.JellyfishEntity;
+import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.SunfishEntity;
 import net.caravidro.wayaround.ecology.WhaleCarcassEntity;
+import net.caravidro.wayaround.ecology.WhaleEntity;
+import net.caravidro.wayaround.oldfriend.HerobrineEntity;
 import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 import net.caravidro.wayaround.worldgen.weather.fire.SmokeVolumeEntity;
 import net.minecraft.server.level.ServerLevel;
@@ -46,14 +50,25 @@ public final class VistaAdvancementManager {
             if (level.dimension()
                     .equals(
                             Level.OVERWORLD
-                    )
-                    && AntarcticField.isAntarctic(
-                    player.getBlockX(),
-                    player.getBlockZ()
-            )) {
-                WayAroundAdvancements.vistaAntarctica(
-                        player
-                );
+                    )) {
+
+                if (AntarcticField.isSouthernOcean(
+                        player.getBlockX(),
+                        player.getBlockZ()
+                )) {
+                    WayAroundAdvancements.vistaSouthernOcean(
+                            player
+                    );
+                }
+
+                if (AntarcticField.isAntarctic(
+                        player.getBlockX(),
+                        player.getBlockZ()
+                )) {
+                    WayAroundAdvancements.vistaAntarctica(
+                            player
+                    );
+                }
             }
 
             if (!level.getEntitiesOfClass(
@@ -101,6 +116,75 @@ public final class VistaAdvancementManager {
                         player
                 );
             }
+
+            if (!level.getEntitiesOfClass(
+                    JellyfishEntity.class,
+                    player.getBoundingBox()
+                            .inflate(
+                                    26.0
+                            ),
+                    jelly ->
+                            jelly.isAlive()
+                                    && player.hasLineOfSight(
+                                    jelly
+                            )
+            ).isEmpty()) {
+                WayAroundAdvancements.vistaJellyfish(
+                        player
+                );
+            }
+
+            if (!level.getEntitiesOfClass(
+                    OarfishEntity.class,
+                    player.getBoundingBox()
+                            .inflate(
+                                    34.0
+                            ),
+                    fish ->
+                            fish.isAlive()
+                                    && player.hasLineOfSight(
+                                    fish
+                            )
+            ).isEmpty()) {
+                WayAroundAdvancements.vistaOarfish(
+                        player
+                );
+            }
+
+            if (!level.getEntitiesOfClass(
+                    WhaleEntity.class,
+                    player.getBoundingBox()
+                            .inflate(
+                                    54.0
+                            ),
+                    whale ->
+                            whale.isAlive()
+                                    && player.hasLineOfSight(
+                                    whale
+                            )
+            ).isEmpty()) {
+                WayAroundAdvancements.vistaWhale(
+                        player
+                );
+            }
+
+            if (!level.getEntitiesOfClass(
+                    HerobrineEntity.class,
+                    player.getBoundingBox()
+                            .inflate(
+                                    48.0
+                            ),
+                    oldFriend ->
+                            oldFriend.isAlive()
+                                    && player.hasLineOfSight(
+                                    oldFriend
+                            )
+            ).isEmpty()) {
+                WayAroundAdvancements.vistaOldFriend(
+                        player
+                );
+            }
+
         }
     }
 }
