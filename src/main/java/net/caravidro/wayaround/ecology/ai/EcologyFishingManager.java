@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.ecology.FishCarcassEntity;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.particles.ParticleTypes;
@@ -895,6 +896,7 @@ public final class EcologyFishingManager {
                         ),
                         fish ->
                                 fish.isAlive()
+                                        && !(fish instanceof FishCarcassEntity)
                                         && fish.getPersistentData()
                                                 .getLong(
                                                         LivingFaunaManager.FISH_SCARED_UNTIL
@@ -939,7 +941,8 @@ public final class EcologyFishingManager {
 
         if (entity
                 instanceof AbstractFish fish
-                && fish.isAlive()) {
+                && fish.isAlive()
+                && !(fish instanceof FishCarcassEntity)) {
             return fish;
         }
 

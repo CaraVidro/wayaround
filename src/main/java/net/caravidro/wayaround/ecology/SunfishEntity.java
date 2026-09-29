@@ -44,6 +44,7 @@ public final class SunfishEntity extends AguaWorldFishEntity {
             "WayAroundSunfishNaturalScars";
 
     private int baskCooldown;
+    private int baskKnockbackGrace;
 
     private float prevBaskBlend;
     private float baskBlend;
@@ -161,33 +162,53 @@ public final class SunfishEntity extends AguaWorldFishEntity {
             Vec3 motion =
                     getDeltaMovement();
 
-            double targetY =
-                    baskSurfaceY
-                            - 0.14;
+            if (baskKnockbackGrace > 0) {
+                baskKnockbackGrace--;
+            }
 
-            double vertical =
-                    Mth.clamp(
-                            (
-                                    targetY
-                                            - getY()
-                            )
-                                    * 0.08,
-                            -0.035,
-                            0.035
-                    );
+            if (isInWaterOrBubble()) {
+                double targetY =
+                        baskSurfaceY
+                                - 0.14;
 
-            setDeltaMovement(
-                    motion.x
-                            * 0.78,
-                    vertical,
-                    motion.z
-                            * 0.78
-            );
+                double vertical =
+                        Mth.clamp(
+                                (
+                                        targetY
+                                                - getY()
+                                )
+                                        * 0.08,
+                                -0.035,
+                                0.035
+                        );
 
-            if (baskTicks <= 0
-                    || !isSurfaceWater(
-                    baskSurfaceY
-            )) {
+                double horizontalDrag =
+                        baskKnockbackGrace > 0
+                                ? 0.94
+                                : 0.78;
+
+                setDeltaMovement(
+                        motion.x
+                                * horizontalDrag,
+                        vertical,
+                        motion.z
+                                * horizontalDrag
+                );
+
+            } else {
+                /*
+                 * If a hit launches the basking fish clear of the water, keep
+                 * the basking state and let ordinary gravity handle the arc.
+                 * He has accepted the situation.
+                 */
+                setDeltaMovement(
+                        motion.x * 0.96,
+                        motion.y,
+                        motion.z * 0.96
+                );
+            }
+
+            if (baskTicks <= 0) {
                 setBasking(
                         false
                 );
@@ -414,36 +435,25 @@ public final class SunfishEntity extends AguaWorldFishEntity {
             double x,
             double z
     ) {
-        if (isBasking()) {
-            /*
-             * A sunfish already committed to basking does not get punted off
-             * the surface by a hit. Damage/scars still register normally.
-             */
-            getNavigation().stop();
-
-            setDeltaMovement(
-                    0.0,
-                    Mth.clamp(
-                            (
-                                    baskSurfaceY
-                                            - 0.14
-                                            - getY()
-                            )
-                                    * 0.08,
-                            -0.025,
-                            0.025
-                    ),
-                    0.0
-            );
-
-            return;
-        }
-
         super.knockback(
                 strength,
                 x,
                 z
         );
+
+        if (isBasking()) {
+            /*
+             * The impact is real and visible, but it does not cancel the odd
+             * surface-basking state. For a short window we preserve most of
+             * the horizontal impulse before the fish drifts back toward the
+             * surface.
+             */
+            baskKnockbackGrace =
+                    18;
+
+            getNavigation()
+                    .stop();
+        }
     }
 
     @Override

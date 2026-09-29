@@ -40,6 +40,11 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.FISH_CARCASS.get(),
+                FishCarcassRenderer::new
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.REEF_SHARK.get(),
                 ReefSharkRenderer::new
         );

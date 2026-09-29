@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "ingredient": {
+    "item": "wayaround:large_whole_salmon"
+  },
+  "result": {
+    "id": "wayaround:cooked_large_whole_salmon"
+  },
+  "experience": 0.35,
+  "cookingtime": 280
+}

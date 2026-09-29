@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.advancement;
 
+import java.util.function.Predicate;
+
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.JellyfishEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
@@ -19,9 +21,11 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /**
- * "Vista" emblems are deliberately tiny observational achievements.
- * They record that the player actually encountered a Way Around phenomenon,
- * without explaining hidden systems or rewarding mechanical knowledge.
+ * Vista emblems are observations, not passive proximity detectors.
+ *
+ * Creature emblems require the player to be reasonably close, have line of
+ * sight and actually face the subject. Large landscape phenomena keep their
+ * broader rules because the "subject" is the environment itself.
  */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class VistaAdvancementManager {
@@ -73,54 +77,40 @@ public final class VistaAdvancementManager {
                 }
             }
 
-            if (!level.getEntitiesOfClass(
+            if (seenNearby(
+                    level,
+                    player,
                     WhaleCarcassEntity.class,
-                    player.getBoundingBox()
-                            .inflate(
-                                    36.0
-                            ),
-                    carcass ->
-                            carcass.isAlive()
-                                    && player.hasLineOfSight(
-                                    carcass
-                            )
-            ).isEmpty()) {
+                    26.0,
+                    0.55,
+                    carcass -> true
+            )) {
                 WayAroundAdvancements.vistaWhaleCarcass(
                         player
                 );
             }
 
-            var visibleSunfish =
-                    level.getEntitiesOfClass(
-                            SunfishEntity.class,
-                            player.getBoundingBox()
-                                    .inflate(
-                                            28.0
-                                    ),
-                            fish ->
-                                    fish.isAlive()
-                                            && player.hasLineOfSight(
-                                            fish
-                                    )
-                    );
-
-            if (!visibleSunfish.isEmpty()) {
+            if (seenNearby(
+                    level,
+                    player,
+                    SunfishEntity.class,
+                    22.0,
+                    0.55,
+                    fish -> true
+            )) {
                 WayAroundAdvancements.vistaSunfish(
                         player
                 );
             }
 
-            if (visibleSunfish.stream()
-                    .anyMatch(
-                            fish ->
-                                    fish.isBasking()
-                                            && actuallySeen(
-                                            player,
-                                            fish,
-                                            34.0,
-                                            0.42
-                                    )
-                    )) {
+            if (seenNearby(
+                    level,
+                    player,
+                    SunfishEntity.class,
+                    20.0,
+                    0.68,
+                    SunfishEntity::isBasking
+            )) {
                 WayAroundAdvancements.vistaSunfishBasking(
                         player
                 );
@@ -147,75 +137,89 @@ public final class VistaAdvancementManager {
                 );
             }
 
-            if (!level.getEntitiesOfClass(
+            if (seenNearby(
+                    level,
+                    player,
                     JellyfishEntity.class,
-                    player.getBoundingBox()
-                            .inflate(
-                                    26.0
-                            ),
-                    jelly ->
-                            jelly.isAlive()
-                                    && player.hasLineOfSight(
-                                    jelly
-                            )
-            ).isEmpty()) {
+                    18.0,
+                    0.55,
+                    jelly -> true
+            )) {
                 WayAroundAdvancements.vistaJellyfish(
                         player
                 );
             }
 
-            if (!level.getEntitiesOfClass(
+            if (seenNearby(
+                    level,
+                    player,
                     OarfishEntity.class,
-                    player.getBoundingBox()
-                            .inflate(
-                                    34.0
-                            ),
-                    fish ->
-                            fish.isAlive()
-                                    && player.hasLineOfSight(
-                                    fish
-                            )
-            ).isEmpty()) {
+                    24.0,
+                    0.50,
+                    fish -> true
+            )) {
                 WayAroundAdvancements.vistaOarfish(
                         player
                 );
             }
 
-            if (!level.getEntitiesOfClass(
+            if (seenNearby(
+                    level,
+                    player,
                     WhaleEntity.class,
-                    player.getBoundingBox()
-                            .inflate(
-                                    54.0
-                            ),
-                    whale ->
-                            whale.isAlive()
-                                    && player.hasLineOfSight(
-                                    whale
-                            )
-            ).isEmpty()) {
+                    38.0,
+                    0.42,
+                    whale -> true
+            )) {
                 WayAroundAdvancements.vistaWhale(
                         player
                 );
             }
 
-            if (!level.getEntitiesOfClass(
+            if (seenNearby(
+                    level,
+                    player,
                     HerobrineEntity.class,
-                    player.getBoundingBox()
-                            .inflate(
-                                    48.0
-                            ),
-                    oldFriend ->
-                            oldFriend.isAlive()
-                                    && player.hasLineOfSight(
-                                    oldFriend
-                            )
-            ).isEmpty()) {
+                    34.0,
+                    0.60,
+                    oldFriend -> true
+            )) {
                 WayAroundAdvancements.vistaOldFriend(
                         player
                 );
             }
-
         }
+    }
+
+    private static <T extends Entity> boolean seenNearby(
+            ServerLevel level,
+            ServerPlayer player,
+            Class<T> type,
+            double maxDistance,
+            double minimumDot,
+            Predicate<T> extra
+    ) {
+        return level.getEntitiesOfClass(
+                        type,
+                        player.getBoundingBox()
+                                .inflate(
+                                        maxDistance
+                                ),
+                        entity ->
+                                entity.isAlive()
+                                        && extra.test(
+                                        entity
+                                )
+                                        && actuallySeen(
+                                        player,
+                                        entity,
+                                        maxDistance,
+                                        minimumDot
+                                )
+                )
+                .stream()
+                .findAny()
+                .isPresent();
     }
 
     private static boolean actuallySeen(

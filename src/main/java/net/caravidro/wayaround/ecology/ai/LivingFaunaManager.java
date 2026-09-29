@@ -8,6 +8,8 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyRules;
+import net.caravidro.wayaround.ecology.FishCarcassEntity;
+import net.caravidro.wayaround.ecology.FishProcessingProfile;
 import net.caravidro.wayaround.ecology.SunfishEntity;
 import net.caravidro.wayaround.ecology.SardineEntity;
 import net.caravidro.wayaround.ecology.ReefSharkEntity;
@@ -87,6 +89,9 @@ public final class LivingFaunaManager {
     private static final String NEXT_SCAVENGE_CHECK =
             "WayAroundPredatorNextScavenge";
 
+    private static final String NEXT_CARCASS_FEED_CHECK =
+            "WayAroundFishNextCarcassFeedCheck";
+
     private static final String NEXT_WHALE_BLOW =
             "WayAroundWhaleNextBlow";
 
@@ -132,6 +137,11 @@ public final class LivingFaunaManager {
                 || !WorldFeatureRuntime.serverEnabled(
                 WorldFeature.LIVING_VEGETATION
         )) {
+            return;
+        }
+
+        if (event.getEntity()
+                instanceof FishCarcassEntity) {
             return;
         }
 
@@ -235,8 +245,10 @@ public final class LivingFaunaManager {
             return;
         }
 
-        if (fish instanceof SardineEntity) {
-            // Sardines now remain as physical carcasses and are carved later.
+        if (FishProcessingProfile.fromFish(
+                fish
+        ) != null) {
+            // Supported species keep their biomass inside FishCarcassEntity.
             return;
         }
 
@@ -276,6 +288,71 @@ public final class LivingFaunaManager {
                                 )
                         )
                 );
+    }
+
+    @SubscribeEvent
+    public static void processableFishDeath(
+            LivingDeathEvent event
+    ) {
+        if (!(event.getEntity()
+                instanceof AbstractFish fish)
+                || fish instanceof FishCarcassEntity
+                || !(fish.level()
+                instanceof ServerLevel level)
+                || !WorldFeatureRuntime.serverEnabled(
+                WorldFeature.LIVING_VEGETATION
+        )) {
+            return;
+        }
+
+        FishProcessingProfile profile =
+                FishProcessingProfile.fromFish(
+                        fish
+                );
+
+        if (profile == null) {
+            return;
+        }
+
+        FishCarcassEntity carcass =
+                EcologyContent.FISH_CARCASS.get()
+                        .create(
+                                level
+                        );
+
+        if (carcass == null) {
+            return;
+        }
+
+        float size =
+                fishSize(
+                        fish
+                );
+
+        carcass.moveTo(
+                fish.getX(),
+                fish.getY(),
+                fish.getZ(),
+                fish.getYRot(),
+                fish.getXRot()
+        );
+
+        carcass.initialize(
+                profile,
+                size,
+                false
+        );
+
+        carcass.setDeltaMovement(
+                fish.getDeltaMovement()
+                        .scale(
+                                0.42
+                        )
+        );
+
+        level.addFreshEntity(
+                carcass
+        );
     }
 
     @SubscribeEvent
@@ -723,8 +800,7 @@ public final class LivingFaunaManager {
                     continue;
                 }
 
-                if (fish instanceof SardineEntity sardine
-                        && sardine.isCarcass()) {
+                if (fish instanceof FishCarcassEntity) {
                     continue;
                 }
 
@@ -789,8 +865,17 @@ public final class LivingFaunaManager {
                                     predator
                             );
 
+                    boolean carcassScavenging =
+                            !yielding
+                                    && feedFishCarcass(
+                                    level,
+                                    fish,
+                                    true
+                            );
+
                     boolean scavenging =
                             !yielding
+                                    && !carcassScavenging
                                     && scavengePredatorMeat(
                                     level,
                                     fish
@@ -798,6 +883,7 @@ public final class LivingFaunaManager {
 
                     occupied =
                             yielding
+                                    || carcassScavenging
                                     || scavenging
                                     || huntFish(
                                     level,
@@ -812,8 +898,17 @@ public final class LivingFaunaManager {
                                     fish
                             );
 
+                    boolean carcassFeeding =
+                            !fleeing
+                                    && feedFishCarcass(
+                                    level,
+                                    fish,
+                                    false
+                            );
+
                     boolean feeding =
                             !fleeing
+                                    && !carcassFeeding
                                     && feedFish(
                                     level,
                                     fish
@@ -821,6 +916,7 @@ public final class LivingFaunaManager {
 
                     boolean migrating =
                             !fleeing
+                                    && !carcassFeeding
                                     && !feeding
                                     && migrateFish(
                                     level,
@@ -829,6 +925,7 @@ public final class LivingFaunaManager {
 
                     boolean speciesBehavior =
                             !fleeing
+                                    && !carcassFeeding
                                     && !feeding
                                     && !migrating
                                     && speciesBehavior(
@@ -838,6 +935,7 @@ public final class LivingFaunaManager {
 
                     occupied =
                             fleeing
+                                    || carcassFeeding
                                     || feeding
                                     || migrating
                                     || speciesBehavior;
@@ -1112,6 +1210,254 @@ public final class LivingFaunaManager {
         return true;
     }
 
+    private static boolean feedFishCarcass(
+            ServerLevel level,
+            AbstractFish fish,
+            boolean predator
+    ) {
+        CompoundTag data =
+                fish.getPersistentData();
+
+        long now =
+                level.getGameTime();
+
+        if (now < data.getLong(
+                NEXT_CARCASS_FEED_CHECK
+        )) {
+            return false;
+        }
+
+        FishProcessingProfile ownProfile =
+                FishProcessingProfile.fromFish(
+                        fish
+                );
+
+        double radius =
+                predator
+                        ? 11.0
+                        : 7.5;
+
+        FishCarcassEntity carcass =
+                level.getEntitiesOfClass(
+                                FishCarcassEntity.class,
+                                fish.getBoundingBox()
+                                        .inflate(
+                                                radius,
+                                                5.0,
+                                                radius
+                                        ),
+                                candidate ->
+                                        candidate.isAlive()
+                                                && !candidate.isSkeleton()
+                                                && (
+                                                ownProfile == null
+                                                        || candidate.profile()
+                                                        != ownProfile
+                                        )
+                                                && carcassAttractiveEnough(
+                                                candidate,
+                                                fish,
+                                                predator
+                                        )
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        candidate ->
+                                                fish.distanceToSqr(
+                                                        candidate
+                                                )
+                                                        / Math.max(
+                                                        0.20,
+                                                        candidate.attractiveness()
+                                                )
+                                )
+                        )
+                        .orElse(
+                                null
+                        );
+
+        if (carcass == null) {
+            data.putLong(
+                    NEXT_CARCASS_FEED_CHECK,
+                    now
+                            + 80L
+                            + level.random.nextInt(
+                            180
+                    )
+            );
+
+            return false;
+        }
+
+        fish.getNavigation()
+                .moveTo(
+                        carcass.getX(),
+                        carcass.getY(),
+                        carcass.getZ(),
+                        predator
+                                ? 1.36
+                                : 1.12
+                );
+
+        if (fish.distanceToSqr(
+                carcass
+        ) > 1.65 * 1.65) {
+            data.putLong(
+                    NEXT_CARCASS_FEED_CHECK,
+                    now + 30L
+            );
+
+            return true;
+        }
+
+        ItemStack particle =
+                carcass.meatParticleStack();
+
+        int consumed =
+                carcass.consumeFlesh(
+                        predator
+                                ? 2
+                                : 1
+                );
+
+        if (consumed <= 0) {
+            return false;
+        }
+
+        data.putInt(
+                FISH_MEALS,
+                Math.min(
+                        10_000,
+                        data.getInt(
+                                FISH_MEALS
+                        )
+                                + consumed
+                )
+        );
+
+        data.putLong(
+                SATIATED_UNTIL,
+                now
+                        + (
+                        predator
+                                ? 6200L
+                                : 4600L
+                )
+        );
+
+        data.putLong(
+                NEXT_CARCASS_FEED_CHECK,
+                now
+                        + 120L
+                        + level.random.nextInt(
+                        predator
+                                ? 240
+                                : 420
+                )
+        );
+
+        level.playSound(
+                null,
+                fish.blockPosition(),
+                SoundEvents.GENERIC_EAT,
+                SoundSource.NEUTRAL,
+                0.68F,
+                predator
+                        ? 0.82F
+                        : 1.08F
+        );
+
+        level.sendParticles(
+                new ItemParticleOption(
+                        ParticleTypes.ITEM,
+                        particle
+                ),
+                carcass.getX(),
+                carcass.getY()
+                        + carcass.getBbHeight()
+                                * 0.45,
+                carcass.getZ(),
+                4
+                        + consumed * 2,
+                0.18,
+                0.10,
+                0.18,
+                0.025
+        );
+
+        level.sendParticles(
+                ParticleTypes.BUBBLE,
+                fish.getX(),
+                fish.getY()
+                        + fish.getBbHeight()
+                                * 0.45,
+                fish.getZ(),
+                5,
+                0.14,
+                0.08,
+                0.14,
+                0.025
+        );
+
+        return true;
+    }
+
+    private static boolean carcassAttractiveEnough(
+            FishCarcassEntity carcass,
+            AbstractFish fish,
+            boolean predator
+    ) {
+        double sizeRatio =
+                carcass.bodyScale()
+                        / Math.max(
+                        0.18F,
+                        fishSize(
+                                fish
+                        )
+                );
+
+        double sizeFactor =
+                Math.max(
+                        0.55,
+                        Math.min(
+                                1.45,
+                                sizeRatio
+                        )
+                );
+
+        double score =
+                carcass.attractiveness()
+                        * sizeFactor
+                        + (
+                        predator
+                                ? 0.22
+                                : 0.0
+                );
+
+        double threshold;
+
+        if (predator) {
+            threshold =
+                    0.42;
+
+        } else if (fish.getType()
+                == EntityType.SALMON) {
+            threshold =
+                    0.72;
+
+        } else if (fish instanceof SardineEntity) {
+            threshold =
+                    0.84;
+
+        } else {
+            threshold =
+                    0.78;
+        }
+
+        return score >= threshold;
+    }
+
     public static ItemStack meatForFish(
             AbstractFish fish
     ) {
@@ -1382,8 +1728,7 @@ public final class LivingFaunaManager {
                                 candidate ->
                                         candidate.isAlive()
                                                 && candidate != hunter
-                                                && !(candidate instanceof SardineEntity sardine
-                                                && sardine.isCarcass())
+                                                && !(candidate instanceof FishCarcassEntity)
                                                 && !(candidate instanceof AquaticPredator)
                                                 && !(candidate instanceof WhaleEntity)
                                                 && predatorAcceptsPrey(
@@ -3683,8 +4028,6 @@ public final class LivingFaunaManager {
                                 other.isAlive()
                                         && other.getType()
                                                 == fish.getType()
-                                        && (!(other instanceof SardineEntity sardine)
-                                        || !sardine.isCarcass())
                 );
 
         if (school.size() < 2) {

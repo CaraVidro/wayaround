@@ -277,6 +277,14 @@ public final class EcologyEntityAttributes {
         );
 
         event.put(
+                EcologyContent.FISH_CARCASS.get(),
+                AbstractFish.createAttributes()
+                        .add(Attributes.MAX_HEALTH, 1.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.0)
+                        .build()
+        );
+
+        event.put(
                 EcologyContent.REEF_SHARK.get(),
                 AbstractFish.createAttributes()
                         .add(Attributes.MAX_HEALTH, 24.0)

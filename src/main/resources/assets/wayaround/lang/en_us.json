@@ -621,5 +621,11 @@
   "item.wayaround.large_whole_sardine": "Large Whole Sardine",
   "item.wayaround.cooked_whole_sardine": "Fried Whole Sardine",
   "item.wayaround.cooked_large_whole_sardine": "Fried Large Sardine",
-  "item.wayaround.cooked_sardine_meat": "Fried Sardine Meat"
+  "item.wayaround.cooked_sardine_meat": "Fried Sardine Meat",
+  "entity.wayaround.fish_carcass": "Fish Carcass",
+  "item.wayaround.whole_salmon": "Whole Salmon",
+  "item.wayaround.large_whole_salmon": "Large Whole Salmon",
+  "item.wayaround.cooked_whole_salmon": "Fried Whole Salmon",
+  "item.wayaround.cooked_large_whole_salmon": "Fried Large Salmon",
+  "item.wayaround.cooked_salmon_meat": "Fried Salmon Meat"
 }

@@ -82,6 +82,29 @@ public final class EcologyContent {
 
     public static final DeferredHolder<
             EntityType<?>,
+            EntityType<FishCarcassEntity>
+            > FISH_CARCASS =
+            ENTITIES.register(
+                    "fish_carcass",
+                    () -> EntityType.Builder
+                            .of(
+                                    FishCarcassEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    0.82F,
+                                    0.30F
+                            )
+                            .clientTrackingRange(
+                                    20
+                            )
+                            .build(
+                                    "wayaround:fish_carcass"
+                            )
+            );
+
+    public static final DeferredHolder<
+            EntityType<?>,
             EntityType<ReefSharkEntity>
             > REEF_SHARK =
             ENTITIES.register(
@@ -772,40 +795,103 @@ public final class EcologyContent {
                     )
             );
 
-    public static final DeferredItem<WholeSardineItem> WHOLE_SARDINE =
+    public static final DeferredItem<WholeFishItem> WHOLE_SARDINE =
             ITEMS.register(
                     "whole_sardine",
-                    () -> new WholeSardineItem(
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SARDINE,
                             false,
                             false,
                             new Item.Properties().stacksTo(1)
                     )
             );
 
-    public static final DeferredItem<WholeSardineItem> LARGE_WHOLE_SARDINE =
+    public static final DeferredItem<WholeFishItem> LARGE_WHOLE_SARDINE =
             ITEMS.register(
                     "large_whole_sardine",
-                    () -> new WholeSardineItem(
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SARDINE,
                             false,
                             true,
                             new Item.Properties().stacksTo(1)
                     )
             );
 
-    public static final DeferredItem<WholeSardineItem> COOKED_WHOLE_SARDINE =
+    public static final DeferredItem<WholeFishItem> COOKED_WHOLE_SARDINE =
             ITEMS.register(
                     "cooked_whole_sardine",
-                    () -> new WholeSardineItem(
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SARDINE,
                             true,
                             false,
                             new Item.Properties().stacksTo(1)
                     )
             );
 
-    public static final DeferredItem<WholeSardineItem> COOKED_LARGE_WHOLE_SARDINE =
+    public static final DeferredItem<WholeFishItem> COOKED_LARGE_WHOLE_SARDINE =
             ITEMS.register(
                     "cooked_large_whole_sardine",
-                    () -> new WholeSardineItem(
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SARDINE,
+                            true,
+                            true,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    private static final FoodProperties COOKED_SALMON_FOOD =
+            new FoodProperties.Builder()
+                    .nutrition(6)
+                    .saturationModifier(0.62F)
+                    .build();
+
+    public static final DeferredItem<Item> COOKED_SALMON_MEAT =
+            ITEMS.register(
+                    "cooked_salmon_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(COOKED_SALMON_FOOD)
+                    )
+            );
+
+    public static final DeferredItem<WholeFishItem> WHOLE_SALMON =
+            ITEMS.register(
+                    "whole_salmon",
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SALMON,
+                            false,
+                            false,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<WholeFishItem> LARGE_WHOLE_SALMON =
+            ITEMS.register(
+                    "large_whole_salmon",
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SALMON,
+                            false,
+                            true,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<WholeFishItem> COOKED_WHOLE_SALMON =
+            ITEMS.register(
+                    "cooked_whole_salmon",
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SALMON,
+                            true,
+                            false,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<WholeFishItem> COOKED_LARGE_WHOLE_SALMON =
+            ITEMS.register(
+                    "cooked_large_whole_salmon",
+                    () -> new WholeFishItem(
+                            FishProcessingProfile.SALMON,
                             true,
                             true,
                             new Item.Properties().stacksTo(1)
@@ -920,6 +1006,24 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 COOKED_LARGE_WHOLE_SARDINE.get()
+                                        );
+                                        output.accept(
+                                                RAW_SALMON_MEAT.get()
+                                        );
+                                        output.accept(
+                                                COOKED_SALMON_MEAT.get()
+                                        );
+                                        output.accept(
+                                                WHOLE_SALMON.get()
+                                        );
+                                        output.accept(
+                                                LARGE_WHOLE_SALMON.get()
+                                        );
+                                        output.accept(
+                                                COOKED_WHOLE_SALMON.get()
+                                        );
+                                        output.accept(
+                                                COOKED_LARGE_WHOLE_SALMON.get()
                                         );
                                         output.accept(
                                                 RAW_SUNFISH_MEAT.get()

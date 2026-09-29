@@ -621,5 +621,11 @@
   "item.wayaround.large_whole_sardine": "Sardinha Inteira Grande",
   "item.wayaround.cooked_whole_sardine": "Sardinha Inteira Frita",
   "item.wayaround.cooked_large_whole_sardine": "Sardinha Grande Frita",
-  "item.wayaround.cooked_sardine_meat": "Carne de Sardinha Frita"
+  "item.wayaround.cooked_sardine_meat": "Carne de Sardinha Frita",
+  "entity.wayaround.fish_carcass": "Cadáver de Peixe",
+  "item.wayaround.whole_salmon": "Salmão Inteiro",
+  "item.wayaround.large_whole_salmon": "Salmão Inteiro Grande",
+  "item.wayaround.cooked_whole_salmon": "Salmão Inteiro Frito",
+  "item.wayaround.cooked_large_whole_salmon": "Salmão Grande Frito",
+  "item.wayaround.cooked_salmon_meat": "Carne de Salmão Frita"
 }
