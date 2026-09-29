@@ -473,7 +473,7 @@ public final class WarProjectileEntity extends Entity {
                 double distance =
                         away.length();
 
-                if (distance < 7.5) {
+                if (distance < 8.5) {
                     Vec3 direction =
                             distance < 0.001
                                     ? new Vec3(
@@ -485,39 +485,66 @@ public final class WarProjectileEntity extends Entity {
                                             1.0 / distance
                                     );
 
-                    double strength =
+                    double proximity =
                             Mth.clamp(
                                     1.0
-                                            - distance / 7.5,
+                                            - distance / 8.5,
                                     0.0,
                                     1.0
                             );
 
+                    /*
+                     * Close rockets are dramatically stronger. The quadratic
+                     * term rewards deliberate point-blank floor/wall shots,
+                     * while farther explosions still provide a small escape
+                     * shove instead of a binary yes/no threshold.
+                     */
+                    double curve =
+                            proximity
+                                    * proximity;
+
+                    double radial =
+                            0.52
+                                    * proximity
+                                    + 2.20
+                                            * curve;
+
+                    double lift =
+                            0.30
+                                    * proximity
+                                    + 1.55
+                                            * curve;
+
                     Vec3 launch =
                             direction.scale(
-                                    1.15
-                                            * strength
+                                    radial
                             )
                                     .add(
                                             0.0,
-                                            0.46
-                                                    + 0.92
-                                                            * strength,
+                                            lift,
                                             0.0
                                     );
 
-                    owner.setDeltaMovement(
-                            owner.getDeltaMovement()
-                                    .add(
-                                            launch
-                                    )
-                    );
+                    if (launch.lengthSqr()
+                            > 0.035) {
+                        owner.setDeltaMovement(
+                                owner.getDeltaMovement()
+                                        .add(
+                                                launch
+                                        )
+                        );
 
-                    owner.hurtMarked =
-                            true;
+                        owner.hurtMarked =
+                                true;
 
-                    owner.fallDistance =
-                            0.0F;
+                        owner.fallDistance =
+                                0.0F;
+
+                        WarBallistics.markRocketJump(
+                                owner,
+                                proximity
+                        );
+                    }
                 }
             }
 
