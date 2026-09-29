@@ -191,6 +191,48 @@ tasks.named('processResources') {
     dependsOn(generateBattleJudesSound)
 }
 
+
+def verifyDedicatedSafeNetwork = tasks.register('verifyDedicatedSafeNetwork') {
+    group = 'verification'
+    description = 'Rejects physical-client imports from common networking classes.'
+    inputs.files(fileTree('src/main/java/net/caravidro/wayaround/network') {
+        include '*.java'
+    })
+
+    doLast {
+        def violations = []
+
+        fileTree('src/main/java/net/caravidro/wayaround/network') {
+            include '*.java'
+        }.files.sort { a, b -> a.name <=> b.name }.each { source ->
+            def text = source.getText('UTF-8')
+
+            text.readLines().eachWithIndex { line, index ->
+                def trimmed = line.trim()
+
+                if (trimmed.startsWith('import net.minecraft.client.')
+                        || (
+                        trimmed.startsWith('import net.caravidro.wayaround.')
+                                && trimmed.contains('.client.')
+                )) {
+                    violations << "${source.name}:${index + 1}: ${trimmed}"
+                }
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new GradleException(
+                    'Dedicated-server unsafe network imports found:\n'
+                            + violations.join('\n')
+            )
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn verifyDedicatedSafeNetwork
+}
+
 repositories {
     // Vosk is published on Maven Central.
     mavenCentral()
