@@ -237,11 +237,46 @@ public final class FrostManager {
             Set<Long> sampled = new HashSet<>();
             Set<Long> washed = new HashSet<>();
             for (var player : level.players()) {
-                ChunkPos center = player.chunkPosition();
-                if (ticks % 20 == 0) for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) {
-                    ChunkPos chunk = new ChunkPos(center.x + dx, center.z + dz);
-                    if (level.hasChunk(chunk.x, chunk.z) && washed.add(chunk.toLong())) washChunk(level, chunk.toLong());
+                if (!nearAntarctica(
+                        level,
+                        player.blockPosition()
+                )) {
+                    continue;
                 }
+
+                ChunkPos center = player.chunkPosition();
+
+                /*
+                 * Washing every 25 surrounding chunks once per second was far
+                 * more expensive than the frost growth itself. Nine nearby
+                 * chunks every two seconds is enough for water/contact cleanup,
+                 * and duplicate chunks shared by players are still collapsed.
+                 */
+                if (ticks % 40 == 0) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dz = -1; dz <= 1; dz++) {
+                            ChunkPos chunk =
+                                    new ChunkPos(
+                                            center.x + dx,
+                                            center.z + dz
+                                    );
+
+                            if (level.hasChunk(
+                                    chunk.x,
+                                    chunk.z
+                            )
+                                    && washed.add(
+                                    chunk.toLong()
+                            )) {
+                                washChunk(
+                                        level,
+                                        chunk.toLong()
+                                );
+                            }
+                        }
+                    }
+                }
+
                 for (int i = 0; i < FrostSampling.BATCH; i++) {
                     int column = FrostSampling.column(ticks, i);
                     int x = player.getBlockX() + column % FrostSampling.WIDTH - 24;
@@ -254,6 +289,48 @@ public final class FrostManager {
                 }
             }
         }
+    }
+
+    private static boolean nearAntarctica(
+            ServerLevel level,
+            BlockPos center
+    ) {
+        if (level.getBiome(
+                center
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        )) {
+            return true;
+        }
+
+        /*
+         * Keep edge behaviour alive without running the 49x49 frost sampler
+         * for every Overworld player. Four cheap biome probes cover the area
+         * the bounded sampler can actually reach.
+         */
+        int reach =
+                48;
+
+        return level.getBiome(
+                center.offset(reach, 0, 0)
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        )
+                || level.getBiome(
+                center.offset(-reach, 0, 0)
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        )
+                || level.getBiome(
+                center.offset(0, 0, reach)
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        )
+                || level.getBiome(
+                center.offset(0, 0, -reach)
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        );
     }
 
     private static void snow(ServerLevel level, int x, int z) {
