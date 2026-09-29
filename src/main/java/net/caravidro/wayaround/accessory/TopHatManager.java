@@ -100,11 +100,6 @@ public final class TopHatManager {
         long now =
                 level.getGameTime();
 
-        float instability =
-                instability(
-                        player
-                );
-
         long warningUntil =
                 data.getLong(
                         WARNING_UNTIL
@@ -124,10 +119,15 @@ public final class TopHatManager {
         }
 
         if (adjustUntil > now) {
-            if (now % 4L == 0L) {
+            if (Math.floorMod(
+                    now + player.getId(),
+                    4L
+            ) == 0L) {
                 sync(
                         player,
-                        instability
+                        instability(
+                                player
+                        )
                 );
             }
 
@@ -141,20 +141,45 @@ public final class TopHatManager {
 
             sync(
                     player,
-                    instability
+                    instability(
+                            player
+                    )
             );
         }
 
         if (warningUntil > now) {
-            if (now % 3L == 0L) {
+            if (Math.floorMod(
+                    now + player.getId(),
+                    4L
+            ) == 0L) {
                 sync(
                         player,
-                        instability
+                        instability(
+                                player
+                        )
                 );
             }
 
             return;
         }
+
+        /*
+         * Wind cells evolve slowly compared with a game tick. Sampling the
+         * expensive weather field four times less often is visually identical
+         * for an idle hat. Multiply the probability by the same cadence so the
+         * long-term chance of a warning stays effectively unchanged.
+         */
+        if (Math.floorMod(
+                now + player.getId(),
+                4L
+        ) != 0L) {
+            return;
+        }
+
+        float instability =
+                instability(
+                        player
+                );
 
         long cooldown =
                 data.getLong(
@@ -167,9 +192,11 @@ public final class TopHatManager {
         }
 
         float chance =
-                0.0010F
-                        + instability
-                        * 0.0034F;
+                (
+                        0.0010F
+                                + instability
+                                * 0.0034F
+                ) * 4.0F;
 
         if (player.getRandom()
                 .nextFloat()
