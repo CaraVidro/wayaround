@@ -127,11 +127,17 @@ public final class DeepOceanTrenchFeature
                 BlockPos.MutableBlockPos cursor =
                         new BlockPos.MutableBlockPos(
                                 x,
-                                oldFloor,
+                                seaLevel,
                                 z
                         );
 
-                for (int y = oldFloor;
+                /*
+                 * This feature deliberately runs at top-layer modification.
+                 * Clean the entire water column first so vanilla kelp,
+                 * seagrass, coral decorations and stale blocks from the old
+                 * sea floor cannot remain suspended after the abyss is carved.
+                 */
+                for (int y = seaLevel;
                      y > targetFloor;
                      y--) {
                     cursor.setY(
@@ -152,14 +158,24 @@ public final class DeepOceanTrenchFeature
                         continue;
                     }
 
-                    level.setBlock(
-                            cursor,
+                    /*
+                     * Everything below sea level becomes an uninterrupted
+                     * water column. This intentionally removes kelp,
+                     * seagrass/coral and any decoration that was attached to
+                     * the pre-trench floor.
+                     */
+                    if (!old.is(
                             Blocks.WATER
-                                    .defaultBlockState(),
-                            2
-                    );
+                    )) {
+                        level.setBlock(
+                                cursor,
+                                Blocks.WATER
+                                        .defaultBlockState(),
+                                2
+                        );
 
-                    changed++;
+                        changed++;
+                    }
                 }
 
                 cursor.setY(

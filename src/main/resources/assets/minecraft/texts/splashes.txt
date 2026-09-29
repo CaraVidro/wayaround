@@ -1,116 +1,116 @@
 Cuidado com o seu velho amigo. §8§o- Civil Anônimo
-A roda lembra de quem a montou torta. §6§o- Engenheiro de Campo
-Se ela parou de girar, escute antes de tocar. §6§o- Mecânico de Plantão
-Uma manivela é um motor se você estiver desesperado o bastante. §6§o- Aprendiz de Oficina
-Não existe excesso de shafts. Existe falta de planejamento. §6§o- Engenheiro de Campo
-Quatro linhas seguram melhor que uma. Normalmente. §6§o- Operador de Polia
-A serraria aceita troncos. Dedos não contam. §c§o- Aviso da Oficina
-Dez tábuas por tronco. Não pergunte sobre a matemática. §8§o- Civil Anônimo
+A roda lembra de quem a montou torta.
+Se ela parou de girar, escute antes de tocar.
+Uma manivela é um motor se você estiver desesperado o bastante.
+Não existe excesso de shafts. Existe falta de planejamento.
+Quatro linhas seguram melhor que uma. Normalmente.
+A serraria aceita troncos. Dedos não contam.
+Dez tábuas por tronco. Não pergunte sobre a matemática.
 A água parada não trabalha de graça. §3§o- Moleiro
-A roda d'água também pega fogo. Descobrimos empiricamente. §c§o- Relatório de Incidente
+A roda d'água também pega fogo. Descobrimos empiricamente.
 Não apague a roda entrando nela. §8§o- Civil Anônimo
-A fumaça no horizonte não é uma nuvem. §7§o- Vigia do Norte
-Se a floresta virou uma linha preta no céu, talvez seja tarde. §c§o- Guarda-Florestal
-O vento sempre escolhe para onde a fumaça vai antes de você. §7§o- Meteorologista
-Você consegue ver o incêndio antes de ouvir o incêndio. §7§o- Vigia da Torre
-Algumas fogueiras crescem. Algumas florestas ajudam. §c§o- Civil Anônimo
-Quando dois fogos se encontram, nenhum dos dois pede licença. §c§o- Bombeiro Cansado
-Não confie numa floresta silenciosa com fumaça acima dela. §2§o- Lenhador
-O norte continua ficando mais frio. §b§o- Cartógrafo do Norte
-Se o vento parar de repente, olhe para o chapéu. §6§o- Engenheiro de Campo
-A cartola não está torta. O mundo que inclinou. §6§o- Proprietário da Cartola
-Aquele relógio marca a hora. No Nether, marca outra coisa. §6§o- Relojoeiro
-Segure R antes que o vento escolha por você. §8§o- Civil Anônimo
-Não persiga sua cartola durante uma tempestade. §7§o- Manual de Segurança
-O bolso só tem espaço para uma péssima decisão. §6§o- Alfaiate
+A fumaça no horizonte não é uma nuvem.
+Se a floresta virou uma linha preta no céu, talvez seja tarde.
+O vento sempre escolhe para onde a fumaça vai antes de você.
+Você consegue ver o incêndio antes de ouvir o incêndio.
+Algumas fogueiras crescem. Algumas florestas ajudam.
+Quando dois fogos se encontram, nenhum dos dois pede licença.
+Não confie numa floresta silenciosa com fumaça acima dela.
+O norte continua ficando mais frio.
+Se o vento parar de repente, olhe para o chapéu.
+A cartola não está torta. O mundo que inclinou.
+Aquele relógio marca a hora. No Nether, marca outra coisa.
+Segure R antes que o vento escolha por você.
+Não persiga sua cartola durante uma tempestade.
+O bolso só tem espaço para uma péssima decisão.
 A calça lembra o que você colocou nela. §6§o- Alfaiate
 Formal não significa seguro. §8§o- Civil Anônimo
-A máscara de gás é inútil. Pelo menos combina. §8§o- Fabricante da Máscara
-A caixa de papelão tem excelente aerodinâmica emocional. §8§o- Civil Anônimo
-O olho não está olhando para a câmera. Está olhando para você. §5§o- Observador
-Não encare o Olho Observador por muito tempo. Ele ganha. §5§o- Civil Anônimo
+A máscara de gás é inútil. Pelo menos combina.
+A caixa de papelão tem excelente aerodinâmica emocional.
+O olho não está olhando para a câmera. Está olhando para você.
+Não encare o Olho Observador por muito tempo. Ele ganha.
 Ele piscou? §5§o- Testemunha Não Confirmada
-Você colocou uma caixa na cabeça por escolha própria. §8§o- Inventário
-Alguns acessórios são cosméticos. Alguns têm opiniões. §6§o- Alfaiate
-A Workshop não julga seu sombrero. Eu julgo. §8§o- Civil Anônimo
-Mais lã não resolve tudo. Resolve o sombrero. §e§o- Vendedor de Lã
-Uma cartola azul enorme ainda é uma cartola. Tecnicamente. §6§o- Alfaiate
-A técnica imaginária não precisa combinar com a roupa. §5§o- Civil Anônimo
+Você colocou uma caixa na cabeça por escolha própria.
+Alguns acessórios são cosméticos. Alguns têm opiniões.
+A Workshop não julga seu sombrero. Eu julgo.
+Mais lã não resolve tudo. Resolve o sombrero.
+Uma cartola azul enorme ainda é uma cartola. Tecnicamente.
+A técnica imaginária não precisa combinar com a roupa.
 Azul não gosta de paredes. §9§o- Operador Desconhecido
 Vermelho gosta ainda menos. §c§o- Operador Desconhecido
-Roxo é uma opinião arquitetônica. §5§o- Engenheiro de Reconstrução
+Roxo é uma opinião arquitetônica.
 Não fique entre Azul e Vermelho. §8§o- Civil Anônimo
 Se a música ficou mais alta, corra. §5§o- Sobrevivente
-A infinidade parece vazia até alguma coisa parar nela. §b§o- Pesquisador Spectrum
-Projéteis também aprendem a ter paciência. §b§o- Pesquisador Spectrum
-A roda aprende. Continue batendo nela e descubra quanto. §6§o- Civil Anônimo
+A infinidade parece vazia até alguma coisa parar nela.
+Projéteis também aprendem a ter paciência.
+A roda aprende. Continue batendo nela e descubra quanto.
 Setenta e cinco por cento ainda dói. §c§o- Lutador Anônimo
-Nem todo Spectrum quer ser descoberto cedo. §5§o- Arquivista
-Algumas habilidades preferem ser chamadas pelo nome. §d§o- Tobias
-Eu ouvi você dizer Azul. Você quis dizer Azul? §d§o- Tobias
-Para precisão, use o chat. Para drama, use sua voz. §d§o- Tobias
-O microfone é opcional. As consequências não. §d§o- Civil Anônimo
-Expansão de domínio é uma frase muito grande para dizer correndo. §5§o- Receptáculo
-Um domínio ainda é uma sala. Só que pior. §5§o- Civil Anônimo
-O tribunal lembra mais do que você gostaria. §6§o- Escrivão
-Mentir é permitido. Convencer é outra coisa. §6§o- Funcionário do Tribunal
-O senso de justiça não tem botão de desfazer. §6§o- Civil Anônimo
-Não alimente estranhos com dedos misteriosos. §c§o- Médico Não Licenciado
+Nem todo Spectrum quer ser descoberto cedo.
+Algumas habilidades preferem ser chamadas pelo nome.
+Eu ouvi você dizer Azul. Você quis dizer Azul?
+Para precisão, use o chat. Para drama, use sua voz.
+O microfone é opcional. As consequências não.
+Expansão de domínio é uma frase muito grande para dizer correndo.
+Um domínio ainda é uma sala. Só que pior.
+O tribunal lembra mais do que você gostaria.
+Mentir é permitido. Convencer é outra coisa.
+O senso de justiça não tem botão de desfazer.
+Não alimente estranhos com dedos misteriosos.
 Mais um dedo. §c§o- Receptáculo
 Vinte não é só um número. §c§o- Arquivista
 O velho amigo ainda gira. §6§o- Civil Anônimo
-Não pergunte à roda quantas vezes ela já se adaptou. §6§o- Sobrevivente
+Não pergunte à roda quantas vezes ela já se adaptou.
 Seu shadow chegou primeiro. §8§o- Civil Anônimo
 A escuridão nem sempre está vazia. §8§o- Vigia Noturno
 Tem coisas atrás da render distance. §8§o- Cartógrafo
-O oceano se move quando você não está olhando. §3§o- Pescador
+O oceano se move quando você não está olhando.
 A água nunca está completamente parada. §3§o- Moleiro
-Puxe a linha devagar. O peixe também tem opinião. §3§o- Pescador
-Se o peixe for do tamanho de você, a pesca mudou de categoria. §3§o- Pescador
+Puxe a linha devagar. O peixe também tem opinião.
+Se o peixe for do tamanho de você, a pesca mudou de categoria.
 O sunfish não pediu para estar aqui. §e§o- Biólogo
 A neve lembra passos. §f§o- Rastreador
-Algumas pegadas permanecem até o chão desaparecer. §f§o- Rastreador
-O Ártico não liga para sua armadura bonita. §b§o- Explorador
-O vento na Antártica não precisa de apresentação. §b§o- Civil Anônimo
-Se você consegue ouvir a tempestade, ela já consegue te encontrar. §b§o- Meteorologista
-A nuvem não está seguindo você. Provavelmente. §7§o- Meteorologista
-Algumas nuvens são maiores por motivos pessoais. §7§o- Civil Anônimo
+Algumas pegadas permanecem até o chão desaparecer.
+O Ártico não liga para sua armadura bonita.
+O vento na Antártica não precisa de apresentação.
+Se você consegue ouvir a tempestade, ela já consegue te encontrar.
+A nuvem não está seguindo você. Provavelmente.
+Algumas nuvens são maiores por motivos pessoais.
 O céu tem peso aqui. §7§o- Observador
-Se a capa se mexeu, talvez você também devesse. §6§o- Engenheiro de Campo
-Tempestades são ferramentas para o objeto certo. §7§o- Inventor
-Se está apontando para você, confira seu inventário. §8§o- Civil Anônimo
+Se a capa se mexeu, talvez você também devesse.
+Tempestades são ferramentas para o objeto certo.
+Se está apontando para você, confira seu inventário.
 Alguém deixou uma cratera aqui. §8§o- Cartógrafo
 Guerra sem motivo ainda consome munição. §c§o- Intendente
-A torreta é para debug. Isso não torna a bala menos real. §c§o- Técnico
-Você sempre pode construir outra gearbox. §6§o- Engenheiro de Campo
-Você nem sempre pode construir outra mão. §c§o- Técnico de Segurança
-O eixo está vibrando. Isso é uma informação, não uma sugestão. §6§o- Mecânico
+A torreta é para debug. Isso não torna a bala menos real.
+Você sempre pode construir outra gearbox.
+Você nem sempre pode construir outra mão.
+O eixo está vibrando. Isso é uma informação, não uma sugestão.
 Pregos de madeira eram uma ideia. §6§o- Carpinteiro
-Qualidade de montagem também é uma estatística. §6§o- Inspetor
-Se parece improvisado e ainda gira, é protótipo. §6§o- Engenheiro de Campo
-Se parece improvisado e pegou fogo, é versão anterior. §c§o- Engenheiro de Campo
+Qualidade de montagem também é uma estatística.
+Se parece improvisado e ainda gira, é protótipo.
+Se parece improvisado e pegou fogo, é versão anterior.
 V0 pode ir para o funeral. §8§o- Civil Anônimo
 Bem-vindo à V1. §a§o- Oficina Way Around
-O caminho mais seguro raramente é o Way Around. §8§o- Civil Anônimo
-Há provavelmente um caminho mais seguro ao redor. §8§o- Civil Anônimo
+O caminho mais seguro raramente é o Way Around.
+Há provavelmente um caminho mais seguro ao redor.
 A máquina ouviu isso. §6§o- Operador
-A máquina definitivamente não deveria ter ouvido isso. §c§o- Operador
-Não toque na parte móvel para descobrir se ela está móvel. §c§o- Manual de Segurança
-Seu primeiro motor pode ser seu braço. §6§o- Aprendiz de Oficina
-Todo sistema complexo começou com alguém girando uma manivela. §6§o- Historiador Industrial
-Se a fumaça está indo para sua casa, o vento já decidiu. §7§o- Meteorologista
-O incêndio não precisa renderizar para continuar chegando. §c§o- Civil Anônimo
+A máquina definitivamente não deveria ter ouvido isso.
+Não toque na parte móvel para descobrir se ela está móvel.
+Seu primeiro motor pode ser seu braço.
+Todo sistema complexo começou com alguém girando uma manivela.
+Se a fumaça está indo para sua casa, o vento já decidiu.
+O incêndio não precisa renderizar para continuar chegando.
 Você viu a fumaça. Esse era o aviso. §7§o- Vigia da Torre
-Não confunda fumaça voxel com previsão do tempo. §7§o- Meteorologista
-O fogo pequeno quer espaço. O grande já tomou. §c§o- Bombeiro Cansado
+Não confunda fumaça voxel com previsão do tempo.
+O fogo pequeno quer espaço. O grande já tomou.
 A floresta era maior ontem. §2§o- Cartógrafo
 A chuva ajuda. Não negocia. §9§o- Bombeiro
-O som de madeira quebrando ao longe é uma coordenada. §2§o- Lenhador
+O som de madeira quebrando ao longe é uma coordenada.
 O mapa pode ter o norte errado. §8§o- Civil Anônimo
-Ir para o norte continua sendo uma opção terrível. §b§o- Cartógrafo do Norte
+Ir para o norte continua sendo uma opção terrível.
 Fique parado. Talvez ele note. §5§o- Observador
-Alguma coisa nas nuvens está se movendo. §7§o- Civil Anônimo
-Um receptáculo quieto não é um receptáculo vazio. §5§o- Arquivista
-Algumas armaduras acordam depois do pôr do sol. §8§o- Vigia Noturno
-Nada aqui foi testado perto o bastante. §c§o- Técnico de Segurança
-Way Around: porque reto seria fácil demais. §a§o- Civil Anônimo
+Alguma coisa nas nuvens está se movendo.
+Um receptáculo quieto não é um receptáculo vazio.
+Algumas armaduras acordam depois do pôr do sol.
+Nada aqui foi testado perto o bastante.
+Way Around: porque reto seria fácil demais.

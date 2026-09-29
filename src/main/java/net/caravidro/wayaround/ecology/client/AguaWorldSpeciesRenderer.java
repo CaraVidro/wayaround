@@ -26,6 +26,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
         CLOWNFISH,
         FLYING_FISH,
         LANTERNFISH,
+        CLEINTON,
         MORAY_EEL,
         WHALE,
         SPERM_WHALE
@@ -50,6 +51,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case CLOWNFISH -> 0.18F;
             case FLYING_FISH -> 0.24F;
             case LANTERNFISH -> 0.16F;
+            case CLEINTON -> 0.24F;
             case MORAY_EEL -> 0.34F;
             case BARRACUDA -> 0.38F;
             case JELLYFISH -> 0.32F;
@@ -69,6 +71,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case CLOWNFISH -> 0.52F;
             case FLYING_FISH -> 0.62F;
             case LANTERNFISH -> 0.45F;
+            case CLEINTON -> 0.50F;
             case MORAY_EEL -> 0.40F;
             case BARRACUDA -> 0.56F;
             case SEAHORSE -> 0.24F;
@@ -89,6 +92,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case CLOWNFISH -> 1.8F;
             case FLYING_FISH -> 1.4F;
             case LANTERNFISH -> 1.1F;
+            case CLEINTON -> 1.7F;
             case MORAY_EEL -> 2.2F;
             case BARRACUDA -> 1.4F;
             case OARFISH -> 2.5F;
@@ -109,6 +113,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case CLOWNFISH -> clownfish(swim, pose, buffers, light);
             case FLYING_FISH -> flyingFish(swim, pose, buffers, light);
             case LANTERNFISH -> lanternfish(swim, pose, buffers, light);
+            case CLEINTON -> cleinton(swim, pose, buffers, light);
             case MORAY_EEL -> moray(swim, pose, buffers, light);
             case MANTA_RAY -> manta(swim, pose, buffers, light);
             case BARRACUDA -> barracuda(swim, pose, buffers, light);
@@ -118,6 +123,57 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case WHALE -> whale(swim, pose, buffers, light);
             case SPERM_WHALE -> spermWhale(swim, pose, buffers, light);
         }
+    }
+
+    private void cleinton(
+            float swim,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        cuboid(
+                Blocks.DARK_PRISMARINE.defaultBlockState(),
+                -0.46, -0.16, -0.15,
+                0.80F, 0.32F, 0.30F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.PRISMARINE.defaultBlockState(),
+                -0.36, 0.08, -0.13,
+                0.60F, 0.10F, 0.26F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.YELLOW_CONCRETE.defaultBlockState(),
+                -0.58, -0.09, -0.13,
+                0.18F, 0.18F, 0.26F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.605, 0.015, -0.155,
+                0.045F, 0.045F, 0.03F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.DARK_PRISMARINE.defaultBlockState(),
+                0.28, -0.04, -0.035,
+                0.44F, 0.08F, 0.07F,
+                0.0F, swim * 9.0F, 0.0F,
+                pose, buffers, light
+        );
+
+        cuboid(
+                Blocks.YELLOW_CONCRETE.defaultBlockState(),
+                0.59, -0.16, -0.12,
+                0.28F, 0.32F, 0.24F,
+                0.0F, swim * 12.0F, 0.0F,
+                pose, buffers, light
+        );
     }
 
     private void manta(

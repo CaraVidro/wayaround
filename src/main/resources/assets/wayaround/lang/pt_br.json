@@ -632,5 +632,8 @@
   "item.wayaround.sustention_boots": "Sustention Boot",
   "item.wayaround.divin_suit": "Divin Suit",
   "block.wayaround.alexa": "Alexa",
-  "item.wayaround.alexa": "Alexa"
+  "item.wayaround.alexa": "Alexa",
+  "entity.wayaround.cleinton": "Cleinton",
+  "item.wayaround.cleinton_spawn_egg": "Ovo de Cleinton",
+  "itemGroup.wayaround.warfare_outpost": "Warfare Outpost"
 }

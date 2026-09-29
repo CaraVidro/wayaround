@@ -114,6 +114,14 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.CLEINTON.get(),
+                context -> new AguaWorldSpeciesRenderer<>(
+                        context,
+                        AguaWorldSpeciesRenderer.Profile.CLEINTON
+                )
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.MORAY_EEL.get(),
                 context -> new AguaWorldSpeciesRenderer<>(
                         context,

@@ -76,6 +76,10 @@ public final class ClientPayloadBridge {
                 TopHatStateS2CPayload payload
         ) {}
 
+        default void krakenShake(
+                KrakenShakeS2CPayload payload
+        ) {}
+
         default void accessoryState(
                 AccessoryStateS2CPayload payload
         ) {}
@@ -379,6 +383,17 @@ public final class ClientPayloadBridge {
     ) {
         context.enqueueWork(
                 () -> realtimeHandlers.topHatState(
+                        payload
+                )
+        );
+    }
+
+    public static void handleKrakenShake(
+            KrakenShakeS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(
+                () -> realtimeHandlers.krakenShake(
                         payload
                 )
         );

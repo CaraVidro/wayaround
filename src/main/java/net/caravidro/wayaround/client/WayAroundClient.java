@@ -281,6 +281,16 @@ public final class WayAroundClient {
                         );
                     }
 
+                    @Override
+                    public void krakenShake(
+                            KrakenShakeS2CPayload payload
+                    ) {
+                        net.caravidro.wayaround.client.cinematic.CinematicCameraController.shake(
+                                payload.ticks(),
+                                payload.strength()
+                        );
+                    }
+
 
                     @Override
                     public void accessoryState(

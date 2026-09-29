@@ -10,6 +10,8 @@ import net.caravidro.wayaround.content.OddityContent;
 import net.caravidro.wayaround.content.Area001Content;
 import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.ecology.EcologyTimeCommand;
+import net.caravidro.wayaround.ecology.KrakenCommands;
+import net.caravidro.wayaround.ecology.KrakenManager;
 import net.caravidro.wayaround.industrial.IndustrialContent;
 import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
@@ -100,6 +102,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(BlueManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(WarBallistics::onServerTick);
+        NeoForge.EVENT_BUS.addListener(KrakenManager::tick);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
@@ -109,6 +112,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(TukunaDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(JujutsuCommands::register);
         NeoForge.EVENT_BUS.addListener(EcologyTimeCommand::register);
+        NeoForge.EVENT_BUS.addListener(KrakenCommands::register);
         NeoForge.EVENT_BUS.addListener(NexusCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
@@ -132,6 +136,7 @@ public class WayAround {
         JusticeRewardManager.clearAll(event.getServer());
         JusticeSenseManager.clearTransient();
         EnhancedFireVisuals.clearAll();
+        KrakenManager.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }
 }

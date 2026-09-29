@@ -200,6 +200,16 @@ public final class EcologyContent {
                             .build("wayaround:lanternfish")
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<CleintonEntity>> CLEINTON =
+            ENTITIES.register(
+                    "cleinton",
+                    () -> EntityType.Builder
+                            .of(CleintonEntity::new, MobCategory.WATER_AMBIENT)
+                            .sized(0.62F, 0.30F)
+                            .clientTrackingRange(20)
+                            .build("wayaround:cleinton")
+            );
+
     public static final DeferredHolder<EntityType<?>, EntityType<MorayEelEntity>> MORAY_EEL =
             ENTITIES.register(
                     "moray_eel",
@@ -377,6 +387,17 @@ public final class EcologyContent {
                             LANTERNFISH.get(),
                             0x14222C,
                             0x58F6D8,
+                            properties
+                    )
+            );
+
+    public static final DeferredItem<SpawnEggItem> CLEINTON_SPAWN_EGG =
+            ITEMS.registerItem(
+                    "cleinton_spawn_egg",
+                    properties -> new SpawnEggItem(
+                            CLEINTON.get(),
+                            0x244B57,
+                            0xE6C45C,
                             properties
                     )
             );
@@ -939,6 +960,32 @@ public final class EcologyContent {
                                                     .build()
                                     )
                     )
+            );
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> WARFARE_OUTPOST =
+            TABS.register(
+                    "warfare_outpost",
+                    () -> CreativeModeTab.builder()
+                            .title(
+                                    Component.translatable(
+                                            "itemGroup.wayaround.warfare_outpost"
+                                    )
+                            )
+                            .withTabsBefore(
+                                    CreativeModeTabs.SPAWN_EGGS
+                            )
+                            .icon(
+                                    () -> CLEINTON_SPAWN_EGG.get()
+                                            .getDefaultInstance()
+                            )
+                            .displayItems(
+                                    (parameters, output) -> {
+                                        output.accept(
+                                                CLEINTON_SPAWN_EGG.get()
+                                        );
+                                    }
+                            )
+                            .build()
             );
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> AGUA_WORLD =
