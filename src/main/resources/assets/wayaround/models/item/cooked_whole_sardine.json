@@ -1,6 +1,11 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "wayaround:item/whole_sardine_base",
   "textures": {
-    "layer0": "minecraft:item/cooked_salmon"
+    "body": "minecraft:block/brown_terracotta",
+    "back": "minecraft:block/mud_bricks",
+    "belly": "minecraft:block/terracotta",
+    "fin": "minecraft:block/brown_terracotta",
+    "eye": "minecraft:block/black_concrete",
+    "mouth": "minecraft:block/dark_oak_planks"
   }
 }

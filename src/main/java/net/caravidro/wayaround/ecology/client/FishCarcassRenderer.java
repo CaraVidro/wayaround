@@ -5,7 +5,11 @@ import com.mojang.math.Axis;
 import net.caravidro.wayaround.ecology.FishCarcassEntity;
 import net.caravidro.wayaround.ecology.FishProcessingProfile;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -14,23 +18,47 @@ import net.minecraft.world.level.block.state.BlockState;
  * opened and skeleton states are all handled in one place.
  */
 public final class FishCarcassRenderer
-        extends AquaticBlockRenderer<FishCarcassEntity> {
+        extends EntityRenderer<FishCarcassEntity> {
+
+    private final BlockRenderDispatcher blocks;
 
     public FishCarcassRenderer(
             EntityRendererProvider.Context context
     ) {
-        super(
-                context,
-                0.12F
+        super(context);
+        this.blocks = context.getBlockRenderDispatcher();
+        this.shadowRadius = 0.12F;
+    }
+
+    @Override
+    public ResourceLocation getTextureLocation(
+            FishCarcassEntity carcass
+    ) {
+        return ResourceLocation.withDefaultNamespace(
+                "textures/atlas/blocks.png"
         );
     }
 
     @Override
-    protected void applySpeciesPose(
+    public void render(
             FishCarcassEntity carcass,
+            float yaw,
             float partialTick,
-            PoseStack pose
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
     ) {
+        pose.pushPose();
+
+        float scale = carcass.getScale();
+        pose.scale(scale, scale, scale);
+
+        pose.mulPose(
+                Axis.YP.rotationDegrees(
+                        90.0F - yaw
+                )
+        );
+
         pose.translate(
                 0.0,
                 carcass.isInWaterOrBubble()
@@ -62,30 +90,7 @@ public final class FishCarcassRenderer
                     )
             );
         }
-    }
 
-    @Override
-    protected float swimFrequency(
-            FishCarcassEntity fish
-    ) {
-        return 0.0F;
-    }
-
-    @Override
-    protected float bodyRollDegrees(
-            FishCarcassEntity fish
-    ) {
-        return 0.0F;
-    }
-
-    @Override
-    protected void renderFish(
-            FishCarcassEntity carcass,
-            float swim,
-            PoseStack pose,
-            MultiBufferSource buffers,
-            int light
-    ) {
         if (carcass.isSkeleton()) {
             renderSkeleton(
                     carcass.profile(),
@@ -93,27 +98,26 @@ public final class FishCarcassRenderer
                     buffers,
                     light
             );
-
-            return;
+        } else {
+            switch (carcass.profile()) {
+                case SARDINE ->
+                        renderSardine(
+                                carcass,
+                                pose,
+                                buffers,
+                                light
+                        );
+                case SALMON ->
+                        renderSalmon(
+                                carcass,
+                                pose,
+                                buffers,
+                                light
+                        );
+            }
         }
 
-        switch (carcass.profile()) {
-            case SARDINE ->
-                    renderSardine(
-                            carcass,
-                            pose,
-                            buffers,
-                            light
-                    );
-
-            case SALMON ->
-                    renderSalmon(
-                            carcass,
-                            pose,
-                            buffers,
-                            light
-                    );
-        }
+        pose.popPose();
     }
 
     private void renderSardine(
@@ -432,4 +436,67 @@ public final class FishCarcassRenderer
                 pose, buffers, light
         );
     }
+
+    private void cuboid(
+            BlockState state,
+            double x,
+            double y,
+            double z,
+            float width,
+            float height,
+            float depth,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        cuboid(
+                state,
+                x, y, z,
+                width, height, depth,
+                0.0F, 0.0F, 0.0F,
+                pose, buffers, light
+        );
+    }
+
+    private void cuboid(
+            BlockState state,
+            double x,
+            double y,
+            double z,
+            float width,
+            float height,
+            float depth,
+            float rotX,
+            float rotY,
+            float rotZ,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        pose.pushPose();
+        pose.translate(x, y, z);
+
+        if (rotX != 0.0F) {
+            pose.mulPose(Axis.XP.rotationDegrees(rotX));
+        }
+        if (rotY != 0.0F) {
+            pose.mulPose(Axis.YP.rotationDegrees(rotY));
+        }
+        if (rotZ != 0.0F) {
+            pose.mulPose(Axis.ZP.rotationDegrees(rotZ));
+        }
+
+        pose.scale(width, height, depth);
+
+        blocks.renderSingleBlock(
+                state,
+                pose,
+                buffers,
+                light,
+                OverlayTexture.NO_OVERLAY
+        );
+
+        pose.popPose();
+    }
+
 }

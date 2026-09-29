@@ -5,8 +5,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
@@ -15,9 +13,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.AbstractFish;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -28,48 +26,23 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Shared physical carcass for processable fish.
  *
- * The corpse floats toward the surface in water, follows a little of the local
- * current, settles under gravity on land, can be carried/cooked/carved, and can
- * lose flesh when other fish scavenge it.
+ * This deliberately does NOT extend AbstractFish. A corpse should float, drift
+ * and settle, but it should never inherit vanilla's land-flopping behavior.
  */
-public final class FishCarcassEntity
-        extends AbstractFish {
+public final class FishCarcassEntity extends PathfinderMob {
 
     private static final EntityDataAccessor<Integer> PROFILE =
-            SynchedEntityData.defineId(
-                    FishCarcassEntity.class,
-                    EntityDataSerializers.INT
-            );
-
+            SynchedEntityData.defineId(FishCarcassEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> COOKED =
-            SynchedEntityData.defineId(
-                    FishCarcassEntity.class,
-                    EntityDataSerializers.BOOLEAN
-            );
-
+            SynchedEntityData.defineId(FishCarcassEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> LARGE =
-            SynchedEntityData.defineId(
-                    FishCarcassEntity.class,
-                    EntityDataSerializers.BOOLEAN
-            );
-
+            SynchedEntityData.defineId(FishCarcassEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> CUT_OPEN =
-            SynchedEntityData.defineId(
-                    FishCarcassEntity.class,
-                    EntityDataSerializers.BOOLEAN
-            );
-
+            SynchedEntityData.defineId(FishCarcassEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> MEAT_LEFT =
-            SynchedEntityData.defineId(
-                    FishCarcassEntity.class,
-                    EntityDataSerializers.INT
-            );
-
+            SynchedEntityData.defineId(FishCarcassEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> BODY_SCALE =
-            SynchedEntityData.defineId(
-                    FishCarcassEntity.class,
-                    EntityDataSerializers.FLOAT
-            );
+            SynchedEntityData.defineId(FishCarcassEntity.class, EntityDataSerializers.FLOAT);
 
     public FishCarcassEntity(
             EntityType<? extends FishCarcassEntity> type,
@@ -80,26 +53,21 @@ public final class FishCarcassEntity
     }
 
     @Override
+    protected void registerGoals() {
+        // Dead fish have no career goals.
+    }
+
+    @Override
     protected void defineSynchedData(
             SynchedEntityData.Builder builder
     ) {
         super.defineSynchedData(builder);
-
-        builder.define(
-                PROFILE,
-                FishProcessingProfile.SARDINE.networkId()
-        );
-
+        builder.define(PROFILE, FishProcessingProfile.SARDINE.networkId());
         builder.define(COOKED, false);
         builder.define(LARGE, false);
         builder.define(CUT_OPEN, false);
         builder.define(MEAT_LEFT, 1);
         builder.define(BODY_SCALE, 1.0F);
-    }
-
-    @Override
-    protected void registerGoals() {
-        // The dead continue to be impressively unambitious.
     }
 
     @Override
@@ -118,9 +86,7 @@ public final class FishCarcassEntity
                 profile,
                 bodyScale,
                 cooked,
-                profile.isLarge(
-                        bodyScale
-                )
+                profile.isLarge(bodyScale)
         );
     }
 
@@ -137,96 +103,49 @@ public final class FishCarcassEntity
                         8.0F
                 );
 
-        entityData.set(
-                PROFILE,
-                profile.networkId()
-        );
-
-        entityData.set(
-                BODY_SCALE,
-                safeScale
-        );
-
-        entityData.set(
-                COOKED,
-                cooked
-        );
-
-        entityData.set(
-                LARGE,
-                large
-        );
-
-        entityData.set(
-                CUT_OPEN,
-                false
-        );
-
-        entityData.set(
-                MEAT_LEFT,
-                profile.meatUnits(
-                        safeScale
-                )
-        );
+        entityData.set(PROFILE, profile.networkId());
+        entityData.set(BODY_SCALE, safeScale);
+        entityData.set(COOKED, cooked);
+        entityData.set(LARGE, large);
+        entityData.set(CUT_OPEN, false);
+        entityData.set(MEAT_LEFT, profile.meatUnits(safeScale));
 
         AttributeInstance scale =
-                getAttribute(
-                        Attributes.SCALE
-                );
+                getAttribute(Attributes.SCALE);
 
         if (scale != null) {
-            scale.setBaseValue(
-                    safeScale
-            );
-
+            scale.setBaseValue(safeScale);
             refreshDimensions();
         }
 
-        setAirSupply(
-                getMaxAirSupply()
-        );
-
-        setDeltaMovement(
-                Vec3.ZERO
-        );
+        setAirSupply(getMaxAirSupply());
+        setDeltaMovement(Vec3.ZERO);
     }
 
     public FishProcessingProfile profile() {
         return FishProcessingProfile.byNetworkId(
-                entityData.get(
-                        PROFILE
-                )
+                entityData.get(PROFILE)
         );
     }
 
     public float bodyScale() {
-        return entityData.get(
-                BODY_SCALE
-        );
+        return entityData.get(BODY_SCALE);
     }
 
     public boolean isCooked() {
-        return entityData.get(
-                COOKED
-        );
+        return entityData.get(COOKED);
     }
 
     public boolean isLargeCarcass() {
-        return entityData.get(
-                LARGE
-        );
+        return entityData.get(LARGE);
     }
 
     public boolean isCutOpen() {
-        return entityData.get(
-                CUT_OPEN
-        );
+        return entityData.get(CUT_OPEN);
     }
 
     public int meatLeft() {
-        return entityData.get(
-                MEAT_LEFT
-        );
+        return entityData.get(MEAT_LEFT);
     }
 
     public boolean isSkeleton() {
@@ -241,31 +160,19 @@ public final class FishCarcassEntity
         int max =
                 Math.max(
                         1,
-                        profile().meatUnits(
-                                bodyScale()
-                        )
+                        profile().meatUnits(bodyScale())
                 );
 
         float remaining =
                 Mth.clamp(
-                        meatLeft()
-                                / (float) max,
+                        meatLeft() / (float) max,
                         0.0F,
                         1.0F
                 );
 
-        float cookedFactor =
-                isCooked()
-                        ? 0.76F
-                        : 1.0F;
-
         return profile().attractiveness()
-                * (
-                0.60F
-                        + remaining
-                                * 0.40F
-        )
-                * cookedFactor;
+                * (0.60F + remaining * 0.40F)
+                * (isCooked() ? 0.76F : 1.0F);
     }
 
     public ItemStack meatParticleStack() {
@@ -279,8 +186,7 @@ public final class FishCarcassEntity
     public int consumeFlesh(
             int requested
     ) {
-        if (requested <= 0
-                || isSkeleton()) {
+        if (requested <= 0 || isSkeleton()) {
             return 0;
         }
 
@@ -290,16 +196,8 @@ public final class FishCarcassEntity
                         meatLeft()
                 );
 
-        entityData.set(
-                CUT_OPEN,
-                true
-        );
-
-        entityData.set(
-                MEAT_LEFT,
-                meatLeft()
-                        - consumed
-        );
+        entityData.set(CUT_OPEN, true);
+        entityData.set(MEAT_LEFT, meatLeft() - consumed);
 
         return consumed;
     }
@@ -308,14 +206,10 @@ public final class FishCarcassEntity
     public void aiStep() {
         super.aiStep();
 
-        setAirSupply(
-                getMaxAirSupply()
-        );
+        setAirSupply(getMaxAirSupply());
 
         if (isInWaterOrBubble()) {
-            setNoGravity(
-                    true
-            );
+            setNoGravity(true);
 
             Vec3 current =
                     WaterDynamics.currentAround(
@@ -323,31 +217,30 @@ public final class FishCarcassEntity
                             blockPosition()
                     );
 
-            boolean stillSubmerged =
+            boolean deeplySubmerged =
                     level().getFluidState(
-                                    blockPosition()
-                                            .above()
+                                    blockPosition().above()
                             )
-                            .is(
-                                    FluidTags.WATER
-                            );
+                            .is(FluidTags.WATER);
 
+            /*
+             * Bodies slowly rise instead of shooting upward. Once at the
+             * surface the lift becomes tiny, so they visibly bob there.
+             */
             double lift =
-                    stillSubmerged
-                            ? 0.034
-                            : 0.002;
+                    deeplySubmerged
+                            ? 0.030
+                            : 0.0015;
 
             Vec3 motion =
                     getDeltaMovement()
                             .multiply(
-                                    0.78,
-                                    0.44,
-                                    0.78
+                                    0.80,
+                                    0.48,
+                                    0.80
                             )
                             .add(
-                                    current.scale(
-                                            0.13
-                                    )
+                                    current.scale(0.12)
                             )
                             .add(
                                     0.0,
@@ -355,29 +248,22 @@ public final class FishCarcassEntity
                                     0.0
                             );
 
-            setDeltaMovement(
-                    motion
-            );
+            setDeltaMovement(motion);
 
         } else {
-            setNoGravity(
-                    false
-            );
+            setNoGravity(false);
 
             if (onGround()) {
                 Vec3 motion =
                         getDeltaMovement();
 
                 /*
-                 * AbstractFish normally likes doing the dramatic land-flop.
-                 * Corpses are, regrettably, no longer available for acting.
+                 * No inherited fish-flop anymore; this damping just makes the
+                 * body settle quickly instead of ice-skating over terrain.
                  */
                 setDeltaMovement(
                         motion.x * 0.08,
-                        Math.min(
-                                0.0,
-                                motion.y
-                        ),
+                        Math.min(0.0, motion.y),
                         motion.z * 0.08
                 );
             }
@@ -389,10 +275,7 @@ public final class FishCarcassEntity
             DamageSource source,
             float amount
     ) {
-        /*
-         * Processing is interaction-driven. A stray sword swing, explosion or
-         * predator bite must not delete the corpse entity itself.
-         */
+        // Processing is interaction-driven; random damage cannot erase a corpse.
         return false;
     }
 
@@ -406,18 +289,11 @@ public final class FishCarcassEntity
         }
 
         ItemStack held =
-                player.getItemInHand(
-                        hand
-                );
+                player.getItemInHand(hand);
 
-        if (held.getItem()
-                instanceof SwordItem) {
-
+        if (held.getItem() instanceof SwordItem) {
             if (isSkeleton()) {
-                giveBones(
-                        player
-                );
-
+                giveBones(player);
                 return InteractionResult.SUCCESS;
             }
 
@@ -428,18 +304,11 @@ public final class FishCarcassEntity
                                     : profile().rawMeat()
                     );
 
-            if (!player.addItem(
-                    meat
-            )) {
-                player.drop(
-                        meat,
-                        false
-                );
+            if (!player.addItem(meat)) {
+                player.drop(meat, false);
             }
 
-            consumeFlesh(
-                    1
-            );
+            consumeFlesh(1);
 
             level().playSound(
                     null,
@@ -453,27 +322,18 @@ public final class FishCarcassEntity
             return InteractionResult.SUCCESS;
         }
 
-        if (isSkeleton()
-                && held.isEmpty()) {
-            giveBones(
-                    player
-            );
-
+        if (isSkeleton() && held.isEmpty()) {
+            giveBones(player);
             return InteractionResult.SUCCESS;
         }
 
-        if (!held.isEmpty()
-                || isCutOpen()) {
+        if (!held.isEmpty() || isCutOpen()) {
             return InteractionResult.PASS;
         }
 
         if (isLargeCarcass()
-                && (
-                !player.getMainHandItem()
-                        .isEmpty()
-                        || !player.getOffhandItem()
-                        .isEmpty()
-        )) {
+                && (!player.getMainHandItem().isEmpty()
+                || !player.getOffhandItem().isEmpty())) {
             return InteractionResult.FAIL;
         }
 
@@ -490,7 +350,6 @@ public final class FishCarcassEntity
                     InteractionHand.MAIN_HAND,
                     whole
             );
-
         } else {
             player.setItemInHand(
                     hand,
@@ -499,7 +358,6 @@ public final class FishCarcassEntity
         }
 
         discard();
-
         return InteractionResult.SUCCESS;
     }
 
@@ -514,136 +372,58 @@ public final class FishCarcassEntity
                         )
                 );
 
-        if (!player.addItem(
-                bones
-        )) {
-            player.drop(
-                    bones,
-                    false
-            );
+        if (!player.addItem(bones)) {
+            player.drop(bones, false);
         }
 
         discard();
     }
 
     @Override
-    public ItemStack getBucketItemStack() {
-        return ItemStack.EMPTY;
-    }
-
-    @Override
-    protected SoundEvent getFlopSound() {
-        return SoundEvents.COD_FLOP;
-    }
-
-    @Override
     public void addAdditionalSaveData(
             CompoundTag tag
     ) {
-        super.addAdditionalSaveData(
-                tag
-        );
+        super.addAdditionalSaveData(tag);
 
-        tag.putInt(
-                "FishCarcassProfile",
-                profile().networkId()
-        );
-
-        tag.putBoolean(
-                "FishCarcassCooked",
-                isCooked()
-        );
-
-        tag.putBoolean(
-                "FishCarcassLarge",
-                isLargeCarcass()
-        );
-
-        tag.putBoolean(
-                "FishCarcassCutOpen",
-                isCutOpen()
-        );
-
-        tag.putInt(
-                "FishCarcassMeat",
-                meatLeft()
-        );
-
-        tag.putFloat(
-                "FishCarcassScale",
-                bodyScale()
-        );
+        tag.putInt("FishCarcassProfile", profile().networkId());
+        tag.putBoolean("FishCarcassCooked", isCooked());
+        tag.putBoolean("FishCarcassLarge", isLargeCarcass());
+        tag.putBoolean("FishCarcassCutOpen", isCutOpen());
+        tag.putInt("FishCarcassMeat", meatLeft());
+        tag.putFloat("FishCarcassScale", bodyScale());
     }
 
     @Override
     public void readAdditionalSaveData(
             CompoundTag tag
     ) {
-        super.readAdditionalSaveData(
-                tag
-        );
+        super.readAdditionalSaveData(tag);
 
-        entityData.set(
-                PROFILE,
-                tag.getInt(
-                        "FishCarcassProfile"
-                )
-        );
-
-        entityData.set(
-                COOKED,
-                tag.getBoolean(
-                        "FishCarcassCooked"
-                )
-        );
-
-        entityData.set(
-                LARGE,
-                tag.getBoolean(
-                        "FishCarcassLarge"
-                )
-        );
-
-        entityData.set(
-                CUT_OPEN,
-                tag.getBoolean(
-                        "FishCarcassCutOpen"
-                )
-        );
-
+        entityData.set(PROFILE, tag.getInt("FishCarcassProfile"));
+        entityData.set(COOKED, tag.getBoolean("FishCarcassCooked"));
+        entityData.set(LARGE, tag.getBoolean("FishCarcassLarge"));
+        entityData.set(CUT_OPEN, tag.getBoolean("FishCarcassCutOpen"));
         entityData.set(
                 MEAT_LEFT,
                 Math.max(
                         0,
-                        tag.getInt(
-                                "FishCarcassMeat"
-                        )
+                        tag.getInt("FishCarcassMeat")
                 )
         );
 
         float scaleValue =
                 Math.max(
                         0.08F,
-                        tag.getFloat(
-                                "FishCarcassScale"
-                        )
+                        tag.getFloat("FishCarcassScale")
                 );
 
-        entityData.set(
-                BODY_SCALE,
-                scaleValue
-        );
+        entityData.set(BODY_SCALE, scaleValue);
 
         AttributeInstance scale =
-                getAttribute(
-                        Attributes.SCALE
-                );
+                getAttribute(Attributes.SCALE);
 
         if (scale != null) {
-            scale.setBaseValue(
-                    scaleValue
-            );
-
+            scale.setBaseValue(scaleValue);
             refreshDimensions();
         }
     }

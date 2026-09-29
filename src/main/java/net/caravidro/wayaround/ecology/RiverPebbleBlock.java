@@ -250,23 +250,150 @@ public final class RiverPebbleBlock
             return;
         }
 
-        Block.dropResources(
-                state,
-                level,
+        /*
+         * Unsupported pebbles are not loot. In water they rise through the
+         * column and become a little floating patch at the surface; on dry
+         * land they simply remain where they are until a player breaks them.
+         *
+         * Only an actual player break should materialize the item drop.
+         */
+        if (!state.getValue(
+                WATERLOGGED
+        )
+                && !level.getFluidState(
                 pos
-        );
+        ).is(
+                FluidTags.WATER
+        )) {
+            return;
+        }
 
-        level.setBlock(
-                pos,
-                state.getValue(
-                        WATERLOGGED
-                )
-                        ? Fluids.WATER
+        BlockPos.MutableBlockPos cursor =
+                pos.mutable();
+
+        BlockPos best =
+                pos;
+
+        for (int i = 0;
+             i < 64;
+             i++) {
+
+            BlockPos above =
+                    cursor.above();
+
+            if (!level.getFluidState(
+                    above
+            ).is(
+                    FluidTags.WATER
+            )) {
+                break;
+            }
+
+            cursor.move(
+                    Direction.UP
+            );
+
+            best =
+                    cursor.immutable();
+        }
+
+        if (best.equals(
+                pos
+        )) {
+            return;
+        }
+
+        BlockState surfaceState =
+                level.getBlockState(
+                        best
+                );
+
+        if (surfaceState.is(
+                this
+        )) {
+            int room =
+                    15
+                            - surfaceState.getValue(
+                            COUNT
+                    );
+
+            if (room <= 0) {
+                return;
+            }
+
+            int moving =
+                    state.getValue(
+                            COUNT
+                    );
+
+            int transferred =
+                    Math.min(
+                            room,
+                            moving
+                    );
+
+            level.setBlockAndUpdate(
+                    best,
+                    surfaceState
+                            .setValue(
+                                    COUNT,
+                                    surfaceState.getValue(
+                                            COUNT
+                                    )
+                                            + transferred
+                            )
+                            .setValue(
+                                    WATERLOGGED,
+                                    true
+                            )
+            );
+
+            int left =
+                    moving
+                            - transferred;
+
+            if (left <= 0) {
+                level.setBlockAndUpdate(
+                        pos,
+                        Fluids.WATER
                                 .defaultFluidState()
                                 .createLegacyBlock()
-                        : net.minecraft.world.level.block.Blocks.AIR
-                                .defaultBlockState(),
-                Block.UPDATE_ALL
+                );
+            } else {
+                level.setBlockAndUpdate(
+                        pos,
+                        state.setValue(
+                                COUNT,
+                                left
+                        )
+                );
+            }
+
+            return;
+        }
+
+        if (!level.getFluidState(
+                best
+        ).is(
+                FluidTags.WATER
+        )) {
+            return;
+        }
+
+        level.setBlockAndUpdate(
+                best,
+                state
+                        .setValue(
+                                WATERLOGGED,
+                                true
+                        )
+        );
+
+        level.setBlockAndUpdate(
+                pos,
+                Fluids.WATER
+                        .defaultFluidState()
+                        .createLegacyBlock()
         );
     }
 

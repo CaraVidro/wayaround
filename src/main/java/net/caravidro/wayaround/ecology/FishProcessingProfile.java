@@ -167,10 +167,6 @@ public enum FishProcessingProfile {
     public static FishProcessingProfile fromFish(
             AbstractFish fish
     ) {
-        if (fish instanceof FishCarcassEntity carcass) {
-            return carcass.profile();
-        }
-
         if (fish instanceof SardineEntity) {
             return SARDINE;
         }

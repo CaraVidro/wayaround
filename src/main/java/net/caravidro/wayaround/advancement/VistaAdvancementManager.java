@@ -5,9 +5,11 @@ import java.util.function.Predicate;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.JellyfishEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
+import net.caravidro.wayaround.ecology.WhaleEntity;
+import net.caravidro.wayaround.ecology.ai.LivingFaunaManager;
+import net.minecraft.world.entity.animal.AbstractFish;
 import net.caravidro.wayaround.ecology.SunfishEntity;
 import net.caravidro.wayaround.ecology.WhaleCarcassEntity;
-import net.caravidro.wayaround.ecology.WhaleEntity;
 import net.caravidro.wayaround.oldfriend.HerobrineEntity;
 import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 import net.caravidro.wayaround.worldgen.weather.fire.SmokeVolumeEntity;
@@ -153,12 +155,16 @@ public final class VistaAdvancementManager {
             if (seenNearby(
                     level,
                     player,
-                    OarfishEntity.class,
-                    24.0,
-                    0.50,
-                    fish -> true
+                    AbstractFish.class,
+                    30.0,
+                    0.55,
+                    fish ->
+                            !(fish instanceof WhaleEntity)
+                                    && LivingFaunaManager.fishSize(
+                                    fish
+                            ) >= 4.0F
             )) {
-                WayAroundAdvancements.vistaOarfish(
+                WayAroundAdvancements.vistaGiantFish(
                         player
                 );
             }

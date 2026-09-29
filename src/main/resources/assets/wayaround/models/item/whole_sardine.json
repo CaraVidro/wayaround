@@ -1,6 +1,11 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "wayaround:item/whole_sardine_base",
   "textures": {
-    "layer0": "minecraft:item/cod"
+    "body": "minecraft:block/light_gray_concrete",
+    "back": "minecraft:block/gray_concrete",
+    "belly": "minecraft:block/white_concrete",
+    "fin": "minecraft:block/light_blue_concrete",
+    "eye": "minecraft:block/black_concrete",
+    "mouth": "minecraft:block/dark_prismarine"
   }
 }

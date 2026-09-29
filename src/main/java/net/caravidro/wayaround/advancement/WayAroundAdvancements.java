@@ -257,7 +257,7 @@ public final class WayAroundAdvancements {
         );
     }
 
-    public static void vistaOarfish(
+    public static void vistaGiantFish(
             ServerPlayer player
     ) {
         vistaRoot(

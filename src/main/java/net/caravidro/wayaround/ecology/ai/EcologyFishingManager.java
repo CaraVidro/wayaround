@@ -4,7 +4,6 @@ import java.util.Comparator;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.ecology.FishCarcassEntity;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.particles.ParticleTypes;
@@ -153,6 +152,41 @@ public final class EcologyFishingManager {
                         hook
                 );
 
+        Entity physicallyHooked =
+                hook.getHookedIn();
+
+        if (physicallyHooked
+                instanceof AbstractFish physicalFish
+                && physicalFish.isAlive()) {
+            target =
+                    physicalFish;
+
+            setTarget(
+                    hook,
+                    physicalFish
+            );
+
+            data.putBoolean(
+                    HOOKED,
+                    true
+            );
+
+            physicalFish.getNavigation()
+                    .stop();
+
+            physicalFish.getPersistentData()
+                    .putLong(
+                            LivingFaunaManager.FISH_LURE_UNTIL,
+                            now + 220L
+                    );
+        }
+
+        if (target == null
+                && physicallyHooked != null) {
+            // The bobber hit some other entity; do not magnetize a fish through it.
+            return;
+        }
+
         if (target == null
                 && wasHooked) {
             return;
@@ -163,7 +197,7 @@ public final class EcologyFishingManager {
                     nearestFish(
                             level,
                             hook.position(),
-                            14.0
+                            6.0
                     );
 
             if (target == null) {
@@ -241,7 +275,7 @@ public final class EcologyFishingManager {
                         speed
                 );
 
-        if (distance <= 0.90
+        if (distance <= 0.62
                 && now >= data.getLong(
                 BITE_READY
         )) {
@@ -262,6 +296,25 @@ public final class EcologyFishingManager {
                     hook,
                     target
             );
+
+            // A real bite visibly drags the bobber under instead of freezing it.
+            hook.setPos(
+                    hook.getX(),
+                    hook.getY() - 0.14,
+                    hook.getZ()
+            );
+
+            hook.setDeltaMovement(
+                    hook.getDeltaMovement()
+                            .add(
+                                    0.0,
+                                    -0.20,
+                                    0.0
+                            )
+            );
+
+            hook.hasImpulse =
+                    true;
 
             level.playSound(
                     null,
@@ -396,12 +449,32 @@ public final class EcologyFishingManager {
                 );
 
         if (target == null) {
-            target =
-                    nearestFish(
-                            level,
-                            hook.position(),
-                            15.0
-                    );
+            Entity physicallyHooked =
+                    hook.getHookedIn();
+
+            if (physicallyHooked
+                    instanceof AbstractFish physicalFish
+                    && physicalFish.isAlive()) {
+                target =
+                        physicalFish;
+
+                setTarget(
+                        hook,
+                        physicalFish
+                );
+
+                data.putBoolean(
+                        HOOKED,
+                        true
+                );
+            } else {
+                target =
+                        nearestFish(
+                                level,
+                                hook.position(),
+                                6.5
+                        );
+            }
 
             if (target == null) {
                 pullLooseLine(
@@ -433,7 +506,7 @@ public final class EcologyFishingManager {
                         HOOKED
                 )
                         || (
-                        biteDistance <= 1.35
+                        biteDistance <= 0.82
                                 && now >= data.getLong(
                                 BITE_READY
                         )
@@ -599,13 +672,36 @@ public final class EcologyFishingManager {
             FishingHook hook,
             AbstractFish fish
     ) {
+        Vec3 forward =
+                fish.getLookAngle();
+
+        if (forward.lengthSqr()
+                > 0.0001) {
+            forward =
+                    forward.normalize()
+                            .scale(
+                                    Math.max(
+                                            0.10,
+                                            fish.getBbWidth()
+                                                    * 0.34
+                                    )
+                            );
+        } else {
+            forward =
+                    Vec3.ZERO;
+        }
+
         Vec3 mouth =
                 fish.position()
                         .add(
-                                0.0,
-                                fish.getBbHeight()
-                                        * 0.48,
-                                0.0
+                                forward.x,
+                                Math.max(
+                                        0.04,
+                                        fish.getBbHeight()
+                                                * 0.30
+                                )
+                                        - 0.10,
+                                forward.z
                         );
 
         hook.setPos(
@@ -617,6 +713,9 @@ public final class EcologyFishingManager {
         hook.setDeltaMovement(
                 fish.getDeltaMovement()
         );
+
+        hook.hasImpulse =
+                true;
     }
 
     private static void pullLooseLine(
@@ -896,7 +995,6 @@ public final class EcologyFishingManager {
                         ),
                         fish ->
                                 fish.isAlive()
-                                        && !(fish instanceof FishCarcassEntity)
                                         && fish.getPersistentData()
                                                 .getLong(
                                                         LivingFaunaManager.FISH_SCARED_UNTIL
@@ -941,8 +1039,7 @@ public final class EcologyFishingManager {
 
         if (entity
                 instanceof AbstractFish fish
-                && fish.isAlive()
-                && !(fish instanceof FishCarcassEntity)) {
+                && fish.isAlive()) {
             return fish;
         }
 

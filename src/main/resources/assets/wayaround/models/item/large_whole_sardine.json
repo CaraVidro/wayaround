@@ -1,6 +1,132 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "wayaround:item/whole_sardine_base",
   "textures": {
-    "layer0": "minecraft:item/cod"
+    "body": "minecraft:block/light_gray_concrete",
+    "back": "minecraft:block/gray_concrete",
+    "belly": "minecraft:block/white_concrete",
+    "fin": "minecraft:block/light_blue_concrete",
+    "eye": "minecraft:block/black_concrete",
+    "mouth": "minecraft:block/dark_prismarine"
+  },
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [
+        0,
+        90,
+        32
+      ],
+      "translation": [
+        0,
+        1,
+        0
+      ],
+      "scale": [
+        0.92,
+        0.92,
+        0.92
+      ]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [
+        0,
+        -90,
+        -32
+      ],
+      "translation": [
+        0,
+        1,
+        0
+      ],
+      "scale": [
+        0.92,
+        0.92,
+        0.92
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        5,
+        88,
+        18
+      ],
+      "translation": [
+        0.3,
+        2,
+        0
+      ],
+      "scale": [
+        1.04,
+        1.04,
+        1.04
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        5,
+        -88,
+        -18
+      ],
+      "translation": [
+        0.3,
+        2,
+        0
+      ],
+      "scale": [
+        1.04,
+        1.04,
+        1.04
+      ]
+    },
+    "gui": {
+      "rotation": [
+        22,
+        135,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.96,
+        0.96,
+        0.96
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        2,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    }
   }
 }

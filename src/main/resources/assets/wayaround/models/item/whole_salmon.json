@@ -1,6 +1,11 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "wayaround:item/whole_salmon_base",
   "textures": {
-    "layer0": "minecraft:item/salmon"
+    "body": "minecraft:block/gray_concrete",
+    "flank": "minecraft:block/pink_terracotta",
+    "belly": "minecraft:block/white_concrete",
+    "fin": "minecraft:block/dark_prismarine",
+    "eye": "minecraft:block/black_concrete",
+    "mouth": "minecraft:block/red_terracotta"
   }
 }

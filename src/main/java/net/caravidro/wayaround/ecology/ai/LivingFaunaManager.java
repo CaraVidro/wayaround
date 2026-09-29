@@ -296,7 +296,6 @@ public final class LivingFaunaManager {
     ) {
         if (!(event.getEntity()
                 instanceof AbstractFish fish)
-                || fish instanceof FishCarcassEntity
                 || !(fish.level()
                 instanceof ServerLevel level)
                 || !WorldFeatureRuntime.serverEnabled(
@@ -797,10 +796,6 @@ public final class LivingFaunaManager {
                 if (!touched.add(
                         fish.getUUID()
                 )) {
-                    continue;
-                }
-
-                if (fish instanceof FishCarcassEntity) {
                     continue;
                 }
 
@@ -1728,7 +1723,6 @@ public final class LivingFaunaManager {
                                 candidate ->
                                         candidate.isAlive()
                                                 && candidate != hunter
-                                                && !(candidate instanceof FishCarcassEntity)
                                                 && !(candidate instanceof AquaticPredator)
                                                 && !(candidate instanceof WhaleEntity)
                                                 && predatorAcceptsPrey(

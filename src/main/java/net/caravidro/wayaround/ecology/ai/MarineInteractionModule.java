@@ -5,7 +5,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.ecology.AquaticPredator;
-import net.caravidro.wayaround.ecology.FishCarcassEntity;
 import net.caravidro.wayaround.ecology.MantaRayEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.SeagullEntity;
@@ -724,7 +723,6 @@ public final class MarineInteractionModule {
                         fish ->
                                 fish.isAlive()
                                         && !fish.isPassenger()
-                                        && !(fish instanceof FishCarcassEntity)
                                         && !(fish instanceof WhaleEntity)
                                         && !(fish instanceof MantaRayEntity)
                                         && !(fish instanceof OarfishEntity)

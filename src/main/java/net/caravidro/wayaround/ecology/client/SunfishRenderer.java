@@ -403,7 +403,7 @@ public final class SunfishRenderer
 
         if (scars >= 1) {
             scar(
-                    -0.24, 0.12, -0.178,
+                    -0.24, 0.12, -0.240,
                     18.0F,
                     pose, buffers, light
             );
@@ -411,7 +411,7 @@ public final class SunfishRenderer
 
         if (scars >= 2) {
             scar(
-                    0.02, -0.20, 0.154,
+                    0.02, -0.20, 0.212,
                     -24.0F,
                     pose, buffers, light
             );
@@ -419,7 +419,7 @@ public final class SunfishRenderer
 
         if (scars >= 3) {
             scar(
-                    -0.40, -0.35, -0.180,
+                    -0.40, -0.35, -0.242,
                     33.0F,
                     pose, buffers, light
             );
@@ -427,7 +427,7 @@ public final class SunfishRenderer
 
         if (scars >= 4) {
             scar(
-                    0.18, 0.28, 0.156,
+                    0.18, 0.28, 0.214,
                     -11.0F,
                     pose, buffers, light
             );
@@ -448,9 +448,9 @@ public final class SunfishRenderer
                 x,
                 y,
                 z,
-                0.055F,
-                0.28F,
-                0.026F,
+                0.060F,
+                0.30F,
+                0.020F,
                 0.0F,
                 0.0F,
                 angle,
@@ -464,9 +464,9 @@ public final class SunfishRenderer
                 x + 0.045,
                 y + 0.025,
                 z,
-                0.035F,
-                0.20F,
-                0.027F,
+                0.040F,
+                0.22F,
+                0.021F,
                 0.0F,
                 0.0F,
                 angle - 8.0F,
