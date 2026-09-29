@@ -1111,6 +1111,11 @@ public final class NexustorRenderer
     public boolean shouldRenderOffScreen(
             NexustorBaseBlockEntity reactor
     ) {
-        return false;
+        /*
+         * The procedural model extends well beyond the one-block BlockEntity
+         * bounds. Keep the special off-screen allowance to avoid edge popping;
+         * the shorter view distance above provides the useful cost bound.
+         */
+        return true;
     }
 }
