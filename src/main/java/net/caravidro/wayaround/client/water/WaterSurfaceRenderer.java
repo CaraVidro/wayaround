@@ -12,6 +12,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.ship.NauticalSeaState;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -166,10 +167,35 @@ public final class WaterSurfaceRenderer {
                         time
                 );
 
+        NauticalSeaState.Sample sea =
+                NauticalSeaState.sample(
+                        minecraft.level,
+                        BlockPos.containing(
+                                camera
+                        ),
+                        time
+                );
+
+        /*
+         * Protected/coastal water keeps short chop. Deep ocean receives a
+         * deliberately exaggerated long swell so the Great Voyages ships read
+         * as being on a real sea rather than a moving blue floor.
+         */
         double amplitude =
-                0.018
-                + weather.warning()
-                * 0.055;
+                (
+                        0.030
+                                + sea.exposure()
+                                * 0.165
+                                + weather.warning()
+                                * 0.050
+                                + sea.storm()
+                                * 0.060
+                )
+                        * (
+                        0.74
+                                + sea.swell()
+                                * 0.42
+                );
 
         PoseStack stack =
                 event.getPoseStack();
@@ -781,25 +807,56 @@ public final class WaterSurfaceRenderer {
             int x,
             int z,
             long time,
-            double amplitude
+            double amplitude,
+            float exposure
     ) {
         double t =
                 time * 0.10;
 
-        return Mth.sin(
+        double shortChop =
+                Mth.sin(
                         (float) (
                                 x * 0.38
                                         + z * 0.21
                                         + t
                         )
-                ) * amplitude
-                + Mth.sin(
+                )
+                        * amplitude
+                        * (
+                        1.0
+                                - exposure
+                                * 0.48
+                );
+
+        double crossChop =
+                Mth.sin(
                         (float) (
                                 x * 0.13
                                         - z * 0.31
                                         + t * 0.63
                         )
-                ) * amplitude * 0.45;
+                )
+                        * amplitude
+                        * 0.35;
+
+        double openSwell =
+                Mth.sin(
+                        (float) (
+                                x * 0.060
+                                        + z * 0.047
+                                        + t * 0.31
+                        )
+                )
+                        * amplitude
+                        * (
+                        0.28
+                                + exposure
+                                * 1.05
+                );
+
+        return shortChop
+                + crossChop
+                + openSwell;
     }
 
     private record WaterSurface(
