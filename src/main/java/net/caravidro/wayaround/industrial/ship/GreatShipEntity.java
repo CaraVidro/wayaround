@@ -1934,14 +1934,21 @@ public final class GreatShipEntity
         int severity =
                 seaSeverityPercent();
 
-        if (severity < 18
+        float breaker =
+                waveResponse.breaker();
+
+        if ((severity < 16
+                && breaker < 0.18F)
                 || tickCount % 3 != 0) {
             return;
         }
 
         double factor =
-                severity
-                        / 100.0;
+                Math.max(
+                        severity
+                                / 100.0,
+                        breaker
+                );
 
         Vec3 bow =
                 localToWorld(
@@ -2007,18 +2014,24 @@ public final class GreatShipEntity
          * through the masts/crew. It is deliberately theatrical rather than a
          * full volumetric breaker.
          */
-        if (severity >= 60
+        if (breaker >= 0.58F
                 && random.nextInt(
                 Math.max(
-                        10,
-                        46 - severity / 2
+                        6,
+                        24
+                                - Math.round(
+                                breaker
+                                        * 16.0F
+                        )
                 )
         ) == 0) {
 
             int high =
-                    18
-                            + severity
-                            / 5;
+                    22
+                            + Math.round(
+                            breaker
+                                    * 28.0F
+                    );
 
             for (int i = 0;
                  i < high;
@@ -2041,9 +2054,9 @@ public final class GreatShipEntity
                                         2.5
                                                 + random.nextDouble()
                                                 * (
-                                                7.0
-                                                        + factor
-                                                        * 13.0
+                                                8.0
+                                                        + breaker
+                                                        * 18.0
                                         ),
                                         along
                                 )
