@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "13";
+            "14";
 
     private WayAroundNetwork() {
     }
@@ -219,6 +219,12 @@ public final class WayAroundNetwork {
                 JujutsuCastC2SPayload.TYPE,
                 JujutsuCastC2SPayload.STREAM_CODEC,
                 JujutsuCastC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                JujutsuMenuStateC2SPayload.TYPE,
+                JujutsuMenuStateC2SPayload.STREAM_CODEC,
+                JujutsuMenuStateC2SPayload::handle
         );
 
         registrar.playToClient(
