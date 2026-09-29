@@ -1311,16 +1311,21 @@ public final class AccessoryManager {
         }
 
         /*
-         * Changes sync immediately; this slower refresh also handles players
-         * entering another player's tracking range.
+         * Changes sync immediately. The periodic refresh exists only so a
+         * player entering tracking range eventually learns another player's
+         * cosmetics. Do not burst-sync the entire server every two seconds:
+         * stagger refreshes by entity id over a five-second window.
          */
-        if (tick % 40L != 0L) {
-            return;
-        }
-
         for (ServerPlayer player :
                 server.getPlayerList()
                         .getPlayers()) {
+            if (Math.floorMod(
+                    tick + player.getId(),
+                    100L
+            ) != 0L) {
+                continue;
+            }
+
             sync(
                     player
             );
