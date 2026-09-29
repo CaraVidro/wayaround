@@ -1732,9 +1732,9 @@ public final class GreatShipEntity
                                         2.5
                                                 + random.nextDouble()
                                                 * (
-                                                4.0
+                                                7.0
                                                         + factor
-                                                        * 8.0
+                                                        * 13.0
                                         ),
                                         along
                                 )
