@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.KrakenShakeS2CPayload;
+import net.caravidro.wayaround.industrial.ship.SailingShipEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -1579,6 +1580,53 @@ public final class KrakenManager {
                             site.surface + 8.0,
                             z + 5.0
                     );
+
+            for (SailingShipEntity ship :
+                    level.getEntitiesOfClass(
+                            SailingShipEntity.class,
+                            hitBox
+                    )) {
+
+                Vec3 away =
+                        ship.position()
+                                .subtract(
+                                        x + 0.5,
+                                        site.surface,
+                                        z + 0.5
+                                );
+
+                if (away.lengthSqr() < 0.01) {
+                    away =
+                            new Vec3(
+                                    1.0,
+                                    0.0,
+                                    0.0
+                            );
+                }
+
+                Vec3 shove =
+                        new Vec3(
+                                away.x,
+                                0.0,
+                                away.z
+                        )
+                                .normalize()
+                                .scale(
+                                        0.62
+                                );
+
+                ship.push(
+                        shove.x,
+                        0.20,
+                        shove.z
+                );
+
+                ship.hurt(
+                        level.damageSources()
+                                .generic(),
+                        18.0F
+                );
+            }
 
             for (LivingEntity living :
                     level.getEntitiesOfClass(
