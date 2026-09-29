@@ -70,6 +70,12 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
                 )
         );
 
+        applySpeciesPose(
+                fish,
+                partialTick,
+                pose
+        );
+
         float age = fish.tickCount + partialTick;
         float swim = Mth.sin(age * swimFrequency(fish));
 
@@ -92,6 +98,14 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
 
         // Do not call super.render(...): Agua World fauna never renders a
         // floating name tag, even if an entity receives a custom name.
+    }
+
+    protected void applySpeciesPose(
+            T fish,
+            float partialTick,
+            PoseStack pose
+    ) {
+        // Default species keep the shared upright swimming pose.
     }
 
     protected float swimFrequency(T fish) {
