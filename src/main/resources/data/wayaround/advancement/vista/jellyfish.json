@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:vista/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:glow_ink_sac"
+    },
+    "title": {
+      "translate": "advancements.wayaround.vista.jellyfish.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.vista.jellyfish.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "seen": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
