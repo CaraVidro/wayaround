@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.network;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldconfig.WaveMode;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.worldconfig.WorldFeatureSettings;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -11,7 +12,8 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record WorldFeatureConfigS2CPayload(
-        long enabledMask
+        long enabledMask,
+        int waveMode
 ) implements CustomPacketPayload {
 
     public static final Type<WorldFeatureConfigS2CPayload> TYPE =
@@ -27,13 +29,19 @@ public record WorldFeatureConfigS2CPayload(
             WorldFeatureConfigS2CPayload
             > STREAM_CODEC =
             StreamCodec.of(
-                    (buf, payload) ->
-                            buf.writeLong(
-                                    payload.enabledMask()
-                            ),
+                    (buf, payload) -> {
+                        buf.writeLong(
+                                payload.enabledMask()
+                        );
+
+                        buf.writeVarInt(
+                                payload.waveMode()
+                        );
+                    },
                     buf ->
                             new WorldFeatureConfigS2CPayload(
-                                    buf.readLong()
+                                    buf.readLong(),
+                                    buf.readVarInt()
                             )
             );
 
@@ -51,12 +59,22 @@ public record WorldFeatureConfigS2CPayload(
         }
 
         context.enqueueWork(
-                () ->
-                        WorldFeatureRuntime.applyClient(
-                                WorldFeatureSettings.fromMask(
-                                        payload.enabledMask()
-                                )
-                        )
+                () -> {
+                    WorldFeatureSettings settings =
+                            WorldFeatureSettings.fromMask(
+                                    payload.enabledMask()
+                            );
+
+                    settings.setWaveMode(
+                            WaveMode.fromNetwork(
+                                    payload.waveMode()
+                            )
+                    );
+
+                    WorldFeatureRuntime.applyClient(
+                            settings
+                    );
+                }
         );
     }
 }
