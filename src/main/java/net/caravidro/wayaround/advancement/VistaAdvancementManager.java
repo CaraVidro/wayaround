@@ -216,6 +216,8 @@ public final class VistaAdvancementManager {
             }
 
         }
+    }
+
     private static boolean actuallySeen(
             ServerPlayer player,
             Entity target,
@@ -259,7 +261,5 @@ public final class VistaAdvancementManager {
                 && player.hasLineOfSight(
                 target
         );
-    }
-
     }
 }
