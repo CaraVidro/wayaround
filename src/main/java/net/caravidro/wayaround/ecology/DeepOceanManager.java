@@ -1,5 +1,10 @@
 package net.caravidro.wayaround.ecology;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.accessory.AccessoryKind;
 import net.caravidro.wayaround.accessory.AccessoryManager;
@@ -14,6 +19,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 /**
  * Player-facing abyss rules for vanilla deep-ocean biomes after Way Around's
@@ -21,6 +27,15 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
  */
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class DeepOceanManager {
+
+    /*
+     * The legacy floating-decoration cleanup is intentionally expensive: it
+     * samples many vertical block columns. Once a loaded ocean chunk has been
+     * repaired there is no reason to rescan it every two seconds while a player
+     * swims in circles. Keep a per-level session cache and pay that cost once.
+     */
+    private static final Map<ServerLevel, Set<Long>> CLEANED_DECOR_CHUNKS =
+            new HashMap<>();
 
     private DeepOceanManager() {
     }
@@ -50,7 +65,7 @@ public final class DeepOceanManager {
             }
 
             if ((now % 40L) == 0L) {
-                cleanLegacyFloatingOceanDecor(
+                cleanLegacyFloatingOceanDecorOnce(
                         player.serverLevel(),
                         player.blockPosition()
                 );
@@ -120,6 +135,38 @@ public final class DeepOceanManager {
                 );
             }
         }
+    }
+
+    private static void cleanLegacyFloatingOceanDecorOnce(
+            ServerLevel level,
+            BlockPos center
+    ) {
+        int chunkX =
+                center.getX() >> 4;
+
+        int chunkZ =
+                center.getZ() >> 4;
+
+        long key =
+                ((long) chunkX << 32)
+                        ^ (chunkZ & 0xffffffffL);
+
+        Set<Long> cleaned =
+                CLEANED_DECOR_CHUNKS.computeIfAbsent(
+                        level,
+                        ignored -> new HashSet<>()
+                );
+
+        if (!cleaned.add(
+                key
+        )) {
+            return;
+        }
+
+        cleanLegacyFloatingOceanDecor(
+                level,
+                center
+        );
     }
 
     private static void cleanLegacyFloatingOceanDecor(
@@ -282,6 +329,13 @@ public final class DeepOceanManager {
                 .orElse(
                         false
                 );
+    }
+
+    @SubscribeEvent
+    public static void onServerStopped(
+            ServerStoppedEvent event
+    ) {
+        CLEANED_DECOR_CHUNKS.clear();
     }
 
     public static boolean isDeepOcean(
