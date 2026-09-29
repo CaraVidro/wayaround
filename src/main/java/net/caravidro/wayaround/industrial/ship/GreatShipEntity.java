@@ -1103,6 +1103,14 @@ public final class GreatShipEntity
                 previousYaw
         );
 
+        /*
+         * The full-hull solver already accounted for this impact. Clear the
+         * controller collision flag so tickNavigation does not charge the same
+         * cliff hit a second time.
+         */
+        horizontalCollision =
+                false;
+
         Vec3 velocity =
                 getDeltaMovement();
 
