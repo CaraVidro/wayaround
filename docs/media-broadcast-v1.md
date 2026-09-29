@@ -254,3 +254,7 @@ no physical-client references in their handlers.
 This protects NeoForge dedicated servers from loading client-only classes while
 `RegisterPayloadHandlersEvent` is being dispatched.
 
+The Gradle `check` task also runs `verifyDedicatedSafeNetwork`, which rejects
+physical-client imports from the common `network/` package before a build can
+be considered green.
+
