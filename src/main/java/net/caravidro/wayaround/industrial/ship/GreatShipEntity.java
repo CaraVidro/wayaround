@@ -2000,13 +2000,11 @@ public final class GreatShipEntity
     }
 
     public int headingDegrees() {
-        return Mth.floor(
-                Math.floorMod(
-                        Math.round(
-                                getYRot()
-                        ),
-                        360
-                )
+        return Math.floorMod(
+                Mth.floor(
+                        getYRot()
+                ),
+                360
         );
     }
 
