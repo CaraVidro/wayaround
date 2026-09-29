@@ -15,12 +15,16 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.worldconfig.WaveMode;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.worldgen.water.wave.OceanWaveField;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -54,6 +58,9 @@ public final class ShoreWaveRenderer {
     private static final Map<Long, WetMark> WET_MARKS =
             new HashMap<>();
 
+    private static final Map<Long, Long> WALL_SPLASH_AT =
+            new HashMap<>();
+
     private static int cachedX =
             Integer.MIN_VALUE;
 
@@ -77,7 +84,9 @@ public final class ShoreWaveRenderer {
 
         if (!WorldFeatureRuntime.clientEnabled(
                 WorldFeature.WATER_DYNAMICS
-        )) {
+        )
+                || WorldFeatureRuntime.clientWaveMode()
+                != WaveMode.REALISTIC) {
             clear();
             return;
         }
@@ -127,6 +136,13 @@ public final class ShoreWaveRenderer {
                     .removeIf(
                             entry -> entry.getValue()
                                     .expiresAt()
+                                    < time
+                    );
+
+            WALL_SPLASH_AT.entrySet()
+                    .removeIf(
+                            entry -> entry.getValue()
+                                    + 80L
                                     < time
                     );
         }
@@ -223,6 +239,17 @@ public final class ShoreWaveRenderer {
                     );
 
             if (covered) {
+                if (patch.wall()) {
+                    impactWall(
+                            minecraft,
+                            patch,
+                            sample,
+                            time
+                    );
+
+                    continue;
+                }
+
                 float coverage =
                         Mth.clamp(
                                 (
@@ -591,16 +618,6 @@ public final class ShoreWaveRenderer {
                         continue;
                     }
 
-                    if (!isSand(
-                            state
-                    )) {
-                        if (step <= 2) {
-                            continue;
-                        }
-
-                        break;
-                    }
-
                     float distance =
                             (float) Math.sqrt(
                                     (
@@ -619,6 +636,20 @@ public final class ShoreWaveRenderer {
                                     )
                             );
 
+                    /*
+                     * Run-up is allowed over ANY solid surface whose top sits
+                     * at the current shoreline level. Sand gets no privileged
+                     * treatment anymore. A higher top becomes an impact wall.
+                     */
+                    boolean wall =
+                            landY
+                                    > water.getY();
+
+                    if (landY
+                            < water.getY() - 1) {
+                        continue;
+                    }
+
                     long key =
                             BlockPos.asLong(
                                     landX,
@@ -631,7 +662,9 @@ public final class ShoreWaveRenderer {
                                     landX,
                                     landZ,
                                     landY,
-                                    landY + 1.0,
+                                    wall
+                                            ? water.getY() + 1.015
+                                            : landY + 1.0,
                                     distance,
                                     water.getX(),
                                     water.getZ(),
@@ -641,7 +674,8 @@ public final class ShoreWaveRenderer {
                                             & 255,
                                     waterColor
                                             & 255,
-                                    profile
+                                    profile,
+                                    wall
                             );
 
                     ShorePatch previous =
@@ -656,6 +690,10 @@ public final class ShoreWaveRenderer {
                                 key,
                                 candidate
                         );
+                    }
+
+                    if (wall) {
+                        break;
                     }
                 }
             }
@@ -736,14 +774,107 @@ public final class ShoreWaveRenderer {
         return null;
     }
 
-    private static boolean isSand(
-            BlockState state
+    private static void impactWall(
+            Minecraft minecraft,
+            ShorePatch patch,
+            OceanWaveField.Sample sample,
+            long time
     ) {
-        return state.is(
-                Blocks.SAND
-        )
-                || state.is(
-                Blocks.RED_SAND
+        long key =
+                BlockPos.asLong(
+                        patch.x(),
+                        patch.blockY(),
+                        patch.z()
+                );
+
+        long last =
+                WALL_SPLASH_AT.getOrDefault(
+                        key,
+                        Long.MIN_VALUE
+                );
+
+        if (time - last
+                < 24L) {
+            return;
+        }
+
+        WALL_SPLASH_AT.put(
+                key,
+                time
+        );
+
+        int count =
+                10
+                        + Math.round(
+                        sample.breaking()
+                                * 34.0F
+                );
+
+        double towardWaterX =
+                -patch.profile()
+                        .shoreX();
+
+        double towardWaterZ =
+                -patch.profile()
+                        .shoreZ();
+
+        for (int i = 0;
+             i < count;
+             i++) {
+            minecraft.level.addParticle(
+                    ParticleTypes.SPLASH,
+                    patch.x() + 0.5
+                            + (
+                            minecraft.level.random.nextDouble()
+                                    - 0.5
+                    ) * 0.8,
+                    patch.surfaceY()
+                            + minecraft.level.random.nextDouble()
+                            * (
+                            0.4
+                                    + sample.breaking()
+                                    * 1.8
+                    ),
+                    patch.z() + 0.5
+                            + (
+                            minecraft.level.random.nextDouble()
+                                    - 0.5
+                    ) * 0.8,
+                    towardWaterX
+                            * (
+                            0.05
+                                    + minecraft.level.random.nextDouble()
+                                    * 0.16
+                    ),
+                    0.12
+                            + minecraft.level.random.nextDouble()
+                            * (
+                            0.16
+                                    + sample.breaking()
+                                    * 0.32
+                    ),
+                    towardWaterZ
+                            * (
+                            0.05
+                                    + minecraft.level.random.nextDouble()
+                                    * 0.16
+                    )
+            );
+        }
+
+        minecraft.level.playLocalSound(
+                patch.x() + 0.5,
+                patch.surfaceY(),
+                patch.z() + 0.5,
+                SoundEvents.GENERIC_SPLASH,
+                SoundSource.AMBIENT,
+                0.45F
+                        + sample.breaking()
+                        * 0.85F,
+                0.82F
+                        + minecraft.level.random.nextFloat()
+                        * 0.16F,
+                false
         );
     }
 
@@ -818,6 +949,7 @@ public final class ShoreWaveRenderer {
     private static void clear() {
         PATCHES.clear();
         WET_MARKS.clear();
+        WALL_SPLASH_AT.clear();
         cachedX =
                 Integer.MIN_VALUE;
         cachedZ =
@@ -837,7 +969,8 @@ public final class ShoreWaveRenderer {
             int red,
             int green,
             int blue,
-            OceanWaveField.Profile profile
+            OceanWaveField.Profile profile,
+            boolean wall
     ) {
     }
 
