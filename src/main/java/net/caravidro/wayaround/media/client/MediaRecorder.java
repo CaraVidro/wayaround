@@ -367,6 +367,22 @@ public final class MediaRecorder {
         }
 
         if (placedCameraRecording) {
+            /*
+             * The local player is normally culled from first-person rendering.
+             * A placed camera is a detached observer, so keep Minecraft in a
+             * third-person camera mode for the full recording lifetime. This
+             * makes the player itself part of the captured TV frame whenever
+             * they walk in front of the physical camera.
+             */
+            if (minecraft.options
+                    .getCameraType()
+                    != CameraType.THIRD_PERSON_BACK) {
+                minecraft.options
+                        .setCameraType(
+                                CameraType.THIRD_PERSON_BACK
+                        );
+            }
+
             return;
         }
 
