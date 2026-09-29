@@ -75,7 +75,7 @@ public final class EcologyContent {
                                     SardineEntity::new,
                                     MobCategory.WATER_AMBIENT
                             )
-                            .sized(0.34F, 0.20F)
+                            .sized(0.58F, 0.24F)
                             .clientTrackingRange(16)
                             .build("wayaround:sardine")
             );
@@ -757,6 +757,61 @@ public final class EcologyContent {
                     )
             );
 
+    private static final FoodProperties COOKED_SARDINE_FOOD =
+            new FoodProperties.Builder()
+                    .nutrition(5)
+                    .saturationModifier(0.48F)
+                    .build();
+
+    public static final DeferredItem<Item> COOKED_SARDINE_MEAT =
+            ITEMS.register(
+                    "cooked_sardine_meat",
+                    () -> new Item(
+                            new Item.Properties()
+                                    .food(COOKED_SARDINE_FOOD)
+                    )
+            );
+
+    public static final DeferredItem<WholeSardineItem> WHOLE_SARDINE =
+            ITEMS.register(
+                    "whole_sardine",
+                    () -> new WholeSardineItem(
+                            false,
+                            false,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<WholeSardineItem> LARGE_WHOLE_SARDINE =
+            ITEMS.register(
+                    "large_whole_sardine",
+                    () -> new WholeSardineItem(
+                            false,
+                            true,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<WholeSardineItem> COOKED_WHOLE_SARDINE =
+            ITEMS.register(
+                    "cooked_whole_sardine",
+                    () -> new WholeSardineItem(
+                            true,
+                            false,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<WholeSardineItem> COOKED_LARGE_WHOLE_SARDINE =
+            ITEMS.register(
+                    "cooked_large_whole_sardine",
+                    () -> new WholeSardineItem(
+                            true,
+                            true,
+                            new Item.Properties().stacksTo(1)
+                    )
+            );
+
     public static final DeferredItem<Item> RAW_SHARK_MEAT =
             ITEMS.register(
                     "raw_shark_meat",
@@ -850,6 +905,21 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 RAW_SARDINE_MEAT.get()
+                                        );
+                                        output.accept(
+                                                COOKED_SARDINE_MEAT.get()
+                                        );
+                                        output.accept(
+                                                WHOLE_SARDINE.get()
+                                        );
+                                        output.accept(
+                                                LARGE_WHOLE_SARDINE.get()
+                                        );
+                                        output.accept(
+                                                COOKED_WHOLE_SARDINE.get()
+                                        );
+                                        output.accept(
+                                                COOKED_LARGE_WHOLE_SARDINE.get()
                                         );
                                         output.accept(
                                                 RAW_SUNFISH_MEAT.get()

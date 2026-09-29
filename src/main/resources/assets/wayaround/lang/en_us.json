@@ -616,5 +616,10 @@
   "advancements.wayaround.vista.sunfish_basking.title": "Is It Okay?",
   "advancements.wayaround.vista.sunfish_basking.description": "Find a sunfish floating sideways at the surface. It gets back up.",
   "advancements.wayaround.vista.puffer_carrot.title": "Questionable Nutrition",
-  "advancements.wayaround.vista.puffer_carrot.description": "Give a carrot to a pufferfish. You did not need to do this."
+  "advancements.wayaround.vista.puffer_carrot.description": "Give a carrot to a pufferfish. You did not need to do this.",
+  "item.wayaround.whole_sardine": "Whole Sardine",
+  "item.wayaround.large_whole_sardine": "Large Whole Sardine",
+  "item.wayaround.cooked_whole_sardine": "Fried Whole Sardine",
+  "item.wayaround.cooked_large_whole_sardine": "Fried Large Sardine",
+  "item.wayaround.cooked_sardine_meat": "Fried Sardine Meat"
 }

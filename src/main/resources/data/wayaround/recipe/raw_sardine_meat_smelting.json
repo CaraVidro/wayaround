@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "ingredient": {
+    "item": "wayaround:raw_sardine_meat"
+  },
+  "result": {
+    "id": "wayaround:cooked_sardine_meat"
+  },
+  "experience": 0.35,
+  "cookingtime": 160
+}

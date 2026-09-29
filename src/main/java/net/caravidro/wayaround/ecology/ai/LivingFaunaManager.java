@@ -235,6 +235,11 @@ public final class LivingFaunaManager {
             return;
         }
 
+        if (fish instanceof SardineEntity) {
+            // Sardines now remain as physical carcasses and are carved later.
+            return;
+        }
+
         Item meat =
                 meatForFish(
                         fish
@@ -715,6 +720,11 @@ public final class LivingFaunaManager {
                 if (!touched.add(
                         fish.getUUID()
                 )) {
+                    continue;
+                }
+
+                if (fish instanceof SardineEntity sardine
+                        && sardine.isCarcass()) {
                     continue;
                 }
 
@@ -1372,6 +1382,8 @@ public final class LivingFaunaManager {
                                 candidate ->
                                         candidate.isAlive()
                                                 && candidate != hunter
+                                                && !(candidate instanceof SardineEntity sardine
+                                                && sardine.isCarcass())
                                                 && !(candidate instanceof AquaticPredator)
                                                 && !(candidate instanceof WhaleEntity)
                                                 && predatorAcceptsPrey(
@@ -2086,6 +2098,13 @@ public final class LivingFaunaManager {
 
             for (AbstractFish member :
                     school) {
+                if (member instanceof SardineEntity sardine) {
+                    sardine.startleFrom(
+                            away,
+                            120L
+                    );
+                }
+
                 member.getPersistentData()
                         .putLong(
                                 FISH_SCARED_UNTIL,
@@ -3550,6 +3569,27 @@ public final class LivingFaunaManager {
         return 1.0F;
     }
 
+    public static void setFishSize(
+            AbstractFish fish,
+            float size
+    ) {
+        float safe =
+                Math.max(
+                        0.08F,
+                        Math.min(
+                                8.0F,
+                                size
+                        )
+                );
+
+        CompoundTag data =
+                fish.getPersistentData();
+
+        data.putFloat(FISH_BASE_SIZE, safe);
+        data.putFloat(FISH_SIZE, safe);
+        applyFishScale(fish, safe);
+    }
+
     public static boolean isSunFish(
             AbstractFish fish
     ) {
@@ -3643,6 +3683,8 @@ public final class LivingFaunaManager {
                                 other.isAlive()
                                         && other.getType()
                                                 == fish.getType()
+                                        && (!(other instanceof SardineEntity sardine)
+                                        || !sardine.isCarcass())
                 );
 
         if (school.size() < 2) {

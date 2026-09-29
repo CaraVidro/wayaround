@@ -616,5 +616,10 @@
   "advancements.wayaround.vista.sunfish_basking.title": "Tá Tudo Bem?",
   "advancements.wayaround.vista.sunfish_basking.description": "Encontre um sunfish boiando de lado na superfície. Ele volta.",
   "advancements.wayaround.vista.puffer_carrot.title": "Nutrição Questionável",
-  "advancements.wayaround.vista.puffer_carrot.description": "Dê uma cenoura a um baiacu. Você não precisava fazer isso."
+  "advancements.wayaround.vista.puffer_carrot.description": "Dê uma cenoura a um baiacu. Você não precisava fazer isso.",
+  "item.wayaround.whole_sardine": "Sardinha Inteira",
+  "item.wayaround.large_whole_sardine": "Sardinha Inteira Grande",
+  "item.wayaround.cooked_whole_sardine": "Sardinha Inteira Frita",
+  "item.wayaround.cooked_large_whole_sardine": "Sardinha Grande Frita",
+  "item.wayaround.cooked_sardine_meat": "Carne de Sardinha Frita"
 }
