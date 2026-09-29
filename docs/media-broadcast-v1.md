@@ -243,3 +243,12 @@ Understood examples:
 Every accepted command also pulses the Alexa's own redstone output, so ordinary
 redstone contraptions can react without needing special integration.
 
+## Dedicated-server payload boundary
+
+All client-facing networking now enters the physical client through
+`ClientPayloadBridge`. Common payload registration must never reference
+`Minecraft`, `Screen`, renderer classes or client sound classes directly.
+
+This protects NeoForge dedicated servers from loading client-only classes while
+`RegisterPayloadHandlersEvent` is being dispatched.
+
