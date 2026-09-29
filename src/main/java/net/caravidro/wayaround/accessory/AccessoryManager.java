@@ -1316,13 +1316,23 @@ public final class AccessoryManager {
          * cosmetics. Do not burst-sync the entire server every two seconds:
          * stagger refreshes by entity id over a five-second window.
          */
+        if (tick % 5L != 0L) {
+            return;
+        }
+
+        long refreshSlot =
+                Math.floorMod(
+                        tick / 5L,
+                        20L
+                );
+
         for (ServerPlayer player :
                 server.getPlayerList()
                         .getPlayers()) {
             if (Math.floorMod(
-                    tick + player.getId(),
-                    100L
-            ) != 0L) {
+                    player.getId(),
+                    20
+            ) != refreshSlot) {
                 continue;
             }
 
