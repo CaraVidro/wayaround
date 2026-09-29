@@ -2305,13 +2305,13 @@ public final class GreatShipEntity
                             )
                     );
 
-            occupant.ifPresent(
-                    uuid -> tag.putUUID(
-                            "Seat"
-                                    + i,
-                            uuid
-                    )
-            );
+            if (occupant.isPresent()) {
+                tag.putUUID(
+                        "Seat"
+                                + i,
+                        occupant.get()
+                );
+            }
         }
 
         tag.putFloat(
