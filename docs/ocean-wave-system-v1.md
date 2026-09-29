@@ -20,13 +20,13 @@ A profile describes the local sea:
 
 - ocean exposure;
 - shoreline influence;
-- rain;
-- storm;
 - base amplitude;
 - wavelength;
 - maximum coastal run-up;
 - dominant wave direction;
 - direction toward nearby land.
+
+The record still reserves rain/storm channels for compatibility, but REALISTIC V1 keeps them neutral. Weather, wind and cloud systems do not drive the realistic spectrum yet.
 
 A sample describes the wave at a precise X/Z/time:
 
@@ -42,29 +42,42 @@ The profile is cached spatially. The actual wave remains continuous in world coo
 
 ## Wave shape
 
-The field combines:
+The realistic engine is split into `RealisticWaveSpectrum` bands instead of one dominant sine:
 
 - long primary swell;
-- cross swell;
-- shorter chop;
-- slow wave-group envelopes.
+- crossing long swell;
+- two medium body-wave bands;
+- two short detail/chop bands.
 
-Open ocean increases wavelength and amplitude.
+Each band has independent wavelength scale, amplitude weight, direction offset, phase, steepness and slow energy envelope.
 
-Near shore:
+Different wavelengths use a deep-water dispersion relation, scaled for Minecraft readability. Long waves therefore travel differently from short chop instead of every component sliding at the same arbitrary speed.
 
-- long swell loses some height;
-- short chop becomes more visible;
-- waves tend to align toward land;
-- breaking probability increases.
+A second-order Stokes-like harmonic sharpens crests and broadens troughs while keeping the surface a single-valued heightfield. This avoids the geometric inversion problems that full lateral Gerstner displacement would introduce for block-world collision/height queries.
 
-Rain and thunder increase:
+Independent envelopes and directions create natural constructive/destructive interference:
+
+- a large swell can sit immediately beside smaller waves;
+- several components can occasionally align into a much larger crest;
+- the whole ocean no longer scales into one rigid wedge/triangle;
+- small detail continues moving independently over large shapes.
+
+Open ocean increases the base wavelength/amplitude profile. Near shore the profile loses energy and the shoreline system handles breaking/run-up.
+
+### External forcing contract
+
+`WaveForcing` is the future plug boundary.
+
+It can modify:
 
 - amplitude;
-- maximum run-up;
-- breaker strength.
+- wavelength;
+- direction;
+- steepness;
+- breaking bias;
+- run-up.
 
-This produces variation without simulating individual water particles.
+The current REALISTIC implementation always uses `WaveForcing.NEUTRAL`. Wind, rain, clouds, Kraken and scripted events are intentionally not connected in this pass.
 
 ## Surface mesh
 
@@ -72,15 +85,15 @@ WaterSurfaceRenderer no longer owns the wave formula.
 
 Each rendered water quad samples OceanWaveField at its four corners.
 
-This means every square is independently tilted by the shared field, producing a connected deforming mesh rather than flat water with a texture trick.
+Integer world vertices are cached once per tick, so adjacent quads and adjacent chunks asking for the same vertex receive exactly the same Sample. This guarantees a crack-free shared surface.
 
-Breaking crests receive a second translucent white mesh layer instead of thousands of foam entities.
+The REALISTIC shading pass uses the field's analytical normal plus view angle, crest depth and breaking strength. Troughs become darker/deeper, crests reveal more subsurface colour and breaking softly desaturates toward foam. This is per-vertex colour interpolation, not an extra grid of white cap quads.
 
 Vanilla water remains underneath as the base fluid/mantle.
 
 ## Shoreline run-up
 
-ShoreWaveRenderer finds candidate sandy coastline close to the player.
+ShoreWaveRenderer traces exact one-block water/solid borders close to the player. Same-height solid blocks can receive partial run-up regardless of material; higher terrain becomes an impact wall.
 
 For a breaking crest:
 
@@ -89,7 +102,7 @@ For a breaking crest:
 3. When the crest retreats, a wet-sand mark remains.
 4. The mark fades with time.
 5. Exceptional waves that reach farther leave stronger/longer marks.
-6. Rain makes the run-up reach farther and makes marks persist longer.
+6. External forcing can increase run-up later, but weather is deliberately disconnected from REALISTIC V1.
 
 No sand block is replaced.
 
