@@ -75,6 +75,98 @@ public final class ClientPayloadBridge {
         default void topHatState(
                 TopHatStateS2CPayload payload
         ) {}
+
+        default void accessoryState(
+                AccessoryStateS2CPayload payload
+        ) {}
+
+        default void trouserPocketAnimation(
+                TrouserPocketAnimationS2CPayload payload
+        ) {}
+
+        default void accessoryWorkshopOpen(
+                AccessoryWorkshopOpenS2CPayload payload
+        ) {}
+
+        default void thermalGlow(
+                ThermalGlowPayload payload
+        ) {}
+
+        default void fugaArrow(
+                FugaArrowPayload payload
+        ) {}
+
+        default void blueVisual(
+                BlueVisualPayload payload
+        ) {}
+
+        default void infinityVisual(
+                InfinityVisualPayload payload
+        ) {}
+
+        default void blueGesture(
+                BlueGestureS2CPayload payload
+        ) {}
+
+        default void betaTechniqueVisual(
+                BetaTechniqueVisualPayload payload
+        ) {}
+
+        default void immortalWheelVisual(
+                ImmortalWheelVisualPayload payload
+        ) {}
+
+        default void immortalWheelReactivation(
+                ImmortalWheelReactivationPayload payload
+        ) {}
+
+        default void tukunaPossession(
+                TukunaPossessionS2CPayload payload
+        ) {}
+
+        default void tukunaView(
+                TukunaViewS2CPayload payload
+        ) {}
+
+        default void tukunaMark(
+                TukunaMarkS2CPayload payload
+        ) {}
+
+        default void tukunaSpeechVisual(
+                TukunaSpeechVisualS2CPayload payload
+        ) {}
+
+        default void tukunaPossessionVisual(
+                TukunaPossessionVisualS2CPayload payload
+        ) {}
+
+        default void energyVision(
+                EnergyVisionS2CPayload payload
+        ) {}
+
+        default void tukunaFugaVisual(
+                TukunaFugaVisualPayload payload
+        ) {}
+
+        default void playerCinematic(
+                PlayerCinematicPayload payload
+        ) {}
+
+        default void battleMusic(
+                BattleMusicS2CPayload payload
+        ) {}
+
+        default void voidDomainVisual(
+                VoidDomainVisualPayload payload
+        ) {}
+
+        default void justiceDomainVisual(
+                JusticeDomainVisualPayload payload
+        ) {}
+
+        default void domainIntro(
+                DomainIntroS2CPayload payload
+        ) {}
     }
 
     private static final RealtimeClientHandlers NOOP_REALTIME =
@@ -330,5 +422,167 @@ public final class ClientPayloadBridge {
                         payload
                 )
         );
+    }
+
+
+    public static void handleAccessoryState(
+            AccessoryStateS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.accessoryState(payload));
+    }
+
+    public static void handleTrouserPocketAnimation(
+            TrouserPocketAnimationS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.trouserPocketAnimation(payload));
+    }
+
+    public static void handleAccessoryWorkshopOpen(
+            AccessoryWorkshopOpenS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.accessoryWorkshopOpen(payload));
+    }
+
+    public static void handleThermalGlow(
+            ThermalGlowPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.thermalGlow(payload));
+    }
+
+    public static void handleFugaArrow(
+            FugaArrowPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.fugaArrow(payload));
+    }
+
+    public static void handleBlueVisual(
+            BlueVisualPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.blueVisual(payload));
+    }
+
+    public static void handleInfinityVisual(
+            InfinityVisualPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.infinityVisual(payload));
+    }
+
+    public static void handleBlueGesture(
+            BlueGestureS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.blueGesture(payload));
+    }
+
+    public static void handleBetaTechniqueVisual(
+            BetaTechniqueVisualPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.betaTechniqueVisual(payload));
+    }
+
+    public static void handleImmortalWheelVisual(
+            ImmortalWheelVisualPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.immortalWheelVisual(payload));
+    }
+
+    public static void handleImmortalWheelReactivation(
+            ImmortalWheelReactivationPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.immortalWheelReactivation(payload));
+    }
+
+    public static void handleTukunaPossession(
+            TukunaPossessionS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.tukunaPossession(payload));
+    }
+
+    public static void handleTukunaView(
+            TukunaViewS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.tukunaView(payload));
+    }
+
+    public static void handleTukunaMark(
+            TukunaMarkS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.tukunaMark(payload));
+    }
+
+    public static void handleTukunaSpeechVisual(
+            TukunaSpeechVisualS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.tukunaSpeechVisual(payload));
+    }
+
+    public static void handleTukunaPossessionVisual(
+            TukunaPossessionVisualS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.tukunaPossessionVisual(payload));
+    }
+
+    public static void handleEnergyVision(
+            EnergyVisionS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.energyVision(payload));
+    }
+
+    public static void handleTukunaFugaVisual(
+            TukunaFugaVisualPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.tukunaFugaVisual(payload));
+    }
+
+    public static void handlePlayerCinematic(
+            PlayerCinematicPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.playerCinematic(payload));
+    }
+
+    public static void handleBattleMusic(
+            BattleMusicS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.battleMusic(payload));
+    }
+
+    public static void handleVoidDomainVisual(
+            VoidDomainVisualPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.voidDomainVisual(payload));
+    }
+
+    public static void handleJusticeDomainVisual(
+            JusticeDomainVisualPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.justiceDomainVisual(payload));
+    }
+
+    public static void handleDomainIntro(
+            DomainIntroS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.domainIntro(payload));
     }
 }

@@ -16,6 +16,7 @@ import net.caravidro.wayaround.network.BroadcastAudioS2CPayload;
 import net.caravidro.wayaround.network.BroadcastImageS2CPayload;
 import net.caravidro.wayaround.network.BroadcastWorldSoundS2CPayload;
 import net.caravidro.wayaround.network.ClientPayloadBridge;
+import net.caravidro.wayaround.network.*;
 import net.caravidro.wayaround.network.HerobrinePhotoModeS2CPayload;
 import net.caravidro.wayaround.network.MediaRecordingChunkS2CPayload;
 import net.caravidro.wayaround.network.NexusStateS2CPayload;
@@ -277,6 +278,217 @@ public final class WayAroundClient {
                     ) {
                         TopHatClientState.receive(
                                 payload
+                        );
+                    }
+
+
+                    @Override
+                    public void accessoryState(
+                            AccessoryStateS2CPayload payload
+                    ) {
+                        AccessoryClientState.receive(payload);
+                    }
+
+                    @Override
+                    public void trouserPocketAnimation(
+                            TrouserPocketAnimationS2CPayload payload
+                    ) {
+                        TrouserPocketClientState.receive(payload);
+                    }
+
+                    @Override
+                    public void accessoryWorkshopOpen(
+                            AccessoryWorkshopOpenS2CPayload payload
+                    ) {
+                        Minecraft.getInstance()
+                                .setScreen(
+                                        new AccessoryWorkshopScreen(
+                                                payload
+                                        )
+                                );
+                    }
+
+                    @Override
+                    public void thermalGlow(
+                            ThermalGlowPayload payload
+                    ) {
+                        ThermalGlowRenderer.receive(payload);
+                    }
+
+                    @Override
+                    public void fugaArrow(
+                            FugaArrowPayload payload
+                    ) {
+                        TukunaFugaClientEffects.receiveArrow(payload);
+                    }
+
+                    @Override
+                    public void blueVisual(
+                            BlueVisualPayload payload
+                    ) {
+                        BlueClientEffects.receive(payload);
+                    }
+
+                    @Override
+                    public void infinityVisual(
+                            InfinityVisualPayload payload
+                    ) {
+                        InfinityClientEffects.receive(payload);
+                    }
+
+                    @Override
+                    public void blueGesture(
+                            BlueGestureS2CPayload payload
+                    ) {
+                        BlueClientEffects.playGesture(
+                                payload.gesture()
+                        );
+                    }
+
+                    @Override
+                    public void betaTechniqueVisual(
+                            BetaTechniqueVisualPayload payload
+                    ) {
+                        BetaTechniqueClientEffects.receive(payload);
+                    }
+
+                    @Override
+                    public void immortalWheelVisual(
+                            ImmortalWheelVisualPayload payload
+                    ) {
+                        ImmortalWheelClientEffects.receive(payload);
+                    }
+
+                    @Override
+                    public void immortalWheelReactivation(
+                            ImmortalWheelReactivationPayload payload
+                    ) {
+                        ImmortalWheelClientEffects.reactivate(
+                                payload.owner(),
+                                payload.x(),
+                                payload.y(),
+                                payload.z(),
+                                payload.steps()
+                        );
+                    }
+
+                    @Override
+                    public void tukunaPossession(
+                            TukunaPossessionS2CPayload payload
+                    ) {
+                        TukunaPossessionClient.setPossessed(
+                                payload.active(),
+                                payload.contractMusic(),
+                                payload.loopContractMusic()
+                        );
+                    }
+
+                    @Override
+                    public void tukunaView(
+                            TukunaViewS2CPayload payload
+                    ) {
+                        TukunaPossessionClient.setLinkedView(
+                                payload.linkedView(),
+                                payload.obscureTicks()
+                        );
+                    }
+
+                    @Override
+                    public void tukunaMark(
+                            TukunaMarkS2CPayload payload
+                    ) {
+                        TukunaMarkRenderer.receive(payload);
+                    }
+
+                    @Override
+                    public void tukunaSpeechVisual(
+                            TukunaSpeechVisualS2CPayload payload
+                    ) {
+                        TukunaMarkRenderer.receiveSpeech(
+                                payload.body()
+                        );
+                    }
+
+                    @Override
+                    public void tukunaPossessionVisual(
+                            TukunaPossessionVisualS2CPayload payload
+                    ) {
+                        TukunaPossessionClient.setVisualLink(
+                                payload.controller(),
+                                payload.body(),
+                                payload.active()
+                        );
+                    }
+
+                    @Override
+                    public void energyVision(
+                            EnergyVisionS2CPayload payload
+                    ) {
+                        EnergyVisionClient.receive(payload);
+                    }
+
+                    @Override
+                    public void tukunaFugaVisual(
+                            TukunaFugaVisualPayload payload
+                    ) {
+                        TukunaFugaClientEffects.receive(payload);
+                    }
+
+                    @Override
+                    public void playerCinematic(
+                            PlayerCinematicPayload payload
+                    ) {
+                        if (net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.clientEnabled(
+                                net.caravidro.wayaround.worldconfig.WorldFeature.CINEMATICS
+                        )) {
+                            net.caravidro.wayaround.client.cinematic.PlayerAnimationController.receive(
+                                    payload
+                            );
+                        }
+                    }
+
+                    @Override
+                    public void battleMusic(
+                            BattleMusicS2CPayload payload
+                    ) {
+                        if (payload.mode()
+                                == BattleMusicS2CPayload.STOP) {
+                            net.caravidro.wayaround.client.sound.BattleThemeSound.stopBattle(
+                                    payload.battle()
+                            );
+                            return;
+                        }
+
+                        net.caravidro.wayaround.client.sound.BattleThemeSound.play(
+                                payload.battle(),
+                                payload.source(),
+                                payload.mode()
+                                        == BattleMusicS2CPayload.START_DIRECT
+                        );
+                    }
+
+                    @Override
+                    public void voidDomainVisual(
+                            VoidDomainVisualPayload payload
+                    ) {
+                        VoidDomainClientEffects.receive(payload);
+                    }
+
+                    @Override
+                    public void justiceDomainVisual(
+                            JusticeDomainVisualPayload payload
+                    ) {
+                        JusticeDomainClientEffects.receive(payload);
+                    }
+
+                    @Override
+                    public void domainIntro(
+                            DomainIntroS2CPayload payload
+                    ) {
+                        DomainIntroClient.start(
+                                payload.style(),
+                                payload.variant(),
+                                payload.durationTicks()
                         );
                     }
                 }

@@ -59,7 +59,7 @@ public final class WayAroundNetwork {
         registrar.playToClient(
                 AccessoryStateS2CPayload.TYPE,
                 AccessoryStateS2CPayload.STREAM_CODEC,
-                AccessoryStateS2CPayload::handle
+                ClientPayloadBridge::handleAccessoryState
         );
 
         registrar.playToClient(
@@ -71,13 +71,13 @@ public final class WayAroundNetwork {
         registrar.playToClient(
                 TrouserPocketAnimationS2CPayload.TYPE,
                 TrouserPocketAnimationS2CPayload.STREAM_CODEC,
-                TrouserPocketAnimationS2CPayload::handle
+                ClientPayloadBridge::handleTrouserPocketAnimation
         );
 
         registrar.playToClient(
                 AccessoryWorkshopOpenS2CPayload.TYPE,
                 AccessoryWorkshopOpenS2CPayload.STREAM_CODEC,
-                AccessoryWorkshopOpenS2CPayload::handle
+                ClientPayloadBridge::handleAccessoryWorkshopOpen
         );
 
         registrar.playToClient(
@@ -91,8 +91,8 @@ public final class WayAroundNetwork {
                 WorldFeatureConfigS2CPayload.STREAM_CODEC,
                 WorldFeatureConfigS2CPayload::handle
         );
-        registrar.playToClient(ThermalGlowPayload.TYPE, ThermalGlowPayload.STREAM_CODEC, ThermalGlowPayload::handle);
-        registrar.playToClient(FugaArrowPayload.TYPE, FugaArrowPayload.STREAM_CODEC, FugaArrowPayload::handle);
+        registrar.playToClient(ThermalGlowPayload.TYPE, ThermalGlowPayload.STREAM_CODEC, ClientPayloadBridge::handleThermalGlow);
+        registrar.playToClient(FugaArrowPayload.TYPE, FugaArrowPayload.STREAM_CODEC, ClientPayloadBridge::handleFugaArrow);
         registrar.playToClient(FrostPayload.TYPE, FrostPayload.STREAM_CODEC, ClientPayloadBridge::handleFrost);
 
         registrar.playToClient(
@@ -116,37 +116,37 @@ public final class WayAroundNetwork {
         registrar.playToClient(
                 BlueVisualPayload.TYPE,
                 BlueVisualPayload.STREAM_CODEC,
-                BlueVisualPayload::handle
+                ClientPayloadBridge::handleBlueVisual
         );
 
         registrar.playToClient(
                 InfinityVisualPayload.TYPE,
                 InfinityVisualPayload.STREAM_CODEC,
-                InfinityVisualPayload::handle
+                ClientPayloadBridge::handleInfinityVisual
         );
 
         registrar.playToClient(
                 BlueGestureS2CPayload.TYPE,
                 BlueGestureS2CPayload.STREAM_CODEC,
-                BlueGestureS2CPayload::handle
+                ClientPayloadBridge::handleBlueGesture
         );
 
         registrar.playToClient(
                 BetaTechniqueVisualPayload.TYPE,
                 BetaTechniqueVisualPayload.STREAM_CODEC,
-                BetaTechniqueVisualPayload::handle
+                ClientPayloadBridge::handleBetaTechniqueVisual
         );
 
         registrar.playToClient(
                 ImmortalWheelVisualPayload.TYPE,
                 ImmortalWheelVisualPayload.STREAM_CODEC,
-                ImmortalWheelVisualPayload::handle
+                ClientPayloadBridge::handleImmortalWheelVisual
         );
 
         registrar.playToClient(
                 ImmortalWheelReactivationPayload.TYPE,
                 ImmortalWheelReactivationPayload.STREAM_CODEC,
-                ImmortalWheelReactivationPayload::handle
+                ClientPayloadBridge::handleImmortalWheelReactivation
         );
 
         registrar.playToServer(
@@ -188,31 +188,31 @@ public final class WayAroundNetwork {
         registrar.playToClient(
                 TukunaPossessionS2CPayload.TYPE,
                 TukunaPossessionS2CPayload.STREAM_CODEC,
-                TukunaPossessionS2CPayload::handle
+                ClientPayloadBridge::handleTukunaPossession
         );
 
         registrar.playToClient(
                 TukunaViewS2CPayload.TYPE,
                 TukunaViewS2CPayload.STREAM_CODEC,
-                TukunaViewS2CPayload::handle
+                ClientPayloadBridge::handleTukunaView
         );
 
         registrar.playToClient(
                 TukunaMarkS2CPayload.TYPE,
                 TukunaMarkS2CPayload.STREAM_CODEC,
-                TukunaMarkS2CPayload::handle
+                ClientPayloadBridge::handleTukunaMark
         );
 
         registrar.playToClient(
                 TukunaSpeechVisualS2CPayload.TYPE,
                 TukunaSpeechVisualS2CPayload.STREAM_CODEC,
-                TukunaSpeechVisualS2CPayload::handle
+                ClientPayloadBridge::handleTukunaSpeechVisual
         );
 
         registrar.playToClient(
                 TukunaPossessionVisualS2CPayload.TYPE,
                 TukunaPossessionVisualS2CPayload.STREAM_CODEC,
-                TukunaPossessionVisualS2CPayload::handle
+                ClientPayloadBridge::handleTukunaPossessionVisual
         );
 
         registrar.playToClient(
@@ -236,37 +236,37 @@ public final class WayAroundNetwork {
         registrar.playToClient(
                 EnergyVisionS2CPayload.TYPE,
                 EnergyVisionS2CPayload.STREAM_CODEC,
-                EnergyVisionS2CPayload::handle
+                ClientPayloadBridge::handleEnergyVision
         );
 
         registrar.playToClient(
                 TukunaFugaVisualPayload.TYPE,
                 TukunaFugaVisualPayload.STREAM_CODEC,
-                TukunaFugaVisualPayload::handle
+                ClientPayloadBridge::handleTukunaFugaVisual
         );
 
         registrar.playToClient(
                 PlayerCinematicPayload.TYPE,
                 PlayerCinematicPayload.STREAM_CODEC,
-                PlayerCinematicPayload::handle
+                ClientPayloadBridge::handlePlayerCinematic
         );
 
         registrar.playToClient(
                 BattleMusicS2CPayload.TYPE,
                 BattleMusicS2CPayload.STREAM_CODEC,
-                BattleMusicS2CPayload::handle
+                ClientPayloadBridge::handleBattleMusic
         );
 
         registrar.playToClient(
                 VoidDomainVisualPayload.TYPE,
                 VoidDomainVisualPayload.STREAM_CODEC,
-                VoidDomainVisualPayload::handle
+                ClientPayloadBridge::handleVoidDomainVisual
         );
 
         registrar.playToClient(
                 JusticeDomainVisualPayload.TYPE,
                 JusticeDomainVisualPayload.STREAM_CODEC,
-                JusticeDomainVisualPayload::handle
+                ClientPayloadBridge::handleJusticeDomainVisual
         );
 
         registrar.playToServer(
@@ -404,7 +404,7 @@ public final class WayAroundNetwork {
         registrar.playToClient(
                 DomainIntroS2CPayload.TYPE,
                 DomainIntroS2CPayload.STREAM_CODEC,
-                DomainIntroS2CPayload::handle
+                ClientPayloadBridge::handleDomainIntro
         );
     }
 }
