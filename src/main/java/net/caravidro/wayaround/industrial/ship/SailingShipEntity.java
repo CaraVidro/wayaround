@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.ship;
 
+import net.caravidro.wayaround.worldgen.water.wave.OceanWaveField;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -62,6 +63,55 @@ public abstract class SailingShipEntity extends ChestBoat {
         double z = getZ();
         float yaw = getYRot();
         super.tick();
+
+        /*
+         * Smaller Great Voyages craft use a single central wave sample. The
+         * Nau overrides this with its multi-point WaveHullResponse after
+         * super.tick(), which is why it is excluded here.
+         */
+        if (!(this instanceof GreatShipEntity)
+                && !isAnchored()
+                && level().getFluidState(
+                BlockPos.containing(
+                        getX(),
+                        getBoundingBox().minY - 0.05,
+                        getZ()
+                )
+        ).is(
+                FluidTags.WATER
+        )) {
+            OceanWaveField.Sample wave =
+                    OceanWaveField.sample(
+                            level(),
+                            getX(),
+                            getZ(),
+                            level().getGameTime()
+                    );
+
+            Vec3 velocity =
+                    getDeltaMovement();
+
+            double lift =
+                    net.minecraft.util.Mth.clamp(
+                            wave.height() * 0.006
+                                    + wave.verticalVelocity() * 0.16,
+                            -0.026,
+                            0.026
+                    );
+
+            Vec3 push =
+                    wave.horizontalVelocity()
+                            .scale(
+                                    0.18
+                            );
+
+            setDeltaMovement(
+                    velocity.x + push.x,
+                    velocity.y + lift,
+                    velocity.z + push.z
+            );
+        }
+
         if (isAnchored()) {
             setDeltaMovement(0, getDeltaMovement().y, 0);
             setPos(level().isClientSide ? x : anchorX, getY(), level().isClientSide ? z : anchorZ);
