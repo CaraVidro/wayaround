@@ -168,7 +168,7 @@ public final class WaterSurfaceRenderer {
                 );
 
         NauticalSeaState.Sample sea =
-                NauticalSeaState.sample(
+                NauticalSeaState.visual(
                         minecraft.level,
                         BlockPos.containing(
                                 camera
