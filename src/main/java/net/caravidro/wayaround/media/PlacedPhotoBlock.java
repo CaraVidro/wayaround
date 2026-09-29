@@ -11,7 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -27,7 +27,7 @@ public final class PlacedPhotoBlock
             );
 
     public static final net.minecraft.world.level.block.state.properties.DirectionProperty FACING =
-            HorizontalDirectionalBlock.FACING;
+            BlockStateProperties.FACING;
 
     public PlacedPhotoBlock(
             Properties properties
