@@ -61,15 +61,46 @@ public final class LocalWeatherField {
         float warning = 0.0F;
 
         for (CloudCell cell : nearbyCells(x, z, gameTime, MAX_RADIUS + 260.0)) {
-            float density = cell.densityAt(x, z);
-            float localRain = cell.rainAt(x, z);
+            /*
+             * One distance calculation feeds cloud density, rain and warning.
+             * The old path called densityAt(), rainAt() (which called
+             * densityAt() again) and then sqrt() a third time for warning.
+             */
+            double dx = x - cell.x;
+            double dz = z - cell.z;
+            double distance = Math.sqrt(
+                    dx * dx
+                            + dz * dz
+            );
+
+            float density =
+                    smooth(
+                            (float) Mth.clamp(
+                                    1.0
+                                            - distance
+                                            / cell.radius,
+                                    0.0,
+                                    1.0
+                            )
+                    );
+
+            float raininess =
+                    Mth.clamp(
+                            (
+                                    cell.storm
+                                            - 0.56F
+                            ) / 0.44F,
+                            0.0F,
+                            1.0F
+                    );
+
+            float localRain =
+                    density
+                            * raininess;
 
             cloud = Math.max(cloud, density);
             rain = Math.max(rain, localRain);
 
-            double dx = x - cell.x;
-            double dz = z - cell.z;
-            double distance = Math.sqrt(dx * dx + dz * dz);
             double warningRadius = cell.radius + 235.0;
 
             if (distance < warningRadius && cell.storm > 0.48F) {
