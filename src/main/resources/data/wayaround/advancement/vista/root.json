@@ -1,0 +1,22 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:spyglass"
+    },
+    "title": {
+      "translate": "advancements.wayaround.vista.root.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.vista.root.description"
+    },
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "noticed": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
