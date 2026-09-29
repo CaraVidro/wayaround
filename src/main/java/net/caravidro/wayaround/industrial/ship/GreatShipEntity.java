@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+import net.caravidro.wayaround.worldgen.water.wave.WaveHullResponse;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleTypes;
@@ -187,6 +188,21 @@ public final class GreatShipEntity
                     0.2F,
                     Vec3.ZERO
             );
+
+    private WaveHullResponse.Response waveResponse =
+            new WaveHullResponse.Response(
+                    0.0,
+                    0.0,
+                    0.0F,
+                    0.0F,
+                    0.0F,
+                    Vec3.ZERO
+            );
+
+    private float wavePitch;
+    private float waveRoll;
+    private double waveHeave;
+    private double waveHeaveVelocity;
 
     private Vec3 cachedWind =
             Vec3.ZERO;
@@ -920,6 +936,14 @@ public final class GreatShipEntity
 
         super.tick();
 
+        if (!isSinking()
+                && !isWrecked()
+                && hasWaterUnderHull()) {
+            tickWaveHull();
+        } else {
+            relaxWaveHull();
+        }
+
         if (isWrecked()) {
             pinWreck();
             return;
@@ -992,6 +1016,117 @@ public final class GreatShipEntity
                     previousYaw
             );
         }
+    }
+
+    private void tickWaveHull() {
+        waveResponse =
+                WaveHullResponse.sample(
+                        level(),
+                        position(),
+                        getYRot(),
+                        DECK_HALF_WIDTH,
+                        DECK_HALF_LENGTH,
+                        level().getGameTime()
+                );
+
+        /*
+         * The hull follows a spring, not the exact water height. This is the
+         * deliberate difference between "riding a wave" and being glued to a
+         * mathematical surface.
+         */
+        double targetHeave =
+                Mth.clamp(
+                        waveResponse.meanHeight()
+                                * 0.62,
+                        -1.35,
+                        1.35
+                );
+
+        waveHeaveVelocity +=
+                (
+                        targetHeave
+                                - waveHeave
+                ) * 0.065
+                        + waveResponse.meanVerticalVelocity()
+                        * 0.46;
+
+        waveHeaveVelocity *=
+                0.82;
+
+        waveHeaveVelocity =
+                Mth.clamp(
+                        waveHeaveVelocity,
+                        -0.085,
+                        0.085
+                );
+
+        waveHeave +=
+                waveHeaveVelocity;
+
+        waveHeave =
+                Mth.clamp(
+                        waveHeave,
+                        -1.55,
+                        1.55
+                );
+
+        wavePitch +=
+                (
+                        waveResponse.targetPitch()
+                                - wavePitch
+                ) * 0.10F;
+
+        waveRoll +=
+                (
+                        waveResponse.targetRoll()
+                                - waveRoll
+                ) * 0.085F;
+
+        Vec3 velocity =
+                getDeltaMovement();
+
+        double lift =
+                Mth.clamp(
+                        (
+                                targetHeave
+                                        - waveHeave
+                        ) * 0.012
+                                + waveHeaveVelocity
+                                * 0.11,
+                        -0.035,
+                        0.035
+                );
+
+        Vec3 wavePush =
+                waveResponse.horizontalPush()
+                        .scale(
+                                isAnchored()
+                                        ? 0.08
+                                        : 0.32
+                        );
+
+        setDeltaMovement(
+                velocity.x
+                        + wavePush.x,
+                velocity.y
+                        + lift,
+                velocity.z
+                        + wavePush.z
+        );
+    }
+
+    private void relaxWaveHull() {
+        wavePitch *=
+                0.84F;
+
+        waveRoll *=
+                0.84F;
+
+        waveHeaveVelocity *=
+                0.72;
+
+        waveHeave *=
+                0.88;
     }
 
     private void refreshSeatState() {
@@ -1399,19 +1534,24 @@ public final class GreatShipEntity
         }
 
         double crest =
-                cachedSea.swell()
-                        * cachedSea.severity();
+                Math.max(
+                        waveResponse.breaker(),
+                        cachedSea.swell()
+                                * 0.45
+                );
 
-        if (crest < 0.48) {
+        if (crest < 0.32) {
             return;
         }
 
         double chance =
-                0.018
+                0.010
+                        + crest
+                        * 0.052
                         + cachedSea.storm()
-                        * 0.055
+                        * 0.040
                         + cachedSea.exposure()
-                        * 0.016;
+                        * 0.010;
 
         if (random.nextDouble()
                 >= chance) {
@@ -1425,8 +1565,8 @@ public final class GreatShipEntity
 
         float incomingWater =
                 0.12F
-                        + cachedSea.severity()
-                        * 0.32F
+                        + (float) crest
+                        * 0.44F
                         + damageFactor
                         * (
                         1.2F
@@ -2192,24 +2332,12 @@ public final class GreatShipEntity
             );
         }
 
-        float sea =
-                seaSeverityPercent()
-                        / 100.0F;
-
-        double time =
-                tickCount
-                        + partialTick;
-
-        return (float) Math.sin(
-                time * 0.075
-                        + getId()
-                        * 0.31
-        )
-                * (
-                0.45F
-                        + sea
-                        * 2.4F
-        );
+        /*
+         * Pitch comes from bow/stern samples in the shared wave field. The
+         * spring is updated in tickWaveHull(), so this remains deliberately
+         * late/heavy rather than matching the mesh vertex-for-vertex.
+         */
+        return wavePitch;
     }
 
     public float visualRoll(
@@ -2223,24 +2351,7 @@ public final class GreatShipEntity
             return -5.0F;
         }
 
-        float sea =
-                seaSeverityPercent()
-                        / 100.0F;
-
-        double time =
-                tickCount
-                        + partialTick;
-
-        return (float) Math.sin(
-                time * 0.052
-                        + getId()
-                        * 0.73
-        )
-                * (
-                0.8F
-                        + sea
-                        * 4.8F
-        );
+        return waveRoll;
     }
 
     private void wakeSleeper() {
