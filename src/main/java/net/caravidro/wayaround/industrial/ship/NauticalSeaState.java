@@ -1,17 +1,18 @@
 package net.caravidro.wayaround.industrial.ship;
 
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
+import net.caravidro.wayaround.worldgen.water.wave.OceanWaveField;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Shared lightweight sea-state model for Great Voyages.
+ * Compatibility facade for older Great Voyages code.
  *
- * Coastlines keep short, choppy waves while deep/open ocean receives longer
- * swells. It is deliberately stylized: gameplay/readability beat a full fluid
- * simulation, but render, ships and navigation all read the same state.
+ * <p>OceanWaveField is now the source of truth. This class intentionally keeps
+ * the old Sample shape so existing integrations do not need to change all at
+ * once, but no independent wave mathematics lives here anymore.</p>
  */
 public final class NauticalSeaState {
 
@@ -59,51 +60,38 @@ public final class NauticalSeaState {
             long gameTime,
             boolean includeCurrent
     ) {
-        float exposure =
-                oceanExposure(
+        OceanWaveField.Profile profile =
+                OceanWaveField.profile(
                         level,
-                        pos
+                        pos,
+                        gameTime
                 );
 
-        float storm =
-                level.isThundering()
-                        ? 1.0F
-                        : level.isRaining()
-                        ? 0.56F
-                        : 0.0F;
-
-        double slow =
-                gameTime * 0.017
-                        + pos.getX() * 0.012
-                        - pos.getZ() * 0.009;
-
-        double cross =
-                gameTime * 0.031
-                        - pos.getX() * 0.006
-                        - pos.getZ() * 0.014;
-
-        float swell =
-                (float) Mth.clamp(
-                        0.50
-                                + Math.sin(
-                                slow
-                        ) * 0.34
-                                + Math.sin(
-                                cross
-                        ) * 0.16,
-                        0.0,
-                        1.0
+        OceanWaveField.Sample wave =
+                OceanWaveField.sample(
+                        profile,
+                        pos.getX()
+                                + 0.5,
+                        pos.getZ()
+                                + 0.5,
+                        gameTime
                 );
 
-        /*
-         * Exposure dominates. A calm deep ocean is still a visibly larger
-         * body of water than a protected coast; storms layer on top.
-         */
         float severity =
                 Mth.clamp(
-                        0.12F
-                                + exposure * 0.62F
-                                + storm * 0.28F,
+                        0.08F
+                                + profile.exposure()
+                                * 0.38F
+                                + profile.storm()
+                                * 0.30F
+                                + wave.breaking()
+                                * 0.24F
+                                + Mth.clamp(
+                                profile.amplitude()
+                                        / 2.2F,
+                                0.0F,
+                                0.34F
+                        ),
                         0.0F,
                         1.0F
                 );
@@ -117,9 +105,9 @@ public final class NauticalSeaState {
                         : Vec3.ZERO;
 
         return new Sample(
-                exposure,
-                storm,
-                swell,
+                profile.exposure(),
+                profile.storm(),
+                wave.crest(),
                 severity,
                 current
         );
@@ -129,103 +117,10 @@ public final class NauticalSeaState {
             Level level,
             BlockPos center
     ) {
-        float total =
-                biomeExposure(
-                        level,
-                        center
-                );
-
-        int samples =
-                1;
-
-        int distance =
-                48;
-
-        BlockPos[] probes = {
-                center.offset(
-                        distance,
-                        0,
-                        0
-                ),
-                center.offset(
-                        -distance,
-                        0,
-                        0
-                ),
-                center.offset(
-                        0,
-                        0,
-                        distance
-                ),
-                center.offset(
-                        0,
-                        0,
-                        -distance
-                )
-        };
-
-        for (BlockPos probe :
-                probes) {
-            if (!level.hasChunkAt(
-                    probe
-            )) {
-                continue;
-            }
-
-            total +=
-                    biomeExposure(
-                            level,
-                            probe
-                    );
-
-            samples++;
-        }
-
-        return Mth.clamp(
-                total
-                        / samples,
-                0.0F,
-                1.0F
-        );
-    }
-
-    private static float biomeExposure(
-            Level level,
-            BlockPos pos
-    ) {
-        return level.getBiome(
-                        pos
-                )
-                .unwrapKey()
-                .map(
-                        key -> {
-                            String path =
-                                    key.location()
-                                            .getPath();
-
-                            if (path.contains(
-                                    "deep_ocean"
-                            )) {
-                                return 1.0F;
-                            }
-
-                            if (path.contains(
-                                    "ocean"
-                            )) {
-                                return 0.68F;
-                            }
-
-                            if (path.contains(
-                                    "beach"
-                            )) {
-                                return 0.30F;
-                            }
-
-                            return 0.14F;
-                        }
-                )
-                .orElse(
-                        0.14F
-                );
+        return OceanWaveField.profile(
+                level,
+                center,
+                level.getGameTime()
+        ).exposure();
     }
 }
