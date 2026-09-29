@@ -269,6 +269,24 @@ public final class GreatShipEntity
     }
 
     @Override
+    public AABB getBoundingBoxForCulling() {
+        /*
+         * The controller hitbox stays low for boat buoyancy, but the rendered
+         * Nau extends roughly 20+ blocks fore/aft and 15 blocks upward through
+         * its masts. Use the visual bounds for frustum culling so sails do not
+         * pop out when the controller itself leaves the camera edge.
+         */
+        return new AABB(
+                getX() - 12.5,
+                getY() - 5.0,
+                getZ() - 12.5,
+                getX() + 12.5,
+                getY() + 18.0,
+                getZ() + 12.5
+        );
+    }
+
+    @Override
     public Item getDropItem() {
         return CoalShipContent.GREAT_SHIP_ITEM.get();
     }
