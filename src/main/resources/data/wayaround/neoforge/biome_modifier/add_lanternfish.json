@@ -8,8 +8,8 @@
   ],
   "spawners": {
     "type": "wayaround:lanternfish",
-    "weight": 11,
-    "minCount": 4,
-    "maxCount": 10
+    "weight": 8,
+    "minCount": 2,
+    "maxCount": 6
   }
 }
