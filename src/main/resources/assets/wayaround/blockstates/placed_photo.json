@@ -14,6 +14,12 @@
     "facing=west": {
       "model": "wayaround:block/placed_photo",
       "y": 270
+    },
+    "facing=up": {
+      "model": "wayaround:block/placed_photo"
+    },
+    "facing=down": {
+      "model": "wayaround:block/placed_photo"
     }
   }
 }
