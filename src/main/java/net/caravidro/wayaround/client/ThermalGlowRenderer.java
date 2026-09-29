@@ -134,6 +134,37 @@ public final class ThermalGlowRenderer {
                 event.getCamera()
                         .getPosition();
 
+        boolean anyVisible =
+                false;
+
+        for (BlockPos pos :
+                GLOW.keySet()) {
+            double dx =
+                    pos.getX() + 0.5
+                            - camera.x;
+
+            double dy =
+                    pos.getY() + 0.5
+                            - camera.y;
+
+            double dz =
+                    pos.getZ() + 0.5
+                            - camera.z;
+
+            if (dx * dx
+                    + dy * dy
+                    + dz * dz
+                    <= RENDER_DISTANCE_SQR) {
+                anyVisible =
+                        true;
+                break;
+            }
+        }
+
+        if (!anyVisible) {
+            return;
+        }
+
         var matrix =
                 event.getPoseStack()
                         .last()
@@ -155,9 +186,6 @@ public final class ThermalGlowRenderer {
                 {1, 5, 7, 3}
         };
 
-        boolean any =
-                false;
-
         for (BlockPos pos :
                 GLOW.keySet()) {
             double dx =
@@ -178,9 +206,6 @@ public final class ThermalGlowRenderer {
                     > RENDER_DISTANCE_SQR) {
                 continue;
             }
-
-            any =
-                    true;
 
             for (int[] face :
                     faces) {
@@ -233,10 +258,6 @@ public final class ThermalGlowRenderer {
                             );
                 }
             }
-        }
-
-        if (!any) {
-            return;
         }
 
         RenderSystem.enableBlend();
