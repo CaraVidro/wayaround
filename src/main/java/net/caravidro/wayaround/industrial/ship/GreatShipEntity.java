@@ -6,6 +6,8 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 
 import net.caravidro.wayaround.worldgen.water.wave.WaveHullResponse;
+import net.caravidro.wayaround.worldconfig.WaveMode;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleTypes;
@@ -938,6 +940,9 @@ public final class GreatShipEntity
 
         if (!isSinking()
                 && !isWrecked()
+                && WorldFeatureRuntime.waveMode(
+                level()
+        ) == WaveMode.REALISTIC
                 && hasWaterUnderHull()) {
             tickWaveHull();
         } else {
@@ -1097,21 +1102,17 @@ public final class GreatShipEntity
                         0.035
                 );
 
-        Vec3 wavePush =
-                waveResponse.horizontalPush()
-                        .scale(
-                                isAnchored()
-                                        ? 0.08
-                                        : 0.32
-                        );
-
+        /*
+         * Waves lift and rotate the hull, but they do not steal propulsion.
+         * Horizontal drift remains the responsibility of WaterDynamics/current
+         * and wind. This prevents a head-on crest from behaving like invisible
+         * drag on a sailing vessel.
+         */
         setDeltaMovement(
-                velocity.x
-                        + wavePush.x,
+                velocity.x,
                 velocity.y
                         + lift,
                 velocity.z
-                        + wavePush.z
         );
     }
 
