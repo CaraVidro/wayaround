@@ -788,7 +788,34 @@ public final class JujutsuManager {
         if (event.getOriginal() instanceof ServerPlayer original
                 && event.getEntity() instanceof ServerPlayer replacement) {
             copyIdentity(original, replacement);
+            ABILITY_PANEL_OPEN.remove(
+                    original.getUUID()
+            );
+            ABILITY_PANEL_OPEN.remove(
+                    replacement.getUUID()
+            );
         }
+    }
+
+    @SubscribeEvent
+    public static void logout(
+            PlayerEvent.PlayerLoggedOutEvent event
+    ) {
+        UUID id =
+                event.getEntity()
+                        .getUUID();
+
+        ABILITY_PANEL_OPEN.remove(
+                id
+        );
+
+        ENERGY_VISION.remove(
+                id
+        );
+
+        COOLDOWN_UNTIL.remove(
+                id
+        );
     }
 
     @SubscribeEvent
