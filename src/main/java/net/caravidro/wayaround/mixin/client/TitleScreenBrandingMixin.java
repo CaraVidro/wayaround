@@ -13,6 +13,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(TitleScreen.class)
 public abstract class TitleScreenBrandingMixin {
 
+    /*
+     * RELEASE BRANDING:
+     * Change these two constants whenever Way Around gets a major named update.
+     * Future release chats should update both the semantic version and the
+     * subtitle together so the title screen always advertises the current era.
+     */
+    private static final String WAYAROUND_VERSION =
+            "v1.2.0";
+
+    private static final String WAYAROUND_RELEASE_TITLE =
+            "GRANDE NOVO MUNDO";
+
     @Inject(
             method = "render",
             at = @At("TAIL")
@@ -42,6 +54,16 @@ public abstract class TitleScreenBrandingMixin {
                 0xFFB8B8B8
         );
 
+        graphics.drawCenteredString(
+                minecraft.font,
+                Component.literal(
+                        WAYAROUND_RELEASE_TITLE
+                ),
+                center,
+                94,
+                0xFF8C6E46
+        );
+
         Component context =
                 switch (MenuBrandingState.context()) {
                     case SINGLEPLAYER ->
@@ -64,17 +86,17 @@ public abstract class TitleScreenBrandingMixin {
                 minecraft.font,
                 context,
                 center,
-                94,
+                106,
                 0xFF666666
         );
 
         graphics.drawCenteredString(
                 minecraft.font,
                 Component.literal(
-                        "v1.2.0"
+                        WAYAROUND_VERSION
                 ),
                 center,
-                105,
+                117,
                 0xFF4B4B4B
         );
     }
