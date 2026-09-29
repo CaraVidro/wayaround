@@ -23,7 +23,7 @@ public abstract class TitleScreenBrandingMixin {
             "v1.2.0";
 
     private static final String WAYAROUND_RELEASE_TITLE =
-            "GRANDE NOVO MUNDO";
+            "Grande Novo Mundo";
 
     @Inject(
             method = "render",
