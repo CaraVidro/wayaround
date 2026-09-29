@@ -11,9 +11,25 @@ public final class WorldFeatureSavedData
             "wayaround_world_features";
 
     private WorldFeatureSettings settings =
-            WorldFeatureSettings.allEnabled();
+            compatibilityDefaults();
 
     public WorldFeatureSavedData() {
+    }
+
+    private static WorldFeatureSettings compatibilityDefaults() {
+        WorldFeatureSettings settings =
+                WorldFeatureSettings.allEnabled();
+
+        /*
+         * No SavedData means this is most likely a world created before wave
+         * modes existed. New worlds arrive with pendingCreation and overwrite
+         * this value before it is persisted.
+         */
+        settings.setWaveMode(
+                WaveMode.STYLIZED
+        );
+
+        return settings;
     }
 
     private WorldFeatureSavedData(
