@@ -11,6 +11,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -153,6 +154,18 @@ public final class RiverPebbleBlock
             BlockPos pos,
             BlockPos neighborPos
     ) {
+        if (direction == Direction.DOWN
+                && !canSurvive(
+                state,
+                level,
+                pos
+        )) {
+            level.scheduleTick(
+                    pos,
+                    this,
+                    1
+            );
+        }
         if (state.getValue(WATERLOGGED)) {
             level.scheduleTick(
                     pos,
@@ -168,6 +181,92 @@ public final class RiverPebbleBlock
                 level,
                 pos,
                 neighborPos
+        );
+    }
+
+    @Override
+    protected boolean canSurvive(
+            BlockState state,
+            LevelReader level,
+            BlockPos pos
+    ) {
+        BlockPos supportPos =
+                pos.below();
+
+        BlockState support =
+                level.getBlockState(
+                        supportPos
+                );
+
+        return support.isFaceSturdy(
+                level,
+                supportPos,
+                Direction.UP
+        );
+    }
+
+    @Override
+    protected void onPlace(
+            BlockState state,
+            net.minecraft.world.level.Level level,
+            BlockPos pos,
+            BlockState oldState,
+            boolean movedByPiston
+    ) {
+        super.onPlace(
+                state,
+                level,
+                pos,
+                oldState,
+                movedByPiston
+        );
+
+        if (!level.isClientSide
+                && !canSurvive(
+                state,
+                level,
+                pos
+        )) {
+            level.scheduleTick(
+                    pos,
+                    this,
+                    1
+            );
+        }
+    }
+
+    @Override
+    protected void tick(
+            BlockState state,
+            ServerLevel level,
+            BlockPos pos,
+            RandomSource random
+    ) {
+        if (canSurvive(
+                state,
+                level,
+                pos
+        )) {
+            return;
+        }
+
+        Block.dropResources(
+                state,
+                level,
+                pos
+        );
+
+        level.setBlock(
+                pos,
+                state.getValue(
+                        WATERLOGGED
+                )
+                        ? Fluids.WATER
+                                .defaultFluidState()
+                                .createLegacyBlock()
+                        : net.minecraft.world.level.block.Blocks.AIR
+                                .defaultBlockState(),
+                Block.UPDATE_ALL
         );
     }
 
