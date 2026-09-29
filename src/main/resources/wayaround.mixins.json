@@ -17,7 +17,8 @@
     "FireBlockMixin",
     "FireRenderShapeMixin",
     "FireAnimateTickMixin",
-    "FireBlockAccessor"
+    "FireBlockAccessor",
+    "BoatWaveMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
@@ -39,7 +40,8 @@
     "client.NexusSkyMixin",
     "client.NexusFogMixin",
     "client.TitleScreenBrandingMixin",
-    "client.SplashRendererMixin"
+    "client.SplashRendererMixin",
+    "client.BoatRendererWaveMixin"
   ],
   "injectors": {
     "defaultRequire": 1
