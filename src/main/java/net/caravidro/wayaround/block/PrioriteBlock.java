@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.block;
 
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.minecraft.core.BlockPos;
@@ -56,6 +57,13 @@ public final class PrioriteBlock extends Block {
         // Multiple neighboring blocks cannot multiply contact damage in the same tick.
         if (data.contains(LAST_CONTACT) && now >= previous && now - previous < 20) return;
         data.putLong(LAST_CONTACT, now);
+
+        if (living instanceof net.minecraft.server.level.ServerPlayer player) {
+            WayAroundAdvancements.vistaPriorite(
+                    player
+            );
+        }
+
         living.hurt(level.damageSources().magic(), 2.0F);
         living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
         living.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 160, 0));
@@ -88,6 +96,13 @@ public final class PrioriteBlock extends Block {
     ) {
 
         int amount = state.getValue(AMOUNT);
+
+        if (!level.isClientSide
+                && player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            WayAroundAdvancements.vistaPriorite(
+                    serverPlayer
+            );
+        }
 
         /*
          * -----------------------------------------------------
