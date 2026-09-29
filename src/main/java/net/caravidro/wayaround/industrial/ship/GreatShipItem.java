@@ -51,8 +51,14 @@ public final class GreatShipItem extends Item {
         if (level instanceof ServerLevel serverLevel) {
             EntityType.<GreatShipEntity>createDefaultStackConfig(serverLevel, stack, player).accept(ship);
         }
-        if (!level.noCollision(ship, ship.getBoundingBox())) {
-            return InteractionResultHolder.fail(stack);
+        if (!level.noCollision(
+                ship,
+                ship.getBoundingBox()
+        )
+                || !ship.hasLaunchClearance()) {
+            return InteractionResultHolder.fail(
+                    stack
+            );
         }
         if (!level.isClientSide) {
             if (!level.addFreshEntity(ship)) {
