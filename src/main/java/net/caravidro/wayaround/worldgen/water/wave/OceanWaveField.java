@@ -598,47 +598,42 @@ public final class OceanWaveField {
             double z,
             long gameTime
     ) {
-        double directionVariation =
-                (
-                        smoothChunkNoise(
-                                x,
-                                z,
-                                0x444952454354494FL
-                        )
-                                - 0.5
-                ) * 0.68;
+        return sample(
+                profile,
+                x,
+                z,
+                gameTime,
+                WaveForcing.NEUTRAL
+        );
+    }
 
-        double cosDirection =
-                Math.cos(
-                        directionVariation
-                );
+    /**
+     * Future-facing plug point for external forces. The current realistic
+     * ocean always uses NEUTRAL: weather, wind, clouds and events do not alter
+     * this base spectrum yet.
+     */
+    public static Sample sample(
+            Profile profile,
+            double x,
+            double z,
+            long gameTime,
+            WaveForcing forcing
+    ) {
+        double localLength =
+                0.84
+                        + smoothChunkNoise(
+                        x,
+                        z,
+                        0x4C454E4754485741L
+                ) * 0.34;
 
-        double sinDirection =
-                Math.sin(
-                        directionVariation
-                );
-
-        double dirX =
-                profile.directionX()
-                        * cosDirection
-                        - profile.directionZ()
-                        * sinDirection;
-
-        double dirZ =
-                profile.directionX()
-                        * sinDirection
-                        + profile.directionZ()
-                        * cosDirection;
-
-        double crossX =
-                -dirZ;
-
-        double crossZ =
-                dirX;
-
-        double seconds =
-                gameTime
-                        / 20.0;
+        double localEnergy =
+                0.82
+                        + smoothChunkNoise(
+                        x,
+                        z,
+                        0x454E45524759434CL
+                ) * 0.38;
 
         float rogue =
                 rogueBoost(
@@ -648,366 +643,70 @@ public final class OceanWaveField {
                 )
                         * profile.exposure();
 
-        double localLength =
-                0.82
-                        + smoothChunkNoise(
+        RealisticWaveSpectrum.Result spectrum =
+                RealisticWaveSpectrum.sample(
+                        profile,
                         x,
                         z,
-                        0x4C454E4754485741L
-                ) * 0.38;
-
-        double wavelength =
-                Math.max(
-                        5.0,
-                        profile.wavelength()
-                                * localLength
-                                * (
-                                1.0
-                                        + rogue
-                                        * 0.72
-                        )
-                );
-
-        double baseK =
-                Math.PI * 2.0
-                        / wavelength;
-
-        double crossK =
-                Math.PI * 2.0
-                        / Math.max(
-                        4.0,
-                        wavelength
-                                * 0.58
-                );
-
-        double chopK =
-                Math.PI * 2.0
-                        / Math.max(
-                        3.0,
-                        wavelength
-                                * 0.24
-                );
-
-        double longitudinal =
-                x * dirX
-                        + z * dirZ;
-
-        double lateral =
-                x * crossX
-                        + z * crossZ;
-
-        double phaseSeed =
-                Math.sin(
-                        x * 0.0017
-                                - z * 0.0011
-                )
-                        * 0.9;
-
-        double phase1 =
-                longitudinal
-                        * baseK
-                        - seconds
-                        * (
-                        0.72
-                                + profile.exposure()
-                                * 0.42
-                )
-                        + phaseSeed;
-
-        double phase2 =
-                lateral
-                        * crossK
-                        - seconds
-                        * 0.48
-                        - phaseSeed
-                        * 0.55;
-
-        double phase3 =
-                (
-                        longitudinal
-                                * 0.72
-                                + lateral
-                                * 0.28
-                )
-                        * chopK
-                        - seconds
-                        * (
-                        1.35
-                                + profile.storm()
-                                * 0.40
-                );
-
-        /*
-         * Slow envelopes create recognizable wave sets. Open water gets long
-         * periods of larger crests instead of every crest being identical.
-         */
-        double groupPhase =
-                longitudinal
-                        * (
-                        baseK
-                                * 0.18
-                )
-                        - seconds
-                        * 0.11
-                        + Math.sin(
-                        lateral
-                                * 0.006
-                );
-
-        double group =
-                0.64
-                        + (
-                        Math.sin(
-                                groupPhase
-                        ) * 0.5
-                                + 0.5
-                ) * 0.46;
-
-        double localEnergy =
-                0.84
-                        + smoothChunkNoise(
-                        x,
-                        z,
-                        0x454E45524759434CL
-                ) * 0.34;
-
-        double amplitude =
-                profile.amplitude()
-                        * group
-                        * localEnergy
-                        * (
-                        1.0
-                                + rogue
-                                * 3.15
-                );
-
-        double longAmp =
-                amplitude
-                        * (
-                        0.58
-                                + profile.exposure()
-                                * 0.17
-                );
-
-        double crossAmp =
-                amplitude
-                        * (
-                        0.15
-                                + profile.exposure()
-                                * 0.10
-                );
-
-        double chopAmp =
-                amplitude
-                        * (
-                        0.16
-                                + profile.shore()
-                                * 0.16
-                                + profile.storm()
-                                * 0.05
-                );
-
-        double sin1 =
-                Math.sin(
-                        phase1
-                );
-
-        double cos1 =
-                Math.cos(
-                        phase1
-                );
-
-        double sin2 =
-                Math.sin(
-                        phase2
-                );
-
-        double cos2 =
-                Math.cos(
-                        phase2
-                );
-
-        double sin3 =
-                Math.sin(
-                        phase3
-                );
-
-        double cos3 =
-                Math.cos(
-                        phase3
-                );
-
-        double height =
-                sin1
-                        * longAmp
-                        + sin2
-                        * crossAmp
-                        + sin3
-                        * chopAmp;
-
-        double dHdx =
-                cos1
-                        * longAmp
-                        * baseK
-                        * dirX
-                        + cos2
-                        * crossAmp
-                        * crossK
-                        * crossX
-                        + cos3
-                        * chopAmp
-                        * chopK
-                        * (
-                        dirX * 0.72
-                                + crossX * 0.28
-                );
-
-        double dHdz =
-                cos1
-                        * longAmp
-                        * baseK
-                        * dirZ
-                        + cos2
-                        * crossAmp
-                        * crossK
-                        * crossZ
-                        + cos3
-                        * chopAmp
-                        * chopK
-                        * (
-                        dirZ * 0.72
-                                + crossZ * 0.28
+                        gameTime,
+                        localLength,
+                        localEnergy,
+                        rogue,
+                        forcing
                 );
 
         Vec3 normal =
                 new Vec3(
-                        -dHdx,
+                        -spectrum.dHdx(),
                         1.0,
-                        -dHdz
+                        -spectrum.dHdz()
                 ).normalize();
 
-        double verticalVelocity =
-                -cos1
-                        * longAmp
-                        * (
-                        0.72
-                                + profile.exposure()
-                                * 0.42
-                )
-                        / 20.0
-                        - cos2
-                        * crossAmp
-                        * 0.48
-                        / 20.0
-                        - cos3
-                        * chopAmp
-                        * (
-                        1.35
-                                + profile.storm()
-                                * 0.40
-                )
-                        / 20.0;
-
-        double normalized =
-                height
-                        / Math.max(
-                        0.05,
-                        amplitude
-                                * 0.86
-                );
-
         float crest =
-                Mth.clamp(
-                        (float) (
-                                normalized
-                                        * 0.58
-                                        + 0.45
-                        ),
-                        0.0F,
-                        1.0F
-                );
+                spectrum.crest();
 
         float breaking =
                 Mth.clamp(
-                        crest
-                                * (
-                                profile.shore()
-                                        * 0.88F
-                                        + profile.storm()
-                                        * 0.42F
-                                        + profile.exposure()
-                                        * 0.12F
-                        )
-                                + (
-                                crest > 0.82F
-                                        ? 0.18F
-                                        : 0.0F
-                        )
-                                + rogue
-                                * 0.26F,
+                        spectrum.breaking()
+                                + profile.shore()
+                                * crest
+                                * 0.52F,
                         0.0F,
                         1.0F
                 );
 
-        /*
-         * Run-up is a distance, not a water height. Shore renderers/erosion can
-         * use it to decide how far this exact crest reaches over land.
-         */
         double runPhase =
-                Math.sin(
-                        phase1
-                                - 0.42
+                Math.cos(
+                        spectrum.primaryPhase()
+                                - 0.30
                 ) * 0.5
                         + 0.5;
 
         float runup =
                 (float) (
                         profile.maxRunup()
+                                * forcing.runupMultiplier()
                                 * (
                                 1.0
                                         + rogue
-                                        * 1.65
+                                        * 1.55
                         )
                                 * Math.pow(
                                 runPhase,
-                                1.55
+                                1.48
                         )
                                 * (
-                                0.58
+                                0.48
                                         + breaking
-                                        * 0.54
+                                        * 0.70
                         )
-                );
-
-        double orbital =
-                (
-                        0.012
-                                + profile.exposure()
-                                * 0.028
-                                + profile.storm()
-                                * 0.018
-                )
-                        * (
-                        0.45
-                                + crest
-                                + rogue
-                                * 0.85
-                        );
-
-        Vec3 horizontalVelocity =
-                new Vec3(
-                        dirX
-                                * orbital,
-                        0.0,
-                        dirZ
-                                * orbital
                 );
 
         return new Sample(
-                height,
-                verticalVelocity,
+                spectrum.height(),
+                spectrum.verticalVelocity(),
                 normal,
-                horizontalVelocity,
+                spectrum.horizontalVelocity(),
                 crest,
                 breaking,
                 runup,
@@ -1184,16 +883,16 @@ public final class OceanWaveField {
                         1.0F
                 );
 
+        /*
+         * REALISTIC V1 is intentionally self-contained. These reserved
+         * channels stay neutral until external forcing providers are plugged
+         * in explicitly.
+         */
         float rain =
-                level.isRaining()
-                        ? 1.0F
-                        : 0.0F;
+                0.0F;
 
         float storm =
-                level.isThundering()
-                        ? 1.0F
-                        : rain
-                        * 0.42F;
+                0.0F;
 
         double fieldAngle =
                 x * 0.00073
@@ -1257,40 +956,26 @@ public final class OceanWaveField {
         }
 
         float amplitude =
-                0.035F
+                0.045F
                         + (float) Math.pow(
                         exposure,
-                        1.55
-                ) * 0.82F
-                        + storm
-                        * (
-                        0.10F
-                                + exposure
-                                * 0.72F
-                );
+                        1.45
+                ) * 1.10F;
 
         amplitude *=
                 1.0F
                         - shore
-                        * 0.24F;
+                        * 0.34F;
 
         float wavelength =
-                7.0F
+                8.0F
                         + exposure
-                        * 36.0F
-                        + storm
-                        * 9.0F;
+                        * 46.0F;
 
         float maxRunup =
-                0.85F
+                0.90F
                         + shore
-                        * (
-                        1.9F
-                                + rain
-                                * 1.8F
-                                + storm
-                                * 1.6F
-                );
+                        * 2.50F;
 
         return new Profile(
                 exposure,
