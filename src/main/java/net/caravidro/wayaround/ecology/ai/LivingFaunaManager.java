@@ -1367,7 +1367,19 @@ public final class LivingFaunaManager {
                                         )
                                                 && (
                                                 !(candidate instanceof SunfishEntity)
-                                                        || fishSize(candidate) < fishSize(hunter) * 0.75F
+                                                        || (
+                                                        hunter instanceof ReefSharkEntity
+                                                                && fishSize(
+                                                                candidate
+                                                        ) < fishSize(
+                                                                hunter
+                                                        ) * 1.15F
+                                                )
+                                                        || fishSize(
+                                                        candidate
+                                                ) < fishSize(
+                                                        hunter
+                                                ) * 0.75F
                                         )
                         )
                         .stream()
@@ -2265,6 +2277,15 @@ public final class LivingFaunaManager {
         }
 
         if (hunter instanceof ReefSharkEntity) {
+            /*
+             * Sharks can occasionally test a similarly-sized sunfish, but a
+             * healthy sunfish is low-priority prey. This produces real scars
+             * without turning every ocean sunfish into permanent shark food.
+             */
+            if (prey instanceof SunfishEntity) {
+                return 0.35;
+            }
+
             if (prey.getType()
                     == EntityType.SALMON
                     || prey.getType()
