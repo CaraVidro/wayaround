@@ -168,45 +168,57 @@ public final class DeepOceanManager {
 
         cleanLegacyFloatingOceanDecor(
                 level,
-                center
+                chunkX,
+                chunkZ
         );
     }
 
     private static void cleanLegacyFloatingOceanDecor(
             ServerLevel level,
-            BlockPos center
+            int chunkX,
+            int chunkZ
     ) {
         int surface =
                 level.getSeaLevel()
                         - 1;
 
-        int bottom =
+        int minFloor =
                 Math.max(
-                        level.getMinBuildHeight() + 1,
-                        -18
+                        level.getMinBuildHeight() + 9,
+                        -48
                 );
 
-        for (int dx = -12;
-             dx <= 12;
-             dx += 2) {
-            for (int dz = -12;
-                 dz <= 12;
-                 dz += 2) {
+        int baseX =
+                chunkX << 4;
+
+        int baseZ =
+                chunkZ << 4;
+
+        /*
+         * The old cleanup sampled every second column and stopped at Y=-18.
+         * That was enough to hide some leftovers, but not enough for trenches
+         * whose new floor lives around Y=-24..-48. Repair the whole chunk once
+         * and only touch natural trench debris / ocean decoration.
+         */
+        for (int localX = 0;
+             localX < 16;
+             localX++) {
+            for (int localZ = 0;
+                 localZ < 16;
+                 localZ++) {
 
                 int x =
-                        center.getX()
-                                + dx;
+                        baseX + localX;
 
                 int z =
-                        center.getZ()
-                                + dz;
+                        baseZ + localZ;
 
                 BlockPos biomeProbe =
                         new BlockPos(
                                 x,
                                 Math.min(
                                         surface,
-                                        center.getY()
+                                        -20
                                 ),
                                 z
                         );
@@ -218,6 +230,32 @@ public final class DeepOceanManager {
                     continue;
                 }
 
+                double waveA =
+                        Math.sin(
+                                x * 0.031
+                                        + z * 0.017
+                        );
+
+                double waveB =
+                        Math.sin(
+                                x * 0.011
+                                        - z * 0.027
+                        );
+
+                int expectedFloor =
+                        net.minecraft.util.Mth.clamp(
+                                -38
+                                        + (int) Math.round(
+                                        waveA * 6.0
+                                                + waveB * 5.0
+                                ),
+                                minFloor,
+                                -24
+                        );
+
+                int cleanupBottom =
+                        expectedFloor + 3;
+
                 BlockPos.MutableBlockPos cursor =
                         new BlockPos.MutableBlockPos(
                                 x,
@@ -226,7 +264,7 @@ public final class DeepOceanManager {
                         );
 
                 for (int y = surface;
-                     y >= bottom;
+                     y > cleanupBottom;
                      y--) {
 
                     cursor.setY(
@@ -241,64 +279,116 @@ public final class DeepOceanManager {
                     if (state.is(
                             Blocks.WATER
                     )
-                            || state.isAir()) {
+                            || state.isAir()
+                            || state.hasBlockEntity()) {
                         continue;
                     }
 
-                    var id =
-                            BuiltInRegistries.BLOCK
-                                    .getKey(
-                                            state.getBlock()
-                                    );
-
-                    String path =
-                            id.getPath();
-
-                    boolean oceanDecor =
-                            path.contains(
-                                    "kelp"
-                            )
-                                    || path.contains(
-                                    "seagrass"
-                            )
-                                    || path.contains(
-                                    "coral"
-                            )
-                                    || path.equals(
-                                    "sea_pickle"
-                            )
-                                    || (
-                                    id.getNamespace()
-                                            .equals(
-                                                    WayAround.MODID
-                                            )
-                                            && (
-                                            path.equals(
-                                                    "sea_cucumber"
-                                            )
-                                                    || path.equals(
-                                                    "sea_sponge"
-                                            )
-                                                    || path.equals(
-                                                    "sea_lettuce"
-                                            )
-                                                    || path.equals(
-                                                    "seagrass_tuft"
-                                            )
-                                    )
-                            );
-
-                    if (oceanDecor) {
-                        level.setBlock(
-                                cursor,
-                                Blocks.WATER
-                                        .defaultBlockState(),
-                                2
-                        );
+                    if (!legacyFloatingOceanMaterial(
+                            state
+                    )) {
+                        continue;
                     }
+
+                    level.setBlock(
+                            cursor,
+                            Blocks.WATER
+                                    .defaultBlockState(),
+                            2
+                    );
                 }
             }
         }
+    }
+
+    private static boolean legacyFloatingOceanMaterial(
+            net.minecraft.world.level.block.state.BlockState state
+    ) {
+        var id =
+                BuiltInRegistries.BLOCK
+                        .getKey(
+                                state.getBlock()
+                        );
+
+        String path =
+                id.getPath();
+
+        boolean oceanDecor =
+                path.contains(
+                        "kelp"
+                )
+                        || path.contains(
+                        "seagrass"
+                )
+                        || path.contains(
+                        "coral"
+                )
+                        || path.equals(
+                        "sea_pickle"
+                )
+                        || (
+                        id.getNamespace()
+                                .equals(
+                                        WayAround.MODID
+                                )
+                                && (
+                                path.equals(
+                                        "sea_cucumber"
+                                )
+                                        || path.equals(
+                                        "sea_sponge"
+                                )
+                                        || path.equals(
+                                        "sea_lettuce"
+                                )
+                                        || path.equals(
+                                        "seagrass_tuft"
+                                )
+                        )
+                );
+
+        if (oceanDecor) {
+            return true;
+        }
+
+        /*
+         * Old trench chunks can also retain pieces of the former natural floor
+         * suspended far above the new abyss. Restrict this to terrain blocks;
+         * wood, machines, wreckage and block entities are deliberately spared.
+         */
+        return state.is(
+                Blocks.SAND
+        )
+                || state.is(
+                Blocks.GRAVEL
+        )
+                || state.is(
+                Blocks.DIRT
+        )
+                || state.is(
+                Blocks.CLAY
+        )
+                || state.is(
+                Blocks.STONE
+        )
+                || state.is(
+                Blocks.DEEPSLATE
+        )
+                || state.is(
+                Blocks.TUFF
+        )
+                || state.is(
+                Blocks.CALCITE
+        )
+                || state.is(
+                Blocks.GRANITE
+        )
+                || state.is(
+                Blocks.DIORITE
+        )
+                || state.is(
+                Blocks.ANDESITE
+        );
     }
 
     public static boolean isDeepOcean(
