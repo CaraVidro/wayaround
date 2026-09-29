@@ -12,8 +12,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
-import net.caravidro.wayaround.industrial.ship.NauticalSeaState;
-import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.caravidro.wayaround.worldgen.water.wave.OceanWaveField;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
@@ -160,15 +159,8 @@ public final class WaterSurfaceRenderer {
         double lookZ =
                 cameraLook.z();
 
-        LocalWeatherField.Sample weather =
-                LocalWeatherField.sample(
-                        camera.x,
-                        camera.z,
-                        time
-                );
-
-        NauticalSeaState.Sample sea =
-                NauticalSeaState.visual(
+        OceanWaveField.Profile cameraProfile =
+                OceanWaveField.profile(
                         minecraft.level,
                         BlockPos.containing(
                                 camera
@@ -177,24 +169,13 @@ public final class WaterSurfaceRenderer {
                 );
 
         /*
-         * Protected/coastal water keeps short chop. Deep ocean receives a
-         * deliberately exaggerated long swell so the Great Voyages ships read
-         * as being on a real sea rather than a moving blue floor.
+         * Rendering no longer invents its own waves. Every vertex below reads
+         * the same shared OceanWaveField used by vessels and shoreline run-up.
          */
         double amplitude =
-                (
-                        0.030
-                                + sea.exposure()
-                                * 0.165
-                                + weather.warning()
-                                * 0.050
-                                + sea.storm()
-                                * 0.060
-                )
-                        * (
-                        0.74
-                                + sea.swell()
-                                * 0.42
+                Math.max(
+                        0.04,
+                        cameraProfile.amplitude()
                 );
 
         PoseStack stack =
@@ -275,45 +256,53 @@ public final class WaterSurfaceRenderer {
             double base =
                     surface.baseY;
 
-            double y00 =
-                    base
-                    + wave(
+            OceanWaveField.Sample wave00 =
+                    OceanWaveField.sample(
+                            surface.profile,
                             x,
                             z,
-                            time,
-                            amplitude,
-                            sea.exposure()
+                            time
+                    );
+
+            double y00 =
+                    base
+                            + wave00.height();
+
+            OceanWaveField.Sample wave10 =
+                    OceanWaveField.sample(
+                            surface.profile,
+                            x + 1,
+                            z,
+                            time
                     );
 
             double y10 =
                     base
-                    + wave(
+                            + wave10.height();
+
+            OceanWaveField.Sample wave11 =
+                    OceanWaveField.sample(
+                            surface.profile,
                             x + 1,
-                            z,
-                            time,
-                            amplitude,
-                            sea.exposure()
+                            z + 1,
+                            time
                     );
 
             double y11 =
                     base
-                    + wave(
-                            x + 1,
+                            + wave11.height();
+
+            OceanWaveField.Sample wave01 =
+                    OceanWaveField.sample(
+                            surface.profile,
+                            x,
                             z + 1,
-                            time,
-                            amplitude,
-                            sea.exposure()
+                            time
                     );
 
             double y01 =
                     base
-                    + wave(
-                            x,
-                            z + 1,
-                            time,
-                            amplitude,
-                            sea.exposure()
-                    );
+                            + wave01.height();
 
             /*
              * Do not submit quads that cross or sit behind the camera plane.
@@ -390,11 +379,27 @@ public final class WaterSurfaceRenderer {
                             8
                     );
 
+            int breaker =
+                    Mth.clamp(
+                            Math.round(
+                                    (
+                                            wave00.breaking()
+                                                    + wave10.breaking()
+                                                    + wave11.breaking()
+                                                    + wave01.breaking()
+                                    ) * 0.25F
+                                            * 36.0F
+                            ),
+                            0,
+                            36
+                    );
+
             int red =
                     Mth.clamp(
                             surface.red
                                     + textureNoise / 3
-                                    + crest / 3,
+                                    + crest / 3
+                                    + breaker,
                             0,
                             255
                     );
@@ -403,7 +408,8 @@ public final class WaterSurfaceRenderer {
                     Mth.clamp(
                             surface.green
                                     + textureNoise / 2
-                                    + crest / 2,
+                                    + crest / 2
+                                    + breaker,
                             0,
                             255
                     );
@@ -412,7 +418,8 @@ public final class WaterSurfaceRenderer {
                     Mth.clamp(
                             surface.blue
                                     + textureNoise
-                                    + crest,
+                                    + crest
+                                    + breaker,
                             0,
                             255
                     );
@@ -751,7 +758,12 @@ public final class WaterSurfaceRenderer {
                                     waterColor >> 8
                                             & 255,
                                     waterColor
-                                            & 255
+                                            & 255,
+                                    OceanWaveField.profile(
+                                            minecraft.level,
+                                            water,
+                                            time
+                                    )
                             )
                     );
                 }
@@ -807,69 +819,14 @@ public final class WaterSurfaceRenderer {
         return null;
     }
 
-    private static double wave(
-            int x,
-            int z,
-            long time,
-            double amplitude,
-            float exposure
-    ) {
-        double t =
-                time * 0.10;
-
-        double shortChop =
-                Mth.sin(
-                        (float) (
-                                x * 0.38
-                                        + z * 0.21
-                                        + t
-                        )
-                )
-                        * amplitude
-                        * (
-                        1.0
-                                - exposure
-                                * 0.48
-                );
-
-        double crossChop =
-                Mth.sin(
-                        (float) (
-                                x * 0.13
-                                        - z * 0.31
-                                        + t * 0.63
-                        )
-                )
-                        * amplitude
-                        * 0.35;
-
-        double openSwell =
-                Mth.sin(
-                        (float) (
-                                x * 0.060
-                                        + z * 0.047
-                                        + t * 0.31
-                        )
-                )
-                        * amplitude
-                        * (
-                        0.28
-                                + exposure
-                                * 1.05
-                );
-
-        return shortChop
-                + crossChop
-                + openSwell;
-    }
-
     private record WaterSurface(
             int x,
             int z,
             double baseY,
             int red,
             int green,
-            int blue
+            int blue,
+            OceanWaveField.Profile profile
     ) {
     }
 
