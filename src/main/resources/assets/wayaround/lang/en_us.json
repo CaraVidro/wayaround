@@ -614,5 +614,7 @@
   "advancements.wayaround.vista.old_friend.title": "Did You See Someone?",
   "advancements.wayaround.vista.old_friend.description": "For a moment, someone else was there.",
   "advancements.wayaround.vista.sunfish_basking.title": "Is It Okay?",
-  "advancements.wayaround.vista.sunfish_basking.description": "Find a sunfish floating sideways at the surface. It gets back up."
+  "advancements.wayaround.vista.sunfish_basking.description": "Find a sunfish floating sideways at the surface. It gets back up.",
+  "advancements.wayaround.vista.puffer_carrot.title": "Questionable Nutrition",
+  "advancements.wayaround.vista.puffer_carrot.description": "Give a carrot to a pufferfish. You did not need to do this."
 }
