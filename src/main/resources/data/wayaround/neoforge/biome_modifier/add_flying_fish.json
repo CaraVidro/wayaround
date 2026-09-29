@@ -7,8 +7,8 @@
   ],
   "spawners": {
     "type": "wayaround:flying_fish",
-    "weight": 7,
-    "minCount": 3,
-    "maxCount": 7
+    "weight": 6,
+    "minCount": 2,
+    "maxCount": 5
   }
 }
