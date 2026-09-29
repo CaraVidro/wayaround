@@ -532,6 +532,14 @@ tasks.register('ecologyRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('ecologyRegressionTest') }
 
+// Shared deterministic ocean-wave field invariants.
+tasks.register('waveRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.worldgen.water.wave.OceanWaveFieldTest'
+}
+tasks.named('check') { dependsOn tasks.named('waveRegressionTest') }
+
 // Guard Infinity's damage ceiling and visible, bounded projectile braking.
 tasks.register('infinityRegressionTest', JavaExec) {
     dependsOn tasks.named('spectrumTestClasses')
