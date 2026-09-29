@@ -40,6 +40,9 @@ public final class SunfishEntity extends AguaWorldFishEntity {
     private int baskTicks;
     private int baskApproachTicks;
     private int baskSurfaceY;
+    private static final String NATURAL_SCARS_INITIALIZED =
+            "WayAroundSunfishNaturalScars";
+
     private int baskCooldown;
 
     private float prevBaskBlend;
@@ -103,7 +106,50 @@ public final class SunfishEntity extends AguaWorldFishEntity {
             return;
         }
 
+        initializeNaturalScars();
         tickBasking();
+    }
+
+    private void initializeNaturalScars() {
+        CompoundTag data =
+                getPersistentData();
+
+        if (data.getBoolean(
+                NATURAL_SCARS_INITIALIZED
+        )) {
+            return;
+        }
+
+        data.putBoolean(
+                NATURAL_SCARS_INITIALIZED,
+                true
+        );
+
+        /*
+         * Ocean sunfish are often found carrying evidence of old encounters.
+         * Most spawned animals get at least one mark, while heavy scarring is
+         * still uncommon enough to make an individual visually memorable.
+         */
+        float roll =
+                random.nextFloat();
+
+        int naturalStage =
+                roll < 0.05F
+                        ? 4
+                        : roll < 0.16F
+                        ? 3
+                        : roll < 0.38F
+                        ? 2
+                        : roll < 0.72F
+                        ? 1
+                        : 0;
+
+        if (naturalStage > scarStage()) {
+            entityData.set(
+                    SCAR_STAGE,
+                    naturalStage
+            );
+        }
     }
 
     private void tickBasking() {
@@ -210,14 +256,31 @@ public final class SunfishEntity extends AguaWorldFishEntity {
          * Do not roll every tick. This gives the behaviour a rare, memorable
          * cadence even in oceans containing several sunfish.
          */
+        int scars =
+                scarStage();
+
         baskCooldown =
-                900
-                        + random.nextInt(
-                        1700
+                Math.max(
+                        420,
+                        920
+                                + random.nextInt(
+                                1700
+                        )
+                                - scars
+                                        * 125
+                );
+
+        float baskChance =
+                Mth.clamp(
+                        0.26F
+                                + scars
+                                        * 0.145F,
+                        0.26F,
+                        0.84F
                 );
 
         if (random.nextFloat()
-                > 0.34F) {
+                > baskChance) {
             return;
         }
 
@@ -381,22 +444,10 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                 && this.isAlive()) {
 
             /*
-             * Being attacked interrupts basking immediately. It keeps the
-             * funny peaceful surface pose from surviving a shark/player hit.
+             * A basking sunfish is spectacularly committed to the bit.
+             * Damage can scar it, but does not make it immediately right
+             * itself or leave the surface.
              */
-            setBasking(
-                    false
-            );
-
-            baskApproachTicks =
-                    0;
-
-            baskCooldown =
-                    1800
-                            + random.nextInt(
-                            2200
-                    );
-
             float floor =
                     this.getMaxHealth()
                             * 0.58F;
