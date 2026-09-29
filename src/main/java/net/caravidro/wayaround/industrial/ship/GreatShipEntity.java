@@ -494,6 +494,20 @@ public final class GreatShipEntity
     }
 
     @Override
+    public void toggleAnchor(
+            Player player
+    ) {
+        if (isSinking()
+                || isWrecked()) {
+            return;
+        }
+
+        super.toggleAnchor(
+                player
+        );
+    }
+
+    @Override
     public InteractionResult interact(
             Player player,
             InteractionHand hand
