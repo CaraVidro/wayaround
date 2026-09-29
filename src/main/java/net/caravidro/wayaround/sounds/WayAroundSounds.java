@@ -36,6 +36,10 @@ public final class WayAroundSounds {
             SOUNDS.register("radio_static", () -> SoundEvent.createVariableRangeEvent(
                     ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "radio_static")));
 
+    public static final DeferredHolder<SoundEvent, SoundEvent> PUFFER_CARROT_MEME =
+            SOUNDS.register("puffer_carrot_meme", () -> SoundEvent.createVariableRangeEvent(
+                    ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "puffer_carrot_meme")));
+
     private WayAroundSounds() {
     }
 
