@@ -380,8 +380,6 @@ public final class SunfishEntity extends AguaWorldFishEntity {
         if (source.getEntity() != null
                 && this.isAlive()) {
 
-            addScar();
-
             /*
              * Being attacked interrupts basking immediately. It keeps the
              * funny peaceful surface pose from surviving a shark/player hit.
@@ -434,6 +432,10 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                                     ? applied
                                     : 0.01F
                     );
+
+            if (result) {
+                addScar();
+            }
 
             if (this.getHealth()
                     < floor) {
