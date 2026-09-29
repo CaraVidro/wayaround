@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.ship;
 
 import net.caravidro.wayaround.worldgen.water.wave.OceanWaveField;
+import net.caravidro.wayaround.worldconfig.WaveMode;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -71,6 +72,9 @@ public abstract class SailingShipEntity extends ChestBoat {
          */
         if (!(this instanceof GreatShipEntity)
                 && !isAnchored()
+                && WorldFeatureRuntime.waveMode(
+                level()
+        ) == WaveMode.REALISTIC
                 && level().getFluidState(
                 BlockPos.containing(
                         getX(),
@@ -99,16 +103,10 @@ public abstract class SailingShipEntity extends ChestBoat {
                             0.026
                     );
 
-            Vec3 push =
-                    wave.horizontalVelocity()
-                            .scale(
-                                    0.18
-                            );
-
             setDeltaMovement(
-                    velocity.x + push.x,
+                    velocity.x,
                     velocity.y + lift,
-                    velocity.z + push.z
+                    velocity.z
             );
         }
 
