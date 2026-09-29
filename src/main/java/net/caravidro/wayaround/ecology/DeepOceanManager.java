@@ -64,12 +64,15 @@ public final class DeepOceanManager {
                 continue;
             }
 
-            if ((now % 40L) == 0L) {
-                cleanLegacyFloatingOceanDecorOnce(
-                        player.serverLevel(),
-                        player.blockPosition()
-                );
-            }
+            /*
+             * The cleanup is chunk-cached, so checking every ecology pulse is
+             * cheap and removes stale floating decorations shortly after the
+             * player crosses into a newly visited deep-ocean chunk.
+             */
+            cleanLegacyFloatingOceanDecorOnce(
+                    player.serverLevel(),
+                    player.blockPosition()
+            );
 
             if (!player.isUnderWater()) {
                 continue;
