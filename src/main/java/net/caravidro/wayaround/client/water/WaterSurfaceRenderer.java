@@ -283,9 +283,21 @@ public final class WaterSurfaceRenderer {
             double y01;
             float averageBreaking;
 
+            OceanWaveField.Sample wave00 =
+                    null;
+
+            OceanWaveField.Sample wave10 =
+                    null;
+
+            OceanWaveField.Sample wave11 =
+                    null;
+
+            OceanWaveField.Sample wave01 =
+                    null;
+
             if (waveMode
                     == WaveMode.REALISTIC) {
-                OceanWaveField.Sample wave00 =
+                wave00 =
                         OceanWaveField.sampleVertex(
                                 minecraft.level,
                                 x,
@@ -293,7 +305,7 @@ public final class WaterSurfaceRenderer {
                                 time
                         );
 
-                OceanWaveField.Sample wave10 =
+                wave10 =
                         OceanWaveField.sampleVertex(
                                 minecraft.level,
                                 x + 1,
@@ -301,7 +313,7 @@ public final class WaterSurfaceRenderer {
                                 time
                         );
 
-                OceanWaveField.Sample wave11 =
+                wave11 =
                         OceanWaveField.sampleVertex(
                                 minecraft.level,
                                 x + 1,
@@ -309,7 +321,7 @@ public final class WaterSurfaceRenderer {
                                 time
                         );
 
-                OceanWaveField.Sample wave01 =
+                wave01 =
                         OceanWaveField.sampleVertex(
                                 minecraft.level,
                                 x,
@@ -419,28 +431,34 @@ public final class WaterSurfaceRenderer {
                     ) * 0.25
                             - base;
 
-            double textureWave =
-                    Math.sin(
-                            x * 1.37
-                                    + z * 0.73
-                                    + time * 0.031
-                    )
-                            * 3.8
-                            + Math.sin(
-                            x * 0.41
-                                    - z * 1.61
-                                    - time * 0.019
-                    )
-                                    * 2.4;
-
             int textureNoise =
-                    Mth.clamp(
-                            (int) Math.round(
-                                    textureWave
-                            ),
-                            -6,
-                            6
-                    );
+                    0;
+
+            if (waveMode
+                    == WaveMode.STYLIZED) {
+                double textureWave =
+                        Math.sin(
+                                x * 1.37
+                                        + z * 0.73
+                                        + time * 0.031
+                        )
+                                * 3.8
+                                + Math.sin(
+                                x * 0.41
+                                        - z * 1.61
+                                        - time * 0.019
+                        )
+                                        * 2.4;
+
+                textureNoise =
+                        Mth.clamp(
+                                (int) Math.round(
+                                        textureWave
+                                ),
+                                -6,
+                                6
+                        );
+            }
 
             int crest =
                     Mth.clamp(
@@ -538,6 +556,75 @@ public final class WaterSurfaceRenderer {
             var matrix =
                     stack.last().pose();
 
+            VertexShade shade00 =
+                    waveMode
+                            == WaveMode.REALISTIC
+                            ? realisticShade(
+                            red,
+                            green,
+                            blue,
+                            alpha,
+                            wave00,
+                            camera,
+                            x,
+                            y00,
+                            z
+                    )
+                            : new VertexShade(
+                            red,
+                            green,
+                            blue,
+                            alpha
+                    );
+
+            VertexShade shade10 =
+                    waveMode
+                            == WaveMode.REALISTIC
+                            ? realisticShade(
+                            red,
+                            green,
+                            blue,
+                            alpha,
+                            wave10,
+                            camera,
+                            x + 1,
+                            y10,
+                            z
+                    )
+                            : shade00;
+
+            VertexShade shade11 =
+                    waveMode
+                            == WaveMode.REALISTIC
+                            ? realisticShade(
+                            red,
+                            green,
+                            blue,
+                            alpha,
+                            wave11,
+                            camera,
+                            x + 1,
+                            y11,
+                            z + 1
+                    )
+                            : shade00;
+
+            VertexShade shade01 =
+                    waveMode
+                            == WaveMode.REALISTIC
+                            ? realisticShade(
+                            red,
+                            green,
+                            blue,
+                            alpha,
+                            wave01,
+                            camera,
+                            x,
+                            y01,
+                            z + 1
+                    )
+                            : shade00;
+
             buffer.addVertex(
                             matrix,
                             x,
@@ -545,10 +632,10 @@ public final class WaterSurfaceRenderer {
                             z
                     )
                     .setColor(
-                            red,
-                            green,
-                            blue,
-                            alpha
+                            shade00.red(),
+                            shade00.green(),
+                            shade00.blue(),
+                            shade00.alpha()
                     );
 
             buffer.addVertex(
@@ -558,10 +645,10 @@ public final class WaterSurfaceRenderer {
                             z
                     )
                     .setColor(
-                            red,
-                            green,
-                            blue,
-                            alpha
+                            shade10.red(),
+                            shade10.green(),
+                            shade10.blue(),
+                            shade10.alpha()
                     );
 
             buffer.addVertex(
@@ -571,10 +658,10 @@ public final class WaterSurfaceRenderer {
                             z + 1
                     )
                     .setColor(
-                            red,
-                            green,
-                            blue,
-                            alpha
+                            shade11.red(),
+                            shade11.green(),
+                            shade11.blue(),
+                            shade11.alpha()
                     );
 
             buffer.addVertex(
@@ -584,10 +671,10 @@ public final class WaterSurfaceRenderer {
                             z + 1
                     )
                     .setColor(
-                            red,
-                            green,
-                            blue,
-                            alpha
+                            shade01.red(),
+                            shade01.green(),
+                            shade01.blue(),
+                            shade01.alpha()
                     );
 
             any =
@@ -884,6 +971,177 @@ public final class WaterSurfaceRenderer {
         }
 
         return null;
+    }
+
+    private static VertexShade realisticShade(
+            int baseRed,
+            int baseGreen,
+            int baseBlue,
+            int baseAlpha,
+            OceanWaveField.Sample sample,
+            Vec3 camera,
+            double x,
+            double y,
+            double z
+    ) {
+        if (sample == null) {
+            return new VertexShade(
+                    baseRed,
+                    baseGreen,
+                    baseBlue,
+                    baseAlpha
+            );
+        }
+
+        Vec3 toCamera =
+                camera.subtract(
+                        x,
+                        y,
+                        z
+                );
+
+        double distance =
+                Math.max(
+                        1.0E-5,
+                        toCamera.length()
+                );
+
+        Vec3 view =
+                toCamera.scale(
+                        1.0
+                                / distance
+                );
+
+        double facing =
+                Mth.clamp(
+                        sample.normal()
+                                .dot(
+                                        view
+                                ),
+                        0.0,
+                        1.0
+                );
+
+        double grazing =
+                1.0
+                        - facing;
+
+        double crest =
+                sample.crest();
+
+        double trough =
+                Mth.clamp(
+                        (
+                                0.48
+                                        - crest
+                        ) / 0.48,
+                        0.0,
+                        1.0
+                );
+
+        double foam =
+                Mth.clamp(
+                        (
+                                sample.breaking()
+                                        - 0.46
+                        ) / 0.54,
+                        0.0,
+                        1.0
+                );
+
+        /*
+         * Self-contained water shading: no sun, weather, clouds or wind.
+         * Troughs read deeper; crests reveal more subsurface colour; grazing
+         * angles become a little brighter/less transparent; breaking trends
+         * toward soft desaturated foam without adding blocky cap geometry.
+         */
+        double brightness =
+                0.86
+                        - trough
+                        * 0.18
+                        + crest
+                        * 0.10
+                        + grazing
+                        * 0.12;
+
+        int red =
+                Mth.clamp(
+                        (int) Math.round(
+                                baseRed
+                                        * brightness
+                                        + crest
+                                        * 10.0
+                                        + foam
+                                        * 122.0
+                        ),
+                        0,
+                        255
+                );
+
+        int green =
+                Mth.clamp(
+                        (int) Math.round(
+                                baseGreen
+                                        * (
+                                        brightness
+                                                + crest
+                                                * 0.035
+                                )
+                                        + foam
+                                        * 118.0
+                        ),
+                        0,
+                        255
+                );
+
+        int blue =
+                Mth.clamp(
+                        (int) Math.round(
+                                baseBlue
+                                        * (
+                                        brightness
+                                                + grazing
+                                                * 0.055
+                                )
+                                        + crest
+                                        * 8.0
+                                        + foam
+                                        * 104.0
+                        ),
+                        0,
+                        255
+                );
+
+        int alpha =
+                Mth.clamp(
+                        (int) Math.round(
+                                baseAlpha
+                                        * (
+                                        0.78
+                                                + grazing
+                                                * 0.22
+                                                + foam
+                                                * 0.16
+                                )
+                        ),
+                        6,
+                        62
+                );
+
+        return new VertexShade(
+                red,
+                green,
+                blue,
+                alpha
+        );
+    }
+
+    private record VertexShade(
+            int red,
+            int green,
+            int blue,
+            int alpha
+    ) {
     }
 
     private static double legacyWave(
