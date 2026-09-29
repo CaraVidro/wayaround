@@ -166,10 +166,23 @@ public final class OceanWaveField {
                 gameTime
                         / 20.0;
 
+        float rogue =
+                rogueBoost(
+                        x,
+                        z,
+                        gameTime
+                )
+                        * profile.exposure();
+
         double wavelength =
                 Math.max(
                         5.0,
                         profile.wavelength()
+                                * (
+                                1.0
+                                        + rogue
+                                        * 0.72
+                        )
                 );
 
         double baseK =
@@ -269,7 +282,12 @@ public final class OceanWaveField {
 
         double amplitude =
                 profile.amplitude()
-                        * group;
+                        * group
+                        * (
+                        1.0
+                                + rogue
+                                * 3.15
+                );
 
         double longAmp =
                 amplitude
@@ -402,7 +420,7 @@ public final class OceanWaveField {
                 height
                         / Math.max(
                         0.05,
-                        profile.amplitude()
+                        amplitude
                                 * 0.86
                 );
 
@@ -432,7 +450,9 @@ public final class OceanWaveField {
                                 crest > 0.82F
                                         ? 0.18F
                                         : 0.0F
-                        ),
+                        )
+                                + rogue
+                                * 0.26F,
                         0.0F,
                         1.0F
                 );
@@ -451,6 +471,11 @@ public final class OceanWaveField {
         float runup =
                 (float) (
                         profile.maxRunup()
+                                * (
+                                1.0
+                                        + rogue
+                                        * 1.65
+                        )
                                 * Math.pow(
                                 runPhase,
                                 1.55
@@ -473,6 +498,8 @@ public final class OceanWaveField {
                         * (
                         0.45
                                 + crest
+                                + rogue
+                                * 0.85
                         );
 
         Vec3 horizontalVelocity =
@@ -676,13 +703,31 @@ public final class OceanWaveField {
                         : rain
                         * 0.42F;
 
+        long dna =
+                mix64(
+                        chunkX
+                                * 341873128712L
+                                ^ chunkZ
+                                * 132897987541L
+                                ^ 0x57415645444E414CL
+                );
+
+        double angleVariation =
+                (
+                        unit(
+                                dna
+                        )
+                                - 0.5
+                ) * 0.68;
+
         double fieldAngle =
                 x * 0.00073
                         - z * 0.00051
                         + Math.sin(
                         x * 0.00017
                                 + z * 0.00023
-                ) * 1.9;
+                ) * 1.9
+                        + angleVariation;
 
         double dirX =
                 Math.cos(
@@ -755,12 +800,35 @@ public final class OceanWaveField {
                         - shore
                         * 0.24F;
 
+        float localEnergy =
+                0.84F
+                        + (float) unit(
+                        mix64(
+                                dna
+                                        ^ 0x454E45524759434CL
+                        )
+                ) * 0.34F;
+
+        amplitude *=
+                localEnergy;
+
         float wavelength =
-                7.0F
-                        + exposure
-                        * 36.0F
-                        + storm
-                        * 9.0F;
+                (
+                        7.0F
+                                + exposure
+                                * 36.0F
+                                + storm
+                                * 9.0F
+                )
+                        * (
+                        0.82F
+                                + (float) unit(
+                                mix64(
+                                        dna
+                                                ^ 0x4C454E4754485741L
+                                )
+                        ) * 0.38F
+                );
 
         float maxRunup =
                 0.85F
@@ -786,6 +854,193 @@ public final class OceanWaveField {
                 shoreX,
                 shoreZ
         );
+    }
+
+    /**
+     * Rare regional rogue-wave envelope.
+     *
+     * Every epoch a small subset of ocean chunks can seed one event. Samples
+     * check nearby source chunks, so a monster crest naturally spills across
+     * chunk borders instead of being clipped to one 16x16 cell.
+     */
+    private static float rogueBoost(
+            double x,
+            double z,
+            long gameTime
+    ) {
+        int chunkX =
+                Mth.floor(
+                        x
+                ) >> 4;
+
+        int chunkZ =
+                Mth.floor(
+                        z
+                ) >> 4;
+
+        final long period =
+                3200L;
+
+        final long duration =
+                620L;
+
+        long epoch =
+                Math.floorDiv(
+                        gameTime,
+                        period
+                );
+
+        long within =
+                Math.floorMod(
+                        gameTime,
+                        period
+                );
+
+        float strongest =
+                0.0F;
+
+        for (int sx = chunkX - 2;
+             sx <= chunkX + 2;
+             sx++) {
+            for (int sz = chunkZ - 2;
+                 sz <= chunkZ + 2;
+                 sz++) {
+
+                long seed =
+                        mix64(
+                                sx
+                                        * 341873128712L
+                                        ^ sz
+                                        * 132897987541L
+                                        ^ epoch
+                                        * 42317861L
+                                        ^ 0x524F475545574156L
+                        );
+
+                if (Math.floorMod(
+                        seed,
+                        83L
+                ) != 0L) {
+                    continue;
+                }
+
+                long start =
+                        Math.floorMod(
+                                seed >>> 11,
+                                period
+                                        - duration
+                        );
+
+                if (within < start
+                        || within > start
+                        + duration) {
+                    continue;
+                }
+
+                double phase =
+                        (
+                                within
+                                        - start
+                        ) / (double) duration;
+
+                double temporal =
+                        Math.sin(
+                                Math.PI
+                                        * phase
+                        );
+
+                double centerX =
+                        sx
+                                * 16.0
+                                + 8.0;
+
+                double centerZ =
+                        sz
+                                * 16.0
+                                + 8.0;
+
+                double dx =
+                        x
+                                - centerX;
+
+                double dz =
+                        z
+                                - centerZ;
+
+                double radius =
+                        46.0
+                                + unit(
+                                seed
+                                        ^ 0x5241444955535741L
+                        ) * 18.0;
+
+                double distance =
+                        Math.sqrt(
+                                dx * dx
+                                        + dz * dz
+                        );
+
+                if (distance >= radius) {
+                    continue;
+                }
+
+                double spatial =
+                        1.0
+                                - distance
+                                / radius;
+
+                float value =
+                        (float) (
+                                temporal
+                                        * spatial
+                                        * spatial
+                        );
+
+                strongest =
+                        Math.max(
+                                strongest,
+                                value
+                        );
+            }
+        }
+
+        return Mth.clamp(
+                strongest,
+                0.0F,
+                1.0F
+        );
+    }
+
+    private static long mix64(
+            long value
+    ) {
+        value ^=
+                value >>> 33;
+
+        value *=
+                0xff51afd7ed558ccdl;
+
+        value ^=
+                value >>> 33;
+
+        value *=
+                0xc4ceb9fe1a85ec53l;
+
+        value ^=
+                value >>> 33;
+
+        return value;
+    }
+
+    private static double unit(
+            long value
+    ) {
+        return (
+                mix64(
+                        value
+                ) >>> 11
+        )
+                * 0x1.0p-53;
     }
 
     private static float sampledExposure(
