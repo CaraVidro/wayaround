@@ -226,11 +226,13 @@ public final class WorldFeatureSelectionScreen
                                 if (target
                                         == WorldFeature.WATER_DYNAMICS) {
                                     settings.cycleWaveMode();
-                                } else {
-                                    settings.toggle(
-                                            target
-                                    );
+                                    rebuildControls();
+                                    return;
                                 }
+
+                                settings.toggle(
+                                        target
+                                );
 
                                 refreshFeatureMessages();
                             }
