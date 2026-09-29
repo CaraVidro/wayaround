@@ -46,11 +46,6 @@ public final class PhotoItem
         Direction face =
                 context.getClickedFace();
 
-        if (face.getAxis()
-                .isVertical()) {
-            return InteractionResult.PASS;
-        }
-
         Level level =
                 context.getLevel();
 
@@ -75,7 +70,7 @@ public final class PhotoItem
         if (!level.getBlockState(
                 target
         ).canBeReplaced()) {
-            return InteractionResult.FAIL;
+            return InteractionResult.PASS;
         }
 
         if (!level.isClientSide) {
