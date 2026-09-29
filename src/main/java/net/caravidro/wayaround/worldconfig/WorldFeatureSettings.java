@@ -150,12 +150,6 @@ public final class WorldFeatureSettings {
                 mode == null
                         ? WaveMode.REALISTIC
                         : mode;
-
-        values.put(
-                WorldFeature.WATER_DYNAMICS,
-                waveMode
-                        != WaveMode.OFF
-        );
     }
 
     public void cycleWaveMode() {
