@@ -540,6 +540,14 @@ tasks.register('waveRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('waveRegressionTest') }
 
+// World-scoped wave mode persistence / legacy migration invariants.
+tasks.register('waveModeSettingsRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.worldconfig.WaveModeSettingsTest'
+}
+tasks.named('check') { dependsOn tasks.named('waveModeSettingsRegressionTest') }
+
 // Guard Infinity's damage ceiling and visible, bounded projectile braking.
 tasks.register('infinityRegressionTest', JavaExec) {
     dependsOn tasks.named('spectrumTestClasses')
