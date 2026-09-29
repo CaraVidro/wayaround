@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureCategory;
+import net.caravidro.wayaround.worldconfig.WaveMode;
 import net.caravidro.wayaround.worldconfig.WorldFeatureSettings;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -222,9 +223,14 @@ public final class WorldFeatureSelectionScreen
                                     feature
                             ),
                             ignored -> {
-                                settings.toggle(
-                                        target
-                                );
+                                if (target
+                                        == WorldFeature.WATER_DYNAMICS) {
+                                    settings.cycleWaveMode();
+                                } else {
+                                    settings.toggle(
+                                            target
+                                    );
+                                }
 
                                 refreshFeatureMessages();
                             }
@@ -242,7 +248,18 @@ public final class WorldFeatureSelectionScreen
 
             button.setTooltip(
                     Tooltip.create(
-                            Component.literal(
+                            feature
+                                    == WorldFeature.WATER_DYNAMICS
+                                    ? Component.literal(
+                                    feature.description()
+                                            + "\nMode: "
+                                            + settings.waveMode()
+                                            .title()
+                                            + "\n"
+                                            + settings.waveMode()
+                                            .description()
+                            )
+                                    : Component.literal(
                                     feature.description()
                             ).append(
                                     dependencyText(
@@ -381,6 +398,36 @@ public final class WorldFeatureSelectionScreen
     private Component featureLabel(
             WorldFeature feature
     ) {
+        if (feature
+                == WorldFeature.WATER_DYNAMICS) {
+            WaveMode mode =
+                    settings.waveMode();
+
+            ChatFormatting color =
+                    switch (mode) {
+                        case OFF ->
+                                ChatFormatting.DARK_GRAY;
+
+                        case STYLIZED ->
+                                ChatFormatting.GOLD;
+
+                        case REALISTIC ->
+                                ChatFormatting.AQUA;
+                    };
+
+            return Component.literal(
+                    "[ "
+                            + mode.title()
+                            .toUpperCase(
+                                    java.util.Locale.ROOT
+                            )
+                            + " ] "
+                            + feature.title()
+            ).withStyle(
+                    color
+            );
+        }
+
         boolean raw =
                 settings.rawEnabled(
                         feature
