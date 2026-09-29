@@ -1534,12 +1534,27 @@ public final class GreatShipEntity
             return;
         }
 
-        double crest =
-                Math.max(
-                        waveResponse.breaker(),
-                        cachedSea.swell()
-                                * 0.45
+        WaveMode mode =
+                WorldFeatureRuntime.waveMode(
+                        level()
                 );
+
+        double crest =
+                switch (mode) {
+                    case OFF ->
+                            0.0;
+
+                    case STYLIZED ->
+                            cachedSea.swell()
+                                    * cachedSea.severity();
+
+                    case REALISTIC ->
+                            Math.max(
+                                    waveResponse.breaker(),
+                                    cachedSea.swell()
+                                            * 0.45
+                            );
+                };
 
         if (crest < 0.32) {
             return;
@@ -1932,11 +1947,26 @@ public final class GreatShipEntity
     }
 
     private void tickClientSeaSpray() {
+        WaveMode mode =
+                WorldFeatureRuntime.waveMode(
+                        level()
+                );
+
+        if (mode
+                == WaveMode.OFF) {
+            return;
+        }
+
         int severity =
                 seaSeverityPercent();
 
         float breaker =
-                waveResponse.breaker();
+                mode
+                        == WaveMode.REALISTIC
+                        ? waveResponse.breaker()
+                        : severity
+                        / 100.0F
+                        * 0.72F;
 
         if ((severity < 16
                 && breaker < 0.18F)
