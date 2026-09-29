@@ -17,10 +17,10 @@ public final class EcologyRules {
 
         if (fish) {
             return Math.min(
-                    32,
+                    16,
                     Math.max(
-                            12,
-                            safe + 6
+                            6,
+                            safe + 4
                     )
             );
         }
