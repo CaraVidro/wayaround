@@ -216,7 +216,7 @@ public final class ShoreWaveRenderer {
 
             OceanWaveField.Sample sample =
                     OceanWaveField.sample(
-                            patch.profile(),
+                            minecraft.level,
                             patch.waterX()
                                     + 0.5,
                             patch.waterZ()
@@ -224,12 +224,22 @@ public final class ShoreWaveRenderer {
                             time
                     );
 
+            float localReach =
+                    Mth.clamp(
+                            sample.runup()
+                                    - (
+                                    patch.distance()
+                                            - 1.0F
+                            ),
+                            0.0F,
+                            1.0F
+                    );
+
             boolean covered =
                     sample.crest()
-                            > 0.20F
-                            && sample.runup()
-                            + 0.15F
-                            >= patch.distance();
+                            > 0.16F
+                            && localReach
+                            > 0.01F;
 
             long key =
                     BlockPos.asLong(
@@ -251,22 +261,14 @@ public final class ShoreWaveRenderer {
                 }
 
                 float coverage =
-                        Mth.clamp(
-                                (
-                                        sample.runup()
-                                                - patch.distance()
-                                                + 0.85F
-                                ) / 1.65F,
-                                0.08F,
-                                1.0F
-                        );
+                        localReach;
 
                 float farMark =
                         Mth.clamp(
                                 patch.distance()
                                         / Math.max(
                                         1.0F,
-                                        patch.profile()
+                                        sample.profile()
                                                 .maxRunup()
                                 ),
                                 0.0F,
@@ -291,16 +293,37 @@ public final class ShoreWaveRenderer {
                                         * 170.0F
                         )
                                 + Math.round(
-                                patch.profile()
+                                sample.profile()
                                         .rain()
                                         * 120.0F
+                        );
+
+                WetMark previousMark =
+                        WET_MARKS.get(
+                                key
                         );
 
                 WET_MARKS.put(
                         key,
                         new WetMark(
-                                time + life,
-                                markStrength
+                                Math.max(
+                                        time + life,
+                                        previousMark == null
+                                                ? 0L
+                                                : previousMark.expiresAt()
+                                ),
+                                Math.max(
+                                        markStrength,
+                                        previousMark == null
+                                                ? 0.0F
+                                                : previousMark.strength()
+                                ),
+                                Math.max(
+                                        coverage,
+                                        previousMark == null
+                                                ? 0.0F
+                                                : previousMark.reach()
+                                )
                         )
                 );
 
@@ -351,23 +374,33 @@ public final class ShoreWaveRenderer {
                                 96
                         );
 
-                float waterY =
+                float landWaterY =
                         (float) (
                                 patch.surfaceY()
                                         + 0.018
                                         + Math.max(
                                         0.0,
                                         sample.height()
-                                                * 0.035
+                                                * 0.030
                                 )
                         );
 
-                emitQuad(
+                float incomingY =
+                        patch.distance()
+                                <= 1.01F
+                                ? (float) (
+                                patch.waterSurfaceY()
+                                        + sample.height()
+                        )
+                                : landWaterY;
+
+                emitDirectionalSheet(
                         buffer,
                         pose,
-                        patch.x(),
-                        waterY,
-                        patch.z(),
+                        patch,
+                        coverage,
+                        incomingY,
+                        landWaterY,
                         red,
                         green,
                         blue,
@@ -415,13 +448,15 @@ public final class ShoreWaveRenderer {
                  * replacing the block. Farther exceptional run-up leaves the
                  * strongest/longest temporary trace.
                  */
-                emitQuad(
+                emitDirectionalSheet(
                         buffer,
                         pose,
-                        patch.x(),
+                        patch,
+                        mark.reach(),
                         (float) patch.surfaceY()
                                 + 0.010F,
-                        patch.z(),
+                        (float) patch.surfaceY()
+                                + 0.010F,
                         28,
                         42,
                         46,
@@ -467,11 +502,17 @@ public final class ShoreWaveRenderer {
     ) {
         PATCHES.clear();
 
+        /*
+         * Exact 1-block shoreline tracing is required for the mesh to climb the
+         * first beach block. Keep the radius modest instead of skipping every
+         * second column: correctness close to the player matters more than a
+         * huge cosmetic scan radius.
+         */
         int radius =
                 Math.max(
                         24,
                         Math.min(
-                                48,
+                                40,
                                 minecraft.options.renderDistance()
                                         .get()
                                         * 4
@@ -488,22 +529,29 @@ public final class ShoreWaveRenderer {
         BlockPos.MutableBlockPos mutable =
                 new BlockPos.MutableBlockPos();
 
+        int[][] directions = {
+                {1, 0},
+                {-1, 0},
+                {0, 1},
+                {0, -1}
+        };
+
         for (int x = centerX - radius;
              x <= centerX + radius;
-             x += 2) {
+             x++) {
 
-            int dx =
+            int dxFromPlayer =
                     x - centerX;
 
             for (int z = centerZ - radius;
                  z <= centerZ + radius;
-                 z += 2) {
+                 z++) {
 
-                int dz =
+                int dzFromPlayer =
                         z - centerZ;
 
-                if (dx * dx
-                        + dz * dz
+                if (dxFromPlayer * dxFromPlayer
+                        + dzFromPlayer * dzFromPlayer
                         > radiusSquared) {
                     continue;
                 }
@@ -536,24 +584,23 @@ public final class ShoreWaveRenderer {
                                 time
                         );
 
-                if (profile.shore()
-                        < 0.18F
-                        || profile.maxRunup()
-                        < 1.0F) {
+                if (profile.maxRunup()
+                        < 0.55F) {
                     continue;
                 }
 
-                double shoreX =
-                        profile.shoreX();
+                var fluid =
+                        minecraft.level.getFluidState(
+                                water
+                        );
 
-                double shoreZ =
-                        profile.shoreZ();
-
-                if (shoreX * shoreX
-                        + shoreZ * shoreZ
-                        < 0.08) {
-                    continue;
-                }
+                double waterSurfaceY =
+                        water.getY()
+                                + fluid.getHeight(
+                                minecraft.level,
+                                water
+                        )
+                                + 0.006;
 
                 int waterColor =
                         minecraft.level.getBiome(
@@ -565,135 +612,162 @@ public final class ShoreWaveRenderer {
                         Mth.clamp(
                                 Mth.ceil(
                                         profile.maxRunup()
-                                                + 1.0F
+                                                + 2.0F
                                 ),
                                 2,
-                                8
+                                10
                         );
 
-                for (int step = 1;
-                     step <= maxStep;
-                     step++) {
+                for (int[] direction :
+                        directions) {
 
-                    int landX =
-                            Mth.floor(
-                                    water.getX()
-                                            + 0.5
-                                            + shoreX
-                                            * step
+                    int inlandX =
+                            direction[0];
+
+                    int inlandZ =
+                            direction[1];
+
+                    /*
+                     * Only actual water/solid borders seed run-up. This is the
+                     * key difference from the previous approximate shore-vector
+                     * approach, which could skip the first beach block.
+                     */
+                    BlockPos first =
+                            water.offset(
+                                    inlandX,
+                                    0,
+                                    inlandZ
                             );
 
-                    int landZ =
-                            Mth.floor(
-                                    water.getZ()
-                                            + 0.5
-                                            + shoreZ
-                                            * step
-                            );
+                    if (minecraft.level.getFluidState(
+                            first
+                    ).is(
+                            FluidTags.WATER
+                    )) {
+                        continue;
+                    }
 
-                    int landY =
+                    int firstY =
                             minecraft.level.getHeight(
                                     Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                                    landX,
-                                    landZ
+                                    first.getX(),
+                                    first.getZ()
                             )
                                     - 1;
 
-                    BlockPos land =
-                            new BlockPos(
-                                    landX,
-                                    landY,
-                                    landZ
-                            );
-
-                    BlockState state =
-                            minecraft.level.getBlockState(
-                                    land
-                            );
-
-                    if (state.getFluidState()
-                            .is(
-                                    FluidTags.WATER
-                            )) {
+                    if (firstY
+                            < water.getY()) {
                         continue;
                     }
 
-                    float distance =
-                            (float) Math.sqrt(
-                                    (
-                                            landX
-                                                    - water.getX()
-                                    ) * (
-                                            landX
-                                                    - water.getX()
-                                    )
-                                            + (
-                                            landZ
-                                                    - water.getZ()
-                                    ) * (
-                                            landZ
-                                                    - water.getZ()
-                                    )
+                    for (int step = 1;
+                         step <= maxStep;
+                         step++) {
+
+                        int landX =
+                                water.getX()
+                                        + inlandX
+                                        * step;
+
+                        int landZ =
+                                water.getZ()
+                                        + inlandZ
+                                        * step;
+
+                        int landY =
+                                minecraft.level.getHeight(
+                                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                        landX,
+                                        landZ
+                                )
+                                        - 1;
+
+                        BlockPos land =
+                                new BlockPos(
+                                        landX,
+                                        landY,
+                                        landZ
+                                );
+
+                        if (minecraft.level.getFluidState(
+                                land
+                        ).is(
+                                FluidTags.WATER
+                        )) {
+                            if (step == 1) {
+                                break;
+                            }
+
+                            continue;
+                        }
+
+                        if (landY
+                                < water.getY()) {
+                            break;
+                        }
+
+                        boolean wall =
+                                landY
+                                        > water.getY();
+
+                        /*
+                         * Same-height means exactly this:
+                         * water block Y == neighboring solid block Y.
+                         * Both surfaces meet at Y+1, so the sheet can cross that
+                         * edge continuously and visibly climb onto the block.
+                         */
+                        double surface =
+                                wall
+                                        ? water.getY()
+                                        + 1.015
+                                        : landY
+                                        + 1.0;
+
+                        long key =
+                                BlockPos.asLong(
+                                        landX,
+                                        landY,
+                                        landZ
+                                );
+
+                        ShorePatch candidate =
+                                new ShorePatch(
+                                        landX,
+                                        landZ,
+                                        landY,
+                                        surface,
+                                        step,
+                                        water.getX(),
+                                        water.getZ(),
+                                        waterSurfaceY,
+                                        inlandX,
+                                        inlandZ,
+                                        waterColor >> 16
+                                                & 255,
+                                        waterColor >> 8
+                                                & 255,
+                                        waterColor
+                                                & 255,
+                                        wall
+                                );
+
+                        ShorePatch previous =
+                                unique.get(
+                                        key
+                                );
+
+                        if (previous == null
+                                || candidate.distance()
+                                < previous.distance()) {
+                            unique.put(
+                                    key,
+                                    candidate
                             );
+                        }
 
-                    /*
-                     * Run-up is allowed over ANY solid surface whose top sits
-                     * at the current shoreline level. Sand gets no privileged
-                     * treatment anymore. A higher top becomes an impact wall.
-                     */
-                    boolean wall =
-                            landY
-                                    > water.getY();
-
-                    if (landY
-                            < water.getY() - 1) {
-                        continue;
-                    }
-
-                    long key =
-                            BlockPos.asLong(
-                                    landX,
-                                    landY,
-                                    landZ
-                            );
-
-                    ShorePatch candidate =
-                            new ShorePatch(
-                                    landX,
-                                    landZ,
-                                    landY,
-                                    wall
-                                            ? water.getY() + 1.015
-                                            : landY + 1.0,
-                                    distance,
-                                    water.getX(),
-                                    water.getZ(),
-                                    waterColor >> 16
-                                            & 255,
-                                    waterColor >> 8
-                                            & 255,
-                                    waterColor
-                                            & 255,
-                                    profile,
-                                    wall
-                            );
-
-                    ShorePatch previous =
-                            unique.get(
-                                    key
-                            );
-
-                    if (previous == null
-                            || candidate.distance()
-                            < previous.distance()) {
-                        unique.put(
-                                key,
-                                candidate
-                        );
-                    }
-
-                    if (wall) {
-                        break;
+                        if (wall) {
+                            break;
+                        }
                     }
                 }
             }
@@ -811,12 +885,10 @@ public final class ShoreWaveRenderer {
                 );
 
         double towardWaterX =
-                -patch.profile()
-                        .shoreX();
+                -patch.inlandX();
 
         double towardWaterZ =
-                -patch.profile()
-                        .shoreZ();
+                -patch.inlandZ();
 
         for (int i = 0;
              i < count;
@@ -876,6 +948,183 @@ public final class ShoreWaveRenderer {
                         * 0.16F,
                 false
         );
+    }
+
+    private static void emitDirectionalSheet(
+            BufferBuilder buffer,
+            PoseStack pose,
+            ShorePatch patch,
+            float reach,
+            float incomingY,
+            float outgoingY,
+            int red,
+            int green,
+            int blue,
+            int alpha
+    ) {
+        reach =
+                Mth.clamp(
+                        reach,
+                        0.0F,
+                        1.0F
+                );
+
+        if (reach
+                <= 0.001F) {
+            return;
+        }
+
+        float minX =
+                patch.x();
+
+        float maxX =
+                patch.x()
+                        + 1.0F;
+
+        float minZ =
+                patch.z();
+
+        float maxZ =
+                patch.z()
+                        + 1.0F;
+
+        float yWest =
+                outgoingY;
+
+        float yEast =
+                outgoingY;
+
+        float yNorth =
+                outgoingY;
+
+        float ySouth =
+                outgoingY;
+
+        if (patch.inlandX()
+                > 0) {
+            maxX =
+                    minX
+                            + reach;
+
+            yWest =
+                    incomingY;
+        } else if (patch.inlandX()
+                < 0) {
+            minX =
+                    maxX
+                            - reach;
+
+            yEast =
+                    incomingY;
+        } else if (patch.inlandZ()
+                > 0) {
+            maxZ =
+                    minZ
+                            + reach;
+
+            yNorth =
+                    incomingY;
+        } else if (patch.inlandZ()
+                < 0) {
+            minZ =
+                    maxZ
+                            - reach;
+
+            ySouth =
+                    incomingY;
+        }
+
+        var matrix =
+                pose.last()
+                        .pose();
+
+        float y00 =
+                patch.inlandX()
+                        > 0
+                        ? yWest
+                        : patch.inlandZ()
+                        > 0
+                        ? yNorth
+                        : outgoingY;
+
+        float y10 =
+                patch.inlandX()
+                        < 0
+                        ? yEast
+                        : patch.inlandZ()
+                        > 0
+                        ? yNorth
+                        : outgoingY;
+
+        float y11 =
+                patch.inlandX()
+                        < 0
+                        ? yEast
+                        : patch.inlandZ()
+                        < 0
+                        ? ySouth
+                        : outgoingY;
+
+        float y01 =
+                patch.inlandX()
+                        > 0
+                        ? yWest
+                        : patch.inlandZ()
+                        < 0
+                        ? ySouth
+                        : outgoingY;
+
+        buffer.addVertex(
+                        matrix,
+                        minX,
+                        y00,
+                        minZ
+                )
+                .setColor(
+                        red,
+                        green,
+                        blue,
+                        alpha
+                );
+
+        buffer.addVertex(
+                        matrix,
+                        maxX,
+                        y10,
+                        minZ
+                )
+                .setColor(
+                        red,
+                        green,
+                        blue,
+                        alpha
+                );
+
+        buffer.addVertex(
+                        matrix,
+                        maxX,
+                        y11,
+                        maxZ
+                )
+                .setColor(
+                        red,
+                        green,
+                        blue,
+                        alpha
+                );
+
+        buffer.addVertex(
+                        matrix,
+                        minX,
+                        y01,
+                        maxZ
+                )
+                .setColor(
+                        red,
+                        green,
+                        blue,
+                        alpha
+                );
     }
 
     private static void emitQuad(
@@ -966,17 +1215,20 @@ public final class ShoreWaveRenderer {
             float distance,
             int waterX,
             int waterZ,
+            double waterSurfaceY,
+            int inlandX,
+            int inlandZ,
             int red,
             int green,
             int blue,
-            OceanWaveField.Profile profile,
             boolean wall
     ) {
     }
 
     private record WetMark(
             long expiresAt,
-            float strength
+            float strength,
+            float reach
     ) {
     }
 }
