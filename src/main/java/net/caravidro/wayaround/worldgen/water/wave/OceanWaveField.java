@@ -150,11 +150,37 @@ public final class OceanWaveField {
             double z,
             long gameTime
     ) {
+        double directionVariation =
+                (
+                        smoothChunkNoise(
+                                x,
+                                z,
+                                0x444952454354494FL
+                        )
+                                - 0.5
+                ) * 0.68;
+
+        double cosDirection =
+                Math.cos(
+                        directionVariation
+                );
+
+        double sinDirection =
+                Math.sin(
+                        directionVariation
+                );
+
         double dirX =
-                profile.directionX();
+                profile.directionX()
+                        * cosDirection
+                        - profile.directionZ()
+                        * sinDirection;
 
         double dirZ =
-                profile.directionZ();
+                profile.directionX()
+                        * sinDirection
+                        + profile.directionZ()
+                        * cosDirection;
 
         double crossX =
                 -dirZ;
@@ -174,10 +200,19 @@ public final class OceanWaveField {
                 )
                         * profile.exposure();
 
+        double localLength =
+                0.82
+                        + smoothChunkNoise(
+                        x,
+                        z,
+                        0x4C454E4754485741L
+                ) * 0.38;
+
         double wavelength =
                 Math.max(
                         5.0,
                         profile.wavelength()
+                                * localLength
                                 * (
                                 1.0
                                         + rogue
@@ -280,9 +315,18 @@ public final class OceanWaveField {
                                 + 0.5
                 ) * 0.46;
 
+        double localEnergy =
+                0.84
+                        + smoothChunkNoise(
+                        x,
+                        z,
+                        0x454E45524759434CL
+                ) * 0.34;
+
         double amplitude =
                 profile.amplitude()
                         * group
+                        * localEnergy
                         * (
                         1.0
                                 + rogue
@@ -703,31 +747,13 @@ public final class OceanWaveField {
                         : rain
                         * 0.42F;
 
-        long dna =
-                mix64(
-                        chunkX
-                                * 341873128712L
-                                ^ chunkZ
-                                * 132897987541L
-                                ^ 0x57415645444E414CL
-                );
-
-        double angleVariation =
-                (
-                        unit(
-                                dna
-                        )
-                                - 0.5
-                ) * 0.68;
-
         double fieldAngle =
                 x * 0.00073
                         - z * 0.00051
                         + Math.sin(
                         x * 0.00017
                                 + z * 0.00023
-                ) * 1.9
-                        + angleVariation;
+                ) * 1.9;
 
         double dirX =
                 Math.cos(
@@ -800,35 +826,12 @@ public final class OceanWaveField {
                         - shore
                         * 0.24F;
 
-        float localEnergy =
-                0.84F
-                        + (float) unit(
-                        mix64(
-                                dna
-                                        ^ 0x454E45524759434CL
-                        )
-                ) * 0.34F;
-
-        amplitude *=
-                localEnergy;
-
         float wavelength =
-                (
-                        7.0F
-                                + exposure
-                                * 36.0F
-                                + storm
-                                * 9.0F
-                )
-                        * (
-                        0.82F
-                                + (float) unit(
-                                mix64(
-                                        dna
-                                                ^ 0x4C454E4754485741L
-                                )
-                        ) * 0.38F
-                );
+                7.0F
+                        + exposure
+                        * 36.0F
+                        + storm
+                        * 9.0F;
 
         float maxRunup =
                 0.85F
@@ -853,6 +856,121 @@ public final class OceanWaveField {
                 dirZ,
                 shoreX,
                 shoreZ
+        );
+    }
+
+    /**
+     * Value noise seeded on the 16x16 chunk lattice. Each chunk contributes a
+     * deterministic value, but smoothstep interpolation prevents visible seams
+     * in the water mesh at chunk borders.
+     */
+    private static double smoothChunkNoise(
+            double x,
+            double z,
+            long salt
+    ) {
+        double cellX =
+                x / 16.0;
+
+        double cellZ =
+                z / 16.0;
+
+        int x0 =
+                Mth.floor(
+                        cellX
+                );
+
+        int z0 =
+                Mth.floor(
+                        cellZ
+                );
+
+        double tx =
+                cellX
+                        - x0;
+
+        double tz =
+                cellZ
+                        - z0;
+
+        tx =
+                tx
+                        * tx
+                        * (
+                        3.0
+                                - 2.0
+                                * tx
+                );
+
+        tz =
+                tz
+                        * tz
+                        * (
+                        3.0
+                                - 2.0
+                                * tz
+                );
+
+        double n00 =
+                chunkValue(
+                        x0,
+                        z0,
+                        salt
+                );
+
+        double n10 =
+                chunkValue(
+                        x0 + 1,
+                        z0,
+                        salt
+                );
+
+        double n01 =
+                chunkValue(
+                        x0,
+                        z0 + 1,
+                        salt
+                );
+
+        double n11 =
+                chunkValue(
+                        x0 + 1,
+                        z0 + 1,
+                        salt
+                );
+
+        double north =
+                Mth.lerp(
+                        tx,
+                        n00,
+                        n10
+                );
+
+        double south =
+                Mth.lerp(
+                        tx,
+                        n01,
+                        n11
+                );
+
+        return Mth.lerp(
+                tz,
+                north,
+                south
+        );
+    }
+
+    private static double chunkValue(
+            int chunkX,
+            int chunkZ,
+            long salt
+    ) {
+        return unit(
+                chunkX
+                        * 341873128712L
+                        ^ chunkZ
+                        * 132897987541L
+                        ^ salt
         );
     }
 
