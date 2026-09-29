@@ -9,6 +9,7 @@ import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.resources.ResourceLocation;
 import net.caravidro.wayaround.industrial.ship.CoalShipEntity;
+import net.caravidro.wayaround.industrial.ship.SailingShipEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.entity.BoatRenderer;
@@ -48,6 +49,22 @@ final class CoalShipRenderer extends BoatRenderer {
         pose.pushPose();
         pose.translate(0.0, 0.375, 0.0);
         pose.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
+
+        if (boat
+                instanceof SailingShipEntity ship) {
+            pose.mulPose(
+                    Axis.XP.rotationDegrees(
+                            ship.waveVisualPitch()
+                    )
+            );
+
+            pose.mulPose(
+                    Axis.ZP.rotationDegrees(
+                            ship.waveVisualRoll()
+                    )
+            );
+        }
+
         float hurt = boat.getHurtTime() - partialTick;
         if (hurt > 0) {
             pose.mulPose(Axis.XP.rotationDegrees(Mth.sin(hurt) * hurt
