@@ -606,7 +606,7 @@
   "advancements.wayaround.vista.jellyfish.title": "The Sea Lights Up",
   "advancements.wayaround.vista.jellyfish.description": "See a jellyfish glowing in the dark.",
   "advancements.wayaround.vista.oarfish.title": "That Scale Can't Be Right",
-  "advancements.wayaround.vista.oarfish.description": "Spot a freakishly rare fish born at a gigantic scale.",
+  "advancements.wayaround.vista.oarfish.description": "See a fish so huge you blame perspective for a second. It isn't perspective.",
   "advancements.wayaround.vista.whale.title": "That Breathes?",
   "advancements.wayaround.vista.whale.description": "See a living whale up close.",
   "advancements.wayaround.vista.priorite.title": "That Isn't Honey",
@@ -614,7 +614,7 @@
   "advancements.wayaround.vista.old_friend.title": "Did You See Someone?",
   "advancements.wayaround.vista.old_friend.description": "For a moment, someone else was there.",
   "advancements.wayaround.vista.sunfish_basking.title": "Is It Okay?",
-  "advancements.wayaround.vista.sunfish_basking.description": "Find a sunfish floating sideways at the surface. It gets back up.",
+  "advancements.wayaround.vista.sunfish_basking.description": "Find a sunfish lying sideways at the surface. Yes, it's alive. Apparently it's also a platform now.",
   "advancements.wayaround.vista.puffer_carrot.title": "Questionable Nutrition",
   "advancements.wayaround.vista.puffer_carrot.description": "Give a carrot to a pufferfish. You did not need to do this.",
   "item.wayaround.whole_sardine": "Whole Sardine",
@@ -627,5 +627,6 @@
   "item.wayaround.large_whole_salmon": "Large Whole Salmon",
   "item.wayaround.cooked_whole_salmon": "Fried Whole Salmon",
   "item.wayaround.cooked_large_whole_salmon": "Fried Large Salmon",
-  "item.wayaround.cooked_salmon_meat": "Fried Salmon Meat"
+  "item.wayaround.cooked_salmon_meat": "Fried Salmon Meat",
+  "item.wayaround.magic_fishing_rod": "Magic Fishing Rod"
 }

@@ -606,7 +606,7 @@
   "advancements.wayaround.vista.jellyfish.title": "O Mar Acende",
   "advancements.wayaround.vista.jellyfish.description": "Veja uma água-viva brilhando no escuro.",
   "advancements.wayaround.vista.oarfish.title": "Isso Não Cabe na Escala",
-  "advancements.wayaround.vista.oarfish.description": "Veja de perto um peixe raríssimo que nasceu grande demais para parecer real.",
+  "advancements.wayaround.vista.oarfish.description": "Veja um peixe tão grande que por um segundo você culpa a perspectiva. Não é a perspectiva.",
   "advancements.wayaround.vista.whale.title": "Isso Respira?",
   "advancements.wayaround.vista.whale.description": "Veja uma baleia viva de perto.",
   "advancements.wayaround.vista.priorite.title": "Isso Não É Mel",
@@ -614,7 +614,7 @@
   "advancements.wayaround.vista.old_friend.title": "Você Viu Alguém?",
   "advancements.wayaround.vista.old_friend.description": "Por um instante, havia outra pessoa ali.",
   "advancements.wayaround.vista.sunfish_basking.title": "Tá Tudo Bem?",
-  "advancements.wayaround.vista.sunfish_basking.description": "Encontre um sunfish boiando de lado na superfície. Ele volta.",
+  "advancements.wayaround.vista.sunfish_basking.description": "Encontre um sunfish largado de lado na superfície. Sim, ele está vivo. E aparentemente agora também é uma plataforma.",
   "advancements.wayaround.vista.puffer_carrot.title": "Nutrição Questionável",
   "advancements.wayaround.vista.puffer_carrot.description": "Dê uma cenoura a um baiacu. Você não precisava fazer isso.",
   "item.wayaround.whole_sardine": "Sardinha Inteira",
@@ -627,5 +627,6 @@
   "item.wayaround.large_whole_salmon": "Salmão Inteiro Grande",
   "item.wayaround.cooked_whole_salmon": "Salmão Inteiro Frito",
   "item.wayaround.cooked_large_whole_salmon": "Salmão Grande Frito",
-  "item.wayaround.cooked_salmon_meat": "Carne de Salmão Frita"
+  "item.wayaround.cooked_salmon_meat": "Carne de Salmão Frita",
+  "item.wayaround.magic_fishing_rod": "Magic Fishing Rod"
 }

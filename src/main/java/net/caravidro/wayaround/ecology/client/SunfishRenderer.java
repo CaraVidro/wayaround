@@ -64,9 +64,13 @@ public final class SunfishRenderer
                         * 2.2F
                         * bask;
 
+        /*
+         * The old negative offset made a launched basking fish clip into
+         * beaches/terrain. Raise the thin sideways body instead.
+         */
         pose.translate(
                 0.0,
-                -0.06
+                0.20
                         * bask,
                 0.0
         );

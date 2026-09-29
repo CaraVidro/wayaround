@@ -10,6 +10,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -109,6 +110,11 @@ public final class SunfishEntity extends AguaWorldFishEntity {
 
         initializeNaturalScars();
         tickBasking();
+
+        if (isBasking()
+                && isInWaterOrBubble()) {
+            supportBackPassengers();
+        }
     }
 
     private void initializeNaturalScars() {
@@ -427,6 +433,151 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                                 + 1
                 )
         );
+    }
+
+    public void addScarFromPeck() {
+        if (!level().isClientSide) {
+            addScar();
+        }
+    }
+
+    /**
+     * Approximate top surface while the fish is lying sideways. Used by
+     * players and seabirds as a temporary living platform.
+     */
+    public double baskingBackY() {
+        return getY()
+                + 0.40
+                        * Math.max(
+                        0.35F,
+                        getScale()
+                );
+    }
+
+    private void supportBackPassengers() {
+        double half =
+                Math.max(
+                        0.72,
+                        getBbWidth()
+                                * 0.43
+                );
+
+        double deckY =
+                baskingBackY();
+
+        var deck =
+                getBoundingBox()
+                        .inflate(
+                                0.22,
+                                0.35,
+                                0.22
+                        );
+
+        for (Entity entity :
+                level().getEntities(
+                        this,
+                        deck,
+                        entity ->
+                                entity.isAlive()
+                                        && !entity.isPassenger()
+                                        && !(entity instanceof net.minecraft.world.entity.vehicle.Boat)
+                )) {
+
+            double dx =
+                    Math.abs(
+                            entity.getX()
+                                    - getX()
+                    );
+
+            double dz =
+                    Math.abs(
+                            entity.getZ()
+                                    - getZ()
+                    );
+
+            if (dx > half
+                    || dz > half
+                    || entity.getY()
+                    < deckY - 0.48
+                    || entity.getY()
+                    > deckY + 0.38
+                    || entity.getDeltaMovement().y
+                    > 0.22) {
+                continue;
+            }
+
+            Vec3 motion =
+                    entity.getDeltaMovement();
+
+            entity.setPos(
+                    entity.getX(),
+                    deckY,
+                    entity.getZ()
+            );
+
+            entity.setDeltaMovement(
+                    motion.x,
+                    Math.max(
+                            0.0,
+                            motion.y
+                    ),
+                    motion.z
+            );
+
+            entity.fallDistance =
+                    0.0F;
+        }
+    }
+
+    private boolean isStandingOnBack(
+            Entity entity
+    ) {
+        double deckY =
+                baskingBackY();
+
+        return Math.abs(
+                entity.getY()
+                        - deckY
+        ) <= 0.50
+                && Math.abs(
+                entity.getX()
+                        - getX()
+        ) <= getBbWidth() * 0.48
+                && Math.abs(
+                entity.getZ()
+                        - getZ()
+        ) <= getBbWidth() * 0.48;
+    }
+
+    @Override
+    public boolean isPushable() {
+        return true;
+    }
+
+    @Override
+    public void push(
+            Entity entity
+    ) {
+        if (isBasking()
+                && isStandingOnBack(
+                entity
+        )) {
+            // Weight from above does not slide the basking fish around.
+            return;
+        }
+
+        super.push(
+                entity
+        );
+
+        if (isBasking()) {
+            // Side contact from mobs/boats is allowed to shove it.
+            baskKnockbackGrace =
+                    Math.max(
+                            baskKnockbackGrace,
+                            16
+                    );
+        }
     }
 
     @Override

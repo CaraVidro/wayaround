@@ -1,12 +1,14 @@
 {
-  "parent": "wayaround:item/whole_salmon_base",
+  "ambientocclusion": false,
+  "gui_light": "front",
   "textures": {
     "body": "minecraft:block/gray_concrete",
     "flank": "minecraft:block/pink_terracotta",
     "belly": "minecraft:block/white_concrete",
     "fin": "minecraft:block/dark_prismarine",
     "eye": "minecraft:block/black_concrete",
-    "mouth": "minecraft:block/red_terracotta"
+    "mouth": "minecraft:block/red_terracotta",
+    "particle": "minecraft:block/gray_concrete"
   },
   "display": {
     "thirdperson_righthand": {
@@ -128,5 +130,335 @@
         0.9
       ]
     }
-  }
+  },
+  "elements": [
+    {
+      "from": [
+        2.5,
+        5.9,
+        6.2
+      ],
+      "to": [
+        12.6,
+        10.1,
+        9.8
+      ],
+      "faces": {
+        "north": {
+          "texture": "#flank"
+        },
+        "south": {
+          "texture": "#flank"
+        },
+        "east": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#body"
+        },
+        "down": {
+          "texture": "#belly"
+        }
+      }
+    },
+    {
+      "from": [
+        0.7,
+        6.2,
+        6.4
+      ],
+      "to": [
+        3.8,
+        9.8,
+        9.6
+      ],
+      "faces": {
+        "north": {
+          "texture": "#body"
+        },
+        "south": {
+          "texture": "#body"
+        },
+        "east": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#body"
+        },
+        "down": {
+          "texture": "#belly"
+        }
+      }
+    },
+    {
+      "from": [
+        0.3,
+        7,
+        6.8
+      ],
+      "to": [
+        1,
+        8.6,
+        9.2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#mouth"
+        },
+        "south": {
+          "texture": "#mouth"
+        },
+        "east": {
+          "texture": "#mouth"
+        },
+        "west": {
+          "texture": "#mouth"
+        },
+        "up": {
+          "texture": "#mouth"
+        },
+        "down": {
+          "texture": "#mouth"
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        8.2,
+        6.05
+      ],
+      "to": [
+        2.2,
+        8.9,
+        6.32
+      ],
+      "faces": {
+        "north": {
+          "texture": "#eye"
+        },
+        "south": {
+          "texture": "#eye"
+        },
+        "east": {
+          "texture": "#eye"
+        },
+        "west": {
+          "texture": "#eye"
+        },
+        "up": {
+          "texture": "#eye"
+        },
+        "down": {
+          "texture": "#eye"
+        }
+      }
+    },
+    {
+      "from": [
+        12,
+        6.8,
+        6.8
+      ],
+      "to": [
+        13.7,
+        9.2,
+        9.2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#body"
+        },
+        "south": {
+          "texture": "#body"
+        },
+        "east": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#body"
+        },
+        "down": {
+          "texture": "#body"
+        }
+      }
+    },
+    {
+      "from": [
+        13,
+        8,
+        6.7
+      ],
+      "to": [
+        15.8,
+        11.1,
+        9.3
+      ],
+      "rotation": {
+        "origin": [
+          13,
+          8,
+          8
+        ],
+        "axis": "z",
+        "angle": 22.5,
+        "rescale": false
+      },
+      "faces": {
+        "north": {
+          "texture": "#fin"
+        },
+        "south": {
+          "texture": "#fin"
+        },
+        "east": {
+          "texture": "#fin"
+        },
+        "west": {
+          "texture": "#fin"
+        },
+        "up": {
+          "texture": "#fin"
+        },
+        "down": {
+          "texture": "#fin"
+        }
+      }
+    },
+    {
+      "from": [
+        13,
+        4.9,
+        6.7
+      ],
+      "to": [
+        15.8,
+        8,
+        9.3
+      ],
+      "rotation": {
+        "origin": [
+          13,
+          8,
+          8
+        ],
+        "axis": "z",
+        "angle": -22.5,
+        "rescale": false
+      },
+      "faces": {
+        "north": {
+          "texture": "#fin"
+        },
+        "south": {
+          "texture": "#fin"
+        },
+        "east": {
+          "texture": "#fin"
+        },
+        "west": {
+          "texture": "#fin"
+        },
+        "up": {
+          "texture": "#fin"
+        },
+        "down": {
+          "texture": "#fin"
+        }
+      }
+    },
+    {
+      "from": [
+        6.2,
+        9.6,
+        7
+      ],
+      "to": [
+        9.5,
+        11.5,
+        9
+      ],
+      "rotation": {
+        "origin": [
+          7.6,
+          9.6,
+          8
+        ],
+        "axis": "z",
+        "angle": -10,
+        "rescale": false
+      },
+      "faces": {
+        "north": {
+          "texture": "#fin"
+        },
+        "south": {
+          "texture": "#fin"
+        },
+        "east": {
+          "texture": "#fin"
+        },
+        "west": {
+          "texture": "#fin"
+        },
+        "up": {
+          "texture": "#fin"
+        },
+        "down": {
+          "texture": "#fin"
+        }
+      }
+    },
+    {
+      "from": [
+        4.1,
+        6.5,
+        4.9
+      ],
+      "to": [
+        8.1,
+        7.3,
+        6.5
+      ],
+      "rotation": {
+        "origin": [
+          4.3,
+          7,
+          6.5
+        ],
+        "axis": "x",
+        "angle": -22.5,
+        "rescale": false
+      },
+      "faces": {
+        "north": {
+          "texture": "#fin"
+        },
+        "south": {
+          "texture": "#fin"
+        },
+        "east": {
+          "texture": "#fin"
+        },
+        "west": {
+          "texture": "#fin"
+        },
+        "up": {
+          "texture": "#fin"
+        },
+        "down": {
+          "texture": "#fin"
+        }
+      }
+    }
+  ]
 }

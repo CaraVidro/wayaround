@@ -45,6 +45,15 @@ public final class MarineInteractionModule {
     private static final String GULL_EAT_AT =
             "WayAroundGullEatAt";
 
+    private static final String GULL_SUNFISH_TARGET =
+            "WayAroundGullSunfishTarget";
+
+    private static final String GULL_SUNFISH_PECK_AT =
+            "WayAroundGullSunfishPeckAt";
+
+    private static final String GULL_SUNFISH_LEAVE_AT =
+            "WayAroundGullSunfishLeaveAt";
+
     private static final int PHASE_CRUISE = 0;
     private static final int PHASE_DIVE = 1;
     private static final int PHASE_ASCEND = 2;
@@ -144,6 +153,14 @@ public final class MarineInteractionModule {
                     now
             );
 
+            return;
+        }
+
+        if (handleSunfishPerch(
+                level,
+                gull,
+                now
+        )) {
             return;
         }
 
@@ -275,6 +292,311 @@ public final class MarineInteractionModule {
                     gull
             );
         }
+    }
+
+    private static boolean handleSunfishPerch(
+            ServerLevel level,
+            SeagullEntity gull,
+            long now
+    ) {
+        var data =
+                gull.getPersistentData();
+
+        if (data.hasUUID(
+                GULL_SUNFISH_TARGET
+        )) {
+            var target =
+                    level.getEntity(
+                            data.getUUID(
+                                    GULL_SUNFISH_TARGET
+                            )
+                    );
+
+            if (!(target instanceof SunfishEntity sunfish)
+                    || !sunfish.isAlive()
+                    || !sunfish.isBasking()) {
+                clearSunfishPerch(
+                        gull,
+                        now
+                );
+
+                return false;
+            }
+
+            if (now >= data.getLong(
+                    GULL_SUNFISH_LEAVE_AT
+            )) {
+                clearSunfishPerch(
+                        gull,
+                        now
+                );
+
+                gull.setDeltaMovement(
+                        gull.getDeltaMovement()
+                                .add(
+                                        0.0,
+                                        0.24,
+                                        0.0
+                                )
+                );
+
+                return true;
+            }
+
+            double tx =
+                    sunfish.getX();
+
+            double ty =
+                    sunfish.baskingBackY()
+                            + 0.03;
+
+            double tz =
+                    sunfish.getZ();
+
+            Vec3 delta =
+                    new Vec3(
+                            tx - gull.getX(),
+                            ty - gull.getY(),
+                            tz - gull.getZ()
+                    );
+
+            if (delta.lengthSqr()
+                    > 0.75 * 0.75) {
+                gull.setNoGravity(
+                        true
+                );
+
+                gull.getMoveControl()
+                        .setWantedPosition(
+                                tx,
+                                ty,
+                                tz,
+                                1.05
+                        );
+
+                gull.getNavigation()
+                        .moveTo(
+                                tx,
+                                ty,
+                                tz,
+                                0.92
+                        );
+
+                if (delta.lengthSqr()
+                        < 3.0 * 3.0) {
+                    gull.setDeltaMovement(
+                            gull.getDeltaMovement()
+                                    .scale(
+                                            0.72
+                                    )
+                                    .add(
+                                            delta.normalize()
+                                                    .scale(
+                                                            0.08
+                                                    )
+                                    )
+                    );
+                }
+
+                return true;
+            }
+
+            /*
+             * Treat the sideways sunfish like a tiny moving island. Locking
+             * the gull's feet to the back means it never shoves the fish while
+             * perched, even though side collisions remain physical.
+             */
+            gull.setNoGravity(
+                    true
+            );
+
+            gull.getNavigation()
+                    .stop();
+
+            gull.setPos(
+                    tx,
+                    ty,
+                    tz
+            );
+
+            gull.setDeltaMovement(
+                    Vec3.ZERO
+            );
+
+            if (now >= data.getLong(
+                    GULL_SUNFISH_PECK_AT
+            )) {
+                ItemStack snack =
+                        new ItemStack(
+                                net.caravidro.wayaround.ecology.EcologyContent.RAW_SUNFISH_MEAT.get()
+                        );
+
+                level.playSound(
+                        null,
+                        gull.blockPosition(),
+                        SoundEvents.GENERIC_EAT,
+                        SoundSource.NEUTRAL,
+                        0.72F,
+                        1.35F
+                                + level.random.nextFloat()
+                                        * 0.20F
+                );
+
+                level.sendParticles(
+                        new ItemParticleOption(
+                                ParticleTypes.ITEM,
+                                snack
+                        ),
+                        gull.getX(),
+                        gull.getY()
+                                + 0.05,
+                        gull.getZ(),
+                        5,
+                        0.10,
+                        0.05,
+                        0.10,
+                        0.015
+                );
+
+                if (level.random.nextFloat()
+                        < 0.34F) {
+                    sunfish.addScarFromPeck();
+
+                    level.playSound(
+                            null,
+                            sunfish.blockPosition(),
+                            SoundEvents.FOX_BITE,
+                            SoundSource.NEUTRAL,
+                            0.42F,
+                            1.42F
+                    );
+                }
+
+                /*
+                 * One little feeding/pecking visit is enough. The gull lingers
+                 * for a moment afterward and then leaves.
+                 */
+                data.putLong(
+                        GULL_SUNFISH_PECK_AT,
+                        Long.MAX_VALUE
+                );
+
+                data.putLong(
+                        GULL_SUNFISH_LEAVE_AT,
+                        Math.min(
+                                data.getLong(
+                                        GULL_SUNFISH_LEAVE_AT
+                                ),
+                                now
+                                        + 45L
+                                        + level.random.nextInt(
+                                        55
+                                )
+                        )
+                );
+            }
+
+            return true;
+        }
+
+        if (now < data.getLong(
+                GULL_NEXT_HUNT
+        )
+                || level.random.nextFloat()
+                        > 0.012F) {
+            return false;
+        }
+
+        SunfishEntity sunfish =
+                level.getEntitiesOfClass(
+                                SunfishEntity.class,
+                                gull.getBoundingBox()
+                                        .inflate(
+                                                28.0,
+                                                14.0,
+                                                28.0
+                                        ),
+                                fish ->
+                                        fish.isAlive()
+                                                && fish.isBasking()
+                                                && fish.isInWaterOrBubble()
+                        )
+                        .stream()
+                        .min(
+                                java.util.Comparator.comparingDouble(
+                                        gull::distanceToSqr
+                                )
+                        )
+                        .orElse(
+                                null
+                        );
+
+        if (sunfish == null) {
+            return false;
+        }
+
+        data.putUUID(
+                GULL_SUNFISH_TARGET,
+                sunfish.getUUID()
+        );
+
+        data.putLong(
+                GULL_SUNFISH_PECK_AT,
+                now
+                        + 45L
+                        + level.random.nextInt(
+                        80
+                )
+        );
+
+        data.putLong(
+                GULL_SUNFISH_LEAVE_AT,
+                now
+                        + 150L
+                        + level.random.nextInt(
+                        190
+                )
+        );
+
+        gull.setNoGravity(
+                true
+        );
+
+        return true;
+    }
+
+    private static void clearSunfishPerch(
+            SeagullEntity gull,
+            long now
+    ) {
+        var data =
+                gull.getPersistentData();
+
+        data.remove(
+                GULL_SUNFISH_TARGET
+        );
+
+        data.remove(
+                GULL_SUNFISH_PECK_AT
+        );
+
+        data.remove(
+                GULL_SUNFISH_LEAVE_AT
+        );
+
+        data.putLong(
+                GULL_NEXT_HUNT,
+                now
+                        + 220L
+                        + gull.getRandom()
+                                .nextInt(
+                                        360
+                                )
+        );
+
+        resetFlight(
+                gull
+        );
     }
 
     private static void capture(

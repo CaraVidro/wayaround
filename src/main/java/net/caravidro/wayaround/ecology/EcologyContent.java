@@ -10,6 +10,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.block.SoundType;
@@ -52,8 +53,8 @@ public final class EcologyContent {
                                     MobCategory.WATER_AMBIENT
                             )
                             .sized(
-                                    1.70F,
-                                    2.72F
+                                    2.05F,
+                                    1.90F
                             )
                             .clientTrackingRange(
                                     20
@@ -482,6 +483,20 @@ public final class EcologyContent {
                     () -> new BlockItem(
                             RIVER_PEBBLES.get(),
                             new Item.Properties()
+                    )
+            );
+
+    /**
+     * Opt-out rod for players who prefer vanilla fishing. It deliberately
+     * bypasses the living-fish hook system and lets Minecraft materialize
+     * ordinary fishing loot again.
+     */
+    public static final DeferredItem<FishingRodItem> MAGIC_FISHING_ROD =
+            ITEMS.register(
+                    "magic_fishing_rod",
+                    () -> new FishingRodItem(
+                            new Item.Properties()
+                                    .durability(64)
                     )
             );
 
@@ -988,6 +1003,9 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 SEAGULL_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                MAGIC_FISHING_ROD.get()
                                         );
                                         output.accept(
                                                 RAW_SARDINE_MEAT.get()

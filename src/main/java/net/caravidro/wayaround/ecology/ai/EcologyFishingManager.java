@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.particles.ParticleTypes;
@@ -75,6 +76,12 @@ public final class EcologyFishingManager {
             for (ServerPlayer player :
                     level.players()) {
 
+                if (usingMagicRod(
+                        player
+                )) {
+                    continue;
+                }
+
                 FishingHook hook =
                         player.fishing;
 
@@ -115,6 +122,19 @@ public final class EcologyFishingManager {
                 );
             }
         }
+    }
+
+    private static boolean usingMagicRod(
+            ServerPlayer player
+    ) {
+        return player.getMainHandItem()
+                .is(
+                        EcologyContent.MAGIC_FISHING_ROD.get()
+                )
+                || player.getOffhandItem()
+                .is(
+                        EcologyContent.MAGIC_FISHING_ROD.get()
+                );
     }
 
     private static void tickHook(
@@ -1081,6 +1101,14 @@ public final class EcologyFishingManager {
     ) {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.LIVING_VEGETATION
+        )) {
+            return;
+        }
+
+        if (event.getEntity()
+                instanceof ServerPlayer player
+                && usingMagicRod(
+                player
         )) {
             return;
         }

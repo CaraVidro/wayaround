@@ -1,8 +1,10 @@
 package net.caravidro.wayaround.mixin;
 
+import net.caravidro.wayaround.ecology.EcologyContent;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FishingHook;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -32,11 +34,28 @@ public abstract class EcologyFishingHookMixin {
         FishingHook self =
                 (FishingHook) (Object) this;
 
-        if (WorldFeatureRuntime.enabled(
+        if (!WorldFeatureRuntime.enabled(
                 self.level(),
                 WorldFeature.LIVING_VEGETATION
         )) {
-            ci.cancel();
+            return;
         }
+
+        if (self.getOwner()
+                instanceof Player player
+                && (
+                player.getMainHandItem()
+                        .is(
+                                EcologyContent.MAGIC_FISHING_ROD.get()
+                        )
+                        || player.getOffhandItem()
+                        .is(
+                                EcologyContent.MAGIC_FISHING_ROD.get()
+                        )
+        )) {
+            return;
+        }
+
+        ci.cancel();
     }
 }
