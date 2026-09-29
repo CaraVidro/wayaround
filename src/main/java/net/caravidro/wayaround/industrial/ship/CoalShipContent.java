@@ -104,10 +104,15 @@ public final class CoalShipContent {
             TABS.register("great_navigations", () -> net.minecraft.world.item.CreativeModeTab.builder()
                     .title(net.minecraft.network.chat.Component.translatable("itemGroup.wayaround.great_navigations"))
                     .withTabsBefore(net.minecraft.world.item.CreativeModeTabs.SPAWN_EGGS)
-                    .icon(() -> CARAVEL_ITEM.get().getDefaultInstance())
+                    .icon(() -> GREAT_SHIP_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
-                        output.accept(COAL_SHIP_ITEM.get());
-                        output.accept(CARAVEL_ITEM.get());
+                        /*
+                         * The Nau is now the flagship / intended long-range
+                         * Great Voyages experience. Smaller vessels remain as
+                         * faster/earlier alternatives.
+                         */
                         output.accept(GREAT_SHIP_ITEM.get());
+                        output.accept(CARAVEL_ITEM.get());
+                        output.accept(COAL_SHIP_ITEM.get());
                     }).build());
 }
