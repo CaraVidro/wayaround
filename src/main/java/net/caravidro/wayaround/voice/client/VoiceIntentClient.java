@@ -12,6 +12,8 @@ import net.caravidro.wayaround.client.BetaTechniqueClientEffects;
 import net.caravidro.wayaround.client.DomainIntroClient;
 import net.caravidro.wayaround.client.SpectrumMenu;
 import net.caravidro.wayaround.domain.DomainIntroManager;
+import net.caravidro.wayaround.media.MediaContent;
+import net.caravidro.wayaround.network.AlexaVoiceCommandC2SPayload;
 import net.caravidro.wayaround.network.DomainPreludeC2SPayload;
 import net.caravidro.wayaround.network.VoiceIntentC2SPayload;
 import net.caravidro.wayaround.spectrum.SpectrumAccess;
@@ -19,6 +21,7 @@ import net.caravidro.wayaround.spectrum.SpectrumProgression;
 import net.caravidro.wayaround.spectrum.SpectrumType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -104,6 +107,11 @@ public final class VoiceIntentClient {
     private static byte lastDomainPreludeStyle;
     private static long lastDomainPreludeAt;
 
+    private static long nextAlexaProbeAt;
+    private static boolean cachedAlexaNearby;
+    private static long lastAlexaDispatchAt;
+    private static String lastAlexaTranscript = "";
+
     public static boolean isEnabled() {
         return ENABLED;
     }
@@ -140,7 +148,8 @@ public final class VoiceIntentClient {
                 || SpectrumAccess.has(
                 minecraft.player,
                 SpectrumType.JUSTICE
-        );
+        )
+                || alexaNearby();
     }
 
     public static boolean isCombatHot() {
@@ -156,7 +165,141 @@ public final class VoiceIntentClient {
     public static boolean wantsContinuousRecognition() {
         return hasLocalVoidSpectrum()
                 || hasLocalTukunaSpectrum()
+                || alexaNearby()
                 || VoiceConfig.isDebugSpeechEnabled();
+    }
+
+    private static boolean alexaNearby() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.player == null
+                || minecraft.level == null) {
+            cachedAlexaNearby =
+                    false;
+            return false;
+        }
+
+        long now =
+                System.currentTimeMillis();
+
+        if (now < nextAlexaProbeAt) {
+            return cachedAlexaNearby;
+        }
+
+        nextAlexaProbeAt =
+                now + 750L;
+
+        cachedAlexaNearby =
+                false;
+
+        BlockPos origin =
+                minecraft.player.blockPosition();
+
+        int range =
+                16;
+
+        BlockPos.MutableBlockPos cursor =
+                new BlockPos.MutableBlockPos();
+
+        outer:
+        for (int dx = -range;
+             dx <= range;
+             dx++) {
+            for (int dy = -range;
+                 dy <= range;
+                 dy++) {
+                for (int dz = -range;
+                     dz <= range;
+                     dz++) {
+
+                    if (dx * dx
+                            + dy * dy
+                            + dz * dz
+                            > range * range) {
+                        continue;
+                    }
+
+                    cursor.set(
+                            origin.getX() + dx,
+                            origin.getY() + dy,
+                            origin.getZ() + dz
+                    );
+
+                    if (minecraft.level
+                            .getBlockState(
+                                    cursor
+                            )
+                            .is(
+                                    MediaContent.ALEXA.get()
+                            )) {
+                        cachedAlexaNearby =
+                                true;
+                        break outer;
+                    }
+                }
+            }
+        }
+
+        return cachedAlexaNearby;
+    }
+
+    private static void dispatchAlexaVoice(
+            String normalized
+    ) {
+        if (handlingChatInput
+                || normalized == null
+                || normalized.isBlank()
+                || !alexaNearby()
+                || Minecraft.getInstance()
+                .getConnection()
+                == null) {
+            return;
+        }
+
+        long now =
+                System.currentTimeMillis();
+
+        if (normalized.equals(
+                lastAlexaTranscript
+        )
+                && now - lastAlexaDispatchAt
+                < 1_800L) {
+            return;
+        }
+
+        lastAlexaTranscript =
+                normalized;
+
+        lastAlexaDispatchAt =
+                now;
+
+        PacketDistributor.sendToServer(
+                new AlexaVoiceCommandC2SPayload(
+                        normalized
+                )
+        );
+    }
+
+    private static boolean hasAnyLocalSpectrum() {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        return minecraft.player != null
+                && (
+                SpectrumAccess.has(
+                        minecraft.player,
+                        SpectrumType.VOID
+                )
+                        || SpectrumAccess.has(
+                        minecraft.player,
+                        SpectrumType.TUKUNA
+                )
+                        || SpectrumAccess.has(
+                        minecraft.player,
+                        SpectrumType.JUSTICE
+                )
+        );
     }
 
     /**
@@ -181,6 +324,25 @@ public final class VoiceIntentClient {
                 );
 
         if (normalized.isBlank()) {
+            return;
+        }
+
+        boolean nearAlexa =
+                alexaNearby();
+
+        if (finalChunk
+                && nearAlexa) {
+            dispatchAlexaVoice(
+                    normalized
+            );
+        }
+
+        /*
+         * Alexa is allowed to use the recognizer without owning a Spectrum.
+         * In that case stop here so ordinary home-automation speech never
+         * falls through into combat/domain parsing or precision guidance.
+         */
+        if (!hasAnyLocalSpectrum()) {
             return;
         }
 
@@ -434,6 +596,17 @@ public final class VoiceIntentClient {
 
         if (normalized.isBlank()) {
             return;
+        }
+
+        if (!handlingChatInput
+                && alexaNearby()) {
+            dispatchAlexaVoice(
+                    normalized
+            );
+
+            if (!hasAnyLocalSpectrum()) {
+                return;
+            }
         }
 
         if (!handlingChatInput) {

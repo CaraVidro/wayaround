@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "wayaround:block/alexa"
+    },
+    "powered=true": {
+      "model": "wayaround:block/alexa_on"
+    }
+  }
+}

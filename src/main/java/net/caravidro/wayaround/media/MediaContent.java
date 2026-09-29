@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.media;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.media.AlexaBlock;
 import net.caravidro.wayaround.media.blackbox.BlackBoxBlock;
 import net.caravidro.wayaround.media.blackbox.BlackBoxBlockEntity;
 import net.caravidro.wayaround.media.blackbox.BlackBoxItem;
@@ -304,6 +305,27 @@ public final class MediaContent {
                     () -> new BlockItem(RADIO.get(), new Item.Properties())
             );
 
+    public static final DeferredBlock<AlexaBlock> ALEXA =
+            BLOCKS.register(
+                    "alexa",
+                    () -> new AlexaBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.COLOR_BLACK)
+                                    .strength(1.2F, 2.5F)
+                                    .sound(SoundType.METAL)
+                                    .noOcclusion()
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> ALEXA_ITEM =
+            ITEMS.register(
+                    "alexa",
+                    () -> new BlockItem(
+                            ALEXA.get(),
+                            new Item.Properties()
+                    )
+            );
+
     public static final DeferredBlock<EditorialBlock> EDITORIAL =
             BLOCKS.register(
                     "editorial",
@@ -538,6 +560,7 @@ public final class MediaContent {
                                         output.accept(WOODEN_CHAIR_ITEM.get());
                                         output.accept(TELEVISION_ITEM.get());
                                         output.accept(RADIO_ITEM.get());
+                                        output.accept(ALEXA_ITEM.get());
                                         output.accept(HANDHELD_MICROPHONE.get());
                                         output.accept(BROADCAST_MICROPHONE_ITEM.get());
                                         output.accept(BROADCAST_CABLE_ITEM.get());

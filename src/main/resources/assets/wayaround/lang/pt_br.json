@@ -630,5 +630,7 @@
   "item.wayaround.cooked_salmon_meat": "Carne de Salmão Frita",
   "item.wayaround.magic_fishing_rod": "Magic Fishing Rod",
   "item.wayaround.sustention_boots": "Sustention Boot",
-  "item.wayaround.divin_suit": "Divin Suit"
+  "item.wayaround.divin_suit": "Divin Suit",
+  "block.wayaround.alexa": "Alexa",
+  "item.wayaround.alexa": "Alexa"
 }

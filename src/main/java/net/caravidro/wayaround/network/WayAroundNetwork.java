@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "15";
+            "16";
 
     private WayAroundNetwork() {
     }
@@ -165,6 +165,12 @@ public final class WayAroundNetwork {
                 VoiceIntentC2SPayload.TYPE,
                 VoiceIntentC2SPayload.STREAM_CODEC,
                 VoiceIntentC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                AlexaVoiceCommandC2SPayload.TYPE,
+                AlexaVoiceCommandC2SPayload.STREAM_CODEC,
+                AlexaVoiceCommandC2SPayload::handle
         );
 
         registrar.playToServer(
