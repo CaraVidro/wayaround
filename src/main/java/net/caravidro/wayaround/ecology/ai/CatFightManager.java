@@ -226,7 +226,7 @@ public final class CatFightManager {
                         id,
                         first.getUUID(),
                         second.getUUID(),
-                        first.serverLevel()
+                        ((ServerLevel) first.level())
                                 .dimension()
                                 .location()
                                 .toString(),
@@ -245,7 +245,7 @@ public final class CatFightManager {
                 fight
         );
 
-        first.serverLevel()
+        ((ServerLevel) first.level())
                 .playSound(
                         null,
                         first.blockPosition(),
@@ -255,7 +255,7 @@ public final class CatFightManager {
                         0.92F
                 );
 
-        second.serverLevel()
+        ((ServerLevel) second.level())
                 .playSound(
                         null,
                         second.blockPosition(),
@@ -299,8 +299,8 @@ public final class CatFightManager {
                     || !eligible(
                     second
             )
-                    || first.serverLevel()
-                    != second.serverLevel()
+                    || ((ServerLevel) first.level())
+                    != ((ServerLevel) second.level())
                     || now >= fight.endsAt
                     || first.distanceToSqr(
                     second
@@ -390,7 +390,7 @@ public final class CatFightManager {
             boolean playful
     ) {
         ServerLevel level =
-                attacker.serverLevel();
+                ((ServerLevel) attacker.level());
 
         Vec3 away =
                 victim.position()
