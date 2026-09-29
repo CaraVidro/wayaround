@@ -1,6 +1,5 @@
 package net.caravidro.wayaround.mixin.client;
 
-import net.caravidro.wayaround.client.MenuBrandingState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -64,39 +63,13 @@ public abstract class TitleScreenBrandingMixin {
                 0xFF8C6E46
         );
 
-        Component context =
-                switch (MenuBrandingState.context()) {
-                    case SINGLEPLAYER ->
-                            Component.translatable(
-                                    "menu.wayaround.return.singleplayer"
-                            );
-
-                    case MULTIPLAYER ->
-                            Component.translatable(
-                                    "menu.wayaround.return.multiplayer"
-                            );
-
-                    default ->
-                            Component.translatable(
-                                    "menu.wayaround.return.none"
-                            );
-                };
-
-        graphics.drawCenteredString(
-                minecraft.font,
-                context,
-                center,
-                106,
-                0xFF666666
-        );
-
         graphics.drawCenteredString(
                 minecraft.font,
                 Component.literal(
                         WAYAROUND_VERSION
                 ),
                 center,
-                117,
+                106,
                 0xFF4B4B4B
         );
     }
