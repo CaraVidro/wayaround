@@ -562,18 +562,59 @@ public final class NexusPortalManager {
                         -2
                 );
 
+        BlockPos marker =
+                center.offset(
+                        0,
+                        -2,
+                        0
+                );
+
         /*
-         * The dimension itself is minecraft:caves; this only guarantees the
-         * portal does not generate entombed in a solid density pocket.
+         * Carve the safe arrival cavern only once. The rest of the dimension
+         * stays fully procedural through minecraft:caves.
          */
-        for (int x = -4;
-             x <= 4;
+        if (nexus.getBlockState(
+                marker
+        ).is(
+                Blocks.CHISELED_POLISHED_BLACKSTONE
+        )) {
+            return;
+        }
+
+        for (int x = -6;
+             x <= 6;
              x++) {
-            for (int z = -5;
-                 z <= 4;
+            for (int z = -7;
+                 z <= 7;
                  z++) {
+
+                double nx =
+                        x / 6.0;
+
+                double nz =
+                        z / 7.0;
+
+                double radial =
+                        nx * nx
+                                + nz * nz;
+
+                if (radial > 1.12) {
+                    continue;
+                }
+
+                int localHeight =
+                        12
+                                + (int) Math.round(
+                                (1.0
+                                        - Math.min(
+                                        1.0,
+                                        radial
+                                ))
+                                        * 12.0
+                        );
+
                 for (int y = 0;
-                     y <= 5;
+                     y <= localHeight;
                      y++) {
                     BlockPos p =
                             center.offset(
@@ -600,8 +641,9 @@ public final class NexusPortalManager {
                         floor,
                         (
                                 Math.floorMod(
-                                        x + z,
-                                        5
+                                        x * 3
+                                                + z,
+                                        7
                                 ) == 0
                                         ? Blocks.POLISHED_BLACKSTONE
                                         : Blocks.DEEPSLATE
@@ -610,6 +652,62 @@ public final class NexusPortalManager {
                 );
             }
         }
+
+        /*
+         * Four rough tunnels make the arrival room visibly connect into the
+         * procedural cave network instead of looking like a sealed arena.
+         */
+        for (Direction direction : new Direction[]{
+                Direction.NORTH,
+                Direction.SOUTH,
+                Direction.EAST,
+                Direction.WEST
+        }) {
+            for (int distance = 5;
+                 distance <= 18;
+                 distance++) {
+                BlockPos tunnelCenter =
+                        center.relative(
+                                direction,
+                                distance
+                        );
+
+                for (int side = -2;
+                     side <= 2;
+                     side++) {
+                    for (int y = 0;
+                         y <= 6;
+                         y++) {
+                        BlockPos p =
+                                direction.getAxis()
+                                        == Direction.Axis.X
+                                        ? tunnelCenter.offset(
+                                        0,
+                                        y,
+                                        side
+                                )
+                                        : tunnelCenter.offset(
+                                        side,
+                                        y,
+                                        0
+                                );
+
+                        nexus.setBlock(
+                                p,
+                                Blocks.AIR.defaultBlockState(),
+                                Block.UPDATE_CLIENTS
+                        );
+                    }
+                }
+            }
+        }
+
+        nexus.setBlock(
+                marker,
+                Blocks.CHISELED_POLISHED_BLACKSTONE
+                        .defaultBlockState(),
+                Block.UPDATE_CLIENTS
+        );
     }
 
     private static void placePortalPlane(
