@@ -12,6 +12,11 @@ import net.caravidro.wayaround.network.KrakenShakeS2CPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -151,6 +156,16 @@ public final class KrakenManager {
                             )
                     );
                 }
+            }
+
+            if (Math.floorMod(
+                    now + player.getId(),
+                    40L
+            ) == 0L) {
+                applyDeepCurrent(
+                        player,
+                        now
+                );
             }
 
             if (ACTIVE.containsKey(
@@ -334,6 +349,200 @@ public final class KrakenManager {
                 forced
                         ? 0.24F
                         : 0.16F
+        );
+    }
+
+    private static void applyDeepCurrent(
+            ServerPlayer player,
+            long now
+    ) {
+        if (!player.isUnderWater()) {
+            return;
+        }
+
+        ServerLevel level =
+                player.serverLevel();
+
+        double depth =
+                level.getSeaLevel()
+                        - player.getY();
+
+        if (depth < 20.0) {
+            return;
+        }
+
+        double depthFactor =
+                Mth.clamp(
+                        (depth - 20.0)
+                                / 70.0,
+                        0.0,
+                        1.0
+                );
+
+        BlockPos heart =
+                lairHeart(
+                        player.blockPosition(),
+                        level.getSeaLevel()
+                );
+
+        Vec3 toward =
+                new Vec3(
+                        heart.getX() + 0.5
+                                - player.getX(),
+                        0.0,
+                        heart.getZ() + 0.5
+                                - player.getZ()
+                );
+
+        if (toward.lengthSqr() < 1.0E-4) {
+            return;
+        }
+
+        toward =
+                toward.normalize();
+
+        double strength =
+                0.012
+                        + depthFactor
+                        * 0.024;
+
+        if (isNight(
+                level
+        )) {
+            strength *=
+                    1.28;
+        }
+
+        Vec3 velocity =
+                player.getDeltaMovement();
+
+        player.setDeltaMovement(
+                velocity.add(
+                        toward.x
+                                * strength,
+                        -0.003
+                                - depthFactor
+                                * 0.006,
+                        toward.z
+                                * strength
+                )
+        );
+
+        player.hurtMarked =
+                true;
+
+        if (Math.floorMod(
+                now + player.getId(),
+                80L
+        ) == 0L) {
+            level.sendParticles(
+                    ParticleTypes.BUBBLE,
+                    player.getX(),
+                    player.getY() - 1.0,
+                    player.getZ(),
+                    18,
+                    2.8,
+                    1.2,
+                    2.8,
+                    0.05
+            );
+        }
+
+        /*
+         * Deep night water occasionally "breathes" in one strong motion.
+         * It is not a teleport or scripted attack: the player's existing
+         * swimming velocity is preserved and the current simply wins for a
+         * moment.
+         */
+        if (depthFactor > 0.52
+                && isNight(
+                level
+        )
+                && player.getRandom()
+                        .nextInt(
+                                22
+                        ) == 0) {
+
+            player.setDeltaMovement(
+                    player.getDeltaMovement()
+                            .add(
+                                    toward.x
+                                            * 0.13,
+                                    -0.025,
+                                    toward.z
+                                            * 0.13
+                            )
+            );
+
+            player.hurtMarked =
+                    true;
+
+            shake(
+                    player,
+                    16,
+                    0.09F
+            );
+
+            level.playSound(
+                    null,
+                    player.blockPosition(),
+                    SoundEvents.WARDEN_HEARTBEAT,
+                    SoundSource.AMBIENT,
+                    1.4F,
+                    0.33F
+            );
+        }
+    }
+
+    private static BlockPos lairHeart(
+            BlockPos pos,
+            int seaLevel
+    ) {
+        int cellX =
+                Math.floorDiv(
+                        pos.getX(),
+                        REGION_SIZE
+                );
+
+        int cellZ =
+                Math.floorDiv(
+                        pos.getZ(),
+                        REGION_SIZE
+                );
+
+        long seed =
+                mix(
+                        cellX
+                                * 341873128712L
+                                ^ cellZ
+                                * 132897987541L
+                                ^ 0x4B52414B454E484CL
+                );
+
+        int offsetX =
+                (int) Math.floorMod(
+                        seed,
+                        513L
+                )
+                        - 256;
+
+        int offsetZ =
+                (int) Math.floorMod(
+                        seed >>> 17,
+                        513L
+                )
+                        - 256;
+
+        return new BlockPos(
+                cellX
+                        * REGION_SIZE
+                        + REGION_SIZE / 2
+                        + offsetX,
+                seaLevel - 58,
+                cellZ
+                        * REGION_SIZE
+                        + REGION_SIZE / 2
+                        + offsetZ
         );
     }
 
@@ -1140,6 +1349,9 @@ public final class KrakenManager {
     private static final class TentacleEvent
             extends KrakenEvent {
 
+        private final Set<UUID> struck =
+                new HashSet<>();
+
         TentacleEvent(
                 ServerLevel level,
                 Site site,
@@ -1310,7 +1522,140 @@ public final class KrakenManager {
                 );
             }
 
+            if (age >= 44
+                    && age <= 124
+                    && age % 8 == 0) {
+                strikeSurface();
+            }
+
             return false;
+        }
+
+        private void strikeSurface() {
+            int top =
+                    site.surface
+                            + SURFACE_CLEARANCE;
+
+            double t =
+                    (site.surface - site.floor)
+                            / (double) (
+                            top - site.floor
+                    );
+
+            int x =
+                    site.x
+                            + Mth.floor(
+                            site.dirX
+                                    * 18.0
+                                    * t
+                                    + Math.sin(
+                                    age * 0.13
+                                            + site.surface
+                                            * 0.075
+                            )
+                                    * 2.4
+                    );
+
+            int z =
+                    site.z
+                            + Mth.floor(
+                            site.dirZ
+                                    * 12.0
+                                    * t
+                                    + Math.cos(
+                                    age * 0.11
+                                            + site.surface
+                                            * 0.067
+                            )
+                                    * 1.8
+                    );
+
+            AABB hitBox =
+                    new AABB(
+                            x - 5.0,
+                            site.surface - 5.0,
+                            z - 5.0,
+                            x + 5.0,
+                            site.surface + 8.0,
+                            z + 5.0
+                    );
+
+            for (LivingEntity living :
+                    level.getEntitiesOfClass(
+                            LivingEntity.class,
+                            hitBox
+                    )) {
+
+                if (!struck.add(
+                        living.getUUID()
+                )) {
+                    continue;
+                }
+
+                Vec3 away =
+                        living.position()
+                                .subtract(
+                                        x + 0.5,
+                                        site.surface,
+                                        z + 0.5
+                                );
+
+                if (away.lengthSqr() < 0.01) {
+                    away =
+                            new Vec3(
+                                    site.dirZ == 0
+                                            ? 1.0
+                                            : site.dirZ,
+                                    0.0,
+                                    site.dirX == 0
+                                            ? -1.0
+                                            : -site.dirX
+                            );
+                }
+
+                Vec3 horizontal =
+                        new Vec3(
+                                away.x,
+                                0.0,
+                                away.z
+                        ).normalize();
+
+                living.push(
+                        horizontal.x
+                                * 0.85,
+                        0.48,
+                        horizontal.z
+                                * 0.85
+                );
+
+                living.hurt(
+                        level.damageSources()
+                                .generic(),
+                        living instanceof ServerPlayer
+                                ? 5.0F
+                                : 8.0F
+                );
+
+                if (living instanceof ServerPlayer player) {
+                    shake(
+                            player,
+                            28,
+                            0.22F
+                    );
+                }
+            }
+
+            level.sendParticles(
+                    ParticleTypes.SPLASH,
+                    x + 0.5,
+                    site.surface + 0.5,
+                    z + 0.5,
+                    72,
+                    4.0,
+                    2.0,
+                    4.0,
+                    0.28
+            );
         }
     }
 
@@ -1345,6 +1690,8 @@ public final class KrakenManager {
 
             if (age >= 154) {
                 restore();
+
+                inkBurst();
 
                 splash(
                         site.x,
@@ -1511,9 +1858,125 @@ public final class KrakenManager {
                         4.8F,
                         0.28F
                 );
+
+                starePulse(
+                        centerY
+                );
             }
 
             return false;
+        }
+
+        private void starePulse(
+                int centerY
+        ) {
+            Vec3 center =
+                    new Vec3(
+                            site.x + 0.5,
+                            centerY,
+                            site.z + 0.5
+                    );
+
+            for (ServerPlayer player :
+                    level.players()) {
+                if (!player.isUnderWater()
+                        || player.distanceToSqr(
+                        center
+                ) > 80.0 * 80.0) {
+                    continue;
+                }
+
+                Vec3 toward =
+                        center.subtract(
+                                player.position()
+                        );
+
+                if (toward.lengthSqr() > 0.01) {
+                    Vec3 pull =
+                            toward.normalize()
+                                    .scale(
+                                            0.10
+                                    );
+
+                    player.setDeltaMovement(
+                            player.getDeltaMovement()
+                                    .add(
+                                            pull.x,
+                                            -0.015,
+                                            pull.z
+                                    )
+                    );
+
+                    player.hurtMarked =
+                            true;
+                }
+
+                player.addEffect(
+                        new MobEffectInstance(
+                                MobEffects.DARKNESS,
+                                70,
+                                0,
+                                true,
+                                false,
+                                false
+                        )
+                );
+            }
+        }
+
+        private void inkBurst() {
+            level.sendParticles(
+                    ParticleTypes.SQUID_INK,
+                    site.x + 0.5,
+                    site.surface - 1.0,
+                    site.z + 0.5,
+                    110,
+                    7.0,
+                    4.0,
+                    7.0,
+                    0.06
+            );
+
+            for (ServerPlayer player :
+                    level.players()) {
+                double dx =
+                        player.getX()
+                                - site.x;
+
+                double dz =
+                        player.getZ()
+                                - site.z;
+
+                if (dx * dx
+                        + dz * dz
+                        > 58.0 * 58.0
+                        || !player.isUnderWater()) {
+                    continue;
+                }
+
+                player.addEffect(
+                        new MobEffectInstance(
+                                MobEffects.DARKNESS,
+                                120,
+                                0,
+                                true,
+                                false,
+                                false
+                        )
+                );
+
+                player.setDeltaMovement(
+                        player.getDeltaMovement()
+                                .add(
+                                        0.0,
+                                        -0.10,
+                                        0.0
+                                )
+                );
+
+                player.hurtMarked =
+                        true;
+            }
         }
 
         private void placeEye(
