@@ -69,12 +69,93 @@ public final class OceanWaveField {
             BlockPos pos,
             long gameTime
     ) {
-        int chunkX =
-                pos.getX() >> 4;
+        /*
+         * Raw profiles are anchored at chunk centres, but the public field is
+         * bilinearly/smoothstep blended between four anchors. No physical or
+         * visual consumer should ever see a 16-block parameter discontinuity.
+         */
+        double gridX =
+                (
+                        pos.getX()
+                                - 8.0
+                ) / 16.0;
 
-        int chunkZ =
-                pos.getZ() >> 4;
+        double gridZ =
+                (
+                        pos.getZ()
+                                - 8.0
+                ) / 16.0;
 
+        int x0 =
+                Mth.floor(
+                        gridX
+                );
+
+        int z0 =
+                Mth.floor(
+                        gridZ
+                );
+
+        double tx =
+                smoothstep(
+                        gridX
+                                - x0
+                );
+
+        double tz =
+                smoothstep(
+                        gridZ
+                                - z0
+                );
+
+        Profile p00 =
+                rawProfile(
+                        level,
+                        x0,
+                        z0,
+                        gameTime
+                );
+
+        Profile p10 =
+                rawProfile(
+                        level,
+                        x0 + 1,
+                        z0,
+                        gameTime
+                );
+
+        Profile p01 =
+                rawProfile(
+                        level,
+                        x0,
+                        z0 + 1,
+                        gameTime
+                );
+
+        Profile p11 =
+                rawProfile(
+                        level,
+                        x0 + 1,
+                        z0 + 1,
+                        gameTime
+                );
+
+        return blendProfiles(
+                p00,
+                p10,
+                p01,
+                p11,
+                tx,
+                tz
+        );
+    }
+
+    private static Profile rawProfile(
+            Level level,
+            int chunkX,
+            int chunkZ,
+            long gameTime
+    ) {
         long key =
                 ((long) chunkX << 32)
                         ^ (chunkZ & 0xffffffffL);
@@ -117,6 +198,221 @@ public final class OceanWaveField {
         );
 
         return rebuilt;
+    }
+
+    private static Profile blendProfiles(
+            Profile p00,
+            Profile p10,
+            Profile p01,
+            Profile p11,
+            double tx,
+            double tz
+    ) {
+        float exposure =
+                (float) bilerp(
+                        p00.exposure(),
+                        p10.exposure(),
+                        p01.exposure(),
+                        p11.exposure(),
+                        tx,
+                        tz
+                );
+
+        float shore =
+                (float) bilerp(
+                        p00.shore(),
+                        p10.shore(),
+                        p01.shore(),
+                        p11.shore(),
+                        tx,
+                        tz
+                );
+
+        float rain =
+                (float) bilerp(
+                        p00.rain(),
+                        p10.rain(),
+                        p01.rain(),
+                        p11.rain(),
+                        tx,
+                        tz
+                );
+
+        float storm =
+                (float) bilerp(
+                        p00.storm(),
+                        p10.storm(),
+                        p01.storm(),
+                        p11.storm(),
+                        tx,
+                        tz
+                );
+
+        float amplitude =
+                (float) bilerp(
+                        p00.amplitude(),
+                        p10.amplitude(),
+                        p01.amplitude(),
+                        p11.amplitude(),
+                        tx,
+                        tz
+                );
+
+        float wavelength =
+                (float) bilerp(
+                        p00.wavelength(),
+                        p10.wavelength(),
+                        p01.wavelength(),
+                        p11.wavelength(),
+                        tx,
+                        tz
+                );
+
+        float maxRunup =
+                (float) bilerp(
+                        p00.maxRunup(),
+                        p10.maxRunup(),
+                        p01.maxRunup(),
+                        p11.maxRunup(),
+                        tx,
+                        tz
+                );
+
+        double directionX =
+                bilerp(
+                        p00.directionX(),
+                        p10.directionX(),
+                        p01.directionX(),
+                        p11.directionX(),
+                        tx,
+                        tz
+                );
+
+        double directionZ =
+                bilerp(
+                        p00.directionZ(),
+                        p10.directionZ(),
+                        p01.directionZ(),
+                        p11.directionZ(),
+                        tx,
+                        tz
+                );
+
+        double directionLength =
+                Math.sqrt(
+                        directionX * directionX
+                                + directionZ * directionZ
+                );
+
+        if (directionLength > 1.0E-6) {
+            directionX /=
+                    directionLength;
+
+            directionZ /=
+                    directionLength;
+        } else {
+            directionX =
+                    1.0;
+
+            directionZ =
+                    0.0;
+        }
+
+        double shoreX =
+                bilerp(
+                        p00.shoreX(),
+                        p10.shoreX(),
+                        p01.shoreX(),
+                        p11.shoreX(),
+                        tx,
+                        tz
+                );
+
+        double shoreZ =
+                bilerp(
+                        p00.shoreZ(),
+                        p10.shoreZ(),
+                        p01.shoreZ(),
+                        p11.shoreZ(),
+                        tx,
+                        tz
+                );
+
+        double shoreLength =
+                Math.sqrt(
+                        shoreX * shoreX
+                                + shoreZ * shoreZ
+                );
+
+        if (shoreLength > 1.0E-6) {
+            shoreX /=
+                    shoreLength;
+
+            shoreZ /=
+                    shoreLength;
+        }
+
+        return new Profile(
+                exposure,
+                shore,
+                rain,
+                storm,
+                amplitude,
+                wavelength,
+                maxRunup,
+                directionX,
+                directionZ,
+                shoreX,
+                shoreZ
+        );
+    }
+
+    private static double bilerp(
+            double p00,
+            double p10,
+            double p01,
+            double p11,
+            double tx,
+            double tz
+    ) {
+        double north =
+                Mth.lerp(
+                        tx,
+                        p00,
+                        p10
+                );
+
+        double south =
+                Mth.lerp(
+                        tx,
+                        p01,
+                        p11
+                );
+
+        return Mth.lerp(
+                tz,
+                north,
+                south
+        );
+    }
+
+    private static double smoothstep(
+            double value
+    ) {
+        value =
+                Mth.clamp(
+                        value,
+                        0.0,
+                        1.0
+                );
+
+        return value
+                * value
+                * (
+                3.0
+                        - 2.0
+                        * value
+        );
     }
 
     public static Sample sample(
