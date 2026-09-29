@@ -3,8 +3,8 @@
   "biomes": "#minecraft:is_ocean",
   "spawners": {
     "type": "wayaround:sardine",
-    "weight": 18,
-    "minCount": 12,
-    "maxCount": 30
+    "weight": 14,
+    "minCount": 8,
+    "maxCount": 16
   }
 }
