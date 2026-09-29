@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.power;
 
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
@@ -177,6 +178,12 @@ public final class ManualCrankBlockEntity
                     SoundSource.BLOCKS,
                     0.45F,
                     0.86F
+            );
+        }
+
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            WayAroundAdvancements.manualCrank(
+                    serverPlayer
             );
         }
 
