@@ -3,6 +3,7 @@ package net.caravidro.wayaround.ecology;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import net.caravidro.wayaround.sounds.WayAroundSounds;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
@@ -61,6 +62,14 @@ public final class PufferCarrotMeme {
                     );
         }
 
+        /*
+         * Mandatory visual accompaniment to the extremely serious audio cue.
+         * Vanilla's own puffer logic will naturally deflate it again.
+         */
+        puffer.setPuffState(
+                2
+        );
+
         player.serverLevel()
                 .playSound(
                         null,
@@ -69,6 +78,19 @@ public final class PufferCarrotMeme {
                         SoundSource.NEUTRAL,
                         1.0F,
                         1.0F
+                );
+
+        player.serverLevel()
+                .sendParticles(
+                        ParticleTypes.HAPPY_VILLAGER,
+                        puffer.getX(),
+                        puffer.getY() + 0.45,
+                        puffer.getZ(),
+                        5,
+                        0.22,
+                        0.18,
+                        0.22,
+                        0.02
                 );
 
         WayAroundAdvancements.vistaPufferCarrot(
