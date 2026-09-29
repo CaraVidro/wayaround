@@ -99,7 +99,7 @@ public final class PlacedCameraPlayerRenderer {
                         - camera.z;
 
         float yaw =
-                Mth.rotLerp(
+                Mth.lerp(
                         partialTick,
                         player.yRotO,
                         player.getYRot()
