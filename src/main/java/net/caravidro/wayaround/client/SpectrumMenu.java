@@ -4,6 +4,7 @@ import java.util.*;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.JujutsuCastC2SPayload;
+import net.caravidro.wayaround.network.JujutsuMenuStateC2SPayload;
 import net.caravidro.wayaround.network.SpectrumInputPayload;
 import net.caravidro.wayaround.spectrum.*;
 import net.minecraft.client.KeyMapping;
@@ -57,6 +58,10 @@ public final class SpectrumMenu {
             PacketDistributor.sendToServer(new SpectrumInputPayload(selected.ordinal(),
                     active?SpectrumInputPayload.MENU_OPEN:SpectrumInputPayload.MENU_CLOSE));
     }
+    private static void jujutsuPanelState(boolean active){
+        if(Minecraft.getInstance().getConnection()!=null)
+            PacketDistributor.sendToServer(new JujutsuMenuStateC2SPayload(active));
+    }
     @SubscribeEvent public static void key(InputEvent.Key e){
         Minecraft mc=Minecraft.getInstance();
         if(mc.player==null||mc.screen!=null)return;
@@ -64,6 +69,7 @@ public final class SpectrumMenu {
             boolean wasJujutsu=jujutsuMode();
             if(open&&!wasJujutsu)menuState(false);
             cancel(); open=!open;
+            jujutsuPanelState(open);
             var unlocked=unlocked();
             if(!unlocked.isEmpty()&&!unlocked.contains(selected))selected=unlocked.getFirst();
             page=0;
@@ -112,9 +118,10 @@ public final class SpectrumMenu {
         if(mc.player==null||mc.level==null){open=false;PRESSED.clear();return;}
         if(open&&mc.screen!=null){
             if(!jujutsuMode())menuState(false);
+            jujutsuPanelState(false);
             cancel();open=false;return;
         }
-        if(open&&!jujutsuMode()&&!SpectrumAccess.has(mc.player,selected)){menuState(false);cancel();open=false;}
+        if(open&&!jujutsuMode()&&!SpectrumAccess.has(mc.player,selected)){menuState(false);jujutsuPanelState(false);cancel();open=false;}
     }
     @SubscribeEvent public static void gui(RenderGuiEvent.Post e){
         var mc=Minecraft.getInstance();if(!open||mc.player==null||mc.options.hideGui)return;
