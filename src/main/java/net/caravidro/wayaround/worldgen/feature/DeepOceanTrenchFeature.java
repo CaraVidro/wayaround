@@ -2,9 +2,11 @@ package net.caravidro.wayaround.worldgen.feature;
 
 import com.mojang.serialization.Codec;
 
+import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
@@ -132,11 +134,44 @@ public final class DeepOceanTrenchFeature
                         );
 
                 /*
+                 * TOP_LAYER_MODIFICATION runs after vegetal decoration. Clear
+                 * only ocean decoration above the former floor now, while the
+                 * chunk is already being generated, so new abyss chunks never
+                 * begin life with kelp/coral hanging in mid-water.
+                 *
+                 * This pass is intentionally narrow: it does not rewrite the
+                 * entire water column, only known decoration.
+                 */
+                for (int y = seaLevel;
+                     y > oldFloor;
+                     y--) {
+                    cursor.setY(
+                            y
+                    );
+
+                    BlockState old =
+                            level.getBlockState(
+                                    cursor
+                            );
+
+                    if (isOceanDecoration(
+                            old
+                    )) {
+                        level.setBlock(
+                                cursor,
+                                Blocks.WATER
+                                        .defaultBlockState(),
+                                2
+                        );
+
+                        changed++;
+                    }
+                }
+
+                /*
                  * Only excavate the old solid sea floor down to the new abyss.
-                 * Scanning the already-water-filled column from sea level for
-                 * every generated chunk was one of the most expensive parts of
-                 * ocean exploration. Floating kelp/seagrass from old terrain is
-                 * repaired once per visited chunk by DeepOceanManager instead.
+                 * The expensive upper water column is no longer rewritten;
+                 * decoration was handled by the narrow pass above.
                  */
                 for (int y = oldFloor;
                      y > targetFloor;
@@ -227,5 +262,58 @@ public final class DeepOceanTrenchFeature
         }
 
         return changed > 0;
+    }
+
+    private static boolean isOceanDecoration(
+            BlockState state
+    ) {
+        if (state.is(
+                Blocks.WATER
+        )
+                || state.isAir()) {
+            return false;
+        }
+
+        var id =
+                BuiltInRegistries.BLOCK
+                        .getKey(
+                                state.getBlock()
+                        );
+
+        String path =
+                id.getPath();
+
+        return path.contains(
+                "kelp"
+        )
+                || path.contains(
+                "seagrass"
+        )
+                || path.contains(
+                "coral"
+        )
+                || path.equals(
+                "sea_pickle"
+        )
+                || (
+                id.getNamespace()
+                        .equals(
+                                WayAround.MODID
+                        )
+                        && (
+                        path.equals(
+                                "sea_cucumber"
+                        )
+                                || path.equals(
+                                "sea_sponge"
+                        )
+                                || path.equals(
+                                "sea_lettuce"
+                        )
+                                || path.equals(
+                                "seagrass_tuft"
+                        )
+                )
+        );
     }
 }
