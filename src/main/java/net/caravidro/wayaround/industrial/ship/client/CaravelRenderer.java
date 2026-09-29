@@ -28,6 +28,16 @@ public final class CaravelRenderer extends EntityRenderer<CaravelEntity> {
             MultiBufferSource buffers, int light) {
         pose.pushPose();
         pose.mulPose(Axis.YP.rotationDegrees(-yaw));
+        pose.mulPose(
+                Axis.XP.rotationDegrees(
+                        ship.waveVisualPitch()
+                )
+        );
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        ship.waveVisualRoll()
+                )
+        );
         float hurt = ship.getHurtTime() - partialTick;
         if (hurt > 0) {
             pose.mulPose(Axis.XP.rotationDegrees(Mth.sin(hurt) * hurt
