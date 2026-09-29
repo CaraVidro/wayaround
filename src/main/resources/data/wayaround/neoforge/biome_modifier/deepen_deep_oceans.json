@@ -1,0 +1,13 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": [
+    "minecraft:deep_ocean",
+    "minecraft:deep_cold_ocean",
+    "minecraft:deep_frozen_ocean",
+    "minecraft:deep_lukewarm_ocean"
+  ],
+  "features": [
+    "wayaround:deep_ocean_trench"
+  ],
+  "step": "underground_decoration"
+}

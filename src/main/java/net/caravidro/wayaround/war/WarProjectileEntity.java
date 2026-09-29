@@ -353,7 +353,12 @@ public final class WarProjectileEntity extends Entity {
             nearest =
                     new Impact(
                             block.getLocation(),
-                            null
+                            null,
+                            new Vec3(
+                                    block.getDirection().getStepX(),
+                                    block.getDirection().getStepY(),
+                                    block.getDirection().getStepZ()
+                            )
                     );
         }
 
@@ -415,7 +420,8 @@ public final class WarProjectileEntity extends Entity {
                 nearest =
                         new Impact(
                                 location,
-                                candidate
+                                candidate,
+                                Vec3.ZERO
                         );
             }
         }
@@ -447,6 +453,22 @@ public final class WarProjectileEntity extends Entity {
                 );
             }
 
+            boolean sustentionProtected =
+                    owner != null
+                            && WarBallistics.hasSustentionBoots(
+                            owner
+                    );
+
+            boolean wasInvulnerable =
+                    sustentionProtected
+                            && owner.isInvulnerable();
+
+            if (sustentionProtected) {
+                owner.setInvulnerable(
+                        true
+                );
+            }
+
             level.explode(
                     owner,
                     impact.location.x,
@@ -456,6 +478,12 @@ public final class WarProjectileEntity extends Entity {
                     true,
                     Level.ExplosionInteraction.TNT
             );
+
+            if (sustentionProtected) {
+                owner.setInvulnerable(
+                        wasInvulnerable
+                );
+            }
 
             if (owner != null
                     && owner.isAlive()) {
@@ -494,34 +522,61 @@ public final class WarProjectileEntity extends Entity {
                             );
 
                     /*
-                     * Close rockets are dramatically stronger. The quadratic
-                     * term rewards deliberate point-blank floor/wall shots,
-                     * while farther explosions still provide a small escape
-                     * shove instead of a binary yes/no threshold.
+                     * Rocket jump force is surface-relative. Floors launch
+                     * mostly upward, vertical walls launch mostly away from
+                     * the wall, and ceilings can even kick the player down.
+                     * This makes wall chains and directional movement possible
+                     * instead of every rocket secretly being a jump pad.
                      */
                     double curve =
                             proximity
                                     * proximity;
 
                     double radial =
-                            0.52
+                            0.38
                                     * proximity
-                                    + 2.20
+                                    + 1.40
                                             * curve;
 
-                    double lift =
-                            0.30
+                    Vec3 surface =
+                            impact.surfaceNormal.lengthSqr()
+                                    > 0.0001
+                                    ? impact.surfaceNormal.normalize()
+                                    : direction;
+
+                    double surfaceKick =
+                            0.45
                                     * proximity
-                                    + 1.55
+                                    + 2.85
                                             * curve;
+
+                    double verticalAssist =
+                            Math.abs(
+                                    surface.y
+                            ) < 0.45
+                                    ? 0.12
+                                            * proximity
+                                            + 0.48
+                                                    * curve
+                                    : surface.y > 0.45
+                                            ? 0.20
+                                                    * proximity
+                                                    + 0.72
+                                                            * curve
+                                            : 0.0;
 
                     Vec3 launch =
                             direction.scale(
                                     radial
                             )
                                     .add(
+                                            surface.scale(
+                                                    surfaceKick
+                                            )
+                                    )
+                                    .add(
                                             0.0,
-                                            lift,
+                                            verticalAssist,
                                             0.0
                                     );
 
@@ -536,9 +591,6 @@ public final class WarProjectileEntity extends Entity {
 
                         owner.hurtMarked =
                                 true;
-
-                        owner.fallDistance =
-                                0.0F;
 
                         WarBallistics.markRocketJump(
                                 owner,
@@ -756,6 +808,7 @@ public final class WarProjectileEntity extends Entity {
 
     private record Impact(
             Vec3 location,
-            Entity entity
+            Entity entity,
+            Vec3 surfaceNormal
     ) {}
 }

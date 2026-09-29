@@ -127,6 +127,10 @@ public final class OddityContent {
             accessory(AccessoryKind.ENGINEER_CAPE);
     public static final DeferredItem<AccessoryItem> WIND_BOOTS =
             accessory(AccessoryKind.WIND_BOOTS);
+    public static final DeferredItem<AccessoryItem> SUSTENTION_BOOTS =
+            accessory(AccessoryKind.SUSTENTION_BOOTS);
+    public static final DeferredItem<AccessoryItem> DIVIN_SUIT =
+            accessory(AccessoryKind.DIVIN_SUIT);
 
     public static final DeferredItem<AccessoryItem> ENGINEER_CAP =
             accessory(AccessoryKind.ENGINEER_CAP);

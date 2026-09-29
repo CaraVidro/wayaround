@@ -1,6 +1,9 @@
 package net.caravidro.wayaround.war;
 
 import net.caravidro.wayaround.advancement.WayAroundAdvancements;
+import net.caravidro.wayaround.accessory.AccessoryKind;
+import net.caravidro.wayaround.accessory.AccessoryManager;
+import net.caravidro.wayaround.accessory.AccessorySlot;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -308,8 +311,12 @@ public final class WarBallistics {
                 )
         );
 
-        player.fallDistance =
-                0.0F;
+        if (hasSustentionBoots(
+                player
+        )) {
+            player.fallDistance =
+                    0.0F;
+        }
 
         WayAroundAdvancements.warRocket(
                 player
@@ -327,7 +334,19 @@ public final class WarBallistics {
         return state != null
                 && player.server
                 .getTickCount()
-                <= state.protectedUntil();
+                <= state.protectedUntil()
+                && hasSustentionBoots(
+                player
+        );
+    }
+
+    public static boolean hasSustentionBoots(
+            ServerPlayer player
+    ) {
+        return AccessoryManager.equipped(
+                player,
+                AccessorySlot.FEET
+        ) == AccessoryKind.SUSTENTION_BOOTS;
     }
 
     public static void onServerTick(
@@ -368,8 +387,12 @@ public final class WarBallistics {
                                 return true;
                             }
 
-                            player.fallDistance =
-                                    0.0F;
+                            if (hasSustentionBoots(
+                                    player
+                            )) {
+                                player.fallDistance =
+                                        0.0F;
+                            }
 
                             return player.onGround()
                                     && now

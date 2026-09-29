@@ -345,6 +345,18 @@ public final class PlayerAnimationController {
                             true
                     );
 
+            case PlayerCinematicPayload.VOID_BATTLE_STANCE ->
+                    applyVoidBattleStance(
+                            model,
+                            age
+                    );
+
+            case PlayerCinematicPayload.TUKUNA_BATTLE_STANCE ->
+                    applyTukunaBattleStance(
+                            model,
+                            age
+                    );
+
             default -> {
             }
         }
@@ -1123,6 +1135,132 @@ public final class PlayerAnimationController {
         model.head.yRot -=
                 side
                         * 0.14F
+                        * weight;
+    }
+
+    private static void applyVoidBattleStance(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float weight =
+                ease(
+                        age / 6.0F
+                );
+
+        model.body.xRot =
+                Mth.lerp(
+                        weight,
+                        model.body.xRot,
+                        0.10F
+                );
+
+        model.body.yRot +=
+                0.16F
+                        * weight;
+
+        model.head.xRot -=
+                0.06F
+                        * weight;
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -1.05F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.yRot,
+                        -0.48F
+                );
+
+        model.rightArm.zRot +=
+                0.10F
+                        * weight;
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.xRot,
+                        -0.62F
+                );
+
+        model.leftArm.yRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.yRot,
+                        0.28F
+                );
+
+        model.leftLeg.xRot +=
+                0.10F
+                        * weight;
+
+        model.rightLeg.xRot -=
+                0.08F
+                        * weight;
+    }
+
+    private static void applyTukunaBattleStance(
+            PlayerModel<?> model,
+            float age
+    ) {
+        float weight =
+                ease(
+                        age / 6.0F
+                );
+
+        model.body.xRot =
+                Mth.lerp(
+                        weight,
+                        model.body.xRot,
+                        0.18F
+                );
+
+        model.body.yRot -=
+                0.22F
+                        * weight;
+
+        model.head.xRot +=
+                0.05F
+                        * weight;
+
+        model.rightArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.xRot,
+                        -0.78F
+                );
+
+        model.rightArm.yRot =
+                Mth.lerp(
+                        weight,
+                        model.rightArm.yRot,
+                        -0.70F
+                );
+
+        model.leftArm.xRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.xRot,
+                        -1.18F
+                );
+
+        model.leftArm.yRot =
+                Mth.lerp(
+                        weight,
+                        model.leftArm.yRot,
+                        0.52F
+                );
+
+        model.leftArm.zRot -=
+                0.14F
+                        * weight;
+
+        model.rightLeg.xRot +=
+                0.12F
                         * weight;
     }
 

@@ -456,6 +456,19 @@ public final class AccessoryRenderer {
                             wear
                     );
 
+            case DIVIN_SUIT ->
+                    jacket(
+                            model,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            Blocks.DARK_PRISMARINE.defaultBlockState(),
+                            Blocks.SEA_LANTERN.defaultBlockState(),
+                            true
+                    );
+
             case FORMAL_JACKET ->
                     formalJacket(
                             model,
@@ -664,6 +677,8 @@ public final class AccessoryRenderer {
                     case AERO_BOOTS,
                          WIND_BOOTS ->
                             Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+                    case SUSTENTION_BOOTS ->
+                            Blocks.IRON_BLOCK.defaultBlockState();
                     default ->
                             Blocks.BROWN_TERRACOTTA.defaultBlockState();
                 };
@@ -2789,6 +2804,22 @@ public final class AccessoryRenderer {
                     0.055,
                     0.20,
                     0.18,
+                    0, 0, 0);
+        }
+
+        if (kind == AccessoryKind.SUSTENTION_BOOTS
+                && wear < 2) {
+            piece(pose, blocks, buffers, light,
+                    Blocks.SLIME_BLOCK.defaultBlockState(),
+                    0.0, 0.785, 0.0,
+                    0.34, 0.045, 0.35,
+                    0, 0, 0);
+            piece(pose, blocks, buffers, light,
+                    Blocks.COPPER_BLOCK.defaultBlockState(),
+                    left ? -0.15 : 0.15,
+                    0.61,
+                    0.0,
+                    0.045, 0.18, 0.18,
                     0, 0, 0);
         }
 

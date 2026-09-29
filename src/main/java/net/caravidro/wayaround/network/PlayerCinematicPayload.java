@@ -55,6 +55,8 @@ public record PlayerCinematicPayload(
     public static final byte MELEE_UPPERCUT = 24;
     public static final byte BLACK_FLASH_HEAVY = 25;
     public static final byte BLACK_FLASH_ULTIMATE = 26;
+    public static final byte VOID_BATTLE_STANCE = 27;
+    public static final byte TUKUNA_BATTLE_STANCE = 28;
 
     public static final Type<PlayerCinematicPayload> TYPE =
             new Type<>(

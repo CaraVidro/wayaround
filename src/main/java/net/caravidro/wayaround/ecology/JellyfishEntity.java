@@ -9,6 +9,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 
 /**
@@ -60,6 +62,12 @@ public final class JellyfishEntity extends AguaWorldFishEntity {
 
             variantInitialized =
                     true;
+        }
+
+        if (variant()
+                == JellyVariant.ABYSSAL_GIANT
+                && tickCount % 20 == 0) {
+            applyVariantScale();
         }
 
         if (stingCooldown > 0) {
@@ -123,9 +131,57 @@ public final class JellyfishEntity extends AguaWorldFishEntity {
                 VARIANT,
                 variant.id()
         );
+
+        if (!level().isClientSide) {
+            applyVariantScale();
+        }
+    }
+
+    private void applyVariantScale() {
+        if (variant()
+                != JellyVariant.ABYSSAL_GIANT) {
+            return;
+        }
+
+        AttributeInstance scale =
+                getAttribute(
+                        Attributes.SCALE
+                );
+
+        if (scale != null
+                && scale.getBaseValue()
+                        < 3.20) {
+            scale.setBaseValue(
+                    3.20
+            );
+            refreshDimensions();
+        }
     }
 
     private JellyVariant randomVariant() {
+        boolean abyss =
+                getY() < 24.0
+                        && level().getBiome(
+                        blockPosition()
+                ).unwrapKey()
+                        .map(
+                                key ->
+                                        key.location()
+                                                .getPath()
+                                                .contains(
+                                                        "deep"
+                                                )
+                        )
+                        .orElse(
+                                false
+                        );
+
+        if (abyss
+                && random.nextFloat()
+                        < 0.10F) {
+            return JellyVariant.ABYSSAL_GIANT;
+        }
+
         float roll =
                 random.nextFloat();
 
@@ -227,6 +283,12 @@ public final class JellyfishEntity extends AguaWorldFishEntity {
                 true,
                 3.4F,
                 0.90F
+        ),
+        ABYSSAL_GIANT(
+                6,
+                true,
+                5.5F,
+                2.85F
         );
 
         private final int id;

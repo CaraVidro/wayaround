@@ -1,0 +1,8 @@
+{
+  "feature": "wayaround:deep_ocean_trench",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

@@ -251,69 +251,85 @@ public final class RiverPebbleBlock
         }
 
         /*
-         * Unsupported pebbles are not loot. In water they rise through the
-         * column and become a little floating patch at the surface; on dry
-         * land they simply remain where they are until a player breaks them.
+         * Pebbles are dense. The previous implementation walked UP through a
+         * water column, which is why oceans accumulated a cursed line of rocks
+         * one block under the surface. Unsupported underwater pebbles now sink
+         * until they find a sturdy seabed.
          *
-         * Only an actual player break should materialize the item drop.
+         * On dry land an unsupported decorative pebble is left alone and only
+         * becomes an item when a player actually breaks it.
          */
-        if (!state.getValue(
-                WATERLOGGED
-        )
-                && !level.getFluidState(
-                pos
-        ).is(
-                FluidTags.WATER
-        )) {
+        boolean underwater =
+                state.getValue(
+                        WATERLOGGED
+                )
+                        || level.getFluidState(
+                        pos
+                ).is(
+                        FluidTags.WATER
+                );
+
+        if (!underwater) {
             return;
         }
+
+        BlockPos target =
+                null;
 
         BlockPos.MutableBlockPos cursor =
                 pos.mutable();
 
-        BlockPos best =
-                pos;
-
-        for (int i = 0;
-             i < 64;
-             i++) {
-
-            BlockPos above =
-                    cursor.above();
+        while (cursor.getY()
+                > level.getMinBuildHeight() + 1) {
+            cursor.move(
+                    Direction.DOWN
+            );
 
             if (!level.getFluidState(
-                    above
+                    cursor
             ).is(
                     FluidTags.WATER
             )) {
                 break;
             }
 
-            cursor.move(
-                    Direction.UP
-            );
+            BlockPos supportPos =
+                    cursor.below();
 
-            best =
-                    cursor.immutable();
+            BlockState support =
+                    level.getBlockState(
+                            supportPos
+                    );
+
+            if (support.isFaceSturdy(
+                    level,
+                    supportPos,
+                    Direction.UP
+            )) {
+                target =
+                        cursor.immutable();
+                break;
+            }
         }
 
-        if (best.equals(
+        if (target == null
+                || target.equals(
                 pos
         )) {
             return;
         }
 
-        BlockState surfaceState =
+        BlockState targetState =
                 level.getBlockState(
-                        best
+                        target
                 );
 
-        if (surfaceState.is(
+        if (targetState.is(
                 this
         )) {
             int room =
                     15
-                            - surfaceState.getValue(
+                            - targetState.getValue(
                             COUNT
                     );
 
@@ -333,11 +349,11 @@ public final class RiverPebbleBlock
                     );
 
             level.setBlockAndUpdate(
-                    best,
-                    surfaceState
+                    target,
+                    targetState
                             .setValue(
                                     COUNT,
-                                    surfaceState.getValue(
+                                    targetState.getValue(
                                             COUNT
                                     )
                                             + transferred
@@ -373,7 +389,7 @@ public final class RiverPebbleBlock
         }
 
         if (!level.getFluidState(
-                best
+                target
         ).is(
                 FluidTags.WATER
         )) {
@@ -381,7 +397,7 @@ public final class RiverPebbleBlock
         }
 
         level.setBlockAndUpdate(
-                best,
+                target,
                 state
                         .setValue(
                                 WATERLOGGED,

@@ -40,6 +40,11 @@ public final class WayAroundSounds {
             SOUNDS.register("puffer_carrot_meme", () -> SoundEvent.createVariableRangeEvent(
                     ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "puffer_carrot_meme")));
 
+    public static final DeferredHolder<SoundEvent, SoundEvent> BATTLE_JUDES =
+            SOUNDS.register("battle_judes", () -> SoundEvent.createFixedRangeEvent(
+                    ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "battle_judes"),
+                    48.0F));
+
     private WayAroundSounds() {
     }
 

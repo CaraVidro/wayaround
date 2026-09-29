@@ -4,6 +4,7 @@ import net.caravidro.wayaround.worldgen.feature.AntarcticCrevasseFeature;
 import net.caravidro.wayaround.worldgen.feature.AntarcticRichOreFeature;
 import net.caravidro.wayaround.worldgen.feature.PrioriteCraterFeature;
 import net.caravidro.wayaround.worldgen.feature.LivingVegetationFeature;
+import net.caravidro.wayaround.worldgen.feature.DeepOceanTrenchFeature;
 
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
@@ -84,6 +85,12 @@ public final class WayAroundFeatures {
             FEATURES.register(
                     "living_vegetation",
                     () -> new LivingVegetationFeature(NoneFeatureConfiguration.CODEC)
+            );
+
+    public static final DeferredHolder<Feature<?>, DeepOceanTrenchFeature> DEEP_OCEAN_TRENCH =
+            FEATURES.register(
+                    "deep_ocean_trench",
+                    () -> new DeepOceanTrenchFeature(NoneFeatureConfiguration.CODEC)
             );
 
     public static final DeferredHolder<Feature<?>, PrioriteCraterFeature> PRIORITE_CRATER =

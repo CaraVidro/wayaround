@@ -124,8 +124,71 @@ def generatePufferCarrotSound = tasks.register('generatePufferCarrotSound') {
 
 sourceSets.main.resources.srcDir(generatedPufferAudioDir)
 
+/*
+ * Battle stance theme supplied by the project as Judes.ogg. The connector
+ * cannot push binary resources reliably, so the committed source is split
+ * into deterministic base64 text chunks and reconstructed for runClient/JAR.
+ */
+def judesAudioSourceDir = file('src/main/judes_audio')
+def generatedJudesAudioDir = layout.buildDirectory.dir('generated/judesAudio')
+
+def generateBattleJudesSound = tasks.register('generateBattleJudesSound') {
+    inputs.dir(judesAudioSourceDir)
+    outputs.file(generatedJudesAudioDir.map {
+        it.file('assets/wayaround/sounds/battle_judes.ogg')
+    })
+
+    doLast {
+        def encoded = new StringBuilder()
+
+        judesAudioSourceDir
+                .listFiles()
+                .findAll { it.isFile() && it.name.endsWith('.b64') }
+                .sort { a, b -> a.name <=> b.name }
+                .each { part ->
+                    encoded.append(part.getText('UTF-8').trim())
+                }
+
+        byte[] audioBytes =
+                java.util.Base64.decoder.decode(
+                        encoded.toString()
+                )
+
+        if (audioBytes.length != 880214) {
+            throw new GradleException(
+                    "Battle Judes audio byte count mismatch: ${audioBytes.length} != 880214"
+            )
+        }
+
+        def digest = java.security.MessageDigest
+                .getInstance('SHA-256')
+                .digest(audioBytes)
+                .collect { String.format('%02x', it & 0xff) }
+                .join()
+
+        def expected =
+                'ba7340cf66ca6f18bf6917e5d3243d72d8a7ab3f58224aed8f789b3cdd8aee97'
+
+        if (digest != expected) {
+            throw new GradleException(
+                    "Battle Judes audio SHA-256 mismatch: ${digest}"
+            )
+        }
+
+        def output = generatedJudesAudioDir.get()
+                .file('assets/wayaround/sounds/battle_judes.ogg')
+                .asFile
+
+        output.parentFile.mkdirs()
+        output.bytes = audioBytes
+    }
+}
+
+sourceSets.main.resources.srcDir(generatedJudesAudioDir)
+
 tasks.named('processResources') {
     dependsOn(generatePufferCarrotSound)
+    dependsOn(generateBattleJudesSound)
 }
 
 repositories {

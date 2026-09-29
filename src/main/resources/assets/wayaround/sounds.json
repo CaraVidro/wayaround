@@ -54,5 +54,13 @@
         "stream": false
       }
     ]
+  },
+  "battle_judes": {
+    "sounds": [
+      {
+        "name": "wayaround:battle_judes",
+        "stream": true
+      }
+    ]
   }
 }

@@ -10,11 +10,12 @@ public enum SpectrumAction {
     TUKUNA_DOMAIN(3, SpectrumType.TUKUNA, "Domínio [prévia]", -1),
     FIRE_SLASH(4, SpectrumType.TUKUNA, "Desmartelar: fogo", -1),
     TUKUNA_ENERGY_VISION(5, SpectrumType.TUKUNA, "Visão de energia", -1),
+    TUKUNA_BATTLE_STANCE(6, SpectrumType.TUKUNA, "Pose de batalha [segurar]", -1),
 
     BLUE(10, SpectrumType.VOID, "Técnica imaginária: azul", VoiceIntentC2SPayload.BLUE_SUMMON),
     RED(11, SpectrumType.VOID, "Vermelho / preparar", VoiceIntentC2SPayload.RED_FIRE),
     PURPLE(12, SpectrumType.VOID, "Roxo / lançar", VoiceIntentC2SPayload.PURPLE_VOID),
-    INFINITY(13, SpectrumType.VOID, "Infinito", VoiceIntentC2SPayload.INFINITY_ON),
+    INFINITY(13, SpectrumType.VOID, "Infinito: ativar / desativar", VoiceIntentC2SPayload.INFINITY_ON),
     VOID_DOMAIN(14, SpectrumType.VOID, "Expansão de domínio", VoiceIntentC2SPayload.VOID_DOMAIN_EXPAND),
     BLUE_HOLD(15, SpectrumType.VOID, "Azul: parar no lugar", VoiceIntentC2SPayload.BLUE_HOLD),
     BLUE_LAUNCH(16, SpectrumType.VOID, "Azul: lançar", VoiceIntentC2SPayload.BLUE_LAUNCH),
@@ -27,6 +28,7 @@ public enum SpectrumAction {
     INFINITY_OFF(23, SpectrumType.VOID, "Infinito: encerrar", VoiceIntentC2SPayload.INFINITY_OFF),
     DUAL(24, SpectrumType.VOID, "Preparar azul + vermelho", VoiceIntentC2SPayload.DUAL_PREPARE),
     VOID_ENERGY_VISION(25, SpectrumType.VOID, "Visão de energia", -1),
+    VOID_BATTLE_STANCE(26, SpectrumType.VOID, "Pose de batalha [segurar]", -1),
 
     JUSTICE_DOMAIN(30, SpectrumType.JUSTICE, "Domínio: tribunal", -1),
     JUSTICE_ENERGY_VISION(31, SpectrumType.JUSTICE, "Visão de energia", -1);
@@ -46,7 +48,15 @@ public enum SpectrumAction {
         return Arrays.stream(values()).filter(a -> a.id==id).findFirst().orElse(null);
     }
 
+    public boolean visibleInMenu() {
+        return this != BLUE_END
+                && this != INFINITY_REINFORCE
+                && this != INFINITY_OFF;
+    }
+
     public static List<SpectrumAction> forSpectrum(SpectrumType type) {
-        return Arrays.stream(values()).filter(a -> a.spectrum==type).toList();
+        return Arrays.stream(values())
+                .filter(a -> a.spectrum==type && a.visibleInMenu())
+                .toList();
     }
 }

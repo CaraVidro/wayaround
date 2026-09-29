@@ -425,6 +425,15 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 tentacle = Blocks.BLACK_STAINED_GLASS.defaultBlockState();
                 interior = Blocks.REDSTONE_BLOCK.defaultBlockState();
             }
+            case ABYSSAL_GIANT -> {
+                bell = Blocks.BLUE_STAINED_GLASS.defaultBlockState();
+                dome = Blocks.BLACK_STAINED_GLASS.defaultBlockState();
+                skirt = Blocks.CYAN_STAINED_GLASS.defaultBlockState();
+                edge = Blocks.BLUE_STAINED_GLASS.defaultBlockState();
+                oral = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
+                tentacle = Blocks.BLACK_STAINED_GLASS.defaultBlockState();
+                interior = Blocks.SEA_LANTERN.defaultBlockState();
+            }
             case MOON -> {
                 bell = Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState();
                 dome = Blocks.CYAN_STAINED_GLASS.defaultBlockState();
@@ -450,6 +459,8 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
 
         int jellyLight =
                 night
+                        || variant
+                        == JellyfishEntity.JellyVariant.ABYSSAL_GIANT
                         ? 0x00F000F0
                         : light;
 

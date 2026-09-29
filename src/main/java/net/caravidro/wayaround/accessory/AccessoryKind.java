@@ -39,6 +39,24 @@ public enum AccessoryKind {
             false,
             560
     ),
+    SUSTENTION_BOOTS(
+            "sustention_boots",
+            AccessoryKit.AERO_ENGINEER,
+            AccessorySlot.FEET,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            820
+    ),
+    DIVIN_SUIT(
+            "divin_suit",
+            AccessoryKit.UTILITY,
+            AccessorySlot.TORSO,
+            AccessoryMotion.NONE,
+            false,
+            false,
+            980
+    ),
 
     // Engineer.
     ENGINEER_CAP(
