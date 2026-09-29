@@ -295,10 +295,9 @@ public final class FrostManager {
             ServerLevel level,
             BlockPos center
     ) {
-        if (level.getBiome(
+        if (isAntarcticProbe(
+                level,
                 center
-        ).is(
-                WayAroundBiomes.ANTARCTIC_ICE_SHEET
         )) {
             return true;
         }
@@ -306,28 +305,39 @@ public final class FrostManager {
         /*
          * Keep edge behaviour alive without running the 49x49 frost sampler
          * for every Overworld player. Four cheap biome probes cover the area
-         * the bounded sampler can actually reach.
+         * the bounded sampler can actually reach. Unloaded probes are ignored
+         * so a performance guard never becomes a chunk loader.
          */
         int reach =
                 48;
 
-        return level.getBiome(
+        return isAntarcticProbe(
+                level,
                 center.offset(reach, 0, 0)
-        ).is(
-                WayAroundBiomes.ANTARCTIC_ICE_SHEET
         )
-                || level.getBiome(
+                || isAntarcticProbe(
+                level,
                 center.offset(-reach, 0, 0)
-        ).is(
-                WayAroundBiomes.ANTARCTIC_ICE_SHEET
         )
-                || level.getBiome(
+                || isAntarcticProbe(
+                level,
                 center.offset(0, 0, reach)
-        ).is(
-                WayAroundBiomes.ANTARCTIC_ICE_SHEET
         )
-                || level.getBiome(
+                || isAntarcticProbe(
+                level,
                 center.offset(0, 0, -reach)
+        );
+    }
+
+    private static boolean isAntarcticProbe(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        return level.hasChunkAt(
+                pos
+        )
+                && level.getBiome(
+                pos
         ).is(
                 WayAroundBiomes.ANTARCTIC_ICE_SHEET
         );
