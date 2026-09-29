@@ -55,6 +55,16 @@ public final class OceanWaveField {
     private static final Map<Level, Map<Long, CachedProfile>> PROFILE_CACHE =
             new WeakHashMap<>();
 
+    private static final Map<Level, GridSampleCache> GRID_SAMPLE_CACHE =
+            new WeakHashMap<>();
+
+    private record GridSampleCache(
+            long gameTime,
+            Map<Long, Sample> vertices,
+            Map<Long, Sample> centers
+    ) {
+    }
+
     private static final long PROFILE_TTL =
             100L;
 
@@ -437,6 +447,148 @@ public final class OceanWaveField {
                 x,
                 z,
                 gameTime
+        );
+    }
+
+    /**
+     * Exact integer world-lattice sample used by the water mesh. Adjacent
+     * quads asking for the same vertex receive the same Sample object for the
+     * entire game tick, guaranteeing crack-free chunk and quad boundaries.
+     */
+    public static Sample sampleVertex(
+            Level level,
+            int x,
+            int z,
+            long gameTime
+    ) {
+        GridSampleCache cache =
+                gridCache(
+                        level,
+                        gameTime
+                );
+
+        long key =
+                packXZ(
+                        x,
+                        z
+                );
+
+        Sample cached =
+                cache.vertices()
+                        .get(
+                                key
+                        );
+
+        if (cached != null) {
+            return cached;
+        }
+
+        Sample built =
+                sample(
+                        level,
+                        x,
+                        z,
+                        gameTime
+                );
+
+        cache.vertices()
+                .put(
+                        key,
+                        built
+                );
+
+        return built;
+    }
+
+    /**
+     * Cached block-centre sample for shoreline strips. Several inland patches
+     * can originate from the same water cell and should share one crest state.
+     */
+    public static Sample sampleCell(
+            Level level,
+            int blockX,
+            int blockZ,
+            long gameTime
+    ) {
+        GridSampleCache cache =
+                gridCache(
+                        level,
+                        gameTime
+                );
+
+        long key =
+                packXZ(
+                        blockX,
+                        blockZ
+                );
+
+        Sample cached =
+                cache.centers()
+                        .get(
+                                key
+                        );
+
+        if (cached != null) {
+            return cached;
+        }
+
+        Sample built =
+                sample(
+                        level,
+                        blockX
+                                + 0.5,
+                        blockZ
+                                + 0.5,
+                        gameTime
+                );
+
+        cache.centers()
+                .put(
+                        key,
+                        built
+                );
+
+        return built;
+    }
+
+    private static GridSampleCache gridCache(
+            Level level,
+            long gameTime
+    ) {
+        GridSampleCache cache =
+                GRID_SAMPLE_CACHE.get(
+                        level
+                );
+
+        if (cache == null
+                || cache.gameTime()
+                != gameTime) {
+            cache =
+                    new GridSampleCache(
+                            gameTime,
+                            new HashMap<>(),
+                            new HashMap<>()
+                    );
+
+            GRID_SAMPLE_CACHE.put(
+                    level,
+                    cache
+            );
+        }
+
+        return cache;
+    }
+
+    private static long packXZ(
+            int x,
+            int z
+    ) {
+        return (
+                (long) x << 32
+        )
+                ^ (
+                z
+                        & 0xffffffffL
         );
     }
 
