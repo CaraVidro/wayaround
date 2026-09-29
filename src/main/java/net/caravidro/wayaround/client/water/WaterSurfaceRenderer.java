@@ -70,10 +70,10 @@ public final class WaterSurfaceRenderer {
      * camera, then progressively sample the cosmetic overlay.
      */
     private static final double LOD_MID_DISTANCE_SQR =
-            64.0 * 64.0;
+            48.0 * 48.0;
 
     private static final double LOD_FAR_DISTANCE_SQR =
-            96.0 * 96.0;
+            72.0 * 72.0;
 
     private WaterSurfaceRenderer() {
     }
@@ -644,9 +644,30 @@ public final class WaterSurfaceRenderer {
                 int dz =
                         z - centerZ;
 
-                if (dx * dx
-                        + dz * dz
+                int distanceSquared =
+                        dx * dx
+                                + dz * dz;
+
+                if (distanceSquared
                         > radiusSquared) {
+                    continue;
+                }
+
+                /*
+                 * Apply the same cosmetic LOD before any height/fluid/biome
+                 * lookup. Distant skipped tiles therefore cost essentially a
+                 * pair of integer operations instead of several world queries,
+                 * and they never enter the per-frame surface list.
+                 */
+                if (distanceSquared
+                        > LOD_FAR_DISTANCE_SQR) {
+                    if ((x & 1) != 0
+                            || (z & 1) != 0) {
+                        continue;
+                    }
+                } else if (distanceSquared
+                        > LOD_MID_DISTANCE_SQR
+                        && ((x + z) & 1) != 0) {
                     continue;
                 }
 
