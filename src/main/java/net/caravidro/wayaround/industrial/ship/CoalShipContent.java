@@ -92,7 +92,12 @@ public final class CoalShipContent {
                     net.minecraft.world.flag.FeatureFlags.VANILLA_SET));
     public static final DeferredHolder<EntityType<?>, EntityType<GreatShipEntity>> GREAT_SHIP_ENTITY =
             ENTITY_TYPES.register("great_ship", () -> EntityType.Builder.of(GreatShipEntity::new, MobCategory.MISC)
-                    .sized(7.5F, 0.5625F).clientTrackingRange(14).updateInterval(1).build("wayaround:great_ship"));
+                    /*
+                     * The visible Nau is much longer than this controller box.
+                     * Width is widened for sensible contact/picking, while the
+                     * low height preserves vanilla boat waterline behaviour.
+                     */
+                    .sized(9.5F, 0.5625F).clientTrackingRange(24).updateInterval(1).build("wayaround:great_ship"));
     public static final DeferredItem<GreatShipItem> GREAT_SHIP_ITEM =
             ITEMS.register("great_ship", () -> new GreatShipItem(new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<net.minecraft.world.item.CreativeModeTab, net.minecraft.world.item.CreativeModeTab> NAVIGATION =
