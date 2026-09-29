@@ -1773,6 +1773,57 @@ public final class GreatShipEntity
         }
     }
 
+    public boolean hasLaunchClearance() {
+        /*
+         * The visible hull is far longer than the controller hitbox. Sample the
+         * real footprint before placement so a 20+ block Nau cannot spawn with
+         * its bow through a pier or half the stern inside a cliff.
+         */
+        for (int localX = -4;
+             localX <= 4;
+             localX += 2) {
+            for (int localZ = -10;
+                 localZ <= 10;
+                 localZ += 2) {
+
+                Vec3 world =
+                        localToWorld(
+                                new Vec3(
+                                        localX,
+                                        0.35,
+                                        localZ
+                                )
+                        );
+
+                BlockPos pos =
+                        BlockPos.containing(
+                                world
+                        );
+
+                if (!level().hasChunkAt(
+                        pos
+                )) {
+                    return false;
+                }
+
+                BlockState state =
+                        level().getBlockState(
+                                pos
+                        );
+
+                if (!state.isAir()
+                        && !state.getFluidState()
+                        .is(
+                                FluidTags.WATER
+                        )) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     private Vec3 localToWorld(
             Vec3 local
     ) {
