@@ -218,6 +218,19 @@ public final class WayAroundAdvancements {
         );
     }
 
+    public static void vistaPufferCarrot(
+            ServerPlayer player
+    ) {
+        vistaRoot(
+                player
+        );
+        award(
+                player,
+                "vista/puffer_carrot",
+                "fed"
+        );
+    }
+
     public static void vistaSouthernOcean(
             ServerPlayer player
     ) {
