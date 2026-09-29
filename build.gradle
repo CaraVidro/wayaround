@@ -192,32 +192,37 @@ tasks.named('processResources') {
 }
 
 
+def dedicatedSafeNetworkSourcePaths =
+        fileTree('src/main/java/net/caravidro/wayaround/network') {
+            include '*.java'
+        }.files
+                .collect { it.absolutePath }
+                .sort()
+
 def verifyDedicatedSafeNetwork = tasks.register('verifyDedicatedSafeNetwork') {
     group = 'verification'
     description = 'Rejects physical-client imports from common networking classes.'
-    inputs.files(fileTree('src/main/java/net/caravidro/wayaround/network') {
-        include '*.java'
-    })
+    inputs.files(dedicatedSafeNetworkSourcePaths)
 
     doLast {
         def violations = []
 
-        fileTree('src/main/java/net/caravidro/wayaround/network') {
-            include '*.java'
-        }.files.sort { a, b -> a.name <=> b.name }.each { source ->
-            def text = source.getText('UTF-8')
+        dedicatedSafeNetworkSourcePaths.each { sourcePath ->
+            def source = new File(sourcePath)
 
-            text.readLines().eachWithIndex { line, index ->
-                def trimmed = line.trim()
+            source.getText('UTF-8')
+                    .readLines()
+                    .eachWithIndex { line, index ->
+                        def trimmed = line.trim()
 
-                if (trimmed.startsWith('import net.minecraft.client.')
-                        || (
-                        trimmed.startsWith('import net.caravidro.wayaround.')
-                                && trimmed.contains('.client.')
-                )) {
-                    violations << "${source.name}:${index + 1}: ${trimmed}"
-                }
-            }
+                        if (trimmed.startsWith('import net.minecraft.client.')
+                                || (
+                                trimmed.startsWith('import net.caravidro.wayaround.')
+                                        && trimmed.contains('.client.')
+                        )) {
+                            violations << "${source.name}:${index + 1}: ${trimmed}"
+                        }
+                    }
         }
 
         if (!violations.isEmpty()) {
