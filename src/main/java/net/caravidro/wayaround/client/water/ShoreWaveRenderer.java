@@ -593,7 +593,7 @@ public final class ShoreWaveRenderer {
 
                     int landY =
                             minecraft.level.getHeight(
-                                    Heightmap.Types.WORLD_SURFACE,
+                                    Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                                     landX,
                                     landZ
                             )
