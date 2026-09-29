@@ -104,13 +104,19 @@ public final class WaterSurfaceRenderer {
             return;
         }
 
+        /*
+         * This is a cosmetic overlay above vanilla water, not the water itself.
+         * Keeping it inside roughly six chunks avoids scanning tens of
+         * thousands of columns merely to animate sub-pixel waves on the
+         * horizon.
+         */
         int radius =
                 Math.max(
                         24,
                         Math.min(
-                                128,
+                                96,
                                 minecraft.options.renderDistance().get()
-                                * 8
+                                * 6
                         )
                 );
 
@@ -604,9 +610,9 @@ public final class WaterSurfaceRenderer {
 
         return dx * dx
                 + dz * dz
-                >= 100
+                >= 144
                 || time - cachedAt
-                >= 60L;
+                >= 100L;
     }
 
     private static void rebuildSurfaces(
