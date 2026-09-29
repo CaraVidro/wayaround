@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:vista/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:player_head"
+    },
+    "title": {
+      "translate": "advancements.wayaround.vista.old_friend.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.vista.old_friend.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "seen": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
