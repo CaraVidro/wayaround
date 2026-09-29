@@ -52,8 +52,8 @@ public final class EcologyContent {
                                     MobCategory.WATER_AMBIENT
                             )
                             .sized(
-                                    1.25F,
-                                    1.15F
+                                    1.48F,
+                                    1.82F
                             )
                             .clientTrackingRange(
                                     20
