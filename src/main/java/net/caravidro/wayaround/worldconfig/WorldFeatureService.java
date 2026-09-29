@@ -123,7 +123,10 @@ public final class WorldFeatureService {
                 player,
                 new WorldFeatureConfigS2CPayload(
                         WorldFeatureRuntime.serverCopy()
-                                .toMask()
+                                .toMask(),
+                        WorldFeatureRuntime.serverCopy()
+                                .waveMode()
+                                .ordinal()
                 )
         );
     }
