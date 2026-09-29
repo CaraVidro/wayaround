@@ -134,13 +134,13 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                 random.nextFloat();
 
         int naturalStage =
-                roll < 0.05F
+                roll < 0.08F
                         ? 4
-                        : roll < 0.16F
+                        : roll < 0.24F
                         ? 3
-                        : roll < 0.38F
+                        : roll < 0.53F
                         ? 2
-                        : roll < 0.72F
+                        : roll < 0.90F
                         ? 1
                         : 0;
 
@@ -163,7 +163,7 @@ public final class SunfishEntity extends AguaWorldFishEntity {
 
             double targetY =
                     baskSurfaceY
-                            - 0.62;
+                            - 0.14;
 
             double vertical =
                     Mth.clamp(
@@ -185,7 +185,9 @@ public final class SunfishEntity extends AguaWorldFishEntity {
             );
 
             if (baskTicks <= 0
-                    || !isInWater()) {
+                    || !isSurfaceWater(
+                    baskSurfaceY
+            )) {
                 setBasking(
                         false
                 );
@@ -205,7 +207,7 @@ public final class SunfishEntity extends AguaWorldFishEntity {
 
             getNavigation().moveTo(
                     getX(),
-                    baskSurfaceY - 0.75,
+                    baskSurfaceY - 0.22,
                     getZ(),
                     0.78
             );
@@ -214,7 +216,7 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                     getY()
                             - (
                             baskSurfaceY
-                                    - 0.75
+                                    - 0.22
                     )
             ) < 1.15
                     && isSurfaceWater(
@@ -261,22 +263,22 @@ public final class SunfishEntity extends AguaWorldFishEntity {
 
         baskCooldown =
                 Math.max(
-                        420,
-                        920
+                        260,
+                        860
                                 + random.nextInt(
-                                1700
+                                1500
                         )
                                 - scars
-                                        * 125
+                                        * 155
                 );
 
         float baskChance =
                 Mth.clamp(
-                        0.26F
+                        0.20F
                                 + scars
-                                        * 0.145F,
-                        0.26F,
-                        0.84F
+                                        * 0.18F,
+                        0.20F,
+                        0.92F
                 );
 
         if (random.nextFloat()
@@ -403,6 +405,44 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                         scarStage()
                                 + 1
                 )
+        );
+    }
+
+    @Override
+    public void knockback(
+            double strength,
+            double x,
+            double z
+    ) {
+        if (isBasking()) {
+            /*
+             * A sunfish already committed to basking does not get punted off
+             * the surface by a hit. Damage/scars still register normally.
+             */
+            getNavigation().stop();
+
+            setDeltaMovement(
+                    0.0,
+                    Mth.clamp(
+                            (
+                                    baskSurfaceY
+                                            - 0.14
+                                            - getY()
+                            )
+                                    * 0.08,
+                            -0.025,
+                            0.025
+                    ),
+                    0.0
+            );
+
+            return;
+        }
+
+        super.knockback(
+                strength,
+                x,
+                z
         );
     }
 

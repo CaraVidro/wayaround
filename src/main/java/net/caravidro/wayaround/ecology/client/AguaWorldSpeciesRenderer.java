@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.ecology.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.world.entity.animal.AbstractFish;
@@ -52,6 +53,26 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             case JELLYFISH -> 0.32F;
             case SEAHORSE -> 0.12F;
         };
+    }
+
+    @Override
+    protected void applySpeciesPose(
+            T fish,
+            float partialTick,
+            PoseStack pose
+    ) {
+        if (profile == Profile.JELLYFISH) {
+            /*
+             * The shared block-mesh coordinate convention reads vertically
+             * opposite for this hanging silhouette. Flip only the jellyfish;
+             * the bell stays above and the tentacles trail below in-world.
+             */
+            pose.mulPose(
+                    Axis.ZP.rotationDegrees(
+                            180.0F
+                    )
+            );
+        }
     }
 
     @Override

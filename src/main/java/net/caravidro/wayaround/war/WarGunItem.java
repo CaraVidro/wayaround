@@ -175,7 +175,7 @@ public final class WarGunItem extends Item {
         ROCKET_LAUNCHER(
                 "tooltip.wayaround.rocket_launcher",
                 false,
-                16,
+                13,
                 1,
                 18.0F,
                 1.65,

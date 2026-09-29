@@ -70,13 +70,27 @@ public final class PufferCarrotMeme {
                 2
         );
 
+        /*
+         * Send the cue explicitly to the interacting player, then broadcast it
+         * to everyone else nearby. This avoids the initiating client silently
+         * missing the positional packet on some interaction/cancellation paths.
+         */
+        player.playNotifySound(
+                WayAroundSounds.PUFFER_CARROT_MEME.get(),
+                SoundSource.NEUTRAL,
+                1.15F,
+                1.0F
+        );
+
         player.serverLevel()
                 .playSound(
-                        null,
-                        puffer.blockPosition(),
+                        player,
+                        puffer.getX(),
+                        puffer.getY(),
+                        puffer.getZ(),
                         WayAroundSounds.PUFFER_CARROT_MEME.get(),
                         SoundSource.NEUTRAL,
-                        1.0F,
+                        1.15F,
                         1.0F
                 );
 

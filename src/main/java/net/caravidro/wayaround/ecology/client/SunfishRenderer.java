@@ -162,6 +162,23 @@ public final class SunfishRenderer
                 pose, buffers, light
         );
 
+        /*
+         * A thicker middle ridge and tapered rear plates stop the body from
+         * reading as a single cardboard disc when viewed from 3/4 angles.
+         */
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.18, -0.39, -0.205,
+                0.43F, 0.78F, 0.41F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.20, -0.28, -0.175,
+                0.31F, 0.57F, 0.35F,
+                pose, buffers, light
+        );
+
         // Rounded/blunt face and heavy forehead.
         cuboid(
                 Blocks.IRON_BLOCK.defaultBlockState(),
@@ -291,6 +308,27 @@ public final class SunfishRenderer
                 pose, buffers, light
         );
 
+        /*
+         * Extra fin roots make the dorsal/anal paddles join the body instead
+         * of looking glued on. Small asymmetry keeps the silhouette organic.
+         */
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                -0.02, 0.47, -0.105,
+                0.30F, 0.19F, 0.21F,
+                0.0F, 0.0F,
+                4.0F + finWave * 3.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_CONCRETE.defaultBlockState(),
+                0.00, -0.63, -0.102,
+                0.29F, 0.18F, 0.204F,
+                0.0F, 0.0F,
+                -5.0F - finWave * 2.5F,
+                pose, buffers, light
+        );
+
         // Rear body narrows into a proper short clavus rather than a fish tail.
         cuboid(
                 Blocks.GRAY_CONCRETE.defaultBlockState(),
@@ -317,6 +355,22 @@ public final class SunfishRenderer
                 0.0F,
                 finWave * 6.0F,
                 0.0F,
+                pose, buffers, light
+        );
+
+        // Uneven clavus lobes make the rear edge read as a sunfish, not a tail.
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                0.55, 0.13, -0.072,
+                0.17F, 0.25F, 0.144F,
+                0.0F, finWave * 4.0F, -16.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                0.55, -0.36, -0.070,
+                0.17F, 0.24F, 0.140F,
+                0.0F, finWave * 4.5F, 17.0F,
                 pose, buffers, light
         );
 
