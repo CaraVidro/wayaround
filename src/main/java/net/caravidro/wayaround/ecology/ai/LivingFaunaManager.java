@@ -117,13 +117,13 @@ public final class LivingFaunaManager {
             "WayAroundFishLureUntil";
 
     private static final int INTERVAL =
-            40;
+            60;
 
     private static final int MAX_ANIMALS_PER_LEVEL =
             240;
 
     private static final int MAX_FISH_PER_LEVEL =
-            360;
+            180;
 
     private LivingFaunaManager() {}
 
@@ -179,10 +179,10 @@ public final class LivingFaunaManager {
                 instanceof SardineEntity) {
             event.setSize(
                     Math.min(
-                            64,
+                            24,
                             Math.max(
-                                    24,
-                                    event.getSize() * 3
+                                    10,
+                                    event.getSize() * 2
                             )
                     )
             );
@@ -792,9 +792,9 @@ public final class LivingFaunaManager {
             AABB area =
                     player.getBoundingBox()
                             .inflate(
-                                    56.0,
-                                    24.0,
-                                    56.0
+                                    44.0,
+                                    20.0,
+                                    44.0
                             );
 
             for (AbstractFish fish :
