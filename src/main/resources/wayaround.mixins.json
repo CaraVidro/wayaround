@@ -38,7 +38,8 @@
     "client.CreateWorldScreenFeatureMixin",
     "client.NexusSkyMixin",
     "client.NexusFogMixin",
-    "client.TitleScreenBrandingMixin"
+    "client.TitleScreenBrandingMixin",
+    "client.SplashRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
