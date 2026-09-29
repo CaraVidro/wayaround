@@ -46,5 +46,13 @@
         "stream": true
       }
     ]
+  },
+  "puffer_carrot_meme": {
+    "sounds": [
+      {
+        "name": "wayaround:puffer_carrot_meme",
+        "stream": false
+      }
+    ]
   }
 }
