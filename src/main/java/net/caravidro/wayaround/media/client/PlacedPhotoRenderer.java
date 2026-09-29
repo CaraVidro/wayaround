@@ -108,16 +108,45 @@ public final class PlacedPhotoRenderer
                 0.5
         );
 
-        pose.mulPose(
-                Axis.YP.rotationDegrees(
-                        switch (facing) {
-                            case SOUTH -> 180.0F;
-                            case WEST -> 90.0F;
-                            case EAST -> -90.0F;
-                            default -> 0.0F;
-                        }
-                )
-        );
+        switch (facing) {
+            case SOUTH ->
+                    pose.mulPose(
+                            Axis.YP.rotationDegrees(
+                                    180.0F
+                            )
+                    );
+
+            case WEST ->
+                    pose.mulPose(
+                            Axis.YP.rotationDegrees(
+                                    90.0F
+                            )
+                    );
+
+            case EAST ->
+                    pose.mulPose(
+                            Axis.YP.rotationDegrees(
+                                    -90.0F
+                            )
+                    );
+
+            case UP ->
+                    pose.mulPose(
+                            Axis.XP.rotationDegrees(
+                                    90.0F
+                            )
+                    );
+
+            case DOWN ->
+                    pose.mulPose(
+                            Axis.XP.rotationDegrees(
+                                    -90.0F
+                            )
+                    );
+
+            default -> {
+            }
+        }
 
         float maxWidth =
                 0.88F;
