@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.BaseFireBlock;
@@ -179,6 +180,82 @@ public final class EnhancedFireVisuals {
                         pos
                 );
 
+        boolean touchingWater =
+                touchesWater(
+                        level,
+                        pos
+                );
+
+        if (raining
+                || touchingWater) {
+            fire.wetTicks +=
+                    touchingWater
+                            ? 8
+                            : 4;
+
+            fire.size =
+                    Math.max(
+                            0.10F,
+                            fire.size
+                                    - (
+                                    touchingWater
+                                            ? 0.16F
+                                            : 0.075F
+                            )
+                    );
+
+            int extinguishAt =
+                    touchingWater
+                            ? 12
+                            : 28;
+
+            if (fire.wetTicks
+                    >= extinguishAt) {
+
+                level.setBlock(
+                        pos,
+                        Blocks.AIR.defaultBlockState(),
+                        Block.UPDATE_ALL
+                );
+
+                level.playSound(
+                        null,
+                        pos,
+                        SoundEvents.FIRE_EXTINGUISH,
+                        SoundSource.BLOCKS,
+                        0.55F,
+                        1.15F
+                );
+
+                level.sendParticles(
+                        ParticleTypes.CLOUD,
+                        fire.x,
+                        fire.y + 0.18,
+                        fire.z,
+                        6,
+                        0.16,
+                        0.10,
+                        0.16,
+                        0.015
+                );
+
+                ACTIVE.remove(
+                        GlobalPos.of(
+                                level.dimension(),
+                                pos
+                        )
+                );
+
+                return;
+            }
+        } else {
+            fire.wetTicks =
+                    Math.max(
+                            0,
+                            fire.wetTicks - STEP
+                    );
+        }
+
         /*
          * The curve deliberately has room to become an inferno. A mature,
          * connected fire is physically wider/taller than its original block
@@ -310,8 +387,10 @@ public final class EnhancedFireVisuals {
         }
 
         if (raining
-                && level.random.nextFloat()
-                < 0.72F) {
+                || touchesWater(
+                level,
+                sourcePos
+        )) {
             return;
         }
 
@@ -400,6 +479,11 @@ public final class EnhancedFireVisuals {
                         level.getBlockState(
                                 fuelPos
                         )
+                )
+                        || level.getFluidState(
+                        fuelPos
+                ).is(
+                        FluidTags.WATER
                 )) {
                     continue;
                 }
@@ -435,7 +519,18 @@ public final class EnhancedFireVisuals {
                     )
                             || !level.getBlockState(
                             firePos
-                    ).isAir()) {
+                    ).isAir()
+                            || !level.getFluidState(
+                            firePos
+                    ).isEmpty()
+                            || touchesWater(
+                            level,
+                            firePos
+                    )
+                            || !hasBurnableNeighbor(
+                            level,
+                            firePos
+                    )) {
                         continue;
                     }
 
@@ -517,6 +612,62 @@ public final class EnhancedFireVisuals {
                 break;
             }
         }
+    }
+
+    private static boolean hasBurnableNeighbor(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        for (Direction direction :
+                Direction.values()) {
+            BlockPos neighbor =
+                    pos.relative(
+                            direction
+                    );
+
+            if (vanillaCanBurn(
+                    level.getBlockState(
+                            neighbor
+                    )
+            )
+                    && !level.getFluidState(
+                    neighbor
+            ).is(
+                    FluidTags.WATER
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean touchesWater(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        if (level.getFluidState(
+                pos
+        ).is(
+                FluidTags.WATER
+        )) {
+            return true;
+        }
+
+        for (Direction direction :
+                Direction.values()) {
+            if (level.getFluidState(
+                    pos.relative(
+                            direction
+                    )
+            ).is(
+                    FluidTags.WATER
+            )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static boolean vanillaCanBurn(
@@ -1310,6 +1461,7 @@ public final class EnhancedFireVisuals {
                 18;
         private int smokeCooldown =
                 18;
+        private int wetTicks;
 
         private final long visualSeed;
 
