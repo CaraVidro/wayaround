@@ -11,7 +11,9 @@ import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 import net.caravidro.wayaround.worldgen.weather.fire.SmokeVolumeEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -88,30 +90,58 @@ public final class VistaAdvancementManager {
                 );
             }
 
-            if (!level.getEntitiesOfClass(
-                    SunfishEntity.class,
-                    player.getBoundingBox()
-                            .inflate(
-                                    28.0
-                            ),
-                    fish ->
-                            fish.isAlive()
-                                    && player.hasLineOfSight(
-                                    fish
-                            )
-            ).isEmpty()) {
+            var visibleSunfish =
+                    level.getEntitiesOfClass(
+                            SunfishEntity.class,
+                            player.getBoundingBox()
+                                    .inflate(
+                                            28.0
+                                    ),
+                            fish ->
+                                    fish.isAlive()
+                                            && player.hasLineOfSight(
+                                            fish
+                                    )
+                    );
+
+            if (!visibleSunfish.isEmpty()) {
                 WayAroundAdvancements.vistaSunfish(
                         player
                 );
             }
 
-            if (!level.getEntitiesOfClass(
+            if (visibleSunfish.stream()
+                    .anyMatch(
+                            fish ->
+                                    fish.isBasking()
+                                            && actuallySeen(
+                                            player,
+                                            fish,
+                                            34.0,
+                                            0.42
+                                    )
+                    )) {
+                WayAroundAdvancements.vistaSunfishBasking(
+                        player
+                );
+            }
+
+            if (level.getEntitiesOfClass(
                     SmokeVolumeEntity.class,
                     player.getBoundingBox()
                             .inflate(
                                     128.0
                             )
-            ).isEmpty()) {
+            ).stream()
+                    .anyMatch(
+                            smoke ->
+                                    actuallySeen(
+                                            player,
+                                            smoke,
+                                            128.0,
+                                            0.50
+                                    )
+                    )) {
                 WayAroundAdvancements.vistaWildfireSmoke(
                         player
                 );
@@ -186,5 +216,50 @@ public final class VistaAdvancementManager {
             }
 
         }
+    private static boolean actuallySeen(
+            ServerPlayer player,
+            Entity target,
+            double maxDistance,
+            double minimumDot
+    ) {
+        Vec3 eye =
+                player.getEyePosition();
+
+        Vec3 targetPoint =
+                target.getBoundingBox()
+                        .getCenter();
+
+        Vec3 delta =
+                targetPoint.subtract(
+                        eye
+                );
+
+        double distanceSquared =
+                delta.lengthSqr();
+
+        if (distanceSquared
+                > maxDistance
+                        * maxDistance
+                || distanceSquared
+                        < 0.0001) {
+            return false;
+        }
+
+        Vec3 direction =
+                delta.normalize();
+
+        double dot =
+                player.getLookAngle()
+                        .normalize()
+                        .dot(
+                                direction
+                        );
+
+        return dot >= minimumDot
+                && player.hasLineOfSight(
+                target
+        );
+    }
+
     }
 }
