@@ -13,6 +13,8 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.water.wave.OceanWaveField;
+import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.caravidro.wayaround.worldconfig.WaveMode;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
@@ -87,9 +89,14 @@ public final class WaterSurfaceRenderer {
             return;
         }
 
+        WaveMode waveMode =
+                WorldFeatureRuntime.clientWaveMode();
+
         if (!WorldFeatureRuntime.clientEnabled(
                 WorldFeature.WATER_DYNAMICS
-        )) {
+        )
+                || waveMode
+                == WaveMode.OFF) {
             clearCache();
             return;
         }
@@ -160,23 +167,37 @@ public final class WaterSurfaceRenderer {
                 cameraLook.z();
 
         OceanWaveField.Profile cameraProfile =
-                OceanWaveField.profile(
+                waveMode
+                        == WaveMode.REALISTIC
+                        ? OceanWaveField.profile(
                         minecraft.level,
                         BlockPos.containing(
                                 camera
                         ),
                         time
-                );
+                )
+                        : null;
 
-        /*
-         * Rendering no longer invents its own waves. Every vertex below reads
-         * the same shared OceanWaveField used by vessels and shoreline run-up.
-         */
+        LocalWeatherField.Sample legacyWeather =
+                waveMode
+                        == WaveMode.STYLIZED
+                        ? LocalWeatherField.sample(
+                        camera.x,
+                        camera.z,
+                        time
+                )
+                        : null;
+
         double amplitude =
-                Math.max(
+                waveMode
+                        == WaveMode.REALISTIC
+                        ? Math.max(
                         0.04,
                         cameraProfile.amplitude()
-                );
+                )
+                        : 0.018
+                        + legacyWeather.warning()
+                        * 0.055;
 
         PoseStack stack =
                 event.getPoseStack();
@@ -256,53 +277,109 @@ public final class WaterSurfaceRenderer {
             double base =
                     surface.baseY;
 
-            OceanWaveField.Sample wave00 =
-                    OceanWaveField.sample(
-                            surface.profile,
-                            x,
-                            z,
-                            time
-                    );
+            double y00;
+            double y10;
+            double y11;
+            double y01;
+            float averageBreaking;
 
-            double y00 =
-                    base
-                            + wave00.height();
+            if (waveMode
+                    == WaveMode.REALISTIC) {
+                OceanWaveField.Sample wave00 =
+                        OceanWaveField.sample(
+                                surface.profile,
+                                x,
+                                z,
+                                time
+                        );
 
-            OceanWaveField.Sample wave10 =
-                    OceanWaveField.sample(
-                            surface.profile,
-                            x + 1,
-                            z,
-                            time
-                    );
+                OceanWaveField.Sample wave10 =
+                        OceanWaveField.sample(
+                                surface.profile,
+                                x + 1,
+                                z,
+                                time
+                        );
 
-            double y10 =
-                    base
-                            + wave10.height();
+                OceanWaveField.Sample wave11 =
+                        OceanWaveField.sample(
+                                surface.profile,
+                                x + 1,
+                                z + 1,
+                                time
+                        );
 
-            OceanWaveField.Sample wave11 =
-                    OceanWaveField.sample(
-                            surface.profile,
-                            x + 1,
-                            z + 1,
-                            time
-                    );
+                OceanWaveField.Sample wave01 =
+                        OceanWaveField.sample(
+                                surface.profile,
+                                x,
+                                z + 1,
+                                time
+                        );
 
-            double y11 =
-                    base
-                            + wave11.height();
+                y00 =
+                        base
+                                + wave00.height();
 
-            OceanWaveField.Sample wave01 =
-                    OceanWaveField.sample(
-                            surface.profile,
-                            x,
-                            z + 1,
-                            time
-                    );
+                y10 =
+                        base
+                                + wave10.height();
 
-            double y01 =
-                    base
-                            + wave01.height();
+                y11 =
+                        base
+                                + wave11.height();
+
+                y01 =
+                        base
+                                + wave01.height();
+
+                averageBreaking =
+                        (
+                                wave00.breaking()
+                                        + wave10.breaking()
+                                        + wave11.breaking()
+                                        + wave01.breaking()
+                        ) * 0.25F;
+            } else {
+                y00 =
+                        base
+                                + legacyWave(
+                                x,
+                                z,
+                                time,
+                                amplitude
+                        );
+
+                y10 =
+                        base
+                                + legacyWave(
+                                x + 1,
+                                z,
+                                time,
+                                amplitude
+                        );
+
+                y11 =
+                        base
+                                + legacyWave(
+                                x + 1,
+                                z + 1,
+                                time,
+                                amplitude
+                        );
+
+                y01 =
+                        base
+                                + legacyWave(
+                                x,
+                                z + 1,
+                                time,
+                                amplitude
+                        );
+
+                averageBreaking =
+                        0.0F;
+            }
 
             /*
              * Do not submit quads that cross or sit behind the camera plane.
@@ -382,12 +459,7 @@ public final class WaterSurfaceRenderer {
             int breaker =
                     Mth.clamp(
                             Math.round(
-                                    (
-                                            wave00.breaking()
-                                                    + wave10.breaking()
-                                                    + wave11.breaking()
-                                                    + wave01.breaking()
-                                    ) * 0.25F
+                                    averageBreaking
                                             * 36.0F
                             ),
                             0,
@@ -517,113 +589,6 @@ public final class WaterSurfaceRenderer {
                             blue,
                             alpha
                     );
-
-            float averageBreaking =
-                    (
-                            wave00.breaking()
-                                    + wave10.breaking()
-                                    + wave11.breaking()
-                                    + wave01.breaking()
-                    ) * 0.25F;
-
-            /*
-             * Whitecaps are geometry, not particle spam. The extra quad follows
-             * the exact tilted wave corners and only appears on sufficiently
-             * energetic crests. A deterministic tile mask keeps the foam
-             * broken/irregular instead of painting a white checkerboard.
-             */
-            int foamMask =
-                    Math.floorMod(
-                            x * 31
-                                    + z * 17
-                                    + (int) (
-                                    time / 5L
-                            ),
-                            7
-                    );
-
-            if (averageBreaking > 0.62F
-                    && foamMask
-                    < 2
-                            + Math.round(
-                            averageBreaking
-                                    * 2.0F
-                    )) {
-
-                int foamAlpha =
-                        Mth.clamp(
-                                Math.round(
-                                        (
-                                                averageBreaking
-                                                        - 0.52F
-                                        ) * 118.0F
-                                                * edgeFade
-                                ),
-                                10,
-                                86
-                        );
-
-                float foamLift =
-                        0.012F
-                                + averageBreaking
-                                * 0.016F;
-
-                buffer.addVertex(
-                                matrix,
-                                x,
-                                (float) y00
-                                        + foamLift,
-                                z
-                        )
-                        .setColor(
-                                238,
-                                246,
-                                248,
-                                foamAlpha
-                        );
-
-                buffer.addVertex(
-                                matrix,
-                                x + 1,
-                                (float) y10
-                                        + foamLift,
-                                z
-                        )
-                        .setColor(
-                                238,
-                                246,
-                                248,
-                                foamAlpha
-                        );
-
-                buffer.addVertex(
-                                matrix,
-                                x + 1,
-                                (float) y11
-                                        + foamLift,
-                                z + 1
-                        )
-                        .setColor(
-                                238,
-                                246,
-                                248,
-                                foamAlpha
-                        );
-
-                buffer.addVertex(
-                                matrix,
-                                x,
-                                (float) y01
-                                        + foamLift,
-                                z + 1
-                        )
-                        .setColor(
-                                238,
-                                246,
-                                248,
-                                foamAlpha
-                        );
-            }
 
             any =
                     true;
@@ -866,11 +831,14 @@ public final class WaterSurfaceRenderer {
                                             & 255,
                                     waterColor
                                             & 255,
-                                    OceanWaveField.profile(
+                                    WorldFeatureRuntime.clientWaveMode()
+                                            == WaveMode.REALISTIC
+                                            ? OceanWaveField.profile(
                                             minecraft.level,
                                             water,
                                             time
                                     )
+                                            : null
                             )
                     );
                 }
@@ -924,6 +892,34 @@ public final class WaterSurfaceRenderer {
         }
 
         return null;
+    }
+
+    private static double legacyWave(
+            int x,
+            int z,
+            long time,
+            double amplitude
+    ) {
+        double t =
+                time * 0.10;
+
+        return Mth.sin(
+                        (float) (
+                                x * 0.38
+                                        + z * 0.21
+                                        + t
+                        )
+                )
+                * amplitude
+                + Mth.sin(
+                        (float) (
+                                x * 0.13
+                                        - z * 0.31
+                                        + t * 0.63
+                        )
+                )
+                * amplitude
+                * 0.45;
     }
 
     private record WaterSurface(
