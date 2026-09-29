@@ -1,0 +1,856 @@
+package net.caravidro.wayaround.worldgen.water.wave;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * Way Around's shared wave field.
+ *
+ * <p>This is intentionally not a fluid simulator. It is a deterministic,
+ * cheap height/normal/energy field which every ocean-facing system can query.
+ * Rendering, ships, coastal run-up, particles, audio and future erosion can
+ * therefore react to the same crest instead of inventing unrelated sine waves.</p>
+ */
+public final class OceanWaveField {
+
+    public record Profile(
+            float exposure,
+            float shore,
+            float rain,
+            float storm,
+            float amplitude,
+            float wavelength,
+            float maxRunup,
+            double directionX,
+            double directionZ,
+            double shoreX,
+            double shoreZ
+    ) {
+    }
+
+    public record Sample(
+            double height,
+            double verticalVelocity,
+            Vec3 normal,
+            Vec3 horizontalVelocity,
+            float crest,
+            float breaking,
+            float runup,
+            Profile profile
+    ) {
+    }
+
+    private record CachedProfile(
+            long builtAt,
+            Profile profile
+    ) {
+    }
+
+    private static final Map<Level, Map<Long, CachedProfile>> PROFILE_CACHE =
+            new WeakHashMap<>();
+
+    private static final long PROFILE_TTL =
+            100L;
+
+    private static final int MAX_PROFILE_CACHE =
+            2048;
+
+    private OceanWaveField() {
+    }
+
+    public static Profile profile(
+            Level level,
+            BlockPos pos,
+            long gameTime
+    ) {
+        int chunkX =
+                pos.getX() >> 4;
+
+        int chunkZ =
+                pos.getZ() >> 4;
+
+        long key =
+                ((long) chunkX << 32)
+                        ^ (chunkZ & 0xffffffffL);
+
+        Map<Long, CachedProfile> levelCache =
+                PROFILE_CACHE.computeIfAbsent(
+                        level,
+                        ignored -> new HashMap<>()
+                );
+
+        CachedProfile cached =
+                levelCache.get(
+                        key
+                );
+
+        if (cached != null
+                && gameTime - cached.builtAt()
+                < PROFILE_TTL) {
+            return cached.profile();
+        }
+
+        if (levelCache.size()
+                > MAX_PROFILE_CACHE) {
+            levelCache.clear();
+        }
+
+        Profile rebuilt =
+                buildProfile(
+                        level,
+                        chunkX,
+                        chunkZ
+                );
+
+        levelCache.put(
+                key,
+                new CachedProfile(
+                        gameTime,
+                        rebuilt
+                )
+        );
+
+        return rebuilt;
+    }
+
+    public static Sample sample(
+            Level level,
+            double x,
+            double z,
+            long gameTime
+    ) {
+        Profile profile =
+                profile(
+                        level,
+                        BlockPos.containing(
+                                x,
+                                level.getSeaLevel(),
+                                z
+                        ),
+                        gameTime
+                );
+
+        return sample(
+                profile,
+                x,
+                z,
+                gameTime
+        );
+    }
+
+    public static Sample sample(
+            Profile profile,
+            double x,
+            double z,
+            long gameTime
+    ) {
+        double dirX =
+                profile.directionX();
+
+        double dirZ =
+                profile.directionZ();
+
+        double crossX =
+                -dirZ;
+
+        double crossZ =
+                dirX;
+
+        double seconds =
+                gameTime
+                        / 20.0;
+
+        double wavelength =
+                Math.max(
+                        5.0,
+                        profile.wavelength()
+                );
+
+        double baseK =
+                Math.PI * 2.0
+                        / wavelength;
+
+        double crossK =
+                Math.PI * 2.0
+                        / Math.max(
+                        4.0,
+                        wavelength
+                                * 0.58
+                );
+
+        double chopK =
+                Math.PI * 2.0
+                        / Math.max(
+                        3.0,
+                        wavelength
+                                * 0.24
+                );
+
+        double longitudinal =
+                x * dirX
+                        + z * dirZ;
+
+        double lateral =
+                x * crossX
+                        + z * crossZ;
+
+        double phaseSeed =
+                Math.sin(
+                        x * 0.0017
+                                - z * 0.0011
+                )
+                        * 0.9;
+
+        double phase1 =
+                longitudinal
+                        * baseK
+                        - seconds
+                        * (
+                        0.72
+                                + profile.exposure()
+                                * 0.42
+                )
+                        + phaseSeed;
+
+        double phase2 =
+                lateral
+                        * crossK
+                        - seconds
+                        * 0.48
+                        - phaseSeed
+                        * 0.55;
+
+        double phase3 =
+                (
+                        longitudinal
+                                * 0.72
+                                + lateral
+                                * 0.28
+                )
+                        * chopK
+                        - seconds
+                        * (
+                        1.35
+                                + profile.storm()
+                                * 0.40
+                );
+
+        /*
+         * Slow envelopes create recognizable wave sets. Open water gets long
+         * periods of larger crests instead of every crest being identical.
+         */
+        double groupPhase =
+                longitudinal
+                        * (
+                        baseK
+                                * 0.18
+                )
+                        - seconds
+                        * 0.11
+                        + Math.sin(
+                        lateral
+                                * 0.006
+                );
+
+        double group =
+                0.64
+                        + (
+                        Math.sin(
+                                groupPhase
+                        ) * 0.5
+                                + 0.5
+                ) * 0.46;
+
+        double amplitude =
+                profile.amplitude()
+                        * group;
+
+        double longAmp =
+                amplitude
+                        * (
+                        0.58
+                                + profile.exposure()
+                                * 0.17
+                );
+
+        double crossAmp =
+                amplitude
+                        * (
+                        0.15
+                                + profile.exposure()
+                                * 0.10
+                );
+
+        double chopAmp =
+                amplitude
+                        * (
+                        0.16
+                                + profile.shore()
+                                * 0.16
+                                + profile.storm()
+                                * 0.05
+                );
+
+        double sin1 =
+                Math.sin(
+                        phase1
+                );
+
+        double cos1 =
+                Math.cos(
+                        phase1
+                );
+
+        double sin2 =
+                Math.sin(
+                        phase2
+                );
+
+        double cos2 =
+                Math.cos(
+                        phase2
+                );
+
+        double sin3 =
+                Math.sin(
+                        phase3
+                );
+
+        double cos3 =
+                Math.cos(
+                        phase3
+                );
+
+        double height =
+                sin1
+                        * longAmp
+                        + sin2
+                        * crossAmp
+                        + sin3
+                        * chopAmp;
+
+        double dHdx =
+                cos1
+                        * longAmp
+                        * baseK
+                        * dirX
+                        + cos2
+                        * crossAmp
+                        * crossK
+                        * crossX
+                        + cos3
+                        * chopAmp
+                        * chopK
+                        * (
+                        dirX * 0.72
+                                + crossX * 0.28
+                );
+
+        double dHdz =
+                cos1
+                        * longAmp
+                        * baseK
+                        * dirZ
+                        + cos2
+                        * crossAmp
+                        * crossK
+                        * crossZ
+                        + cos3
+                        * chopAmp
+                        * chopK
+                        * (
+                        dirZ * 0.72
+                                + crossZ * 0.28
+                );
+
+        Vec3 normal =
+                new Vec3(
+                        -dHdx,
+                        1.0,
+                        -dHdz
+                ).normalize();
+
+        double verticalVelocity =
+                -cos1
+                        * longAmp
+                        * (
+                        0.72
+                                + profile.exposure()
+                                * 0.42
+                )
+                        / 20.0
+                        - cos2
+                        * crossAmp
+                        * 0.48
+                        / 20.0
+                        - cos3
+                        * chopAmp
+                        * (
+                        1.35
+                                + profile.storm()
+                                * 0.40
+                )
+                        / 20.0;
+
+        double normalized =
+                height
+                        / Math.max(
+                        0.05,
+                        profile.amplitude()
+                                * 0.86
+                );
+
+        float crest =
+                Mth.clamp(
+                        (float) (
+                                normalized
+                                        * 0.58
+                                        + 0.45
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        float breaking =
+                Mth.clamp(
+                        crest
+                                * (
+                                profile.shore()
+                                        * 0.88F
+                                        + profile.storm()
+                                        * 0.42F
+                                        + profile.exposure()
+                                        * 0.12F
+                        )
+                                + (
+                                crest > 0.82F
+                                        ? 0.18F
+                                        : 0.0F
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        /*
+         * Run-up is a distance, not a water height. Shore renderers/erosion can
+         * use it to decide how far this exact crest reaches over land.
+         */
+        double runPhase =
+                Math.sin(
+                        phase1
+                                - 0.42
+                ) * 0.5
+                        + 0.5;
+
+        float runup =
+                (float) (
+                        profile.maxRunup()
+                                * Math.pow(
+                                runPhase,
+                                1.55
+                        )
+                                * (
+                                0.58
+                                        + breaking
+                                        * 0.54
+                        )
+                );
+
+        double orbital =
+                (
+                        0.012
+                                + profile.exposure()
+                                * 0.028
+                                + profile.storm()
+                                * 0.018
+                )
+                        * (
+                        0.45
+                                + crest
+                        );
+
+        Vec3 horizontalVelocity =
+                new Vec3(
+                        dirX
+                                * orbital,
+                        0.0,
+                        dirZ
+                                * orbital
+                );
+
+        return new Sample(
+                height,
+                verticalVelocity,
+                normal,
+                horizontalVelocity,
+                crest,
+                breaking,
+                runup,
+                profile
+        );
+    }
+
+    private static Profile buildProfile(
+            Level level,
+            int chunkX,
+            int chunkZ
+    ) {
+        int x =
+                (chunkX << 4)
+                        + 8;
+
+        int z =
+                (chunkZ << 4)
+                        + 8;
+
+        int y =
+                level.getSeaLevel();
+
+        BlockPos center =
+                new BlockPos(
+                        x,
+                        y,
+                        z
+                );
+
+        float centerExposure =
+                biomeExposure(
+                        level,
+                        center
+                );
+
+        int reach =
+                32;
+
+        BlockPos east =
+                center.offset(
+                        reach,
+                        0,
+                        0
+                );
+
+        BlockPos west =
+                center.offset(
+                        -reach,
+                        0,
+                        0
+                );
+
+        BlockPos south =
+                center.offset(
+                        0,
+                        0,
+                        reach
+                );
+
+        BlockPos north =
+                center.offset(
+                        0,
+                        0,
+                        -reach
+                );
+
+        float eastExposure =
+                sampledExposure(
+                        level,
+                        east,
+                        centerExposure
+                );
+
+        float westExposure =
+                sampledExposure(
+                        level,
+                        west,
+                        centerExposure
+                );
+
+        float southExposure =
+                sampledExposure(
+                        level,
+                        south,
+                        centerExposure
+                );
+
+        float northExposure =
+                sampledExposure(
+                        level,
+                        north,
+                        centerExposure
+                );
+
+        float ringExposure =
+                (
+                        eastExposure
+                                + westExposure
+                                + southExposure
+                                + northExposure
+                ) * 0.25F;
+
+        float exposure =
+                Mth.clamp(
+                        centerExposure
+                                * 0.56F
+                                + ringExposure
+                                * 0.44F,
+                        0.0F,
+                        1.0F
+                );
+
+        float eastLand =
+                1.0F
+                        - eastExposure;
+
+        float westLand =
+                1.0F
+                        - westExposure;
+
+        float southLand =
+                1.0F
+                        - southExposure;
+
+        float northLand =
+                1.0F
+                        - northExposure;
+
+        double shoreX =
+                eastLand
+                        - westLand;
+
+        double shoreZ =
+                southLand
+                        - northLand;
+
+        double shoreLength =
+                Math.sqrt(
+                        shoreX * shoreX
+                                + shoreZ * shoreZ
+                );
+
+        if (shoreLength > 1.0E-5) {
+            shoreX /=
+                    shoreLength;
+
+            shoreZ /=
+                    shoreLength;
+        }
+
+        float landPressure =
+                (
+                        eastLand
+                                + westLand
+                                + southLand
+                                + northLand
+                ) * 0.25F;
+
+        float shore =
+                Mth.clamp(
+                        landPressure
+                                * 0.72F
+                                + (
+                                1.0F
+                                        - exposure
+                        ) * 0.36F
+                                + (float) Math.min(
+                                0.38,
+                                shoreLength
+                                        * 0.44
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        float rain =
+                level.isRaining()
+                        ? 1.0F
+                        : 0.0F;
+
+        float storm =
+                level.isThundering()
+                        ? 1.0F
+                        : rain
+                        * 0.42F;
+
+        double fieldAngle =
+                x * 0.00073
+                        - z * 0.00051
+                        + Math.sin(
+                        x * 0.00017
+                                + z * 0.00023
+                ) * 1.9;
+
+        double dirX =
+                Math.cos(
+                        fieldAngle
+                );
+
+        double dirZ =
+                Math.sin(
+                        fieldAngle
+                );
+
+        if (shore > 0.24F
+                && shoreLength > 1.0E-5) {
+            double shoreBlend =
+                    Mth.clamp(
+                            shore
+                                    * 0.72,
+                            0.0,
+                            0.78
+                    );
+
+            dirX =
+                    dirX
+                            * (
+                            1.0
+                                    - shoreBlend
+                    )
+                            + shoreX
+                            * shoreBlend;
+
+            dirZ =
+                    dirZ
+                            * (
+                            1.0
+                                    - shoreBlend
+                    )
+                            + shoreZ
+                            * shoreBlend;
+
+            double directionLength =
+                    Math.sqrt(
+                            dirX * dirX
+                                    + dirZ * dirZ
+                    );
+
+            if (directionLength > 1.0E-5) {
+                dirX /=
+                        directionLength;
+
+                dirZ /=
+                        directionLength;
+            }
+        }
+
+        float amplitude =
+                0.035F
+                        + (float) Math.pow(
+                        exposure,
+                        1.55
+                ) * 0.82F
+                        + storm
+                        * (
+                        0.10F
+                                + exposure
+                                * 0.72F
+                );
+
+        amplitude *=
+                1.0F
+                        - shore
+                        * 0.24F;
+
+        float wavelength =
+                7.0F
+                        + exposure
+                        * 36.0F
+                        + storm
+                        * 9.0F;
+
+        float maxRunup =
+                0.85F
+                        + shore
+                        * (
+                        1.9F
+                                + rain
+                                * 1.8F
+                                + storm
+                                * 1.6F
+                );
+
+        return new Profile(
+                exposure,
+                shore,
+                rain,
+                storm,
+                amplitude,
+                wavelength,
+                maxRunup,
+                dirX,
+                dirZ,
+                shoreX,
+                shoreZ
+        );
+    }
+
+    private static float sampledExposure(
+            Level level,
+            BlockPos pos,
+            float fallback
+    ) {
+        if (!level.hasChunkAt(
+                pos
+        )) {
+            return fallback;
+        }
+
+        return biomeExposure(
+                level,
+                pos
+        );
+    }
+
+    private static float biomeExposure(
+            Level level,
+            BlockPos pos
+    ) {
+        return level.getBiome(
+                        pos
+                )
+                .unwrapKey()
+                .map(
+                        key -> {
+                            String path =
+                                    key.location()
+                                            .getPath();
+
+                            if (path.contains(
+                                    "deep_ocean"
+                            )) {
+                                return 1.0F;
+                            }
+
+                            if (path.contains(
+                                    "ocean"
+                            )) {
+                                return 0.72F;
+                            }
+
+                            if (path.contains(
+                                    "beach"
+                            )
+                                    || path.contains(
+                                    "shore"
+                            )) {
+                                return 0.24F;
+                            }
+
+                            if (path.contains(
+                                    "river"
+                            )) {
+                                return 0.18F;
+                            }
+
+                            return 0.08F;
+                        }
+                )
+                .orElse(
+                        0.08F
+                );
+    }
+}
