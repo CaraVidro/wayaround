@@ -518,6 +518,113 @@ public final class WaterSurfaceRenderer {
                             alpha
                     );
 
+            float averageBreaking =
+                    (
+                            wave00.breaking()
+                                    + wave10.breaking()
+                                    + wave11.breaking()
+                                    + wave01.breaking()
+                    ) * 0.25F;
+
+            /*
+             * Whitecaps are geometry, not particle spam. The extra quad follows
+             * the exact tilted wave corners and only appears on sufficiently
+             * energetic crests. A deterministic tile mask keeps the foam
+             * broken/irregular instead of painting a white checkerboard.
+             */
+            int foamMask =
+                    Math.floorMod(
+                            x * 31
+                                    + z * 17
+                                    + (int) (
+                                    time / 5L
+                            ),
+                            7
+                    );
+
+            if (averageBreaking > 0.62F
+                    && foamMask
+                    < 2
+                            + Math.round(
+                            averageBreaking
+                                    * 2.0F
+                    )) {
+
+                int foamAlpha =
+                        Mth.clamp(
+                                Math.round(
+                                        (
+                                                averageBreaking
+                                                        - 0.52F
+                                        ) * 118.0F
+                                                * edgeFade
+                                ),
+                                10,
+                                86
+                        );
+
+                float foamLift =
+                        0.012F
+                                + averageBreaking
+                                * 0.016F;
+
+                buffer.addVertex(
+                                matrix,
+                                x,
+                                (float) y00
+                                        + foamLift,
+                                z
+                        )
+                        .setColor(
+                                238,
+                                246,
+                                248,
+                                foamAlpha
+                        );
+
+                buffer.addVertex(
+                                matrix,
+                                x + 1,
+                                (float) y10
+                                        + foamLift,
+                                z
+                        )
+                        .setColor(
+                                238,
+                                246,
+                                248,
+                                foamAlpha
+                        );
+
+                buffer.addVertex(
+                                matrix,
+                                x + 1,
+                                (float) y11
+                                        + foamLift,
+                                z + 1
+                        )
+                        .setColor(
+                                238,
+                                246,
+                                248,
+                                foamAlpha
+                        );
+
+                buffer.addVertex(
+                                matrix,
+                                x,
+                                (float) y01
+                                        + foamLift,
+                                z + 1
+                        )
+                        .setColor(
+                                238,
+                                246,
+                                248,
+                                foamAlpha
+                        );
+            }
+
             any =
                     true;
         }
