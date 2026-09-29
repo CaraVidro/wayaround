@@ -32,6 +32,33 @@ public final class NauticalSeaState {
             BlockPos pos,
             long gameTime
     ) {
+        return sample(
+                level,
+                pos,
+                gameTime,
+                true
+        );
+    }
+
+    public static Sample visual(
+            Level level,
+            BlockPos pos,
+            long gameTime
+    ) {
+        return sample(
+                level,
+                pos,
+                gameTime,
+                false
+        );
+    }
+
+    private static Sample sample(
+            Level level,
+            BlockPos pos,
+            long gameTime,
+            boolean includeCurrent
+    ) {
         float exposure =
                 oceanExposure(
                         level,
@@ -82,10 +109,12 @@ public final class NauticalSeaState {
                 );
 
         Vec3 current =
-                WaterDynamics.currentAround(
+                includeCurrent
+                        ? WaterDynamics.currentAround(
                         level,
                         pos
-                );
+                )
+                        : Vec3.ZERO;
 
         return new Sample(
                 exposure,
