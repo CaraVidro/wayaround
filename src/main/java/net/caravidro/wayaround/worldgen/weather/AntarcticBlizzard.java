@@ -21,7 +21,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class AntarcticBlizzard {
 
-    private static final int PARTICLE_INTERVAL = 2;
+    private static final int PARTICLE_INTERVAL = 3;
 
     /*
      * Até essa distância FORA da tempestade
@@ -105,7 +105,13 @@ public final class AntarcticBlizzard {
                         );
             }
 
-            syncPlayers(server);
+            if (server.getTickCount()
+                    % 10
+                    == 0) {
+                syncPlayers(
+                        server
+                );
+            }
         }
 
         /*
