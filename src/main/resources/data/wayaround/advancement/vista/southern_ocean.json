@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:vista/root",
+  "display": {
+    "icon": {
+      "id": "minecraft:packed_ice"
+    },
+    "title": {
+      "translate": "advancements.wayaround.vista.southern_ocean.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.vista.southern_ocean.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "seen": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
