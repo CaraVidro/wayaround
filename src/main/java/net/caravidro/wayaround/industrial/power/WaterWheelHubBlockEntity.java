@@ -466,6 +466,39 @@ public final class WaterWheelHubBlockEntity
                         1.0F
                 );
 
+        boolean raining =
+                server.isRainingAt(
+                        worldPosition.above()
+                );
+
+        if (raining) {
+            burnTicks =
+                    Math.max(
+                            0,
+                            burnTicks - 14
+                    );
+
+            burnIntensity =
+                    Math.max(
+                            0.0F,
+                            burnIntensity - 0.065F
+                    );
+        }
+
+        if (wetRatio > 0.82F) {
+            burnTicks =
+                    Math.max(
+                            0,
+                            burnTicks - 22
+                    );
+
+            burnIntensity =
+                    Math.max(
+                            0.0F,
+                            burnIntensity - 0.095F
+                    );
+        }
+
         if (burnTicks > 0) {
             burnTicks--;
         }
