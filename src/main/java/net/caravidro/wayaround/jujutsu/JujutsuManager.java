@@ -68,6 +68,7 @@ public final class JujutsuManager {
     private static final Map<UUID, Long> COOLDOWN_UNTIL = new HashMap<>();
     private static final List<ActiveTechnique> ACTIVE = new ArrayList<>();
     private static final Set<UUID> ENERGY_VISION = new HashSet<>();
+    private static final Set<UUID> ABILITY_PANEL_OPEN = new HashSet<>();
 
     private JujutsuManager() {}
 
@@ -277,6 +278,35 @@ public final class JujutsuManager {
 
     public static boolean isAwakened(Player player) {
         return player.getPersistentData().getBoolean(AWAKENED);
+    }
+
+    public static void setAbilityPanelOpen(
+            ServerPlayer player,
+            boolean open
+    ) {
+        if (open
+                && isAwakened(
+                player
+        )) {
+            ABILITY_PANEL_OPEN.add(
+                    player.getUUID()
+            );
+        } else {
+            ABILITY_PANEL_OPEN.remove(
+                    player.getUUID()
+            );
+        }
+    }
+
+    public static boolean isAbilityPanelOpen(
+            Player player
+    ) {
+        return isAwakened(
+                player
+        )
+                && ABILITY_PANEL_OPEN.contains(
+                player.getUUID()
+        );
     }
 
     public static boolean isAssigned(Player player) {
@@ -785,6 +815,7 @@ public final class JujutsuManager {
         ACTIVE.clear();
         COOLDOWN_UNTIL.clear();
         ENERGY_VISION.clear();
+        ABILITY_PANEL_OPEN.clear();
     }
 
     private static final class ActiveTechnique {
