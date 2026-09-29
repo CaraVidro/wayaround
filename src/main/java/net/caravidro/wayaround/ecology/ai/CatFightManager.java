@@ -226,10 +226,6 @@ public final class CatFightManager {
                         id,
                         first.getUUID(),
                         second.getUUID(),
-                        ((ServerLevel) first.level())
-                                .dimension()
-                                .location()
-                                .toString(),
                         now
                                 + 140L
                                 + first.getRandom()
@@ -512,7 +508,6 @@ public final class CatFightManager {
         final UUID id;
         final UUID first;
         final UUID second;
-        final String dimension;
         final long endsAt;
         final boolean playful;
         long nextSwipe;
@@ -521,7 +516,6 @@ public final class CatFightManager {
                 UUID id,
                 UUID first,
                 UUID second,
-                String dimension,
                 long endsAt,
                 long nextSwipe,
                 boolean playful
@@ -532,8 +526,6 @@ public final class CatFightManager {
                     first;
             this.second =
                     second;
-            this.dimension =
-                    dimension;
             this.endsAt =
                     endsAt;
             this.nextSwipe =
