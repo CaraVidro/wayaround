@@ -319,7 +319,7 @@ public final class KrakenManager {
             level.playSound(
                     null,
                     source,
-                    SoundEvents.GENERIC_EXPLODE,
+                    SoundEvents.GENERIC_EXPLODE.value(),
                     SoundSource.AMBIENT,
                     1.9F,
                     0.34F
@@ -1107,7 +1107,7 @@ public final class KrakenManager {
                             site.surface,
                             z
                     ),
-                    SoundEvents.GENERIC_EXPLODE,
+                    SoundEvents.GENERIC_EXPLODE.value(),
                     SoundSource.AMBIENT,
                     4.5F,
                     0.42F
