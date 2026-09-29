@@ -114,154 +114,242 @@ public final class SunfishRenderer
         float finWave =
                 fish.isBasking()
                         ? swim
-                                * 0.35F
+                                * 0.30F
                         : swim;
 
+        float secondary =
+                Mth.sin(
+                        (
+                                fish.tickCount
+                        )
+                                * 0.17F
+                                + 1.4F
+                );
+
         /*
-         * Main disc: three overlapping layers make the silhouette rounder and
-         * much less like a rectangular wall. It remains extremely thin in Z,
-         * which is the weird real-world sunfish proportion we want.
+         * Rebuilt silhouette: layered slices make the animal look like a tall,
+         * thick living disc instead of one rectangular slab. The forehead is
+         * blunt, the belly tapers, and the rear edge narrows into the clavus.
          */
         cuboid(
                 Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-                -0.49, -0.48, -0.145,
-                0.92F, 0.98F, 0.29F,
+                -0.46, -0.46, -0.155,
+                0.86F, 0.92F, 0.31F,
                 pose, buffers, light
         );
-
         cuboid(
                 Blocks.GRAY_CONCRETE.defaultBlockState(),
-                -0.39, 0.31, -0.13,
-                0.72F, 0.34F, 0.26F,
+                -0.36, 0.31, -0.14,
+                0.67F, 0.29F, 0.28F,
                 pose, buffers, light
         );
-
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.30, 0.52, -0.115,
+                0.49F, 0.18F, 0.23F,
+                pose, buffers, light
+        );
         cuboid(
                 Blocks.WHITE_CONCRETE.defaultBlockState(),
-                -0.40, -0.65, -0.125,
-                0.71F, 0.31F, 0.25F,
+                -0.37, -0.65, -0.13,
+                0.64F, 0.25F, 0.26F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.25, -0.79, -0.105,
+                0.43F, 0.16F, 0.21F,
                 pose, buffers, light
         );
 
-        // Blunt forehead / face.
+        // Rounded/blunt face and heavy forehead.
         cuboid(
                 Blocks.IRON_BLOCK.defaultBlockState(),
-                -0.68, -0.27, -0.13,
-                0.24F, 0.54F, 0.26F,
+                -0.66, -0.24, -0.135,
+                0.23F, 0.49F, 0.27F,
                 pose, buffers, light
         );
-
         cuboid(
-                Blocks.GRAY_CONCRETE.defaultBlockState(),
-                -0.715, -0.09, -0.065,
-                0.055F, 0.10F, 0.13F,
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                -0.58, 0.23, -0.12,
+                0.19F, 0.20F, 0.24F,
                 pose, buffers, light
         );
 
-        // Eyes sit on the two thin faces.
+        // Small puckered mouth.
+        cuboid(
+                Blocks.DARK_PRISMARINE.defaultBlockState(),
+                -0.705, -0.065, -0.060,
+                0.055F, 0.10F, 0.12F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.PINK_TERRACOTTA.defaultBlockState(),
+                -0.716, -0.036, -0.042,
+                0.022F, 0.050F, 0.084F,
+                pose, buffers, light
+        );
+
+        // Eyes + pale sockets on both thin sides.
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.600, 0.095, -0.172,
+                0.105F, 0.105F, 0.030F,
+                pose, buffers, light
+        );
         cuboid(
                 Blocks.BLACK_CONCRETE.defaultBlockState(),
-                -0.625, 0.13, -0.165,
-                0.060F, 0.060F, 0.035F,
+                -0.575, 0.120, -0.184,
+                0.057F, 0.057F, 0.025F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.600, 0.095, 0.142,
+                0.105F, 0.105F, 0.030F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.BLACK_CONCRETE.defaultBlockState(),
+                -0.575, 0.120, 0.160,
+                0.057F, 0.057F, 0.025F,
                 pose, buffers, light
         );
 
+        // Gill slits make the head read as an animal rather than a block mask.
         cuboid(
-                Blocks.BLACK_CONCRETE.defaultBlockState(),
-                -0.625, 0.13, 0.130,
-                0.060F, 0.060F, 0.035F,
+                Blocks.GRAY_TERRACOTTA.defaultBlockState(),
+                -0.43, -0.09, -0.172,
+                0.045F, 0.24F, 0.026F,
+                0.0F, 0.0F, 6.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_TERRACOTTA.defaultBlockState(),
+                -0.43, -0.09, 0.146,
+                0.045F, 0.24F, 0.026F,
+                0.0F, 0.0F, 6.0F,
                 pose, buffers, light
         );
 
         /*
-         * Dorsal and anal fins provide most propulsion. They deliberately do
-         * not mirror perfectly: the slight phase difference makes swimming
-         * look organic instead of like a single rigid flap.
+         * Dorsal and anal fins are tall, tapered two-stage paddles. Their
+         * phases differ slightly because real sunfish locomotion comes from
+         * these fins oscillating rather than from a normal tail beat.
          */
         cuboid(
                 Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-                -0.05, 0.54, -0.085,
-                0.28F, 0.58F, 0.17F,
-                0.0F,
-                0.0F,
-                7.0F
-                        + finWave
-                                * 8.0F,
+                -0.03, 0.55, -0.088,
+                0.24F, 0.43F, 0.176F,
+                0.0F, 0.0F,
+                6.0F + finWave * 7.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                0.02, 0.91, -0.064,
+                0.16F, 0.29F, 0.128F,
+                0.0F, 0.0F,
+                10.0F + finWave * 9.0F,
                 pose, buffers, light
         );
 
         cuboid(
                 Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-                -0.02, -1.05, -0.08,
-                0.27F, 0.53F, 0.16F,
-                0.0F,
-                0.0F,
-                -7.0F
-                        - finWave
-                                * 7.0F,
+                -0.01, -0.95, -0.084,
+                0.24F, 0.39F, 0.168F,
+                0.0F, 0.0F,
+                -6.0F - finWave * 6.5F,
                 pose, buffers, light
         );
-
-        // Small pectoral fins sweep independently.
         cuboid(
                 Blocks.WHITE_CONCRETE.defaultBlockState(),
-                -0.21, -0.08, -0.36,
-                0.34F, 0.09F, 0.36F,
-                -16.0F
-                        + finWave
-                                * 6.0F,
-                0.0F,
-                finWave
-                        * 4.0F,
+                0.04, -1.18, -0.060,
+                0.15F, 0.25F, 0.120F,
+                0.0F, 0.0F,
+                -10.0F - finWave * 8.0F,
                 pose, buffers, light
         );
 
+        // Pectorals: small, independent and slightly asynchronous.
         cuboid(
                 Blocks.WHITE_CONCRETE.defaultBlockState(),
-                -0.21, -0.08, 0.00,
-                0.34F, 0.09F, 0.36F,
-                16.0F
-                        - finWave
-                                * 6.0F,
+                -0.20, -0.07, -0.39,
+                0.31F, 0.075F, 0.39F,
+                -18.0F + finWave * 6.0F,
                 0.0F,
-                -finWave
-                        * 4.0F,
+                finWave * 4.0F + secondary * 2.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                -0.20, -0.07, 0.00,
+                0.31F, 0.075F, 0.39F,
+                18.0F - finWave * 6.0F,
+                0.0F,
+                -finWave * 4.0F - secondary * 2.0F,
                 pose, buffers, light
         );
 
-        // Short rounded clavus: sunfish do not have a normal fish tail.
+        // Rear body narrows into a proper short clavus rather than a fish tail.
         cuboid(
                 Blocks.GRAY_CONCRETE.defaultBlockState(),
-                0.34, -0.39, -0.10,
-                0.22F, 0.81F, 0.20F,
+                0.35, -0.36, -0.11,
+                0.18F, 0.74F, 0.22F,
                 0.0F,
-                finWave
-                        * 5.0F,
+                finWave * 3.5F,
+                0.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                0.49, -0.29, -0.090,
+                0.13F, 0.59F, 0.18F,
+                0.0F,
+                finWave * 5.0F,
+                0.0F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_CONCRETE.defaultBlockState(),
+                0.59, -0.22, -0.064,
+                0.07F, 0.45F, 0.128F,
+                0.0F,
+                finWave * 6.0F,
                 0.0F,
                 pose, buffers, light
         );
 
+        // A few pale/gray skin patches break up the concrete-flat body surface.
         cuboid(
-                Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-                0.50, -0.30, -0.075,
-                0.12F, 0.63F, 0.15F,
-                0.0F,
-                finWave
-                        * 7.0F,
-                0.0F,
+                Blocks.GRAY_TERRACOTTA.defaultBlockState(),
+                -0.05, 0.14, -0.168,
+                0.19F, 0.11F, 0.024F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.WHITE_TERRACOTTA.defaultBlockState(),
+                0.12, -0.31, 0.148,
+                0.16F, 0.10F, 0.024F,
+                pose, buffers, light
+        );
+        cuboid(
+                Blocks.GRAY_TERRACOTTA.defaultBlockState(),
+                0.18, 0.32, -0.166,
+                0.12F, 0.08F, 0.022F,
                 pose, buffers, light
         );
 
         /*
-         * Scars are history, not a health bar. They are synchronized from the
-         * entity's persistent attack counter, so healing does not erase them.
+         * Scars are history, not a health bar. They remain after healing and
+         * can already exist on naturally spawned animals.
          */
         int scars =
                 fish.scarStage();
 
         if (scars >= 1) {
             scar(
-                    -0.24, 0.12, -0.164,
+                    -0.24, 0.12, -0.178,
                     18.0F,
                     pose, buffers, light
             );
@@ -269,7 +357,7 @@ public final class SunfishRenderer
 
         if (scars >= 2) {
             scar(
-                    0.02, -0.20, 0.145,
+                    0.02, -0.20, 0.154,
                     -24.0F,
                     pose, buffers, light
             );
@@ -277,7 +365,7 @@ public final class SunfishRenderer
 
         if (scars >= 3) {
             scar(
-                    -0.40, -0.35, -0.166,
+                    -0.40, -0.35, -0.180,
                     33.0F,
                     pose, buffers, light
             );
@@ -285,7 +373,7 @@ public final class SunfishRenderer
 
         if (scars >= 4) {
             scar(
-                    0.18, 0.28, 0.146,
+                    0.18, 0.28, 0.156,
                     -11.0F,
                     pose, buffers, light
             );
