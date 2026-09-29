@@ -132,12 +132,13 @@ public final class DeepOceanTrenchFeature
                         );
 
                 /*
-                 * This feature deliberately runs at top-layer modification.
-                 * Clean the entire water column first so vanilla kelp,
-                 * seagrass, coral decorations and stale blocks from the old
-                 * sea floor cannot remain suspended after the abyss is carved.
+                 * Only excavate the old solid sea floor down to the new abyss.
+                 * Scanning the already-water-filled column from sea level for
+                 * every generated chunk was one of the most expensive parts of
+                 * ocean exploration. Floating kelp/seagrass from old terrain is
+                 * repaired once per visited chunk by DeepOceanManager instead.
                  */
-                for (int y = seaLevel;
+                for (int y = oldFloor;
                      y > targetFloor;
                      y--) {
                     cursor.setY(
@@ -152,17 +153,20 @@ public final class DeepOceanTrenchFeature
                     if (old.is(
                             Blocks.BEDROCK
                     )
-                            || level.getBlockEntity(
-                            cursor
-                    ) != null) {
+                            || (
+                            old.hasBlockEntity()
+                                    && level.getBlockEntity(
+                                    cursor
+                            ) != null
+                    )) {
                         continue;
                     }
 
                     /*
-                     * Everything below sea level becomes an uninterrupted
-                     * water column. This intentionally removes kelp,
-                     * seagrass/coral and any decoration that was attached to
-                     * the pre-trench floor.
+                     * The range starts at the old floor, so almost every block
+                     * here is solid terrain. Keep the water check for caves and
+                     * modded terrain without paying for the entire upper water
+                     * column.
                      */
                     if (!old.is(
                             Blocks.WATER
