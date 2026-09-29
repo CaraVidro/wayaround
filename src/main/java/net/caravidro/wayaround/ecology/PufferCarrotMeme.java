@@ -26,7 +26,7 @@ public final class PufferCarrotMeme {
 
     @SubscribeEvent
     public static void interact(
-            PlayerInteractEvent.EntityInteractSpecific event
+            PlayerInteractEvent.EntityInteract event
     ) {
         if (!(event.getTarget()
                 instanceof Pufferfish puffer)
