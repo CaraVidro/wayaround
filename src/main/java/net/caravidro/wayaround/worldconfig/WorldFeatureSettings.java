@@ -12,6 +12,9 @@ public final class WorldFeatureSettings {
                     WorldFeature.class
             );
 
+    private WaveMode waveMode =
+            WaveMode.REALISTIC;
+
     public WorldFeatureSettings() {
         setAll(
                 true
@@ -30,6 +33,9 @@ public final class WorldFeatureSettings {
                     )
             );
         }
+
+        waveMode =
+                other.waveMode();
     }
 
     public static WorldFeatureSettings allEnabled() {
@@ -42,6 +48,10 @@ public final class WorldFeatureSettings {
 
         settings.setAll(
                 false
+        );
+
+        settings.setWaveMode(
+                WaveMode.OFF
         );
 
         return settings;
@@ -122,6 +132,36 @@ public final class WorldFeatureSettings {
                     enabled
             );
         }
+
+        waveMode =
+                enabled
+                        ? WaveMode.REALISTIC
+                        : WaveMode.OFF;
+    }
+
+    public WaveMode waveMode() {
+        return waveMode;
+    }
+
+    public void setWaveMode(
+            WaveMode mode
+    ) {
+        waveMode =
+                mode == null
+                        ? WaveMode.REALISTIC
+                        : mode;
+
+        values.put(
+                WorldFeature.WATER_DYNAMICS,
+                waveMode
+                        != WaveMode.OFF
+        );
+    }
+
+    public void cycleWaveMode() {
+        setWaveMode(
+                waveMode.next()
+        );
     }
 
     public int enabledCount() {
@@ -154,6 +194,11 @@ public final class WorldFeatureSettings {
             );
         }
 
+        tag.putString(
+                "wave_mode",
+                waveMode.key()
+        );
+
         return tag;
     }
 
@@ -176,6 +221,31 @@ public final class WorldFeatureSettings {
                 );
             }
         }
+
+        /*
+         * Worlds saved before wave modes existed used the old stylized
+         * renderer whenever Living Water was enabled. Preserve that exact
+         * behaviour on migration.
+         */
+        WaveMode migrated =
+                tag.contains(
+                        "wave_mode"
+                )
+                        ? WaveMode.fromKey(
+                        tag.getString(
+                                "wave_mode"
+                        ),
+                        WaveMode.STYLIZED
+                )
+                        : settings.rawEnabled(
+                        WorldFeature.WATER_DYNAMICS
+                )
+                        ? WaveMode.STYLIZED
+                        : WaveMode.OFF;
+
+        settings.setWaveMode(
+                migrated
+        );
 
         return settings;
     }
@@ -218,6 +288,14 @@ public final class WorldFeatureSettings {
                             != 0L
             );
         }
+
+        settings.setWaveMode(
+                settings.rawEnabled(
+                        WorldFeature.WATER_DYNAMICS
+                )
+                        ? WaveMode.STYLIZED
+                        : WaveMode.OFF
+        );
 
         return settings;
     }
