@@ -3,6 +3,7 @@ package net.caravidro.wayaround.network;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.media.MediaInventory;
 import net.caravidro.wayaround.media.VhsData;
@@ -119,6 +120,10 @@ public record RecordingFinishedC2SPayload(
                             payload.x(),
                             payload.y(),
                             payload.z()
+                    );
+
+                    WayAroundAdvancements.mediaVideo(
+                            player
                     );
 
                     if (payload.dropOnGround()) {
