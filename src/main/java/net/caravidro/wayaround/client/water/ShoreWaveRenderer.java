@@ -216,7 +216,7 @@ public final class ShoreWaveRenderer {
 
             OceanWaveField.Sample sample =
                     OceanWaveField.sample(
-                            minecraft.level,
+                            patch.profile(),
                             patch.waterX()
                                     + 0.5,
                             patch.waterZ()
@@ -748,6 +748,7 @@ public final class ShoreWaveRenderer {
                                                 & 255,
                                         waterColor
                                                 & 255,
+                                        profile,
                                         wall
                                 );
 
@@ -1221,6 +1222,7 @@ public final class ShoreWaveRenderer {
             int red,
             int green,
             int blue,
+            OceanWaveField.Profile profile,
             boolean wall
     ) {
     }
