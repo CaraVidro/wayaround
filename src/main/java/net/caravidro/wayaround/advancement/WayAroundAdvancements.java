@@ -93,6 +93,16 @@ public final class WayAroundAdvancements {
         );
     }
 
+    public static void mediaVideo(
+            ServerPlayer player
+    ) {
+        award(
+                player,
+                "media/video",
+                "recorded"
+        );
+    }
+
     public static void warShot(
             ServerPlayer player
     ) {
