@@ -86,8 +86,17 @@ public final class SardineEntity
             );
         }
 
-        if ((tickCount % 5)
-                != 0) {
+        /*
+         * Schooling used to query every sardine's neighbours every 5 ticks.
+         * Large schools therefore multiplied the same spatial query dozens of
+         * times in the same frame. Stagger the work by entity id and halve the
+         * cadence; the school still looks continuous because different members
+         * update on different ticks.
+         */
+        if (Math.floorMod(
+                tickCount + getId(),
+                10
+        ) != 0) {
             return;
         }
 
@@ -106,8 +115,10 @@ public final class SardineEntity
                 );
 
         if (!panicking
-                && (tickCount % 20)
-                == (getId() & 15)) {
+                && Math.floorMod(
+                tickCount + getId(),
+                40
+        ) == 0) {
 
             AbstractFish predator =
                     level.getEntitiesOfClass(
@@ -502,6 +513,6 @@ public final class SardineEntity
 
     @Override
     public int getMaxSpawnClusterSize() {
-        return 40;
+        return 24;
     }
 }
