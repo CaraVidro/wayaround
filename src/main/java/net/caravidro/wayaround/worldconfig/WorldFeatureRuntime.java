@@ -48,6 +48,23 @@ public final class WorldFeatureRuntime {
         );
     }
 
+    public static WaveMode serverWaveMode() {
+        return SERVER.waveMode();
+    }
+
+    public static WaveMode clientWaveMode() {
+        return CLIENT.waveMode();
+    }
+
+    public static WaveMode waveMode(
+            Level level
+    ) {
+        return level != null
+                && level.isClientSide
+                ? clientWaveMode()
+                : serverWaveMode();
+    }
+
     public static WorldFeatureSettings serverCopy() {
         return new WorldFeatureSettings(
                 SERVER
