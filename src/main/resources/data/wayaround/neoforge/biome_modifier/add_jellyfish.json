@@ -3,8 +3,8 @@
   "biomes": "#minecraft:is_ocean",
   "spawners": {
     "type": "wayaround:jellyfish",
-    "weight": 8,
-    "minCount": 2,
-    "maxCount": 7
+    "weight": 6,
+    "minCount": 1,
+    "maxCount": 4
   }
 }
