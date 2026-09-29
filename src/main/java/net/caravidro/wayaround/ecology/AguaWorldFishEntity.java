@@ -25,19 +25,19 @@ public abstract class AguaWorldFishEntity extends AbstractFish {
         super(type, level);
 
         /*
-         * Natural water mobs normally use vanilla distance despawning. Agua
-         * World creatures are world inhabitants: unloaded chunks may stop
-         * ticking them, but returning to that chunk must bring back the same
-         * individual with the same size/meals/history.
+         * Natural fauna must remain population-bounded. The old base class
+         * forced every generated fish to persist forever, so revisited oceans
+         * accumulated more and more AI entities. Named/captured/special mobs
+         * can still use Minecraft's normal custom-persistence rules; ordinary
+         * wild fish are allowed to despawn when nobody is around.
          */
-        this.setPersistenceRequired();
     }
 
     @Override
     public boolean removeWhenFarAway(
             double distanceToClosestPlayer
     ) {
-        return false;
+        return true;
     }
 
     @Override
@@ -46,12 +46,12 @@ public abstract class AguaWorldFishEntity extends AbstractFish {
     ) {
         double range =
                 this instanceof WhaleEntity
-                        ? 640.0
+                        ? 256.0
                         : (
                         this instanceof OarfishEntity
                                 || this instanceof MantaRayEntity
-                                ? 420.0
-                                : 320.0
+                                ? 192.0
+                                : 128.0
                 );
 
         return distance
