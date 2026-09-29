@@ -9,13 +9,18 @@ public final class EcologyRulesTest {
         );
 
         require(
-                EcologyRules.enlargedCluster(6, true) == 12,
-                "Fish bands should receive the larger expansion"
+                EcologyRules.enlargedCluster(6, true) == 10,
+                "Fish bands should stay visibly grouped without oversized schools"
         );
 
         require(
-                EcologyRules.enlargedCluster(99, true) == 32,
-                "Fish cluster expansion must stay bounded"
+                EcologyRules.enlargedCluster(99, true) == 16,
+                "Fish cluster expansion must stay performance-bounded"
+        );
+
+        require(
+                EcologyRules.enlargedCluster(1, true) == 6,
+                "Small natural fish groups should remain visually alive"
         );
 
         require(
