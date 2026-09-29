@@ -37,7 +37,7 @@ public final class LivingWeatherEcology {
             return;
         }
 
-        if (event.getServer().getTickCount() % 20 != 0) {
+        if (event.getServer().getTickCount() % 40 != 0) {
             return;
         }
 
@@ -47,7 +47,9 @@ public final class LivingWeatherEcology {
             }
 
             Set<UUID> touched = new HashSet<>();
+            int processed = 0;
 
+            players:
             for (var player : level.players()) {
                 if (level.getBiome(player.blockPosition())
                         .is(WayAroundBiomes.ANTARCTIC_ICE_SHEET)) {
@@ -69,7 +71,7 @@ public final class LivingWeatherEcology {
 
                 AABB area =
                         player.getBoundingBox()
-                                .inflate(30.0, 14.0, 30.0);
+                                .inflate(24.0, 12.0, 24.0);
 
                 for (Animal animal :
                         level.getEntitiesOfClass(
@@ -79,6 +81,10 @@ public final class LivingWeatherEcology {
 
                     if (!touched.add(animal.getUUID())) {
                         continue;
+                    }
+
+                    if (++processed > 96) {
+                        break players;
                     }
 
                     /*
