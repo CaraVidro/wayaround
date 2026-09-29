@@ -52,9 +52,15 @@ public final class LivingCloudRenderer {
     private static final double MAX_VISUAL_RADIUS = 278.0;
     private static final int MAX_HORIZONTAL_VOXELS = 25;
     private static final int MAX_VERTICAL_VOXELS = 10;
-    private static final int REBUILD_INTERVAL_NEAR = 10;
-    private static final int REBUILD_INTERVAL_MID = 20;
-    private static final int REBUILD_INTERVAL_FAR = 40;
+    /*
+     * Cloud cells drift every frame, but their expensive voxel topology does
+     * not need to be regenerated at that cadence. Shape morphing is slow, so
+     * slightly longer rebuild windows remove CPU spikes without freezing the
+     * clouds in place.
+     */
+    private static final int REBUILD_INTERVAL_NEAR = 16;
+    private static final int REBUILD_INTERVAL_MID = 32;
+    private static final int REBUILD_INTERVAL_FAR = 64;
     private static final int MAX_REBUILDS_PER_FRAME = 2;
     private static final double CAMERA_FACE_CLEAR_RADIUS = 18.0;
     private static final double CAMERA_NEAR_GUARD = 0.35;
