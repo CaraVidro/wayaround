@@ -731,7 +731,7 @@ public final class KrakenManager {
         RandomSource random =
                 RandomSource.create(
                         cell
-                                ^ 0x4B52414B454E4C
+                                ^ 0x4B52414B454E4CL
                 );
 
         for (int wreck = 0;
