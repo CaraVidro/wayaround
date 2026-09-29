@@ -142,4 +142,66 @@ public final class WayAroundAdvancements {
                 "four"
         );
     }
+
+    private static void vistaRoot(
+            ServerPlayer player
+    ) {
+        award(
+                player,
+                "vista/root",
+                "noticed"
+        );
+    }
+
+    public static void vistaAntarctica(
+            ServerPlayer player
+    ) {
+        vistaRoot(
+                player
+        );
+        award(
+                player,
+                "vista/antarctica",
+                "seen"
+        );
+    }
+
+    public static void vistaWhaleCarcass(
+            ServerPlayer player
+    ) {
+        vistaRoot(
+                player
+        );
+        award(
+                player,
+                "vista/whale_carcass",
+                "seen"
+        );
+    }
+
+    public static void vistaWildfireSmoke(
+            ServerPlayer player
+    ) {
+        vistaRoot(
+                player
+        );
+        award(
+                player,
+                "vista/wildfire_smoke",
+                "seen"
+        );
+    }
+
+    public static void vistaSunfish(
+            ServerPlayer player
+    ) {
+        vistaRoot(
+                player
+        );
+        award(
+                player,
+                "vista/sunfish",
+                "seen"
+        );
+    }
 }
