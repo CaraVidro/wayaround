@@ -28,6 +28,9 @@ public final class WarBallistics {
     private static final Map<FireKey, Long> NEXT_FIRE =
             new HashMap<>();
 
+    private static final Map<UUID, RocketJumpState> ROCKET_JUMPS =
+            new HashMap<>();
+
     public static boolean tryFire(
             ServerPlayer player,
             WarGunItem.Kind kind
@@ -93,12 +96,6 @@ public final class WarBallistics {
         WayAroundAdvancements.warShot(
                 player
         );
-
-        if (kind.rocket()) {
-            WayAroundAdvancements.warRocket(
-                    player
-            );
-        }
 
         return true;
     }
@@ -294,33 +291,107 @@ public final class WarBallistics {
         }
     }
 
+    public static void markRocketJump(
+            ServerPlayer player,
+            double proximity
+    ) {
+        long now =
+                player.server
+                        .getTickCount();
+
+        ROCKET_JUMPS.put(
+                player.getUUID(),
+                new RocketJumpState(
+                        now,
+                        now + 20L * 12L,
+                        proximity
+                )
+        );
+
+        player.fallDistance =
+                0.0F;
+
+        WayAroundAdvancements.warRocket(
+                player
+        );
+    }
+
+    public static boolean protectsRocketFall(
+            ServerPlayer player
+    ) {
+        RocketJumpState state =
+                ROCKET_JUMPS.get(
+                        player.getUUID()
+                );
+
+        return state != null
+                && player.server
+                .getTickCount()
+                <= state.protectedUntil();
+    }
+
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
-        if ((event.getServer()
-                .getTickCount()
-                % 200L) != 0L) {
-            return;
-        }
-
         long now =
                 event.getServer()
                         .getTickCount();
 
-        NEXT_FIRE.entrySet()
+        if ((now % 200L) == 0L) {
+            NEXT_FIRE.entrySet()
+                    .removeIf(
+                            entry ->
+                                    entry.getValue()
+                                            < now
+                    );
+        }
+
+        ROCKET_JUMPS.entrySet()
                 .removeIf(
-                        entry ->
-                                entry.getValue()
-                                        < now
+                        entry -> {
+                            ServerPlayer player =
+                                    event.getServer()
+                                            .getPlayerList()
+                                            .getPlayer(
+                                                    entry.getKey()
+                                            );
+
+                            if (player == null) {
+                                return true;
+                            }
+
+                            RocketJumpState state =
+                                    entry.getValue();
+
+                            if (now
+                                    > state.protectedUntil()) {
+                                return true;
+                            }
+
+                            player.fallDistance =
+                                    0.0F;
+
+                            return player.onGround()
+                                    && now
+                                            > state.launchedAt()
+                                                    + 8L;
+                        }
                 );
     }
 
     public static void clearAll() {
         NEXT_FIRE.clear();
+        ROCKET_JUMPS.clear();
     }
 
     private record FireKey(
             UUID player,
             WarGunItem.Kind kind
+    ) {}
+
+    private record RocketJumpState(
+            long launchedAt,
+            long protectedUntil,
+            double proximity
     ) {}
 }
