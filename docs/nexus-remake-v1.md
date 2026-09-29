@@ -293,35 +293,73 @@ A ativação atual de cinco ondas pode sobreviver, mas deve virar uma sequência
 
 ## 8. Remake da dimensão Nexus
 
-A dimensão atual usa `minecraft:caves` com bioma fixo. Isso é suficiente como placeholder.
+A dimensão atual usa `minecraft:caves` com bioma fixo. Isso permanece apenas como placeholder técnico.
 
-O remake deve manter a ideia já definida:
+A direção do remake mudou: o Nexus NÃO será uma grande caverna.
 
-- complexo de cavernas enorme;
-- teto alto, mas visível;
-- quase preto;
-- sensação de profundidade absurda;
-- portal como única saída normal.
+A referência de ritmo espacial é Madness Combat, sem copiar mapas prontos: corredores, salas industriais e espaços abruptos conectados por uma geração procedural própria.
 
-Primeira versão NÃO precisa encher o Nexus de conteúdo.
+### Interior procedural
 
-### V1 da dimensão
+O interior deve ser montado por uma gramática de salas:
 
-- cavernas largas;
-- câmaras verticais;
-- pilares naturais;
-- abismos;
-- rios/poças do material Nexus;
-- névoa muito baixa;
-- iluminação rara;
-- silêncio pesado;
-- nenhum "bioma colorido".
+- corredores estreitos;
+- salas de combate;
+- depósitos;
+- passarelas;
+- escadas;
+- elevadores e poços;
+- salas técnicas;
+- grandes galpões;
+- portas e transições que façam sentido localmente;
+- variações quebradas ou parcialmente destruídas.
+
+As salas não formam uma dungeon linear fixa. O sistema combina módulos e regras para produzir complexos diferentes.
+
+### Exterior impossível
+
+Fora dos complexos existe um terreno que não respeita completamente as leis normais do mundo:
+
+- paredes monumentais que parecem subir indefinidamente;
+- estruturas e salas inteiras flutuando;
+- blocos e destroços suspensos;
+- plataformas sem sustentação;
+- massas de concreto interrompidas no vazio;
+- mudanças de altura e orientação que parecem fisicamente erradas;
+- geometrias distantes que podem parecer maiores ou mais próximas do que deveriam.
+
+A intenção não é virar "ilhas do End vermelhas". Deve parecer uma infraestrutura industrial impossível.
+
+### Identidade visual
+
+- concreto industrial;
+- metal escuro;
+- superfícies muito rachadas;
+- ferrugem e desgaste;
+- vermelho dominante;
+- sombras pesadas;
+- iluminação artificial agressiva e irregular;
+- partículas pequenas no ar;
+- partículas reativas à passagem do jogador;
+- poeira e fragmentos em regiões destruídas.
+
+O vermelho deve parecer parte da atmosfera do lugar, não apenas um filtro colocado sobre a tela.
+
+### Regras
+
+- o portal/Nexustor continua sendo a única saída normal;
+- desligar o vínculo continua podendo prender quem estiver dentro;
+- a geração precisa ser determinística por seed/região;
+- salas distantes não devem permanecer em simulação completa;
+- estruturas flutuantes devem ser representação de mundo, não milhares de entidades físicas.
+
+Primeira versão NÃO precisa encher o Nexus de conteúdo. Primeiro o espaço, a geração e a identidade precisam funcionar.
 
 ### Regra de escala
 
 O jogador deve entrar e pensar:
 
-"isso é grande demais para ter sido feito para mim."
+"isso foi construído para alguma coisa, mas definitivamente não para mim."
 
 ## 9. O que NÃO colocar ainda
 
