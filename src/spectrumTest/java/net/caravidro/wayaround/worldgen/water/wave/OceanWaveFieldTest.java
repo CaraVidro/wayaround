@@ -33,15 +33,15 @@ public final class OceanWaveFieldTest {
                         0.0
                 );
 
-        OceanWaveField.Profile rainyCoast =
+        OceanWaveField.Profile weatherTaggedCoast =
                 new OceanWaveField.Profile(
                         0.24F,
                         0.86F,
                         1.0F,
-                        0.42F,
+                        1.0F,
                         0.16F,
                         11.0F,
-                        5.8F,
+                        2.4F,
                         1.0,
                         0.0,
                         1.0,
@@ -144,13 +144,47 @@ public final class OceanWaveFieldTest {
                         time
                 );
 
+        double loudEnergy =
+                0.0;
+
+        double quietEnergy =
+                0.0;
+
+        for (int i = 0;
+             i < 48;
+             i++) {
+            double sampleX =
+                    x + i * 1.73;
+
+            double sampleZ =
+                    z - i * 0.91;
+
+            loudEnergy +=
+                    Math.abs(
+                            OceanWaveField.sample(
+                                    ocean,
+                                    sampleX,
+                                    sampleZ,
+                                    time + i * 7L
+                            ).height()
+                    );
+
+            quietEnergy +=
+                    Math.abs(
+                            OceanWaveField.sample(
+                                    quietSameShape,
+                                    sampleX,
+                                    sampleZ,
+                                    time + i * 7L
+                            ).height()
+                    );
+        }
+
         require(
-                Math.abs(
-                        a.height()
-                ) > Math.abs(
-                        quiet.height()
-                ),
-                "Increasing amplitude must increase the same wave shape"
+                loudEnergy
+                        > quietEnergy
+                        * 1.45,
+                "Increasing spectrum amplitude must increase average wave energy"
         );
 
         OceanWaveField.Sample dryRunup =
@@ -161,18 +195,51 @@ public final class OceanWaveFieldTest {
                         time
                 );
 
-        OceanWaveField.Sample rainyRunup =
+        OceanWaveField.Sample taggedRunup =
                 OceanWaveField.sample(
-                        rainyCoast,
+                        weatherTaggedCoast,
                         x,
                         z,
                         time
                 );
 
         require(
-                rainyRunup.runup()
+                Math.abs(
+                        taggedRunup.height()
+                                - dryRunup.height()
+                ) < 1.0E-12
+                        && Math.abs(
+                        taggedRunup.runup()
+                                - dryRunup.runup()
+                ) < 1.0E-6,
+                "Reserved weather channels must not affect the self-contained realistic spectrum"
+        );
+
+        WaveForcing external =
+                new WaveForcing(
+                        1.35,
+                        1.15,
+                        Math.toRadians(
+                                12.0
+                        ),
+                        1.12,
+                        0.08,
+                        1.40
+                );
+
+        OceanWaveField.Sample forced =
+                OceanWaveField.sample(
+                        coast,
+                        x,
+                        z,
+                        time,
+                        external
+                );
+
+        require(
+                forced.runup()
                         > dryRunup.runup(),
-                "Rain/storm profile must be able to push the same crest farther inland"
+                "External forcing hook must be able to modify run-up when a future system plugs in"
         );
 
         require(
