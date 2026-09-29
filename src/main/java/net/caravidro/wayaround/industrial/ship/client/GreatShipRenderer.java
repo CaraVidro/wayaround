@@ -790,11 +790,6 @@ public final class GreatShipRenderer
         );
     }
 
-    @Override
-    public int getViewDistance() {
-        return 320;
-    }
-
     private void block(
             BlockState state,
             double x,
