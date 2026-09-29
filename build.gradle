@@ -26,6 +26,108 @@ sourceSets.main.resources {
     exclude("src/generated/**/.cache") // datagen cache files
 }
 
+/*
+ * The pufferfish carrot meme is supplied as exact OGG bytes by the project,
+ * but the GitHub text connector cannot reliably write binary assets directly.
+ * Keep the source payload as deterministic base64/RLE text chunks and rebuild
+ * the original OGG into generated resources for runClient and final jars.
+ *
+ * SHA-256 is checked so a malformed chunk fails the build instead of silently
+ * shipping a broken/empty sound.
+ */
+def pufferAudioSourceDir = file('src/main/puffer_audio')
+def generatedPufferAudioDir = layout.buildDirectory.dir('generated/pufferAudio')
+
+def generatePufferCarrotSound = tasks.register('generatePufferCarrotSound') {
+    inputs.dir(pufferAudioSourceDir)
+    outputs.file(generatedPufferAudioDir.map {
+        it.file('assets/wayaround/sounds/puffer_carrot_meme.ogg')
+    })
+
+    doLast {
+        def encoded = new StringBuilder()
+
+        pufferAudioSourceDir
+                .listFiles()
+                .findAll { it.isFile() }
+                .sort { a, b -> a.name <=> b.name }
+                .each { part ->
+                    def text = part.getText('UTF-8').trim()
+
+                    if (part.name.endsWith('.rle')) {
+                        int index = 0
+
+                        while (index < text.length()) {
+                            if (text.charAt(index) != '~' as char) {
+                                encoded.append(text.charAt(index))
+                                index++
+                                continue
+                            }
+
+                            int separator = text.indexOf('~', index + 1)
+
+                            if (separator < 0 || separator + 1 >= text.length()) {
+                                throw new GradleException(
+                                        "Malformed puffer audio RLE chunk: ${part.name}"
+                                )
+                            }
+
+                            int count = Integer.parseInt(
+                                    text.substring(index + 1, separator)
+                            )
+
+                            char value = text.charAt(separator + 1)
+                            encoded.append(
+                                    String.valueOf(value).repeat(count)
+                            )
+
+                            index = separator + 2
+                        }
+                    } else {
+                        encoded.append(text)
+                    }
+                }
+
+        byte[] audioBytes = java.util.Base64.decoder.decode(
+                encoded.toString()
+        )
+
+        if (audioBytes.length != 48603) {
+            throw new GradleException(
+                    "Puffer audio byte count mismatch: ${audioBytes.length} != 48603"
+            )
+        }
+
+        def digest = java.security.MessageDigest
+                .getInstance('SHA-256')
+                .digest(audioBytes)
+                .collect { String.format('%02x', it & 0xff) }
+                .join()
+
+        def expected =
+                '91519e437e413fc45d3895cf1486ff66f324d4bf51a73c68ebd5507fead4fe75'
+
+        if (digest != expected) {
+            throw new GradleException(
+                    "Puffer audio SHA-256 mismatch: ${digest}"
+            )
+        }
+
+        def output = generatedPufferAudioDir.get()
+                .file('assets/wayaround/sounds/puffer_carrot_meme.ogg')
+                .asFile
+
+        output.parentFile.mkdirs()
+        output.bytes = audioBytes
+    }
+}
+
+sourceSets.main.resources.srcDir(generatedPufferAudioDir)
+
+tasks.named('processResources') {
+    dependsOn(generatePufferCarrotSound)
+}
+
 repositories {
     // Vosk is published on Maven Central.
     mavenCentral()
