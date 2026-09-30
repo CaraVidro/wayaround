@@ -32,6 +32,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -374,6 +375,44 @@ public final class MechanicalMillBlockEntity
         );
 
         sync();
+    }
+
+    public void dropContents() {
+        if (level == null
+                || level.isClientSide) {
+            return;
+        }
+
+        if (wheatInput > 0) {
+            Block.popResource(
+                    level,
+                    worldPosition,
+                    new ItemStack(
+                            net.minecraft.world.item.Items.WHEAT,
+                            wheatInput
+                    )
+            );
+        }
+
+        if (flourOutput > 0) {
+            Block.popResource(
+                    level,
+                    worldPosition,
+                    new ItemStack(
+                            PowerContent.FLOUR.get(),
+                            flourOutput
+                    )
+            );
+        }
+
+        wheatInput =
+                0;
+
+        flourOutput =
+                0;
+
+        progress =
+                0.0F;
     }
 
     public void describe(
