@@ -3,6 +3,7 @@ package net.caravidro.wayaround.industrial;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
+import net.caravidro.wayaround.industrial.economy.MineralCoinItem;
 import net.caravidro.wayaround.nexus.NexusContent;
 import net.caravidro.wayaround.industrial.power.SawmillMenu;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
@@ -48,6 +49,62 @@ public final class IndustrialContent {
             () -> new MenuType<>(ReforcedBlasterMenu::new, FeatureFlags.VANILLA_SET));
     public static final DeferredHolder<MenuType<?>, MenuType<SawmillMenu>> SAWMILL_MENU = MENUS.register("sawmill",
             () -> new MenuType<>(SawmillMenu::new, FeatureFlags.VANILLA_SET));
+    public static final DeferredItem<Item> IRON_DRILLINGS =
+            ITEMS.register("iron_drillings",
+                    () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> IRON_DUST =
+            ITEMS.register("iron_dust",
+                    () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> IRON_CONCENTRATE =
+            ITEMS.register("iron_concentrate",
+                    () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> REFINED_IRON_INGOT =
+            ITEMS.register("refined_iron_ingot",
+                    () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<Item> PRECISION_IRON_INGOT =
+            ITEMS.register("precision_iron_ingot",
+                    () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredItem<MineralCoinItem> COPPER_COIN =
+            ITEMS.register("copper_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "copper", 1));
+
+    public static final DeferredItem<MineralCoinItem> IRON_COIN =
+            ITEMS.register("iron_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "iron", 4));
+
+    public static final DeferredItem<MineralCoinItem> GOLD_COIN =
+            ITEMS.register("gold_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "gold", 12));
+
+    public static final DeferredItem<MineralCoinItem> LAPIS_COIN =
+            ITEMS.register("lapis_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "lapis", 3));
+
+    public static final DeferredItem<MineralCoinItem> REDSTONE_COIN =
+            ITEMS.register("redstone_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "redstone", 2));
+
+    public static final DeferredItem<MineralCoinItem> QUARTZ_COIN =
+            ITEMS.register("quartz_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "quartz", 3));
+
+    public static final DeferredItem<MineralCoinItem> EMERALD_COIN =
+            ITEMS.register("emerald_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "emerald", 24));
+
+    public static final DeferredItem<MineralCoinItem> DIAMOND_COIN =
+            ITEMS.register("diamond_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "diamond", 64));
+
+    public static final DeferredItem<MineralCoinItem> NETHERITE_COIN =
+            ITEMS.register("netherite_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "netherite", 256));
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> INDUSTRIALIZATION =
             TABS.register(
                     "industrialization",
@@ -68,6 +125,48 @@ public final class IndustrialContent {
                                     (parameters, output) -> {
                                         output.accept(
                                                 REFORCED_BLASTER_ITEM.get()
+                                        );
+                                        output.accept(
+                                                IRON_DRILLINGS.get()
+                                        );
+                                        output.accept(
+                                                IRON_DUST.get()
+                                        );
+                                        output.accept(
+                                                IRON_CONCENTRATE.get()
+                                        );
+                                        output.accept(
+                                                REFINED_IRON_INGOT.get()
+                                        );
+                                        output.accept(
+                                                PRECISION_IRON_INGOT.get()
+                                        );
+                                        output.accept(
+                                                COPPER_COIN.get()
+                                        );
+                                        output.accept(
+                                                IRON_COIN.get()
+                                        );
+                                        output.accept(
+                                                GOLD_COIN.get()
+                                        );
+                                        output.accept(
+                                                LAPIS_COIN.get()
+                                        );
+                                        output.accept(
+                                                REDSTONE_COIN.get()
+                                        );
+                                        output.accept(
+                                                QUARTZ_COIN.get()
+                                        );
+                                        output.accept(
+                                                EMERALD_COIN.get()
+                                        );
+                                        output.accept(
+                                                DIAMOND_COIN.get()
+                                        );
+                                        output.accept(
+                                                NETHERITE_COIN.get()
                                         );
                                         output.accept(
                                                 PowerContent.SOLAR_PANEL_ITEM.get()
