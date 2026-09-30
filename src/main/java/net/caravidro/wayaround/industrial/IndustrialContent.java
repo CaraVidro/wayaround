@@ -137,6 +137,9 @@ public final class IndustrialContent {
                                                 PowerContent.ENGINEERING_WORKBENCH_ITEM.get()
                                         );
                                         output.accept(
+                                                PowerContent.ENGINEERING_BLUEPRINT.get()
+                                        );
+                                        output.accept(
                                                 PowerContent.STONE_FLAKE.get()
                                         );
                                         output.accept(
