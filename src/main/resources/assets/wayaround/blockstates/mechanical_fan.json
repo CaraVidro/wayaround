@@ -1,0 +1,27 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/mechanical_fan"
+    },
+    "facing=south": {
+      "model": "wayaround:block/mechanical_fan",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/mechanical_fan",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "wayaround:block/mechanical_fan",
+      "y": 90
+    },
+    "facing=up": {
+      "model": "wayaround:block/mechanical_fan",
+      "x": 270
+    },
+    "facing=down": {
+      "model": "wayaround:block/mechanical_fan",
+      "x": 90
+    }
+  }
+}
