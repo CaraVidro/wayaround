@@ -89,6 +89,17 @@ V1 calculation blocks:
 The graph model is independent from the screen. Future blueprints, machines or
 server validation can reuse it.
 
+## Navigable canvas
+
+The canvas is a navigable workspace rather than a fixed panel. Node positions are stored in graph coordinates, so zooming or panning never changes the engineering result or breaks connection snapping.
+
+- block and calculation nodes are drag-and-drop from their source panels;
+- existing nodes can be dragged freely, including outside the initially visible region;
+- mouse-wheel zoom is centered on the cursor position;
+- right or middle mouse drag pans the viewport;
+- Home resets the viewport to 100% zoom and zero pan;
+- connection hit-testing is performed in graph coordinates, so input/output ports remain accurate at every zoom level.
+
 ## Visual mode
 
 Visual mode turns the selected calculation into simple geometry above the graph.
@@ -110,13 +121,16 @@ Minecraft structure.
 
 ## Interaction summary
 
-- catalogue click: place block on canvas;
+- drag a catalogue block onto the canvas: place it exactly where released;
 - search: filter by block name/id;
 - Recommended / All Blocks: change catalogue scope;
 - block property click: use property as the block node output;
 - Shift + property click: pin a separate property node;
-- calculation palette: create a calculation node;
+- drag a calculation from the palette onto the canvas: create it at the drop point;
 - drag node: reorganize canvas;
+- mouse wheel over canvas: zoom around the cursor;
+- right/middle mouse drag: pan the canvas;
+- Home: reset pan and zoom;
 - output port -> input port: snap/connect and recalculate;
 - click a connected input without an active output: disconnect it;
 - X / Delete / Backspace: delete node;
