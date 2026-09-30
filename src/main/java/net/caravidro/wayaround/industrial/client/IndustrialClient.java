@@ -48,6 +48,14 @@ public final class IndustrialClient {
                 SteamEngineRenderer::new
         );
         event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_FAN_ENTITY.get(),
+                MechanicalFanRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.WATER_GENERATOR_ENTITY.get(),
+                WaterGeneratorRenderer::new
+        );
+        event.registerBlockEntityRenderer(
                 IndustrialContent.BLASTER_ENTITY.get(),
                 ReforcedBlasterRenderer::new
         );
