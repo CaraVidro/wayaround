@@ -51,5 +51,17 @@ public final class IndustrialClient {
                 IndustrialContent.BLASTER_ENTITY.get(),
                 ReforcedBlasterRenderer::new
         );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.WATER_GENERATOR_ENTITY.get(),
+                WaterGeneratorRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_FAN_ENTITY.get(),
+                MechanicalFanRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_PRESS_ENTITY.get(),
+                MechanicalPressRenderer::new
+        );
     }
 }
