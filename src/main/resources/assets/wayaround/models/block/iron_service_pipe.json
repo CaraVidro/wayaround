@@ -1,0 +1,153 @@
+{
+  "ambientocclusion": false,
+  "gui_light": "front",
+  "textures": {
+    "body": "minecraft:block/iron_block",
+    "band": "minecraft:block/smooth_stone",
+    "particle": "minecraft:block/iron_block"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        5.8,
+        5.8
+      ],
+      "to": [
+        16,
+        10.2,
+        10.2
+      ],
+      "faces": {
+        "down": {
+          "texture": "#body"
+        },
+        "up": {
+          "texture": "#body"
+        },
+        "north": {
+          "texture": "#body"
+        },
+        "south": {
+          "texture": "#body"
+        },
+        "west": {
+          "texture": "#body"
+        },
+        "east": {
+          "texture": "#body"
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        1.6500000000000001,
+        5.029999999999999,
+        5.029999999999999
+      ],
+      "to": [
+        2.75,
+        10.97,
+        10.97
+      ],
+      "faces": {
+        "down": {
+          "texture": "#band"
+        },
+        "up": {
+          "texture": "#band"
+        },
+        "north": {
+          "texture": "#band"
+        },
+        "south": {
+          "texture": "#band"
+        },
+        "west": {
+          "texture": "#band"
+        },
+        "east": {
+          "texture": "#band"
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        13.25,
+        5.029999999999999,
+        5.029999999999999
+      ],
+      "to": [
+        14.350000000000001,
+        10.97,
+        10.97
+      ],
+      "faces": {
+        "down": {
+          "texture": "#band"
+        },
+        "up": {
+          "texture": "#band"
+        },
+        "north": {
+          "texture": "#band"
+        },
+        "south": {
+          "texture": "#band"
+        },
+        "west": {
+          "texture": "#band"
+        },
+        "east": {
+          "texture": "#band"
+        }
+      },
+      "shade": false
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        28,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.78,
+        0.78,
+        0.78
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        2,
+        0
+      ],
+      "scale": [
+        0.48,
+        0.48,
+        0.48
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        90,
+        0
+      ],
+      "scale": [
+        0.72,
+        0.72,
+        0.72
+      ]
+    }
+  }
+}
