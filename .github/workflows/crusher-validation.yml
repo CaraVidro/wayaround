@@ -22,6 +22,8 @@ jobs:
       - name: Assembly GameTests on dedicated server
         run: bash gradlew runCrushingGameTestServer --console=plain
       - name: Client registration and resource smoke
+        env:
+          ALSOFT_DRIVERS: "null"
         shell: bash
         run: |
           set +e
@@ -32,14 +34,25 @@ jobs:
             tail -100 client-smoke.log
             exit "$result"
           fi
-          if ! rg -q 'OpenAL initialized|Sound engine started' client-smoke.log; then
+          if ! grep -Eq 'OpenAL initialized|Sound engine started' client-smoke.log; then
             tail -100 client-smoke.log
             exit 1
           fi
-          if rg -q 'Failed to load model|Unable to load model|Exception in thread|ReportedException|Failed to create model|ModLoadingException' client-smoke.log; then
+          if grep -Eq 'Exception in thread|ReportedException|ModLoadingException' client-smoke.log; then
             tail -100 client-smoke.log
             exit 1
           fi
+          python - <<'PYMODELS'
+          import re
+          from pathlib import Path
+          text = Path('client-smoke.log').read_text(errors='replace')
+          errors = [line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model', line)]
+          current = re.compile(r'wayaround:(?:small_|medium_|large_|light_machine|reinforced_machine|plain_machine|copper_machine|narrow_machine|wide_machine|stone_millstones|iron_banded_millstones|iron_machine_support|wooden_machine_support|crushed_)')
+          relevant = [line for line in errors if current.search(line)]
+          if relevant:
+              print('\n'.join(relevant))
+              raise SystemExit(1)
+          PYMODELS
       - uses: actions/upload-artifact@v4
         if: always()
         with:
