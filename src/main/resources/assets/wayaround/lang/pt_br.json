@@ -654,5 +654,6 @@
   "container.wayaround.engineering.delete_hint": "Delete/Backspace remove o nó selecionado.",
   "container.wayaround.engineering.calculations": "Cálculos de engenharia",
   "container.wayaround.engineering.visual_preview": "Visual",
-  "container.wayaround.engineering.connect_hint": "Selecione uma entrada para completar a conexão."
+  "container.wayaround.engineering.connect_hint": "Selecione uma entrada para completar a conexão.",
+  "container.wayaround.engineering.canvas_controls": "Arraste dos painéis · RMB/MMB move · roda zoom · Home centraliza"
 }
