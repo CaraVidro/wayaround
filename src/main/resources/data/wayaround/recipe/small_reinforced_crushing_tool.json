@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    "ITI",
+    " I "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "T": {
+      "item": "wayaround:small_crushing_tool"
+    }
+  },
+  "result": {
+    "id": "wayaround:small_reinforced_crushing_tool",
+    "count": 1
+  }
+}

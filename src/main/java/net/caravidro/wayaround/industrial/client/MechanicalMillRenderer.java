@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.client;
 
 import java.util.Map;
+import net.caravidro.wayaround.industrial.crushing.MachinePartSpec;
 import java.util.WeakHashMap;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -94,36 +95,54 @@ public final class MechanicalMillRenderer
                 packedOverlay
         );
 
-        renderLowerStone(
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay
-        );
+        if (mill.parts().has(MachinePartSpec.Role.TOOL)) {
+            renderLowerStone(
+                    mill.parts().spec(MachinePartSpec.Role.TOOL).heavy(),
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
 
-        renderUpperStone(
-                visualAngle,
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay
-        );
+        if (mill.parts().has(MachinePartSpec.Role.TOOL)) {
+            renderUpperStone(
+                    mill.parts().spec(MachinePartSpec.Role.TOOL).heavy(),
+                    visualAngle,
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
 
-        renderDrive(
-                visualAngle,
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay
-        );
+        if (mill.parts().has(MachinePartSpec.Role.DRIVE)) {
+            renderDrive(
+                    mill.parts().spec(MachinePartSpec.Role.DRIVE).heavy(),
+                    visualAngle,
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
 
-        renderHopper(
-                mill.hasInput(),
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay
-        );
+        if (mill.parts().has(MachinePartSpec.Role.FEED)) {
+            renderHopper(
+                    mill.parts().spec(MachinePartSpec.Role.FEED).heavy(),
+                    mill.hasInput(),
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
+
+        if (mill.parts().has(MachinePartSpec.Role.BEARING)) {
+            var bearing = mill.parts().spec(MachinePartSpec.Role.BEARING).heavy() ? Blocks.IRON_BLOCK : Blocks.COPPER_BLOCK;
+            renderCuboid(poseStack, bufferSource, packedLight, packedOverlay, bearing.defaultBlockState(),
+                0, .39, 0, .22, .10, .22);
+        }
 
         if (mill.hasOutput()) {
             renderFlourTray(
@@ -188,6 +207,7 @@ public final class MechanicalMillRenderer
     }
 
     private void renderLowerStone(
+            boolean reinforced,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int light,
@@ -196,7 +216,7 @@ public final class MechanicalMillRenderer
         renderStoneDisc(
                 0.17,
                 0.0F,
-                Blocks.STONE.defaultBlockState(),
+                (reinforced ? Blocks.IRON_BLOCK : Blocks.STONE).defaultBlockState(),
                 poseStack,
                 bufferSource,
                 light,
@@ -205,6 +225,7 @@ public final class MechanicalMillRenderer
     }
 
     private void renderUpperStone(
+            boolean reinforced,
             float angle,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
@@ -227,7 +248,7 @@ public final class MechanicalMillRenderer
         renderStoneDisc(
                 0.0,
                 angle,
-                Blocks.SMOOTH_STONE.defaultBlockState(),
+                (reinforced ? Blocks.IRON_BLOCK : Blocks.SMOOTH_STONE).defaultBlockState(),
                 poseStack,
                 bufferSource,
                 light,
@@ -303,6 +324,7 @@ public final class MechanicalMillRenderer
     }
 
     private void renderDrive(
+            boolean reinforced,
             float angle,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
@@ -318,9 +340,9 @@ public final class MechanicalMillRenderer
                 0.0,
                 0.38,
                 0.0,
-                0.10,
+                reinforced ? 0.16 : 0.08,
                 0.70,
-                0.10
+                reinforced ? 0.16 : 0.08
         );
 
         poseStack.pushPose();
@@ -369,6 +391,7 @@ public final class MechanicalMillRenderer
     }
 
     private void renderHopper(
+            boolean wide,
             boolean grain,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
@@ -376,8 +399,7 @@ public final class MechanicalMillRenderer
             int overlay
     ) {
         BlockState wood =
-                Blocks.OAK_PLANKS
-                        .defaultBlockState();
+                (wide ? Blocks.IRON_BLOCK : Blocks.OAK_PLANKS).defaultBlockState();
 
         renderCuboid(
                 poseStack,

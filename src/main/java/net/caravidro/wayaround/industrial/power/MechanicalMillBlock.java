@@ -121,6 +121,11 @@ public final class MechanicalMillBlock
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
+        if (stack.getItem() instanceof net.caravidro.wayaround.industrial.crushing.MachinePartItem) {
+            if (!level.isClientSide) mill.installPart(player, stack);
+            return ItemInteractionResult.SUCCESS;
+        }
+
         if (stack.is(
                 Items.WHEAT
         )) {
@@ -152,7 +157,9 @@ public final class MechanicalMillBlock
         }
 
         if (!level.isClientSide) {
-            if (!player.isShiftKeyDown()
+            if (player.isShiftKeyDown()) {
+                mill.removePart(player);
+            } else if (!player.isShiftKeyDown()
                     && mill.hasOutput()) {
                 mill.collectOutput(
                         player

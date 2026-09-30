@@ -99,6 +99,7 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.MECHANICAL_MILL_ITEM.get()
                                         );
+                                        net.caravidro.wayaround.industrial.crushing.CrusherContent.fillTab(output);
                                         output.accept(
                                                 PowerContent.FLOUR.get()
                                         );
@@ -179,6 +180,7 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.MECHANICAL_MILL_ITEM.get()
                                         );
+                                        net.caravidro.wayaround.industrial.crushing.CrusherContent.fillTab(output);
                                         output.accept(
                                                 PowerContent.SAWMILL_CRANK.get()
                                         );
@@ -280,6 +282,7 @@ public final class IndustrialContent {
         TABS.register(bus);
         bus.addListener(IndustrialContent::capabilities);
         PowerContent.register(bus);
+        net.caravidro.wayaround.industrial.crushing.CrusherContent.register(bus);
         PipeworkContent.register(bus);
         CoalShipContent.register(bus);
         ExperimentalShipContent.register(bus);

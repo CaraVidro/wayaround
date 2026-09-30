@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    "ISI",
+    " I "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "S": {
+      "item": "wayaround:light_machine_shaft"
+    }
+  },
+  "result": {
+    "id": "wayaround:reinforced_machine_shaft",
+    "count": 1
+  }
+}

@@ -8,11 +8,11 @@
   ],
   "key": {
     "P": {
-      "item": "minecraft:spruce_planks"
+      "item": "minecraft:iron_ingot"
     }
   },
   "result": {
-    "id": "wayaround:mechanical_mill",
+    "id": "wayaround:iron_machine_support",
     "count": 1
   }
 }

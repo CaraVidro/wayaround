@@ -2,17 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "P P",
-    "P P",
-    "PPP"
+    "III",
+    "I I",
+    "III"
   ],
   "key": {
-    "P": {
-      "item": "minecraft:spruce_planks"
+    "I": {
+      "item": "minecraft:copper_ingot"
     }
   },
   "result": {
-    "id": "wayaround:mechanical_mill",
+    "id": "wayaround:copper_machine_bearing",
     "count": 1
   }
 }

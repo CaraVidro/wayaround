@@ -64,6 +64,9 @@ public final class IndustrialClient {
                 MechanicalMillRenderer::new
         );
         event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.crushing.CrusherContent.ENTITY.get(), CrusherRenderer::new
+        );
+        event.registerBlockEntityRenderer(
                 IndustrialContent.BLASTER_ENTITY.get(),
                 ReforcedBlasterRenderer::new
         );

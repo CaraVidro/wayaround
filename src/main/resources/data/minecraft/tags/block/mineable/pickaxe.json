@@ -6,6 +6,10 @@
     "wayaround:energy_cable",
     "wayaround:steam_engine",
     "wayaround:black_box",
-    "wayaround:river_pebbles"
+    "wayaround:river_pebbles",
+    "wayaround:small_crusher_frame",
+    "wayaround:medium_crusher_frame",
+    "wayaround:large_crusher_frame",
+    "wayaround:iron_machine_support"
   ]
 }

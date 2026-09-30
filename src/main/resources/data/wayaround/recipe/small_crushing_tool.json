@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SFS",
+    "SAS",
+    "SFS"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:smooth_stone"
+    },
+    "F": {
+      "item": "minecraft:flint"
+    },
+    "A": {
+      "item": "wayaround:mechanical_shaft"
+    }
+  },
+  "result": {
+    "id": "wayaround:small_crushing_tool",
+    "count": 1
+  }
+}

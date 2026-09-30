@@ -3,16 +3,19 @@
   "category": "misc",
   "pattern": [
     "P P",
-    "P P",
-    "PPP"
+    "PHP",
+    " P "
   ],
   "key": {
     "P": {
       "item": "minecraft:spruce_planks"
+    },
+    "H": {
+      "item": "minecraft:hopper"
     }
   },
   "result": {
-    "id": "wayaround:mechanical_mill",
+    "id": "wayaround:narrow_machine_hopper",
     "count": 1
   }
 }

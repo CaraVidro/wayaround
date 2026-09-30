@@ -2,17 +2,20 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
+    "I I",
     "P P",
-    "P P",
-    "PPP"
+    "III"
   ],
   "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
     "P": {
       "item": "minecraft:spruce_planks"
     }
   },
   "result": {
-    "id": "wayaround:mechanical_mill",
+    "id": "wayaround:small_crusher_frame",
     "count": 1
   }
 }

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    "ISI",
+    " I "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "S": {
+      "item": "wayaround:stone_millstones"
+    }
+  },
+  "result": {
+    "id": "wayaround:iron_banded_millstones",
+    "count": 1
+  }
+}
