@@ -1,0 +1,58 @@
+{
+  "ambientocclusion": true,
+  "textures": {
+    "top": "minecraft:block/oak_planks",
+    "leg": "minecraft:block/stripped_spruce_log",
+    "metal": "minecraft:block/iron_block"
+  },
+  "elements": [
+    {
+      "from": [0, 9, 0],
+      "to": [16, 13, 16],
+      "faces": {
+        "down": {"texture": "#top"},
+        "up": {"texture": "#top"},
+        "north": {"texture": "#top"},
+        "south": {"texture": "#top"},
+        "west": {"texture": "#top"},
+        "east": {"texture": "#top"}
+      }
+    },
+    {
+      "from": [2, 0, 2],
+      "to": [5, 9, 5],
+      "faces": {
+        "down": {"texture": "#leg"},
+        "up": {"texture": "#leg"},
+        "north": {"texture": "#leg"},
+        "south": {"texture": "#leg"},
+        "west": {"texture": "#leg"},
+        "east": {"texture": "#leg"}
+      }
+    },
+    {
+      "from": [11, 0, 11],
+      "to": [14, 9, 14],
+      "faces": {
+        "down": {"texture": "#leg"},
+        "up": {"texture": "#leg"},
+        "north": {"texture": "#leg"},
+        "south": {"texture": "#leg"},
+        "west": {"texture": "#leg"},
+        "east": {"texture": "#leg"}
+      }
+    },
+    {
+      "from": [1, 12.25, 7.25],
+      "to": [15, 13.25, 8.75],
+      "faces": {
+        "down": {"texture": "#metal"},
+        "up": {"texture": "#metal"},
+        "north": {"texture": "#metal"},
+        "south": {"texture": "#metal"},
+        "west": {"texture": "#metal"},
+        "east": {"texture": "#metal"}
+      }
+    }
+  ]
+}
