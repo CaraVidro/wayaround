@@ -147,6 +147,111 @@ public final class ReforcedBlasterBlockEntity
         }
     }
 
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                "wayaround",
+                "reforced_blaster"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        ResourceLocation source =
+                assemblyType();
+
+        return List.of(
+                LegacyMachineAssembly.part(
+                        "frame",
+                        "blaster frame",
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.IRON,
+                        source,
+                        assemblyWear * 0.72F,
+                        true,
+                        1.55F
+                ),
+                LegacyMachineAssembly.part(
+                        "chamber",
+                        "blast chamber",
+                        AssemblyPartProfile.Kind.GENERAL,
+                        AssemblyPartProfile.Material.STEEL,
+                        source,
+                        assemblyWear * 0.94F,
+                        true,
+                        1.35F
+                ),
+                LegacyMachineAssembly.part(
+                        "coil",
+                        "heating coil",
+                        AssemblyPartProfile.Kind.GENERAL,
+                        AssemblyPartProfile.Material.COPPER,
+                        source,
+                        assemblyWear * 1.05F,
+                        true,
+                        0.82F
+                )
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        return List.of(
+                new AssemblyConnection(
+                        "frame",
+                        "chamber",
+                        AssemblyConnection.Type.FASTENED,
+                        0.94F,
+                        Mth.clamp(assemblyWear * 0.78F, 0.0F, 1.0F)
+                ),
+                new AssemblyConnection(
+                        "chamber",
+                        "coil",
+                        AssemblyConnection.Type.CONTACT,
+                        0.90F,
+                        Mth.clamp(assemblyWear, 0.0F, 1.0F)
+                )
+        );
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        if (processingRecipe == null) {
+            return 0.0F;
+        }
+
+        return Mth.clamp(
+                0.30F
+                        + progress
+                                / (float) Math.max(
+                                1,
+                                total
+                        )
+                                * 0.85F,
+                0.0F,
+                1.20F
+        );
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        assemblyWear =
+                LegacyMachineAssembly.addWear(
+                        assemblyWear,
+                        fraction,
+                        0.88F
+                );
+
+        setChanged();
+    }
+
     public void popExperience(ServerLevel level, Vec3 position, ServerPlayer player) {
         int xp = (int) Math.floor(experience);
         if (level.random.nextFloat() < experience - xp) xp++;
