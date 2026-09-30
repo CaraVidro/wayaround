@@ -13,7 +13,7 @@ public final class WorldFeatureSettings {
             );
 
     private WaveMode waveMode =
-            WaveMode.REALISTIC;
+            WaveMode.STYLIZED;
 
     public WorldFeatureSettings() {
         setAll(
@@ -135,7 +135,7 @@ public final class WorldFeatureSettings {
 
         waveMode =
                 enabled
-                        ? WaveMode.REALISTIC
+                        ? WaveMode.STYLIZED
                         : WaveMode.OFF;
     }
 
@@ -148,7 +148,7 @@ public final class WorldFeatureSettings {
     ) {
         waveMode =
                 mode == null
-                        ? WaveMode.REALISTIC
+                        ? WaveMode.STYLIZED
                         : mode;
     }
 
