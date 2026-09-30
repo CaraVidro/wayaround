@@ -14,7 +14,7 @@ import net.caravidro.wayaround.worldconfig.*;
 import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
 import net.neoforged.neoforge.gametest.*;
 
-@GameTestHolder("wayaround_fish")
+@GameTestHolder("wayaround_crushing")
 @PrefixGameTestTemplate(false)
 public final class RegionalFishGameTests {
     @GameTest(template="assembly_test", batch="fish", timeoutTicks=80)
