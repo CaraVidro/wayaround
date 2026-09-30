@@ -15,6 +15,10 @@ public final class IndustrialClient {
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(IndustrialContent.BLASTER_MENU.get(), ReforcedBlasterScreen::new);
         event.register(IndustrialContent.SAWMILL_MENU.get(), SawmillScreen::new);
+        event.register(
+                IndustrialContent.ENGINEERING_WORKBENCH_MENU.get(),
+                EngineeringWorkbenchScreen::new
+        );
     }
 
     @SubscribeEvent
