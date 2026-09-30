@@ -17,7 +17,7 @@ import net.neoforged.neoforge.gametest.*;
 @GameTestHolder("wayaround_fish")
 @PrefixGameTestTemplate(false)
 public final class RegionalFishGameTests {
-    @GameTest(template="wayaround_crushing:assembly_test", batch="fish", timeoutTicks=80)
+    @GameTest(template="assembly_test", batch="fish", timeoutTicks=80)
     public static void speciesBucketsAndPersistence(GameTestHelper helper) {
         for (var species : RegionalFishSpecies.values()) {
             var fish = RegionalFishSpecies.TYPES.get(species).get().create(helper.getLevel());
@@ -43,7 +43,7 @@ public final class RegionalFishGameTests {
         }
         helper.succeed();
     }
-    @GameTest(template="wayaround_crushing:assembly_test", batch="fish", timeoutTicks=80)
+    @GameTest(template="assembly_test", batch="fish", timeoutTicks=80)
     public static void habitatEntriesExist(GameTestHelper helper) {
         var registry = helper.getLevel().registryAccess().registryOrThrow(Registries.BIOME);
         for (var habitat : FishHabitat.values()) for (String biomeId : habitat.biomes) {
@@ -56,7 +56,7 @@ public final class RegionalFishGameTests {
         }
         helper.succeed();
     }
-    @GameTest(template="wayaround_crushing:assembly_test", batch="fish", timeoutTicks=80)
+    @GameTest(template="assembly_test", batch="fish", timeoutTicks=80)
     public static void naturalToggleDoesNotBlockBuckets(GameTestHelper helper) {
         var previous = WorldFeatureRuntime.serverCopy();
         try {
