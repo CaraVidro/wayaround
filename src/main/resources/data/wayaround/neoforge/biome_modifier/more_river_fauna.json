@@ -6,12 +6,6 @@
   ],
   "spawners": [
     {
-      "type": "minecraft:salmon",
-      "weight": 12,
-      "minCount": 4,
-      "maxCount": 10
-    },
-    {
       "type": "minecraft:squid",
       "weight": 3,
       "minCount": 1,

@@ -26,6 +26,13 @@ public final class EcologyEntityAttributes {
     public static void spawnPlacements(
             RegisterSpawnPlacementsEvent event
     ) {
+        for (var species : RegionalFishSpecies.values()) {
+            event.register(RegionalFishSpecies.TYPES.get(species).get(), SpawnPlacementTypes.IN_WATER,
+                    Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                    (type, level, reason, pos, random) -> level.getFluidState(pos).is(FluidTags.WATER)
+                            && level.getFluidState(pos.above()).is(FluidTags.WATER),
+                    RegisterSpawnPlacementsEvent.Operation.REPLACE);
+        }
         event.register(
                 EcologyContent.SUNFISH.get(),
                 SpawnPlacementTypes.IN_WATER,
@@ -262,6 +269,10 @@ public final class EcologyEntityAttributes {
     public static void attributes(
             EntityAttributeCreationEvent event
     ) {
+        for (var species : RegionalFishSpecies.values()) {
+            event.put(RegionalFishSpecies.TYPES.get(species).get(), AbstractFish.createAttributes()
+                    .add(Attributes.MAX_HEALTH, species.health).add(Attributes.MOVEMENT_SPEED, species.speed).build());
+        }
         event.put(
                 EcologyContent.SUNFISH.get(),
                 AbstractFish.createAttributes()

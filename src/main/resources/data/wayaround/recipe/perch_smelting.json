@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "ingredient": {
+    "item": "wayaround:raw_perch_meat"
+  },
+  "result": {
+    "id": "wayaround:cooked_perch_meat"
+  },
+  "experience": 0.35,
+  "cookingtime": 200
+}

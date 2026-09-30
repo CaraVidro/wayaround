@@ -1,0 +1,265 @@
+[
+  {
+    "region": "ocean",
+    "biomes": [
+      "minecraft:ocean"
+    ],
+    "fish": [
+      "minecraft:cod",
+      "wayaround:sardine",
+      "wayaround:sunfish",
+      "wayaround:flying_fish"
+    ]
+  },
+  {
+    "region": "warm_reef",
+    "biomes": [
+      "minecraft:warm_ocean"
+    ],
+    "fish": [
+      "minecraft:tropical_fish",
+      "minecraft:pufferfish",
+      "wayaround:clownfish",
+      "wayaround:moray_eel",
+      "wayaround:reef_shark"
+    ]
+  },
+  {
+    "region": "lukewarm_coast",
+    "biomes": [
+      "minecraft:lukewarm_ocean"
+    ],
+    "fish": [
+      "wayaround:sardine",
+      "wayaround:flying_fish",
+      "wayaround:barracuda",
+      "wayaround:seahorse",
+      "wayaround:manta_ray"
+    ]
+  },
+  {
+    "region": "cold_ocean",
+    "biomes": [
+      "minecraft:cold_ocean"
+    ],
+    "fish": [
+      "minecraft:cod",
+      "minecraft:salmon",
+      "wayaround:sardine"
+    ]
+  },
+  {
+    "region": "frozen_ocean",
+    "biomes": [
+      "minecraft:frozen_ocean"
+    ],
+    "fish": [
+      "minecraft:cod",
+      "minecraft:salmon",
+      "wayaround:icefish"
+    ]
+  },
+  {
+    "region": "deep_temperate",
+    "biomes": [
+      "minecraft:deep_ocean"
+    ],
+    "fish": [
+      "minecraft:cod",
+      "wayaround:sardine",
+      "wayaround:lanternfish",
+      "wayaround:oarfish",
+      "wayaround:anglerfish"
+    ]
+  },
+  {
+    "region": "deep_cold",
+    "biomes": [
+      "minecraft:deep_cold_ocean"
+    ],
+    "fish": [
+      "minecraft:cod",
+      "minecraft:salmon",
+      "wayaround:lanternfish",
+      "wayaround:oarfish",
+      "wayaround:anglerfish"
+    ]
+  },
+  {
+    "region": "deep_frozen",
+    "biomes": [
+      "minecraft:deep_frozen_ocean"
+    ],
+    "fish": [
+      "minecraft:cod",
+      "wayaround:icefish",
+      "wayaround:lanternfish",
+      "wayaround:anglerfish"
+    ]
+  },
+  {
+    "region": "deep_lukewarm",
+    "biomes": [
+      "minecraft:deep_lukewarm_ocean"
+    ],
+    "fish": [
+      "wayaround:sardine",
+      "wayaround:flying_fish",
+      "wayaround:lanternfish",
+      "wayaround:oarfish",
+      "wayaround:anglerfish"
+    ]
+  },
+  {
+    "region": "antarctic_sea",
+    "biomes": [
+      "wayaround:southern_ocean"
+    ],
+    "fish": [
+      "wayaround:icefish",
+      "wayaround:toothfish",
+      "wayaround:lanternfish"
+    ]
+  },
+  {
+    "region": "antarctic_ice",
+    "biomes": [
+      "wayaround:antarctic_ice_sheet"
+    ],
+    "fish": [
+      "minecraft:cod",
+      "wayaround:icefish",
+      "wayaround:toothfish"
+    ]
+  },
+  {
+    "region": "river",
+    "biomes": [
+      "minecraft:river"
+    ],
+    "fish": [
+      "minecraft:salmon",
+      "wayaround:trout",
+      "wayaround:perch",
+      "wayaround:carp"
+    ]
+  },
+  {
+    "region": "frozen_river",
+    "biomes": [
+      "minecraft:frozen_river"
+    ],
+    "fish": [
+      "minecraft:salmon",
+      "wayaround:trout",
+      "wayaround:perch"
+    ]
+  },
+  {
+    "region": "swamp",
+    "biomes": [
+      "minecraft:swamp"
+    ],
+    "fish": [
+      "wayaround:carp",
+      "wayaround:catfish"
+    ]
+  },
+  {
+    "region": "mangrove",
+    "biomes": [
+      "minecraft:mangrove_swamp"
+    ],
+    "fish": [
+      "wayaround:archerfish",
+      "wayaround:catfish",
+      "wayaround:seahorse"
+    ]
+  },
+  {
+    "region": "tropical_lake",
+    "biomes": [
+      "minecraft:jungle",
+      "minecraft:sparse_jungle",
+      "minecraft:bamboo_jungle"
+    ],
+    "fish": [
+      "wayaround:carp",
+      "wayaround:catfish",
+      "wayaround:archerfish"
+    ]
+  },
+  {
+    "region": "dry_lake",
+    "biomes": [
+      "minecraft:desert",
+      "minecraft:savanna",
+      "minecraft:savanna_plateau",
+      "minecraft:windswept_savanna",
+      "minecraft:badlands",
+      "minecraft:eroded_badlands",
+      "minecraft:wooded_badlands"
+    ],
+    "fish": [
+      "wayaround:carp",
+      "wayaround:catfish"
+    ]
+  },
+  {
+    "region": "cold_lake",
+    "biomes": [
+      "minecraft:taiga",
+      "minecraft:old_growth_pine_taiga",
+      "minecraft:old_growth_spruce_taiga",
+      "minecraft:snowy_taiga",
+      "minecraft:snowy_plains",
+      "minecraft:ice_spikes",
+      "minecraft:grove",
+      "minecraft:snowy_slopes",
+      "minecraft:frozen_peaks",
+      "minecraft:jagged_peaks",
+      "minecraft:stony_peaks",
+      "minecraft:windswept_hills",
+      "minecraft:windswept_gravelly_hills",
+      "minecraft:windswept_forest",
+      "minecraft:snowy_beach",
+      "minecraft:stony_shore"
+    ],
+    "fish": [
+      "wayaround:trout",
+      "wayaround:perch"
+    ]
+  },
+  {
+    "region": "temperate_lake",
+    "biomes": [
+      "minecraft:plains",
+      "minecraft:sunflower_plains",
+      "minecraft:forest",
+      "minecraft:flower_forest",
+      "minecraft:birch_forest",
+      "minecraft:old_growth_birch_forest",
+      "minecraft:dark_forest",
+      "minecraft:meadow",
+      "minecraft:cherry_grove",
+      "minecraft:mushroom_fields",
+      "minecraft:beach"
+    ],
+    "fish": [
+      "wayaround:carp",
+      "wayaround:perch",
+      "wayaround:catfish"
+    ]
+  },
+  {
+    "region": "cave_pool",
+    "biomes": [
+      "minecraft:lush_caves",
+      "minecraft:dripstone_caves"
+    ],
+    "fish": [
+      "wayaround:catfish",
+      "wayaround:perch"
+    ]
+  }
+]

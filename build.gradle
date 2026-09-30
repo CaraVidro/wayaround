@@ -286,6 +286,11 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_crushing'
         }
 
+        fishGameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_fish'
+        }
+
         gameTestServer {
             type = "gameTestServer"
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
@@ -580,3 +585,11 @@ tasks.register('crushingRegressionTest', JavaExec) {
     mainClass = 'net.caravidro.wayaround.industrial.crushing.CrushingRulesTest'
 }
 tasks.named('check') { dependsOn tasks.named('crushingRegressionTest') }
+
+// Natural regional distribution and trench depth boundaries.
+tasks.register('fishHabitatRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.ecology.FishHabitatTest'
+}
+tasks.named('check') { dependsOn tasks.named('fishHabitatRegressionTest') }

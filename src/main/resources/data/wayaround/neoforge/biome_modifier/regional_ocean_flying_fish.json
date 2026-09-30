@@ -1,0 +1,12 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": [
+    "minecraft:ocean"
+  ],
+  "spawners": {
+    "type": "wayaround:flying_fish",
+    "weight": 10,
+    "minCount": 2,
+    "maxCount": 5
+  }
+}

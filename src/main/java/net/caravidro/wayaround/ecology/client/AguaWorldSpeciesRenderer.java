@@ -29,7 +29,8 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
         CLEINTON,
         MORAY_EEL,
         WHALE,
-        SPERM_WHALE
+        SPERM_WHALE,
+        CARP, PERCH, TROUT, CATFISH, ARCHERFISH, ICEFISH, TOOTHFISH, ANGLERFISH
     }
 
     private final Profile profile;
@@ -44,6 +45,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
 
     private static float shadow(Profile profile) {
         return switch (profile) {
+            case CARP, PERCH, TROUT, CATFISH, ARCHERFISH, ICEFISH, TOOTHFISH, ANGLERFISH -> 0.24F;
             case MANTA_RAY -> 0.72F;
             case OARFISH -> 0.52F;
             case WHALE -> 1.80F;
@@ -68,6 +70,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
     @Override
     protected float swimFrequency(T fish) {
         return switch (profile) {
+            case CARP, PERCH, TROUT, CATFISH, ARCHERFISH, ICEFISH, TOOTHFISH, ANGLERFISH -> 0.38F;
             case CLOWNFISH -> 0.52F;
             case FLYING_FISH -> 0.62F;
             case LANTERNFISH -> 0.45F;
@@ -86,6 +89,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
     @Override
     protected float bodyRollDegrees(T fish) {
         return switch (profile) {
+            case CARP, PERCH, TROUT, CATFISH, ARCHERFISH, ICEFISH, TOOTHFISH, ANGLERFISH -> 0.8F;
             case MANTA_RAY -> 2.0F;
             case JELLYFISH -> 0.5F;
             case SEAHORSE -> 1.0F;
@@ -110,6 +114,7 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
             int light
     ) {
         switch (profile) {
+            case CARP, PERCH, TROUT, CATFISH, ARCHERFISH, ICEFISH, TOOTHFISH, ANGLERFISH -> regional(swim, pose, buffers, light);
             case CLOWNFISH -> clownfish(swim, pose, buffers, light);
             case FLYING_FISH -> flyingFish(swim, pose, buffers, light);
             case LANTERNFISH -> lanternfish(swim, pose, buffers, light);
@@ -1116,5 +1121,129 @@ public final class AguaWorldSpeciesRenderer<T extends AbstractFish>
                 0.0F, swim * 18.0F, 0.0F,
                 pose, buffers, light
         );
+    }
+
+    /** Distinct anatomy on the shared mesh/animation path; both flanks have eyes and markings. */
+    private void regional(float swim, PoseStack pose, MultiBufferSource buffers, int light) {
+        var body = switch (profile) {
+            case CARP -> Blocks.BROWN_TERRACOTTA;
+            case PERCH -> Blocks.GREEN_TERRACOTTA;
+            case TROUT -> Blocks.LIGHT_GRAY_TERRACOTTA;
+            case CATFISH -> Blocks.GRAY_TERRACOTTA;
+            case ARCHERFISH -> Blocks.WHITE_TERRACOTTA;
+            case ICEFISH -> Blocks.LIGHT_BLUE_TERRACOTTA;
+            case TOOTHFISH -> Blocks.GRAY_CONCRETE;
+            default -> Blocks.BLACK_TERRACOTTA;
+        };
+        var fin = switch (profile) {
+            case CARP -> Blocks.YELLOW_TERRACOTTA;
+            case PERCH -> Blocks.ORANGE_TERRACOTTA;
+            case TROUT -> Blocks.PINK_TERRACOTTA;
+            case ICEFISH -> Blocks.WHITE_TERRACOTTA;
+            default -> body;
+        };
+        float length = profile == Profile.TOOTHFISH ? 1.2F : profile == Profile.CATFISH ? .84F : .66F;
+        float height = profile == Profile.ANGLERFISH ? .40F : profile == Profile.CARP || profile == Profile.PERCH ? .32F : .23F;
+        float width = profile == Profile.ANGLERFISH ? .38F : profile == Profile.CATFISH ? .32F : .22F;
+        // Translate the authored center to half-height so the fish sits inside its collision volume.
+        pose.pushPose();
+        pose.translate(0, height * .55, 0);
+        cuboid(body.defaultBlockState(), -length * .5, -height * .5, -width * .5,
+                length * .8F, height, width, pose, buffers, light);
+        cuboid(Blocks.WHITE_TERRACOTTA.defaultBlockState(), -length * .43, -height * .53, -width * .41,
+                length * .65F, height * .23F, width * .82F, pose, buffers, light);
+        // Tapered rear body, tail stock and a two-lobed vertical caudal fin rotate together.
+        pose.pushPose();
+        pose.translate(length * .28, 0, 0);
+        pose.mulPose(Axis.YP.rotationDegrees(swim * 17));
+        cuboid(body.defaultBlockState(), 0, -height * .32, -width * .34,
+                length * .24F, height * .64F, width * .68F, pose, buffers, light);
+        cuboid(fin.defaultBlockState(), length * .20, -.015, -.025,
+                .16F, .13F, .05F, 0, 0, 23, pose, buffers, light);
+        cuboid(fin.defaultBlockState(), length * .20, -.115, -.025,
+                .16F, .13F, .05F, 0, 0, -23, pose, buffers, light);
+        pose.popPose();
+        // Paired pectoral fins and eyes make the model readable through a full turn.
+        for (int side : new int[]{-1, 1}) {
+            cuboid(fin.defaultBlockState(), -length * .24, -.04, side < 0 ? -width * .5 - .13 : width * .5,
+                    .18F, .025F, .13F, side * (12 + swim * 5), 0, 0, pose, buffers, light);
+            cuboid(Blocks.BLACK_CONCRETE.defaultBlockState(), -length * .45, height * .12,
+                    side < 0 ? -width * .5 - .008 : width * .5, .045F, .045F, .008F, pose, buffers, light);
+        }
+        cuboid(fin.defaultBlockState(), -.12, height * .47, -.018,
+                length * .42F, .09F, .036F, pose, buffers, light);
+        switch (profile) {
+            case CARP -> {
+                // High arched back, diamond-like flank scales, short mouth barbels.
+                cuboid(body.defaultBlockState(), -.19, height * .4, -.085, .32F, .065F, .17F, pose, buffers, light);
+                for (int side : new int[]{-1, 1}) {
+                    cuboid(fin.defaultBlockState(), -.40, -.07, side * .07, .10F, .015F, .015F, 0, side * 24, 0, pose, buffers, light);
+                    for (int i=0; i<3; i++) cuboid(fin.defaultBlockState(), -.15+i*.1, -.025,
+                            side < 0 ? -.114 : .11, .042F, .08F, .005F, pose, buffers, light);
+                }
+            }
+            case PERCH -> {
+                for (int i=0; i<5; i++) {
+                    cuboid(Blocks.BLACK_TERRACOTTA.defaultBlockState(), -.22+i*.085, -.12, -.114,
+                            .025F, .25F, .228F, pose, buffers, light);
+                    cuboid(fin.defaultBlockState(), -.18+i*.075, .20, -.014,
+                            .025F, .06F+(i%2)*.04F, .028F, pose, buffers, light);
+                }
+            }
+            case TROUT -> {
+                for (int side : new int[]{-1, 1}) {
+                    double z=side<0 ? -.114 : .11;
+                    cuboid(fin.defaultBlockState(), -.25, -.012, z, .46F, .035F, .004F, pose, buffers, light);
+                    for (int i=0; i<6; i++) cuboid(Blocks.BLACK_TERRACOTTA.defaultBlockState(), -.23+i*.07,
+                            .045+(i%2)*.028, z, .018F, .018F, .005F, pose, buffers, light);
+                }
+                cuboid(fin.defaultBlockState(), .20, .09, -.02, .04F, .045F, .04F, pose, buffers, light);
+            }
+            case CATFISH -> {
+                // Broad flattened head and three pairs of long sensory barbels.
+                cuboid(body.defaultBlockState(), -.51, -.065, -.20, .25F, .16F, .40F, pose, buffers, light);
+                for (int side : new int[]{-1, 1}) for (int i=0; i<3; i++)
+                    cuboid(Blocks.BROWN_TERRACOTTA.defaultBlockState(), -.57, -.035-i*.025, side*.10,
+                            .27F, .014F, .014F, 0, side*(42+i*18), -8, pose, buffers, light);
+            }
+            case ARCHERFISH -> {
+                // Wedge snout and bold sloping black bars.
+                cuboid(body.defaultBlockState(), -.40, -.015, -.065, .12F, .12F, .13F, 0, 0, 20, pose, buffers, light);
+                for (int side : new int[]{-1, 1}) for(int i=0;i<3;i++)
+                    cuboid(Blocks.BLACK_CONCRETE.defaultBlockState(), -.17+i*.14, -.08,
+                            side<0 ? -.115 : .11, .04F, .19F, .005F, 0, 0, -18, pose, buffers, light);
+            }
+            case ICEFISH -> {
+                // Long pale snout, wide fanlike fins, two separate dorsal sails.
+                cuboid(body.defaultBlockState(), -.45, -.065, -.08, .18F, .13F, .16F, pose, buffers, light);
+                for (int side : new int[]{-1, 1}) cuboid(fin.defaultBlockState(), -.19, -.02,
+                        side<0 ? -.33 : .11, .24F, .018F, .22F, side*swim*9, 0, 0, pose, buffers, light);
+                cuboid(fin.defaultBlockState(), -.20, .12, -.012, .10F, .15F, .024F, pose, buffers, light);
+                cuboid(fin.defaultBlockState(), .02, .12, -.012, .18F, .09F, .024F, pose, buffers, light);
+            }
+            case TOOTHFISH -> {
+                cuboid(body.defaultBlockState(), -.71, -.15, -.17, .27F, .31F, .34F, pose, buffers, light);
+                cuboid(Blocks.BLACK_CONCRETE.defaultBlockState(), -.715, -.08, -.14, .012F, .06F, .28F, pose, buffers, light);
+                for (int side : new int[]{-1,1}) for (int i=0;i<4;i++)
+                    cuboid(Blocks.WHITE_CONCRETE.defaultBlockState(), -.70+i*.045, -.07, side*.145,
+                            .018F, .038F, .018F, pose, buffers, light);
+            }
+            case ANGLERFISH -> {
+                // Oversized recessed jaw, teeth and a visibly emissive lure (no world light source).
+                cuboid(Blocks.BLACK_CONCRETE.defaultBlockState(), -.345, -.14, -.15, .018F, .25F, .30F, pose, buffers, light);
+                cuboid(body.defaultBlockState(), -.39, -.20, -.19, .28F, .07F, .38F, pose, buffers, light);
+                for (int i=0;i<5;i++) {
+                    cuboid(Blocks.WHITE_CONCRETE.defaultBlockState(), -.36, -.13, -.13+i*.06,
+                            .016F, .07F, .018F, pose, buffers, light);
+                    cuboid(Blocks.WHITE_CONCRETE.defaultBlockState(), -.36, .075, -.13+i*.06,
+                            .016F, .05F, .018F, pose, buffers, light);
+                }
+                cuboid(body.defaultBlockState(), -.12, .20, -.015, .025F, .25F, .03F, 0, 0, 24+swim*3, pose, buffers, light);
+                cuboid(body.defaultBlockState(), -.34, .39, -.015, .16F, .025F, .03F, pose, buffers, light);
+                cuboid(Blocks.SEA_LANTERN.defaultBlockState(), -.385, .34, -.04, .07F, .08F, .08F, pose, buffers, 0x00F000F0);
+            }
+            default -> { }
+        }
+        pose.popPose();
     }
 }

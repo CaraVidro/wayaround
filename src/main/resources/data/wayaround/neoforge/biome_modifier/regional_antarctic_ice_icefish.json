@@ -1,0 +1,12 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": [
+    "wayaround:antarctic_ice_sheet"
+  ],
+  "spawners": {
+    "type": "wayaround:icefish",
+    "weight": 10,
+    "minCount": 2,
+    "maxCount": 5
+  }
+}

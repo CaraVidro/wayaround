@@ -10,12 +10,6 @@
   ],
   "spawners": [
     {
-      "type": "minecraft:cod",
-      "weight": 9,
-      "minCount": 4,
-      "maxCount": 9
-    },
-    {
       "type": "minecraft:squid",
       "weight": 5,
       "minCount": 2,

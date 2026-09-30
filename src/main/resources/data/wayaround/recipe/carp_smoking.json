@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:smoking",
+  "category": "food",
+  "ingredient": {
+    "item": "wayaround:raw_carp_meat"
+  },
+  "result": {
+    "id": "wayaround:cooked_carp_meat"
+  },
+  "experience": 0.35,
+  "cookingtime": 100
+}
