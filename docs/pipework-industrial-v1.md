@@ -200,3 +200,11 @@ Manual in-game checks:
 Prioritize pump -> reservoir -> ore crusher/washer. The Mechanical Mill already
 provides the first grain processor; novelty machines can reuse the same power,
 Assembly and animation contracts without delaying the transport foundation.
+
+## Assembly Crushers follow-up
+
+`feature/assembly-crushers-v1` adds three physical crusher assemblies and migrates
+the mill from virtual components to installed ItemStacks. See
+`docs/assembly-crushers-v1.md` for scale, component tradeoffs, save compatibility
+and the explicit boundary between current dropped-item input and future
+connected-block transport.

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "I I",
+    "P P",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_block"
+    },
+    "P": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "id": "wayaround:large_crusher_frame",
+    "count": 1
+  }
+}

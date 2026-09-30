@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SFS",
+    "SAS",
+    "SFS"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:iron_block"
+    },
+    "F": {
+      "item": "minecraft:flint"
+    },
+    "A": {
+      "item": "wayaround:mechanical_shaft"
+    }
+  },
+  "result": {
+    "id": "wayaround:large_crushing_tool",
+    "count": 1
+  }
+}

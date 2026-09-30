@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/medium_crusher_frame",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "wayaround:block/medium_crusher_frame",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/medium_crusher_frame",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/medium_crusher_frame",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,1694 @@
+WAYAROUND
+Requisitos de Maquinários, Fabricação, Engenharia e Redes de Transmissão
+1. Objetivo
+O sistema de maquinários do WayAround deve permitir que o jogador construa máquinas, produza suas próprias peças, conecte sistemas de energia e crie infraestrutura industrial, sem depender de máquinas mágicas que simplesmente transformam um item em outro.
+A filosofia principal é:
+O jogador não desbloqueia uma máquina. O jogador aprende a construir uma máquina.
+Os sistemas devem permitir que uma mesma tecnologia tenha diferentes níveis de complexidade, eficiência, qualidade e improvisação.
+Uma máquina pode ser:
+simples;
+artesanal;
+mal montada;
+eficiente;
+industrial;
+gigantesca;
+especializada;
+improvisada;
+modificada pelo próprio jogador.
+O jogo deve avaliar principalmente as propriedades físicas e estruturais do sistema, e não a intenção do jogador.
+
+2. Princípio fundamental
+Uma máquina não deve precisar saber:
+“Eu sou uma serraria.”
+Ela deve saber:
+receber rotação;
+transmitir rotação;
+possuir uma ferramenta;
+possuir resistência;
+consumir energia;
+transformar uma ação mecânica em outra.
+A função final emerge da montagem.
+Exemplo:
+Roda d'água
+↓
+Eixo
+↓
+Engrenagens
+↓
+Correia
+↓
+Eixo rápido
+↓
+Disco dentado
+↓
+Madeira
+
+O jogador acabou de criar uma serraria.
+
+3. Sistema de peças
+As máquinas devem ser compostas por peças independentes sempre que isso fizer sentido.
+3.1 Peças fundamentais
+Estrutura
+madeira;
+vigas;
+chapas metálicas;
+suportes;
+bases;
+colunas;
+carcaças;
+fundações.
+Movimento
+eixo;
+engrenagem;
+roda;
+polia;
+correia;
+corrente;
+volante;
+manivela;
+pistão;
+biela;
+rolamento.
+Fixação
+prego;
+parafuso;
+rebite;
+solda;
+suporte;
+dobradiça;
+trava;
+encaixe.
+Energia
+roda d'água;
+roda de vento;
+motor;
+turbina;
+caldeira;
+gerador;
+bateria;
+cabos;
+transformadores.
+Ferramentas industriais
+lâmina;
+serra;
+broca;
+martelo;
+prensa;
+molde;
+disco;
+corte;
+ferramentas especializadas.
+Controle
+alavanca;
+volante;
+válvula;
+botão;
+interruptor;
+controlador;
+instrumento analógico.
+
+4. Fabricação das peças
+Uma máquina complexa não deve necessariamente ser obtida pronta.
+O jogador deve produzir partes intermediárias.
+Exemplo: disco de serra
+metal bruto
+↓
+chapa/disco metálico
+↓
+formatação
+↓
+criação dos dentes
+↓
+afiação
+↓
+disco de serra
+
+A afiação pode exigir uma máquina mais simples ou até força braçal.
+Isso cria uma cadeia tecnológica natural.
+O jogador começa com:
+ferramenta simples
+e gradualmente chega a:
+indústria capaz de fabricar suas próprias ferramentas industriais.
+
+5. Força braçal
+Nem toda produção precisa começar com energia.
+Alguns trabalhos podem ser feitos manualmente:
+afiar;
+martelar;
+girar;
+cortar;
+moldar;
+prensar;
+montar;
+transportar.
+Entretanto, a força manual deve normalmente ser:
+mais lenta;
+menos consistente;
+mais cansativa;
+limitada em escala.
+Isso permite que máquinas surjam como consequência de uma necessidade real.
+
+6. Sistema de transmissão mecânica
+A energia mecânica precisa poder ser transmitida.
+Exemplo:
+RODA D'ÁGUA
+     ↓
+   EIXO
+     ↓
+ENGRENAGEM
+     ↓
+  CORREIA
+     ↓
+ENGRENAGEM
+     ↓
+   SERRA
+
+O sistema deve considerar propriedades como:
+rotação;
+torque;
+massa;
+resistência;
+perdas;
+atrito;
+desalinhamento;
+eficiência.
+
+7. Engrenagens
+Engrenagens permitem alterar a relação entre velocidade e força.
+Relação de velocidade
+Uma combinação pode produzir:
+maior velocidade com menor força.
+Outra pode produzir:
+maior força com menor velocidade.
+Isso permite ao jogador descobrir configurações próprias.
+Exemplo:
+Roda d'água
+20 RPM
+↓
+engrenagem grande
+↓
+engrenagem pequena
+↓
+100 RPM
+
+Aumentar a velocidade não deve simplesmente gerar energia gratuita.
+O sistema deve conservar as relações físicas relevantes.
+
+8. Multiplicação de potência
+Uma roda d'água isolada pode ter capacidade limitada.
+O jogador pode experimentar:
+rodas maiores;
+rodas menores;
+várias rodas;
+engrenagens;
+diferentes relações;
+múltiplos eixos;
+transmissão combinada.
+Uma montagem pode ficar:
+mais rápida;
+ou
+mais forte;
+ou
+mais eficiente.
+Nunca simplesmente “melhor em tudo”.
+
+9. Roda d'água
+A roda d'água deve funcionar como um dos primeiros grandes exemplos de máquina emergente.
+Ela pode receber:
+água;
+queda d'água;
+fluxo;
+estrutura;
+eixo;
+suporte.
+A produção mecânica depende das condições do sistema.
+Uma roda d'água pode movimentar:
+moinhos;
+serras;
+bombas;
+prensas;
+geradores;
+sistemas industriais.
+
+10. Serraria
+A serraria deve ser uma máquina montável.
+Componentes possíveis:
+estrutura;
+eixo;
+rolamentos;
+volante;
+disco de serra;
+suportes;
+transmissão;
+mecanismo de alimentação;
+fonte de energia.
+Uma serraria pode funcionar com:
+força manual;
+roda d'água;
+vapor;
+motor;
+eletricidade, dependendo do estágio tecnológico.
+
+11. Comportamento de falhas
+Máquinas não devem simplesmente possuir:
+“durabilidade = 0 → quebrar”.
+Devem existir falhas diferentes.
+Exemplos:
+Correia
+Pode escorregar ou romper.
+Eixo
+Pode deformar ou quebrar.
+Rolamento
+Pode aumentar o atrito.
+Engrenagem
+Pode perder dentes.
+Solda
+Pode falhar.
+Estrutura
+Pode vibrar ou perder estabilidade.
+Caldeira
+Pode acumular pressão acima daquilo que sua estrutura suporta.
+
+12. Pressão e comportamento emergente
+Uma máquina pode acumular pressão.
+A pressão deve exercer forças reais sobre os componentes relevantes.
+Exemplo:
+CALDEIRA
+↓
+pressão aumenta
+↓
+força sobre estrutura
+↓
+porta suporta até determinado limite
+↓
+limite ultrapassado
+↓
+porta se desprende
+
+A porta não precisa saber qual é:
+“frente”
+ou
+“trás”.
+Ela simplesmente recebe uma força.
+Quando perde sua fixação, torna-se um objeto físico influenciado pela força resultante.
+Isso deve produzir acidentes emergentes em vez de eventos rigidamente programados.
+
+13. Mesa de Arquitetura
+A Mesa de Arquitetura é utilizada para planejamento estrutural.
+Ela deve trabalhar com:
+dimensões;
+fundações;
+vigas;
+colunas;
+paredes;
+cargas;
+estruturas;
+distribuição de peso;
+pressão;
+estabilidade.
+Seu objetivo é responder principalmente:
+“Essa estrutura consegue existir?”
+Ela pode produzir cálculos, análises ou indicadores técnicos, mas não deve substituir totalmente o conhecimento do jogador.
+
+14. Mesa de Engenharia
+A Mesa de Engenharia deve ser um ambiente matemático baseado em canvas.
+Elementos possíveis:
+números;
+variáveis;
+fórmulas;
+operadores;
+unidades;
+gráficos;
+tabelas;
+anotações;
+resultados;
+diagramas.
+Seu objetivo é responder principalmente:
+“Matematicamente, como esse sistema deve funcionar?”
+O jogador pode construir seus próprios métodos de cálculo.
+Exemplo conceitual:
+vazão
+altura
+eficiência
+↓
+fórmula
+↓
+potência estimada
+
+
+15. Hidrelétrica
+A hidrelétrica deve ser uma obra composta, e não um bloco único.
+Estrutura geral:
+RIO
+ ↓
+RESERVATÓRIO
+ ↓
+BARRAGEM
+ ↓
+COMPORTA
+ ↓
+ENTRADA
+ ↓
+CONDUTO
+ ↓
+TURBINA
+ ↓
+EIXO
+ ↓
+GERADOR
+ ↓
+TRANSFORMADOR
+ ↓
+REDE ELÉTRICA
+
+
+16. Estruturas da hidrelétrica
+Barragem
+concreto;
+concreto reforçado;
+armadura;
+fundação;
+galerias;
+canais;
+comportas.
+Comporta
+placa;
+trilhos;
+dobradiças/eixos;
+mecanismo de elevação;
+cabos ou correntes;
+controle.
+Conduto
+tubulação;
+concreto;
+revestimento;
+suportes.
+Turbina
+carcaça;
+rotor;
+pás;
+eixo;
+rolamentos.
+Gerador
+rotor;
+estator/bobinas;
+eixo;
+estrutura;
+resfriamento;
+conexões.
+Distribuição
+transformador;
+cabos;
+torres;
+isoladores;
+painéis;
+proteção.
+
+17. Turbina Modelo A
+A Turbina Hidrelétrica Modelo A deve representar uma categoria de equipamento industrial de grande porte.
+Ela não precisa ser um bloco monolítico.
+Pode possuir:
+CARCAÇA
+├── rotor
+├── pás
+├── eixo
+├── rolamentos
+├── entrada de água
+└── saída
+
+O jogador deve montar e alinhar essas partes.
+Variações futuras podem possuir:
+diferentes tamanhos;
+diferentes rotores;
+diferentes materiais;
+diferentes eficiências;
+diferentes condições operacionais.
+
+18. Concreto
+Concreto deve ser um material estrutural importante.
+Possíveis usos:
+barragens;
+fundações;
+usinas;
+pontes;
+túneis;
+torres;
+canais;
+edifícios industriais.
+Tipos possíveis:
+concreto;
+concreto reforçado;
+concreto armado;
+variantes estruturais de alta resistência.
+A produção pode exigir uma cadeia própria.
+
+19. Engenharia como cooperação
+Construções complexas devem ser possíveis individualmente, porém difíceis de executar sozinho.
+Uma grande obra pode exigir:
+materiais;
+projetos;
+cálculos;
+máquinas;
+trabalhadores;
+transporte;
+dinheiro;
+manutenção.
+Isso deve permitir que jogadores assumam papéis naturalmente.
+Exemplo:
+Jogador A
+→ projeto
+
+Jogador B
+→ cálculos
+
+Jogador C
+→ materiais
+
+Jogador D
+→ construção
+
+Jogador E
+→ financiamento
+
+Nenhum desses papéis precisa ser imposto como uma profissão.
+
+20. Sistema monetário
+A moeda deve ser produzida fisicamente.
+Não deve existir uma conversão simplista como:
+4 barras = 12 moedas.
+Cada moeda deve representar uma unidade produzida.
+Processo conceitual:
+metal
+↓
+blanque/disco
+↓
+formação
+↓
+cunhagem
+↓
+acabamento
+↓
+moeda
+
+Diferentes moedas podem possuir diferentes níveis de dificuldade de fabricação.
+Exemplo:
+ferro;
+cobre;
+prata;
+ouro;
+materiais extremamente raros.
+O sistema não precisa determinar automaticamente quanto uma moeda “vale” economicamente.
+
+21. Valor econômico emergente
+O valor da moeda deve surgir da circulação entre jogadores.
+Exemplo:
+A → 100 moedas → B
+
+O jogador pode:
+contratar;
+financiar;
+pagar serviços;
+comprar materiais;
+doar;
+recompensar;
+investir.
+Um projeto pode existir simplesmente porque jogadores acreditaram nele.
+O jogo não precisa garantir retorno financeiro.
+Uma obra pode:
+gerar lucro;
+ficar inutilizada;
+ser abandonada;
+ser destruída;
+virar patrimônio histórico.
+
+22. Rede de transmissão
+A transmissão deve utilizar infraestrutura física.
+Estrutura básica:
+CÂMERA
+↓
+TRANSMISSOR
+↓
+ANTENA
+↓
+REDE DE TRANSMISSÃO
+↓
+ANTENA RECEPTORA
+↓
+TELEVISOR
+
+A câmera pode transmitir:
+imagem;
+áudio;
+voz;
+sons do ambiente.
+
+23. Câmeras
+A câmera continua sendo um equipamento físico.
+Pode ser:
+portátil;
+instalada;
+montada em veículo;
+colocada em helicóptero;
+colocada em uma torre;
+usada para transmissões.
+A transmissão deve aproveitar o sistema de captura já existente, evitando renderização duplicada desnecessária.
+
+24. Antenas
+Antenas formam a infraestrutura da rede.
+Podem existir:
+antenas pequenas;
+antenas residenciais;
+antenas industriais;
+torres;
+estações retransmissoras.
+Uma rede pode utilizar várias antenas para cobrir áreas maiores.
+
+25. Retransmissão
+Uma estação intermediária pode receber uma transmissão e retransmiti-la.
+Exemplo:
+CAMERA A
+ ↓
+ANTENA 1
+ ↓
+ANTENA 2
+ ↓
+ANTENA 3
+ ↓
+TV
+
+Isso permite redes extensas sem exigir uma única transmissão de alcance absurdo.
+
+26. Canais
+Cada transmissão deve estar associada a um canal ou frequência lógica dentro do sistema.
+Uma televisão pode:
+trocar de canal;
+perder sinal;
+encontrar uma transmissão;
+receber interferência;
+acompanhar uma transmissão ao vivo.
+O canal não precisa conhecer o conteúdo.
+Ele apenas transporta a transmissão.
+
+27. Qualidade do sinal
+A qualidade pode depender de fatores como:
+distância;
+infraestrutura;
+potência relativa da transmissão;
+presença de retransmissores;
+disponibilidade da antena;
+integridade do equipamento.
+Consequências possíveis:
+imagem limpa;
+ruído;
+áudio instável;
+congelamento;
+perda de sinal;
+recuperação automática.
+
+28. Transmissões ao vivo
+Uma câmera conectada à rede pode transmitir o estado atual do mundo.
+Isso permite situações como:
+HELICÓPTERO
+↓
+CÂMERA
+↓
+ANTENA
+↓
+TV
+
+O jogador em casa pode observar acontecimentos que estão acontecendo naquele instante.
+Exemplo:
+um helicóptero sobrevoando uma região industrial;
+uma barragem apresentando problemas;
+uma cerimônia;
+uma expedição;
+uma obra;
+um acidente;
+uma ocorrência envolvendo máquinas.
+
+29. Interferência de transmissão
+Deve existir uma mecânica de interferência abstrata e interna ao jogo, representando disputa por um canal de transmissão.
+Uma segunda estação pode tentar ocupar o mesmo canal.
+Conceitualmente:
+TRANSMISSÃO ORIGINAL
+        ↓
+      CANAL
+        ↑
+TRANSMISSÃO INTRUSA
+
+Dependendo das condições do sistema, a televisão pode:
+apresentar ruído;
+alternar entre sinais;
+perder a transmissão original;
+receber temporariamente a nova transmissão.
+
+30. Equipamento de transmissão improvisado
+Jogadores devem poder construir seus próprios equipamentos para transmitir.
+O equipamento pode ser composto por peças como:
+antena;
+alimentação;
+componentes de transmissão;
+amplificação;
+controle;
+estrutura.
+O sistema deve tratar isso como equipamento de jogo e simulação de rede, sem exigir um bloco especial chamado:
+“Hackeador de TV”.
+
+31. Tomada temporária de canal
+Uma transmissão intrusa pode assumir um canal durante determinado período.
+Exemplo:
+CANAL 7
+
+[programação normal]
+
+↓ interferência
+
+[ruído]
+
+↓ mudança de sinal
+
+[NOVA TRANSMISSÃO]
+
+A nova transmissão pode ser:
+uma fala;
+imagens;
+uma câmera remota;
+um comunicado;
+uma produção dos jogadores;
+uma transmissão improvisada.
+O conteúdo é determinado pelo jogador.
+
+32. Redes locais
+Uma cidade pode desenvolver sua própria rede.
+Exemplo:
+      TORRE PRINCIPAL
+        /    |    \
+       /     |     \
+      TV    TV     TV
+
+Outra cidade pode possuir uma rede diferente.
+Duas redes podem compartilhar infraestrutura ou disputar canais.
+
+33. Jornalismo emergente
+O jogo não deve criar necessariamente uma profissão chamada:
+Jornalista.
+Porém pode surgir naturalmente.
+Jogadores podem:
+instalar câmeras;
+acompanhar eventos;
+entrevistar pessoas;
+editar gravações;
+transmitir ao vivo;
+produzir notícias;
+criar arquivos históricos.
+
+34. Relação com fotografias e VHS
+Toda essa infraestrutura deve alimentar os sistemas de memória do mundo.
+Um acontecimento pode existir simultaneamente como:
+EVENTO
+ ↓
+CÂMERA
+ ↓
+TRANSMISSÃO
+ ↓
+TV
+
+e também:
+CÂMERA
+ ↓
+GRAVAÇÃO
+ ↓
+VHS
+ ↓
+ARQUIVO HISTÓRICO
+
+Isso permite que um acontecimento seja:
+testemunhado;
+transmitido;
+gravado;
+revisto no futuro.
+
+35. Exemplo de evento emergente
+Uma hidrelétrica é construída.
+Meses depois, uma parte de sua estrutura sofre uma falha.
+Um jogador está pilotando um helicóptero próximo.
+A câmera do helicóptero está conectada a uma rede.
+A rede transmite:
+HELICÓPTERO
+↓
+ANTENA
+↓
+REDE
+↓
+TVs
+
+Jogadores em outras cidades acompanham o acontecimento.
+Outro jogador grava a transmissão.
+Outra pessoa registra fotos.
+Depois do evento, surge uma fita:
+“Incidente da Hidrelétrica do Vale”
+Meses depois, novos jogadores assistem à gravação.
+A hidrelétrica destruída continua existindo fisicamente no mundo.
+O acontecimento passou a fazer parte da história do servidor.
+
+36. Requisitos de design
+Os sistemas devem seguir estes princípios:
+1. Não transformar tudo em receita pronta
+A fabricação deve possuir etapas.
+2. Não transformar toda máquina em bloco único
+Máquinas grandes podem ser compostas.
+3. Não transformar toda falha em condição programada
+Utilizar propriedades físicas sempre que possível.
+4. Não explicar tudo
+O jogador deve experimentar e descobrir.
+5. Não criar profissões obrigatórias
+As profissões devem surgir das necessidades.
+6. Não determinar completamente o valor econômico
+O valor pode surgir entre jogadores.
+7. Não tornar transmissão uma interface abstrata
+A infraestrutura deve existir fisicamente.
+8. Não criar eventos só para mostrar sistemas
+O mundo deve permitir que os jogadores criem eventos naturalmente.
+
+37. Performance
+Máquinas grandes não devem significar milhares de entidades independentes.
+O sistema deve utilizar:
+estruturas agrupadas;
+componentes hierárquicos;
+simulação por módulos;
+atualização somente quando necessário;
+níveis de detalhe;
+estados persistentes;
+processamento resumido quando a máquina está distante.
+Uma hidrelétrica vista a poucos blocos pode possuir simulação detalhada.
+A mesma hidrelétrica a milhares de blocos pode utilizar um estado resumido.
+
+38. Regra de integração com sistemas existentes
+Antes de implementar qualquer componente:
+verificar se o sistema já existe.
+Se existir:
+não recriar. Integrar, expandir ou corrigir.
+Isso vale especialmente para:
+montagem;
+física;
+roda d'água;
+câmeras;
+fotos;
+VHS;
+veículos;
+energia;
+estruturas;
+materiais;
+economia;
+áudio;
+transmissão.
+
+39. Resultado esperado
+O resultado final não deve parecer um mod com:
+“50 máquinas novas”.
+Deve parecer um mundo no qual os jogadores descobriram como construir uma sociedade industrial.
+A cadeia desejada é:
+MATÉRIA-PRIMA
+      ↓
+PEÇAS
+      ↓
+MÁQUINAS
+      ↓
+ENERGIA
+      ↓
+INDÚSTRIA
+      ↓
+ENGENHARIA
+      ↓
+GRANDES OBRAS
+      ↓
+INFRAESTRUTURA
+      ↓
+ECONOMIA
+      ↓
+COMUNICAÇÃO
+      ↓
+HISTÓRIA
+
+E o objetivo maior é que nenhuma dessas etapas precise contar ao jogador:
+“Agora você está criando uma civilização.”
+O jogador simplesmente começa fazendo uma serra.
+Depois descobre como fazer a serra funcionar.
+Depois precisa de uma roda d'água.
+Depois precisa de engrenagens.
+Depois precisa de metal.
+Depois precisa de uma oficina.
+Depois alguém financia uma fábrica.
+Depois a fábrica precisa de energia.
+Depois alguém constrói uma hidrelétrica.
+Depois alguém instala uma antena.
+Depois outra pessoa transmite da hidrelétrica.
+E, quando o jogador perceber, o servidor possui:
+indústria, infraestrutura, moeda, comunicação, engenharia, imprensa, história e cidades — tudo criado pelos próprios jogadores.
+WAYAROUND
+Requisitos de Maquinários, Fabricação, Engenharia e Redes de Transmissão
+1. Objetivo
+O sistema de maquinários do WayAround deve permitir que o jogador construa máquinas, produza suas próprias peças, conecte sistemas de energia e crie infraestrutura industrial, sem depender de máquinas mágicas que simplesmente transformam um item em outro.
+A filosofia principal é:
+O jogador não desbloqueia uma máquina. O jogador aprende a construir uma máquina.
+Os sistemas devem permitir que uma mesma tecnologia tenha diferentes níveis de complexidade, eficiência, qualidade e improvisação.
+Uma máquina pode ser:
+simples;
+artesanal;
+mal montada;
+eficiente;
+industrial;
+gigantesca;
+especializada;
+improvisada;
+modificada pelo próprio jogador.
+O jogo deve avaliar principalmente as propriedades físicas e estruturais do sistema, e não a intenção do jogador.
+
+2. Princípio fundamental
+Uma máquina não deve precisar saber:
+“Eu sou uma serraria.”
+Ela deve saber:
+receber rotação;
+transmitir rotação;
+possuir uma ferramenta;
+possuir resistência;
+consumir energia;
+transformar uma ação mecânica em outra.
+A função final emerge da montagem.
+Exemplo:
+Roda d'água
+↓
+Eixo
+↓
+Engrenagens
+↓
+Correia
+↓
+Eixo rápido
+↓
+Disco dentado
+↓
+Madeira
+
+O jogador acabou de criar uma serraria.
+
+3. Sistema de peças
+As máquinas devem ser compostas por peças independentes sempre que isso fizer sentido.
+3.1 Peças fundamentais
+Estrutura
+madeira;
+vigas;
+chapas metálicas;
+suportes;
+bases;
+colunas;
+carcaças;
+fundações.
+Movimento
+eixo;
+engrenagem;
+roda;
+polia;
+correia;
+corrente;
+volante;
+manivela;
+pistão;
+biela;
+rolamento.
+Fixação
+prego;
+parafuso;
+rebite;
+solda;
+suporte;
+dobradiça;
+trava;
+encaixe.
+Energia
+roda d'água;
+roda de vento;
+motor;
+turbina;
+caldeira;
+gerador;
+bateria;
+cabos;
+transformadores.
+Ferramentas industriais
+lâmina;
+serra;
+broca;
+martelo;
+prensa;
+molde;
+disco;
+corte;
+ferramentas especializadas.
+Controle
+alavanca;
+volante;
+válvula;
+botão;
+interruptor;
+controlador;
+instrumento analógico.
+
+4. Fabricação das peças
+Uma máquina complexa não deve necessariamente ser obtida pronta.
+O jogador deve produzir partes intermediárias.
+Exemplo: disco de serra
+metal bruto
+↓
+chapa/disco metálico
+↓
+formatação
+↓
+criação dos dentes
+↓
+afiação
+↓
+disco de serra
+
+A afiação pode exigir uma máquina mais simples ou até força braçal.
+Isso cria uma cadeia tecnológica natural.
+O jogador começa com:
+ferramenta simples
+e gradualmente chega a:
+indústria capaz de fabricar suas próprias ferramentas industriais.
+
+5. Força braçal
+Nem toda produção precisa começar com energia.
+Alguns trabalhos podem ser feitos manualmente:
+afiar;
+martelar;
+girar;
+cortar;
+moldar;
+prensar;
+montar;
+transportar.
+Entretanto, a força manual deve normalmente ser:
+mais lenta;
+menos consistente;
+mais cansativa;
+limitada em escala.
+Isso permite que máquinas surjam como consequência de uma necessidade real.
+
+6. Sistema de transmissão mecânica
+A energia mecânica precisa poder ser transmitida.
+Exemplo:
+RODA D'ÁGUA
+     ↓
+   EIXO
+     ↓
+ENGRENAGEM
+     ↓
+  CORREIA
+     ↓
+ENGRENAGEM
+     ↓
+   SERRA
+
+O sistema deve considerar propriedades como:
+rotação;
+torque;
+massa;
+resistência;
+perdas;
+atrito;
+desalinhamento;
+eficiência.
+
+7. Engrenagens
+Engrenagens permitem alterar a relação entre velocidade e força.
+Relação de velocidade
+Uma combinação pode produzir:
+maior velocidade com menor força.
+Outra pode produzir:
+maior força com menor velocidade.
+Isso permite ao jogador descobrir configurações próprias.
+Exemplo:
+Roda d'água
+20 RPM
+↓
+engrenagem grande
+↓
+engrenagem pequena
+↓
+100 RPM
+
+Aumentar a velocidade não deve simplesmente gerar energia gratuita.
+O sistema deve conservar as relações físicas relevantes.
+
+8. Multiplicação de potência
+Uma roda d'água isolada pode ter capacidade limitada.
+O jogador pode experimentar:
+rodas maiores;
+rodas menores;
+várias rodas;
+engrenagens;
+diferentes relações;
+múltiplos eixos;
+transmissão combinada.
+Uma montagem pode ficar:
+mais rápida;
+ou
+mais forte;
+ou
+mais eficiente.
+Nunca simplesmente “melhor em tudo”.
+
+9. Roda d'água
+A roda d'água deve funcionar como um dos primeiros grandes exemplos de máquina emergente.
+Ela pode receber:
+água;
+queda d'água;
+fluxo;
+estrutura;
+eixo;
+suporte.
+A produção mecânica depende das condições do sistema.
+Uma roda d'água pode movimentar:
+moinhos;
+serras;
+bombas;
+prensas;
+geradores;
+sistemas industriais.
+
+10. Serraria
+A serraria deve ser uma máquina montável.
+Componentes possíveis:
+estrutura;
+eixo;
+rolamentos;
+volante;
+disco de serra;
+suportes;
+transmissão;
+mecanismo de alimentação;
+fonte de energia.
+Uma serraria pode funcionar com:
+força manual;
+roda d'água;
+vapor;
+motor;
+eletricidade, dependendo do estágio tecnológico.
+
+11. Comportamento de falhas
+Máquinas não devem simplesmente possuir:
+“durabilidade = 0 → quebrar”.
+Devem existir falhas diferentes.
+Exemplos:
+Correia
+Pode escorregar ou romper.
+Eixo
+Pode deformar ou quebrar.
+Rolamento
+Pode aumentar o atrito.
+Engrenagem
+Pode perder dentes.
+Solda
+Pode falhar.
+Estrutura
+Pode vibrar ou perder estabilidade.
+Caldeira
+Pode acumular pressão acima daquilo que sua estrutura suporta.
+
+12. Pressão e comportamento emergente
+Uma máquina pode acumular pressão.
+A pressão deve exercer forças reais sobre os componentes relevantes.
+Exemplo:
+CALDEIRA
+↓
+pressão aumenta
+↓
+força sobre estrutura
+↓
+porta suporta até determinado limite
+↓
+limite ultrapassado
+↓
+porta se desprende
+
+A porta não precisa saber qual é:
+“frente”
+ou
+“trás”.
+Ela simplesmente recebe uma força.
+Quando perde sua fixação, torna-se um objeto físico influenciado pela força resultante.
+Isso deve produzir acidentes emergentes em vez de eventos rigidamente programados.
+
+13. Mesa de Arquitetura
+A Mesa de Arquitetura é utilizada para planejamento estrutural.
+Ela deve trabalhar com:
+dimensões;
+fundações;
+vigas;
+colunas;
+paredes;
+cargas;
+estruturas;
+distribuição de peso;
+pressão;
+estabilidade.
+Seu objetivo é responder principalmente:
+“Essa estrutura consegue existir?”
+Ela pode produzir cálculos, análises ou indicadores técnicos, mas não deve substituir totalmente o conhecimento do jogador.
+
+14. Mesa de Engenharia
+A Mesa de Engenharia deve ser um ambiente matemático baseado em canvas.
+Elementos possíveis:
+números;
+variáveis;
+fórmulas;
+operadores;
+unidades;
+gráficos;
+tabelas;
+anotações;
+resultados;
+diagramas.
+Seu objetivo é responder principalmente:
+“Matematicamente, como esse sistema deve funcionar?”
+O jogador pode construir seus próprios métodos de cálculo.
+Exemplo conceitual:
+vazão
+altura
+eficiência
+↓
+fórmula
+↓
+potência estimada
+
+
+15. Hidrelétrica
+A hidrelétrica deve ser uma obra composta, e não um bloco único.
+Estrutura geral:
+RIO
+ ↓
+RESERVATÓRIO
+ ↓
+BARRAGEM
+ ↓
+COMPORTA
+ ↓
+ENTRADA
+ ↓
+CONDUTO
+ ↓
+TURBINA
+ ↓
+EIXO
+ ↓
+GERADOR
+ ↓
+TRANSFORMADOR
+ ↓
+REDE ELÉTRICA
+
+
+16. Estruturas da hidrelétrica
+Barragem
+concreto;
+concreto reforçado;
+armadura;
+fundação;
+galerias;
+canais;
+comportas.
+Comporta
+placa;
+trilhos;
+dobradiças/eixos;
+mecanismo de elevação;
+cabos ou correntes;
+controle.
+Conduto
+tubulação;
+concreto;
+revestimento;
+suportes.
+Turbina
+carcaça;
+rotor;
+pás;
+eixo;
+rolamentos.
+Gerador
+rotor;
+estator/bobinas;
+eixo;
+estrutura;
+resfriamento;
+conexões.
+Distribuição
+transformador;
+cabos;
+torres;
+isoladores;
+painéis;
+proteção.
+
+17. Turbina Modelo A
+A Turbina Hidrelétrica Modelo A deve representar uma categoria de equipamento industrial de grande porte.
+Ela não precisa ser um bloco monolítico.
+Pode possuir:
+CARCAÇA
+├── rotor
+├── pás
+├── eixo
+├── rolamentos
+├── entrada de água
+└── saída
+
+O jogador deve montar e alinhar essas partes.
+Variações futuras podem possuir:
+diferentes tamanhos;
+diferentes rotores;
+diferentes materiais;
+diferentes eficiências;
+diferentes condições operacionais.
+
+18. Concreto
+Concreto deve ser um material estrutural importante.
+Possíveis usos:
+barragens;
+fundações;
+usinas;
+pontes;
+túneis;
+torres;
+canais;
+edifícios industriais.
+Tipos possíveis:
+concreto;
+concreto reforçado;
+concreto armado;
+variantes estruturais de alta resistência.
+A produção pode exigir uma cadeia própria.
+
+19. Engenharia como cooperação
+Construções complexas devem ser possíveis individualmente, porém difíceis de executar sozinho.
+Uma grande obra pode exigir:
+materiais;
+projetos;
+cálculos;
+máquinas;
+trabalhadores;
+transporte;
+dinheiro;
+manutenção.
+Isso deve permitir que jogadores assumam papéis naturalmente.
+Exemplo:
+Jogador A
+→ projeto
+
+Jogador B
+→ cálculos
+
+Jogador C
+→ materiais
+
+Jogador D
+→ construção
+
+Jogador E
+→ financiamento
+
+Nenhum desses papéis precisa ser imposto como uma profissão.
+
+20. Sistema monetário
+A moeda deve ser produzida fisicamente.
+Não deve existir uma conversão simplista como:
+4 barras = 12 moedas.
+Cada moeda deve representar uma unidade produzida.
+Processo conceitual:
+metal
+↓
+blanque/disco
+↓
+formação
+↓
+cunhagem
+↓
+acabamento
+↓
+moeda
+
+Diferentes moedas podem possuir diferentes níveis de dificuldade de fabricação.
+Exemplo:
+ferro;
+cobre;
+prata;
+ouro;
+materiais extremamente raros.
+O sistema não precisa determinar automaticamente quanto uma moeda “vale” economicamente.
+
+21. Valor econômico emergente
+O valor da moeda deve surgir da circulação entre jogadores.
+Exemplo:
+A → 100 moedas → B
+
+O jogador pode:
+contratar;
+financiar;
+pagar serviços;
+comprar materiais;
+doar;
+recompensar;
+investir.
+Um projeto pode existir simplesmente porque jogadores acreditaram nele.
+O jogo não precisa garantir retorno financeiro.
+Uma obra pode:
+gerar lucro;
+ficar inutilizada;
+ser abandonada;
+ser destruída;
+virar patrimônio histórico.
+
+22. Rede de transmissão
+A transmissão deve utilizar infraestrutura física.
+Estrutura básica:
+CÂMERA
+↓
+TRANSMISSOR
+↓
+ANTENA
+↓
+REDE DE TRANSMISSÃO
+↓
+ANTENA RECEPTORA
+↓
+TELEVISOR
+
+A câmera pode transmitir:
+imagem;
+áudio;
+voz;
+sons do ambiente.
+
+23. Câmeras
+A câmera continua sendo um equipamento físico.
+Pode ser:
+portátil;
+instalada;
+montada em veículo;
+colocada em helicóptero;
+colocada em uma torre;
+usada para transmissões.
+A transmissão deve aproveitar o sistema de captura já existente, evitando renderização duplicada desnecessária.
+
+24. Antenas
+Antenas formam a infraestrutura da rede.
+Podem existir:
+antenas pequenas;
+antenas residenciais;
+antenas industriais;
+torres;
+estações retransmissoras.
+Uma rede pode utilizar várias antenas para cobrir áreas maiores.
+
+25. Retransmissão
+Uma estação intermediária pode receber uma transmissão e retransmiti-la.
+Exemplo:
+CAMERA A
+ ↓
+ANTENA 1
+ ↓
+ANTENA 2
+ ↓
+ANTENA 3
+ ↓
+TV
+
+Isso permite redes extensas sem exigir uma única transmissão de alcance absurdo.
+
+26. Canais
+Cada transmissão deve estar associada a um canal ou frequência lógica dentro do sistema.
+Uma televisão pode:
+trocar de canal;
+perder sinal;
+encontrar uma transmissão;
+receber interferência;
+acompanhar uma transmissão ao vivo.
+O canal não precisa conhecer o conteúdo.
+Ele apenas transporta a transmissão.
+
+27. Qualidade do sinal
+A qualidade pode depender de fatores como:
+distância;
+infraestrutura;
+potência relativa da transmissão;
+presença de retransmissores;
+disponibilidade da antena;
+integridade do equipamento.
+Consequências possíveis:
+imagem limpa;
+ruído;
+áudio instável;
+congelamento;
+perda de sinal;
+recuperação automática.
+
+28. Transmissões ao vivo
+Uma câmera conectada à rede pode transmitir o estado atual do mundo.
+Isso permite situações como:
+HELICÓPTERO
+↓
+CÂMERA
+↓
+ANTENA
+↓
+TV
+
+O jogador em casa pode observar acontecimentos que estão acontecendo naquele instante.
+Exemplo:
+um helicóptero sobrevoando uma região industrial;
+uma barragem apresentando problemas;
+uma cerimônia;
+uma expedição;
+uma obra;
+um acidente;
+uma ocorrência envolvendo máquinas.
+
+29. Interferência de transmissão
+Deve existir uma mecânica de interferência abstrata e interna ao jogo, representando disputa por um canal de transmissão.
+Uma segunda estação pode tentar ocupar o mesmo canal.
+Conceitualmente:
+TRANSMISSÃO ORIGINAL
+        ↓
+      CANAL
+        ↑
+TRANSMISSÃO INTRUSA
+
+Dependendo das condições do sistema, a televisão pode:
+apresentar ruído;
+alternar entre sinais;
+perder a transmissão original;
+receber temporariamente a nova transmissão.
+
+30. Equipamento de transmissão improvisado
+Jogadores devem poder construir seus próprios equipamentos para transmitir.
+O equipamento pode ser composto por peças como:
+antena;
+alimentação;
+componentes de transmissão;
+amplificação;
+controle;
+estrutura.
+O sistema deve tratar isso como equipamento de jogo e simulação de rede, sem exigir um bloco especial chamado:
+“Hackeador de TV”.
+
+31. Tomada temporária de canal
+Uma transmissão intrusa pode assumir um canal durante determinado período.
+Exemplo:
+CANAL 7
+
+[programação normal]
+
+↓ interferência
+
+[ruído]
+
+↓ mudança de sinal
+
+[NOVA TRANSMISSÃO]
+
+A nova transmissão pode ser:
+uma fala;
+imagens;
+uma câmera remota;
+um comunicado;
+uma produção dos jogadores;
+uma transmissão improvisada.
+O conteúdo é determinado pelo jogador.
+
+32. Redes locais
+Uma cidade pode desenvolver sua própria rede.
+Exemplo:
+      TORRE PRINCIPAL
+        /    |    \
+       /     |     \
+      TV    TV     TV
+
+Outra cidade pode possuir uma rede diferente.
+Duas redes podem compartilhar infraestrutura ou disputar canais.
+
+33. Jornalismo emergente
+O jogo não deve criar necessariamente uma profissão chamada:
+Jornalista.
+Porém pode surgir naturalmente.
+Jogadores podem:
+instalar câmeras;
+acompanhar eventos;
+entrevistar pessoas;
+editar gravações;
+transmitir ao vivo;
+produzir notícias;
+criar arquivos históricos.
+
+34. Relação com fotografias e VHS
+Toda essa infraestrutura deve alimentar os sistemas de memória do mundo.
+Um acontecimento pode existir simultaneamente como:
+EVENTO
+ ↓
+CÂMERA
+ ↓
+TRANSMISSÃO
+ ↓
+TV
+
+e também:
+CÂMERA
+ ↓
+GRAVAÇÃO
+ ↓
+VHS
+ ↓
+ARQUIVO HISTÓRICO
+
+Isso permite que um acontecimento seja:
+testemunhado;
+transmitido;
+gravado;
+revisto no futuro.
+
+35. Exemplo de evento emergente
+Uma hidrelétrica é construída.
+Meses depois, uma parte de sua estrutura sofre uma falha.
+Um jogador está pilotando um helicóptero próximo.
+A câmera do helicóptero está conectada a uma rede.
+A rede transmite:
+HELICÓPTERO
+↓
+ANTENA
+↓
+REDE
+↓
+TVs
+
+Jogadores em outras cidades acompanham o acontecimento.
+Outro jogador grava a transmissão.
+Outra pessoa registra fotos.
+Depois do evento, surge uma fita:
+“Incidente da Hidrelétrica do Vale”
+Meses depois, novos jogadores assistem à gravação.
+A hidrelétrica destruída continua existindo fisicamente no mundo.
+O acontecimento passou a fazer parte da história do servidor.
+
+36. Requisitos de design
+Os sistemas devem seguir estes princípios:
+1. Não transformar tudo em receita pronta
+A fabricação deve possuir etapas.
+2. Não transformar toda máquina em bloco único
+Máquinas grandes podem ser compostas.
+3. Não transformar toda falha em condição programada
+Utilizar propriedades físicas sempre que possível.
+4. Não explicar tudo
+O jogador deve experimentar e descobrir.
+5. Não criar profissões obrigatórias
+As profissões devem surgir das necessidades.
+6. Não determinar completamente o valor econômico
+O valor pode surgir entre jogadores.
+7. Não tornar transmissão uma interface abstrata
+A infraestrutura deve existir fisicamente.
+8. Não criar eventos só para mostrar sistemas
+O mundo deve permitir que os jogadores criem eventos naturalmente.
+
+37. Performance
+Máquinas grandes não devem significar milhares de entidades independentes.
+O sistema deve utilizar:
+estruturas agrupadas;
+componentes hierárquicos;
+simulação por módulos;
+atualização somente quando necessário;
+níveis de detalhe;
+estados persistentes;
+processamento resumido quando a máquina está distante.
+Uma hidrelétrica vista a poucos blocos pode possuir simulação detalhada.
+A mesma hidrelétrica a milhares de blocos pode utilizar um estado resumido.
+
+38. Regra de integração com sistemas existentes
+Antes de implementar qualquer componente:
+verificar se o sistema já existe.
+Se existir:
+não recriar. Integrar, expandir ou corrigir.
+Isso vale especialmente para:
+montagem;
+física;
+roda d'água;
+câmeras;
+fotos;
+VHS;
+veículos;
+energia;
+estruturas;
+materiais;
+economia;
+áudio;
+transmissão.
+
+39. Resultado esperado
+O resultado final não deve parecer um mod com:
+“50 máquinas novas”.
+Deve parecer um mundo no qual os jogadores descobriram como construir uma sociedade industrial.
+A cadeia desejada é:
+MATÉRIA-PRIMA
+      ↓
+PEÇAS
+      ↓
+MÁQUINAS
+      ↓
+ENERGIA
+      ↓
+INDÚSTRIA
+      ↓
+ENGENHARIA
+      ↓
+GRANDES OBRAS
+      ↓
+INFRAESTRUTURA
+      ↓
+ECONOMIA
+      ↓
+COMUNICAÇÃO
+      ↓
+HISTÓRIA
+
+E o objetivo maior é que nenhuma dessas etapas precise contar ao jogador:
+“Agora você está criando uma civilização.”
+O jogador simplesmente começa fazendo uma serra.
+Depois descobre como fazer a serra funcionar.
+Depois precisa de uma roda d'água.
+Depois precisa de engrenagens.
+Depois precisa de metal.
+Depois precisa de uma oficina.
+Depois alguém financia uma fábrica.
+Depois a fábrica precisa de energia.
+Depois alguém constrói uma hidrelétrica.
+Depois alguém instala uma antena.
+Depois outra pessoa transmite da hidrelétrica.
+E, quando o jogador perceber, o servidor possui:
+indústria, infraestrutura, moeda, comunicação, engenharia, imprensa, história e cidades — tudo criado pelos próprios jogadores.

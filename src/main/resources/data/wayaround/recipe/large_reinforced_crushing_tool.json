@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    "ITI",
+    " I "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_block"
+    },
+    "T": {
+      "item": "wayaround:large_crushing_tool"
+    }
+  },
+  "result": {
+    "id": "wayaround:large_reinforced_crushing_tool",
+    "count": 1
+  }
+}

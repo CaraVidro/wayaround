@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.industrial.power;
 
 import java.util.Collection;
+import java.util.ArrayList;
+import net.caravidro.wayaround.industrial.crushing.*;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -52,6 +54,23 @@ public final class MechanicalMillBlockEntity
     private static final int MAX_OUTPUT =
             64;
 
+    private final MachineParts parts = new MachineParts("mill");
+
+    public MachineParts parts() { return parts; }
+    public int inputCapacity() { return parts.has(MachinePartSpec.Role.FEED) ? 8 * parts.feedMultiplier() : 0; }
+    public void installPart(Player player, ItemStack stack) {
+        if (level == null || level.isClientSide || !WorldFeatureRuntime.enabled(level, WorldFeature.ASSEMBLY)) return;
+        if (Math.abs(rpm) > .5F || !parts.install(player, stack)) {
+            player.displayClientMessage(Component.translatable("message.wayaround.machine.stop_or_slot"), true); return;
+        }
+        sync();
+    }
+    public void removePart(Player player) {
+        if (Math.abs(rpm) > .5F) { player.displayClientMessage(Component.translatable("message.wayaround.machine.stop_first"),true); return; }
+        ItemStack stack = parts.removeLast();
+        if (!stack.isEmpty()) { if (!player.getInventory().add(stack)) player.drop(stack,false); sync(); }
+    }
+
     private int wheatInput;
     private int flourOutput;
 
@@ -88,7 +107,9 @@ public final class MechanicalMillBlockEntity
                 || !WorldFeatureRuntime.enabled(
                 level,
                 WorldFeature.INDUSTRIAL_MACHINES
-        )) {
+        )
+                || !WorldFeatureRuntime.enabled(level, WorldFeature.ASSEMBLY)) {
+            if (mill.rpm != 0) { mill.rpm = 0; mill.lastPower = 0; mill.connected = false; mill.sync(); }
             return;
         }
 
@@ -99,7 +120,7 @@ public final class MechanicalMillBlockEntity
                 mill.connected;
 
         IRotationalPower source =
-                mill.findBestSource();
+                mill.parts.operable() ? mill.findBestSource() : null;
 
         mill.connected =
                 source != null;
@@ -120,7 +141,7 @@ public final class MechanicalMillBlockEntity
 
             float requested =
                     POWER_DRAW
-                            * loadMultiplier;
+                            * loadMultiplier * mill.parts.driveCost();
 
             float accepted =
                     source.consumePower(
@@ -169,7 +190,7 @@ public final class MechanicalMillBlockEntity
                                         * 0.30F
                 );
 
-        if (mill.wheatInput > 0
+        if (mill.parts.operable() && mill.wheatInput > 0
                 && mill.flourOutput <= MAX_OUTPUT - 2
                 && Math.abs(
                 mill.rpm
@@ -184,6 +205,8 @@ public final class MechanicalMillBlockEntity
                             0.18F,
                             1.45F
                     );
+
+            speed *= mill.parts.speed();
 
             float wearPenalty =
                     1.0F
@@ -243,6 +266,7 @@ public final class MechanicalMillBlockEntity
                         1.0F;
 
                 mill.wheatInput--;
+                mill.parts.wear(.0009F, Math.max(1, mill.lastPower / POWER_DRAW));
 
                 mill.flourOutput =
                         Math.min(
@@ -304,9 +328,9 @@ public final class MechanicalMillBlockEntity
     ) {
         if (level == null
                 || level.isClientSide
-                || wheatInput >= MAX_INPUT) {
+                || !parts.complete() || wheatInput >= inputCapacity()) {
 
-            if (wheatInput >= MAX_INPUT) {
+            if (!parts.complete() || wheatInput >= inputCapacity()) {
                 player.displayClientMessage(
                         Component.translatable(
                                 "message.wayaround.mechanical_mill.full"
@@ -378,6 +402,7 @@ public final class MechanicalMillBlockEntity
     }
 
     public void dropContents() {
+        if (level != null && !level.isClientSide) parts.drop(level, worldPosition);
         if (level == null
                 || level.isClientSide) {
             return;
@@ -418,6 +443,10 @@ public final class MechanicalMillBlockEntity
     public void describe(
             Player player
     ) {
+        if (!parts.complete()) {
+            player.displayClientMessage(Component.translatable("message.wayaround.machine.assembly", parts.nodes(true).size(), 4), true);
+            return;
+        }
         player.displayClientMessage(
                 Component.translatable(
                         "message.wayaround.mechanical_mill.status",
@@ -523,86 +552,14 @@ public final class MechanicalMillBlockEntity
 
     @Override
     public Collection<AssemblyPartNode> assemblyParts() {
-        ResourceLocation source =
-                assemblyType();
-
-        return List.of(
-                LegacyMachineAssembly.part(
-                        "frame",
-                        "mill frame",
-                        AssemblyPartProfile.Kind.FRAME,
-                        AssemblyPartProfile.Material.WOOD,
-                        source,
-                        assemblyWear * 0.65F,
-                        true,
-                        1.0F
-                ),
-                LegacyMachineAssembly.part(
-                        "shaft",
-                        "vertical drive shaft",
-                        AssemblyPartProfile.Kind.SHAFT,
-                        AssemblyPartProfile.Material.IRON,
-                        source,
-                        assemblyWear,
-                        true,
-                        1.1F
-                ),
-                LegacyMachineAssembly.part(
-                        "stones",
-                        "millstone pair",
-                        AssemblyPartProfile.Kind.GENERAL,
-                        AssemblyPartProfile.Material.STONE,
-                        source,
-                        assemblyWear * 0.82F,
-                        true,
-                        1.25F
-                ),
-                LegacyMachineAssembly.part(
-                        "hopper",
-                        "grain hopper",
-                        AssemblyPartProfile.Kind.GENERAL,
-                        AssemblyPartProfile.Material.WOOD,
-                        source,
-                        assemblyWear * 0.38F,
-                        true,
-                        0.55F
-                )
-        );
+        var nodes = new ArrayList<>(parts.nodes(true));
+        nodes.add(LegacyMachineAssembly.part("frame", "mill frame", AssemblyPartProfile.Kind.FRAME,
+            AssemblyPartProfile.Material.WOOD, assemblyType(), assemblyWear, true, 1));
+        return nodes;
     }
 
     @Override
-    public Collection<AssemblyConnection> assemblyConnections() {
-        return List.of(
-                new AssemblyConnection(
-                        "frame",
-                        "shaft",
-                        AssemblyConnection.Type.BEARING,
-                        0.92F,
-                        assemblyWear
-                ),
-                new AssemblyConnection(
-                        "shaft",
-                        "stones",
-                        AssemblyConnection.Type.SHAFT,
-                        0.94F,
-                        assemblyWear * 0.82F
-                ),
-                new AssemblyConnection(
-                        "frame",
-                        "stones",
-                        AssemblyConnection.Type.SUPPORT,
-                        0.93F,
-                        assemblyWear * 0.64F
-                ),
-                new AssemblyConnection(
-                        "frame",
-                        "hopper",
-                        AssemblyConnection.Type.FASTENED,
-                        0.95F,
-                        assemblyWear * 0.42F
-                )
-        );
-    }
+    public Collection<AssemblyConnection> assemblyConnections() { return parts.connections(); }
 
     @Override
     public float currentAssemblyLoad() {
@@ -618,6 +575,7 @@ public final class MechanicalMillBlockEntity
     public void applyAssemblyWear(
             float fraction
     ) {
+        parts.wear(fraction, Math.max(1, lastPower / POWER_DRAW));
         assemblyWear =
                 LegacyMachineAssembly.addWear(
                         assemblyWear,
@@ -667,6 +625,8 @@ public final class MechanicalMillBlockEntity
                 tag,
                 registries
         );
+
+        parts.save(tag, registries);
 
         tag.putInt(
                 "WheatInput",
@@ -718,6 +678,16 @@ public final class MechanicalMillBlockEntity
                 tag,
                 registries
         );
+
+        if (tag.contains("InstalledMachineParts")) {
+            parts.load(tag, registries);
+        } else if (tag.contains("WheatInput")) {
+            // Preserve pre-assembly saved mills. New placements start with an empty frame.
+            parts.setLegacy(MachinePartSpec.Role.DRIVE, new ItemStack(CrusherContent.part("light_machine_shaft")));
+            parts.setLegacy(MachinePartSpec.Role.BEARING, new ItemStack(CrusherContent.part("plain_machine_bearing")));
+            parts.setLegacy(MachinePartSpec.Role.TOOL, new ItemStack(CrusherContent.part("stone_millstones")));
+            parts.setLegacy(MachinePartSpec.Role.FEED, new ItemStack(CrusherContent.part("wide_machine_hopper")));
+        }
 
         wheatInput =
                 Mth.clamp(

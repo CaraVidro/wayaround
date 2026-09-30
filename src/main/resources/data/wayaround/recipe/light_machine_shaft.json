@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " N ",
+    " S ",
+    " N "
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:iron_nugget"
+    },
+    "S": {
+      "item": "wayaround:mechanical_shaft"
+    }
+  },
+  "result": {
+    "id": "wayaround:light_machine_shaft",
+    "count": 1
+  }
+}
