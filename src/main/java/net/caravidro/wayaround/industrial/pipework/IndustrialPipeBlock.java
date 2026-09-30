@@ -125,7 +125,7 @@ public final class IndustrialPipeBlock extends PipeBlock implements net.minecraf
     }
     @Override protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
         if (stack.is(PipeworkContent.VALVE.get()) && level.getBlockEntity(pos) instanceof PipeBlockEntity pipe) {
-            if (!level.isClientSide) pipe.installValve(stack, player, player.getNearestViewDirection());
+            if (!level.isClientSide) pipe.installValve(stack, player, hit.getDirection());
             return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide);
         }
         return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
