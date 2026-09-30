@@ -1,8 +1,15 @@
 package net.caravidro.wayaround.industrial;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.HashSet;
 import java.util.Set;
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -15,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.ExperienceOrb;
@@ -38,7 +46,9 @@ import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
-public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
+public final class ReforcedBlasterBlockEntity
+        extends BaseContainerBlockEntity
+        implements WorldlyContainer, AssemblyMachine {
     private NonNullList<ItemStack> items = NonNullList.withSize(2, ItemStack.EMPTY);
     private final MachineEnergy energy = new MachineEnergy();
     private final RecipeManager.CachedCheck<SingleRecipeInput, BlastingRecipe> blasting = RecipeManager.createCheck(RecipeType.BLASTING);
@@ -48,6 +58,7 @@ public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity i
     private int progress;
     private int total = 80;
     private float experience;
+    private float assemblyWear;
     private final ContainerData data = new ContainerData() {
         @Override public int get(int index) {
             return switch (index) { case 0 -> energy.getEnergyStored(); case 1 -> BlasterCycle.CAPACITY; case 2 -> progress; case 3 -> total; default -> 0; };
@@ -158,6 +169,7 @@ public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity i
         tag.putInt("Progress", progress);
         tag.putInt("Total", total);
         tag.putFloat("Experience", experience);
+        tag.putFloat("AssemblyWear", assemblyWear);
         if (processingRecipe != null) tag.putString("ProcessingRecipe", processingRecipe.toString());
         ListTag used = new ListTag();
         for (ResourceLocation id : usedRecipes) used.add(StringTag.valueOf(id.toString()));
@@ -173,6 +185,7 @@ public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity i
         total = Math.clamp(tag.getInt("Total"), 1, 32_000);
         progress = Math.clamp(tag.getInt("Progress"), 0, total - 1);
         experience = Math.max(0, tag.getFloat("Experience"));
+        assemblyWear = Mth.clamp(tag.getFloat("AssemblyWear"), 0.0F, 1.0F);
         processingRecipe = ResourceLocation.tryParse(tag.getString("ProcessingRecipe"));
         usedRecipes.clear();
         for (Tag value : tag.getList("UsedRecipes", Tag.TAG_STRING)) {
