@@ -68,6 +68,10 @@ public final class MechanicalFanBlockEntity
                 || !WorldFeatureRuntime.enabled(
                 level,
                 WorldFeature.POWER_NETWORKS
+        )
+                || !WorldFeatureRuntime.enabled(
+                level,
+                WorldFeature.INDUSTRIAL_MACHINES
         )) {
             return;
         }
