@@ -119,7 +119,7 @@ public final class SawmillRenderer
 
         if (sawmill.manualCranking()) {
             renderCrank(
-                    sawmill.bladeAngle(),
+                    visualBladeAngle,
                     poseStack,
                     bufferSource,
                     packedLight,
@@ -151,15 +151,6 @@ public final class SawmillRenderer
             );
         }
 
-        if (sawmill.manualCranking()) {
-            renderCrank(
-                    sawmill.bladeAngle(),
-                    poseStack,
-                    bufferSource,
-                    packedLight,
-                    packedOverlay
-            );
-        }
 
         poseStack.popPose();
     }
