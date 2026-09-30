@@ -86,6 +86,9 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.WATER_GENERATOR_ITEM.get()
                                         );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_FAN_ITEM.get()
+                                        );
                                     }
                             )
                             .build()
