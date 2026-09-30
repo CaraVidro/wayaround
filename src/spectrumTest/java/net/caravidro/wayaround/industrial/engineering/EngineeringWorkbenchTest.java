@@ -2,6 +2,8 @@ package net.caravidro.wayaround.industrial.engineering;
 
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.Node;
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.NodeType;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.block.Blocks;
 
 public final class EngineeringWorkbenchTest {
@@ -9,6 +11,9 @@ public final class EngineeringWorkbenchTest {
     public static void main(
             String[] args
     ) {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+
         graphRecalculatesThroughConnections();
         cyclesAreRejected();
         beamFormulaMatchesReference();
