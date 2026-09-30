@@ -7,6 +7,11 @@ import java.util.Objects;
  *
  * <p>The same graph can represent a real block (shaft) or a virtual piece
  * inside a block entity (a water-wheel plate).</p>
+ *
+ * <p>{@code supported} means direct structural support into the world or a
+ * foundation. A part merely bolted/nailed to another part is not directly
+ * supported; its load must travel through AssemblyConnections to a supported
+ * node.</p>
  */
 public record AssemblyPartNode(
         String id,
