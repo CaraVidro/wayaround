@@ -24,6 +24,8 @@ public final class PipeBlockEntity
 
     private int lastFlow;
 
+    private int lastSyncedAmount = -1;
+    private PipeMedium lastSyncedMedium = PipeMedium.EMPTY;
     private long lastSyncTick;
 
     public PipeBlockEntity(
@@ -48,6 +50,12 @@ public final class PipeBlockEntity
                 instanceof PipeBlock block)) {
             return;
         }
+
+        int oldAmount =
+                pipe.amount;
+
+        PipeMedium oldMedium =
+                pipe.medium;
 
         pipe.lastFlow =
                 0;
@@ -105,12 +113,57 @@ public final class PipeBlockEntity
                     PipeMedium.EMPTY;
         }
 
-        if (level.getGameTime()
-                - pipe.lastSyncTick >= 5) {
+        PipeProfile profile =
+                pipe.profile();
+
+        int visualStep =
+                profile == null
+                        ? 250
+                        : Math.max(
+                        125,
+                        profile.capacity()
+                                / 8
+                );
+
+        boolean mediumChanged =
+                pipe.medium
+                        != pipe.lastSyncedMedium;
+
+        boolean volumeStepChanged =
+                pipe.lastSyncedAmount < 0
+                        || Math.abs(
+                        pipe.amount
+                                - pipe.lastSyncedAmount
+                ) >= visualStep;
+
+        boolean periodicResync =
+                pipe.amount
+                        != pipe.lastSyncedAmount
+                        && level.getGameTime()
+                                - pipe.lastSyncTick
+                                >= 20;
+
+        if (mediumChanged
+                || volumeStepChanged
+                || periodicResync) {
+
             pipe.sync();
+
             pipe.lastSyncTick =
                     level.getGameTime();
-        } else {
+
+            pipe.lastSyncedAmount =
+                    pipe.amount;
+
+            pipe.lastSyncedMedium =
+                    pipe.medium;
+
+        } else if (oldAmount
+                != pipe.amount
+                || oldMedium
+                        != pipe.medium
+                || pipe.lastFlow > 0) {
+
             pipe.setChanged();
         }
     }
