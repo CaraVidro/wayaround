@@ -222,9 +222,19 @@ public final class ShoreWaveRenderer {
                             time
                     );
 
+            /*
+             * Horizontal run-up spends part of its energy climbing terrain.
+             * A strong crest can cover one block above the water mantle; taller
+             * rises remain hard walls.
+             */
+            float elevationCost =
+                    patch.rise()
+                            * 0.68F;
+
             float localReach =
                     Mth.clamp(
                             sample.runup()
+                                    - elevationCost
                                     - (
                                     patch.distance()
                                             - 1.0F
@@ -233,11 +243,32 @@ public final class ShoreWaveRenderer {
                             1.0F
                     );
 
+            double verticalSurge =
+                    Math.max(
+                            0.0,
+                            sample.height()
+                    )
+                            + sample.breaking()
+                            * 0.42
+                            + sample.crest()
+                            * 0.18;
+
+            boolean canClimb =
+                    patch.rise()
+                            <= 0
+                            || (
+                            patch.rise()
+                                    == 1
+                                    && verticalSurge
+                                    >= 0.76
+                    );
+
             boolean covered =
                     sample.crest()
-                            > 0.16F
+                            > 0.14F
                             && localReach
-                            > 0.01F;
+                            > 0.01F
+                            && canClimb;
 
             long key =
                     BlockPos.asLong(
@@ -246,18 +277,25 @@ public final class ShoreWaveRenderer {
                             patch.z()
                     );
 
+            if (patch.wall()
+                    || (
+                    patch.rise()
+                            == 1
+                            && localReach
+                            > 0.01F
+                            && !canClimb
+            )) {
+                impactWall(
+                        minecraft,
+                        patch,
+                        sample,
+                        time
+                );
+
+                continue;
+            }
+
             if (covered) {
-                if (patch.wall()) {
-                    impactWall(
-                            minecraft,
-                            patch,
-                            sample,
-                            time
-                    );
-
-                    continue;
-                }
-
                 float coverage =
                         localReach;
 
@@ -704,15 +742,19 @@ public final class ShoreWaveRenderer {
                             break;
                         }
 
-                        boolean wall =
+                        int rise =
                                 landY
-                                        > water.getY();
+                                        - water.getY();
+
+                        boolean wall =
+                                rise
+                                        > 1;
 
                         /*
-                         * Same-height means exactly this:
-                         * water block Y == neighboring solid block Y.
-                         * Both surfaces meet at Y+1, so the sheet can cross that
-                         * edge continuously and visibly climb onto the block.
+                         * Same-height terrain is ordinary run-up. A one-block
+                         * rise is now also a valid surface for a sufficiently
+                         * tall crest, so a large wave can wash over a low ledge
+                         * instead of every +1Y step acting like an infinite wall.
                          */
                         double surface =
                                 wall
@@ -746,6 +788,7 @@ public final class ShoreWaveRenderer {
                                                 & 255,
                                         waterColor
                                                 & 255,
+                                        rise,
                                         wall
                                 );
 
@@ -1219,6 +1262,7 @@ public final class ShoreWaveRenderer {
             int red,
             int green,
             int blue,
+            int rise,
             boolean wall
     ) {
     }
