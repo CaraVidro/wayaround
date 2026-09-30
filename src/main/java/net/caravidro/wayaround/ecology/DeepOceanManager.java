@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffects;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -71,6 +72,15 @@ public final class DeepOceanManager {
                     player.serverLevel()
                             .getSeaLevel()
                             - player.getY();
+
+            /*
+             * Old builds granted the diving suit a long Night Vision refresh.
+             * Strip that legacy effect immediately in the abyss so it cannot
+             * fight the new depth-light curve for several seconds.
+             */
+            if (player.hasEffect(MobEffects.NIGHT_VISION)) {
+                player.removeEffect(MobEffects.NIGHT_VISION);
+            }
 
             /*
              * Darkness is now rendered as one smooth client fog curve.
