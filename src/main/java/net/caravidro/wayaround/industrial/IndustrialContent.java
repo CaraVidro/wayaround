@@ -8,6 +8,7 @@ import net.caravidro.wayaround.industrial.power.SawmillMenu;
 import net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchMenu;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
 import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
+import net.caravidro.wayaround.industrial.pipework.PipeworkContent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.flag.FeatureFlags;
@@ -261,6 +262,7 @@ public final class IndustrialContent {
         TABS.register(bus);
         bus.addListener(IndustrialContent::capabilities);
         PowerContent.register(bus);
+        PipeworkContent.register(bus);
         CoalShipContent.register(bus);
         ExperimentalShipContent.register(bus);
     }
