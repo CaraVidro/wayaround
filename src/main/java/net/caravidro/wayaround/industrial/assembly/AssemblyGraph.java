@@ -5,14 +5,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Set;
 
-import net.minecraft.util.Mth;
 
 /**
  * Topology and load routing for assembled machines.
@@ -29,6 +26,7 @@ public final class AssemblyGraph {
     private final Map<String, AssemblyPartNode> parts;
     private final List<Edge> edges;
     private final Map<String, List<Edge>> adjacency;
+    private final Routing routing;
 
     private AssemblyGraph(
             Map<String, AssemblyPartNode> parts,
@@ -62,17 +60,45 @@ public final class AssemblyGraph {
                 Map.copyOf(
                         frozen
                 );
+
+        this.routing =
+                buildRouting(
+                        this.parts,
+                        this.adjacency
+                );
     }
 
     public static AssemblyGraph fromMachine(
             AssemblyMachine machine
     ) {
-        return builder()
-                .addMachine(
-                        "",
-                        machine
-                )
-                .build();
+        return from(
+                machine.assemblyParts(),
+                machine.assemblyConnections()
+        );
+    }
+
+    public static AssemblyGraph from(
+            Collection<AssemblyPartNode> parts,
+            Collection<AssemblyConnection> connections
+    ) {
+        Builder builder =
+                builder();
+
+        for (AssemblyPartNode part :
+                parts) {
+            builder.addPart(
+                    part
+            );
+        }
+
+        for (AssemblyConnection connection :
+                connections) {
+            builder.addConnection(
+                    connection
+            );
+        }
+
+        return builder.build();
     }
 
     public static Builder builder() {
@@ -111,9 +137,10 @@ public final class AssemblyGraph {
 
         for (String id :
                 parts.keySet()) {
-            if (pathToSupport(
-                    id
-            ) != null) {
+            if (routing.reachable()
+                    .containsKey(
+                            id
+                    )) {
                 supported++;
             }
         }
@@ -225,7 +252,8 @@ public final class AssemblyGraph {
 
             List<Edge> path =
                     pathToSupport(
-                            sourceId
+                            sourceId,
+                            routing
                     );
 
             if (path == null) {
@@ -372,21 +400,80 @@ public final class AssemblyGraph {
     }
 
     private List<Edge> pathToSupport(
-            String start
+            String start,
+            Routing routing
     ) {
-        AssemblyPartNode origin =
-                parts.get(
+        if (!routing.reachable()
+                .containsKey(
                         start
-                );
-
-        if (origin == null) {
+                )) {
             return null;
         }
 
-        if (origin.supported()) {
+        if (parts.get(
+                start
+        ).supported()) {
             return List.of();
         }
 
+        ArrayList<Edge> path =
+                new ArrayList<>();
+
+        String cursor =
+                start;
+
+        int guard =
+                parts.size()
+                        + 1;
+
+        while (!parts.get(
+                cursor
+        ).supported()
+                && guard-- > 0) {
+
+            Edge edge =
+                    routing.nextEdge()
+                            .get(
+                                    cursor
+                            );
+
+            String next =
+                    routing.nextNode()
+                            .get(
+                                    cursor
+                            );
+
+            if (edge == null
+                    || next == null) {
+                return null;
+            }
+
+            path.add(
+                    edge
+            );
+
+            cursor =
+                    next;
+        }
+
+        if (guard <= 0) {
+            return null;
+        }
+
+        return List.copyOf(
+                path
+        );
+    }
+
+    /**
+     * Multi-source Dijkstra from every direct world support. This is computed
+     * once for the immutable graph, so a large plant does not run a full graph
+     * search separately for every turbine blade, beam, shaft and generator.
+     */
+    private static Routing buildRouting(
+            Map<String, AssemblyPartNode> parts,
+            Map<String, List<Edge>> adjacency
+    ) {
         PriorityQueue<PathNode> queue =
                 new PriorityQueue<>(
                         Comparator.comparingDouble(
@@ -397,26 +484,39 @@ public final class AssemblyGraph {
         Map<String, Double> distance =
                 new HashMap<>();
 
-        Map<String, Edge> parentEdge =
+        Map<String, Edge> nextEdge =
                 new HashMap<>();
 
-        Map<String, String> parentNode =
+        Map<String, String> nextNode =
                 new HashMap<>();
 
-        queue.add(
-                new PathNode(
-                        start,
-                        0.0
-                )
-        );
+        Map<String, Boolean> reachable =
+                new HashMap<>();
 
-        distance.put(
-                start,
-                0.0
-        );
+        for (Map.Entry<String, AssemblyPartNode> entry :
+                parts.entrySet()) {
+            if (!entry.getValue()
+                    .supported()) {
+                continue;
+            }
 
-        String target =
-                null;
+            distance.put(
+                    entry.getKey(),
+                    0.0
+            );
+
+            reachable.put(
+                    entry.getKey(),
+                    true
+            );
+
+            queue.add(
+                    new PathNode(
+                            entry.getKey(),
+                            0.0
+                    )
+            );
+        }
 
         while (!queue.isEmpty()) {
             PathNode current =
@@ -429,19 +529,6 @@ public final class AssemblyGraph {
             )
                     + 1.0E-9) {
                 continue;
-            }
-
-            AssemblyPartNode part =
-                    parts.get(
-                            current.id()
-                    );
-
-            if (part != null
-                    && part.supported()) {
-                target =
-                        current.id();
-
-                break;
             }
 
             for (Edge edge :
@@ -467,18 +554,15 @@ public final class AssemblyGraph {
                     continue;
                 }
 
-                double stepCost =
-                        1.0
+                double nextCost =
+                        current.cost()
+                                + 1.0
                                 / Math.max(
                                 0.05,
                                 connectionCapacity(
                                         connection
                                 )
                         );
-
-                double nextCost =
-                        current.cost()
-                                + stepCost;
 
                 if (nextCost
                         + 1.0E-9
@@ -494,14 +578,23 @@ public final class AssemblyGraph {
                         nextCost
                 );
 
-                parentEdge.put(
+                /*
+                 * Search runs support -> outside, but routing needs outside ->
+                 * support, so this edge/node becomes the next hop back inward.
+                 */
+                nextEdge.put(
                         other,
                         edge
                 );
 
-                parentNode.put(
+                nextNode.put(
                         other,
                         current.id()
+                );
+
+                reachable.put(
+                        other,
+                        true
                 );
 
                 queue.add(
@@ -513,44 +606,16 @@ public final class AssemblyGraph {
             }
         }
 
-        if (target == null) {
-            return null;
-        }
-
-        ArrayDeque<Edge> reversed =
-                new ArrayDeque<>();
-
-        String cursor =
-                target;
-
-        while (!cursor.equals(
-                start
-        )) {
-            Edge edge =
-                    parentEdge.get(
-                            cursor
-                    );
-
-            String previous =
-                    parentNode.get(
-                            cursor
-                    );
-
-            if (edge == null
-                    || previous == null) {
-                return null;
-            }
-
-            reversed.addFirst(
-                    edge
-            );
-
-            cursor =
-                    previous;
-        }
-
-        return List.copyOf(
-                reversed
+        return new Routing(
+                Map.copyOf(
+                        nextEdge
+                ),
+                Map.copyOf(
+                        nextNode
+                ),
+                Map.copyOf(
+                        reachable
+                )
         );
     }
 
@@ -642,6 +707,13 @@ public final class AssemblyGraph {
 
             return null;
         }
+    }
+
+    private record Routing(
+            Map<String, Edge> nextEdge,
+            Map<String, String> nextNode,
+            Map<String, Boolean> reachable
+    ) {
     }
 
     private record PathNode(
