@@ -1,0 +1,6 @@
+{
+  "type":"minecraft:crafting_shaped","category":"misc",
+  "pattern":["III","IPI","ISI"],
+  "key":{"I":{"item":"minecraft:iron_ingot"},"P":{"item":"minecraft:piston"},"S":{"item":"wayaround:mechanical_shaft"}},
+  "result":{"id":"wayaround:mechanical_press","count":1}
+}
