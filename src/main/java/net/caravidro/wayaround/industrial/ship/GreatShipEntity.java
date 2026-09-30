@@ -936,6 +936,9 @@ public final class GreatShipEntity
                 getDeltaMovement()
                         .horizontalDistance();
 
+        double previousWaveHeave =
+                waveHeave;
+
         super.tick();
 
         if (!isSinking()
@@ -1018,7 +1021,8 @@ public final class GreatShipEntity
                 && !isWrecked()) {
             carryDeckWalkers(
                     previousPosition,
-                    previousYaw
+                    previousYaw,
+                    previousWaveHeave
             );
         }
     }
@@ -1087,31 +1091,23 @@ public final class GreatShipEntity
                                 - waveRoll
                 ) * 0.085F;
 
+        /*
+         * Critical separation: the realistic mesh is an overlay while vanilla
+         * water remains the actual fluid volume. Applying heave to entity Y can
+         * lift a Boat out of that vanilla volume, which makes vanilla buoyancy
+         * / friction treat the Nau as half-grounded and it feels "stuck" on a
+         * crest. Keep heave/pitch/roll as hull presentation state only.
+         *
+         * Horizontal navigation, collision and fluid status remain on the
+         * stable vanilla mantle. The renderer and deck-walker carrier consume
+         * waveHeave so the visible ship still rides the crest.
+         */
         Vec3 velocity =
                 getDeltaMovement();
 
-        double lift =
-                Mth.clamp(
-                        (
-                                targetHeave
-                                        - waveHeave
-                        ) * 0.012
-                                + waveHeaveVelocity
-                                * 0.11,
-                        -0.035,
-                        0.035
-                );
-
-        /*
-         * Waves lift and rotate the hull, but they do not steal propulsion.
-         * Horizontal drift remains the responsibility of WaterDynamics/current
-         * and wind. This prevents a head-on crest from behaving like invisible
-         * drag on a sailing vessel.
-         */
         setDeltaMovement(
                 velocity.x,
-                velocity.y
-                        + lift,
+                velocity.y,
                 velocity.z
         );
     }
@@ -1806,7 +1802,8 @@ public final class GreatShipEntity
 
     private void carryDeckWalkers(
             Vec3 oldShipPosition,
-            float oldYaw
+            float oldYaw,
+            double oldWaveHeave
     ) {
         Vec3 newShipPosition =
                 position();
@@ -1879,7 +1876,8 @@ public final class GreatShipEntity
 
             double oldDeck =
                     oldShipPosition.y
-                            + DECK_Y;
+                            + DECK_Y
+                            + oldWaveHeave;
 
             if (player.getY()
                     < oldDeck - 0.62
@@ -1907,11 +1905,16 @@ public final class GreatShipEntity
                             + (
                             newShipPosition.y
                                     - oldShipPosition.y
+                    )
+                            + (
+                            waveHeave
+                                    - oldWaveHeave
                     );
 
             double newDeck =
                     newShipPosition.y
-                            + DECK_Y;
+                            + DECK_Y
+                            + waveHeave;
 
             boolean landing =
                     player.getDeltaMovement().y
@@ -2357,6 +2360,17 @@ public final class GreatShipEntity
         return entityData.get(
                 VESSEL_STATE
         ) == STATE_WRECKED;
+    }
+
+    public double visualHeave(
+            float partialTick
+    ) {
+        if (isWrecked()
+                || isSinking()) {
+            return 0.0;
+        }
+
+        return waveHeave;
     }
 
     public float visualPitch(
