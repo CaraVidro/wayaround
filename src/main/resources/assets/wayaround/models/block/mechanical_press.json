@@ -3,7 +3,7 @@
   "textures": {
     "iron": "minecraft:block/iron_block",
     "dark": "minecraft:block/polished_deepslate",
-    "copper": "minecraft:block/waxed_copper_block",
+    "copper": "minecraft:block/copper_block",
     "stone": "minecraft:block/smooth_stone",
     "red": "minecraft:block/redstone_block",
     "particle": "minecraft:block/iron_block"
