@@ -5,6 +5,7 @@ import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.caravidro.wayaround.nexus.NexusContent;
 import net.caravidro.wayaround.industrial.power.SawmillMenu;
+import net.caravidro.wayaround.industrial.pipework.PipeworkContent;
 import net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchMenu;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
 import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
@@ -86,6 +87,41 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.WATER_GENERATOR_ITEM.get()
                                         );
+                                    }
+                            )
+                            .build()
+            );
+
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> PIPEWORK =
+            TABS.register(
+                    "pipework",
+                    () -> CreativeModeTab.builder()
+                            .title(
+                                    Component.translatable(
+                                            "itemGroup.wayaround.pipework"
+                                    )
+                            )
+                            .withTabsBefore(
+                                    CreativeModeTabs.SPAWN_EGGS
+                            )
+                            .icon(
+                                    () -> PipeworkContent.STEEL_WATER_MAIN_ITEM.get()
+                                            .getDefaultInstance()
+                            )
+                            .displayItems(
+                                    (parameters, output) -> {
+                                        output.accept(PipeworkContent.COPPER_TUBE_ITEM.get());
+                                        output.accept(PipeworkContent.IRON_SERVICE_PIPE_ITEM.get());
+                                        output.accept(PipeworkContent.STEEL_WATER_MAIN_ITEM.get());
+                                        output.accept(PipeworkContent.BRASS_GAS_LINE_ITEM.get());
+                                        output.accept(PipeworkContent.REINFORCED_GAS_PIPE_ITEM.get());
+                                        output.accept(PipeworkContent.INSULATED_STEAM_PIPE_ITEM.get());
+                                        output.accept(PipeworkContent.FLOOR_PIPE_SUPPORT_ITEM.get());
+                                        output.accept(PipeworkContent.WALL_PIPE_BRACKET_ITEM.get());
+                                        output.accept(PipeworkContent.HANGING_PIPE_SUPPORT_ITEM.get());
+                                        output.accept(PipeworkContent.EMPTY_CANISTER.get());
+                                        output.accept(PipeworkContent.COMPRESSED_AIR_CANISTER.get());
+                                        output.accept(PipeworkContent.STEAM_CANISTER.get());
                                     }
                             )
                             .build()
@@ -264,6 +300,7 @@ public final class IndustrialContent {
         TABS.register(bus);
         bus.addListener(IndustrialContent::capabilities);
         PowerContent.register(bus);
+        PipeworkContent.register(bus);
         CoalShipContent.register(bus);
         ExperimentalShipContent.register(bus);
     }
