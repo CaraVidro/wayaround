@@ -106,7 +106,7 @@ public final class ReforcedBlasterRenderer
         // Heavy base / shell.
         IndustrialRenderUtil.cuboid(
                 blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                Blocks.SMOOTH_STONE.defaultBlockState(),
                 0.0, -0.43, 0.0,
                 0.94, 0.14, 0.90
         );
@@ -123,7 +123,7 @@ public final class ReforcedBlasterRenderer
                 blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
                 lit
                         ? Blocks.MAGMA_BLOCK.defaultBlockState()
-                        : Blocks.BLACKSTONE.defaultBlockState(),
+                        : Blocks.DEEPSLATE_BRICKS.defaultBlockState(),
                 0.0, -0.02, -0.34,
                 0.46, 0.40, 0.10
         );
@@ -131,7 +131,7 @@ public final class ReforcedBlasterRenderer
         // Furnace mouth / reinforced rim.
         IndustrialRenderUtil.cuboid(
                 blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                Blocks.POLISHED_BLACKSTONE.defaultBlockState(),
+                Blocks.STONE_BRICKS.defaultBlockState(),
                 0.0, -0.02, -0.405,
                 0.60, 0.54, 0.08
         );
@@ -140,7 +140,7 @@ public final class ReforcedBlasterRenderer
                 blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
                 lit
                         ? Blocks.MAGMA_BLOCK.defaultBlockState()
-                        : Blocks.BLACKSTONE.defaultBlockState(),
+                        : Blocks.DEEPSLATE_BRICKS.defaultBlockState(),
                 0.0, -0.02, -0.455,
                 0.42, 0.34, 0.04
         );
