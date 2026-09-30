@@ -28,8 +28,9 @@ public final class AssemblyEngine {
                 );
 
         AssemblyGraph graph =
-                AssemblyGraph.fromMachine(
-                        machine
+                AssemblyGraph.from(
+                        parts,
+                        connections
                 );
 
         AssemblyLoadDistribution distribution =
@@ -63,9 +64,6 @@ public final class AssemblyEngine {
         float weightTotal =
                 0.0F;
 
-        int supported =
-                0;
-
         String weakest =
                 "";
 
@@ -95,10 +93,6 @@ public final class AssemblyEngine {
 
             weightTotal +=
                     weight;
-
-            if (part.supported()) {
-                supported++;
-            }
 
             if (profile.durabilityScore()
                     < weakestScore) {
