@@ -6,6 +6,7 @@ import java.util.List;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
 
 public final class AssemblyEngineTest {
 
@@ -246,6 +247,162 @@ public final class AssemblyEngineTest {
                 composed.supportedRatio()
                         == 1.0F,
                 "A second module should become structurally supported through an explicit cross-module connection"
+        );
+
+        AssemblyGraph woodenBeam =
+                AssemblyGraph.builder()
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "beam",
+                                        "beam",
+                                        AssemblyPartProfile.legacy(
+                                                AssemblyPartProfile.Kind.BOARD,
+                                                AssemblyPartProfile.Material.WOOD,
+                                                ResourceLocation.fromNamespaceAndPath(
+                                                        "wayaround",
+                                                        "test_beam"
+                                                ),
+                                                0,
+                                                0.10F
+                                        ),
+                                        true,
+                                        1.0F
+                                )
+                        )
+                        .build();
+
+        AssemblyFailureEvent beamFailure =
+                AssemblyFailureModel.evaluate(
+                        woodenBeam,
+                        new AssemblyLoadCase(
+                                AssemblyLoadCase.Kind.BENDING,
+                                3.2F,
+                                new Vec3(
+                                        1.0,
+                                        0.0,
+                                        0.0
+                                ),
+                                0.20F
+                        )
+                )
+                        .orElseThrow(
+                                () -> new AssertionError(
+                                        "Overloaded wooden beam should produce a localized failure"
+                                )
+                        );
+
+        require(
+                beamFailure.mode()
+                        == AssemblyFailureMode.SPLIT,
+                "Wood under bending should split rather than use a generic failure"
+        );
+
+        AssemblyGraph pressureDoor =
+                AssemblyGraph.builder()
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "frame",
+                                        "frame",
+                                        AssemblyPartProfile.legacy(
+                                                AssemblyPartProfile.Kind.FRAME,
+                                                AssemblyPartProfile.Material.IRON,
+                                                ResourceLocation.fromNamespaceAndPath(
+                                                        "wayaround",
+                                                        "pressure_frame"
+                                                ),
+                                                0,
+                                                0.0F
+                                        ),
+                                        true,
+                                        0.25F
+                                )
+                        )
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "door",
+                                        "door",
+                                        AssemblyPartProfile.legacy(
+                                                AssemblyPartProfile.Kind.BOARD,
+                                                AssemblyPartProfile.Material.IRON,
+                                                ResourceLocation.fromNamespaceAndPath(
+                                                        "wayaround",
+                                                        "pressure_door"
+                                                ),
+                                                0,
+                                                0.0F
+                                        ),
+                                        false,
+                                        2.5F
+                                )
+                        )
+                        .addConnection(
+                                new AssemblyConnection(
+                                        "frame",
+                                        "door",
+                                        AssemblyConnection.Type.FASTENED,
+                                        0.20F,
+                                        0.25F
+                                )
+                        )
+                        .build();
+
+        AssemblyLoadCase pressure =
+                AssemblyLoadCase.pressure(
+                        3.0F,
+                        0.25F,
+                        1.8F,
+                        new Vec3(
+                                0.0,
+                                0.0,
+                                1.0
+                        )
+                );
+
+        AssemblyFailureEvent pressureFailure =
+                AssemblyFailureModel.evaluate(
+                        pressureDoor,
+                        pressure
+                )
+                        .orElseThrow(
+                                () -> new AssertionError(
+                                        "Weak pressure boundary should fail under differential pressure"
+                                )
+                        );
+
+        require(
+                pressureFailure.target()
+                        == AssemblyFailureEvent.Target.CONNECTION,
+                "Pressure should fail the weak fastener before inventing a scripted door failure"
+        );
+
+        require(
+                pressureFailure.mode()
+                        == AssemblyFailureMode.PULL_OUT,
+                "Fastener under differential pressure should pull out"
+        );
+
+        require(
+                pressureFailure.releaseImpulse().z
+                        > 0.0,
+                "Pressure failure should carry a release impulse from high pressure to low pressure"
+        );
+
+        AssemblyLoadCase reversedPressure =
+                AssemblyLoadCase.pressure(
+                        0.25F,
+                        3.0F,
+                        1.8F,
+                        new Vec3(
+                                0.0,
+                                0.0,
+                                1.0
+                        )
+                );
+
+        require(
+                reversedPressure.direction().z
+                        < 0.0,
+                "Reversing pressure differential must reverse the release direction"
         );
 
         System.out.println(
