@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.ecology.ai;
 
+import net.caravidro.wayaround.ecology.DeepOceanManager;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
