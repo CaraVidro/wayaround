@@ -170,6 +170,12 @@ public final class IndustrialContent {
                                                 PowerContent.MECHANICAL_GEARBOX_ITEM.get()
                                         );
                                         output.accept(
+                                                PowerContent.MECHANICAL_FAN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_PRESS_ITEM.get()
+                                        );
+                                        output.accept(
                                                 NexusContent.NEXUSTOR_BASE_ITEM.get()
                                         );
                                         output.accept(
