@@ -680,5 +680,9 @@
   "item.wayaround.diamond_coin": "Diamond Coin",
   "item.wayaround.netherite_coin": "Netherite Coin",
   "tooltip.wayaround.coin.reference": "Material reference value: %s",
-  "tooltip.wayaround.coin.free_market": "Reference only — servers and settlements may define their own exchange rates."
+  "tooltip.wayaround.coin.free_market": "Reference only — servers and settlements may define their own exchange rates.",
+  "tooltip.wayaround.iron_grade": "Industrial grade: %s",
+  "tooltip.wayaround.iron_grade.low": "LOW",
+  "tooltip.wayaround.iron_grade.medium": "MEDIUM",
+  "tooltip.wayaround.iron_grade.high": "HIGH"
 }
