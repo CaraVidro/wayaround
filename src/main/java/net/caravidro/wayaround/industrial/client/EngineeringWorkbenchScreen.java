@@ -469,6 +469,13 @@ public final class EngineeringWorkbenchScreen
         int rows =
                 visibleCatalogRows();
 
+        graphics.enableScissor(
+                leftPos + 5,
+                startY,
+                leftPos + CATALOG_WIDTH - 5,
+                topPos + imageHeight - 7
+        );
+
         for (int row = 0; row < rows; row++) {
             int index =
                     catalogScroll + row;
@@ -535,6 +542,8 @@ public final class EngineeringWorkbenchScreen
                     false
             );
         }
+
+        graphics.disableScissor();
 
         if (filtered.isEmpty()) {
             graphics.drawString(
@@ -1503,26 +1512,68 @@ public final class EngineeringWorkbenchScreen
                 false
         );
 
-        int cellWidth = 58;
-        int rowHeight = 18;
+        int totalRows =
+                (
+                        PALETTE.size()
+                                + PALETTE_COLUMNS
+                                - 1
+                )
+                        / PALETTE_COLUMNS;
+
+        paletteScrollRow =
+                Math.clamp(
+                        paletteScrollRow,
+                        0,
+                        Math.max(
+                                0,
+                                totalRows
+                                        - PALETTE_VISIBLE_ROWS
+                        )
+                );
+
+        int bodyY =
+                y0 + 17;
+
+        int bodyBottom =
+                topPos
+                        + imageHeight
+                        - 5;
+
+        graphics.enableScissor(
+                x0 + 3,
+                bodyY,
+                x0 + width - 3,
+                bodyBottom
+        );
 
         for (int index = 0;
              index < PALETTE.size();
              index++) {
 
             int column =
-                    index % 7;
+                    index % PALETTE_COLUMNS;
+
+            int absoluteRow =
+                    index / PALETTE_COLUMNS;
 
             int row =
-                    index / 7;
+                    absoluteRow
+                            - paletteScrollRow;
+
+            if (row < 0
+                    || row >= PALETTE_VISIBLE_ROWS) {
+                continue;
+            }
 
             int x =
                     x0 + 5
-                            + column * cellWidth;
+                            + column
+                                    * PALETTE_CELL_WIDTH;
 
             int y =
-                    y0 + 17
-                            + row * rowHeight;
+                    bodyY
+                            + row
+                                    * PALETTE_ROW_HEIGHT;
 
             boolean hovered =
                     inside(
@@ -1530,18 +1581,20 @@ public final class EngineeringWorkbenchScreen
                             mouseY,
                             x,
                             y,
-                            cellWidth - 3,
+                            PALETTE_CELL_WIDTH - 3,
                             16
                     );
 
             boolean dragging =
                     draggingPaletteType
-                            == PALETTE.get(index);
+                            == PALETTE.get(
+                            index
+                    );
 
             graphics.fill(
                     x,
                     y,
-                    x + cellWidth - 3,
+                    x + PALETTE_CELL_WIDTH - 3,
                     y + 16,
                     dragging
                             ? 0xFF526A4F
@@ -1553,12 +1606,68 @@ public final class EngineeringWorkbenchScreen
             graphics.drawString(
                     font,
                     paletteLabel(
-                            PALETTE.get(index)
+                            PALETTE.get(
+                                    index
+                            )
                     ),
                     x + 4,
                     y + 4,
                     0xFFDCE4E9,
                     false
+            );
+        }
+
+        graphics.disableScissor();
+
+        if (totalRows > PALETTE_VISIBLE_ROWS) {
+            int maxScroll =
+                    totalRows
+                            - PALETTE_VISIBLE_ROWS;
+
+            int trackTop =
+                    bodyY;
+
+            int trackBottom =
+                    bodyBottom - 1;
+
+            int thumbHeight =
+                    Math.max(
+                            7,
+                            (
+                                    trackBottom
+                                            - trackTop
+                            )
+                                    * PALETTE_VISIBLE_ROWS
+                                    / totalRows
+                    );
+
+            int thumbY =
+                    trackTop
+                            + (
+                            trackBottom
+                                    - trackTop
+                                    - thumbHeight
+                    )
+                                    * paletteScrollRow
+                                    / Math.max(
+                                    1,
+                                    maxScroll
+                            );
+
+            graphics.fill(
+                    x0 + width - 3,
+                    trackTop,
+                    x0 + width - 2,
+                    trackBottom,
+                    0xFF303840
+            );
+
+            graphics.fill(
+                    x0 + width - 4,
+                    thumbY,
+                    x0 + width - 1,
+                    thumbY + thumbHeight,
+                    0xFF7D929F
             );
         }
     }
@@ -1969,6 +2078,59 @@ public final class EngineeringWorkbenchScreen
                     false
             );
         }
+    }
+
+    private boolean hasPendingConnection() {
+        if (pendingSourceId < 0) {
+            return false;
+        }
+
+        Node source =
+                graph.node(
+                        pendingSourceId
+                );
+
+        if (source == null
+                || pendingSourceOutput < 0
+                || pendingSourceOutput >= source.outputCount()) {
+
+            clearPendingConnection();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void clearPendingConnection() {
+        pendingSourceId =
+                -1;
+
+        pendingSourceOutput =
+                0;
+    }
+
+    private Node nodeAtGraphPoint(
+            double graphX,
+            double graphY
+    ) {
+        for (Node node :
+                reversedNodes()) {
+
+            if (inside(
+                    graphX,
+                    graphY,
+                    node.x(),
+                    node.y(),
+                    NODE_WIDTH,
+                    nodeHeight(
+                            node
+                    )
+            )) {
+                return node;
+            }
+        }
+
+        return null;
     }
 
     @Override
@@ -2397,6 +2559,47 @@ public final class EngineeringWorkbenchScreen
             return true;
         }
 
+        int paletteTop =
+                topPos
+                        + imageHeight
+                        - BOTTOM_TOOLBAR_HEIGHT
+                        + 16;
+
+        if (inside(
+                mouseX,
+                mouseY,
+                canvasX(),
+                paletteTop,
+                canvasWidth(),
+                BOTTOM_TOOLBAR_HEIGHT - 16
+        )
+                && scrollY != 0.0) {
+
+            int totalRows =
+                    (
+                            PALETTE.size()
+                                    + PALETTE_COLUMNS
+                                    - 1
+                    )
+                            / PALETTE_COLUMNS;
+
+            paletteScrollRow =
+                    Math.clamp(
+                            paletteScrollRow
+                                    - (int) Math.signum(
+                                    scrollY
+                            ),
+                            0,
+                            Math.max(
+                                    0,
+                                    totalRows
+                                            - PALETTE_VISIBLE_ROWS
+                            )
+                    );
+
+            return true;
+        }
+
         int propertyX =
                 leftPos
                         + imageWidth
@@ -2524,6 +2727,12 @@ public final class EngineeringWorkbenchScreen
                 mouseX,
                 mouseY
         ))
+                || (noteBox != null
+                && noteBox.visible
+                && noteBox.isMouseOver(
+                mouseX,
+                mouseY
+        ))
                 || (recommendedButton != null
                 && recommendedButton.isMouseOver(
                 mouseX,
@@ -2591,36 +2800,59 @@ public final class EngineeringWorkbenchScreen
                         - BOTTOM_TOOLBAR_HEIGHT
                         + 17;
 
-        int cellWidth = 58;
-        int rowHeight = 18;
+        int bottom =
+                topPos
+                        + imageHeight
+                        - 5;
+
+        if (!inside(
+                mouseX,
+                mouseY,
+                x0 + 3,
+                y0,
+                canvasWidth() - 6,
+                bottom - y0
+        )) {
+            return null;
+        }
 
         for (int index = 0;
              index < PALETTE.size();
              index++) {
 
             int column =
-                    index % 7;
+                    index % PALETTE_COLUMNS;
 
             int row =
-                    index / 7;
+                    index / PALETTE_COLUMNS
+                            - paletteScrollRow;
+
+            if (row < 0
+                    || row >= PALETTE_VISIBLE_ROWS) {
+                continue;
+            }
 
             int x =
                     x0 + 5
-                            + column * cellWidth;
+                            + column
+                                    * PALETTE_CELL_WIDTH;
 
             int y =
                     y0
-                            + row * rowHeight;
+                            + row
+                                    * PALETTE_ROW_HEIGHT;
 
             if (inside(
                     mouseX,
                     mouseY,
                     x,
                     y,
-                    cellWidth - 3,
+                    PALETTE_CELL_WIDTH - 3,
                     16
             )) {
-                return PALETTE.get(index);
+                return PALETTE.get(
+                        index
+                );
             }
         }
 
