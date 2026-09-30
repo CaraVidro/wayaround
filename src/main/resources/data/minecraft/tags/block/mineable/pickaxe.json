@@ -6,6 +6,10 @@
     "wayaround:energy_cable",
     "wayaround:steam_engine",
     "wayaround:black_box",
-    "wayaround:river_pebbles"
+    "wayaround:river_pebbles",
+    "wayaround:mechanical_fan",
+    "wayaround:ore_drill",
+    "wayaround:air_separator",
+    "wayaround:mechanical_press"
   ]
 }
