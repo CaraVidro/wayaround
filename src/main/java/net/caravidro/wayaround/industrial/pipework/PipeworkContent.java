@@ -271,8 +271,9 @@ public final class PipeworkContent {
     ) {
         return ITEMS.register(
                 id,
-                () -> new BlockItem(
+                () -> new IndustrialPipeItem(
                         block.get(),
+                        ((IndustrialPipeBlock) block.get()).spec(),
                         new Item.Properties()
                 )
         );
