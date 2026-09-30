@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "wayaround:empty_pipe_canister"
+    },
+    {
+      "item": "minecraft:wind_charge"
+    }
+  ],
+  "result": {
+    "id": "wayaround:compressed_air_canister",
+    "count": 1
+  }
+}
