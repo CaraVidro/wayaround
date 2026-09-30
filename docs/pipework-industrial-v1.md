@@ -150,3 +150,53 @@ Pipework is one of the foundations for industrial places that feel built and
 used rather than placed from a mod catalogue: dense runs at different heights,
 supports, tanks, labels, dust, leaks, puddles, light shafts and gradual surface
 wear can all layer on top of this network without replacing it.
+
+
+## Current limits and acceptance checks
+
+These are implemented ratings and network inspection, not active fluid storage
+or transfer. No pump, reservoir, pressure simulation or leak simulation is
+included yet. The flow values above are nominal per-tick ratings for the future
+transport system; V1 does not yet assign a transported volume unit.
+
+Inspection admits at most 512 pipes and evaluates every admitted pipe, including
+the final queued section. Starting in an unloaded chunk returns an empty result;
+inspection never loads chunks. Networks beyond this budget are partial snapshots
+and must not be treated as a guarantee that an entire larger network is safe.
+
+Manual in-game checks:
+
+1. Open Pipework and place all six families; compare diameter and flange geometry.
+2. Build elbows, T junctions, vertical and ceiling runs; remove a neighbor and
+   verify both ends update their connections.
+3. Place a thin gas line next to a copper liquid line: no direct connection.
+4. Add a steel pressure section and inspect the network. Query by medium when
+   evaluating a future pump: generic inspection may report no common medium.
+5. Assemble the sawmill body, blade and shaft; compare manual crank and powered
+   cutting, then inspect wear, vibration and jams. This is the existing sawmill,
+   not a newly implemented long industrial batch saw.
+6. Feed wheat into a powered Mechanical Mill; collect flour with an empty hand.
+   Break a loaded mill and verify both wheat and flour drop.
+
+## Future machinery shortlist — proposals, not implemented
+
+| Machine | Purpose | Visible behavior / dependency |
+| --- | --- | --- |
+| Mechanical pump | Make liquid pipes operational | Rotating impeller, power draw, reservoir ports, real stored volume |
+| Modular water tank | Buffer supply and create the water-plant silhouette | Visible fill level, inlet/outlet, overflow |
+| Long industrial saw | Separate batch processor from the compact sawmill | Feed rollers and carriage; proposed 4 logs -> 64 boards, requiring balancing |
+| Ore crusher | Begin dedicated iron processing | Jaw motion, torque spikes, ore fragments; preserve vanilla smelting |
+| Ore washer | Separate useful ore from waste | Water consumption, sludge output, rotating drum |
+| Air compressor | Give gas lines a concrete consumer/producer | Piston, receiver tank, pressure relief; needs gas storage first |
+| Mechanical bellows | Supply air to metallurgical machines | Reciprocating leather chamber and mechanical linkage |
+| Grain sifter | Extend mill output processing | Shaking mesh, flour sorting and dust |
+| Bucket elevator | Lift bulk materials through a plant | Endless belt, visible buckets, power proportional to load |
+| Mechanical clock | Useful town machinery | Escapement, moving hands, bell driven by stored mechanical energy |
+| Boot polisher | Excessive engineering for tiny convenience | Two rotating brushes, squeak, shoe shine |
+| Automatic soup stirrer | Kitchen industry with questionable ambition | Gear-driven paddle, pot and bubbling animation |
+| Mechanical applause machine | Celebrate factory milestones | Cam-driven wooden hands; consumes power to clap |
+| Executive desk fan | Entire power network dedicated to comfort | Small oscillating fan and dramatically unnecessary gearbox |
+
+Prioritize pump -> reservoir -> ore crusher/washer. The Mechanical Mill already
+provides the first grain processor; novelty machines can reuse the same power,
+Assembly and animation contracts without delaying the transport foundation.

@@ -29,6 +29,11 @@ public final class PipeNetwork {
             BlockPos start,
             PipeSpec.PipeMedium medium
     ) {
+        // Inspection must never load a chunk just to discover a network.
+        if (!level.hasChunkAt(start)) {
+            return new NetworkInfo(0, 0, 0.0F, 0, Set.of());
+        }
+
         BlockState startState =
                 level.getBlockState(
                         start
@@ -75,8 +80,8 @@ public final class PipeNetwork {
                 startPipe.spec()
                         .maxTemperatureC();
 
-        while (!pending.isEmpty()
-                && visited.size() < MAX_PIPES) {
+        // Drain every admitted pipe: the final queued section may be the bottleneck.
+        while (!pending.isEmpty()) {
 
             BlockPos current =
                     pending.removeFirst();
@@ -140,6 +145,10 @@ public final class PipeNetwork {
                     continue;
                 }
 
+                if (visited.size() >= MAX_PIPES) {
+                    continue;
+                }
+
                 visited.add(
                         next
                 );
@@ -165,6 +174,11 @@ public final class PipeNetwork {
             Level level,
             BlockPos start
     ) {
+        // Inspection must never load a chunk just to discover a network.
+        if (!level.hasChunkAt(start)) {
+            return new NetworkInfo(0, 0, 0.0F, 0, Set.of());
+        }
+
         BlockState startState =
                 level.getBlockState(start);
 
@@ -211,8 +225,8 @@ public final class PipeNetwork {
                                 .media()
                 );
 
-        while (!pending.isEmpty()
-                && visited.size() < MAX_PIPES) {
+        // Drain every admitted pipe: the final queued section may be the bottleneck.
+        while (!pending.isEmpty()) {
 
             BlockPos current =
                     pending.removeFirst();
@@ -268,6 +282,10 @@ public final class PipeNetwork {
                         || !currentSpec.compatible(
                         nextPipe.spec()
                 )) {
+                    continue;
+                }
+
+                if (visited.size() >= MAX_PIPES) {
                     continue;
                 }
 
