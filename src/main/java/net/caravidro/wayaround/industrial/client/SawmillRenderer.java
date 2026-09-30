@@ -87,6 +87,7 @@ public final class SawmillRenderer
         if (sawmill.bladeInstalled()) {
             renderSaw(
                     sawmill.bladeAngle(),
+                    sawmill.longTableMode(),
                     poseStack,
                     bufferSource,
                     packedLight,
@@ -104,11 +105,29 @@ public final class SawmillRenderer
             );
         }
 
+        if (sawmill.longTableMode()) {
+            renderLongTableGuides(
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay
+            );
+        }
+
         if (sawmill.hasInput()) {
+            double travel =
+                    sawmill.longTableMode()
+                            ? 3.20
+                            : 0.48;
+
             double z =
-                    0.34
-                    - sawmill.progress()
-                    * 0.48;
+                    sawmill.longTableMode()
+                            ? 1.60
+                                    - sawmill.progress()
+                                            * travel
+                            : 0.34
+                                    - sawmill.progress()
+                                            * travel;
 
             renderCuboid(
                     poseStack,
@@ -119,11 +138,19 @@ public final class SawmillRenderer
                             sawmill
                     ),
                     -0.24,
-                    -0.02,
+                    sawmill.longTableMode()
+                            ? 0.18
+                            : -0.02,
                     z,
-                    0.28,
-                    0.28,
-                    0.72,
+                    sawmill.longTableMode()
+                            ? 0.38
+                            : 0.28,
+                    sawmill.longTableMode()
+                            ? 0.38
+                            : 0.28,
+                    sawmill.longTableMode()
+                            ? 1.45
+                            : 0.72,
                     0.0F
             );
         }
@@ -174,6 +201,7 @@ public final class SawmillRenderer
 
     private void renderSaw(
             float angle,
+            boolean longTable,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
@@ -192,8 +220,18 @@ public final class SawmillRenderer
 
         for (int i = 0; i < 12; i++) {
             double a = Math.PI * 2.0 * i / 12.0;
-            double x = Math.cos(a) * 0.285;
-            double y = Math.sin(a) * 0.285;
+            double radius =
+                    longTable
+                            ? 0.43
+                            : 0.285;
+
+            double x =
+                    Math.cos(a)
+                            * radius;
+
+            double y =
+                    Math.sin(a)
+                            * radius;
 
             renderCuboid(
                     poseStack,
@@ -204,17 +242,33 @@ public final class SawmillRenderer
                     x,
                     y,
                     0.0,
-                    0.13,
-                    0.055,
-                    0.055,
+                    longTable
+                            ? 0.18
+                            : 0.13,
+                    longTable
+                            ? 0.070
+                            : 0.055,
+                    longTable
+                            ? 0.070
+                            : 0.055,
                     (float) Math.toDegrees(a)
             );
         }
 
         for (int i = 0; i < 6; i++) {
             double a = Math.PI * 2.0 * i / 6.0;
-            double x = Math.cos(a) * 0.13;
-            double y = Math.sin(a) * 0.13;
+            double hubRadius =
+                    longTable
+                            ? 0.20
+                            : 0.13;
+
+            double x =
+                    Math.cos(a)
+                            * hubRadius;
+
+            double y =
+                    Math.sin(a)
+                            * hubRadius;
 
             renderCuboid(
                     poseStack,
@@ -248,6 +302,68 @@ public final class SawmillRenderer
         );
 
         poseStack.popPose();
+    }
+
+    private void renderLongTableGuides(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay
+    ) {
+        BlockState iron =
+                Blocks.IRON_BLOCK.defaultBlockState();
+
+        BlockState wood =
+                Blocks.OAK_PLANKS.defaultBlockState();
+
+        /*
+         * The four extension blocks provide the real footprint/collision.
+         * These long rails visually tie the five-block line into one machine.
+         */
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                iron,
+                -0.39,
+                0.22,
+                0.0,
+                0.055,
+                0.075,
+                4.65,
+                0.0F
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                iron,
+                0.39,
+                0.22,
+                0.0,
+                0.055,
+                0.075,
+                4.65,
+                0.0F
+        );
+
+        renderCuboid(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                wood,
+                0.0,
+                0.16,
+                0.0,
+                0.72,
+                0.06,
+                4.55,
+                0.0F
+        );
     }
 
     private void renderCrank(
