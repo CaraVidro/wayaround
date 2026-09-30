@@ -1,0 +1,12 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": [
+    "wayaround:southern_ocean"
+  ],
+  "spawners": {
+    "type": "wayaround:icefish",
+    "weight": 10,
+    "minCount": 2,
+    "maxCount": 5
+  }
+}

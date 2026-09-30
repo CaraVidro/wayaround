@@ -2,6 +2,7 @@ package net.caravidro.wayaround.ecology.client;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyContent;
+import net.caravidro.wayaround.ecology.RegionalFishSpecies;
 import net.minecraft.client.renderer.BiomeColors;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,6 +30,10 @@ public final class EcologyClientModEvents {
     public static void renderers(
             EntityRenderersEvent.RegisterRenderers event
     ) {
+        for (var species : RegionalFishSpecies.values()) {
+            event.registerEntityRenderer(RegionalFishSpecies.TYPES.get(species).get(), context ->
+                    new AguaWorldSpeciesRenderer<>(context, AguaWorldSpeciesRenderer.Profile.valueOf(species.name())));
+        }
         event.registerEntityRenderer(
                 EcologyContent.SUNFISH.get(),
                 SunfishRenderer::new

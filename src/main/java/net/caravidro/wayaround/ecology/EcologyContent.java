@@ -1006,6 +1006,12 @@ public final class EcologyContent {
                             )
                             .displayItems(
                                     (parameters, output) -> {
+                                        for (var species : RegionalFishSpecies.values()) {
+                                            output.accept(RegionalFishSpecies.EGGS.get(species).get());
+                                            output.accept(RegionalFishSpecies.BUCKETS.get(species).get());
+                                            output.accept(RegionalFishSpecies.MEAT.get(species).get());
+                                            output.accept(RegionalFishSpecies.COOKED.get(species).get());
+                                        }
                                         output.accept(
                                                 SARDINE_SPAWN_EGG.get()
                                         );
@@ -1119,6 +1125,7 @@ public final class EcologyContent {
     private EcologyContent() {}
 
     public static void register(IEventBus bus) {
+        RegionalFishSpecies.bootstrap();
         ENTITIES.register(bus);
         BLOCKS.register(bus);
         ITEMS.register(bus);

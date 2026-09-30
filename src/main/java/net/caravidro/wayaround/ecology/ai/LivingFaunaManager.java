@@ -8,6 +8,9 @@ import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyRules;
+import net.caravidro.wayaround.ecology.RegionalFishEntity;
+import net.caravidro.wayaround.ecology.RegionalFishSpecies;
+import net.caravidro.wayaround.ecology.RegionalFishBehavior;
 import net.caravidro.wayaround.ecology.FishCarcassEntity;
 import net.caravidro.wayaround.ecology.FishProcessingProfile;
 import net.caravidro.wayaround.ecology.SunfishEntity;
@@ -187,6 +190,8 @@ public final class LivingFaunaManager {
                     )
             );
 
+        } else if (event.getEntity() instanceof RegionalFishEntity regional) {
+            event.setSize(regional.species().clusterSize());
         } else if (event.getEntity()
                 instanceof AbstractFish) {
             event.setSize(
@@ -225,7 +230,9 @@ public final class LivingFaunaManager {
                             ItemStack stack =
                                     drop.getItem();
 
-                            return stack.is(
+                            return (fish instanceof RegionalFishEntity regional
+                                    && stack.is(RegionalFishSpecies.MEAT.get(regional.species()).get()))
+                                    || stack.is(
                                     Items.COD
                             )
                                     || stack.is(
@@ -895,6 +902,8 @@ public final class LivingFaunaManager {
                                     predator
                             );
 
+                    if (!occupied && fish instanceof RegionalFishEntity regional)
+                        occupied = RegionalFishBehavior.tick(level, regional);
                 } else {
                     boolean fleeing =
                             fleePredator(
@@ -1465,6 +1474,9 @@ public final class LivingFaunaManager {
     public static ItemStack meatForFish(
             AbstractFish fish
     ) {
+        if (fish instanceof RegionalFishEntity regional) {
+            return new ItemStack(RegionalFishSpecies.MEAT.get(regional.species()).get());
+        }
         if (fish instanceof SardineEntity) {
             return new ItemStack(
                     EcologyContent.RAW_SARDINE_MEAT.get()
@@ -1677,6 +1689,7 @@ public final class LivingFaunaManager {
     private static boolean isFishMeat(
             ItemStack stack
     ) {
+        for (var meat : RegionalFishSpecies.MEAT.values()) if (stack.is(meat.get())) return true;
         return stack.is(
                 EcologyContent.RAW_COD_MEAT.get()
         )
@@ -2605,6 +2618,10 @@ public final class LivingFaunaManager {
             return false;
         }
 
+        if (hunter instanceof RegionalFishEntity) {
+            return prey.getBbWidth() < hunter.getBbWidth() * .9F
+                    && !(prey instanceof OarfishEntity) && !(prey instanceof MantaRayEntity);
+        }
         if (hunter instanceof MorayEelEntity) {
             return !(prey instanceof MantaRayEntity)
                     && !(prey instanceof OarfishEntity)
@@ -2844,6 +2861,9 @@ public final class LivingFaunaManager {
             ServerLevel level,
             AbstractFish fish
     ) {
+        if (fish instanceof RegionalFishEntity regional && RegionalFishBehavior.tick(level, regional)) {
+            return true;
+        }
         if (avoidJellyfishBehavior(
                 level,
                 fish
@@ -3411,6 +3431,8 @@ public final class LivingFaunaManager {
             AbstractFish fish,
             ItemStack stack
     ) {
+        if (fish instanceof RegionalFishEntity regional)
+            return stack.is(RegionalFishSpecies.MEAT.get(regional.species()).get());
         if (fish
                 instanceof SardineEntity) {
             return stack.is(
@@ -3609,6 +3631,9 @@ public final class LivingFaunaManager {
                                         + level.random.nextFloat()
                                                 * 0.55F;
 
+            } else if (fish instanceof RegionalFishEntity) {
+                base = .72F + level.random.nextFloat() * .40F;
+
             } else if (fish instanceof ClownfishEntity) {
                 base = 0.28F + level.random.nextFloat() * 0.24F;
 
@@ -3771,6 +3796,9 @@ public final class LivingFaunaManager {
                             cap,
                             2.85F
                     );
+
+        } else if (fish instanceof RegionalFishEntity) {
+            cap = Math.min(cap, 1.65F);
 
         } else if (fish instanceof ClownfishEntity) {
             cap = Math.min(cap, 0.92F);
@@ -4221,6 +4249,11 @@ public final class LivingFaunaManager {
 
             localCap =
                     8;
+
+        } else if (fish instanceof RegionalFishEntity regional) {
+            boolean predator = regional instanceof AquaticPredator;
+            reproductionChance = predator ? .005F : (satiated ? .035F : .014F);
+            localCap = predator ? 4 : 18;
 
         } else if (fish instanceof ClownfishEntity) {
             reproductionChance = satiated ? 0.055F : 0.022F;
