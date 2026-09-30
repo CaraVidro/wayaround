@@ -3610,6 +3610,71 @@ public final class EngineeringWorkbenchScreen
                 );
             }
 
+            case RECTANGLE_AREA, CIRCLE_AREA -> {
+                node.unit(
+                        "m²"
+                );
+
+                node.output(
+                        0,
+                        0.0,
+                        "A",
+                        "m²"
+                );
+            }
+
+            case BOX_VOLUME -> {
+                node.unit(
+                        "m³"
+                );
+
+                node.output(
+                        0,
+                        0.0,
+                        "V",
+                        "m³"
+                );
+            }
+
+            case SLOPE_DEGREES -> {
+                node.unit(
+                        "°"
+                );
+
+                node.output(
+                        0,
+                        0.0,
+                        "θ",
+                        "°"
+                );
+            }
+
+            case STRESS -> {
+                node.unit(
+                        "Pa"
+                );
+
+                node.output(
+                        0,
+                        0.0,
+                        "σ",
+                        "Pa"
+                );
+            }
+
+            case BEAM_UDL_MOMENT, BEAM_CENTER_MOMENT -> {
+                node.unit(
+                        "N·m"
+                );
+
+                node.output(
+                        0,
+                        0.0,
+                        "M",
+                        "N·m"
+                );
+            }
+
             case WIND_FORCE -> {
                 node.label(
                         "Wind force"
