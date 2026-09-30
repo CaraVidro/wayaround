@@ -9,6 +9,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -42,8 +43,8 @@ public final class PipeBlock
 
         this.codec =
                 simpleCodec(
-                        properties -> new PipeBlock(
-                                properties,
+                        codecProperties -> new PipeBlock(
+                                codecProperties,
                                 profile
                         )
                 );
@@ -218,7 +219,7 @@ public final class PipeBlock
     }
 
     @Override
-    protected InteractionResult useItemOn(
+    protected ItemInteractionResult useItemOn(
             ItemStack stack,
             BlockState state,
             Level level,
@@ -254,7 +255,7 @@ public final class PipeBlock
                     );
                 }
 
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
 
             if (stack.is(Items.BUCKET)
@@ -292,7 +293,7 @@ public final class PipeBlock
                     }
                 }
 
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
 
             if (stack.is(
@@ -317,7 +318,7 @@ public final class PipeBlock
                     );
                 }
 
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
 
             if (stack.is(
@@ -331,7 +332,7 @@ public final class PipeBlock
                             true
                     );
 
-                    return InteractionResult.SUCCESS;
+                    return ItemInteractionResult.SUCCESS;
                 }
 
                 int accepted =
@@ -353,7 +354,7 @@ public final class PipeBlock
                     );
                 }
 
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
 
             if (stack.is(
@@ -393,7 +394,7 @@ public final class PipeBlock
                     );
                 }
 
-                return InteractionResult.SUCCESS;
+                return ItemInteractionResult.SUCCESS;
             }
 
             player.displayClientMessage(
@@ -402,9 +403,7 @@ public final class PipeBlock
             );
         }
 
-        return InteractionResult.sidedSuccess(
-                level.isClientSide
-        );
+        return ItemInteractionResult.SUCCESS;
     }
 
     private static void giveCanister(
