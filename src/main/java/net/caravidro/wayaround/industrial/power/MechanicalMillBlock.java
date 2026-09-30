@@ -171,6 +171,34 @@ public final class MechanicalMillBlock
     }
 
     @Override
+    protected void onRemove(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            BlockState replacement,
+            boolean moving
+    ) {
+        if (!state.is(
+                replacement.getBlock()
+        )
+                && !level.isClientSide
+                && level.getBlockEntity(
+                pos
+        ) instanceof MechanicalMillBlockEntity mill) {
+
+            mill.dropContents();
+        }
+
+        super.onRemove(
+                state,
+                level,
+                pos,
+                replacement,
+                moving
+        );
+    }
+
+    @Override
     protected void createBlockStateDefinition(
             StateDefinition.Builder<Block, BlockState> builder
     ) {
