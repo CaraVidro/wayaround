@@ -701,5 +701,12 @@
   "tooltip.wayaround.pipework.temperature": "Temperatura máxima: %s °C",
   "message.wayaround.pipework.status": "%s — %s u/t · %s bar · %s °C | rede %s canos · gargalo %s u/t / %s bar",
   "block.wayaround.mechanical_fan": "Ventoinha Mecânica",
-  "message.wayaround.mechanical_fan.status": "Ventoinha mecânica: %s | %s RPM | fluxo %s%%"
+  "message.wayaround.mechanical_fan.status": "Ventoinha mecânica: %s | %s RPM | fluxo %s%%",
+  "block.wayaround.mechanical_press": "Prensa Mecânica",
+  "message.wayaround.mechanical_press.busy": "A prensa mecânica já está em ciclo.",
+  "message.wayaround.mechanical_press.no_power": "A prensa mecânica precisa de mais potência rotacional.",
+  "message.wayaround.mechanical_press.started": "Ciclo da prensa mecânica iniciado.",
+  "message.wayaround.mechanical_press.status": "Prensa mecânica: %s | potência %s",
+  "message.wayaround.mechanical_press.running": "funcionando",
+  "message.wayaround.mechanical_press.idle": "parada"
 }
