@@ -701,5 +701,12 @@
   "tooltip.wayaround.pipework.temperature": "Max temperature: %s °C",
   "message.wayaround.pipework.status": "%s — %s u/t · %s bar · %s °C | network %s pipes · bottleneck %s u/t / %s bar",
   "block.wayaround.mechanical_fan": "Mechanical Fan",
-  "message.wayaround.mechanical_fan.status": "Mechanical fan: %s | %s RPM | airflow %s%%"
+  "message.wayaround.mechanical_fan.status": "Mechanical fan: %s | %s RPM | airflow %s%%",
+  "block.wayaround.mechanical_press": "Mechanical Press",
+  "message.wayaround.mechanical_press.busy": "Mechanical press is already cycling.",
+  "message.wayaround.mechanical_press.no_power": "Mechanical press needs more rotational power.",
+  "message.wayaround.mechanical_press.started": "Mechanical press cycle started.",
+  "message.wayaround.mechanical_press.status": "Mechanical press: %s | power %s",
+  "message.wayaround.mechanical_press.running": "running",
+  "message.wayaround.mechanical_press.idle": "idle"
 }
