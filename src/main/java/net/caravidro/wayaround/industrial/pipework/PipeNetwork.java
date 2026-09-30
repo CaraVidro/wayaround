@@ -26,6 +26,143 @@ public final class PipeNetwork {
 
     public static NetworkInfo inspect(
             Level level,
+            BlockPos start,
+            PipeSpec.PipeMedium medium
+    ) {
+        BlockState startState =
+                level.getBlockState(
+                        start
+                );
+
+        if (!(startState.getBlock()
+                instanceof IndustrialPipeBlock startPipe)
+                || !startPipe.spec()
+                .supports(
+                        medium
+                )) {
+            return new NetworkInfo(
+                    0,
+                    0,
+                    0.0F,
+                    0,
+                    Set.of()
+            );
+        }
+
+        Set<BlockPos> visited =
+                new HashSet<>();
+
+        ArrayDeque<BlockPos> pending =
+                new ArrayDeque<>();
+
+        visited.add(
+                start
+        );
+
+        pending.add(
+                start
+        );
+
+        int flow =
+                startPipe.spec()
+                        .flowPerTick();
+
+        float pressure =
+                startPipe.spec()
+                        .maxPressureBar();
+
+        int temperature =
+                startPipe.spec()
+                        .maxTemperatureC();
+
+        while (!pending.isEmpty()
+                && visited.size() < MAX_PIPES) {
+
+            BlockPos current =
+                    pending.removeFirst();
+
+            IndustrialPipeBlock currentPipe =
+                    (IndustrialPipeBlock) level
+                            .getBlockState(
+                                    current
+                            )
+                            .getBlock();
+
+            PipeSpec currentSpec =
+                    currentPipe.spec();
+
+            flow =
+                    Math.min(
+                            flow,
+                            currentSpec.flowPerTick()
+                    );
+
+            pressure =
+                    Math.min(
+                            pressure,
+                            currentSpec.maxPressureBar()
+                    );
+
+            temperature =
+                    Math.min(
+                            temperature,
+                            currentSpec.maxTemperatureC()
+                    );
+
+            for (Direction direction :
+                    Direction.values()) {
+
+                BlockPos next =
+                        current.relative(
+                                direction
+                        );
+
+                if (!level.hasChunkAt(
+                        next
+                )
+                        || visited.contains(
+                        next
+                )) {
+                    continue;
+                }
+
+                BlockState nextState =
+                        level.getBlockState(
+                                next
+                        );
+
+                if (!(nextState.getBlock()
+                        instanceof IndustrialPipeBlock nextPipe)
+                        || !nextPipe.spec()
+                        .supports(
+                                medium
+                        )) {
+                    continue;
+                }
+
+                visited.add(
+                        next
+                );
+
+                pending.addLast(
+                        next
+                );
+            }
+        }
+
+        return new NetworkInfo(
+                visited.size(),
+                flow,
+                pressure,
+                temperature,
+                Set.of(
+                        medium
+                )
+        );
+    }
+
+    public static NetworkInfo inspect(
+            Level level,
             BlockPos start
     ) {
         BlockState startState =
