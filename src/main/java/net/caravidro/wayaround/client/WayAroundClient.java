@@ -319,6 +319,21 @@ public final class WayAroundClient {
                     }
 
                     @Override
+                    public void blueprintLabelOpen(
+                            BlueprintLabelOpenS2CPayload payload
+                    ) {
+                        Minecraft.getInstance()
+                                .setScreen(
+                                        new net.caravidro.wayaround.industrial.client.BlueprintLabelScreen(
+                                                payload.blueprintId(),
+                                                payload.title(),
+                                                payload.showCoordinates(),
+                                                payload.showDateTime()
+                                        )
+                                );
+                    }
+
+                    @Override
                     public void thermalGlow(
                             ThermalGlowPayload payload
                     ) {
