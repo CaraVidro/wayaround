@@ -120,14 +120,12 @@ public final class DeepOceanManager {
                 if (now >= nextSound) {
                     int choice =
                             player.getRandom()
-                                    .nextInt(3);
+                                    .nextInt(2);
 
-                    var sound =
-                            switch (choice) {
-                                case 0 -> SoundEvents.AMBIENT_CAVE;
-                                case 1 -> SoundEvents.WARDEN_HEARTBEAT;
-                                default -> SoundEvents.PHANTOM_FLAP;
-                            };
+                    net.minecraft.sounds.SoundEvent sound =
+                            choice == 0
+                                    ? SoundEvents.AMBIENT_CAVE
+                                    : SoundEvents.PHANTOM_FLAP;
 
                     player.serverLevel()
                             .playSound(
