@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.assembly;
 
 import java.util.Collection;
+import java.util.Optional;
 
 import net.minecraft.util.Mth;
 
@@ -241,6 +242,43 @@ public final class AssemblyEngine {
                         load
                 )
         );
+    }
+
+    public static Optional<AssemblyFailureEvent> predictFailure(
+            AssemblyMachine machine,
+            AssemblyLoadCase loadCase
+    ) {
+        if (machine == null
+                || loadCase == null) {
+            return Optional.empty();
+        }
+
+        AssemblyGraph graph =
+                AssemblyGraph.fromMachine(
+                        machine
+                );
+
+        return AssemblyFailureModel.evaluate(
+                graph,
+                loadCase
+        );
+    }
+
+    public static Optional<AssemblyFailureEvent> dispatchFailure(
+            AssemblyMachine machine,
+            AssemblyLoadCase loadCase
+    ) {
+        Optional<AssemblyFailureEvent> failure =
+                predictFailure(
+                        machine,
+                        loadCase
+                );
+
+        failure.ifPresent(
+                machine::applyAssemblyFailure
+        );
+
+        return failure;
     }
 
     public static float externalWearFraction(
