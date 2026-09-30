@@ -1096,20 +1096,12 @@ public final class GreatShipEntity
          * water remains the actual fluid volume. Applying heave to entity Y can
          * lift a Boat out of that vanilla volume, which makes vanilla buoyancy
          * / friction treat the Nau as half-grounded and it feels "stuck" on a
-         * crest. Keep heave/pitch/roll as hull presentation state only.
+         * crest.
          *
-         * Horizontal navigation, collision and fluid status remain on the
-         * stable vanilla mantle. The renderer and deck-walker carrier consume
-         * waveHeave so the visible ship still rides the crest.
+         * Do not touch delta movement here at all. Wave response owns only
+         * presentation state (heave/pitch/roll/breaker). Navigation, currents,
+         * collision and vanilla buoyancy own physical movement.
          */
-        Vec3 velocity =
-                getDeltaMovement();
-
-        setDeltaMovement(
-                velocity.x,
-                velocity.y,
-                velocity.z
-        );
     }
 
     private void relaxWaveHull() {
