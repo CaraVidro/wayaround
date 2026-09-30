@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "BIB",
+    "ISI",
+    "BIB"
+  ],
+  "key": {
+    "B": {"item": "minecraft:iron_bars"},
+    "I": {"item": "minecraft:iron_ingot"},
+    "S": {"item": "wayaround:mechanical_shaft"}
+  },
+  "result": {
+    "id": "wayaround:mechanical_fan",
+    "count": 1
+  }
+}
