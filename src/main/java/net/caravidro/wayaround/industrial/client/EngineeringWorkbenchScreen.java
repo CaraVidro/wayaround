@@ -43,7 +43,7 @@ public final class EngineeringWorkbenchScreen
     private static final int NODE_HEADER = 15;
     private static final int NODE_INPUT_SPACING = 10;
     private static final int CATALOG_ROW = 21;
-    private static final int PALETTE_COLUMNS = 7;
+    private static final int PALETTE_COLUMNS = 4;
     private static final int PALETTE_VISIBLE_ROWS = 2;
     private static final int PALETTE_CELL_WIDTH = 58;
     private static final int PALETTE_ROW_HEIGHT = 18;
