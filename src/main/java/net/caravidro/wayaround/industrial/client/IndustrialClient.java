@@ -67,5 +67,9 @@ public final class IndustrialClient {
                 net.caravidro.wayaround.industrial.pipework.PipeworkContent.PIPE_ENTITY.get(),
                 PipeRenderer::new
         );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_MILL_ENTITY.get(),
+                MechanicalMillRenderer::new
+        );
     }
 }
