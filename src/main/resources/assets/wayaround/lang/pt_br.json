@@ -705,5 +705,12 @@
   "message.wayaround.mechanical_fan.status": "Ventoinha mecânica: %s | %s RPM | fluxo %s%%",
   "block.wayaround.mechanical_mill": "Moinho Mecânico",
   "item.wayaround.wheat_flour": "Farinha de Trigo",
-  "message.wayaround.mechanical_mill.status": "Moinho: %s | %s RPM | trigo %s | farinha %s | moagem %s%%"
+  "message.wayaround.mechanical_mill.status": "Moinho: %s | %s RPM | trigo %s | farinha %s | moagem %s%%",
+  "tooltip.wayaround.pipe.class": "Serviço: %s",
+  "tooltip.wayaround.pipe.liquid": "Líquido",
+  "tooltip.wayaround.pipe.gas": "Gás",
+  "tooltip.wayaround.pipe.capacity": "Capacidade: %s unidades",
+  "tooltip.wayaround.pipe.throughput": "Fluxo máximo: %s/t",
+  "tooltip.wayaround.pipe.pressure": "Pressão suportada: %s kPa",
+  "tooltip.wayaround.pipe.steam_rated": "Preparado para vapor quente"
 }
