@@ -105,3 +105,46 @@ A future machine should normally:
 
 This allows presses, hammers, valves, doors, assembly arms and multi-part
 industrial sequences to share one timing architecture.
+
+
+## Fluid continuous motion
+
+Object Animation V1 also owns `SmoothObjectAnimation` for machinery that does
+not have a finite beginning/end clip, such as wheels, shafts, saws and fans.
+
+`SmoothObjectAnimation.Rotation`:
+
+- predicts rotation between 20 TPS server updates using render partial ticks;
+- exponentially smooths target RPM so acceleration/deceleration is visible;
+- can accept an authoritative server angle;
+- gradually corrects small phase drift;
+- snaps only when drift becomes large enough to represent stale state;
+- uses the same WayAround mechanical convention of `rpm * 0.30` degrees per tick.
+
+`SmoothObjectAnimation.Value` provides the same render-time smoothing for
+non-angular values such as pistons, gauges, levers or future hydraulic travel.
+
+The water wheel's former private visual smoother was migrated into this shared
+system so it remains the visual reference instead of a special-case
+implementation.
+
+### Current fluid machinery
+
+- Water Wheel — shared smoothed RPM + authoritative angle.
+- Mechanical Shaft / Gearbox — existing smooth mechanical visual routing.
+- Pulley Wheel — migrated from raw server angle to shared smoothing.
+- Sawmill — blade and vibration now sample render time instead of stepping per
+  server tick.
+- Mechanical Press — finite keyframed sequence already samples partial ticks.
+- Steam Engine — smooth flywheel; piston, connecting rod and valve gear derive
+  from the same continuous phase.
+- Water Generator — exposed rotor speed follows actual generation and is
+  smoothed between synchronized machine updates.
+- Reforced Blaster — side blower smoothly accelerates while processing and
+  coasts down when idle.
+- Mechanical Fan — authoritative RPM/angle, smooth render prediction, guarded
+  propeller, airflow and low machine hum.
+
+Solar panels remain intentionally mostly static in this pass. They are passive
+collectors and adding motion without a tracking mechanic would communicate a
+machine behavior that does not exist.
