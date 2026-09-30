@@ -15,8 +15,8 @@ public enum WaveMode {
     ),
 
     REALISTIC(
-            "Realistic",
-            "Shared OceanWaveField: connected mesh, breakers, shoreline run-up and physical hull response."
+            "Realistic (Experimental)",
+            "Experimental shared OceanWaveField: connected mesh, breakers, shoreline run-up and hull response. May change substantially."
     );
 
     private final String title;
