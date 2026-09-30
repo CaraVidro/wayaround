@@ -680,5 +680,9 @@
   "item.wayaround.diamond_coin": "Moeda de Diamante",
   "item.wayaround.netherite_coin": "Moeda de Netherite",
   "tooltip.wayaround.coin.reference": "Valor material de referência: %s",
-  "tooltip.wayaround.coin.free_market": "Só referência — servidores e povos podem definir o próprio câmbio."
+  "tooltip.wayaround.coin.free_market": "Só referência — servidores e povos podem definir o próprio câmbio.",
+  "tooltip.wayaround.iron_grade": "Grau industrial: %s",
+  "tooltip.wayaround.iron_grade.low": "BAIXO",
+  "tooltip.wayaround.iron_grade.medium": "MÉDIO",
+  "tooltip.wayaround.iron_grade.high": "ALTO"
 }
