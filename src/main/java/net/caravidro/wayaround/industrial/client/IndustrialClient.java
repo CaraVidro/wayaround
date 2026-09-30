@@ -60,6 +60,10 @@ public final class IndustrialClient {
                 WaterGeneratorRenderer::new
         );
         event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_MILL_ENTITY.get(),
+                MechanicalMillRenderer::new
+        );
+        event.registerBlockEntityRenderer(
                 IndustrialContent.BLASTER_ENTITY.get(),
                 ReforcedBlasterRenderer::new
         );
