@@ -181,6 +181,28 @@ public final class PowerContent {
             MECHANICAL_GEARBOX.get()
         ).build(null));
 
+    public static final DeferredBlock<MechanicalPressBlock> MECHANICAL_PRESS = BLOCKS.register("mechanical_press",
+        () -> new MechanicalPressBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+            .strength(3.4F, 7.0F).sound(SoundType.METAL).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> MECHANICAL_PRESS_ITEM = ITEMS.register("mechanical_press",
+        () -> new BlockItem(MECHANICAL_PRESS.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MechanicalPressBlockEntity>> MECHANICAL_PRESS_ENTITY =
+        BLOCK_ENTITIES.register("mechanical_press", () -> BlockEntityType.Builder.of(
+            MechanicalPressBlockEntity::new, MECHANICAL_PRESS.get()).build(null));
+
+    public static final DeferredBlock<MechanicalFanBlock> MECHANICAL_FAN = BLOCKS.register("mechanical_fan",
+        () -> new MechanicalFanBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+            .strength(2.8F, 5.0F).sound(SoundType.METAL).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> MECHANICAL_FAN_ITEM = ITEMS.register("mechanical_fan",
+        () -> new BlockItem(MECHANICAL_FAN.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MechanicalFanBlockEntity>> MECHANICAL_FAN_ENTITY =
+        BLOCK_ENTITIES.register("mechanical_fan", () -> BlockEntityType.Builder.of(
+            MechanicalFanBlockEntity::new, MECHANICAL_FAN.get()).build(null));
+
     public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
         () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
             .strength(3.0F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()));
