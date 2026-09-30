@@ -1,9 +1,12 @@
 package net.caravidro.wayaround.industrial.assembly;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.IndustrialContent;
+import net.caravidro.wayaround.industrial.material.IndustrialMetalGrade;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Items;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -27,6 +30,47 @@ public final class AssemblyPartTooltipEvents {
     public static void onTooltip(
             ItemTooltipEvent event
     ) {
+        if (event.getItemStack().is(
+                Items.IRON_INGOT
+        )
+                || event.getItemStack().is(
+                IndustrialContent.REFINED_IRON_INGOT.get()
+        )
+                || event.getItemStack().is(
+                IndustrialContent.PRECISION_IRON_INGOT.get()
+        )) {
+
+            IndustrialMetalGrade grade =
+                    IndustrialMetalGrade.of(
+                            event.getItemStack()
+                    );
+
+            event.getToolTip()
+                    .add(
+                            Component.translatable(
+                                    "tooltip.wayaround.iron_grade",
+                                    Component.translatable(
+                                            switch (grade) {
+                                                case LOW ->
+                                                        "tooltip.wayaround.iron_grade.low";
+
+                                                case MEDIUM ->
+                                                        "tooltip.wayaround.iron_grade.medium";
+
+                                                case HIGH ->
+                                                        "tooltip.wayaround.iron_grade.high";
+                                            }
+                                    )
+                            ).withStyle(
+                                    grade == IndustrialMetalGrade.HIGH
+                                            ? ChatFormatting.AQUA
+                                            : grade == IndustrialMetalGrade.MEDIUM
+                                            ? ChatFormatting.GREEN
+                                            : ChatFormatting.GRAY
+                            )
+                    );
+        }
+
         AssemblyPartProfile profile =
                 AssemblyItemData.readPart(
                         event.getItemStack()
