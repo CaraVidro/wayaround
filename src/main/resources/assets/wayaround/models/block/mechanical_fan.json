@@ -1,0 +1,14 @@
+{
+  "textures": {
+    "metal": "minecraft:block/iron_block",
+    "dark": "minecraft:block/deepslate_tiles"
+  },
+  "elements": [
+    {"from":[1,1,1],"to":[15,15,15],"faces":{
+      "north":{"texture":"#dark"},"south":{"texture":"#dark"},"east":{"texture":"#metal"},"west":{"texture":"#metal"},"up":{"texture":"#metal"},"down":{"texture":"#metal"}
+    }},
+    {"from":[3,3,0],"to":[13,13,2],"faces":{
+      "north":{"texture":"#metal"},"south":{"texture":"#metal"},"east":{"texture":"#metal"},"west":{"texture":"#metal"},"up":{"texture":"#metal"},"down":{"texture":"#metal"}
+    }}
+  ]
+}
