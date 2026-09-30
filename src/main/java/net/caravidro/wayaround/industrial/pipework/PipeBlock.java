@@ -28,15 +28,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public final class PipeBlock
         extends BaseEntityBlock {
 
-    public static final MapCodec<PipeBlock> CODEC =
-            simpleCodec(
-                    properties -> new PipeBlock(
-                            properties,
-                            PipeProfile.COPPER_TUBE
-                    )
-            );
-
     private final PipeProfile profile;
+    private final MapCodec<PipeBlock> codec;
 
     public PipeBlock(
             Properties properties,
@@ -46,6 +39,14 @@ public final class PipeBlock
 
         this.profile =
                 profile;
+
+        this.codec =
+                simpleCodec(
+                        properties -> new PipeBlock(
+                                properties,
+                                profile
+                        )
+                );
     }
 
     public PipeProfile profile() {
@@ -54,7 +55,7 @@ public final class PipeBlock
 
     @Override
     protected MapCodec<? extends BaseEntityBlock> codec() {
-        return CODEC;
+        return codec;
     }
 
     @Override
