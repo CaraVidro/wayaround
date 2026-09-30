@@ -41,7 +41,6 @@ public final class PipeworkContent {
     public static final DeferredBlock<LargePipeBlock> COLOSSAL = BLOCKS.register("colossal_pipe", () -> new LargePipeBlock(true, BlockBehaviour.Properties.of().strength(5).sound(SoundType.METAL).noOcclusion().noLootTable()));
     public static final DeferredItem<BlockItem> GIANT_ITEM = ITEMS.register("giant_water_pipe", () -> new LargePipeItem(GIANT.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> COLOSSAL_ITEM = ITEMS.register("colossal_pipe", () -> new LargePipeItem(COLOSSAL.get(), new Item.Properties()));
-    public static final DeferredHolder<net.minecraft.world.level.block.entity.BlockEntityType<?>, net.minecraft.world.level.block.entity.BlockEntityType<PipeBlockEntity>> PIPE_ENTITY = ENTITIES.register("pipework", () -> net.minecraft.world.level.block.entity.BlockEntityType.Builder.of(PipeBlockEntity::new, SMALL_COPPER_PIPE.get(), IRON_WATER_PIPE.get(), LARGE_WATER_MAIN.get(), THIN_GAS_PIPE.get(), STEEL_PRESSURE_PIPE.get(), INSULATED_STEAM_PIPE.get(), GIANT.get(), COLOSSAL.get()).build(null));
 
     public static final PipeSpec SMALL_COPPER_SPEC = PipeCatalog.SMALL_COPPER;
     public static final PipeSpec IRON_WATER_SPEC = PipeCatalog.IRON_WATER;
@@ -133,6 +132,8 @@ public final class PipeworkContent {
                     "insulated_steam_pipe",
                     INSULATED_STEAM_PIPE
             );
+
+    public static final DeferredHolder<net.minecraft.world.level.block.entity.BlockEntityType<?>, net.minecraft.world.level.block.entity.BlockEntityType<PipeBlockEntity>> PIPE_ENTITY = ENTITIES.register("pipework", () -> net.minecraft.world.level.block.entity.BlockEntityType.Builder.of(PipeBlockEntity::new, SMALL_COPPER_PIPE.get(), IRON_WATER_PIPE.get(), LARGE_WATER_MAIN.get(), THIN_GAS_PIPE.get(), STEEL_PRESSURE_PIPE.get(), INSULATED_STEAM_PIPE.get(), GIANT.get(), COLOSSAL.get()).build(null));
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> PIPEWORK =
             TABS.register(
