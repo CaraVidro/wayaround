@@ -36,7 +36,7 @@ jobs:
 
           if [ "$code" -eq 124 ]; then
             if grep -Eqi "ModLauncher running|Render thread|Backend library: LWJGL" runclient.log; then
-              if grep -Eqi "mechanical_press.*(Unable to load|Exception|missing model|error loading)" runclient.log; then
+              if grep -Eqi "Missing textures in model wayaround:mechanical_press|mechanical_press.*(Unable to load|Exception|missing model|error loading)" runclient.log; then
                 echo "Mechanical press resources reported a load error."
                 exit 1
               fi
