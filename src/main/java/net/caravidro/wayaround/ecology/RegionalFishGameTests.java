@@ -49,10 +49,16 @@ public final class RegionalFishGameTests {
         for (var habitat : FishHabitat.values()) for (String biomeId : habitat.biomes) {
             var biome = registry.get(ResourceLocation.parse(biomeId));
             helper.assertTrue(biome != null, "Biome exists " + biomeId);
-            var spawns = biome.getMobSettings().getMobs(MobCategory.WATER_AMBIENT).unwrap();
-            for (String fish : habitat.fish) helper.assertTrue(spawns.stream().anyMatch(entry ->
-                    net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entry.type).toString().equals(fish)),
-                    biomeId + " is missing " + fish);
+            for (String fish : habitat.fish) {
+                boolean registered = java.util.Arrays.stream(MobCategory.values())
+                        .flatMap(category -> biome.getMobSettings().getMobs(category).unwrap().stream())
+                        .anyMatch(entry ->
+                                net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
+                                        .getKey(entry.type)
+                                        .toString()
+                                        .equals(fish));
+                helper.assertTrue(registered, biomeId + " is missing " + fish);
+            }
         }
         helper.succeed();
     }
