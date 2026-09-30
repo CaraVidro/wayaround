@@ -78,7 +78,8 @@ public final class DeepOceanManager {
              * Strip that legacy effect immediately in the abyss so it cannot
              * fight the new depth-light curve for several seconds.
              */
-            if (player.hasEffect(MobEffects.NIGHT_VISION)) {
+            if (divin
+                    && player.hasEffect(MobEffects.NIGHT_VISION)) {
                 player.removeEffect(MobEffects.NIGHT_VISION);
             }
 
