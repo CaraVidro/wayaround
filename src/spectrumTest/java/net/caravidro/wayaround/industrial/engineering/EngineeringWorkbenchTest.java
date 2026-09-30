@@ -14,6 +14,10 @@ public final class EngineeringWorkbenchTest {
         graphRecalculatesThroughConnections();
         cyclesAreRejected();
         beamFormulaMatchesReference();
+        blockOutputsRemainIndependent();
+        attributeFallsBackToLocalValue();
+        materialConversionRoundsUp();
+        whatIfChainPredictsMotion();
         blueprintProjectIsBounded();
 
         System.out.println(
@@ -173,6 +177,284 @@ public final class EngineeringWorkbenchTest {
                 20.0,
                 moment.result(),
                 "qL²/8 reference value must match"
+        );
+    }
+
+    private static void blockOutputsRemainIndependent() {
+        EngineeringCalculationGraph graph =
+                new EngineeringCalculationGraph();
+
+        Node block =
+                graph.add(
+                        NodeType.BLOCK_PROPERTY,
+                        0,
+                        0,
+                        "Block",
+                        9.0,
+                        "kg"
+                );
+
+        block.output(
+                0,
+                9.0,
+                "M",
+                "kg"
+        );
+
+        block.output(
+                1,
+                2.0,
+                "W",
+                "m"
+        );
+
+        block.output(
+                2,
+                3.0,
+                "H",
+                "m"
+        );
+
+        block.output(
+                3,
+                4.0,
+                "D",
+                "m"
+        );
+
+        Node area =
+                graph.add(
+                        NodeType.RECTANGLE_AREA,
+                        0,
+                        0
+                );
+
+        require(
+                graph.connect(
+                        block.id(),
+                        1,
+                        area.id(),
+                        0
+                ),
+                "Width output should connect"
+        );
+
+        require(
+                graph.connect(
+                        block.id(),
+                        2,
+                        area.id(),
+                        1
+                ),
+                "Height output should connect"
+        );
+
+        requireNear(
+                6.0,
+                area.result(),
+                "W and H outputs must remain independent"
+        );
+    }
+
+    private static void attributeFallsBackToLocalValue() {
+        EngineeringCalculationGraph graph =
+                new EngineeringCalculationGraph();
+
+        Node attribute =
+                graph.add(
+                        NodeType.ATTRIBUTE,
+                        0,
+                        0,
+                        "Force",
+                        12.0,
+                        "N"
+                );
+
+        graph.recalculate();
+
+        requireNear(
+                12.0,
+                attribute.result(),
+                "Attribute must use local value without an input"
+        );
+
+        Node external =
+                graph.add(
+                        NodeType.CONSTANT,
+                        0,
+                        0,
+                        "External",
+                        5.0,
+                        "N"
+                );
+
+        graph.connect(
+                external.id(),
+                attribute.id(),
+                0
+        );
+
+        requireNear(
+                5.0,
+                attribute.result(),
+                "Connected value must override the attribute fallback"
+        );
+    }
+
+    private static void materialConversionRoundsUp() {
+        EngineeringCalculationGraph graph =
+                new EngineeringCalculationGraph();
+
+        Node area =
+                graph.add(
+                        NodeType.CONSTANT,
+                        0,
+                        0,
+                        "Area",
+                        2.4,
+                        "m²"
+                );
+
+        Node material =
+                graph.add(
+                        NodeType.MATERIAL_CONVERT,
+                        0,
+                        0,
+                        "To planks",
+                        1.0,
+                        "blocks"
+                );
+
+        graph.connect(
+                area.id(),
+                material.id(),
+                0
+        );
+
+        requireNear(
+                3.0,
+                material.result(),
+                "Material conversion must round required block count upward"
+        );
+    }
+
+    private static void whatIfChainPredictsMotion() {
+        EngineeringCalculationGraph graph =
+                new EngineeringCalculationGraph();
+
+        Node speed =
+                graph.add(
+                        NodeType.CONSTANT,
+                        0,
+                        0,
+                        "Wind speed",
+                        10.0,
+                        "m/s"
+                );
+
+        Node area =
+                graph.add(
+                        NodeType.CONSTANT,
+                        0,
+                        0,
+                        "Area",
+                        2.0,
+                        "m²"
+                );
+
+        Node wind =
+                graph.add(
+                        NodeType.WIND_FORCE,
+                        0,
+                        0
+                );
+
+        graph.connect(
+                speed.id(),
+                wind.id(),
+                0
+        );
+
+        graph.connect(
+                area.id(),
+                wind.id(),
+                1
+        );
+
+        requireNear(
+                147.0,
+                wind.result(),
+                "Wind force reference calculation must match"
+        );
+
+        Node mass =
+                graph.add(
+                        NodeType.CONSTANT,
+                        0,
+                        0,
+                        "Mass",
+                        49.0,
+                        "kg"
+                );
+
+        Node acceleration =
+                graph.add(
+                        NodeType.ACCELERATION,
+                        0,
+                        0
+                );
+
+        graph.connect(
+                wind.id(),
+                acceleration.id(),
+                0
+        );
+
+        graph.connect(
+                mass.id(),
+                acceleration.id(),
+                1
+        );
+
+        requireNear(
+                3.0,
+                acceleration.result(),
+                "Force divided by mass must produce acceleration"
+        );
+
+        Node time =
+                graph.add(
+                        NodeType.CONSTANT,
+                        0,
+                        0,
+                        "Time",
+                        2.0,
+                        "s"
+                );
+
+        Node displacement =
+                graph.add(
+                        NodeType.DISPLACEMENT,
+                        0,
+                        0
+                );
+
+        graph.connect(
+                acceleration.id(),
+                displacement.id(),
+                0
+        );
+
+        graph.connect(
+                time.id(),
+                displacement.id(),
+                1
+        );
+
+        requireNear(
+                6.0,
+                displacement.result(),
+                "½at² must project displacement over time"
         );
     }
 
