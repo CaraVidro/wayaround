@@ -48,6 +48,10 @@ public final class IndustrialClient {
                 SteamEngineRenderer::new
         );
         event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_PRESS_ENTITY.get(),
+                MechanicalPressRenderer::new
+        );
+        event.registerBlockEntityRenderer(
                 net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_FAN_ENTITY.get(),
                 MechanicalFanRenderer::new
         );
