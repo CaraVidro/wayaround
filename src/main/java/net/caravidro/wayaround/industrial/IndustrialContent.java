@@ -69,6 +69,10 @@ public final class IndustrialContent {
             ITEMS.register("precision_iron_ingot",
                     () -> new Item(new Item.Properties().stacksTo(64)));
 
+    public static final DeferredItem<MineralCoinItem> COAL_COIN =
+            ITEMS.register("coal_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "coal", 1));
+
     public static final DeferredItem<MineralCoinItem> COPPER_COIN =
             ITEMS.register("copper_coin",
                     () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "copper", 1));
@@ -104,6 +108,11 @@ public final class IndustrialContent {
     public static final DeferredItem<MineralCoinItem> NETHERITE_COIN =
             ITEMS.register("netherite_coin",
                     () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "netherite", 256));
+
+    public static final DeferredItem<MineralCoinItem> AMETHYST_COIN =
+            ITEMS.register("amethyst_coin",
+                    () -> new MineralCoinItem(new Item.Properties().stacksTo(64), "amethyst", 5));
+
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> INDUSTRIALIZATION =
             TABS.register(
@@ -142,6 +151,9 @@ public final class IndustrialContent {
                                                 PRECISION_IRON_INGOT.get()
                                         );
                                         output.accept(
+                                                COAL_COIN.get()
+                                        );
+                                        output.accept(
                                                 COPPER_COIN.get()
                                         );
                                         output.accept(
@@ -167,6 +179,9 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 NETHERITE_COIN.get()
+                                        );
+                                        output.accept(
+                                                AMETHYST_COIN.get()
                                         );
                                         output.accept(
                                                 PowerContent.SOLAR_PANEL_ITEM.get()
