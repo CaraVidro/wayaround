@@ -636,8 +636,8 @@
   "entity.wayaround.cleinton": "Cleinton",
   "item.wayaround.cleinton_spawn_egg": "Cleinton Spawn Egg",
   "itemGroup.wayaround.warfare_outpost": "Warfare Outpost",
-  "block.wayaround.engineering_workbench": "Engineering Workbench",
-  "container.wayaround.engineering_workbench": "Engineering Workbench",
+  "block.wayaround.engineering_workbench": "Engineer's Table",
+  "container.wayaround.engineering_workbench": "Engineer's Table",
   "container.wayaround.engineering.catalog": "Block catalogue",
   "container.wayaround.engineering.search": "Search",
   "container.wayaround.engineering.search_hint": "Search blocks...",
@@ -652,7 +652,7 @@
   "container.wayaround.engineering.value": "Value",
   "container.wayaround.engineering.snap_hint": "Connect an output to an input to snap and recalculate.",
   "container.wayaround.engineering.delete_hint": "Delete/Backspace removes the selected node.",
-  "container.wayaround.engineering.calculations": "Engineering calculations",
+  "container.wayaround.engineering.calculations": "Engineering / What-if nodes",
   "container.wayaround.engineering.visual_preview": "Visual",
   "container.wayaround.engineering.connect_hint": "Select an input port to complete the connection.",
   "container.wayaround.engineering.canvas_controls": "Drag from panels · RMB/MMB pan · wheel zoom · Home reset",
@@ -675,5 +675,8 @@
   "screen.wayaround.blueprint.show_datetime": "Show creation date/time: %s",
   "screen.wayaround.blueprint.yes": "Yes",
   "screen.wayaround.blueprint.no": "No",
-  "screen.wayaround.blueprint.done": "Done"
+  "screen.wayaround.blueprint.done": "Done",
+  "container.wayaround.engineering.note": "Annotation",
+  "container.wayaround.engineering.note_hint": "Write a note for the project. Notes do not affect calculations.",
+  "container.wayaround.engineering.material_drop_hint": "Select this node, then click a block in the catalogue — or drag a block onto it."
 }
