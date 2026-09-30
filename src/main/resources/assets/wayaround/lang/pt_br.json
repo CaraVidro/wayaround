@@ -636,8 +636,8 @@
   "entity.wayaround.cleinton": "Cleinton",
   "item.wayaround.cleinton_spawn_egg": "Ovo de Cleinton",
   "itemGroup.wayaround.warfare_outpost": "Warfare Outpost",
-  "block.wayaround.engineering_workbench": "Mesa de Engenheiro",
-  "container.wayaround.engineering_workbench": "Mesa de Engenheiro",
+  "block.wayaround.engineering_workbench": "Engineer's Table",
+  "container.wayaround.engineering_workbench": "Engineer's Table",
   "container.wayaround.engineering.catalog": "Catálogo de blocos",
   "container.wayaround.engineering.search": "Pesquisar",
   "container.wayaround.engineering.search_hint": "Pesquisar blocos...",
@@ -652,7 +652,7 @@
   "container.wayaround.engineering.value": "Valor",
   "container.wayaround.engineering.snap_hint": "Conecte uma saída a uma entrada para encaixar e recalcular.",
   "container.wayaround.engineering.delete_hint": "Delete/Backspace remove o nó selecionado.",
-  "container.wayaround.engineering.calculations": "Cálculos de engenharia",
+  "container.wayaround.engineering.calculations": "Engenharia / cenários \"e se\"",
   "container.wayaround.engineering.visual_preview": "Visual",
   "container.wayaround.engineering.connect_hint": "Selecione uma entrada para completar a conexão.",
   "container.wayaround.engineering.canvas_controls": "Arraste dos painéis · RMB/MMB move · roda zoom · Home centraliza",
@@ -675,5 +675,8 @@
   "screen.wayaround.blueprint.show_datetime": "Mostrar data/hora de criação: %s",
   "screen.wayaround.blueprint.yes": "Sim",
   "screen.wayaround.blueprint.no": "Não",
-  "screen.wayaround.blueprint.done": "Pronto"
+  "screen.wayaround.blueprint.done": "Pronto",
+  "container.wayaround.engineering.note": "Anotação",
+  "container.wayaround.engineering.note_hint": "Escreva uma anotação do projeto. Anotações não alteram os cálculos.",
+  "container.wayaround.engineering.material_drop_hint": "Selecione este node e clique num bloco do catálogo — ou arraste o bloco sobre ele."
 }
