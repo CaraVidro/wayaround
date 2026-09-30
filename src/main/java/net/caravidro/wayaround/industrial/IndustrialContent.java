@@ -142,6 +142,9 @@ public final class IndustrialContent {
                                                 PowerContent.SAWMILL_ITEM.get()
                                         );
                                         output.accept(
+                                                PowerContent.MECHANICAL_PRESS_ITEM.get()
+                                        );
+                                        output.accept(
                                                 PowerContent.MECHANICAL_SHAFT_ITEM.get()
                                         );
                                         output.accept(

@@ -34,5 +34,9 @@ public final class IndustrialClient {
                 net.caravidro.wayaround.industrial.power.PowerContent.SAWMILL_ENTITY.get(),
                 SawmillRenderer::new
         );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.MECHANICAL_PRESS_ENTITY.get(),
+                MechanicalPressRenderer::new
+        );
     }
 }

@@ -303,5 +303,12 @@
   "turret.wayaround.off": "Desligada",
   "message.wayaround.immortal_wheel.family.infinity_melee": "Infinidade (corpo a corpo)",
   "block.wayaround.black_box": "Black Box",
-  "item.wayaround.black_box": "Black Box"
+  "item.wayaround.black_box": "Black Box",
+  "block.wayaround.mechanical_press": "Prensa Mecânica",
+  "message.wayaround.mechanical_press.busy": "A prensa já está executando um ciclo.",
+  "message.wayaround.mechanical_press.no_power": "A prensa precisa de uma entrada mecânica mais forte.",
+  "message.wayaround.mechanical_press.started": "Ciclo da prensa iniciado (%s ticks).",
+  "message.wayaround.mechanical_press.status": "Prensa: %s | estrutura %s%% | última entrada %s",
+  "message.wayaround.mechanical_press.running": "funcionando",
+  "message.wayaround.mechanical_press.idle": "parada"
 }

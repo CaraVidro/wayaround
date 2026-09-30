@@ -311,3 +311,12 @@ tasks.register('infinityRegressionTest', JavaExec) {
     mainClass = 'net.caravidro.wayaround.infinity.InfinityRegressionTest'
 }
 tasks.named('check') { dependsOn tasks.named('infinityRegressionTest') }
+
+
+// Generic multi-object animation scheduler invariants.
+tasks.register('objectAnimationRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.animation.ObjectAnimationSequenceTest'
+}
+tasks.named('check') { dependsOn tasks.named('objectAnimationRegressionTest') }
