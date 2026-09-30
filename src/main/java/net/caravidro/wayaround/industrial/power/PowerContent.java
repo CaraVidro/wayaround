@@ -203,6 +203,20 @@ public final class PowerContent {
         BLOCK_ENTITIES.register("mechanical_fan", () -> BlockEntityType.Builder.of(
             MechanicalFanBlockEntity::new, MECHANICAL_FAN.get()).build(null));
 
+    public static final DeferredItem<Item> FLOUR = ITEMS.register("flour",
+        () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final DeferredBlock<MechanicalMillBlock> MECHANICAL_MILL = BLOCKS.register("mechanical_mill",
+        () -> new MechanicalMillBlock(BlockBehaviour.Properties.of().mapColor(MapColor.STONE)
+            .strength(3.0F, 5.5F).sound(SoundType.WOOD).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> MECHANICAL_MILL_ITEM = ITEMS.register("mechanical_mill",
+        () -> new BlockItem(MECHANICAL_MILL.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MechanicalMillBlockEntity>> MECHANICAL_MILL_ENTITY =
+        BLOCK_ENTITIES.register("mechanical_mill", () -> BlockEntityType.Builder.of(
+            MechanicalMillBlockEntity::new, MECHANICAL_MILL.get()).build(null));
+
     public static final DeferredBlock<WaterGeneratorBlock> WATER_GENERATOR = BLOCKS.register("water_generator",
         () -> new WaterGeneratorBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
             .strength(3.0F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()));
