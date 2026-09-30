@@ -25,6 +25,30 @@ public interface AssemblyMachine {
 
     void applyAssemblyWear(float fraction);
 
+    /**
+     * Called when a localized physical constraint actually fails.
+     *
+     * Machines with real detachable/breakable components should override this
+     * and translate the generic event into their own state. The fallback keeps
+     * older machines compatible by converting failure severity into wear.
+     */
+    default void applyAssemblyFailure(
+            AssemblyFailureEvent failure
+    ) {
+        if (failure == null) {
+            return;
+        }
+
+        applyAssemblyWear(
+                Math.min(
+                        0.35F,
+                        0.035F
+                                + failure.severity()
+                                        * 0.08F
+                )
+        );
+    }
+
     default AssemblySnapshot assemblySnapshot() {
         return AssemblyEngine.inspect(
                 this
