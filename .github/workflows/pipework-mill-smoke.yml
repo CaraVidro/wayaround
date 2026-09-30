@@ -1,0 +1,42 @@
+name: Pipework Mill Client Smoke
+
+on:
+  push:
+    branches:
+      - feature/pipework-industrial-v1
+
+jobs:
+  client-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run client smoke
+        shell: bash
+        run: |
+          chmod +x gradlew
+          set +e
+          timeout 150s xvfb-run -a ./gradlew runClient --no-daemon > runclient.log 2>&1
+          code=$?
+          cat runclient.log
+
+          if [ "$code" -eq 124 ]; then
+            grep -Eqi "ModLauncher running" runclient.log || exit 1
+            grep -Eqi "Backend library: LWJGL" runclient.log || exit 1
+            grep -Eqi "Reloading ResourceManager" runclient.log || exit 1
+
+            if grep -Eqi "Missing textures in model wayaround:(mechanical_mill|small_copper_pipe|iron_water_pipe|large_water_main|thin_gas_pipe|steel_pressure_pipe|insulated_steam_pipe)|Unable to load model.*wayaround:(mechanical_mill|small_copper_pipe|iron_water_pipe|large_water_main|thin_gas_pipe|steel_pressure_pipe|insulated_steam_pipe)|Exception.*(MechanicalMillRenderer|MechanicalMillBlockEntity|Pipework)" runclient.log; then
+              echo "Pipework / mill client error detected."
+              exit 1
+            fi
+
+            echo "Pipework + Mechanical Mill client smoke passed."
+            exit 0
+          fi
+
+          exit "$code"
