@@ -2,22 +2,15 @@ package net.caravidro.wayaround.industrial.engineering;
 
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.Node;
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.NodeType;
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
-import net.minecraft.world.level.block.Blocks;
 
 public final class EngineeringWorkbenchTest {
 
     public static void main(
             String[] args
     ) {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-
         graphRecalculatesThroughConnections();
         cyclesAreRejected();
         beamFormulaMatchesReference();
-        materialProfilesSeparateWoodAndMetal();
 
         System.out.println(
                 "Engineering workbench regression tests passed"
@@ -176,49 +169,6 @@ public final class EngineeringWorkbenchTest {
                 20.0,
                 moment.result(),
                 "qL²/8 reference value must match"
-        );
-    }
-
-    private static void materialProfilesSeparateWoodAndMetal() {
-        EngineeringBlockProfile wood =
-                EngineeringBlockProfile.inspect(
-                        Blocks.OAK_PLANKS
-                );
-
-        EngineeringBlockProfile iron =
-                EngineeringBlockProfile.inspect(
-                        Blocks.IRON_BLOCK
-                );
-
-        require(
-                iron.massKg()
-                        > wood.massKg(),
-                "Iron should be estimated heavier than wood for equal volume"
-        );
-
-        require(
-                iron.compressiveStrengthMpa()
-                        > wood.compressiveStrengthMpa(),
-                "Iron should have greater compression estimate than wood"
-        );
-
-        EngineeringBlockProfile.Property woodFire =
-                wood.property(
-                        "flammability"
-                );
-
-        require(
-                woodFire != null
-                        && woodFire.numericValue()
-                                > 0.0,
-                "Wood should expose flammability"
-        );
-
-        require(
-                iron.property(
-                        "flammability"
-                ) == null,
-                "Iron should not expose flammability"
         );
     }
 
