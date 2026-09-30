@@ -6,7 +6,7 @@ This revision follows `docs/design/project-master.txt` and `docs/design/machiner
 
 The Industrialization creative tab is removed. Its items now belong to Assembly & Mechanics. Nexustor base, body, fingers and head belong to The Nexus. Registry IDs for existing machines and world feature switches stay compatible. The first accessory advancement is titled `if it fits...`.
 
-Ordinary pipe tooltips no longer list flow, pressure and temperature ratings. Right-clicking a pipe never prints inspection data. Ordinary empty-hand status reports are removed from the steam engine, fan, wheel, generator and solar panel. Manufacturing percentages and detailed component tradeoff text are confined to the advanced tooltip mode. Assembly construction feedback and deliberately technical engineering workbench interfaces remain.
+Ordinary pipe tooltips no longer list flow, pressure and temperature ratings. Right-clicking a pipe never prints inspection data. Ordinary empty-hand status reports are removed from the steam engine, fan, wheel, generator, solar panel, sawmill, pulley and press. Manufacturing percentages and detailed component tradeoff text are confined to the advanced tooltip mode. Assembly construction feedback and deliberately technical engineering workbench interfaces remain.
 
 Steam engine and Reforced Blaster renderers sample surrounding block/sky lighting rather than the dark center of an opaque logical machine block. The steam engine has a visible water sight glass and only turns its flywheel while generating steam. Actual boiling produces steam particles. The mechanical press emits dust and impact particles alongside its existing sounds.
 

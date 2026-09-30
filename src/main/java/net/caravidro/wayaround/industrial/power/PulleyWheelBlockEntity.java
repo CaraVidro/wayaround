@@ -566,23 +566,7 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
     }
 
     public void describe(Player player) {
-        player.displayClientMessage(
-                Component.translatable(
-                        "message.wayaround.pulley.status",
-                        sides,
-                        Math.round(shapeEfficiency() * 100.0F),
-                        linkedPos == null
-                                ? Component.translatable("message.wayaround.pulley.no_belt")
-                                : Component.translatable("message.wayaround.pulley.has_belt"),
-                        String.format(java.util.Locale.ROOT, "%.1f", rpm),
-                        Math.round(wheelConditionFactor() * 100.0F),
-                        linkedPos == null
-                                ? 100
-                                : Math.round(beltConditionFactor() * 100.0F),
-                        beltLines
-                ),
-                true
-        );
+        // Motion, sound and condition are visible on the assembly; no casual telemetry dump.
     }
 
     public void useString(Player player, ItemStack stack) {

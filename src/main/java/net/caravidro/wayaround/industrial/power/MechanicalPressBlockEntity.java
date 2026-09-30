@@ -215,43 +215,13 @@ public final class MechanicalPressBlockEntity
 
         sync();
 
-        player.displayClientMessage(
-                Component.translatable(
-                        "message.wayaround.mechanical_press.started",
-                        Math.round(
-                                PressAnimations.CYCLE.durationTicks()
-                        )
-                ),
-                true
-        );
+
     }
 
     public void describe(
             Player player
     ) {
-        player.displayClientMessage(
-                Component.translatable(
-                        "message.wayaround.mechanical_press.status",
-                        animation.active()
-                                ? Component.translatable(
-                                        "message.wayaround.mechanical_press.running"
-                                )
-                                : Component.translatable(
-                                        "message.wayaround.mechanical_press.idle"
-                                ),
-                        Math.round(
-                                assemblySnapshot()
-                                        .structuralIntegrity()
-                                        * 100.0F
-                        ),
-                        String.format(
-                                java.util.Locale.ROOT,
-                                "%.1f",
-                                lastGrantedPower
-                        )
-                ),
-                true
-        );
+        // Motion, sound and condition are visible on the assembly; no casual telemetry dump.
     }
 
     public ObjectAnimationPose animationPose(
