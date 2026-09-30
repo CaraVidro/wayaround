@@ -310,6 +310,12 @@ public final class EngineeringCalculationGraph {
         );
     }
 
+    public void clear() {
+        nodes.clear();
+        nextId =
+                1;
+    }
+
     public Node node(
             int id
     ) {
