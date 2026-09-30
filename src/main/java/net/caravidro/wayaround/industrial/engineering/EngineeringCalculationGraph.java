@@ -1,93 +1,60 @@
 package net.caravidro.wayaround.industrial.engineering;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Small deterministic node graph used by the engineering workbench.
+ * Deterministic engineering node graph.
  *
- * The graph deliberately stores geometry/calculation semantics separately from
- * the screen so future machines, blueprints and server-side validation can
- * reuse the same evaluator.
+ * Nodes may expose more than one output. This matters for physical objects:
+ * a single block node can expose its selected engineering property plus width,
+ * height and depth without creating fake intermediary nodes.
  */
 public final class EngineeringCalculationGraph {
 
     public enum NodeType {
-        CONSTANT(
-                "Number",
-                0
-        ),
-        BLOCK_PROPERTY(
-                "Block property",
-                0
-        ),
-        ADD(
-                "Add",
-                2
-        ),
-        SUBTRACT(
-                "Subtract",
-                2
-        ),
-        MULTIPLY(
-                "Multiply",
-                2
-        ),
-        DIVIDE(
-                "Divide",
-                2
-        ),
-        PYTHAGORAS(
-                "Distance / Pythagoras",
-                2
-        ),
-        RECTANGLE_AREA(
-                "Rectangle area",
-                2
-        ),
-        BOX_VOLUME(
-                "Box volume",
-                3
-        ),
-        CIRCLE_AREA(
-                "Circle area",
-                1
-        ),
-        SLOPE_DEGREES(
-                "Slope angle",
-                2
-        ),
-        SAFETY_FACTOR(
-                "Safety factor",
-                2
-        ),
-        STRESS(
-                "Stress F/A",
-                2
-        ),
-        BEAM_UDL_MOMENT(
-                "Beam moment qL²/8",
-                2
-        ),
-        BEAM_CENTER_MOMENT(
-                "Beam moment PL/4",
-                2
-        );
+        CONSTANT("Number", 0, 1),
+        BLOCK_PROPERTY("Block / properties", 0, 4),
+        ATTRIBUTE("Attribute", 1, 1),
+        NOTE("Note", 0, 0),
+        MATERIAL_CONVERT("Material convert", 1, 1),
+
+        ADD("Add", 2, 1),
+        SUBTRACT("Subtract", 2, 1),
+        MULTIPLY("Multiply", 2, 1),
+        DIVIDE("Divide", 2, 1),
+        PYTHAGORAS("Distance / Pythagoras", 2, 1),
+        RECTANGLE_AREA("Rectangle area", 2, 1),
+        BOX_VOLUME("Box volume", 3, 1),
+        CIRCLE_AREA("Circle area", 1, 1),
+        SLOPE_DEGREES("Slope angle", 2, 1),
+        SAFETY_FACTOR("Safety factor", 2, 1),
+        STRESS("Stress F/A", 2, 1),
+        BEAM_UDL_MOMENT("Beam moment qL²/8", 2, 1),
+        BEAM_CENTER_MOMENT("Beam moment PL/4", 2, 1),
+
+        WIND_FORCE("Wind force", 2, 1),
+        WATER_FORCE("Water force", 2, 1),
+        GRAVITY_LOAD("Gravity load", 1, 1),
+        ACCELERATION("Acceleration F/m", 2, 1),
+        TIME_STEP("Rate × time", 2, 1),
+        DISPLACEMENT("Displacement ½at²", 2, 1);
 
         private final String label;
         private final int inputs;
+        private final int outputs;
 
         NodeType(
                 String label,
-                int inputs
+                int inputs,
+                int outputs
         ) {
-            this.label =
-                    label;
-
-            this.inputs =
-                    inputs;
+            this.label = label;
+            this.inputs = inputs;
+            this.outputs = outputs;
         }
 
         public String label() {
@@ -97,24 +64,41 @@ public final class EngineeringCalculationGraph {
         public int inputs() {
             return inputs;
         }
+
+        public int outputs() {
+            return outputs;
+        }
     }
 
     public static final class Node {
 
+        private static final int MAX_INPUTS = 3;
+        private static final int MAX_OUTPUTS = 4;
+
         private final int id;
         private final NodeType type;
+
         private final int[] inputs =
-                new int[] {
-                        -1,
-                        -1,
-                        -1
-                };
+                new int[MAX_INPUTS];
+
+        private final int[] inputOutputs =
+                new int[MAX_INPUTS];
+
+        private final double[] outputValues =
+                new double[MAX_OUTPUTS];
+
+        private final String[] outputLabels =
+                new String[MAX_OUTPUTS];
+
+        private final String[] outputUnits =
+                new String[MAX_OUTPUTS];
 
         private int x;
         private int y;
 
         private String label;
         private String unit;
+        private String parameter = "";
 
         private double literal;
         private double result;
@@ -128,33 +112,47 @@ public final class EngineeringCalculationGraph {
                 double literal,
                 String unit
         ) {
-            this.id =
-                    id;
-
-            this.type =
-                    type;
-
-            this.x =
-                    x;
-
-            this.y =
-                    y;
-
+            this.id = id;
+            this.type = type;
+            this.x = x;
+            this.y = y;
             this.label =
                     label == null
                             ? type.label()
                             : label;
-
             this.literal =
-                    literal;
-
+                    Double.isFinite(literal)
+                            ? literal
+                            : 0.0;
             this.unit =
                     unit == null
                             ? ""
                             : unit;
 
-            this.result =
-                    literal;
+            Arrays.fill(
+                    inputs,
+                    -1
+            );
+
+            Arrays.fill(
+                    inputOutputs,
+                    0
+            );
+
+            Arrays.fill(
+                    outputLabels,
+                    ""
+            );
+
+            Arrays.fill(
+                    outputUnits,
+                    ""
+            );
+
+            outputValues[0] = this.literal;
+            outputLabels[0] = "out";
+            outputUnits[0] = this.unit;
+            result = this.literal;
         }
 
         public int id() {
@@ -177,11 +175,8 @@ public final class EngineeringCalculationGraph {
                 int x,
                 int y
         ) {
-            this.x =
-                    x;
-
-            this.y =
-                    y;
+            this.x = x;
+            this.y = y;
         }
 
         public String label() {
@@ -208,6 +203,22 @@ public final class EngineeringCalculationGraph {
                     unit == null
                             ? ""
                             : unit;
+
+            outputUnits[0] =
+                    this.unit;
+        }
+
+        public String parameter() {
+            return parameter;
+        }
+
+        public void parameter(
+                String parameter
+        ) {
+            this.parameter =
+                    parameter == null
+                            ? ""
+                            : parameter;
         }
 
         public double literal() {
@@ -218,11 +229,12 @@ public final class EngineeringCalculationGraph {
                 double literal
         ) {
             this.literal =
-                    Double.isFinite(
-                            literal
-                    )
+                    Double.isFinite(literal)
                             ? literal
                             : 0.0;
+
+            outputValues[0] =
+                    this.literal;
         }
 
         public double result() {
@@ -240,16 +252,118 @@ public final class EngineeringCalculationGraph {
             return inputs[slot];
         }
 
+        public int inputOutput(
+                int slot
+        ) {
+            if (slot < 0
+                    || slot >= inputOutputs.length) {
+                return 0;
+            }
+
+            return inputOutputs[slot];
+        }
+
         public int inputCount() {
             return type.inputs();
         }
 
+        public int outputCount() {
+            return type.outputs();
+        }
+
+        public void output(
+                int slot,
+                double value,
+                String label,
+                String unit
+        ) {
+            if (slot < 0
+                    || slot >= outputValues.length
+                    || slot >= outputCount()) {
+                return;
+            }
+
+            double safeValue =
+                    Double.isFinite(value)
+                            ? value
+                            : 0.0;
+
+            outputValues[slot] =
+                    safeValue;
+
+            outputLabels[slot] =
+                    label == null
+                            ? ""
+                            : label;
+
+            outputUnits[slot] =
+                    unit == null
+                            ? ""
+                            : unit;
+
+            if (slot == 0) {
+                literal =
+                        safeValue;
+
+                this.unit =
+                        outputUnits[slot];
+
+                result =
+                        safeValue;
+            }
+        }
+
+        public double outputValue(
+                int slot
+        ) {
+            if (slot < 0
+                    || slot >= outputCount()) {
+                return Double.NaN;
+            }
+
+            if (slot == 0
+                    && type != NodeType.BLOCK_PROPERTY) {
+                return result;
+            }
+
+            return outputValues[slot];
+        }
+
+        public String outputLabel(
+                int slot
+        ) {
+            if (slot < 0
+                    || slot >= outputCount()) {
+                return "";
+            }
+
+            return outputLabels[slot];
+        }
+
+        public String outputUnit(
+                int slot
+        ) {
+            if (slot < 0
+                    || slot >= outputCount()) {
+                return "";
+            }
+
+            return outputUnits[slot];
+        }
+
         private void input(
                 int slot,
-                int nodeId
+                int nodeId,
+                int sourceOutput
         ) {
             inputs[slot] =
                     nodeId;
+
+            inputOutputs[slot] =
+                    Math.max(
+                            0,
+                            sourceOutput
+                    );
         }
     }
 
@@ -335,6 +449,20 @@ public final class EngineeringCalculationGraph {
             int toId,
             int inputSlot
     ) {
+        return connect(
+                fromId,
+                0,
+                toId,
+                inputSlot
+        );
+    }
+
+    public boolean connect(
+            int fromId,
+            int fromOutput,
+            int toId,
+            int inputSlot
+    ) {
         Node from =
                 node(
                         fromId
@@ -348,25 +476,34 @@ public final class EngineeringCalculationGraph {
         if (from == null
                 || to == null
                 || from == to
+                || fromOutput < 0
+                || fromOutput >= from.outputCount()
                 || inputSlot < 0
                 || inputSlot >= to.inputCount()) {
             return false;
         }
 
-        int old =
+        int oldId =
                 to.input(
+                        inputSlot
+                );
+
+        int oldOutput =
+                to.inputOutput(
                         inputSlot
                 );
 
         to.input(
                 inputSlot,
-                fromId
+                fromId,
+                fromOutput
         );
 
         if (hasCycle()) {
             to.input(
                     inputSlot,
-                    old
+                    oldId,
+                    oldOutput
             );
 
             return false;
@@ -394,7 +531,8 @@ public final class EngineeringCalculationGraph {
 
         to.input(
                 inputSlot,
-                -1
+                -1,
+                0
         );
 
         recalculate();
@@ -410,17 +548,16 @@ public final class EngineeringCalculationGraph {
 
         for (Node node :
                 nodes) {
-            for (int slot =
-                         0;
+            for (int slot = 0;
                  slot < node.inputCount();
                  slot++) {
 
-                if (node.input(
-                        slot
-                ) == nodeId) {
+                if (node.input(slot)
+                        == nodeId) {
                     node.input(
                             slot,
-                            -1
+                            -1,
+                            0
                     );
                 }
             }
@@ -433,11 +570,61 @@ public final class EngineeringCalculationGraph {
         for (Node node :
                 nodes) {
             node.result =
-                    evaluate(
+                    evaluateOutput(
                             node,
+                            0,
                             new HashSet<>()
                     );
         }
+    }
+
+    public double outputValue(
+            int nodeId,
+            int outputSlot
+    ) {
+        Node node =
+                node(
+                        nodeId
+                );
+
+        if (node == null) {
+            return Double.NaN;
+        }
+
+        return evaluateOutput(
+                node,
+                outputSlot,
+                new HashSet<>()
+        );
+    }
+
+    private double evaluateOutput(
+            Node node,
+            int outputSlot,
+            Set<Integer> visiting
+    ) {
+        if (outputSlot < 0
+                || outputSlot >= node.outputCount()) {
+            return Double.NaN;
+        }
+
+        if (node.type()
+                == NodeType.BLOCK_PROPERTY) {
+            return node.outputValue(
+                    outputSlot
+            );
+        }
+
+        if (outputSlot != 0) {
+            return node.outputValue(
+                    outputSlot
+            );
+        }
+
+        return evaluate(
+                node,
+                visiting
+        );
     }
 
     private double evaluate(
@@ -476,6 +663,24 @@ public final class EngineeringCalculationGraph {
                     case CONSTANT, BLOCK_PROPERTY ->
                             node.literal();
 
+                    case ATTRIBUTE ->
+                            node.input(0) >= 0
+                                    ? a
+                                    : node.literal();
+
+                    case NOTE ->
+                            0.0;
+
+                    case MATERIAL_CONVERT ->
+                            Math.abs(node.literal()) < 0.0000001
+                                    ? Double.NaN
+                                    : Math.ceil(
+                                    Math.abs(a)
+                                            / Math.abs(
+                                            node.literal()
+                                    )
+                            );
+
                     case ADD ->
                             a + b;
 
@@ -486,9 +691,7 @@ public final class EngineeringCalculationGraph {
                             a * b;
 
                     case DIVIDE ->
-                            Math.abs(
-                                    b
-                            ) < 0.0000001
+                            Math.abs(b) < 0.0000001
                                     ? Double.NaN
                                     : a / b;
 
@@ -522,16 +725,12 @@ public final class EngineeringCalculationGraph {
                             );
 
                     case SAFETY_FACTOR ->
-                            Math.abs(
-                                    b
-                            ) < 0.0000001
+                            Math.abs(b) < 0.0000001
                                     ? Double.NaN
                                     : a / b;
 
                     case STRESS ->
-                            Math.abs(
-                                    b
-                            ) < 0.0000001
+                            Math.abs(b) < 0.0000001
                                     ? Double.NaN
                                     : a / b;
 
@@ -545,6 +744,40 @@ public final class EngineeringCalculationGraph {
                             a
                                     * b
                                     / 4.0;
+
+                    case WIND_FORCE ->
+                            0.5
+                                    * 1.225
+                                    * 1.20
+                                    * a
+                                    * a
+                                    * Math.abs(b);
+
+                    case WATER_FORCE ->
+                            0.5
+                                    * 1000.0
+                                    * 1.0
+                                    * a
+                                    * a
+                                    * Math.abs(b);
+
+                    case GRAVITY_LOAD ->
+                            Math.abs(a)
+                                    * 9.80665;
+
+                    case ACCELERATION ->
+                            Math.abs(b) < 0.0000001
+                                    ? Double.NaN
+                                    : a / b;
+
+                    case TIME_STEP ->
+                            a * b;
+
+                    case DISPLACEMENT ->
+                            0.5
+                                    * a
+                                    * b
+                                    * b;
                 };
 
         visiting.remove(
@@ -585,8 +818,11 @@ public final class EngineeringCalculationGraph {
             return 0.0;
         }
 
-        return evaluate(
+        return evaluateOutput(
                 source,
+                node.inputOutput(
+                        slot
+                ),
                 visiting
         );
     }
@@ -623,16 +859,13 @@ public final class EngineeringCalculationGraph {
             return true;
         }
 
-        for (int slot =
-                     0;
+        for (int slot = 0;
              slot < node.inputCount();
              slot++) {
 
             Node source =
                     node(
-                            node.input(
-                                    slot
-                            )
+                            node.input(slot)
                     );
 
             if (source != null
