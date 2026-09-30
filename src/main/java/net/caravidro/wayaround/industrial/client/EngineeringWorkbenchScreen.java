@@ -1249,6 +1249,14 @@ public final class EngineeringWorkbenchScreen
             int x,
             int y
     ) {
+        valueBox.setVisible(
+                false
+        );
+
+        noteBox.setVisible(
+                false
+        );
+
         graphics.drawString(
                 font,
                 node.type().label(),
@@ -1258,53 +1266,179 @@ public final class EngineeringWorkbenchScreen
                 false
         );
 
-        graphics.drawString(
-                font,
-                Component.literal(
-                        "Result: "
-                                + formatNumber(node.result())
-                                + (
-                                node.unit().isEmpty()
-                                        ? ""
-                                        : " "
-                                                + node.unit()
-                        )
-                ),
-                x,
-                y + 15,
-                0xFF8FE38F,
-                false
-        );
+        if (node.outputCount() > 0) {
+            graphics.drawString(
+                    font,
+                    Component.literal(
+                            "Result: "
+                                    + formatNumber(
+                                    node.result()
+                            )
+                                    + (
+                                    node.unit().isEmpty()
+                                            ? ""
+                                            : " "
+                                                    + node.unit()
+                            )
+                    ),
+                    x,
+                    y + 15,
+                    0xFF8FE38F,
+                    false
+            );
+        }
+
+        int explanationY =
+                y + 31;
+
+        if (node.type()
+                == NodeType.ATTRIBUTE) {
+
+            AttributePreset preset =
+                    attributePreset(
+                            node.parameter()
+                    );
+
+            graphics.fill(
+                    x,
+                    y + 29,
+                    x + PROPERTY_WIDTH - 24,
+                    y + 47,
+                    0xFF2D3C48
+            );
+
+            graphics.drawString(
+                    font,
+                    "Attribute: "
+                            + preset.label()
+                            + "  ↻",
+                    x + 4,
+                    y + 34,
+                    0xFFB7E1FF,
+                    false
+            );
+
+            graphics.drawString(
+                    font,
+                    node.input(0) >= 0
+                            ? "Connected input overrides local value."
+                            : "No input: using local value.",
+                    x,
+                    y + 52,
+                    node.input(0) >= 0
+                            ? 0xFF79C9FF
+                            : 0xFFFFC66D,
+                    false
+            );
+
+            valueBox.setVisible(
+                    true
+            );
+
+            syncValueBox(
+                    node
+            );
+
+            explanationY =
+                    y + 70;
+
+        } else if (node.type()
+                == NodeType.NOTE) {
+
+            graphics.drawString(
+                    font,
+                    Component.translatable(
+                            "container.wayaround.engineering.note_hint"
+                    ),
+                    x,
+                    y + 18,
+                    0xFFFFD98A,
+                    false
+            );
+
+            noteBox.setVisible(
+                    true
+            );
+
+            if (!noteBox.isFocused()) {
+                String expected =
+                        node.parameter();
+
+                if (!expected.equals(
+                        noteBox.getValue()
+                )) {
+                    syncingNoteBox =
+                            true;
+
+                    noteBox.setValue(
+                            expected
+                    );
+
+                    syncingNoteBox =
+                            false;
+                }
+            }
+
+            explanationY =
+                    y + 41;
+
+        } else if (node.type()
+                == NodeType.MATERIAL_CONVERT) {
+
+            graphics.drawString(
+                    font,
+                    Component.literal(
+                            "Material: "
+                                    + materialName(
+                                    node.parameter()
+                            )
+                    ),
+                    x,
+                    y + 31,
+                    0xFFCDE6AF,
+                    false
+            );
+
+            graphics.drawString(
+                    font,
+                    Component.translatable(
+                            "container.wayaround.engineering.material_drop_hint"
+                    ),
+                    x,
+                    y + 46,
+                    0xFF97A8B2,
+                    false
+            );
+
+            explanationY =
+                    y + 66;
+
+        } else {
+            boolean editable =
+                    node.type()
+                            == NodeType.CONSTANT;
+
+            valueBox.setVisible(
+                    editable
+            );
+
+            if (editable) {
+                syncValueBox(
+                        node
+                );
+            }
+        }
 
         graphics.drawString(
                 font,
-                calculationExplanation(node.type()),
+                calculationExplanation(
+                        node.type()
+                ),
                 x,
-                y + 31,
+                explanationY,
                 0xFF9EADB7,
                 false
         );
-
-        boolean editable =
-                node.type()
-                        == NodeType.CONSTANT;
-
-        valueBox.setVisible(editable);
-
-        if (editable
-                && !valueBox.isFocused()) {
-
-            String expected =
-                    formatEditable(node.literal());
-
-            if (!expected.equals(
-                    valueBox.getValue()
-            )) {
-                syncingValueBox = true;
-                valueBox.setValue(expected);
-                syncingValueBox = false;
-            }
-        }
 
         if (node.inputCount() > 0) {
             graphics.drawString(
@@ -1313,7 +1447,10 @@ public final class EngineeringWorkbenchScreen
                             "container.wayaround.engineering.snap_hint"
                     ),
                     x,
-                    y + 56,
+                    Math.min(
+                            topPos + imageHeight - 48,
+                            explanationY + 22
+                    ),
                     0xFF6EBCE8,
                     false
             );
@@ -1325,7 +1462,7 @@ public final class EngineeringWorkbenchScreen
                         "container.wayaround.engineering.delete_hint"
                 ),
                 x,
-                y + 74,
+                topPos + imageHeight - 43,
                 0xFFB77E7E,
                 false
         );
@@ -3441,29 +3578,91 @@ public final class EngineeringWorkbenchScreen
     private void selectNode(
             int id
     ) {
-        selectedNodeId = id;
-        propertyScroll = 0;
+        selectedNodeId =
+                id;
+
+        propertyScroll =
+                0;
 
         Node node =
-                graph.node(id);
+                graph.node(
+                        id
+                );
 
-        if (node == null
-                || node.type()
-                        != NodeType.CONSTANT) {
-            if (valueBox != null) {
-                valueBox.setVisible(false);
-            }
+        if (valueBox != null) {
+            valueBox.setVisible(
+                    false
+            );
+        }
 
+        if (noteBox != null) {
+            noteBox.setVisible(
+                    false
+            );
+        }
+
+        if (node == null) {
             return;
         }
 
-        if (valueBox != null) {
-            syncingValueBox = true;
-            valueBox.setValue(
-                    formatEditable(node.literal())
+        if (node.type()
+                == NodeType.CONSTANT
+                || node.type()
+                == NodeType.ATTRIBUTE) {
+
+            syncValueBox(
+                    node
             );
-            syncingValueBox = false;
-            valueBox.setVisible(true);
+
+            valueBox.setVisible(
+                    true
+            );
+        }
+
+        if (node.type()
+                == NodeType.NOTE) {
+
+            syncingNoteBox =
+                    true;
+
+            noteBox.setValue(
+                    node.parameter()
+            );
+
+            syncingNoteBox =
+                    false;
+
+            noteBox.setVisible(
+                    true
+            );
+        }
+    }
+
+    private void syncValueBox(
+            Node node
+    ) {
+        if (valueBox == null
+                || valueBox.isFocused()) {
+            return;
+        }
+
+        String expected =
+                formatEditable(
+                        node.literal()
+                );
+
+        if (!expected.equals(
+                valueBox.getValue()
+        )) {
+            syncingValueBox =
+                    true;
+
+            valueBox.setValue(
+                    expected
+            );
+
+            syncingValueBox =
+                    false;
         }
     }
 
@@ -3475,11 +3674,17 @@ public final class EngineeringWorkbenchScreen
         }
 
         Node node =
-                graph.node(selectedNodeId);
+                graph.node(
+                        selectedNodeId
+                );
 
         if (node == null
-                || node.type()
-                        != NodeType.CONSTANT) {
+                || (
+                node.type()
+                        != NodeType.CONSTANT
+                        && node.type()
+                        != NodeType.ATTRIBUTE
+        )) {
             return;
         }
 
@@ -3492,11 +3697,156 @@ public final class EngineeringWorkbenchScreen
                             )
                     );
 
-            node.literal(value);
+            node.literal(
+                    value
+            );
+
+            if (node.outputCount() > 0) {
+                node.output(
+                        0,
+                        value,
+                        node.outputLabel(0)
+                                .isBlank()
+                                ? "out"
+                                : node.outputLabel(0),
+                        node.unit()
+                );
+            }
+
             graph.recalculate();
 
         } catch (NumberFormatException ignored) {
         }
+    }
+
+    private void updateNoteFromEditor(
+            String text
+    ) {
+        if (syncingNoteBox) {
+            return;
+        }
+
+        Node node =
+                graph.node(
+                        selectedNodeId
+                );
+
+        if (node == null
+                || node.type()
+                        != NodeType.NOTE) {
+            return;
+        }
+
+        node.parameter(
+                text
+        );
+    }
+
+    private boolean handleCalculationInspectorClick(
+            double mouseX,
+            double mouseY
+    ) {
+        Node node =
+                graph.node(
+                        selectedNodeId
+                );
+
+        if (node == null
+                || node.type()
+                        != NodeType.ATTRIBUTE) {
+            return false;
+        }
+
+        int x =
+                leftPos
+                        + imageWidth
+                        - PROPERTY_WIDTH
+                        + 8;
+
+        int y =
+                topPos
+                        + 82;
+
+        if (!inside(
+                mouseX,
+                mouseY,
+                x,
+                y,
+                PROPERTY_WIDTH - 24,
+                22
+        )) {
+            return false;
+        }
+
+        AttributePreset current =
+                attributePreset(
+                        node.parameter()
+                );
+
+        int index =
+                ATTRIBUTE_PRESETS.indexOf(
+                        current
+                );
+
+        AttributePreset next =
+                ATTRIBUTE_PRESETS.get(
+                        (
+                                index + 1
+                        )
+                                % ATTRIBUTE_PRESETS.size()
+                );
+
+        configureAttribute(
+                node,
+                next
+        );
+
+        graph.recalculate();
+
+        syncValueBox(
+                node
+        );
+
+        return true;
+    }
+
+    private static AttributePreset attributePreset(
+            String key
+    ) {
+        for (AttributePreset preset :
+                ATTRIBUTE_PRESETS) {
+
+            if (preset.key()
+                    .equals(
+                            key
+                    )) {
+                return preset;
+            }
+        }
+
+        return ATTRIBUTE_PRESETS.getFirst();
+    }
+
+    private static String materialName(
+            String id
+    ) {
+        ResourceLocation resource =
+                ResourceLocation.tryParse(
+                        id
+                );
+
+        if (resource == null
+                || !BuiltInRegistries.BLOCK.containsKey(
+                resource
+        )) {
+            return "—";
+        }
+
+        return displayName(
+                BuiltInRegistries.BLOCK.get(
+                        resource
+                )
+        );
     }
 
     private void zoomCanvasAt(
