@@ -3651,7 +3651,17 @@ public final class EngineeringWorkbenchScreen
                     node.unit()
             );
 
+            tag.putString(
+                    "Parameter",
+                    node.parameter()
+            );
+
             int[] inputs =
+                    new int[
+                            node.inputCount()
+                            ];
+
+            int[] inputOutputs =
                     new int[
                             node.inputCount()
                             ];
@@ -3664,11 +3674,21 @@ public final class EngineeringWorkbenchScreen
                         node.input(
                                 slot
                         );
+
+                inputOutputs[slot] =
+                        node.inputOutput(
+                                slot
+                        );
             }
 
             tag.putIntArray(
                     "Inputs",
                     inputs
+            );
+
+            tag.putIntArray(
+                    "InputOutputs",
+                    inputOutputs
             );
 
             EngineeringBlockProfile profile =
@@ -3770,6 +3790,12 @@ public final class EngineeringWorkbenchScreen
                             tag.getString("Unit")
                     );
 
+            node.parameter(
+                    tag.getString(
+                            "Parameter"
+                    )
+            );
+
             restored.put(
                     tag.getInt("Id"),
                     node
@@ -3806,12 +3832,18 @@ public final class EngineeringWorkbenchScreen
                                 "Property"
                         );
 
-                if (!property.isBlank()) {
-                    blockProperties.put(
-                            node.id(),
-                            property
-                    );
-                }
+                configureBlockOutputs(
+                        node,
+                        profile,
+                        property.isBlank()
+                                ? "mass"
+                                : property
+                );
+
+            } else {
+                restoreSemanticNodeMetadata(
+                        node
+                );
             }
         }
 
@@ -3841,6 +3873,11 @@ public final class EngineeringWorkbenchScreen
                             "Inputs"
                     );
 
+            int[] inputOutputs =
+                    tag.getIntArray(
+                            "InputOutputs"
+                    );
+
             for (int slot =
                          0;
                  slot < target.inputCount()
@@ -3853,8 +3890,14 @@ public final class EngineeringWorkbenchScreen
                         );
 
                 if (source != null) {
+                    int sourceOutput =
+                            slot < inputOutputs.length
+                                    ? inputOutputs[slot]
+                                    : 0;
+
                     graph.connect(
                             source.id(),
+                            sourceOutput,
                             target.id(),
                             slot
                     );
@@ -3906,6 +3949,77 @@ public final class EngineeringWorkbenchScreen
                             .getFirst()
                             .id()
             );
+        }
+    }
+
+    private void restoreSemanticNodeMetadata(
+            Node node
+    ) {
+        switch (node.type()) {
+            case ATTRIBUTE -> {
+                double literal =
+                        node.literal();
+
+                configureAttribute(
+                        node,
+                        attributePreset(
+                                node.parameter()
+                        )
+                );
+
+                node.literal(
+                        literal
+                );
+
+                node.output(
+                        0,
+                        literal,
+                        "out",
+                        node.unit()
+                );
+            }
+
+            case NOTE -> {
+                node.label(
+                        "Note"
+                );
+            }
+
+            case MATERIAL_CONVERT -> {
+                ResourceLocation material =
+                        ResourceLocation.tryParse(
+                                node.parameter()
+                        );
+
+                if (material != null
+                        && BuiltInRegistries.BLOCK.containsKey(
+                        material
+                )) {
+
+                    configureMaterialConverter(
+                            node,
+                            EngineeringBlockProfile.inspect(
+                                    BuiltInRegistries.BLOCK.get(
+                                            material
+                                    )
+                            )
+                    );
+                }
+            }
+
+            default -> {
+                if (node.outputCount() > 0) {
+                    node.output(
+                            0,
+                            node.literal(),
+                            node.outputLabel(0)
+                                    .isBlank()
+                                    ? "out"
+                                    : node.outputLabel(0),
+                            node.unit()
+                    );
+                }
+            }
         }
     }
 
