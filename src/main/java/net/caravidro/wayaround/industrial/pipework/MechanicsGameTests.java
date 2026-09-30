@@ -76,4 +76,32 @@ public final class MechanicsGameTests {
         float first=combined.consumePower(10000),second=combined.consumePower(10000);
         h.assertTrue(first>0&&second==0,"Combined source budgets cannot be spent twice in a tick");h.succeed();
     }
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void twoWaterWheelsShareAnAxle(GameTestHelper h){
+        h.setBlock(5,2,5,PowerContent.MECHANICAL_SHAFT.get().defaultBlockState().setValue(RotatedPillarBlock.AXIS,Direction.Axis.Z));
+        for(int z:new int[]{4,6}){
+            h.setBlock(5,2,z,PowerContent.WATER_WHEEL_HUB.get());
+            var wheel=(WaterWheelHubBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(new BlockPos(5,2,z)));
+            var saved=wheel.getUpdateTag(h.getLevel().registryAccess());saved.putFloat("Rpm",20);saved.putFloat("Torque",5);saved.putFloat("MechanicalPower",10);
+            wheel.loadWithComponents(saved,h.getLevel().registryAccess());
+        }
+        var combined=MechanicalTransmission.forNode(h.getLevel(),h.absolutePos(new BlockPos(5,2,5)));
+        h.assertTrue(combined!=null&&combined.power()>10&&combined.torque()>5,"Two distinct water wheels sum available force on their shared axle");
+        h.assertTrue(Math.abs(combined.rpm()-20)<.01,"Equal wheel speeds do not magically double unloaded RPM");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void fiftySectionsAndLavaRemainPhysical(GameTestHelper h){
+        var pipe=pipe(h,5,4,5,PipeworkContent.COLOSSAL.get());pipe.firstSection();
+        var player=h.makeMockPlayer(GameType.SURVIVAL);var parts=new ItemStack(PipeworkContent.COLOSSAL_ITEM.get(),49);
+        for(int i=1;i<50;i++)h.assertTrue(pipe.assemble(parts,player),"Colossal stages must accept their real section");
+        h.assertTrue(parts.isEmpty()&&pipe.sections()==50&&pipe.complete(),"Exactly fifty sections finish the colossal duct");
+        h.setBlock(5,4,3,Blocks.LAVA);pipe.installValve(new ItemStack(PipeworkContent.VALVE.get()),player,Direction.SOUTH);pipe.turn(player);PipeFlow.pump(h.getLevel(),pipe);
+        h.assertTrue(h.getBlockState(new BlockPos(5,4,3)).isAir()&&h.getBlockState(new BlockPos(5,4,7)).is(Blocks.LAVA),"Liquid transport also moves real lava without replacing it with water");
+        var saved=pipe.getUpdateTag(h.getLevel().registryAccess());pipe.loadWithComponents(saved,h.getLevel().registryAccess());h.assertTrue(pipe.sections()==50,"Assembly count persists");
+        pipe.dismantle();
+        for(BlockPos pos:PipeBlockEntity.shellPositions(pipe.getBlockPos(),pipe.getBlockState()))h.assertTrue(!h.getLevel().getBlockState(pos).is(PipeworkContent.COLOSSAL.get()),"Dismantling removes every owned shell block");
+        int dropped=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(pipe.getBlockPos()).inflate(2)).stream().filter(e->e.getItem().is(PipeworkContent.COLOSSAL_ITEM.get())).mapToInt(e->e.getItem().getCount()).sum();
+        h.assertTrue(dropped==50,"All fifty paid pieces are recovered exactly once");h.succeed();
+    }
+
 }

@@ -31,6 +31,7 @@ public final class ManualCrankBlockEntity
     private int crankTicks;
     private float rpm;
     private float angle;
+    private float availablePower;
 
     private final IRotationalPower output =
             new IRotationalPower() {
@@ -60,7 +61,7 @@ public final class ManualCrankBlockEntity
                 @Override
                 public float power() {
                     return crankTicks > 0
-                            ? MAX_POWER
+                            ? availablePower
                             : 0.0F;
                 }
 
@@ -81,13 +82,9 @@ public final class ManualCrankBlockEntity
                         return 0.0F;
                     }
 
-                    return Math.min(
-                            Math.max(
-                                    0.0F,
-                                    requestedPower
-                            ),
-                            MAX_POWER
-                    );
+                    float granted = Math.min(Math.max(0, requestedPower), availablePower);
+                    availablePower -= granted;
+                    return granted;
                 }
 
                 @Override
@@ -118,6 +115,8 @@ public final class ManualCrankBlockEntity
         if (crank.crankTicks > 0) {
             crank.crankTicks--;
         }
+
+        crank.availablePower = crank.crankTicks > 0 ? MAX_POWER : 0;
 
         float target =
                 crank.crankTicks > 0

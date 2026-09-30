@@ -22,6 +22,15 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
                     (box.minX+box.maxX)/2,(box.minY+box.maxY)/2,(box.minZ+box.maxZ)/2,box.maxX-box.minX,box.maxY-box.minY,box.maxZ-box.minZ);
             return;
         }
+        if(pipe.getBlockState().getBlock() instanceof LargePipeBlock duct){
+            Direction.Axis axis=pipe.getBlockState().getValue(LargePipeBlock.AXIS);
+            for(int i=0;i<pipe.sections();i++){
+                double angle=Math.PI*2*(i%16)/16,along=-1.25+(i/16)*.75,r=duct.radius()+.33;
+                double a=Math.cos(angle)*r,b=Math.sin(angle)*r;
+                double x=axis==Direction.Axis.X?along:a,y=axis==Direction.Axis.Y?along:axis==Direction.Axis.X?a:b,z=axis==Direction.Axis.Z?along:b;
+                IndustrialRenderUtil.cuboid(blocks,pose,buffers,light,overlay,Blocks.COPPER_BLOCK.defaultBlockState(),.5+x,.5+y,.5+z,.09,.09,.09);
+            }
+        }
         if(pipe.hasValve()){
             pose.pushPose();pose.translate(.5,.85,.5);
             Direction.Axis axis=pipe.flow().getAxis();if(axis==Direction.Axis.X)pose.mulPose(Axis.YP.rotationDegrees(90));if(axis==Direction.Axis.Y)pose.mulPose(Axis.XP.rotationDegrees(90));

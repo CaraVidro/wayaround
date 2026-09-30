@@ -20,6 +20,9 @@ public final class SteamEngineBlockEntity extends BlockEntity {
     private int fuel;
     private int heat;
     private int nextReceiver;
+    private boolean boiling;
+    public boolean boiling(){ return boiling; }
+    public float waterFill(){ return water/(float)SteamCycle.WATER_CAPACITY; }
     private final IEnergyStorage output = new IEnergyStorage() {
         public int receiveEnergy(int amount, boolean simulate) { return 0; }
         public int extractEnergy(int amount, boolean simulate) {
@@ -65,6 +68,7 @@ public final class SteamEngineBlockEntity extends BlockEntity {
             if (step.consumeCoal()) engine.coal--;
             engine.buffer.add(step.generated());
             boolean lit = engine.fuel > 0;
+            engine.boiling = step.generated() > 0;
 
             if (lit) {
                 EnvironmentalTemperature.pulseAbsolute(
@@ -83,6 +87,7 @@ public final class SteamEngineBlockEntity extends BlockEntity {
                         pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 2, 0.1, 0.1, 0.1, 0.02);
             }
             engine.setChanged();
+            level.sendBlockUpdated(pos,engine.getBlockState(),engine.getBlockState(),3);
         }
         if (engine.buffer.stored() > 0 && Math.floorMod(level.getGameTime() + pos.asLong(), 10) == 0) {
             engine.nextReceiver = EnergyNetwork.distribute(server, pos, engine.buffer, engine.nextReceiver);
@@ -90,9 +95,12 @@ public final class SteamEngineBlockEntity extends BlockEntity {
         }
     }
     public int storedCoal() { return coal; }
+    @Override public CompoundTag getUpdateTag(HolderLookup.Provider registries){ return saveWithoutMetadata(registries); }
+    @Override public net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket getUpdatePacket(){ return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this); }
     @Override protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.putInt("Water", water);
+        tag.putBoolean("Boiling", boiling);
         tag.putInt("Coal", coal);
         tag.putInt("Fuel", fuel);
         tag.putInt("Heat", heat);
@@ -100,6 +108,7 @@ public final class SteamEngineBlockEntity extends BlockEntity {
     }
     @Override protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
+        boiling = tag.getBoolean("Boiling");
         water = Math.clamp(tag.getInt("Water"), 0, SteamCycle.WATER_CAPACITY);
         coal = Math.clamp(tag.getInt("Coal"), 0, 64);
         fuel = Math.clamp(tag.getInt("Fuel"), 0, SteamCycle.COAL_SECONDS);
