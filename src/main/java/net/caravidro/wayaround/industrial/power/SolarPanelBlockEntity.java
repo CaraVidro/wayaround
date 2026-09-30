@@ -1,11 +1,17 @@
 package net.caravidro.wayaround.industrial.power;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.caravidro.wayaround.worldgen.weather.BlizzardManager;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -14,6 +20,8 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -23,7 +31,9 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
-public final class SolarPanelBlockEntity extends BlockEntity {
+public final class SolarPanelBlockEntity
+        extends BlockEntity
+        implements AssemblyMachine {
     public static final int CAPACITY = 32_000;
     private static final int TRANSFER_INTERVAL = 10;
     private static final int TRANSFER_BUDGET = 1_280;
@@ -35,6 +45,7 @@ public final class SolarPanelBlockEntity extends BlockEntity {
     private double fog;
     private long lastEnvironmentCheck = Long.MIN_VALUE;
     private int nextReceiver;
+    private float assemblyWear;
 
     private final IEnergyStorage output = new IEnergyStorage() {
         @Override public int receiveEnergy(int amount, boolean simulate) { return 0; }
@@ -98,6 +109,7 @@ public final class SolarPanelBlockEntity extends BlockEntity {
         super.saveAdditional(tag, registries);
         tag.putInt("Energy", buffer.stored());
         tag.putDouble("FractionalEnergy", fractionalEnergy);
+        tag.putFloat("AssemblyWear", assemblyWear);
     }
 
     @Override
@@ -106,6 +118,7 @@ public final class SolarPanelBlockEntity extends BlockEntity {
         buffer.load(tag.getInt("Energy"));
         double savedFraction = tag.getDouble("FractionalEnergy");
         fractionalEnergy = Double.isFinite(savedFraction) ? Math.max(0, Math.min(0.999999, savedFraction)) : 0;
+        assemblyWear = Mth.clamp(tag.getFloat("AssemblyWear"), 0.0F, 1.0F);
         lastEnvironmentCheck = Long.MIN_VALUE;
     }
 }
