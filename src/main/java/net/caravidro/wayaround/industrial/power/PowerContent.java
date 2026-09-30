@@ -125,6 +125,23 @@ public final class PowerContent {
     public static final DeferredItem<BlockItem> SAWMILL_ITEM = ITEMS.register("sawmill",
         () -> new BlockItem(SAWMILL.get(), new Item.Properties()));
 
+    public static final DeferredBlock<SawmillTableExtensionBlock> SAWMILL_TABLE_EXTENSION =
+        BLOCKS.register("sawmill_table_extension",
+            () -> new SawmillTableExtensionBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.WOOD)
+                    .strength(2.1F, 3.5F)
+                    .sound(SoundType.WOOD)
+                    .noOcclusion()
+            ));
+
+    public static final DeferredItem<BlockItem> SAWMILL_TABLE_EXTENSION_ITEM =
+        ITEMS.register("sawmill_table_extension",
+            () -> new BlockItem(
+                SAWMILL_TABLE_EXTENSION.get(),
+                new Item.Properties()
+            ));
+
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SawmillBlockEntity>> SAWMILL_ENTITY =
         BLOCK_ENTITIES.register("sawmill", () -> BlockEntityType.Builder.of(
             SawmillBlockEntity::new, SAWMILL.get()).build(null));
