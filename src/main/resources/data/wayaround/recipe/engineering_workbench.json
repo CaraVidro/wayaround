@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CIC",
+    "PTP",
+    "I I"
+  ],
+  "key": {
+    "C": {"item": "minecraft:copper_ingot"},
+    "I": {"item": "minecraft:iron_ingot"},
+    "P": {"item": "minecraft:paper"},
+    "T": {"item": "minecraft:cartography_table"}
+  },
+  "result": {
+    "id": "wayaround:engineering_workbench",
+    "count": 1
+  }
+}
