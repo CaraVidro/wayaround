@@ -705,5 +705,12 @@
   "message.wayaround.mechanical_fan.status": "Mechanical fan: %s | %s RPM | airflow %s%%",
   "block.wayaround.mechanical_mill": "Mechanical Mill",
   "item.wayaround.wheat_flour": "Wheat Flour",
-  "message.wayaround.mechanical_mill.status": "Mill: %s | %s RPM | wheat %s | flour %s | grind %s%%"
+  "message.wayaround.mechanical_mill.status": "Mill: %s | %s RPM | wheat %s | flour %s | grind %s%%",
+  "tooltip.wayaround.pipe.class": "Service: %s",
+  "tooltip.wayaround.pipe.liquid": "Liquid",
+  "tooltip.wayaround.pipe.gas": "Gas",
+  "tooltip.wayaround.pipe.capacity": "Capacity: %s units",
+  "tooltip.wayaround.pipe.throughput": "Max flow: %s/t",
+  "tooltip.wayaround.pipe.pressure": "Pressure rating: %s kPa",
+  "tooltip.wayaround.pipe.steam_rated": "Hot-steam rated"
 }
