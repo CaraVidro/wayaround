@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "food",
+  "pattern": [
+    "FFF"
+  ],
+  "key": {
+    "F": {
+      "item": "wayaround:wheat_flour"
+    }
+  },
+  "result": {
+    "id": "minecraft:bread",
+    "count": 1
+  }
+}
