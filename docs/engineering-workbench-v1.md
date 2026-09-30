@@ -1,10 +1,10 @@
-# Engineering Workbench V1
+# Engineer's Table V1
 
-The Engineering Workbench is a design tool, not a replacement for the physical
+The Engineer's Table is a design tool, not a replacement for the physical
 Assembly Workbench.
 
 - Assembly Workbench: build, rotate, hammer and physically assemble parts.
-- Engineering Workbench: inspect candidate materials, build calculations and
+- Engineer's Table: inspect candidate materials, build calculations and
   reason about construction before touching the world.
 
 ## Block catalogue
@@ -180,7 +180,7 @@ The workbench exposes **Save Blueprint**.
   silently destroyed.
 
 Project writes are server-authoritative and validate that the player is still
-within interaction distance of the Engineering Workbench.
+within interaction distance of the Engineer's Table.
 
 Updating an existing Blueprint replaces the project contents but preserves its
 identity, display name, creation timestamp and original creation coordinates.
@@ -217,7 +217,7 @@ The player can:
 - choose whether creation coordinates are shown;
 - choose whether creation date/time is shown.
 
-Creation location is the Engineering Workbench where the first save occurred.
+Creation location is the Engineer's Table where the first save occurred.
 Subsequent saves preserve that original metadata.
 
 The item tooltip always exposes project node count and can optionally expose
@@ -230,4 +230,127 @@ Blueprints use the vanilla ItemStack `CUSTOM_DATA` component.
 The project payload is bounded to 256 nodes when sanitized. The screen model
 and the item data remain independent from world block entities, so projects can
 be traded, copied through normal ItemStack mechanics and reopened at another
-Engineering Workbench.
+Engineer's Table.
+
+
+## Semantic and what-if nodes
+
+The node canvas now includes semantic nodes in addition to pure arithmetic.
+
+### Block outputs
+
+A physical block node exposes four output ports:
+
+- active selected engineering property;
+- `W` — width;
+- `H` — height;
+- `D` — depth.
+
+Connections remember the exact source output, including through Blueprint
+serialization. This allows one physical object to drive several calculations
+without duplicating the block node.
+
+### Attribute
+
+`Attribute` represents a typed engineering quantity.
+
+Current presets include:
+
+- force;
+- mass;
+- length;
+- area;
+- volume;
+- speed;
+- time;
+- temperature;
+- pressure;
+- density.
+
+If its input port is empty, the node uses its local editable value. If another
+node is connected, the connection overrides the local value. This lets a
+project begin as a quick assumption and later replace that assumption with a
+derived value without rewiring the downstream graph.
+
+### Material Convert
+
+`Material Convert` receives a designed area and converts it into a required
+block count based on the target block's largest face area.
+
+The target material can be assigned by selecting the converter and clicking a
+block in the catalogue, or by dragging the catalogue block directly onto the
+converter node.
+
+The result always rounds upward: a structure cannot request 2.4 physical
+blocks.
+
+### Note
+
+`Note` is a project annotation. It has no mathematical output and therefore
+cannot accidentally influence engineering calculations.
+
+### What-if / environment
+
+The first predictive scenario nodes are:
+
+- Wind Force — dynamic-pressure estimate using air density, drag coefficient,
+  speed and exposed area;
+- Water Force — analogous hydrodynamic force estimate;
+- Gravity Load — mass × standard gravity;
+- Acceleration — force ÷ mass;
+- Rate × Time — projects a rate across elapsed time;
+- Displacement — constant-acceleration estimate ½at².
+
+These nodes are deliberately composable. A typical what-if chain can be:
+
+`block W/H -> area -> wind force -> acceleration -> displacement <- time`.
+
+## Animated Visual mode
+
+Scenario previews are temporal rather than static.
+
+Wind and water previews move a body through a force field. Time nodes display a
+moving timeline marker. Acceleration and displacement nodes animate a body
+across the preview, then restart before the edge of the Visual window.
+
+The loop is presentation-only: calculation values remain deterministic and do
+not depend on render FPS or elapsed preview time.
+
+## Scroll and clipping contract
+
+Catalogue, property lists and the operation palette are clipped to their own
+screen regions.
+
+The operation palette is row-scrollable, so adding future engineering domains
+does not allow nodes to draw outside the toolbar or over the canvas.
+
+Connection guidance is shown only while a valid concrete output port is armed.
+Starting another drag, panning, clicking an inspector/list, deleting the source,
+pressing Escape or clicking empty canvas cancels the pending connection.
+
+## Future Architect's Table compatibility
+
+The Architect's Table is intentionally not implemented in V1, but Blueprint
+storage is prepared for it.
+
+Blueprint metadata now carries a `Kind`:
+
+- `ENGINEERING`;
+- `ARCHITECTURE` (reserved).
+
+Old Blueprints with no kind are treated as `ENGINEERING`.
+
+The project NBT is extensible and preserves unknown project fields, so a future
+Architect's Table can store a hologram/scene description alongside the same
+document metadata model without rewriting the item format.
+
+Identity convention:
+
+- Engineer's Blueprint: white sheet/item identity;
+- future Architect's Blueprint: yellow sheet/item identity.
+
+The Architect's Table is expected to be the visual/holographic counterpart:
+placing blocks into a spatial preview, showing only obvious physical properties
+such as size, width, height, mass and material, and saving that spatial design
+inside its Blueprint. The Engineer's Table remains the calculation,
+construction-physics and what-if tool.
