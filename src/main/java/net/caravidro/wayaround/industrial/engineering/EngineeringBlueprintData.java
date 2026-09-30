@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
@@ -41,7 +42,7 @@ public final class EngineeringBlueprintData {
         public int nodeCount() {
             return project.getList(
                     "Nodes",
-                    CompoundTag.TAG_COMPOUND
+                    Tag.TAG_COMPOUND
             ).size();
         }
     }
@@ -168,7 +169,7 @@ public final class EngineeringBlueprintData {
         if (id.isBlank()
                 || !tag.contains(
                 PROJECT,
-                CompoundTag.TAG_COMPOUND
+                Tag.TAG_COMPOUND
         )) {
             return Optional.empty();
         }
@@ -216,7 +217,7 @@ public final class EngineeringBlueprintData {
         ListTag nodes =
                 project.getList(
                         "Nodes",
-                        CompoundTag.TAG_COMPOUND
+                        Tag.TAG_COMPOUND
                 );
 
         if (nodes.size() > MAX_NODES) {
