@@ -30,7 +30,7 @@ public final class SteamEngineBlock extends BaseEntityBlock {
         registerDefaultState(stateDefinition.any().setValue(LIT, false));
     }
     @Override protected MapCodec<SteamEngineBlock> codec() { return CODEC; }
-    @Override protected RenderShape getRenderShape(BlockState state) { return RenderShape.MODEL; }
+    @Override protected RenderShape getRenderShape(BlockState state) { return RenderShape.INVISIBLE; }
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(LIT);
     }
