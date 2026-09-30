@@ -1,0 +1,74 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "pipe": "minecraft:block/iron_block",
+    "band": "minecraft:block/polished_deepslate",
+    "particle": "minecraft:block/iron_block"
+  },
+  "elements": [
+    {
+      "from": [
+        5.5,
+        5.5,
+        5.5
+      ],
+      "to": [
+        10.5,
+        10.5,
+        10.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#pipe"
+        },
+        "up": {
+          "texture": "#pipe"
+        },
+        "north": {
+          "texture": "#pipe"
+        },
+        "south": {
+          "texture": "#pipe"
+        },
+        "west": {
+          "texture": "#pipe"
+        },
+        "east": {
+          "texture": "#pipe"
+        }
+      }
+    },
+    {
+      "from": [
+        4.5,
+        4.5,
+        7.1
+      ],
+      "to": [
+        11.5,
+        11.5,
+        8.9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#band"
+        },
+        "up": {
+          "texture": "#band"
+        },
+        "north": {
+          "texture": "#band"
+        },
+        "south": {
+          "texture": "#band"
+        },
+        "west": {
+          "texture": "#band"
+        },
+        "east": {
+          "texture": "#band"
+        }
+      }
+    }
+  ]
+}

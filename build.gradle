@@ -548,3 +548,21 @@ tasks.register('engineeringWorkbenchRegressionTest', JavaExec) {
     mainClass = 'net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchTest'
 }
 tasks.named('check') { dependsOn tasks.named('engineeringWorkbenchRegressionTest') }
+
+
+// Pipework media compatibility and family-role invariants.
+tasks.register('pipeworkRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.pipework.PipeworkSpecTest'
+}
+tasks.named('check') { dependsOn tasks.named('pipeworkRegressionTest') }
+
+
+// Shared object-animation timeline invariants.
+tasks.register('objectAnimationRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.animation.ObjectAnimationSequenceTest'
+}
+tasks.named('check') { dependsOn tasks.named('objectAnimationRegressionTest') }

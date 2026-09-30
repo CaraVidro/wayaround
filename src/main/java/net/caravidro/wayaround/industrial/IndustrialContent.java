@@ -8,6 +8,7 @@ import net.caravidro.wayaround.industrial.power.SawmillMenu;
 import net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchMenu;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
 import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
+import net.caravidro.wayaround.industrial.pipework.PipeworkContent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.flag.FeatureFlags;
@@ -86,6 +87,21 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.WATER_GENERATOR_ITEM.get()
                                         );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_FAN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.SAWMILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_PRESS_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_MILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.FLOUR.get()
+                                        );
                                     }
                             )
                             .build()
@@ -156,6 +172,12 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 PowerContent.SAWMILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_PRESS_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_MILL_ITEM.get()
                                         );
                                         output.accept(
                                                 PowerContent.SAWMILL_CRANK.get()
@@ -258,6 +280,7 @@ public final class IndustrialContent {
         TABS.register(bus);
         bus.addListener(IndustrialContent::capabilities);
         PowerContent.register(bus);
+        PipeworkContent.register(bus);
         CoalShipContent.register(bus);
         ExperimentalShipContent.register(bus);
     }

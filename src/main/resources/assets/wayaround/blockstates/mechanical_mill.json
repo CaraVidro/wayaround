@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": {"model":"wayaround:block/mechanical_mill"},
+    "facing=east": {"model":"wayaround:block/mechanical_mill","y":90},
+    "facing=south": {"model":"wayaround:block/mechanical_mill","y":180},
+    "facing=west": {"model":"wayaround:block/mechanical_mill","y":270}
+  }
+}
