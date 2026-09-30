@@ -2,7 +2,7 @@
   "ambientocclusion": false,
   "textures": {
     "iron": "minecraft:block/iron_block",
-    "dark": "minecraft:block/polished_deepslate",
+    "dark": "minecraft:block/smooth_stone",
     "copper": "minecraft:block/copper_block",
     "fire": "minecraft:block/blackstone",
     "particle": "minecraft:block/iron_block"
@@ -382,5 +382,6 @@
         0.46
       ]
     }
-  }
+  },
+  "gui_light": "front"
 }
