@@ -972,27 +972,33 @@ public final class OceanWaveField {
             }
         }
 
+        /*
+         * REALISTIC V1 should read as an ocean, not a gently displaced plane.
+         * Open water gets materially taller and longer swells, while protected
+         * coastlines retain a lower base energy. Independent spectrum bands
+         * still provide the local small/medium variety on top.
+         */
         float amplitude =
-                0.045F
+                0.055F
                         + (float) Math.pow(
                         exposure,
-                        1.45
-                ) * 1.10F;
+                        1.38
+                ) * 1.45F;
 
         amplitude *=
                 1.0F
                         - shore
-                        * 0.34F;
+                        * 0.30F;
 
         float wavelength =
-                8.0F
+                9.0F
                         + exposure
-                        * 46.0F;
+                        * 60.0F;
 
         float maxRunup =
-                0.90F
+                1.05F
                         + shore
-                        * 2.50F;
+                        * 3.15F;
 
         return new Profile(
                 exposure,
