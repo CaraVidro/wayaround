@@ -18,13 +18,13 @@ public final class PipeworkSpecTest {
 
     private static void mediumCompatibilityMatchesDesign() {
         PipeSpec copper =
-                PipeworkContent.SMALL_COPPER_SPEC;
+                PipeCatalog.SMALL_COPPER;
 
         PipeSpec gas =
-                PipeworkContent.THIN_GAS_SPEC;
+                PipeCatalog.THIN_GAS;
 
         PipeSpec pressure =
-                PipeworkContent.STEEL_PRESSURE_SPEC;
+                PipeCatalog.STEEL_PRESSURE;
 
         require(
                 copper.supports(
@@ -78,27 +78,27 @@ public final class PipeworkSpecTest {
 
     private static void capacitiesStayOrdered() {
         require(
-                PipeworkContent.LARGE_WATER_MAIN_SPEC.flowPerTick()
-                        > PipeworkContent.IRON_WATER_SPEC.flowPerTick(),
+                PipeCatalog.LARGE_WATER_MAIN.flowPerTick()
+                        > PipeCatalog.IRON_WATER.flowPerTick(),
                 "Large water main should move more liquid than utility pipe"
         );
 
         require(
-                PipeworkContent.IRON_WATER_SPEC.flowPerTick()
-                        > PipeworkContent.SMALL_COPPER_SPEC.flowPerTick(),
+                PipeCatalog.IRON_WATER.flowPerTick()
+                        > PipeCatalog.SMALL_COPPER.flowPerTick(),
                 "Utility pipe should move more liquid than small copper tubing"
         );
 
         require(
-                PipeworkContent.STEEL_PRESSURE_SPEC.maxPressureBar()
-                        > PipeworkContent.IRON_WATER_SPEC.maxPressureBar(),
+                PipeCatalog.STEEL_PRESSURE.maxPressureBar()
+                        > PipeCatalog.IRON_WATER.maxPressureBar(),
                 "Pressure pipe must tolerate more pressure than utility water pipe"
         );
     }
 
     private static void steamLineRetainsHighTemperatureRole() {
         PipeSpec steam =
-                PipeworkContent.STEAM_SPEC;
+                PipeCatalog.INSULATED_STEAM;
 
         require(
                 steam.supports(
@@ -109,7 +109,7 @@ public final class PipeworkSpecTest {
 
         require(
                 steam.maxTemperatureC()
-                        > PipeworkContent.STEEL_PRESSURE_SPEC.maxTemperatureC(),
+                        > PipeCatalog.STEEL_PRESSURE.maxTemperatureC(),
                 "Insulated steam pipe should have the highest thermal rating"
         );
     }
