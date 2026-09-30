@@ -276,8 +276,8 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             int seaLevel,
             RandomSource random
     ) {
-        int cx = baseX + 3 + random.nextInt(10);
-        int cz = baseZ + 3 + random.nextInt(10);
+        int cx = baseX + 4 + random.nextInt(8);
+        int cz = baseZ + 4 + random.nextInt(8);
         int floor = findFloor(level, cx, cz, seaLevel);
 
         for (int i = 0; i < 7 + random.nextInt(8); i++) {
