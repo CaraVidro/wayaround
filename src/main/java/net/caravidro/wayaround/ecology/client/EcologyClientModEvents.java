@@ -35,6 +35,11 @@ public final class EcologyClientModEvents {
                     new AguaWorldSpeciesRenderer<>(context, AguaWorldSpeciesRenderer.Profile.valueOf(species.name())));
         }
         event.registerEntityRenderer(
+                EcologyContent.DEEP_SEA_CAPSULE.get(),
+                DeepSeaCapsuleRenderer::new
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.SUNFISH.get(),
                 SunfishRenderer::new
         );
