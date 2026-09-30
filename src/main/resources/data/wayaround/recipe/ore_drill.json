@@ -1,0 +1,6 @@
+{
+  "type":"minecraft:crafting_shaped","category":"misc",
+  "pattern":["III","ISI","IPI"],
+  "key":{"I":{"item":"minecraft:iron_ingot"},"S":{"item":"wayaround:mechanical_shaft"},"P":{"item":"minecraft:piston"}},
+  "result":{"id":"wayaround:ore_drill","count":1}
+}
