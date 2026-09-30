@@ -219,6 +219,30 @@ public final class PipeBlock
     }
 
     @Override
+    protected InteractionResult useWithoutItem(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            BlockHitResult hit
+    ) {
+        if (!level.isClientSide
+                && level.getBlockEntity(
+                pos
+        ) instanceof PipeBlockEntity pipe) {
+
+            player.displayClientMessage(
+                    pipe.status(),
+                    true
+            );
+        }
+
+        return InteractionResult.sidedSuccess(
+                level.isClientSide
+        );
+    }
+
+    @Override
     protected ItemInteractionResult useItemOn(
             ItemStack stack,
             BlockState state,
