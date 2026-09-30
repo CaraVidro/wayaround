@@ -303,5 +303,12 @@
   "turret.wayaround.off": "Off",
   "message.wayaround.immortal_wheel.family.infinity_melee": "Infinity (melee)",
   "block.wayaround.black_box": "Black Box",
-  "item.wayaround.black_box": "Black Box"
+  "item.wayaround.black_box": "Black Box",
+  "block.wayaround.mechanical_press": "Mechanical Press",
+  "message.wayaround.mechanical_press.busy": "The press is already cycling.",
+  "message.wayaround.mechanical_press.no_power": "The press needs a stronger mechanical input.",
+  "message.wayaround.mechanical_press.started": "Press cycle started (%s ticks).",
+  "message.wayaround.mechanical_press.status": "Press: %s | structure %s%% | last input %s",
+  "message.wayaround.mechanical_press.running": "running",
+  "message.wayaround.mechanical_press.idle": "idle"
 }
