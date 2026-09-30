@@ -5,6 +5,7 @@ import net.caravidro.wayaround.content.WayAroundContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.caravidro.wayaround.nexus.NexusContent;
 import net.caravidro.wayaround.industrial.power.SawmillMenu;
+import net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchMenu;
 import net.caravidro.wayaround.industrial.ship.CoalShipContent;
 import net.caravidro.wayaround.industrial.ship.ExperimentalShipContent;
 import net.minecraft.core.registries.Registries;
@@ -48,6 +49,10 @@ public final class IndustrialContent {
             () -> new MenuType<>(ReforcedBlasterMenu::new, FeatureFlags.VANILLA_SET));
     public static final DeferredHolder<MenuType<?>, MenuType<SawmillMenu>> SAWMILL_MENU = MENUS.register("sawmill",
             () -> new MenuType<>(SawmillMenu::new, FeatureFlags.VANILLA_SET));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<EngineeringWorkbenchMenu>> ENGINEERING_WORKBENCH_MENU =
+            MENUS.register("engineering_workbench",
+                    () -> new MenuType<>(EngineeringWorkbenchMenu::new, FeatureFlags.VANILLA_SET));
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> INDUSTRIALIZATION =
             TABS.register(
                     "industrialization",
@@ -127,6 +132,9 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 PowerContent.ASSEMBLY_WORKBENCH_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.ENGINEERING_WORKBENCH_ITEM.get()
                                         );
                                         output.accept(
                                                 PowerContent.STONE_FLAKE.get()
