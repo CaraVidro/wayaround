@@ -119,7 +119,7 @@ public final class MechanicalMillBlockEntity
                 mill.connected;
 
         IRotationalPower source =
-                mill.parts.complete() ? mill.findBestSource() : null;
+                mill.parts.operable() ? mill.findBestSource() : null;
 
         mill.connected =
                 source != null;
@@ -189,7 +189,7 @@ public final class MechanicalMillBlockEntity
                                         * 0.30F
                 );
 
-        if (mill.parts.complete() && mill.wheatInput > 0
+        if (mill.parts.operable() && mill.wheatInput > 0
                 && mill.flourOutput <= MAX_OUTPUT - 2
                 && Math.abs(
                 mill.rpm

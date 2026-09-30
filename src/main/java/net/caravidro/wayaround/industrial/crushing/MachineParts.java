@@ -21,6 +21,10 @@ public final class MachineParts {
     public ItemStack stack(MachinePartSpec.Role role) { return parts[role.ordinal()]; }
     public boolean has(MachinePartSpec.Role role) { return !stack(role).isEmpty(); }
     public boolean complete() { for (var role : MachinePartSpec.Role.values()) if (!has(role)) return false; return true; }
+    public boolean operable() {
+        return complete() && condition(MachinePartSpec.Role.DRIVE) > .12F
+            && condition(MachinePartSpec.Role.BEARING) > .12F && condition(MachinePartSpec.Role.TOOL) > .12F;
+    }
     public boolean accepts(ItemStack held) {
         return held.getItem() instanceof MachinePartItem item && item.spec().fits(family);
     }

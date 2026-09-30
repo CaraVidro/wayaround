@@ -62,7 +62,7 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         }
         CrushingRecipe recipe = input.isEmpty() ? null : CrushingRecipe.find(input.get(0));
         float strength = parts.condition(MachinePartSpec.Role.TOOL);
-        float requiredTorque = recipe == null ? 0 : size().power * recipe.hardness() * 1.8F;
+        float requiredTorque = recipe == null ? 0 : size().power * recipe.hardness() * .35F;
         float target = 0, granted = 0;
         float request = size().power * parts.driveCost() * (recipe == null ? .15F : 1);
         IRotationalPower source = bestSource();

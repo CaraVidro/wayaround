@@ -1,0 +1,1424 @@
+WAYAROUND
+Documento-mestre de visão, sistemas, arquitetura e desenvolvimento
+
+0. IDENTIDADE
+Nome: WayAround
+Base: Minecraft NeoForge 1.21.1
+Tipo: mod solo, experimental, enorme e modular
+Estética: industrial punk / industrial alternativo / arqueologia tecnológica
+Objetivo: criar um Minecraft no qual diferentes jogadores possam viver histórias completamente diferentes dentro do mesmo mundo.
+O projeto não deve ser entendido como “um mod que adiciona muitos itens”.
+A ideia central é:
+Nem todo mundo vive a mesma coisa.
+Um jogador pode passar horas aperfeiçoando uma roda d'água.
+Outro pode construir uma ferrovia gigantesca.
+Outro pode estar explorando a Antártica.
+Outro pode viver isolado porque recebeu uma habilidade extremamente rara.
+Outro pode gravar um documentário.
+Outro pode procurar fitas antigas.
+Outro pode tentar descobrir se “Seu Velho Amigo” realmente existe.
+Todos estão no mesmo mundo.
+Todos estão jogando o mesmo mod.
+Mas nenhum deles necessariamente experimenta o mesmo jogo.
+
+1. ESTADO ATUAL REAL DO PROJETO
+Antes de qualquer futura implementação, sempre responder:
+“ONDE ESTAMOS?”
+Verificar:
+versão exata do Minecraft;
+versão do NeoForge;
+nome atual do mod;
+estrutura atual de pastas;
+classes existentes;
+sistemas já implementados;
+sistemas parcialmente implementados;
+bugs atuais;
+dependências;
+sistemas provisórios;
+sistemas que já funcionam e NÃO devem ser recriados.
+Regra absoluta
+SE JÁ EXISTE, NÃO FAZER DE NOVO.
+Antes de programar uma feature:
+procurar no código;
+entender o sistema existente;
+reutilizar;
+expandir;
+somente criar um novo sistema se o anterior realmente não servir.
+Não criar duas câmeras.
+Não criar dois sistemas de eventos.
+Não criar duas arquiteturas de veículos.
+Não criar duas formas de armazenar VHS.
+Não criar um novo Assembly se já houver um Assembly Engine.
+
+2. ESTADO INICIAL ATUAL
+No momento, a parte sobrenatural mais evidente já possui o:
+SPECTRUM / BLUE
+Esse é um dos primeiros grandes sistemas do mod.
+Todo o restante deve crescer ao redor de uma arquitetura que permita chegar ao mesmo nível de complexidade sem destruir a performance.
+
+3. FILOSOFIA GERAL
+O mundo deve ter:
+memória;
+consequência;
+envelhecimento;
+construção;
+destruição;
+história;
+exploração;
+mistério;
+sistemas emergentes.
+A pergunta principal de toda feature deve ser:
+“Isso pode interagir com o mundo?”
+Uma feature é mais valiosa quando alimenta outras.
+Exemplo:
+Nevasca
+→ acumula neve
+→ aumenta peso
+→ reduz visibilidade
+→ desgasta estrutura
+→ estrutura entra em estado crítico
+→ prédio desaba
+→ destroços permanecem
+→ vegetação começa a crescer
+→ anos depois alguém encontra uma ruína
+→ encontra uma fita
+→ vê o prédio funcionando antes da queda.
+O objetivo é criar cadeias de consequência.
+
+4. ESTÉTICA
+O WayAround NÃO é um mod futurista moderno.
+A tecnologia máxima visual deve parecer uma evolução alternativa da humanidade.
+A inspiração estética fica próxima de:
+Revolução Industrial;
+punk industrial;
+maquinaria pesada;
+ferro;
+madeira;
+rebites;
+latão;
+aço;
+carvão;
+vapor;
+couro;
+vidro;
+ferramentas mecânicas;
+fotografia antiga;
+equipamentos analógicos.
+Armas comuns não devem avançar para um arsenal moderno completo.
+A estética militar pode incluir:
+mosquetes;
+armas mecânicas;
+Gatling guns;
+artilharia;
+tanques;
+máquinas militares fictícias.
+Veículos podem chegar a:
+locomotivas;
+navios;
+navios a vapor;
+aviões;
+caças;
+cargueiros;
+zepelins gigantes.
+Mesmo tecnologia absurda deve manter a identidade visual.
+
+5. TECNOLOGIA ALTA, ESTÉTICA ANTIGA
+O mundo pode possuir coisas extremamente avançadas:
+viagens para a Lua;
+portais;
+dimensões;
+câmeras;
+gravação de vídeo;
+sistemas de energia;
+veículos gigantescos;
+habilidades sobrenaturais.
+Mas a forma delas existir deve continuar pertencendo ao universo.
+Exemplo:
+Um dispositivo lunar não precisa parecer um foguete moderno.
+Pode parecer uma monstruosa máquina de ferro, vapor e pressão.
+Um portal não precisa parecer uma tela futurista.
+Pode parecer uma estrutura metálica, um aro industrial, tubos e energia impossível.
+
+6. ERA DO MUNDO
+O progresso deve possuir eras.
+Exemplo aproximado:
+Era Primitiva
+pedra lascada;
+madeira;
+fogo;
+ferramentas básicas.
+Era do Metal
+cobre;
+bronze;
+ferro.
+Era do Aço
+siderurgia;
+máquinas;
+estruturas metálicas.
+Era do Vapor
+caldeiras;
+motores;
+locomotivas;
+navios a vapor.
+Era Industrial
+linhas de produção;
+eletricidade;
+grandes fábricas;
+engenharia.
+Era Mecânica Avançada
+máquinas gigantes;
+zepelins;
+aviões;
+veículos especiais.
+Era Experimental
+portais;
+Lua;
+tecnologias anômalas;
+poderes.
+A progressão não precisa ser uma árvore de tecnologia rígida.
+O objetivo é criar uma sensação de desenvolvimento histórico.
+
+7. ASSEMBLY — O SISTEMA CENTRAL
+O Assembly é uma das fundações mais importantes do WayAround.
+O jogador não deve simplesmente craftar coisas importantes.
+Ele deve montá-las.
+A regra é:
+O jogo não pergunta apenas “qual receita produz este objeto?”
+Ele pergunta “como isso foi construído?”
+
+8. ASSEMBLY PRIMITIVO
+Até uma ferramenta simples pode começar com um processo.
+Pedra lascada
+O jogador:
+pega uma pedra;
+pega outra pedra;
+posiciona;
+golpeia;
+produz uma lasca;
+tenta moldar a peça.
+O resultado pode variar.
+Pode:
+produzir uma boa lasca;
+produzir uma lasca ruim;
+quebrar;
+ficar irregular.
+Depois a pedra pode ser presa a um cabo.
+A primeira ferramenta já nasce como objeto fabricado.
+
+9. ASSEMBLY MANUAL
+Montagem manual deve ser:
+lenta;
+trabalhosa;
+barata em máquinas;
+dependente de habilidade;
+sujeita a erros;
+fisicamente observável.
+O jogador pode:
+martelar;
+encaixar;
+girar;
+prender;
+apertar;
+soldar;
+montar;
+desmontar.
+
+10. ASSEMBLY AUTOMATIZADO
+A automação é uma segunda etapa.
+O jogador constrói máquinas que realizam trabalho.
+Exemplos:
+máquina de pregos;
+torno;
+prensa;
+soldador;
+guindaste;
+esteira;
+máquina de corte;
+máquina de moldagem.
+O jogador passa de:
+“eu faço tudo”
+para:
+“eu construí uma fábrica que faz isso”.
+
+11. ERRO DE FABRICAÇÃO
+A automação não deve corrigir erros magicamente.
+Se uma máquina:
+solda torto;
+posiciona errado;
+aperta pouco;
+instala uma peça desalinhada;
+o resultado continua errado.
+Uma máquina não “entende” que algo ficou ruim.
+Ela apenas executa o que foi configurado para executar.
+
+12. QUALIDADE DE MONTAGEM
+Peças podem possuir características internas como:
+resistência;
+alinhamento;
+desgaste;
+qualidade;
+balanceamento;
+tensão;
+fadiga.
+Uma máquina mal construída pode:
+vibrar;
+fazer mais barulho;
+gastar mais energia;
+ter menor eficiência;
+quebrar antes.
+
+13. RODA D’ÁGUA
+A roda d’água é um dos principais exemplos do conceito.
+Ela pode envolver:
+corpo;
+eixo;
+suporte;
+tábuas individuais;
+orientação das tábuas;
+pregos;
+travas;
+alinhamento.
+A disposição das tábuas altera:
+eficiência;
+velocidade;
+comportamento.
+A roda possui durabilidade persistente.
+Se estiver danificada:
+desmontar;
+reconstruir;
+não deve automaticamente restaurá-la ao estado perfeito.
+
+14. MAQUINARIA CRIADA PELO JOGADOR
+Inspirado em sistemas de máquinas modulares, mas muito mais livre.
+O jogador pode combinar:
+rodas;
+eixos;
+correntes;
+engrenagens;
+motores;
+pistões;
+rodas;
+transmissão;
+caldeiras;
+estruturas.
+Com isso podem surgir:
+carros;
+máquinas agrícolas;
+elevadores;
+guindastes;
+máquinas industriais;
+locomotivas;
+navios;
+zepelins.
+
+15. VEÍCULOS NÃO POSSUEM MODELOS ÚNICOS
+O jogo não deve ter simplesmente:
+“Zepelim Classe S Modelo X”.
+Um jogador constrói o próprio zepelim.
+Outro constrói outro.
+O sistema analisa a máquina e classifica.
+Exemplo:
+Comprimento: 168 m
+Motores: 10
+Massa: 1.320 t
+Armamento: pesado
+Tripulação: 21
+Estrutura: metálica
+
+CLASSIFICAÇÃO: S
+
+Dois veículos Classe S podem ser completamente diferentes.
+
+16. CLASSES DE VEÍCULOS
+Sistema F → S.
+F
+pequeno;
+frágil;
+simples;
+barato;
+manutenção constante.
+Intermediárias
+Gradualmente aumentam:
+tamanho;
+potência;
+resistência;
+custo;
+complexidade;
+infraestrutura necessária.
+S
+A máquina deixa de parecer um simples veículo.
+Ela vira uma operação.
+
+17. ZEPPELIN CLASSE S
+Um exemplo de Classe S:
+casco metálico gigante;
+holofotes;
+motores;
+metralhadoras;
+compartimentos;
+sistemas mecânicos;
+tripulação;
+operação semelhante a um bombardeiro.
+Quando destruído:
+falha;
+alarmes começam;
+motores param;
+explosões acontecem;
+casco perde estabilidade;
+cai;
+destrói o ambiente;
+deixa destroços permanentes.
+Os destroços só desaparecem quando jogadores os removem.
+
+18. TRENS
+Trens devem ser máquinas construídas.
+Componentes:
+chassi;
+rodas;
+eixos;
+caldeira;
+pistões;
+bielas;
+transmissão;
+freios;
+vagões.
+Uma ferrovia inteira também pode ser construída e mantida pelos jogadores.
+
+19. ENGENHARIA INDUSTRIAL
+O jogador poderá construir infraestrutura gigantesca.
+Exemplos:
+usinas;
+siderúrgicas;
+oficinas;
+minas;
+ferrovias;
+portos;
+hangares;
+fábricas.
+
+20. USINA DE CARVÃO
+Uma usina não é “um bloco de energia”.
+Ela é um conjunto de sistemas:
+carvão;
+transporte;
+armazenamento;
+queima;
+calor;
+pressão;
+vapor;
+turbina;
+gerador;
+distribuição.
+Pode exigir uma grande montagem.
+
+21. HIDRELÉTRICA
+Possíveis componentes:
+barragem;
+altura;
+canal;
+fluxo;
+turbina;
+eixo;
+gerador;
+distribuição.
+Mesas de cálculo e arquitetura podem ajudar o jogador a entender:
+medidas;
+vazão;
+eficiência;
+dimensionamento.
+O objetivo é fazer uma instalação gigantesca parecer uma conquista.
+
+22. MESA DE ARQUITETURA E CÁLCULO
+Uma ferramenta que auxilia o jogador a projetar estruturas.
+Pode mostrar:
+medidas;
+plantas;
+diagramas;
+cálculos;
+dependências;
+componentes necessários.
+Isso não deve eliminar a construção.
+A mesa serve para ajudar.
+
+23. MUNDO COM GEOGRAFIA REALISTA
+A temperatura do mundo deve variar geograficamente.
+Em linhas gerais:
+regiões centrais mais quentes;
+norte mais frio;
+sul mais frio;
+polos extremos.
+O clima deve ser resultado da localização.
+
+24. ANTÁRTICA
+A região polar é uma das áreas mais extremas.
+Pode possuir:
+gelo;
+icebergs;
+calving;
+nevascas;
+congelamento de água;
+visibilidade extrema;
+acúmulo de neve;
+avalanches.
+
+25. NEVE ACUMULATIVA
+Nevascas não apenas “trocam a textura do chão”.
+Elas acumulam neve.
+Uma base pode:
+ficar progressivamente branca;
+ter janelas cobertas;
+perder visibilidade;
+ficar parcialmente soterrada.
+A própria construção muda fisicamente com o tempo.
+
+26. NOITE
+A noite deve realmente ser escura.
+Não tratar iluminação como decoração.
+Isso deve afetar:
+exploração;
+segurança;
+atmosfera;
+temperatura;
+sobrevivência.
+
+27. FOGO
+O fogo não deve ficar limitado a um bloco.
+Uma área incendiada pode:
+crescer;
+se juntar a outra;
+produzir uma massa maior;
+consumir estruturas.
+Materiais diferentes podem reagir de formas diferentes.
+
+28. FUMAÇA
+Incêndios grandes precisam ser visíveis a grandes distâncias.
+Um jogador pode olhar para o horizonte e ver:
+Uma enorme coluna de fumaça.
+Sem marcador no mapa.
+Sem notificação.
+O mundo conta a notícia.
+
+29. EVENTOS FÍSICOS GIGANTES
+O Blue é um exemplo.
+Grandes eventos devem afetar o ambiente.
+Exemplo:
+Blue atinge um prédio.
+O prédio não deve simplesmente trocar todos os blocos por ar.
+O sistema deve avaliar:
+regiões estruturais;
+pontos de sustentação;
+partes importantes;
+massa;
+integridade.
+Depois produzir o colapso.
+
+30. BUILDING DEBRIS
+Construções possuem estado estrutural.
+Estados possíveis:
+saudável;
+desgastado;
+comprometido;
+crítico;
+colapso.
+Ao colapsar pode haver diferentes apresentações:
+Colapso estrutural
+Grande seção inclinando.
+Colapso fragmentado
+Pedaços e blocos caindo.
+Colapso industrial
+metal rangendo;
+pressão;
+vapor;
+tubos;
+explosões localizadas;
+poeira;
+impacto.
+Os restos permanecem no mundo.
+
+31. PERFORMANCE DE DESTRUIÇÃO
+NUNCA tratar um prédio gigante como milhares de entidades físicas individuais.
+Usar uma abordagem hierárquica.
+O prédio pode ser agrupado em:
+paredes;
+vigas;
+pilares;
+teto;
+componentes maiores.
+Durante o colapso:
+primeiro grandes partes;
+depois debris menores.
+Não transformar 30.000 blocos em 30.000 entidades físicas sem necessidade.
+
+32. NÍVEIS DE SIMULAÇÃO
+O mundo pode ter diferentes níveis de detalhe.
+Próximo
+Simulação completa.
+Distância média
+Simulação simplificada.
+Muito distante
+Estado resumido.
+Fora do foco
+Persistência histórica.
+Isso é fundamental para:
+incêndios;
+fumaça;
+animais;
+máquinas;
+estruturas;
+veículos;
+clima.
+O mundo não precisa simular cada detalhe em alta fidelidade quando ninguém está perto.
+
+33. TEMPO E ENVELHECIMENTO
+Cada objeto relevante deve possuir um histórico.
+Materiais envelhecem.
+Máquinas envelhecem.
+Estruturas envelhecem.
+Construções abandonadas mudam.
+
+34. NATUREZA RECUPERANDO O MUNDO
+Uma construção abandonada pode passar por:
+sujeira;
+umidade;
+musgo;
+pequenas plantas;
+vegetação;
+raízes;
+árvores;
+ruptura;
+colapso;
+ruína.
+Assim, o mundo não fica eternamente congelado no estado em que foi construído.
+
+35. RUÍNAS
+Ruínas podem preservar:
+peças;
+destroços;
+trilhos;
+máquinas;
+paredes;
+placas;
+fotos;
+fitas.
+Novos jogadores podem descobrir vestígios de gerações anteriores.
+
+36. VIDA ANIMAL
+O projeto deve eventualmente possuir IA mais profunda para animais.
+Não apenas:
+“animal vê jogador → foge”.
+A intenção é criar comportamentos.
+Animais podem:
+procurar comida;
+seguir rotas;
+formar grupos;
+procurar abrigo;
+reagir a incêndios;
+reagir a predadores;
+modificar seu ambiente.
+
+37. FORMIGAS
+As formigas podem ter comportamento coletivo.
+Uma formiga encontra alimento.
+Retorna.
+Outras seguem.
+O formigueiro cresce.
+Com o tempo:
+túneis aumentam;
+população aumenta;
+rotas se estabelecem;
+o ambiente muda.
+Uma pequena criatura pode se transformar numa presença significativa depois de muito tempo.
+
+38. OUTRAS FORMAS DE VIDA
+O projeto pode futuramente adicionar:
+fauna;
+insetos;
+plantas;
+ecossistemas;
+criaturas especiais.
+A regra é semelhante:
+Sistemas pequenos devem produzir fenômenos grandes através do tempo.
+
+39. OCEANO
+O oceano deve possuir:
+ondas;
+correntes;
+navegação;
+clima;
+gelo;
+neblina;
+tempestades.
+
+40. GREAT VOYAGER
+Área conceitual para a progressão marítima.
+Pode incluir:
+caravela;
+Great Ship;
+navios a vapor;
+cargueiros;
+navios de guerra.
+
+41. GUERRAS MARÍTIMAS
+Possíveis sistemas:
+canhões;
+danos;
+incêndios;
+vazamentos;
+alagamento;
+perda de compartimentos;
+colisão;
+naufrágio.
+Navios destruídos devem permanecer como parte da história do mundo.
+
+42. ICEBERGS E DUNGEONS
+Icebergs podem esconder:
+cavernas;
+navios;
+bases;
+ruínas;
+dungeons;
+estruturas congeladas.
+Pode existir um evento marítimo especial com sensação de grande desastre.
+
+43. EXPLORAÇÃO ESPACIAL
+O mundo não precisa parar no planeta.
+Possíveis destinos:
+Lua;
+outros planetas;
+dimensões;
+regiões artificiais.
+A Lua deve manter a estética do universo.
+Uma base lunar ainda pode ter:
+ferro;
+rebites;
+tubos;
+instrumentos analógicos;
+máquinas industriais.
+
+44. PORTAIS
+Portais são parte da camada experimental.
+Eles não precisam ser apenas “entrada para outro bioma”.
+Podem conectar:
+dimensões;
+áreas anômalas;
+mundos;
+eventos.
+
+45. CÂMERA
+A câmera é uma grande feature, mas não o centro do mod.
+Ela serve como instrumento para:
+documentar;
+fotografar;
+fazer vídeos;
+produzir filmes;
+registrar guerras;
+registrar eventos;
+criar história.
+
+46. FOTOGRAFIA
+A fotografia deve ser física.
+O jogador pode:
+tirar foto;
+guardar;
+transportar;
+colocar em moldura;
+pendurar em paredes.
+Fotos podem registrar:
+equipes;
+construções;
+expedições;
+guerras;
+inaugurações;
+acidentes.
+
+47. FOTOGRAFIA COMO CULTURA DO SERVIDOR
+Os jogadores podem naturalmente criar tradições.
+Exemplos:
+foto antes de uma expedição;
+foto na inauguração de uma usina;
+foto da equipe de um zepelim;
+foto na Lua;
+foto de uma ponte recém-finalizada.
+
+48. CÂMERA VHS
+A câmera pode gravar:
+POV;
+movimentos da mão;
+Voice Chat audível;
+portas;
+máquinas;
+alarmes;
+sirenes;
+explosões;
+sons do ambiente.
+Não deve criar um “replay livre”.
+Ela registra o que realmente foi visto.
+
+49. MORTE DURANTE GRAVAÇÃO
+Quando o operador morre:
+A câmera continua por alguns segundos.
+Ela:
+cai;
+treme;
+fica inclinada;
+continua captando áudio.
+Então a gravação termina abruptamente.
+
+50. FITAS VHS
+As gravações tornam-se objetos.
+O jogador pode dar nomes.
+Não é necessário colocar descrição automática.
+Exemplos:
+Blog do XxGamer89xX;
+Construção da Linha Norte;
+Último Voo;
+Dia 37;
+Não Apague.
+
+51. TV
+A TV é um bloco físico.
+Pode reproduzir as fitas.
+A TV deve adicionar:
+scanlines;
+ruído;
+tracking;
+distorção;
+falhas;
+efeito de CRT.
+O vídeo original pode ser simples.
+A aparência final vem da TV.
+
+52. SOM DA TV
+A fita possui áudio.
+A TV reproduz esse áudio no espaço.
+Quanto mais longe:
+mais abafado.
+Quanto mais perto:
+mais claro.
+A TV deve parecer parte física da casa.
+
+53. FITAS COMO HISTÓRIA
+Uma fita pode ser:
+vlog;
+filme;
+curta;
+documentário;
+registro técnico;
+gravação acidental;
+registro de guerra;
+gravação de uma construção.
+O servidor pode produzir cinema sem necessidade de uma ferramenta externa.
+
+54. DIFERENTES ÉPOCAS NA MESMA GRAVAÇÃO
+Uma gravação pode mostrar:
+fábrica funcionando;
+jogadores trabalhando;
+cidade viva;
+trem inteiro.
+O jogador atual pode olhar para o mesmo lugar e ver:
+ruína;
+ferrugem;
+vegetação;
+silêncio.
+A diferença entre passado e presente é uma das principais formas de narrativa do projeto.
+
+55. BLACK BOX
+A Black Box é diferente da câmera.
+Ela não serve para mostrar a perspectiva.
+Ela serve para registrar eventos.
+Pode guardar:
+Voice Chat;
+chat;
+portas;
+máquinas;
+alarmes;
+sirenes;
+explosões;
+timestamps;
+coordenadas;
+eventos importantes.
+Pode ser colocada em:
+fábricas;
+veículos;
+zepelins;
+navios;
+estações;
+laboratórios.
+
+56. MEMÓRIA AUDIOVISUAL DO SERVIDOR
+Com o tempo podem existir:
+arquivos;
+museus;
+salas de cinema;
+arquivos de VHS;
+galerias de fotos;
+retratos;
+registros técnicos.
+Isso permite que a própria comunidade construa a história do servidor.
+
+57. RETRATOS E PINTURAS
+Fotos importantes podem virar:
+quadros;
+pinturas;
+retratos;
+registros históricos.
+Imagine entrar em uma casa abandonada e encontrar:
+um quadro sépia com trabalhadores olhando para a câmera.
+Aquele quadro pode representar uma equipe que existiu de verdade no servidor.
+
+58. ROLEPLAY EMERGENTE
+O jogo não deve obrigar o jogador a fazer roleplay.
+As mecânicas devem incentivar.
+Exemplos:
+equipes;
+oficinas;
+fotógrafos;
+engenheiros;
+maquinistas;
+exploradores;
+historiadores;
+mecânicos;
+tripulações.
+O jogador escolhe naturalmente seu papel.
+
+59. CAMADAS SOCIAIS DO SERVIDOR
+Não existem classes obrigatórias.
+As “classes” surgem da atividade.
+Pode existir:
+Novato
+Ainda aprendendo o mundo.
+Construtor
+Focado em arquitetura.
+Engenheiro
+Focado em máquinas.
+Maquinista
+Focado em trens.
+Explorador
+Focado em regiões perigosas.
+Cinegrafista
+Focado em documentação.
+Historiador
+Focado em preservar o passado.
+Lenda
+Jogador associado a acontecimentos raríssimos.
+
+60. O SPECTRUM COMO EXEMPLO DE HISTÓRIA INDIVIDUAL
+O Spectrum deve ser extremamente raro.
+Pode existir uma situação em que apenas um jogador em todo um servidor possua a habilidade.
+Não é uma recompensa garantida.
+Não é uma classe.
+Não é um item comum.
+É uma ocorrência excepcional.
+
+61. O DONO DO SPECTRUM NÃO É UM DEUS
+Ele:
+pode errar;
+pode perder;
+pode morrer;
+pode ser surpreendido;
+continua sendo um jogador.
+A diferença é o potencial destrutivo.
+Isso significa que uma única pessoa pode alterar completamente a história do servidor.
+
+62. EVENTO DO BLUE
+Imagine:
+Um jogador começa a usar o Blue.
+O mundo responde.
+estruturas quebram;
+pessoas correm;
+máquinas são danificadas;
+fumaça aparece;
+prédios desabam.
+Outro jogador pode estar longe, gravando tudo.
+Outro está tentando evacuar.
+Outro está protegendo uma máquina.
+Outro nem sabe o que aconteceu.
+Esse evento gera várias histórias simultaneamente.
+
+63. INTERAÇÃO DE HABILIDADES
+Habilidades sobrenaturais devem possuir física/interação.
+Exemplos:
+atração alterando trajetória;
+fogo encontrando gelo;
+eletricidade afetando água;
+gravidade afetando objetos;
+poderes interagindo com máquinas.
+A ideia é evitar poderes isolados.
+
+64. JUJUTSU PROCEDURAL
+O sistema deve gerar uma habilidade única para cada jogador selecionado.
+Não existe uma lista curta de poderes iguais para todos.
+Ao despertar:
+o jogo combina características.
+Possíveis características:
+elemento;
+invocação;
+regra;
+movimento;
+alcance;
+estética;
+forma;
+comportamento.
+A combinação cria uma identidade.
+
+65. DOMÍNIO DE EXPANSÃO
+O domínio é a representação máxima da habilidade.
+Exemplo:
+Habilidade:
+“Zumbis”.
+Domínio:
+braços de zumbis;
+agarrões;
+terreno temático;
+invocações;
+mobilidade;
+titãs;
+regras específicas.
+O domínio deve ser procedural, mas coerente com a habilidade.
+
+66. VOICE CHAT COM INTENÇÃO
+O sistema pode interpretar comandos de voz.
+Exemplo:
+“Blue é muito forte.”
+Nada acontece.
+“Blue.”
+Invocação.
+“Fica parado.”
+Parar.
+“Orbita.”
+Orbitar.
+O sistema deve tentar interpretar a intenção e o contexto.
+Não simplesmente reagir a qualquer menção.
+
+67. DETECÇÃO DE DUELO
+Quando dois jogadores entram num confronto real:
+o sistema pode observar:
+dano;
+frequência;
+distância;
+habilidades;
+tempo.
+Se houver evidência suficiente:
+o mundo pode reconhecer o confronto.
+Pode iniciar:
+música;
+efeitos;
+apresentação;
+mudanças de atmosfera.
+
+68. “SEU VELHO AMIGO”
+Categoria especial de acontecimentos não documentados.
+O sistema deve manter incerteza.
+Exemplo:
+O jogador faz um famoso “totem de Herobrine”.
+Nada acontece.
+Então:
+horas depois,
+coisas começam a parecer estranhas.
+
+69. FILOSOFIA DE “SEU VELHO AMIGO”
+Nunca dizer claramente:
+“Herobrine está aqui.”
+Nunca mostrar uma interface:
+“Evento Herobrine iniciado.”
+Nunca confirmar completamente.
+As ocorrências devem ter explicações plausíveis.
+Até que várias coincidências se acumulem.
+
+70. POSSÍVEIS ANOMALIAS
+Exemplos:
+portas abertas;
+objetos que parecem ter mudado;
+pinturas estranhas;
+silhuetas distantes;
+pegadas;
+estruturas inexplicáveis;
+gravações estranhas;
+sonhos;
+lugares que o jogador não lembra de ter criado.
+
+71. SONHO DO AETHER
+Uma das ideias de “bait secreto”.
+O jogador dorme.
+Sonha com um portal do Aether funcionando.
+Pode ouvir sons.
+Pode ver o portal.
+Acorda.
+Talvez nunca aconteça nada.
+Ou talvez, posteriormente, algo aconteça.
+A intenção é que o jogador pense:
+“Foi só um sonho?”
+
+72. BACKROOMS / NOCLIP
+Outra anomalia não documentada.
+O jogador pode, em circunstâncias muito raras, atravessar um ponto impossível.
+Em vez de morrer:
+cai.
+Tela escura.
+Surge num espaço anômalo.
+Pode nunca retornar.
+O mod nunca havia dito que esse lugar existia.
+Isso deve ser uma descoberta da comunidade.
+
+73. DOCUMENTAÇÃO COMO BAIT
+A página pública do mod não precisa revelar tudo.
+Pode apresentar apenas uma parte:
+clima;
+Assembly;
+engenharia;
+veículos;
+fotografia;
+VHS.
+Sistemas especiais podem permanecer não documentados.
+Isso cria descoberta orgânica.
+
+74. O “ICEBERG” DO MOD
+O jogador deve constantemente descobrir que havia mais coisas.
+Primeiro:
+“É um mod de clima.”
+Depois:
+“Tem Assembly.”
+Depois:
+“Tem indústria.”
+Depois:
+“Tem envelhecimento.”
+Depois:
+“Tem VHS.”
+Depois:
+“Tem poderes.”
+Depois:
+“Tem Lua.”
+Depois:
+“Tem coisas que nem estão documentadas.”
+
+75. EXPLORAÇÃO DE PLANETAS E DIMENSÕES
+O sistema de exploração pode futuramente se expandir para:
+Lua;
+outros planetas;
+dimensões;
+regiões artificiais;
+mundos experimentais.
+Cada local deve ser tratado como uma camada própria da experiência.
+
+76. HISTÓRIA DO MUNDO
+Depois de meses ou anos:
+o servidor deve conter:
+ruínas;
+pontes abandonadas;
+ferrovias;
+destroços;
+usinas desativadas;
+casas cobertas por vegetação;
+zepelins caídos;
+navios afundados;
+fotos;
+fitas;
+retratos;
+memoriais.
+A história não precisa estar em uma wiki.
+Ela pode estar no mapa.
+
+77. ARQUEOLOGIA DOS JOGADORES
+Um jogador novo não precisa conhecer os fundadores.
+Ele pode descobrir:
+uma fita;
+uma pintura;
+uma locomotiva quebrada;
+uma placa;
+um prédio;
+uma Black Box.
+E reconstruir o que aconteceu.
+
+78. PRIMEIRO OBJETIVO: CRIAR UM MUNDO BASE
+Antes de implementar todas as coisas absurdas:
+criar a infraestrutura que permita:
+objetos persistentes;
+eventos;
+tempo;
+materiais;
+Assembly;
+estado;
+armazenamento.
+
+79. SISTEMAS FUNDAMENTAIS
+A arquitetura geral deve priorizar:
+World State Engine
+Estado persistente do mundo.
+Material/Physics Engine
+Características físicas e desgaste.
+Assembly Engine
+Montagem e máquinas.
+Structural Engine
+Integridade e colapso.
+Environmental Engine
+Clima, fogo, neve, fumaça, natureza.
+Vehicle Engine
+Máquinas montáveis.
+Media Engine
+Fotos, câmera, VHS, TV.
+Event Engine
+Eventos raros e acontecimentos históricos.
+AI Engine
+Animais, insetos e entidades.
+Anomaly Engine
+Eventos secretos e sobrenaturais.
+
+80. PRINCÍPIO DE PERFORMANCE
+O WayAround pode criar cenas extremamente caras.
+Exemplo:
+Blue
+→ derruba prédio
+→ centenas de partículas
+→ fumaça
+→ destroços
+→ áudio
+→ câmera gravando
+→ vários jogadores assistindo.
+Não assumir que o Minecraft deve simular tudo literalmente.
+Usar representação inteligente.
+
+81. DESTRUIÇÃO OTIMIZADA
+Não transformar milhares de blocos em milhares de entidades.
+Usar agrupamento.
+Uma estrutura pode ser representada por componentes grandes.
+Somente partes relevantes viram debris menores.
+O restante pode ser convertido diretamente em estado persistente.
+
+82. PARTÍCULAS OTIMIZADAS
+Uma nuvem de fumaça não precisa ser centenas de entidades.
+Pode ser:
+uma entidade;
+partículas internas;
+billboard;
+shader;
+volumetria simplificada.
+A aparência deve sugerir uma grande quantidade.
+A simulação não precisa ser igualmente grande.
+
+83. LOD E DISTÂNCIA
+Objetos próximos:
+simulação completa.
+Objetos médios:
+simulação reduzida.
+Objetos muito distantes:
+estado resumido.
+Objetos fora do foco:
+somente persistência.
+Isso é essencial para o mundo gigante.
+
+84. O QUE NÃO FAZER
+Nunca começar:
+“Vamos fazer tudo.”
+Dividir.
+Não criar:
+sistema de fumaça completo;
+sistema de IA de formiga;
+sistema de zepelim;
+sistema de VHS;
+sistema de portais;
+todos ao mesmo tempo.
+
+85. ORDEM DE DESENVOLVIMENTO RECOMENDADA
+FASE 1 — FUNDAÇÕES
+estrutura do mod;
+sistemas de dados;
+eventos;
+persistência;
+materiais;
+estados.
+FASE 2 — ASSEMBLY
+peça;
+encaixe;
+orientação;
+material;
+durabilidade;
+ferramenta;
+montagem;
+desmontagem.
+FASE 3 — AMBIENTE
+clima;
+temperatura;
+neve;
+gelo;
+fogo;
+fumaça.
+FASE 4 — TEMPO
+desgaste;
+idade;
+ferrugem;
+musgo;
+plantas;
+raízes;
+abandono.
+FASE 5 — ESTRUTURAS
+integridade;
+suporte;
+rachadura;
+colapso;
+debris.
+FASE 6 — MÁQUINAS
+roda d’água;
+motores;
+guindastes;
+vapor;
+automação.
+FASE 7 — VEÍCULOS
+carro;
+trem;
+navio;
+avião;
+zepelim;
+classificação F–S.
+FASE 8 — INDÚSTRIA
+usinas;
+hidrelétricas;
+carvão;
+energia;
+logística.
+FASE 9 — MEDIA
+fotografia;
+câmera;
+VHS;
+TV;
+Black Box.
+FASE 10 — HISTÓRIA
+museus;
+pinturas;
+arquivo;
+ruínas;
+eventos históricos.
+FASE 11 — FAUNA E FLORA
+comportamento animal;
+insetos;
+formigas;
+ecossistemas.
+FASE 12 — EXPLORAÇÃO
+Antártica;
+oceanos;
+icebergs;
+dungeons;
+Lua;
+planetas;
+dimensões.
+FASE 13 — SOBRENATURAL
+Jujutsu;
+poderes;
+Spectrum;
+Blue;
+Voice Intent;
+domínios.
+FASE 14 — ANOMALIAS
+Seu Velho Amigo;
+sonhos;
+Aether;
+Backrooms;
+eventos secretos.
+
+86. PRINCIPAL REGRA DE DESENVOLVIMENTO
+Toda nova feature deve responder:
+ONDE ESTAMOS?
+Depois:
+O QUE JÁ EXISTE?
+Depois:
+QUAL SISTEMA EXISTENTE POSSO REUTILIZAR?
+Depois:
+QUAL É A MENOR IMPLEMENTAÇÃO FUNCIONAL?
+Só então programar.
+
+87. REGRA DE INTEGRAÇÃO
+Toda feature importante deve tentar conversar com pelo menos um sistema existente.
+Exemplo:
+Fogo
+deve conversar com:
+materiais;
+fumaça;
+estruturas;
+natureza;
+câmera;
+áudio.
+Trem
+deve conversar com:
+Assembly;
+energia;
+trilhos;
+manutenção;
+mídia;
+história.
+Blue
+deve conversar com:
+estruturas;
+partículas;
+fumaça;
+áudio;
+câmera;
+destruição;
+história.
+Natureza
+deve conversar com:
+tempo;
+materiais;
+estruturas;
+ruínas.
+
+88. O MOD COMO “UMA HISTÓRIA POR JOGADOR”
+O resultado desejado não é que todos os jogadores vejam todas as features.
+O resultado desejado é:
+Cada jogador possuir uma história diferente sobre o mesmo mundo.
+Um:
+“Eu passei três dias aperfeiçoando minha roda d’água.”
+Outro:
+“Eu passei uma semana fazendo minha ferrovia.”
+Outro:
+“Eu fui para a Antártica.”
+Outro:
+“Eu construí um zepelim.”
+Outro:
+“Eu encontrei uma fita de um acidente de 200 dias atrás.”
+Outro:
+“Eu vi o Blue destruindo uma cidade.”
+Outro:
+“Eu tive um sonho estranho e depois caí em um lugar que nem deveria existir.”
+Todos estão corretos.
+Todos estão jogando WayAround.
+
+89. IDENTIDADE FINAL
+O WayAround não deve ser:
+“Minecraft com muitos mods dentro de um mod.”
+Deve parecer um mundo único no qual:
+engenharia;
+natureza;
+tempo;
+história;
+tecnologia;
+exploração;
+anomalias;
+mídia;
+jogadores;
+existem simultaneamente.
+
+90. FRASE CENTRAL DO PROJETO
+UM ÚNICO MUNDO.
+UM ÚNICO MOD.
+MILHARES DE HISTÓRIAS.
+NEM TODO MUNDO VIVE A MESMA COISA.
+
+91. OBSERVAÇÃO PARA O FUTURO GPT
+Quando esta descrição for usada em uma nova sessão, NÃO presumir que qualquer uma dessas features já esteja implementada.
+Apenas o que estiver presente no código/estado atual deve ser considerado existente.
+Antes de alterar qualquer coisa:
+ONDE ESTAMOS?
+Descobrir.
+Depois:
+O QUE JÁ EXISTE?
+Depois:
+O QUE ESTÁ FALTANDO?
+Depois:
+QUAL É O PRÓXIMO BLOCO MAIS FUNDAMENTAL?
+Nunca reimplementar uma coisa existente apenas porque a ideia apareceu novamente.
+Nunca transformar o documento inteiro em uma tarefa única.
+O projeto é modular.
+Cada sistema deve poder nascer, funcionar sozinho e posteriormente conversar com os outros.
+O objetivo não é terminar tudo de uma vez.
+O objetivo é construir uma fundação suficientemente boa para que, ao adicionar a próxima ideia absurda, ela possa realmente fazer parte do mesmo mundo.
+
+
