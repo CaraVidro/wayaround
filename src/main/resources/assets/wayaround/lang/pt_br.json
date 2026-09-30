@@ -310,5 +310,7 @@
   "message.wayaround.mechanical_press.started": "Ciclo da prensa iniciado (%s ticks).",
   "message.wayaround.mechanical_press.status": "Prensa: %s | estrutura %s%% | última entrada %s",
   "message.wayaround.mechanical_press.running": "funcionando",
-  "message.wayaround.mechanical_press.idle": "parada"
+  "message.wayaround.mechanical_press.idle": "parada",
+  "block.wayaround.mechanical_fan": "Ventoinha Mecânica",
+  "message.wayaround.mechanical_fan.status": "Ventoinha mecânica: %s | %s RPM | fluxo %s%%"
 }
