@@ -1308,73 +1308,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
     public void describe(
             Player player
     ) {
-        String stage;
-
-        if (!bladeInstalled()) {
-            stage =
-                    Component.translatable(
-                            "message.wayaround.sawmill.stage_body"
-                    ).getString();
-
-        } else if (!shaftInstalled()) {
-            stage =
-                    Component.translatable(
-                            "message.wayaround.sawmill.stage_blade"
-                    ).getString();
-
-        } else if (jammed) {
-            stage =
-                    Component.translatable(
-                            "message.wayaround.sawmill.stage_jammed"
-                    ).getString();
-
-        } else {
-            stage =
-                    Component.translatable(
-                            "message.wayaround.sawmill.stage_ready"
-                    ).getString();
-        }
-
-        player.displayClientMessage(
-                Component.translatable(
-                        "message.wayaround.sawmill.status_v1",
-                        stage,
-                        String.format(
-                                java.util.Locale.ROOT,
-                                "%.1f",
-                                rpm
-                        ),
-                        Math.round(
-                                progress
-                                        * 100.0F
-                        ),
-                        Math.round(
-                                partCondition(
-                                        bladeProfile()
-                                )
-                                        * 100.0F
-                        ),
-                        Math.round(
-                                partCondition(
-                                        shaftProfile()
-                                )
-                                        * 100.0F
-                        ),
-                        Math.round(
-                                vibration
-                                        * 100.0F
-                        ),
-                        Math.round(
-                                heat
-                                        * 100.0F
-                        ),
-                        Math.round(
-                                lastPowerRatio
-                                        * 100.0F
-                        )
-                ),
-                true
-        );
+        // Motion, sound and condition are visible on the assembly; no casual telemetry dump.
     }
 
     private void finishCut(

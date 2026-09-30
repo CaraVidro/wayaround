@@ -1,735 +1,114 @@
 package net.caravidro.wayaround.industrial.mechanical;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import java.util.*;
 import javax.annotation.Nullable;
-
-import net.caravidro.wayaround.industrial.power.MechanicalGearboxBlock;
-import net.caravidro.wayaround.industrial.power.MechanicalShaftBlock;
-import net.caravidro.wayaround.industrial.power.MechanicalTransmissionBlockEntity;
-import net.caravidro.wayaround.industrial.power.WaterWheelHubBlockEntity;
-import net.caravidro.wayaround.worldconfig.WorldFeature;
-import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.util.Mth;
+import net.caravidro.wayaround.industrial.power.*;
+import net.caravidro.wayaround.worldconfig.*;
+import net.minecraft.core.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
-/**
- * Mechanical routing for V1.
- *
- * Connectivity stays topology-based, but returned power now remembers the
- * exact shaft/gearbox path. Consuming power applies transmission losses and
- * physically loads every real component in that path.
- */
+/** Bounded real transmission paths, tooth ratios, direction reversals and shared source budgets. */
 public final class MechanicalTransmission {
-
-    private static final int MAX_NETWORK_NODES =
-            192;
-
-    private MechanicalTransmission() {
+    private static final int MAX_NETWORK_NODES=192;
+    private record Route(BlockPos pos,List<BlockPos> path,float ratio,int sign){}
+    private record Feed(BlockPos pos,IRotationalPower source,List<BlockPos> path,float ratio,int sign,float efficiency) {
+        float rpm(){return source.rpm()*ratio*sign;}
+        float power(){return Math.max(0,source.power())*efficiency;}
     }
-
-    @Nullable
-    public static IRotationalPower findSource(
-            Level level,
-            BlockPos consumerPos,
-            Direction direction
-    ) {
-        if (!WorldFeatureRuntime.enabled(
-                level,
-                WorldFeature.POWER_NETWORKS
-        )) {
-            return null;
-        }
-
-        return findSourceInternal(
-                level,
-                consumerPos,
-                direction,
-                null
-        );
+    private MechanicalTransmission(){}
+    @Nullable public static IRotationalPower findSource(Level level,BlockPos consumer,Direction direction){return findSourceExcluding(level,consumer,direction,null);}
+    @Nullable public static IRotationalPower findSourceExcluding(Level level,BlockPos consumer,Direction direction,@Nullable BlockPos excluded){
+        if(!WorldFeatureRuntime.enabled(level,WorldFeature.POWER_NETWORKS))return null;
+        BlockPos start=consumer.relative(direction);
+        if(!level.hasChunkAt(start))return null;
+        IRotationalPower direct=sourceAt(level,start,direction.getOpposite(),excluded);
+        if(direct!=null&&direct.axis()==direction.getAxis())return direct;
+        if(!accepts(level.getBlockState(start),direction.getAxis()))return null;
+        return network(level,start,direction.getAxis(),excluded);
     }
-
-    @Nullable
-    public static IRotationalPower findSourceExcluding(
-            Level level,
-            BlockPos consumerPos,
-            Direction direction,
-            BlockPos excludedSourcePos
-    ) {
-        if (!WorldFeatureRuntime.enabled(
-                level,
-                WorldFeature.POWER_NETWORKS
-        )) {
-            return null;
-        }
-
-        return findSourceInternal(
-                level,
-                consumerPos,
-                direction,
-                excludedSourcePos
-        );
+    @Nullable public static IRotationalPower forNode(Level level,BlockPos node){
+        if(!WorldFeatureRuntime.enabled(level,WorldFeature.POWER_NETWORKS)||!level.hasChunkAt(node))return null;
+        BlockState state=level.getBlockState(node);
+        return transmission(state)?network(level,node,axis(state),null):null;
     }
-
-    @Nullable
-    private static IRotationalPower findSourceInternal(
-            Level level,
-            BlockPos consumerPos,
-            Direction direction,
-            @Nullable BlockPos excludedSourcePos
-    ) {
-        BlockPos start =
-                consumerPos.relative(
-                        direction
-                );
-
-        IRotationalPower direct =
-                sourceAt(
-                        level,
-                        start,
-                        direction.getOpposite(),
-                        excludedSourcePos
-                );
-
-        if (direct != null
-                && direct.axis()
-                        == direction.getAxis()) {
-            return direct;
-        }
-
-        BlockState startState =
-                level.getBlockState(
-                        start
-                );
-
-        if (!canEnterTransmission(
-                startState,
-                direction.getOpposite()
-        )) {
-            return null;
-        }
-
-        return searchSource(
-                level,
-                start,
-                excludedSourcePos,
-                direction.getAxis()
-        );
-    }
-
-    @Nullable
-    private static IRotationalPower searchSource(
-            Level level,
-            BlockPos start,
-            @Nullable BlockPos excludedSourcePos,
-            Direction.Axis outputAxis
-    ) {
-        ArrayDeque<BlockPos> queue =
-                new ArrayDeque<>();
-
-        Set<BlockPos> visited =
-                new HashSet<>();
-
-        Map<BlockPos, BlockPos> parent =
-                new HashMap<>();
-
-        IRotationalPower bestSource =
-                null;
-
-        List<BlockPos> bestPath =
-                null;
-
-        float bestScore =
-                -1.0F;
-
-        queue.add(
-                start
-        );
-
-        parent.put(
-                start,
-                start
-        );
-
-        while (!queue.isEmpty()
-                && visited.size()
-                        < MAX_NETWORK_NODES) {
-
-            BlockPos pos =
-                    queue.removeFirst();
-
-            if (!visited.add(
-                    pos
-            )) {
-                continue;
+    @Nullable private static IRotationalPower network(Level level,BlockPos start,Direction.Axis output,@Nullable BlockPos excluded){
+        ArrayDeque<Route> queue=new ArrayDeque<>();Map<BlockPos,Route> visited=new HashMap<>();Map<BlockPos,Feed> feeds=new LinkedHashMap<>();
+        queue.add(new Route(start,List.of(start),1,1));boolean conflict=false;
+        while(!queue.isEmpty()&&visited.size()<MAX_NETWORK_NODES){
+            Route route=queue.removeFirst();Route prior=visited.get(route.pos());
+            if(prior!=null){if(Math.abs(prior.ratio()-route.ratio())>.01F||prior.sign()!=route.sign())conflict=true;continue;}
+            if(!level.hasChunkAt(route.pos()))continue;
+            BlockState state=level.getBlockState(route.pos());if(!transmission(state))continue;visited.put(route.pos(),route);
+            for(Direction side:Direction.values()){
+                if(!accepts(state,side.getAxis()))continue;
+                BlockPos next=route.pos().relative(side);if(!level.hasChunkAt(next))continue;
+                IRotationalPower source=sourceAt(level,next,side.getOpposite(),excluded);
+                if(source!=null&&source.axis()==side.getAxis())feeds.putIfAbsent(next,new Feed(next,source,route.path(),route.ratio(),route.sign(),efficiency(level,route.path())));
             }
-
-            BlockState state =
-                    level.getBlockState(
-                            pos
-                    );
-
-            if (!isTransmission(
-                    state
-            )) {
-                continue;
-            }
-
-            for (Direction direction :
-                    exits(
-                            state
-                    )) {
-
-                BlockPos neighbor =
-                        pos.relative(
-                                direction
-                        );
-
-                IRotationalPower source =
-                        sourceAt(
-                                level,
-                                neighbor,
-                                direction.getOpposite(),
-                                excludedSourcePos
-                        );
-
-                if (source != null
-                        && source.axis()
-                                == direction.getAxis()) {
-
-                    List<BlockPos> candidatePath =
-                            reconstructPath(
-                                    start,
-                                    pos,
-                                    parent
-                            );
-
-                    float score =
-                            sourceScore(
-                                    source
-                            )
-                                    * pathEfficiency(
-                                    level,
-                                    candidatePath
-                            );
-
-                    /*
-                     * V1.0 used the first endpoint encountered by BFS. A dead
-                     * or stale pulley could therefore win before the rotating
-                     * water wheel farther through another branch, while the
-                     * visual shaft still followed that wheel. Search the whole
-                     * reachable network and prefer actual moving power.
-                     */
-                    if (score > bestScore) {
-                        bestScore =
-                                score;
-
-                        bestSource =
-                                source;
-
-                        bestPath =
-                                candidatePath;
+            for(int dx=-1;dx<=1;dx++)for(int dy=-1;dy<=1;dy++)for(int dz=-1;dz<=1;dz++){
+                int distance=Math.abs(dx)+Math.abs(dy)+Math.abs(dz);if(distance==0||distance>2)continue;
+                BlockPos next=route.pos().offset(dx,dy,dz);if(!level.hasChunkAt(next))continue;
+                BlockState other=level.getBlockState(next);if(!transmission(other))continue;
+                float ratio=1;int sign=1;
+                if(state.getBlock() instanceof GearBlock gear&&other.getBlock() instanceof GearBlock neighbor){
+                    Direction.Axis a=axis(state),b=axis(other);
+                    int axial=a==Direction.Axis.X?dx:a==Direction.Axis.Y?dy:dz;
+                    if(a==b&&axial!=0){if(distance!=1)continue;} // coaxial shafts
+                    else {
+                        if(a==b&&distance==2&&gear.large()&&neighbor.large())continue;
+                        if(a!=b&&distance!=1)continue; // touching bevel pair
+                        ratio=(float)neighbor.teeth()/gear.teeth();sign=-1;
                     }
+                }else{
+                    if(distance!=1)continue;
+                    Direction.Axis offset=dx!=0?Direction.Axis.X:dy!=0?Direction.Axis.Y:Direction.Axis.Z;
+                    if(!accepts(state,offset)||!accepts(other,offset))continue;
                 }
-
-                BlockState neighborState =
-                        level.getBlockState(
-                                neighbor
-                        );
-
-                if (canEnterTransmission(
-                        neighborState,
-                        direction.getOpposite()
-                )
-                        && !visited.contains(
-                        neighbor
-                )) {
-
-                    parent.putIfAbsent(
-                            neighbor,
-                            pos
-                    );
-
-                    queue.addLast(
-                            neighbor
-                    );
-                }
+                float combined=route.ratio()*ratio;if(combined<1F/64||combined>64)continue;
+                ArrayList<BlockPos> path=new ArrayList<>(route.path());path.add(next);
+                queue.addLast(new Route(next,List.copyOf(path),combined,route.sign()*sign));
             }
         }
-
-        if (bestSource == null
-                || bestPath == null) {
-            return null;
-        }
-
-        return new PathRotationalPower(
-                level,
-                bestSource,
-                bestPath,
-                outputAxis
-        );
+        if(conflict||feeds.isEmpty())return null; // contradictory tooth loops physically lock
+        Feed best=feeds.values().stream().max(Comparator.<Feed>comparingInt(f->Math.abs(f.rpm())>.05F?1:0)
+                .thenComparingDouble(f->sourceScore(f.source())*f.efficiency())).orElseThrow();
+        if(feeds.values().stream().anyMatch(f->f.rpm()*best.rpm()<-.01F))return null; // opposing wheels jam a rigid axle
+        List<Feed> compatible=feeds.values().stream().filter(f->Math.abs(f.rpm())>.05F||Math.abs(best.rpm())<=.05F).toList();
+        return new CombinedPower(level,compatible,output);
     }
-
-    public static float sourceScore(
-            @Nullable IRotationalPower source
-    ) {
-        if (source == null) {
-            return -1.0F;
-        }
-
-        float rpm =
-                Math.abs(
-                        source.rpm()
-                );
-
-        float power =
-                Math.max(
-                        0.0F,
-                        source.power()
-                );
-
-        /*
-         * Motion matters more than stale advertised power for a machine that
-         * physically requires rotation. Power still differentiates two active
-         * sources once both are actually turning.
-         */
-        float movingBonus =
-                rpm > 0.05F
-                        ? 10.0F
-                                + Math.min(
-                                120.0F,
-                                rpm
-                        )
-                                * 0.16F
-                        : 0.0F;
-
-        return movingBonus
-                + power
-                + rpm
-                        * 0.02F;
+    private static boolean transmission(BlockState s){return s.getBlock() instanceof MechanicalShaftBlock||s.getBlock() instanceof MechanicalGearboxBlock||s.getBlock() instanceof GearBlock;}
+    private static Direction.Axis axis(BlockState s){return s.hasProperty(MechanicalShaftBlock.AXIS)?s.getValue(MechanicalShaftBlock.AXIS):Direction.Axis.X;}
+    private static boolean accepts(BlockState s,Direction.Axis side){return s.getBlock() instanceof MechanicalGearboxBlock||(transmission(s)&&axis(s)==side);}
+    private static float efficiency(Level level,List<BlockPos> path){float value=1;for(BlockPos p:path)value*=level.getBlockEntity(p) instanceof MechanicalTransmissionBlockEntity part?part.transmissionEfficiency():.978F;return Math.max(.05F,value);}
+    @Nullable private static IRotationalPower sourceAt(Level level,BlockPos pos,Direction side,@Nullable BlockPos excluded){
+        if(!level.hasChunkAt(pos)||pos.equals(excluded)||transmission(level.getBlockState(pos)))return null;
+        IRotationalPower value=level.getCapability(MechanicalCapabilities.ROTATION,pos,side);
+        return value!=null?value:level.getCapability(MechanicalCapabilities.ROTATION,pos,null);
     }
-
-    private static List<BlockPos> reconstructPath(
-            BlockPos start,
-            BlockPos end,
-            Map<BlockPos, BlockPos> parent
-    ) {
-        ArrayList<BlockPos> reversed =
-                new ArrayList<>();
-
-        BlockPos cursor =
-                end;
-
-        while (true) {
-            reversed.add(
-                    cursor
-            );
-
-            if (cursor.equals(
-                    start
-            )) {
-                break;
-            }
-
-            BlockPos next =
-                    parent.get(
-                            cursor
-                    );
-
-            if (next == null
-                    || next.equals(
-                    cursor
-            )) {
-                break;
-            }
-
-            cursor =
-                    next;
-        }
-
-        ArrayList<BlockPos> path =
-                new ArrayList<>(
-                        reversed.size()
-                );
-
-        for (int index =
-                     reversed.size()
-                             - 1;
-             index >= 0;
-             index--) {
-
-            path.add(
-                    reversed.get(
-                            index
-                    )
-            );
-        }
-
-        return path;
+    public static float sourceScore(@Nullable IRotationalPower s){return s==null?-1:Math.max(0,s.power())+Math.abs(s.rpm())*.18F+(Math.abs(s.rpm())>.05F?10:0);}
+    @Nullable public static WaterWheelHubBlockEntity findVisualWheel(Level level,BlockPos pos){
+        // Kept for existing integrations. Actual renderer now follows the computed ratio.
+        ArrayDeque<BlockPos> queue=new ArrayDeque<>();Set<BlockPos> seen=new HashSet<>();queue.add(pos);
+        while(!queue.isEmpty()&&seen.size()<MAX_NETWORK_NODES){BlockPos p=queue.removeFirst();if(!seen.add(p)||!level.hasChunkAt(p))continue;
+            BlockState s=level.getBlockState(p);if(!transmission(s))continue;
+            for(Direction d:Direction.values()){BlockPos n=p.relative(d);if(!level.hasChunkAt(n)||!accepts(s,d.getAxis()))continue;
+                if(level.getBlockEntity(n) instanceof WaterWheelHubBlockEntity wheel&&wheel.axleAxis()==d.getAxis())return wheel;
+                if(accepts(level.getBlockState(n),d.getAxis()))queue.add(n);
+            }}return null;
     }
-
-    @Nullable
-    public static WaterWheelHubBlockEntity findVisualWheel(
-            Level level,
-            BlockPos transmissionPos
-    ) {
-        BlockState initial =
-                level.getBlockState(
-                        transmissionPos
-                );
-
-        if (!isTransmission(
-                initial
-        )) {
-            return null;
-        }
-
-        ArrayDeque<BlockPos> queue =
-                new ArrayDeque<>();
-
-        Set<BlockPos> visited =
-                new HashSet<>();
-
-        queue.add(
-                transmissionPos
-        );
-
-        while (!queue.isEmpty()
-                && visited.size()
-                        < MAX_NETWORK_NODES) {
-
-            BlockPos pos =
-                    queue.removeFirst();
-
-            if (!visited.add(
-                    pos
-            )) {
-                continue;
-            }
-
-            BlockState state =
-                    level.getBlockState(
-                            pos
-                    );
-
-            if (!isTransmission(
-                    state
-            )) {
-                continue;
-            }
-
-            for (Direction direction :
-                    exits(
-                            state
-                    )) {
-
-                BlockPos neighbor =
-                        pos.relative(
-                                direction
-                        );
-
-                if (level.getBlockEntity(
-                        neighbor
-                ) instanceof WaterWheelHubBlockEntity hub
-                        && hub.axleAxis()
-                                == direction.getAxis()) {
-                    return hub;
-                }
-
-                BlockState neighborState =
-                        level.getBlockState(
-                                neighbor
-                        );
-
-                if (canEnterTransmission(
-                        neighborState,
-                        direction.getOpposite()
-                )
-                        && !visited.contains(
-                        neighbor
-                )) {
-
-                    queue.addLast(
-                            neighbor
-                    );
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static float pathEfficiency(
-            Level level,
-            List<BlockPos> path
-    ) {
-        float efficiency =
-                1.0F;
-
-        for (BlockPos pos :
-                path) {
-
-            if (level.getBlockEntity(
-                    pos
-            ) instanceof MechanicalTransmissionBlockEntity part) {
-
-                efficiency *=
-                        part.transmissionEfficiency();
-
-            } else {
-                BlockState state =
-                        level.getBlockState(
-                                pos
-                        );
-
-                efficiency *=
-                        state.getBlock()
-                                instanceof MechanicalGearboxBlock
-                                ? 0.978F
-                                : 0.996F;
-            }
-
-            if (efficiency < 0.05F) {
-                return 0.05F;
-            }
-        }
-
-        return Mth.clamp(
-                efficiency,
-                0.05F,
-                1.0F
-        );
-    }
-
-    private static void applyPathLoad(
-            Level level,
-            List<BlockPos> path,
-            float upstreamPower,
-            float rpm
-    ) {
-        for (BlockPos pos :
-                path) {
-
-            if (level.getBlockEntity(
-                    pos
-            ) instanceof MechanicalTransmissionBlockEntity part) {
-
-                part.applyMechanicalLoad(
-                        upstreamPower,
-                        rpm
-                );
-            }
-        }
-    }
-
-    @Nullable
-    private static IRotationalPower sourceAt(
-            Level level,
-            BlockPos pos,
-            Direction side,
-            @Nullable BlockPos excludedSourcePos
-    ) {
-        if (excludedSourcePos != null
-                && excludedSourcePos.equals(
-                pos
-        )) {
-            return null;
-        }
-
-        IRotationalPower sided =
-                level.getCapability(
-                        MechanicalCapabilities.ROTATION,
-                        pos,
-                        side
-                );
-
-        if (sided != null) {
-            return sided;
-        }
-
-        return level.getCapability(
-                MechanicalCapabilities.ROTATION,
-                pos,
-                null
-        );
-    }
-
-    private static boolean isTransmission(
-            BlockState state
-    ) {
-        return state.getBlock()
-                instanceof MechanicalShaftBlock
-                || state.getBlock()
-                instanceof MechanicalGearboxBlock;
-    }
-
-    private static boolean canEnterTransmission(
-            BlockState state,
-            Direction face
-    ) {
-        if (state.getBlock()
-                instanceof MechanicalGearboxBlock) {
-            return true;
-        }
-
-        if (state.getBlock()
-                instanceof MechanicalShaftBlock) {
-
-            return state.getValue(
-                    MechanicalShaftBlock.AXIS
-            ) == face.getAxis();
-        }
-
-        return false;
-    }
-
-    private static Direction[] exits(
-            BlockState state
-    ) {
-        if (state.getBlock()
-                instanceof MechanicalGearboxBlock) {
-            return Direction.values();
-        }
-
-        Direction.Axis axis =
-                state.getValue(
-                        MechanicalShaftBlock.AXIS
-                );
-
-        return switch (axis) {
-            case X -> new Direction[] {
-                    Direction.WEST,
-                    Direction.EAST
-            };
-
-            case Y -> new Direction[] {
-                    Direction.DOWN,
-                    Direction.UP
-            };
-
-            case Z -> new Direction[] {
-                    Direction.NORTH,
-                    Direction.SOUTH
-            };
-        };
-    }
-
-    private static final class PathRotationalPower
-            implements IRotationalPower {
-
-        private final Level level;
-        private final IRotationalPower source;
-        private final List<BlockPos> path;
-        private final Direction.Axis outputAxis;
-
-        private PathRotationalPower(
-                Level level,
-                IRotationalPower source,
-                List<BlockPos> path,
-                Direction.Axis outputAxis
-        ) {
-            this.level =
-                    level;
-
-            this.source =
-                    source;
-
-            this.path =
-                    List.copyOf(
-                            path
-                    );
-
-            this.outputAxis =
-                    outputAxis;
-        }
-
-        @Override
-        public float rpm() {
-            return source.rpm();
-        }
-
-        @Override
-        public float torque() {
-            return source.torque()
-                    * pathEfficiency(
-                    level,
-                    path
-            );
-        }
-
-        @Override
-        public float power() {
-            return source.power()
-                    * pathEfficiency(
-                    level,
-                    path
-            );
-        }
-
-        @Override
-        public Direction.Axis axis() {
-            return outputAxis;
-        }
-
-        @Override
-        public float consumePower(
-                float requestedPower
-        ) {
-            float requested =
-                    Math.max(
-                            0.0F,
-                            requestedPower
-                    );
-
-            if (requested <= 0.0F) {
-                return 0.0F;
-            }
-
-            float efficiency =
-                    pathEfficiency(
-                            level,
-                            path
-                    );
-
-            if (efficiency <= 0.001F) {
-                return 0.0F;
-            }
-
-            float upstreamRequest =
-                    requested
-                            / efficiency;
-
-            float taken =
-                    source.consumePower(
-                            upstreamRequest
-                    );
-
-            applyPathLoad(
-                    level,
-                    path,
-                    taken,
-                    source.rpm()
-            );
-
-            return Math.min(
-                    requested,
-                    taken
-                            * efficiency
-            );
-        }
-
-        @Override
-        public int rotationDirection() {
-            return source.rotationDirection();
+    private static final class CombinedPower implements IRotationalPower {
+        private final Level level;private final List<Feed> feeds;private final Direction.Axis axis;
+        CombinedPower(Level level,List<Feed> feeds,Direction.Axis axis){this.level=level;this.feeds=feeds;this.axis=axis;}
+        public float rpm(){float weight=0,value=0;for(Feed f:feeds){float w=Math.max(.001F,f.power());weight+=w;value+=f.rpm()*w;}return weight>0?value/weight:0;}
+        public float power(){float value=0;for(Feed f:feeds)value+=f.power();return value;}
+        public float torque(){float value=0;for(Feed f:feeds)value+=Math.max(0,f.source().torque())*f.efficiency()/f.ratio();return value;}
+        public Direction.Axis axis(){return axis;}
+        public int rotationDirection(){return rpm()>.01F?1:rpm()<-.01F?-1:0;}
+        public float consumePower(float requested){float total=power(),granted=0;if(total<=0||requested<=0)return 0;
+            for(Feed f:feeds){float share=Math.min(requested,total)*f.power()/total;float take=f.source().consumePower(share/f.efficiency());granted+=take*f.efficiency();
+                for(BlockPos p:f.path())if(level.getBlockEntity(p) instanceof MechanicalTransmissionBlockEntity part)part.applyMechanicalLoad(take,f.rpm());
+            }return Math.min(requested,granted);
         }
     }
 }

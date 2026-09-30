@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 
-public final class IndustrialPipeBlock extends PipeBlock {
+public final class IndustrialPipeBlock extends PipeBlock implements net.minecraft.world.level.block.EntityBlock {
 
     private final PipeSpec spec;
 
@@ -110,34 +110,33 @@ public final class IndustrialPipeBlock extends PipeBlock {
             Player player,
             BlockHitResult hit
     ) {
-        if (!level.isClientSide) {
-            PipeNetwork.NetworkInfo info =
-                    PipeNetwork.inspect(
-                            level,
-                            pos
-                    );
+        if (level.getBlockEntity(pos) instanceof PipeBlockEntity pipe) pipe.turn(player);
+        return InteractionResult.sidedSuccess(level.isClientSide);
+    }
 
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.pipework.status",
-                            Component.translatable(
-                                    "pipe.wayaround."
-                                            + spec.id()
-                            ),
-                            spec.flowPerTick(),
-                            spec.maxPressureBar(),
-                            spec.maxTemperatureC(),
-                            info.pipeCount(),
-                            info.bottleneckFlowPerTick(),
-                            info.bottleneckPressureBar()
-                    ),
-                    false
-            );
+    @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,net.minecraft.world.entity.LivingEntity player,net.minecraft.world.item.ItemStack stack){
+        if(!level.isClientSide&&level.getBlockEntity(pos) instanceof PipeBlockEntity pipe)pipe.restoreBody(stack);
+    }
+    @Override public net.minecraft.world.level.block.entity.BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new PipeBlockEntity(pos, state);
+    }
+    @Override public <T extends net.minecraft.world.level.block.entity.BlockEntity> net.minecraft.world.level.block.entity.BlockEntityTicker<T> getTicker(Level level, BlockState state, net.minecraft.world.level.block.entity.BlockEntityType<T> type) {
+        return type == PipeworkContent.PIPE_ENTITY.get() ? (world, position, block, entity) -> PipeBlockEntity.tick(world, position, block, (PipeBlockEntity) entity) : null;
+    }
+    @Override protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
+        if (stack.is(PipeworkContent.VALVE.get()) && level.getBlockEntity(pos) instanceof PipeBlockEntity pipe) {
+            if (!level.isClientSide) pipe.installValve(stack, player, player.getNearestViewDirection());
+            return net.minecraft.world.ItemInteractionResult.sidedSuccess(level.isClientSide);
         }
+        return net.minecraft.world.ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+    @Override protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moving) {
+        if (!state.is(replacement.getBlock()) && !level.isClientSide && level.getBlockEntity(pos) instanceof PipeBlockEntity pipe) pipe.dropParts();
+        super.onRemove(state, level, pos, replacement, moving);
+    }
 
-        return InteractionResult.sidedSuccess(
-                level.isClientSide
-        );
+    @Override protected net.minecraft.world.phys.shapes.VoxelShape getShape(BlockState state, net.minecraft.world.level.BlockGetter level, BlockPos pos, net.minecraft.world.phys.shapes.CollisionContext context) {
+        return HollowPipeShape.shape(state, spec.radius());
     }
 
     @Override

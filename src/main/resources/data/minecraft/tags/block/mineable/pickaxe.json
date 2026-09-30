@@ -10,6 +10,10 @@
     "wayaround:small_crusher_frame",
     "wayaround:medium_crusher_frame",
     "wayaround:large_crusher_frame",
-    "wayaround:iron_machine_support"
+    "wayaround:iron_machine_support",
+    "wayaround:small_mechanical_gear",
+    "wayaround:large_mechanical_gear",
+    "wayaround:giant_water_pipe",
+    "wayaround:colossal_pipe"
   ]
 }

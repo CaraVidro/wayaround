@@ -178,7 +178,9 @@ public final class PowerContent {
         BLOCK_ENTITIES.register("mechanical_transmission", () -> BlockEntityType.Builder.of(
             MechanicalTransmissionBlockEntity::new,
             MECHANICAL_SHAFT.get(),
-            MECHANICAL_GEARBOX.get()
+            MECHANICAL_GEARBOX.get(),
+            net.caravidro.wayaround.industrial.mechanical.GearContent.SMALL.get(),
+            net.caravidro.wayaround.industrial.mechanical.GearContent.LARGE.get()
         ).build(null));
 
     public static final DeferredBlock<MechanicalPressBlock> MECHANICAL_PRESS = BLOCKS.register("mechanical_press",
@@ -234,7 +236,7 @@ public final class PowerContent {
     private PowerContent() {}
 
     public static final DeferredBlock<SteamEngineBlock> STEAM_ENGINE = BLOCKS.register("steam_engine",
-        () -> new SteamEngineBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+        () -> new SteamEngineBlock(BlockBehaviour.Properties.of().noOcclusion().mapColor(MapColor.METAL)
             .strength(3.5F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()
             .lightLevel(state -> state.getValue(SteamEngineBlock.LIT) ? 10 : 0)));
     public static final DeferredItem<BlockItem> STEAM_ENGINE_ITEM = ITEMS.register("steam_engine",
@@ -244,6 +246,7 @@ public final class PowerContent {
             SteamEngineBlockEntity::new, STEAM_ENGINE.get()).build(null));
 
     public static void register(IEventBus bus) {
+        net.caravidro.wayaround.industrial.mechanical.GearContent.register(bus);
         BLOCKS.register(bus);
         ITEMS.register(bus);
         BLOCK_ENTITIES.register(bus);

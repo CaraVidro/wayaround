@@ -1,9 +1,11 @@
 name: Crusher assembly validation
 on:
   push:
-    branches: [feature/assembly-crushers-v1]
+    branches: [feature/assembly-crushers-v1, feature/mechanics-pipeflow-v1]
   pull_request:
     paths:
+      - 'src/main/java/net/caravidro/wayaround/industrial/mechanical/**'
+      - 'src/main/java/net/caravidro/wayaround/industrial/pipework/**'
       - 'src/main/java/net/caravidro/wayaround/industrial/crushing/**'
       - 'src/main/java/net/caravidro/wayaround/industrial/client/CrusherRenderer.java'
       - 'src/main/java/net/caravidro/wayaround/industrial/power/MechanicalMill*'
@@ -56,13 +58,13 @@ jobs:
               print('\n'.join(text.splitlines()[-100:]))
               raise SystemExit(1)
           # Existing unrelated asset issues must not hide errors in the new machinery.
-          current = re.compile(r'wayaround:(?:models/(?:block|item)/)?(?:small_|medium_|large_|light_machine|reinforced_machine|plain_machine|copper_machine|narrow_machine|wide_machine|stone_millstones|iron_banded_millstones|iron_machine_support|wooden_machine_support|crushed_|mechanical_mill)')
+          current = re.compile(r'wayaround:(?:models/(?:block|item)/)?(?:small_|medium_|large_|light_machine|reinforced_machine|plain_machine|copper_machine|narrow_machine|wide_machine|stone_millstones|iron_banded_millstones|iron_machine_support|wooden_machine_support|crushed_|mechanical_mill|pipe_valve|giant_water_pipe|colossal_pipe|iron_water_pipe|thin_gas_pipe|steel_pressure_pipe|insulated_steam_pipe|steam_engine|reforced_blaster)')
           errors = [line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model', line)]
           relevant = [line for line in errors if current.search(line)]
           if relevant:
               print('\n'.join(relevant))
               raise SystemExit(1)
-          print('Client initialized, GUI atlas loaded, and crusher/mill assets registered without errors')
+          print('Client initialized, GUI atlas loaded, and machinery/pipe assets registered without errors')
           PYCLIENT
       - uses: actions/upload-artifact@v4
         if: always()

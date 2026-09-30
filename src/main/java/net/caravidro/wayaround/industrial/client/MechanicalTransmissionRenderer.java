@@ -51,57 +51,12 @@ public final class MechanicalTransmissionRenderer
             return;
         }
 
-        WaterWheelHubBlockEntity source =
-                MechanicalTransmission.findVisualWheel(
-                        node.getLevel(),
-                        node.getBlockPos()
-                );
-
-        float targetRpm =
-                source == null
-                        ? 0.0F
-                        : source.rpm();
-
-        float targetAngle =
-                source == null
-                        ? 0.0F
-                        : source.rotationDegrees();
-
-        SmoothObjectAnimation.Rotation visual =
-                VISUAL_STATES.computeIfAbsent(
-                        node,
-                        key -> new SmoothObjectAnimation.Rotation(
-                                targetAngle,
-                                0.30F,
-                                0.12F,
-                                24.0F
-                        )
-                );
-
-        double renderTime =
-                node.getLevel().getGameTime()
-                + partialTick;
-
-        float angle =
-                source == null
-                        ? visual.update(
-                        renderTime,
-                        targetRpm
-                )
-                        : visual.update(
-                        renderTime,
-                        targetRpm,
-                        targetAngle
-                );
-
-        /*
-         * V1 visual convention: transmission parts follow the authoritative
-         * source phase directly. Runtime testing showed the previous global
-         * inversion made connected shafts appear to counter-rotate relative
-         * to the wheel.
-         */
-        float transmissionAngle =
-                angle;
+        var source = MechanicalTransmission.forNode(node.getLevel(), node.getBlockPos());
+        float targetRpm = source == null ? 0 : source.rpm();
+        SmoothObjectAnimation.Rotation visual = VISUAL_STATES.computeIfAbsent(node,
+                key -> new SmoothObjectAnimation.Rotation(0, 0.30F, 0, 24));
+        float transmissionAngle = visual.update(node.getLevel().getGameTime() + partialTick, targetRpm);
+        packedLight = IndustrialRenderUtil.exteriorLight(node.getLevel(), node.getBlockPos(), packedLight);
 
         BlockState state =
                 node.getBlockState();
@@ -113,7 +68,23 @@ public final class MechanicalTransmissionRenderer
                 0.5
         );
 
-        if (state.getBlock()
+        if (state.getBlock() instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock gear) {
+            var mount=gear.mountOffset(node.getLevel(),node.getBlockPos(),state);
+            poseStack.translate(mount.x,mount.y,mount.z);
+            Direction.Axis axle = state.getValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS);
+            if (axle == Direction.Axis.Y) poseStack.mulPose(Axis.ZP.rotationDegrees(90));
+            if (axle == Direction.Axis.Z) poseStack.mulPose(Axis.YP.rotationDegrees(90));
+            poseStack.mulPose(Axis.XP.rotationDegrees(transmissionAngle));
+            double radius = gear.large() ? 0.72 : 0.36;
+            IndustrialRenderUtil.radialWheel(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                    Blocks.IRON_BLOCK.defaultBlockState(), Blocks.POLISHED_ANDESITE.defaultBlockState(), gear.teeth(), radius, .20);
+            for (int i = 0; i < gear.teeth(); i++) {
+                double angle = Math.PI * 2 * i / gear.teeth();
+                IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                        Blocks.IRON_BLOCK.defaultBlockState(), 0, Math.cos(angle)*radius, Math.sin(angle)*radius,
+                        .24, .09, .09, (float)Math.toDegrees(angle), 0, 0);
+            }
+        } else if (state.getBlock()
                 instanceof MechanicalShaftBlock) {
 
             renderShaft(

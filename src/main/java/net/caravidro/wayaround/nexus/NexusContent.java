@@ -217,6 +217,9 @@ public final class NexusContent {
                             )
                             .displayItems(
                                     (parameters, output) -> {
+                                        output.accept(NEXUSTOR_BODY.get());
+                                        output.accept(NEXUSTOR_FINGERS.get());
+                                        output.accept(NEXUSTOR_HEAD.get());
                                         output.accept(
                                                 NEXUSTOETOR_ITEM.get()
                                         );

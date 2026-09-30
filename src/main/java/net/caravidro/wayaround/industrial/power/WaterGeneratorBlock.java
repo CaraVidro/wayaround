@@ -76,15 +76,6 @@ public final class WaterGeneratorBlock
             Player player,
             BlockHitResult hit
     ) {
-        if (!level.isClientSide
-                && level.getBlockEntity(pos)
-                instanceof WaterGeneratorBlockEntity generator) {
-
-            player.displayClientMessage(
-                    generator.status(),
-                    true
-            );
-        }
 
         return InteractionResult.sidedSuccess(
                 level.isClientSide

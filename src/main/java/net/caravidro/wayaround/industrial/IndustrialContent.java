@@ -39,7 +39,7 @@ public final class IndustrialContent {
 
     public static final DeferredBlock<ReforcedBlasterBlock> REFORCED_BLASTER = BLOCKS.register("reforced_blaster",
             () -> new ReforcedBlasterBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
-                    .strength(5, 8).requiresCorrectToolForDrops().sound(SoundType.METAL)
+                    .noOcclusion().strength(5, 8).requiresCorrectToolForDrops().sound(SoundType.METAL)
                     .lightLevel(state -> state.getValue(ReforcedBlasterBlock.LIT) ? 10 : 0)));
     public static final DeferredItem<BlockItem> REFORCED_BLASTER_ITEM = ITEMS.register("reforced_blaster",
             () -> new BlockItem(REFORCED_BLASTER.get(), new Item.Properties()));
@@ -54,60 +54,6 @@ public final class IndustrialContent {
     public static final DeferredHolder<MenuType<?>, MenuType<EngineeringWorkbenchMenu>> ENGINEERING_WORKBENCH_MENU =
             MENUS.register("engineering_workbench",
                     () -> new MenuType<>(EngineeringWorkbenchMenu::new, FeatureFlags.VANILLA_SET));
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> INDUSTRIALIZATION =
-            TABS.register(
-                    "industrialization",
-                    () -> CreativeModeTab.builder()
-                            .title(
-                                    Component.translatable(
-                                            "itemGroup.wayaround.industrialization"
-                                    )
-                            )
-                            .withTabsBefore(
-                                    CreativeModeTabs.SPAWN_EGGS
-                            )
-                            .icon(
-                                    () -> REFORCED_BLASTER_ITEM.get()
-                                            .getDefaultInstance()
-                            )
-                            .displayItems(
-                                    (parameters, output) -> {
-                                        output.accept(
-                                                REFORCED_BLASTER_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.SOLAR_PANEL_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.STEAM_ENGINE_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.ENERGY_CABLE_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.WATER_GENERATOR_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.MECHANICAL_FAN_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.SAWMILL_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.MECHANICAL_PRESS_ITEM.get()
-                                        );
-                                        output.accept(
-                                                PowerContent.MECHANICAL_MILL_ITEM.get()
-                                        );
-                                        net.caravidro.wayaround.industrial.crushing.CrusherContent.fillTab(output);
-                                        output.accept(
-                                                PowerContent.FLOUR.get()
-                                        );
-                                    }
-                            )
-                            .build()
-            );
-
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> ASSEMBLY =
             TABS.register(
                     "assembly",
@@ -126,6 +72,15 @@ public final class IndustrialContent {
                             )
                             .displayItems(
                                     (parameters, output) -> {
+                                        output.accept(REFORCED_BLASTER_ITEM.get());
+                                        output.accept(PowerContent.SOLAR_PANEL_ITEM.get());
+                                        output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
+                                        output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
+                                        output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
+                                        output.accept(PowerContent.MECHANICAL_FAN_ITEM.get());
+                                        output.accept(PowerContent.FLOUR.get());
+                                        output.accept(net.caravidro.wayaround.industrial.mechanical.GearContent.SMALL_ITEM.get());
+                                        output.accept(net.caravidro.wayaround.industrial.mechanical.GearContent.LARGE_ITEM.get());
                                         output.accept(
                                                 PowerContent.WATER_WHEEL_SUPPORT_ITEM.get()
                                         );
@@ -192,18 +147,6 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 PowerContent.MECHANICAL_GEARBOX_ITEM.get()
-                                        );
-                                        output.accept(
-                                                NexusContent.NEXUSTOR_BASE_ITEM.get()
-                                        );
-                                        output.accept(
-                                                NexusContent.NEXUSTOR_BODY.get()
-                                        );
-                                        output.accept(
-                                                NexusContent.NEXUSTOR_FINGERS.get()
-                                        );
-                                        output.accept(
-                                                NexusContent.NEXUSTOR_HEAD.get()
                                         );
                                         output.accept(
                                                 ExperimentalShipContent.SHIP_BODY.get()

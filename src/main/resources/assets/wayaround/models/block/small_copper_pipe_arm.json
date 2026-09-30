@@ -1,39 +1,135 @@
 {
-  "ambientocclusion": false,
   "textures": {
-    "pipe": "minecraft:block/copper_block",
+    "wall": "minecraft:block/copper_block",
     "particle": "minecraft:block/copper_block"
   },
+  "ambientocclusion": false,
   "elements": [
     {
       "from": [
-        6.5,
-        6.5,
-        0
+        6.32,
+        6.32,
+        9.68
       ],
       "to": [
-        9.5,
-        9.5,
-        8.01
+        6.74,
+        9.68,
+        16
       ],
       "faces": {
-        "down": {
-          "texture": "#pipe"
-        },
-        "up": {
-          "texture": "#pipe"
-        },
         "north": {
-          "texture": "#pipe"
+          "texture": "#wall"
         },
         "south": {
-          "texture": "#pipe"
-        },
-        "west": {
-          "texture": "#pipe"
+          "texture": "#wall"
         },
         "east": {
-          "texture": "#pipe"
+          "texture": "#wall"
+        },
+        "west": {
+          "texture": "#wall"
+        },
+        "up": {
+          "texture": "#wall"
+        },
+        "down": {
+          "texture": "#wall"
+        }
+      }
+    },
+    {
+      "from": [
+        9.26,
+        6.32,
+        9.68
+      ],
+      "to": [
+        9.68,
+        9.68,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wall"
+        },
+        "south": {
+          "texture": "#wall"
+        },
+        "east": {
+          "texture": "#wall"
+        },
+        "west": {
+          "texture": "#wall"
+        },
+        "up": {
+          "texture": "#wall"
+        },
+        "down": {
+          "texture": "#wall"
+        }
+      }
+    },
+    {
+      "from": [
+        6.74,
+        6.32,
+        9.68
+      ],
+      "to": [
+        9.26,
+        6.74,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wall"
+        },
+        "south": {
+          "texture": "#wall"
+        },
+        "east": {
+          "texture": "#wall"
+        },
+        "west": {
+          "texture": "#wall"
+        },
+        "up": {
+          "texture": "#wall"
+        },
+        "down": {
+          "texture": "#wall"
+        }
+      }
+    },
+    {
+      "from": [
+        6.74,
+        9.26,
+        9.68
+      ],
+      "to": [
+        9.26,
+        9.68,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wall"
+        },
+        "south": {
+          "texture": "#wall"
+        },
+        "east": {
+          "texture": "#wall"
+        },
+        "west": {
+          "texture": "#wall"
+        },
+        "up": {
+          "texture": "#wall"
+        },
+        "down": {
+          "texture": "#wall"
         }
       }
     }

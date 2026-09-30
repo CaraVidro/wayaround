@@ -111,34 +111,6 @@ public final class MechanicalFanBlock
             Player player,
             BlockHitResult hit
     ) {
-        if (!level.isClientSide
-                && level.getBlockEntity(
-                pos
-        ) instanceof MechanicalFanBlockEntity fan) {
-
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.mechanical_fan.status",
-                            fan.connected()
-                                    ? Component.translatable(
-                                    "message.wayaround.mechanical.connected"
-                            )
-                                    : Component.translatable(
-                                    "message.wayaround.mechanical.disconnected"
-                            ),
-                            String.format(
-                                    java.util.Locale.ROOT,
-                                    "%.1f",
-                                    fan.rpm()
-                            ),
-                            Math.round(
-                                    fan.airflowStrength()
-                                            * 100.0F
-                            )
-                    ),
-                    true
-            );
-        }
 
         return InteractionResult.sidedSuccess(
                 level.isClientSide

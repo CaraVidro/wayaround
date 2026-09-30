@@ -1,25 +1,43 @@
 {
   "multipart": [
     {
+      "when": {
+        "OR": [
+          {
+            "north": "true"
+          },
+          {
+            "south": "true"
+          },
+          {
+            "east": "true"
+          },
+          {
+            "west": "true"
+          },
+          {
+            "up": "true"
+          },
+          {
+            "down": "true"
+          }
+        ]
+      },
       "apply": {
         "model": "wayaround:block/large_water_main_core"
       }
     },
     {
       "when": {
-        "north": "true"
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false"
       },
       "apply": {
-        "model": "wayaround:block/large_water_main_arm"
-      }
-    },
-    {
-      "when": {
-        "east": "true"
-      },
-      "apply": {
-        "model": "wayaround:block/large_water_main_arm",
-        "y": 90
+        "model": "wayaround:block/large_water_main_single"
       }
     },
     {
@@ -28,7 +46,28 @@
       },
       "apply": {
         "model": "wayaround:block/large_water_main_arm",
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "north": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/large_water_main_arm",
+        "x": 0,
         "y": 180
+      }
+    },
+    {
+      "when": {
+        "east": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/large_water_main_arm",
+        "x": 0,
+        "y": 270
       }
     },
     {
@@ -37,7 +76,8 @@
       },
       "apply": {
         "model": "wayaround:block/large_water_main_arm",
-        "y": 270
+        "x": 0,
+        "y": 90
       }
     },
     {
@@ -46,7 +86,8 @@
       },
       "apply": {
         "model": "wayaround:block/large_water_main_arm",
-        "x": 270
+        "x": 270,
+        "y": 0
       }
     },
     {
@@ -55,7 +96,8 @@
       },
       "apply": {
         "model": "wayaround:block/large_water_main_arm",
-        "x": 90
+        "x": 90,
+        "y": 0
       }
     }
   ]

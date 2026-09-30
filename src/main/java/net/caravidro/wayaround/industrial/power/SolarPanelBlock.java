@@ -39,9 +39,7 @@ public final class SolarPanelBlock extends BaseEntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof SolarPanelBlockEntity panel) {
-            player.displayClientMessage(panel.status(), true);
-        }
+
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 }

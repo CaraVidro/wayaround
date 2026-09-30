@@ -20,6 +20,7 @@ public final class StoneFlakeItem extends Item {
             TooltipFlag tooltipFlag
     ) {
         super.appendHoverText(stack, context, tooltipComponents, tooltipFlag);
+        if (!tooltipFlag.isAdvanced()) return;
         AssemblyPartProfile part = AssemblyItemData.readPart(stack);
         if (part != null) {
             tooltipComponents.add(Component.translatable(

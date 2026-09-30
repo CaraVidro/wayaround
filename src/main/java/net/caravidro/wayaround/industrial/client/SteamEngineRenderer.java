@@ -47,6 +47,8 @@ public final class SteamEngineRenderer
             return;
         }
 
+        packedLight = IndustrialRenderUtil.exteriorLight(engine.getLevel(), engine.getBlockPos(), packedLight);
+
         boolean lit =
                 engine.getBlockState()
                         .getValue(
@@ -71,7 +73,7 @@ public final class SteamEngineRenderer
         float wheelAngle =
                 rotation.update(
                         renderTime,
-                        lit
+                        engine.boiling()
                                 ? 44.0F
                                 : 0.0F
                 );
@@ -99,6 +101,13 @@ public final class SteamEngineRenderer
                 0.5,
                 0.5
         );
+
+        // Exposed sight glass shows the remaining water without a numerical status message.
+        IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                Blocks.IRON_BLOCK.defaultBlockState(), -.40, -.03, -.34, .10, .44, .10);
+        if(engine.waterFill()>0) IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), -.40, -.24+engine.waterFill()*.20, -.40,
+                .06, Math.max(.01,engine.waterFill()*.40), .05);
 
         // Base skid and boiler body.
         IndustrialRenderUtil.cuboid(

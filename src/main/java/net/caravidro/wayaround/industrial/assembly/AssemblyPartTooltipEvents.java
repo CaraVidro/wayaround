@@ -32,7 +32,7 @@ public final class AssemblyPartTooltipEvents {
                         event.getItemStack()
                 );
 
-        if (profile == null) {
+        if (profile == null || !net.minecraft.client.Minecraft.getInstance().options.advancedItemTooltips) {
             return;
         }
 

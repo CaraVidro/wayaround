@@ -46,6 +46,8 @@ public final class ReforcedBlasterRenderer
             return;
         }
 
+        packedLight = IndustrialRenderUtil.exteriorLight(blaster.getLevel(), blaster.getBlockPos(), packedLight);
+
         boolean lit =
                 blaster.getBlockState()
                         .getValue(
