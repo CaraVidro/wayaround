@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "17";
+            "18";
 
     private WayAroundNetwork() {
     }
@@ -327,6 +327,24 @@ public final class WayAroundNetwork {
                 LabelRecordingC2SPayload.TYPE,
                 LabelRecordingC2SPayload.STREAM_CODEC,
                 LabelRecordingC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                EngineeringBlueprintSaveC2SPayload.TYPE,
+                EngineeringBlueprintSaveC2SPayload.STREAM_CODEC,
+                EngineeringBlueprintSaveC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                BlueprintLabelC2SPayload.TYPE,
+                BlueprintLabelC2SPayload.STREAM_CODEC,
+                BlueprintLabelC2SPayload::handle
+        );
+
+        registrar.playToClient(
+                BlueprintLabelOpenS2CPayload.TYPE,
+                BlueprintLabelOpenS2CPayload.STREAM_CODEC,
+                BlueprintLabelOpenS2CPayload::handle
         );
 
         registrar.playToClient(
