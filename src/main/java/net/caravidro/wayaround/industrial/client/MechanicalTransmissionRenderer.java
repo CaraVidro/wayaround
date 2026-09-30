@@ -6,6 +6,7 @@ import java.util.WeakHashMap;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import net.caravidro.wayaround.animation.SmoothObjectAnimation;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.industrial.power.MechanicalGearboxBlock;
 import net.caravidro.wayaround.industrial.power.MechanicalShaftBlock;
@@ -24,7 +25,7 @@ public final class MechanicalTransmissionRenderer
 
     private static final Map<
             MechanicalTransmissionBlockEntity,
-            VisualState
+            SmoothObjectAnimation.Rotation
     > VISUAL_STATES =
             new WeakHashMap<>();
 
@@ -66,11 +67,14 @@ public final class MechanicalTransmissionRenderer
                         ? 0.0F
                         : source.rotationDegrees();
 
-        VisualState visual =
+        SmoothObjectAnimation.Rotation visual =
                 VISUAL_STATES.computeIfAbsent(
                         node,
-                        key -> new VisualState(
-                                targetAngle
+                        key -> new SmoothObjectAnimation.Rotation(
+                                targetAngle,
+                                0.30F,
+                                0.12F,
+                                24.0F
                         )
                 );
 
@@ -79,11 +83,15 @@ public final class MechanicalTransmissionRenderer
                 + partialTick;
 
         float angle =
-                visual.update(
+                source == null
+                        ? visual.update(
+                        renderTime,
+                        targetRpm
+                )
+                        : visual.update(
                         renderTime,
                         targetRpm,
-                        targetAngle,
-                        source != null
+                        targetAngle
                 );
 
         /*
@@ -300,129 +308,4 @@ public final class MechanicalTransmissionRenderer
         return 128;
     }
 
-    private static final class VisualState {
-
-        private double lastRenderTime =
-                Double.NaN;
-
-        private float angle;
-
-        private float smoothedRpm;
-
-        private VisualState(
-                float initialAngle
-        ) {
-            angle =
-                    initialAngle;
-        }
-
-        private float update(
-                double renderTime,
-                float targetRpm,
-                float targetAngle,
-                boolean hasSource
-        ) {
-            if (!Double.isFinite(
-                    lastRenderTime
-            )) {
-                lastRenderTime =
-                        renderTime;
-
-                smoothedRpm =
-                        targetRpm;
-
-                angle =
-                        targetAngle;
-
-                return angle;
-            }
-
-            double delta =
-                    Math.max(
-                            0.0,
-                            Math.min(
-                                    2.0,
-                                    renderTime
-                                    - lastRenderTime
-                            )
-                    );
-
-            lastRenderTime =
-                    renderTime;
-
-            float response =
-                    1.0F
-                    - (float) Math.exp(
-                            -delta
-                            * 0.30
-                    );
-
-            smoothedRpm +=
-                    (
-                            targetRpm
-                            - smoothedRpm
-                    )
-                    * response;
-
-            angle +=
-                    smoothedRpm
-                    * 0.30F
-                    * (float) delta;
-
-            if (hasSource) {
-                float error =
-                        wrapSigned(
-                                targetAngle
-                                - angle
-                        );
-
-                angle +=
-                        error
-                        * Math.min(
-                                0.22F,
-                                0.075F
-                                * (float) delta
-                                + 0.025F
-                        );
-            }
-
-            angle =
-                    wrapPositive(
-                            angle
-                    );
-
-            return angle;
-        }
-
-        private static float wrapSigned(
-                float degrees
-        ) {
-            degrees %=
-                    360.0F;
-
-            if (degrees > 180.0F) {
-                degrees -=
-                        360.0F;
-            } else if (degrees < -180.0F) {
-                degrees +=
-                        360.0F;
-            }
-
-            return degrees;
-        }
-
-        private static float wrapPositive(
-                float degrees
-        ) {
-            degrees %=
-                    360.0F;
-
-            if (degrees < 0.0F) {
-                degrees +=
-                        360.0F;
-            }
-
-            return degrees;
-        }
-    }
 }

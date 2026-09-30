@@ -310,5 +310,7 @@
   "message.wayaround.mechanical_press.started": "Press cycle started (%s ticks).",
   "message.wayaround.mechanical_press.status": "Press: %s | structure %s%% | last input %s",
   "message.wayaround.mechanical_press.running": "running",
-  "message.wayaround.mechanical_press.idle": "idle"
+  "message.wayaround.mechanical_press.idle": "idle",
+  "block.wayaround.mechanical_fan": "Mechanical Fan",
+  "message.wayaround.mechanical_fan.status": "Mechanical fan: %s | %s RPM | airflow %s%%"
 }

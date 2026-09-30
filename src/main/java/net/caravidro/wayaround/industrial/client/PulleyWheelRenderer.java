@@ -1,8 +1,12 @@
 package net.caravidro.wayaround.industrial.client;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import net.caravidro.wayaround.animation.SmoothObjectAnimation;
 import net.caravidro.wayaround.industrial.power.PulleyWheelBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -18,6 +22,9 @@ public final class PulleyWheelRenderer
 
     private static final double RADIUS = 0.39;
     private static final double RIM_THICKNESS = 0.095;
+
+    private static final Map<PulleyWheelBlockEntity, SmoothObjectAnimation.Rotation> ROTATIONS =
+            new WeakHashMap<>();
 
     private final BlockRenderDispatcher blockRenderer;
 
@@ -36,8 +43,28 @@ public final class PulleyWheelRenderer
     ) {
         if (pulley.getLevel() == null) return;
 
+        double renderTime =
+                pulley.getLevel().getGameTime()
+                        + partialTick;
+
+        SmoothObjectAnimation.Rotation rotationState =
+                ROTATIONS.computeIfAbsent(
+                        pulley,
+                        key -> new SmoothObjectAnimation.Rotation(
+                                pulley.rotationDegrees()
+                        )
+                );
+
+        float visualAngle =
+                rotationState.update(
+                        renderTime,
+                        pulley.rpm(),
+                        pulley.rotationDegrees()
+                );
+
         renderBelt(
                 pulley,
+                visualAngle,
                 poseStack,
                 bufferSource,
                 packedLight,
@@ -50,7 +77,7 @@ public final class PulleyWheelRenderer
 
         poseStack.mulPose(
                 Axis.ZP.rotationDegrees(
-                        pulley.rotationDegrees()
+                        visualAngle
                 )
         );
 
@@ -159,6 +186,7 @@ public final class PulleyWheelRenderer
 
     private void renderBelt(
             PulleyWheelBlockEntity pulley,
+            float visualAngle,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
@@ -222,7 +250,7 @@ public final class PulleyWheelRenderer
          * Moving knots make belt motion visible without a custom texture.
          * They crawl along one strand using the driving pulley's phase.
          */
-        double phase = pulley.rotationDegrees() / 360.0;
+        double phase = visualAngle / 360.0;
         for (int i = 0; i < 8; i++) {
             double t = (i / 8.0 + phase) % 1.0;
             double x = nx * beltOffset + dx * t;

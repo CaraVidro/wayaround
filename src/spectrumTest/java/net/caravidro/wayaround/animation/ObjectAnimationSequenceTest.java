@@ -13,6 +13,9 @@ public final class ObjectAnimationSequenceTest {
         completedActorPoseIsHeld();
         cyclesAreRejected();
         pressTimelineMatchesContract();
+        smoothRotationAdvancesBetweenTicks();
+        smoothRotationCorrectsGradually();
+        angularWrapUsesShortestPath();
 
         System.out.println(
                 "Object animation sequence regression tests passed"
@@ -241,6 +244,81 @@ public final class ObjectAnimationSequenceTest {
                         "ram_up"
                 ).endTick(),
                 "Total animation must include final release actions"
+        );
+    }
+
+    private static void smoothRotationAdvancesBetweenTicks() {
+        SmoothObjectAnimation.Rotation rotation =
+                new SmoothObjectAnimation.Rotation(
+                        0.0F,
+                        8.0F,
+                        0.0F,
+                        180.0F
+                );
+
+        rotation.update(
+                0.0,
+                60.0F
+        );
+
+        float halfTick =
+                rotation.update(
+                        0.5,
+                        60.0F
+                );
+
+        require(
+                halfTick > 0.0F
+                        && halfTick < 18.0F,
+                "Continuous rotation must advance during partial ticks"
+        );
+    }
+
+    private static void smoothRotationCorrectsGradually() {
+        SmoothObjectAnimation.Rotation rotation =
+                new SmoothObjectAnimation.Rotation(
+                        0.0F,
+                        8.0F,
+                        0.50F,
+                        180.0F
+                );
+
+        rotation.reset(
+                0.0,
+                0.0F,
+                0.0F
+        );
+
+        float corrected =
+                rotation.update(
+                        1.0,
+                        0.0F,
+                        10.0F
+                );
+
+        requireNear(
+                5.0F,
+                corrected,
+                "Authoritative correction should be gradual below snap threshold"
+        );
+    }
+
+    private static void angularWrapUsesShortestPath() {
+        requireNear(
+                2.0F,
+                SmoothObjectAnimation.shortestDelta(
+                        359.0F,
+                        1.0F
+                ),
+                "Angular correction must cross zero using the shortest path"
+        );
+
+        requireNear(
+                359.0F,
+                SmoothObjectAnimation.wrap(
+                        -1.0F
+                ),
+                "Angular wrap must normalize negative values"
         );
     }
 

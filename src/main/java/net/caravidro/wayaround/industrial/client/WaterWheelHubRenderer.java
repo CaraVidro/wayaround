@@ -6,6 +6,7 @@ import java.util.WeakHashMap;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import net.caravidro.wayaround.animation.SmoothObjectAnimation;
 import net.caravidro.wayaround.industrial.power.WaterWheelHubBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -37,7 +38,7 @@ public final class WaterWheelHubRenderer
 
     private static final Map<
             WaterWheelHubBlockEntity,
-            VisualState
+            SmoothObjectAnimation.Rotation
     > VISUAL_STATES =
             new WeakHashMap<>();
 
@@ -63,10 +64,10 @@ public final class WaterWheelHubRenderer
             return;
         }
 
-        VisualState visual =
+        SmoothObjectAnimation.Rotation visual =
                 VISUAL_STATES.computeIfAbsent(
                         hub,
-                        key -> new VisualState(
+                        key -> new SmoothObjectAnimation.Rotation(
                                 hub.rotationDegrees()
                         )
                 );
@@ -692,135 +693,4 @@ public final class WaterWheelHubRenderer
         return true;
     }
 
-    private static final class VisualState {
-
-        private double lastRenderTime =
-                Double.NaN;
-
-        private float angle;
-
-        private float smoothedRpm;
-
-        private VisualState(
-                float initialAngle
-        ) {
-            this.angle =
-                    initialAngle;
-        }
-
-        private float update(
-                double renderTime,
-                float targetRpm,
-                float authoritativeAngle
-        ) {
-            if (!Double.isFinite(
-                    lastRenderTime
-            )) {
-                lastRenderTime =
-                        renderTime;
-
-                smoothedRpm =
-                        targetRpm;
-
-                return angle;
-            }
-
-            double delta =
-                    Math.max(
-                            0.0,
-                            Math.min(
-                                    2.0,
-                                    renderTime
-                                    - lastRenderTime
-                            )
-                    );
-
-            lastRenderTime =
-                    renderTime;
-
-            float response =
-                    1.0F
-                    - (float) Math.exp(
-                            -delta
-                            * 0.24
-                    );
-
-            smoothedRpm +=
-                    (
-                            targetRpm
-                            - smoothedRpm
-                    )
-                    * response;
-
-            angle +=
-                    smoothedRpm
-                    * 0.30F
-                    * (float) delta;
-
-            angle =
-                    wrap(angle);
-
-            float correction =
-                    shortestDelta(
-                            angle,
-                            authoritativeAngle
-                    );
-
-            /*
-             * Rendering is predicted locally for smooth motion, but the
-             * server remains authoritative. Without this correction clients
-             * that watched the wheel for different lengths of time could
-             * slowly drift into visibly different board positions.
-             */
-            if (Math.abs(correction)
-                    > 18.0F) {
-
-                angle =
-                        wrap(
-                                authoritativeAngle
-                        );
-
-            } else {
-                angle =
-                        wrap(
-                                angle
-                                        + correction
-                                                * 0.16F
-                        );
-            }
-
-            return angle;
-        }
-
-        private static float wrap(
-                float value
-        ) {
-            value %= 360.0F;
-
-            if (value < 0.0F) {
-                value += 360.0F;
-            }
-
-            return value;
-        }
-
-        private static float shortestDelta(
-                float from,
-                float to
-        ) {
-            float delta =
-                    wrap(to)
-                            - wrap(from);
-
-            if (delta > 180.0F) {
-                delta -= 360.0F;
-            }
-
-            if (delta < -180.0F) {
-                delta += 360.0F;
-            }
-
-            return delta;
-        }
-    }
 }
