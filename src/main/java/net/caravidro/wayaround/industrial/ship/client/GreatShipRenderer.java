@@ -52,6 +52,14 @@ public final class GreatShipRenderer
     ) {
         pose.pushPose();
 
+        pose.translate(
+                0.0,
+                ship.visualHeave(
+                        partialTick
+                ),
+                0.0
+        );
+
         pose.mulPose(
                 Axis.YP.rotationDegrees(
                         -yaw
