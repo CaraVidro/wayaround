@@ -1,0 +1,48 @@
+name: Client Smoke
+
+on:
+  push:
+    branches:
+      - feature/assembly-machinery-v2
+  workflow_dispatch:
+
+jobs:
+  runclient-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Start NeoForge client
+        shell: bash
+        run: |
+          chmod +x gradlew
+          set +e
+          timeout 150s xvfb-run -a ./gradlew runClient --no-daemon > runclient.log 2>&1
+          code=$?
+          cat runclient.log
+
+          if [ "$code" -eq 124 ]; then
+            if grep -Eqi "ModLauncher running|launch target.*client|Launching target.*client|LWJGL|OpenAL initialized" runclient.log; then
+              echo "runClient stayed alive through the smoke window."
+              exit 0
+            fi
+
+            echo "runClient timed out before a recognizable client startup marker."
+            exit 1
+          fi
+
+          exit "$code"
