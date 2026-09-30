@@ -92,6 +92,10 @@ public final class ClientPayloadBridge {
                 AccessoryWorkshopOpenS2CPayload payload
         ) {}
 
+        default void blueprintLabelOpen(
+                BlueprintLabelOpenS2CPayload payload
+        ) {}
+
         default void thermalGlow(
                 ThermalGlowPayload payload
         ) {}
@@ -459,6 +463,13 @@ public final class ClientPayloadBridge {
             IPayloadContext context
     ) {
         context.enqueueWork(() -> realtimeHandlers.accessoryWorkshopOpen(payload));
+    }
+
+    public static void handleBlueprintLabelOpen(
+            BlueprintLabelOpenS2CPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(() -> realtimeHandlers.blueprintLabelOpen(payload));
     }
 
     public static void handleThermalGlow(

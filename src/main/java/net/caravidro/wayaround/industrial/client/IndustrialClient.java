@@ -15,6 +15,10 @@ public final class IndustrialClient {
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(IndustrialContent.BLASTER_MENU.get(), ReforcedBlasterScreen::new);
         event.register(IndustrialContent.SAWMILL_MENU.get(), SawmillScreen::new);
+        event.register(
+                IndustrialContent.ENGINEERING_WORKBENCH_MENU.get(),
+                EngineeringWorkbenchScreen::new
+        );
     }
 
     @SubscribeEvent
@@ -38,6 +42,14 @@ public final class IndustrialClient {
         event.registerBlockEntityRenderer(
                 net.caravidro.wayaround.industrial.power.PowerContent.MANUAL_CRANK_ENTITY.get(),
                 ManualCrankRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.STEAM_ENGINE_ENTITY.get(),
+                SteamEngineRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                IndustrialContent.BLASTER_ENTITY.get(),
+                ReforcedBlasterRenderer::new
         );
     }
 }

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PPP",
+    "PBP",
+    " C "
+  ],
+  "key": {
+    "P": {"item": "minecraft:paper"},
+    "B": {"item": "minecraft:blue_dye"},
+    "C": {"item": "minecraft:copper_ingot"}
+  },
+  "result": {
+    "id": "wayaround:engineering_blueprint",
+    "count": 1
+  }
+}

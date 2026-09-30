@@ -539,3 +539,12 @@ tasks.register('infinityRegressionTest', JavaExec) {
     mainClass = 'net.caravidro.wayaround.infinity.InfinityRegressionTest'
 }
 tasks.named('check') { dependsOn tasks.named('infinityRegressionTest') }
+
+
+// Engineering workbench graph and material-profile invariants.
+tasks.register('engineeringWorkbenchRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchTest'
+}
+tasks.named('check') { dependsOn tasks.named('engineeringWorkbenchRegressionTest') }

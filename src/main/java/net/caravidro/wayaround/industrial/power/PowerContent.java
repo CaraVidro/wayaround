@@ -76,6 +76,21 @@ public final class PowerContent {
         () -> new AssemblyWorkbenchBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
             .strength(2.5F).sound(SoundType.WOOD)));
 
+    public static final DeferredBlock<net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchBlock> ENGINEERING_WORKBENCH =
+        BLOCKS.register("engineering_workbench",
+            () -> new net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchBlock(
+                BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
+                    .strength(3.0F, 5.0F).sound(SoundType.WOOD).noOcclusion()));
+
+    public static final DeferredItem<BlockItem> ENGINEERING_WORKBENCH_ITEM =
+        ITEMS.register("engineering_workbench",
+            () -> new BlockItem(ENGINEERING_WORKBENCH.get(), new Item.Properties()));
+
+    public static final DeferredItem<net.caravidro.wayaround.industrial.engineering.EngineeringBlueprintItem> ENGINEERING_BLUEPRINT =
+        ITEMS.register("engineering_blueprint",
+            () -> new net.caravidro.wayaround.industrial.engineering.EngineeringBlueprintItem(
+                new Item.Properties().stacksTo(1)));
+
     public static final DeferredItem<BlockItem> ASSEMBLY_WORKBENCH_ITEM = ITEMS.register("assembly_workbench",
         () -> new BlockItem(ASSEMBLY_WORKBENCH.get(), new Item.Properties()));
 
@@ -100,6 +115,11 @@ public final class PowerContent {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<AssemblyWorkbenchBlockEntity>> ASSEMBLY_WORKBENCH_ENTITY =
         BLOCK_ENTITIES.register("assembly_workbench", () -> BlockEntityType.Builder.of(
             AssemblyWorkbenchBlockEntity::new, ASSEMBLY_WORKBENCH.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchBlockEntity>> ENGINEERING_WORKBENCH_ENTITY =
+        BLOCK_ENTITIES.register("engineering_workbench", () -> BlockEntityType.Builder.of(
+            net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchBlockEntity::new,
+            ENGINEERING_WORKBENCH.get()).build(null));
 
     public static final DeferredBlock<PulleyWheelBlock> PULLEY_WHEEL = BLOCKS.register("pulley_wheel",
         () -> new PulleyWheelBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
