@@ -39,6 +39,11 @@ import net.neoforged.neoforge.energy.EnergyStorage;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
 public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
+    private static final ResourceLocation PRECISION_IRON_REFINING =
+            ResourceLocation.fromNamespaceAndPath(
+                    "wayaround",
+                    "precision_iron_refining"
+            );
     private NonNullList<ItemStack> items = NonNullList.withSize(2, ItemStack.EMPTY);
     private final MachineEnergy energy = new MachineEnergy();
     private final RecipeManager.CachedCheck<SingleRecipeInput, BlastingRecipe> blasting = RecipeManager.createCheck(RecipeType.BLASTING);
@@ -79,6 +84,13 @@ public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity i
 
     public static boolean canSmelt(Level level, ItemStack stack) {
         if (stack.isEmpty()) return false;
+
+        if (stack.is(
+                IndustrialContent.REFINED_IRON_INGOT.get()
+        )) {
+            return true;
+        }
+
         SingleRecipeInput input = new SingleRecipeInput(stack);
         return level.getRecipeManager().getRecipeFor(RecipeType.BLASTING, input, level).isPresent()
                 || level.getRecipeManager().getRecipeFor(RecipeType.SMELTING, input, level).isPresent();
@@ -95,10 +107,111 @@ public final class ReforcedBlasterBlockEntity extends BaseContainerBlockEntity i
                 WorldFeature.INDUSTRIAL_MACHINES
         )) return;
         if (!(level instanceof ServerLevel server)) return;
-        SingleRecipeInput input = new SingleRecipeInput(machine.items.get(0));
-        RecipeHolder<? extends AbstractCookingRecipe> recipe = input.isEmpty() ? null : machine.findRecipe(server, input);
+        ItemStack sourceStack =
+                machine.items.get(
+                        0
+                );
+
+        SingleRecipeInput input =
+                new SingleRecipeInput(
+                        sourceStack
+                );
+
+        boolean precisionIron =
+                sourceStack.is(
+                        IndustrialContent.REFINED_IRON_INGOT.get()
+                );
+
+        RecipeHolder<? extends AbstractCookingRecipe> recipe =
+                precisionIron
+                        || input.isEmpty()
+                        ? null
+                        : machine.findRecipe(
+                        server,
+                        input
+                );
+
         boolean running = false;
-        if (recipe == null) {
+
+        if (precisionIron) {
+            if (!PRECISION_IRON_REFINING.equals(
+                    machine.processingRecipe
+            )) {
+                machine.progress = 0;
+                machine.processingRecipe = PRECISION_IRON_REFINING;
+                machine.setChanged();
+            }
+
+            machine.total =
+                    180;
+
+            ItemStack result =
+                    new ItemStack(
+                            IndustrialContent.PRECISION_IRON_INGOT.get(),
+                            1
+                    );
+
+            ItemStack output =
+                    machine.items.get(
+                            1
+                    );
+
+            boolean accepts =
+                    output.isEmpty()
+                            || (
+                            ItemStack.isSameItemSameComponents(
+                                    output,
+                                    result
+                            )
+                                    && output.getCount()
+                                            + result.getCount()
+                                            <= Math.min(
+                                            output.getMaxStackSize(),
+                                            machine.getMaxStackSize()
+                                    )
+                    );
+
+            BlasterCycle.Step step =
+                    BlasterCycle.step(
+                            machine.progress,
+                            machine.total,
+                            machine.energy.getEnergyStored(),
+                            accepts
+                    );
+
+            if (step.energyUsed() > 0) {
+                running = true;
+                machine.energy.consume(
+                        step.energyUsed()
+                );
+
+                machine.progress =
+                        step.progress();
+
+                if (step.finished()) {
+                    if (output.isEmpty()) {
+                        machine.items.set(
+                                1,
+                                result
+                        );
+                    } else {
+                        output.grow(
+                                1
+                        );
+                    }
+
+                    sourceStack.shrink(
+                            1
+                    );
+
+                    machine.experience +=
+                            0.8F;
+                }
+
+                machine.setChanged();
+            }
+
+        } else if (recipe == null) {
             if (machine.progress != 0 || machine.processingRecipe != null) {
                 machine.progress = 0;
                 machine.processingRecipe = null;
