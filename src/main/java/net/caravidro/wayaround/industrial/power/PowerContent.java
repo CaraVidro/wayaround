@@ -146,6 +146,102 @@ public final class PowerContent {
         BLOCK_ENTITIES.register("sawmill", () -> BlockEntityType.Builder.of(
             SawmillBlockEntity::new, SAWMILL.get()).build(null));
 
+    public static final DeferredBlock<MechanicalFanBlock> MECHANICAL_FAN =
+        BLOCKS.register("mechanical_fan",
+            () -> new MechanicalFanBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(2.6F, 5.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+            ));
+
+    public static final DeferredItem<BlockItem> MECHANICAL_FAN_ITEM =
+        ITEMS.register("mechanical_fan",
+            () -> new BlockItem(
+                MECHANICAL_FAN.get(),
+                new Item.Properties()
+            ));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MechanicalFanBlockEntity>> MECHANICAL_FAN_ENTITY =
+        BLOCK_ENTITIES.register("mechanical_fan",
+            () -> BlockEntityType.Builder.of(
+                MechanicalFanBlockEntity::new,
+                MECHANICAL_FAN.get()
+            ).build(null));
+
+    public static final DeferredBlock<OreDrillBlock> ORE_DRILL =
+        BLOCKS.register("ore_drill",
+            () -> new OreDrillBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.0F, 6.0F)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()
+            ));
+
+    public static final DeferredItem<BlockItem> ORE_DRILL_ITEM =
+        ITEMS.register("ore_drill",
+            () -> new BlockItem(
+                ORE_DRILL.get(),
+                new Item.Properties()
+            ));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreDrillBlockEntity>> ORE_DRILL_ENTITY =
+        BLOCK_ENTITIES.register("ore_drill",
+            () -> BlockEntityType.Builder.of(
+                OreDrillBlockEntity::new,
+                ORE_DRILL.get()
+            ).build(null));
+
+    public static final DeferredBlock<AirSeparatorBlock> AIR_SEPARATOR =
+        BLOCKS.register("air_separator",
+            () -> new AirSeparatorBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(2.5F, 5.0F)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()
+            ));
+
+    public static final DeferredItem<BlockItem> AIR_SEPARATOR_ITEM =
+        ITEMS.register("air_separator",
+            () -> new BlockItem(
+                AIR_SEPARATOR.get(),
+                new Item.Properties()
+            ));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<AirSeparatorBlockEntity>> AIR_SEPARATOR_ENTITY =
+        BLOCK_ENTITIES.register("air_separator",
+            () -> BlockEntityType.Builder.of(
+                AirSeparatorBlockEntity::new,
+                AIR_SEPARATOR.get()
+            ).build(null));
+
+    public static final DeferredBlock<MechanicalPressBlock> MECHANICAL_PRESS =
+        BLOCKS.register("mechanical_press",
+            () -> new MechanicalPressBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.2F, 6.0F)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()
+            ));
+
+    public static final DeferredItem<BlockItem> MECHANICAL_PRESS_ITEM =
+        ITEMS.register("mechanical_press",
+            () -> new BlockItem(
+                MECHANICAL_PRESS.get(),
+                new Item.Properties()
+            ));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MechanicalPressBlockEntity>> MECHANICAL_PRESS_ENTITY =
+        BLOCK_ENTITIES.register("mechanical_press",
+            () -> BlockEntityType.Builder.of(
+                MechanicalPressBlockEntity::new,
+                MECHANICAL_PRESS.get()
+            ).build(null));
+
     public static final DeferredBlock<ManualCrankBlock> MANUAL_CRANK = BLOCKS.register("manual_crank",
         () -> new ManualCrankBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
             .strength(1.6F, 2.5F).sound(SoundType.WOOD).noOcclusion().noLootTable()));
