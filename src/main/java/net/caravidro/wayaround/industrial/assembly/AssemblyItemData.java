@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.assembly;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.material.IndustrialMetalGrade;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -270,6 +271,21 @@ public final class AssemblyItemData {
             return existing.copy();
         }
 
+        if (material
+                == AssemblyPartProfile.Material.IRON) {
+            return AssemblyPartProfile.gradedIron(
+                    kind,
+                    BuiltInRegistries.ITEM.getKey(
+                            stack.getItem()
+                    ),
+                    orientation,
+                    random,
+                    IndustrialMetalGrade.of(
+                            stack
+                    )
+            );
+        }
+
         return AssemblyPartProfile.fresh(
                 kind,
                 material,
@@ -355,12 +371,27 @@ public final class AssemblyItemData {
             return existing;
         }
 
+        AssemblyPartProfile.Material material =
+                inferMaterial(
+                        stack
+                );
+
         AssemblyPartProfile created =
-                AssemblyPartProfile.fresh(
+                material == AssemblyPartProfile.Material.IRON
+                        ? AssemblyPartProfile.gradedIron(
                         kind,
-                        inferMaterial(
-                                stack
+                        BuiltInRegistries.ITEM.getKey(
+                                stack.getItem()
                         ),
+                        orientation,
+                        random,
+                        IndustrialMetalGrade.of(
+                                stack
+                        )
+                )
+                        : AssemblyPartProfile.fresh(
+                        kind,
+                        material,
                         BuiltInRegistries.ITEM.getKey(
                                 stack.getItem()
                         ),
