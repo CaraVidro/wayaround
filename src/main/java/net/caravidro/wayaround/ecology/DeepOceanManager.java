@@ -118,14 +118,8 @@ public final class DeepOceanManager {
                         );
 
                 if (now >= nextSound) {
-                    int choice =
-                            player.getRandom()
-                                    .nextInt(2);
-
                     net.minecraft.sounds.SoundEvent sound =
-                            choice == 0
-                                    ? SoundEvents.AMBIENT_CAVE
-                                    : SoundEvents.PHANTOM_FLAP;
+                            SoundEvents.AMBIENT_CAVE.value();
 
                     player.serverLevel()
                             .playSound(
