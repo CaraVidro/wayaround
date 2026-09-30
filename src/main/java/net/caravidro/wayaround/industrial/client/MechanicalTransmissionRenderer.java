@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.industrial.power.MechanicalGearboxBlock;
 import net.caravidro.wayaround.industrial.power.MechanicalShaftBlock;
@@ -51,12 +52,16 @@ public final class MechanicalTransmissionRenderer
             return;
         }
 
+        DistanceLod.Tier lod = DistanceLod.forBlock(node.getBlockPos());
         var source = MechanicalTransmission.forNode(node.getLevel(), node.getBlockPos());
         float targetRpm = source == null ? 0 : source.rpm();
         SmoothObjectAnimation.Rotation visual = VISUAL_STATES.computeIfAbsent(node,
                 key -> new SmoothObjectAnimation.Rotation(0, 0.30F, 0, 24));
-        float transmissionAngle = visual.update(node.getLevel().getGameTime() + partialTick, targetRpm);
-        packedLight = IndustrialRenderUtil.exteriorLight(node.getLevel(), node.getBlockPos(), packedLight);
+        float visualTime = DistanceLod.quantizeTicks(node.getLevel().getGameTime() + partialTick, lod);
+        float transmissionAngle = visual.update(visualTime, targetRpm);
+        if (lod.dynamicLighting()) {
+            packedLight = IndustrialRenderUtil.exteriorLight(node.getLevel(), node.getBlockPos(), packedLight);
+        }
 
         BlockState state =
                 node.getBlockState();
@@ -76,9 +81,10 @@ public final class MechanicalTransmissionRenderer
             if (axle == Direction.Axis.Z) poseStack.mulPose(Axis.YP.rotationDegrees(90));
             poseStack.mulPose(Axis.XP.rotationDegrees(transmissionAngle));
             double radius = gear.large() ? 0.72 : 0.36;
+            int visibleTeeth = lod.detailedGeometry() ? gear.teeth() : Math.min(8, gear.teeth());
             IndustrialRenderUtil.radialWheel(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                    Blocks.IRON_BLOCK.defaultBlockState(), Blocks.POLISHED_ANDESITE.defaultBlockState(), gear.teeth(), radius, .20);
-            for (int i = 0; i < gear.teeth(); i++) {
+                    Blocks.IRON_BLOCK.defaultBlockState(), Blocks.POLISHED_ANDESITE.defaultBlockState(), visibleTeeth, radius, .20);
+            if (lod.detailedGeometry()) for (int i = 0; i < gear.teeth(); i++) {
                 double angle = Math.PI * 2 * i / gear.teeth();
                 IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
                         Blocks.IRON_BLOCK.defaultBlockState(), 0, Math.cos(angle)*radius, Math.sin(angle)*radius,
