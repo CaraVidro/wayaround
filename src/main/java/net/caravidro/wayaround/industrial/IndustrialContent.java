@@ -195,6 +195,18 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.WATER_GENERATOR_ITEM.get()
                                         );
+                                        output.accept(
+                                                PowerContent.ORE_DRILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_FAN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.AIR_SEPARATOR_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_PRESS_ITEM.get()
+                                        );
                                     }
                             )
                             .build()
@@ -259,6 +271,12 @@ public final class IndustrialContent {
                                         );
                                         output.accept(
                                                 PowerContent.SAWMILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.SAWMILL_TABLE_EXTENSION_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_FAN_ITEM.get()
                                         );
                                         output.accept(
                                                 PowerContent.SAWMILL_CRANK.get()
