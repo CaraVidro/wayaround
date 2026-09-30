@@ -345,6 +345,21 @@ public final class PipeBlockEntity
         return lastFlow;
     }
 
+    public int freeCapacity() {
+        PipeProfile profile =
+                profile();
+
+        if (profile == null) {
+            return 0;
+        }
+
+        return Math.max(
+                0,
+                profile.capacity()
+                        - amount
+        );
+    }
+
     public int insert(
             PipeMedium requestedMedium,
             int requestedAmount
