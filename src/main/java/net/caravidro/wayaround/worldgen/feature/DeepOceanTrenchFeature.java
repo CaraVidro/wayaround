@@ -298,7 +298,8 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             BlockPos pos,
             BlockState state
     ) {
-        if (!level.isInWorldBounds(pos)
+        if (pos.getY() < level.getMinBuildHeight()
+                || pos.getY() >= level.getMaxBuildHeight()
                 || level.getBlockEntity(pos) != null) {
             return;
         }
