@@ -43,5 +43,13 @@ public final class IndustrialClient {
                 net.caravidro.wayaround.industrial.power.PowerContent.MANUAL_CRANK_ENTITY.get(),
                 ManualCrankRenderer::new
         );
+        event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.power.PowerContent.STEAM_ENGINE_ENTITY.get(),
+                SteamEngineRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                IndustrialContent.BLASTER_ENTITY.get(),
+                ReforcedBlasterRenderer::new
+        );
     }
 }
