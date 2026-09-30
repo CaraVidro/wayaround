@@ -1,8 +1,12 @@
 package net.caravidro.wayaround.industrial.client;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import net.caravidro.wayaround.animation.SmoothObjectAnimation;
 import net.caravidro.wayaround.industrial.power.SawmillBlock;
 import net.caravidro.wayaround.industrial.power.SawmillBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -16,6 +20,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public final class SawmillRenderer
         implements BlockEntityRenderer<SawmillBlockEntity> {
+
+    private static final Map<SawmillBlockEntity, SmoothObjectAnimation.Rotation> BLADE_ROTATIONS =
+            new WeakHashMap<>();
 
     private final BlockRenderDispatcher blockRenderer;
 
@@ -34,14 +41,16 @@ public final class SawmillRenderer
     ) {
         poseStack.pushPose();
 
+        double renderTime =
+                sawmill.getLevel() == null
+                        ? 0.0
+                        : sawmill.getLevel()
+                                .getGameTime()
+                                + partialTick;
+
         double shake =
                 Math.sin(
-                        (
-                                sawmill.getLevel() == null
-                                        ? 0.0
-                                        : sawmill.getLevel()
-                                        .getGameTime()
-                        )
+                        renderTime
                                 * 1.73
                 )
                         * sawmill.vibration()
@@ -84,9 +93,30 @@ public final class SawmillRenderer
             );
         }
 
+        float visualBladeAngle =
+                sawmill.bladeAngle();
+
+        if (sawmill.bladeInstalled()
+                || sawmill.manualCranking()) {
+            SmoothObjectAnimation.Rotation bladeRotation =
+                    BLADE_ROTATIONS.computeIfAbsent(
+                            sawmill,
+                            key -> new SmoothObjectAnimation.Rotation(
+                                    sawmill.bladeAngle()
+                            )
+                    );
+
+            visualBladeAngle =
+                    bladeRotation.update(
+                            renderTime,
+                            sawmill.rpm(),
+                            sawmill.bladeAngle()
+                    );
+        }
+
         if (sawmill.bladeInstalled()) {
             renderSaw(
-                    sawmill.bladeAngle(),
+                    visualBladeAngle,
                     poseStack,
                     bufferSource,
                     packedLight,
@@ -96,7 +126,7 @@ public final class SawmillRenderer
 
         if (sawmill.manualCranking()) {
             renderCrank(
-                    sawmill.bladeAngle(),
+                    visualBladeAngle,
                     poseStack,
                     bufferSource,
                     packedLight,
