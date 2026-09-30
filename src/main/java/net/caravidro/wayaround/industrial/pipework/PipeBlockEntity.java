@@ -70,7 +70,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         return piece;
     }
     public void firstSection(){firstSection(new ItemStack(getBlockState().getBlock().asItem()));}
-    public void firstSection(ItemStack stack){installedSections.add(section(stack));sections=1;flow=Direction.get(Direction.AxisDirection.POSITIVE,getBlockState().getValue(LargePipeBlock.AXIS));buildShell();sync();}
+    public void firstSection(ItemStack stack){if(sections>0)return;installedSections.add(section(stack));sections=1;flow=Direction.get(Direction.AxisDirection.POSITIVE,getBlockState().getValue(LargePipeBlock.AXIS));buildShell();sync();}
     public boolean assemble(ItemStack stack,Player player){
         if(!(getBlockState().getBlock() instanceof LargePipeBlock b)||sections>=b.required()||!stack.is(b.asItem())||!roomFor(level,worldPosition,getBlockState()))return false;
         installedSections.add(section(stack));sections++;stack.consume(1,player);buildShell();
@@ -144,7 +144,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         if(!valve.isEmpty())tag.put("Valve",new ItemStack(valve.getItem()).save(registries));
         tag.putInt("Flow",flow.ordinal());tag.putBoolean("Open",open);
         FluidStack liquid=visualFluid();if(!liquid.isEmpty())tag.put("Visible",liquid.copyWithAmount(1).save(registries));
-        tag.putLong("WetUntil",wet()?Math.max(wetUntil,level.getGameTime()+30):0);tag.putFloat("Integrity",integrity);
+        tag.putLong("WetUntil",wet()?Math.max(wetUntil,(level==null?0:level.getGameTime())+30):0);tag.putFloat("Integrity",integrity);
         // Disk owns all real stacks and fluid volume. Rendering needs only the visible state.
         return tag;
     }

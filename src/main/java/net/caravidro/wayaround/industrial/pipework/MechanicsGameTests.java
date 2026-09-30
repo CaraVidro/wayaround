@@ -104,4 +104,14 @@ public final class MechanicsGameTests {
         h.assertTrue(dropped==50,"All fifty paid pieces are recovered exactly once");h.succeed();
     }
 
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void damagedFilledPipeLeaksItsStoredLiquid(GameTestHelper h){
+        var pipe=pipe(h,5,2,5,PipeworkContent.IRON_WATER_PIPE.get());
+        pipe.receive(new net.neoforged.neoforge.fluids.FluidStack(net.minecraft.world.level.material.Fluids.WATER,1000));
+        pipe.receiveStructuralDamage(new net.caravidro.wayaround.interaction.StructuralDamage(net.minecraft.world.phys.Vec3.atCenterOf(pipe.getBlockPos()),20,0,
+                net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wayaround","test"),null));
+        h.assertTrue(pipe.structuralIntegrity()<.65F,"Physical structural damage weakens the filled pipe");
+        h.runAfterDelay(25,()->{h.assertTrue(pipe.amount()==990||pipe.amount()==980,"Leaking consumes buffered liquid even with its valve closed");h.succeed();});
+    }
+
 }

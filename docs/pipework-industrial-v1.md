@@ -1,3 +1,5 @@
+> Follow-up: [mechanics-pipeflow-v1.md](mechanics-pipeflow-v1.md) supersedes this initial topology-only state with valves, liquid movement and staged hollow ducts.
+
 # Pipework / Industrial V1
 
 This branch consolidates WayAround's industrial visual layer and introduces the

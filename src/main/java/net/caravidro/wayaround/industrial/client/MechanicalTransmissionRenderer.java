@@ -69,6 +69,8 @@ public final class MechanicalTransmissionRenderer
         );
 
         if (state.getBlock() instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock gear) {
+            var mount=gear.mountOffset(node.getLevel(),node.getBlockPos(),state);
+            poseStack.translate(mount.x,mount.y,mount.z);
             Direction.Axis axle = state.getValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS);
             if (axle == Direction.Axis.Y) poseStack.mulPose(Axis.ZP.rotationDegrees(90));
             if (axle == Direction.Axis.Z) poseStack.mulPose(Axis.YP.rotationDegrees(90));

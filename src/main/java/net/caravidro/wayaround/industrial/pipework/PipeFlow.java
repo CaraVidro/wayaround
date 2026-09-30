@@ -33,11 +33,11 @@ public final class PipeFlow {
         ArrayDeque<Step> queue=new ArrayDeque<>();Set<BlockPos> seen=new HashSet<>();ArrayList<Outlet> outlets=new ArrayList<>();
         queue.add(new Step(root,root.flow(),List.of(root)));
         while(!queue.isEmpty()&&seen.size()<MAX_NODES){Step step=queue.removeFirst();PipeBlockEntity pipe=step.pipe();if(!seen.add(pipe.getBlockPos()))continue;
-            if(pipe!=root&&pipe.hasValve()&&!pipe.open())continue;
+            if(pipe!=root&&pipe.hasValve()&&(!pipe.open()||pipe.flow()!=step.arrival()))continue;
             int connections=0;
             for(Direction direction:Direction.values()){
                 if(!axisAllows(pipe,direction)||direction==step.arrival().getOpposite())continue;
-                if(pipe==root&&direction!=root.flow())continue;
+                if((pipe==root||pipe.hasValve())&&direction!=pipe.flow())continue;
                 PipeBlockEntity next=neighbor(level,pipe,direction);if(next==null)continue;connections++;
                 if(seen.contains(next.getBlockPos()))continue;
                 ArrayList<PipeBlockEntity> path=new ArrayList<>(step.path());path.add(next);queue.addLast(new Step(next,direction,List.copyOf(path)));
