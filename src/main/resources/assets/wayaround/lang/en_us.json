@@ -702,5 +702,8 @@
   "message.wayaround.mechanical_press.running": "running",
   "message.wayaround.mechanical_press.idle": "idle",
   "block.wayaround.mechanical_fan": "Mechanical Fan",
-  "message.wayaround.mechanical_fan.status": "Mechanical fan: %s | %s RPM | airflow %s%%"
+  "message.wayaround.mechanical_fan.status": "Mechanical fan: %s | %s RPM | airflow %s%%",
+  "block.wayaround.mechanical_mill": "Mechanical Mill",
+  "item.wayaround.wheat_flour": "Wheat Flour",
+  "message.wayaround.mechanical_mill.status": "Mill: %s | %s RPM | wheat %s | flour %s | grind %s%%"
 }
