@@ -34,7 +34,9 @@ public final class SawmillScreen
 
         addRecipeButton(
                 0,
-                "container.wayaround.sawmill.wood",
+                menu.longTableMode()
+                        ? "container.wayaround.sawmill.wood_long"
+                        : "container.wayaround.sawmill.wood",
                 16
         );
 
@@ -127,7 +129,9 @@ public final class SawmillScreen
         graphics.drawString(
                 font,
                 Component.translatable(
-                        "container.wayaround.sawmill.next_product"
+                        menu.longTableMode()
+                                ? "container.wayaround.sawmill.long_mode"
+                                : "container.wayaround.sawmill.next_product"
                 ),
                 leftPos + 18,
                 topPos + 8,
