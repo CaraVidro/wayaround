@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "WWW",
+    "IPI",
+    "WWW"
+  ],
+  "key": {
+    "W": {
+      "item": "minecraft:white_wool"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "P": {
+      "item": "wayaround:steel_pressure_pipe"
+    }
+  },
+  "result": {
+    "id": "wayaround:insulated_steam_pipe",
+    "count": 4
+  }
+}
