@@ -90,6 +90,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                         case 0 -> selectedRecipe.ordinal();
                         case 1 -> Math.round(progress * 1000.0F);
                         case 2 -> manualCrankTicks;
+                        case 3 -> longTableMode() ? 1 : 0;
                         default -> 0;
                     };
                 }
@@ -103,7 +104,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
                 @Override
                 public int getCount() {
-                    return 3;
+                    return 4;
                 }
             };
 
@@ -145,6 +146,16 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
         IRotationalPower source =
                 findBestSource();
+
+        boolean longLine =
+                longTableMode();
+
+        boolean longBatchReady =
+                !longLine
+                        || selectedRecipe
+                                != SawmillRecipe.WOOD
+                        || input.getCount()
+                                >= 4;
 
         boolean manual =
                 manualCrankTicks > 0;
@@ -217,21 +228,33 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                  * still feels a heavy load until the player clears it.
                  */
                 requestedPower =
-                        3.8F;
+                        longLine
+                                ? 8.8F
+                                : 3.8F;
 
             } else if (input.isEmpty()) {
                 requestedPower =
-                        0.08F
+                        (longLine
+                                ? 0.18F
+                                : 0.08F)
                                 + speedAbs
-                                        * 0.002F;
+                                        * (longLine
+                                        ? 0.0045F
+                                        : 0.002F);
 
             } else {
                 requestedPower =
-                        1.35F
-                                + speedAbs
-                                        * 0.021F
-                                + dullness
-                                        * 1.35F;
+                        longLine
+                                ? 6.40F
+                                        + speedAbs
+                                                * 0.060F
+                                        + dullness
+                                                * 2.40F
+                                : 1.35F
+                                        + speedAbs
+                                                * 0.021F
+                                        + dullness
+                                                * 1.35F;
             }
         }
 
@@ -435,7 +458,12 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
         }
 
         if (spinning
-                && !input.isEmpty()) {
+                && !input.isEmpty()
+                && longBatchReady
+                && (
+                !longLine
+                        || source != null
+        )) {
 
             float speedQuality =
                     Mth.clamp(
@@ -482,6 +510,11 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                             cuttingFactor,
                             0.18F,
                             1.05F
+                    )
+                            * (
+                            longLine
+                                    ? 0.74F
+                                    : 1.0F
                     );
 
             if (Math.floorMod(
@@ -496,13 +529,26 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                 );
             }
 
-            if (vibration > 0.64F
+            float jamThreshold =
+                    longLine
+                            ? 0.54F
+                            : 0.64F;
+
+            float jamChance =
+                    longLine
+                            ? 0.028F
+                            : 0.015F;
+
+            if (vibration > jamThreshold
                     && server.random.nextFloat()
                     < (
                     vibration
-                            - 0.60F
+                            - (
+                            jamThreshold
+                                    - 0.04F
+                    )
             )
-                    * 0.015F) {
+                    * jamChance) {
 
                 jam(
                         server,
@@ -1193,6 +1239,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                     ),
                     true
             );
+
             return;
         }
 
@@ -1203,16 +1250,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                     ),
                     true
             );
-            return;
-        }
 
-        if (!input.isEmpty()) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.sawmill.busy"
-                    ),
-                    true
-            );
             return;
         }
 
@@ -1222,19 +1260,116 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
             return;
         }
 
-        input =
-                stack.copyWithCount(
-                        1
+        boolean longLine =
+                longTableMode()
+                        && selectedRecipe
+                                == SawmillRecipe.WOOD;
+
+        if (!longLine) {
+            if (!input.isEmpty()) {
+                player.displayClientMessage(
+                        Component.translatable(
+                                "message.wayaround.sawmill.busy"
+                        ),
+                        true
                 );
+
+                return;
+            }
+
+            input =
+                    stack.copyWithCount(
+                            1
+                    );
+
+            progress =
+                    0.0F;
+
+            if (!player.getAbilities()
+                    .instabuild) {
+
+                stack.consume(
+                        1,
+                        player
+                );
+            }
+
+            sync();
+
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.log_inserted"
+                    ),
+                    true
+            );
+
+            return;
+        }
+
+        if (!input.isEmpty()
+                && input.getItem()
+                        != stack.getItem()) {
+
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.long_mixed_logs"
+                    ),
+                    true
+            );
+
+            return;
+        }
+
+        int existing =
+                input.isEmpty()
+                        ? 0
+                        : input.getCount();
+
+        int needed =
+                Math.max(
+                        0,
+                        4 - existing
+                );
+
+        if (needed <= 0) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.sawmill.long_batch_full"
+                    ),
+                    true
+            );
+
+            return;
+        }
+
+        int added =
+                Math.min(
+                        needed,
+                        stack.getCount()
+                );
+
+        if (added <= 0) {
+            return;
+        }
+
+        if (input.isEmpty()) {
+            input =
+                    stack.copyWithCount(
+                            added
+                    );
+        } else {
+            input.grow(
+                    added
+            );
+        }
 
         progress =
                 0.0F;
 
         if (!player.getAbilities()
                 .instabuild) {
-
             stack.consume(
-                    1,
+                    added,
                     player
             );
         }
@@ -1243,7 +1378,9 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
         player.displayClientMessage(
                 Component.translatable(
-                        "message.wayaround.sawmill.log_inserted"
+                        "message.wayaround.sawmill.long_batch",
+                        input.getCount(),
+                        4
                 ),
                 true
         );
@@ -1331,7 +1468,9 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
         } else {
             stage =
                     Component.translatable(
-                            "message.wayaround.sawmill.stage_ready"
+                            longTableMode()
+                                    ? "message.wayaround.sawmill.stage_long"
+                                    : "message.wayaround.sawmill.stage_ready"
                     ).getString();
         }
 
@@ -1406,7 +1545,10 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
         int count =
                 switch (selectedRecipe) {
-                    case WOOD -> 10;
+                    case WOOD ->
+                            longTableMode()
+                                    ? 64
+                                    : 10;
                     case WATER_WHEEL_BOARD -> 4;
                     case SHAFT -> 2;
                     case WATER_WHEEL_BODY -> 1;
@@ -2003,6 +2145,63 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
         body =
                 ItemStack.EMPTY;
+    }
+
+    public boolean longTableMode() {
+        if (level == null
+                || !getBlockState().hasProperty(
+                SawmillBlock.FACING
+        )) {
+            return false;
+        }
+
+        Direction facing =
+                getBlockState().getValue(
+                        SawmillBlock.FACING
+                );
+
+        Direction backward =
+                facing.getOpposite();
+
+        return isTableExtension(
+                worldPosition.relative(
+                        facing,
+                        1
+                )
+        )
+                && isTableExtension(
+                worldPosition.relative(
+                        facing,
+                        2
+                )
+        )
+                && isTableExtension(
+                worldPosition.relative(
+                        backward,
+                        1
+                )
+        )
+                && isTableExtension(
+                worldPosition.relative(
+                        backward,
+                        2
+                )
+        );
+    }
+
+    private boolean isTableExtension(
+            BlockPos pos
+    ) {
+        return level != null
+                && level.getBlockState(
+                pos
+        ).is(
+                PowerContent.SAWMILL_TABLE_EXTENSION.get()
+        );
+    }
+
+    public int inputCount() {
+        return input.getCount();
     }
 
     public boolean bladeInstalled() {
