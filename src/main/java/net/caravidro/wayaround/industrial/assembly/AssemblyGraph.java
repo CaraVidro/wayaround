@@ -127,6 +127,30 @@ public final class AssemblyGraph {
         );
     }
 
+    public AssemblyPartNode part(
+            String id
+    ) {
+        return parts.get(
+                id
+        );
+    }
+
+    public AssemblyConnection connection(
+            String key
+    ) {
+        for (Edge edge :
+                edges) {
+            if (edge.key()
+                    .equals(
+                            key
+                    )) {
+                return edge.connection();
+            }
+        }
+
+        return null;
+    }
+
     public float supportedRatio() {
         if (parts.isEmpty()) {
             return 0.0F;
