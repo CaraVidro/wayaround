@@ -42,11 +42,14 @@ public record EngineeringBlueprintSaveC2SPayload(
                         );
                     },
                     buf -> {
+                        long pos =
+                                buf.readLong();
+
                         CompoundTag tag =
                                 buf.readNbt();
 
                         return new EngineeringBlueprintSaveC2SPayload(
-                                buf.readLong(),
+                                pos,
                                 tag == null
                                         ? new CompoundTag()
                                         : tag
