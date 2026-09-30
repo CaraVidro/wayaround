@@ -10,8 +10,8 @@ public final class WaveModeSettingsTest {
 
         require(
                 fresh.waveMode()
-                        == WaveMode.REALISTIC,
-                "New selections should default to realistic waves"
+                        == WaveMode.STYLIZED,
+                "New selections should default to stylized waves"
         );
 
         fresh.setWaveMode(
