@@ -1,8 +1,12 @@
 package net.caravidro.wayaround.industrial.client;
 
+import java.util.Map;
+import java.util.WeakHashMap;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import net.caravidro.wayaround.animation.SmoothObjectAnimation;
 import net.caravidro.wayaround.industrial.power.PulleyWheelBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -18,6 +22,9 @@ public final class PulleyWheelRenderer
 
     private static final double RADIUS = 0.39;
     private static final double RIM_THICKNESS = 0.095;
+
+    private static final Map<PulleyWheelBlockEntity, SmoothObjectAnimation.Rotation> ROTATIONS =
+            new WeakHashMap<>();
 
     private final BlockRenderDispatcher blockRenderer;
 
@@ -44,13 +51,32 @@ public final class PulleyWheelRenderer
                 packedOverlay
         );
 
+        double renderTime =
+                pulley.getLevel().getGameTime()
+                        + partialTick;
+
+        SmoothObjectAnimation.Rotation rotationState =
+                ROTATIONS.computeIfAbsent(
+                        pulley,
+                        key -> new SmoothObjectAnimation.Rotation(
+                                pulley.rotationDegrees()
+                        )
+                );
+
+        float visualAngle =
+                rotationState.update(
+                        renderTime,
+                        pulley.rpm(),
+                        pulley.rotationDegrees()
+                );
+
         poseStack.pushPose();
         poseStack.translate(0.5, 0.5, 0.5);
         orientLocalZToAxis(poseStack, pulley.axleAxis());
 
         poseStack.mulPose(
                 Axis.ZP.rotationDegrees(
-                        pulley.rotationDegrees()
+                        visualAngle
                 )
         );
 
