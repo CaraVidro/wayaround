@@ -90,6 +90,9 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.MECHANICAL_FAN_ITEM.get()
                                         );
+                                        output.accept(
+                                                PowerContent.SAWMILL_ITEM.get()
+                                        );
                                     }
                             )
                             .build()
