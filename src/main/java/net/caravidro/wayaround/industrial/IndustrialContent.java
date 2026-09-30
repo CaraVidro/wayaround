@@ -96,6 +96,12 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.MECHANICAL_PRESS_ITEM.get()
                                         );
+                                        output.accept(
+                                                PowerContent.MECHANICAL_MILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.FLOUR.get()
+                                        );
                                     }
                             )
                             .build()
