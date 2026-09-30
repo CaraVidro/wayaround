@@ -57,9 +57,46 @@ Each transmission exposes its manufactured part profile and actual load history.
 
 External force or structural damage is converted into Assembly wear and can eventually fail the component.
 
+### Sawmill
+
+The sawmill exposes its real stored body, drive shaft and saw blade profiles.
+Its bearing and blade fastening conditions include alignment, vibration, heat
+and component wear. External Assembly damage wears the real installed parts and
+can jam a critical machine.
+
+### Pulleys and belts
+
+Pulley wheels expose their wheel and installed belt as Assembly parts. A belt is
+an `AssemblyConnection.Type.BELT`, and linked pulley anchors are declared to
+the generic network scanner. This lets one Assembly network cross empty blocks
+between two physically linked pulleys without teaching the scanner pulley-
+specific rules.
+
+### Legacy industrial machines
+
+Machines that predate staged physical assembly now expose virtual compatibility
+components through `LegacyMachineAssembly`:
+
+- water generator;
+- steam engine;
+- solar panel;
+- Reforced Blaster.
+
+Their existing simulation stays machine-owned. Assembly Engine can inspect,
+load and wear them now, while future staged construction can replace those
+virtual components with real manufactured parts without another architecture.
+
 ## Connected networks
 
-`AssemblyNetworkScanner` performs a bounded flood-fill over adjacent `AssemblyMachine` block entities.
+`AssemblyNetworkScanner` performs a bounded flood-fill over adjacent
+`AssemblyMachine` block entities and over generic non-adjacent anchors declared
+by `AssemblyMachine.assemblyLinkedAnchors()`.
+
+External links are distance-bounded and still count toward the existing machine
+scan limit, preventing an inspection from becoming a world-scale traversal.
+
+The first user is the pulley belt system, but the API is intentionally generic
+for future chains, couplings and other physical links.
 
 The Assembly Guide now reports both the selected machine and the connected network summary.
 

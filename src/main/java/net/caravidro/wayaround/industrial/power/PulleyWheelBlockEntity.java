@@ -1,8 +1,16 @@
 package net.caravidro.wayaround.industrial.power;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyHistory;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
@@ -15,6 +23,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -28,7 +37,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-public final class PulleyWheelBlockEntity extends BlockEntity {
+public final class PulleyWheelBlockEntity
+        extends BlockEntity
+        implements AssemblyMachine {
     public static final int MIN_SIDES = 4;
     public static final int MAX_SIDES = 24;
     public static final int MAX_BELT_DISTANCE = 16;
@@ -805,6 +816,200 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
     public float mechanicalPower() {
         return mechanicalPower;
+    }
+
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                "wayaround",
+                "pulley_wheel"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        List<AssemblyPartNode> parts =
+                new ArrayList<>();
+
+        AssemblyPartProfile wheel =
+                wheelProfile();
+
+        if (wheel == null) {
+            wheel =
+                    AssemblyPartProfile.legacy(
+                            AssemblyPartProfile.Kind.PULLEY,
+                            AssemblyPartProfile.Material.WOOD,
+                            assemblyType(),
+                            0,
+                            0.0F
+                    );
+        }
+
+        parts.add(
+                new AssemblyPartNode(
+                        "wheel",
+                        "pulley wheel",
+                        wheel,
+                        true,
+                        1.0F
+                )
+        );
+
+        AssemblyPartProfile belt =
+                beltProfile();
+
+        if (linkedPos != null
+                && belt != null) {
+            parts.add(
+                    new AssemblyPartNode(
+                            "belt",
+                            "drive belt",
+                            belt,
+                            linkedPulley() != null,
+                            0.72F
+                    )
+            );
+        }
+
+        return List.copyOf(
+                parts
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        AssemblyPartProfile belt =
+                beltProfile();
+
+        if (linkedPos == null
+                || belt == null) {
+            return List.of();
+        }
+
+        return List.of(
+                new AssemblyConnection(
+                        "wheel",
+                        "belt",
+                        AssemblyConnection.Type.BELT,
+                        Mth.clamp(
+                                0.64F
+                                        + shapeEfficiency()
+                                                * 0.18F
+                                        + belt.tension()
+                                                * 0.18F,
+                                0.0F,
+                                1.0F
+                        ),
+                        Mth.clamp(
+                                1.0F
+                                        - belt.durabilityScore(),
+                                0.0F,
+                                1.0F
+                        )
+                )
+        );
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        return Math.abs(
+                mechanicalPower
+        )
+                / 4.5F;
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        float amount =
+                Math.max(
+                        0.0F,
+                        fraction
+                );
+
+        if (amount <= 0.0F) {
+            return;
+        }
+
+        AssemblyPartProfile wheel =
+                wheelProfile();
+
+        if (wheel != null) {
+            wheel.applyWear(
+                    amount
+                            * 0.65F
+            );
+
+            AssemblyItemData.writePart(
+                    wheelPart,
+                    wheel
+            );
+        }
+
+        AssemblyPartProfile belt =
+                beltProfile();
+
+        if (belt != null) {
+            belt.applyWear(
+                    amount
+            );
+
+            AssemblyItemData.writePart(
+                    beltPart,
+                    belt
+            );
+
+            PulleyWheelBlockEntity peer =
+                    linkedPulley();
+
+            if (peer != null) {
+                peer.beltPart =
+                        beltPart.copy();
+
+                peer.sync();
+            }
+        }
+
+        if (level instanceof ServerLevel server
+                && linkedPos != null
+                && amount >= 0.10F
+                && assemblySnapshot().critical()) {
+
+            PulleyWheelBlockEntity peer =
+                    linkedPulley();
+
+            if (peer != null) {
+                AssemblyHistory.recordFailure(
+                        server,
+                        this,
+                        "belt_or_pulley_failure"
+                );
+
+                snapBelt(
+                        server,
+                        peer
+                );
+
+                return;
+            }
+        }
+
+        sync();
+    }
+
+    @Override
+    public Collection<BlockPos> assemblyLinkedAnchors() {
+        return linkedPos == null
+                ? List.of()
+                : List.of(
+                        linkedPos.immutable()
+                );
     }
 
     private static float wrap(float value) {

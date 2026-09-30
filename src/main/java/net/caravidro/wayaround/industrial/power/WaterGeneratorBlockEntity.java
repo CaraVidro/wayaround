@@ -1,7 +1,14 @@
 package net.caravidro.wayaround.industrial.power;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
@@ -11,6 +18,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -19,7 +27,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
 public final class WaterGeneratorBlockEntity
-        extends BlockEntity {
+        extends BlockEntity
+        implements AssemblyMachine {
 
     public static final int CAPACITY =
             64_000;
@@ -32,6 +41,7 @@ public final class WaterGeneratorBlockEntity
     private int generationPerTick;
     private int nextReceiver;
     private boolean mechanicalConnected;
+    private float assemblyWear;
 
     private final IEnergyStorage output =
             new IEnergyStorage() {
@@ -224,6 +234,111 @@ public final class WaterGeneratorBlockEntity
         }
     }
 
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                "wayaround",
+                "water_generator"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        ResourceLocation source =
+                assemblyType();
+
+        return List.of(
+                LegacyMachineAssembly.part(
+                        "frame",
+                        "generator frame",
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.IRON,
+                        source,
+                        assemblyWear * 0.70F,
+                        true,
+                        1.45F
+                ),
+                LegacyMachineAssembly.part(
+                        "rotor",
+                        "rotor shaft",
+                        AssemblyPartProfile.Kind.SHAFT,
+                        AssemblyPartProfile.Material.IRON,
+                        source,
+                        assemblyWear * 1.10F,
+                        true,
+                        1.10F
+                ),
+                LegacyMachineAssembly.part(
+                        "windings",
+                        "generator windings",
+                        AssemblyPartProfile.Kind.GENERAL,
+                        AssemblyPartProfile.Material.COPPER,
+                        source,
+                        assemblyWear * 0.88F,
+                        true,
+                        0.85F
+                )
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        return List.of(
+                new AssemblyConnection(
+                        "frame",
+                        "rotor",
+                        AssemblyConnection.Type.BEARING,
+                        0.91F,
+                        Mth.clamp(
+                                assemblyWear * 0.80F,
+                                0.0F,
+                                1.0F
+                        )
+                ),
+                new AssemblyConnection(
+                        "rotor",
+                        "windings",
+                        AssemblyConnection.Type.CONTACT,
+                        0.94F,
+                        Mth.clamp(
+                                assemblyWear * 0.72F,
+                                0.0F,
+                                1.0F
+                        )
+                )
+        );
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        return Mth.clamp(
+                generationPerTick
+                        / 640.0F
+                        * 1.25F,
+                0.0F,
+                1.35F
+        );
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        assemblyWear =
+                LegacyMachineAssembly.addWear(
+                        assemblyWear,
+                        fraction,
+                        0.90F
+                );
+
+        setChanged();
+    }
+
     public Component status() {
         return Component.translatable(
                 "message.wayaround.water_generator.status_v1",
@@ -259,6 +374,11 @@ public final class WaterGeneratorBlockEntity
                 "Generation",
                 generationPerTick
         );
+
+        tag.putFloat(
+                "AssemblyWear",
+                assemblyWear
+        );
     }
 
     @Override
@@ -284,6 +404,15 @@ public final class WaterGeneratorBlockEntity
                         ),
                         0,
                         640
+                );
+
+        assemblyWear =
+                Mth.clamp(
+                        tag.getFloat(
+                                "AssemblyWear"
+                        ),
+                        0.0F,
+                        1.0F
                 );
     }
 }

@@ -109,23 +109,28 @@ public final class AssemblyNetworkScanner {
                                 direction
                         );
 
-                if (visited.contains(
+                enqueueMachine(
+                        level,
+                        queue,
+                        visited,
+                        pos,
                         neighbor
-                )
-                        || !level.hasChunkAt(
-                        neighbor
-                )) {
+                );
+            }
+
+            for (BlockPos linked :
+                    machine.assemblyLinkedAnchors()) {
+                if (linked == null) {
                     continue;
                 }
 
-                if (level.getBlockEntity(
-                        neighbor
-                )
-                        instanceof AssemblyMachine) {
-                    queue.addLast(
-                            neighbor.immutable()
-                    );
-                }
+                enqueueMachine(
+                        level,
+                        queue,
+                        visited,
+                        pos,
+                        linked
+                );
             }
         }
 
@@ -155,5 +160,33 @@ public final class AssemblyNetworkScanner {
                 loadRatio,
                 critical
         );
+    }
+
+    private static void enqueueMachine(
+            ServerLevel level,
+            ArrayDeque<BlockPos> queue,
+            Set<BlockPos> visited,
+            BlockPos origin,
+            BlockPos candidate
+    ) {
+        if (candidate == null
+                || candidate.equals(origin)
+                || visited.contains(candidate)
+                || !level.hasChunkAt(candidate)) {
+            return;
+        }
+
+        /*
+         * External assembly links are intentionally bounded. A belt/coupling
+         * must not turn one inspection into a world-scale chunk walk.
+         */
+        if (origin.distSqr(candidate) > 4096.0D) {
+            return;
+        }
+
+        if (level.getBlockEntity(candidate)
+                instanceof AssemblyMachine) {
+            queue.addLast(candidate.immutable());
+        }
     }
 }

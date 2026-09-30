@@ -1,5 +1,13 @@
 package net.caravidro.wayaround.industrial.power;
 
+import java.util.Collection;
+import java.util.List;
+
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -7,19 +15,24 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
-public final class SteamEngineBlockEntity extends BlockEntity {
+public final class SteamEngineBlockEntity
+        extends BlockEntity
+        implements AssemblyMachine {
     private final EnergyBudget buffer = new EnergyBudget(SteamCycle.CAPACITY);
     private int water;
     private int coal;
     private int fuel;
     private int heat;
     private int nextReceiver;
+    private float assemblyWear;
     private final IEnergyStorage output = new IEnergyStorage() {
         public int receiveEnergy(int amount, boolean simulate) { return 0; }
         public int extractEnergy(int amount, boolean simulate) {
@@ -89,6 +102,122 @@ public final class SteamEngineBlockEntity extends BlockEntity {
             engine.setChanged();
         }
     }
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                "wayaround",
+                "steam_engine"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        ResourceLocation source =
+                assemblyType();
+
+        return List.of(
+                LegacyMachineAssembly.part(
+                        "frame",
+                        "engine frame",
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.IRON,
+                        source,
+                        assemblyWear * 0.68F,
+                        true,
+                        1.60F
+                ),
+                LegacyMachineAssembly.part(
+                        "boiler",
+                        "boiler",
+                        AssemblyPartProfile.Kind.GENERAL,
+                        AssemblyPartProfile.Material.IRON,
+                        source,
+                        assemblyWear * 0.92F,
+                        true,
+                        1.35F
+                ),
+                LegacyMachineAssembly.part(
+                        "drive",
+                        "piston drive",
+                        AssemblyPartProfile.Kind.SHAFT,
+                        AssemblyPartProfile.Material.IRON,
+                        source,
+                        assemblyWear * 1.08F,
+                        true,
+                        1.10F
+                ),
+                LegacyMachineAssembly.part(
+                        "valves",
+                        "steam valves",
+                        AssemblyPartProfile.Kind.GENERAL,
+                        AssemblyPartProfile.Material.COPPER,
+                        source,
+                        assemblyWear * 0.84F,
+                        true,
+                        0.72F
+                )
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        return List.of(
+                new AssemblyConnection(
+                        "frame",
+                        "boiler",
+                        AssemblyConnection.Type.FASTENED,
+                        0.92F,
+                        Mth.clamp(assemblyWear * 0.72F, 0.0F, 1.0F)
+                ),
+                new AssemblyConnection(
+                        "boiler",
+                        "valves",
+                        AssemblyConnection.Type.CONTACT,
+                        0.90F,
+                        Mth.clamp(assemblyWear * 0.88F, 0.0F, 1.0F)
+                ),
+                new AssemblyConnection(
+                        "frame",
+                        "drive",
+                        AssemblyConnection.Type.BEARING,
+                        0.89F,
+                        Mth.clamp(assemblyWear, 0.0F, 1.0F)
+                )
+        );
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        float thermal =
+                heat / 100.0F;
+
+        return Mth.clamp(
+                thermal * 1.05F
+                        + (fuel > 0 ? 0.18F : 0.0F),
+                0.0F,
+                1.30F
+        );
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        assemblyWear =
+                LegacyMachineAssembly.addWear(
+                        assemblyWear,
+                        fraction,
+                        0.82F
+                );
+
+        setChanged();
+    }
+
     public int storedCoal() { return coal; }
     @Override protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
@@ -97,6 +226,7 @@ public final class SteamEngineBlockEntity extends BlockEntity {
         tag.putInt("Fuel", fuel);
         tag.putInt("Heat", heat);
         tag.putInt("Energy", buffer.stored());
+        tag.putFloat("AssemblyWear", assemblyWear);
     }
     @Override protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
@@ -105,5 +235,6 @@ public final class SteamEngineBlockEntity extends BlockEntity {
         fuel = Math.clamp(tag.getInt("Fuel"), 0, SteamCycle.COAL_SECONDS);
         heat = Math.clamp(tag.getInt("Heat"), 0, 100);
         buffer.load(tag.getInt("Energy"));
+        assemblyWear = Mth.clamp(tag.getFloat("AssemblyWear"), 0.0F, 1.0F);
     }
 }

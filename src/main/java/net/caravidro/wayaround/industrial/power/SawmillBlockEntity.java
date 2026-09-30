@@ -1,8 +1,16 @@
 package net.caravidro.wayaround.industrial.power;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import javax.annotation.Nullable;
 
+import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyHistory;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
+import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
@@ -43,7 +51,9 @@ import net.minecraft.world.level.block.state.BlockState;
  * Power quality, alignment, wear, fatigue and over-speed change cutting speed,
  * vibration, output yield and the quality stamped into the produced boards.
  */
-public final class SawmillBlockEntity extends BlockEntity {
+public final class SawmillBlockEntity
+        extends BlockEntity
+        implements AssemblyMachine {
 
     private static final float OPTIMAL_RPM =
             30.0F;
@@ -1785,6 +1795,274 @@ public final class SawmillBlockEntity extends BlockEntity {
 
     public boolean jammed() {
         return jammed;
+    }
+
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                "wayaround",
+                "sawmill"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        List<AssemblyPartNode> parts =
+                new ArrayList<>();
+
+        AssemblyPartProfile bodyProfile =
+                bodyProfile();
+
+        if (bodyProfile == null) {
+            bodyProfile =
+                    AssemblyPartProfile.legacy(
+                            AssemblyPartProfile.Kind.FRAME,
+                            AssemblyPartProfile.Material.WOOD,
+                            BuiltInRegistries.ITEM.getKey(
+                                    PowerContent.SAWMILL_ITEM.get()
+                            ),
+                            0,
+                            0.0F
+                    );
+        }
+
+        parts.add(
+                new AssemblyPartNode(
+                        "body",
+                        "frame",
+                        bodyProfile,
+                        true,
+                        2.0F
+                )
+        );
+
+        AssemblyPartProfile shaftProfile =
+                shaftProfile();
+
+        if (shaftProfile != null) {
+            parts.add(
+                    new AssemblyPartNode(
+                            "drive_shaft",
+                            "drive shaft",
+                            shaftProfile,
+                            true,
+                            1.35F
+                    )
+            );
+        }
+
+        AssemblyPartProfile bladeProfile =
+                bladeProfile();
+
+        if (bladeProfile != null) {
+            parts.add(
+                    new AssemblyPartNode(
+                            "blade",
+                            "saw blade",
+                            bladeProfile,
+                            shaftProfile != null,
+                            1.10F
+                    )
+            );
+        }
+
+        return List.copyOf(
+                parts
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        List<AssemblyConnection> connections =
+                new ArrayList<>();
+
+        AssemblyPartProfile bodyProfile =
+                bodyProfile();
+
+        AssemblyPartProfile shaftProfile =
+                shaftProfile();
+
+        AssemblyPartProfile bladeProfile =
+                bladeProfile();
+
+        if (shaftProfile != null) {
+            connections.add(
+                    new AssemblyConnection(
+                            "body",
+                            "drive_shaft",
+                            AssemblyConnection.Type.BEARING,
+                            Mth.clamp(
+                                    0.72F
+                                            + shaftProfile.alignment()
+                                                    * 0.24F,
+                                    0.0F,
+                                    1.0F
+                            ),
+                            Mth.clamp(
+                                    (1.0F - shaftProfile.durabilityScore())
+                                            * 0.68F
+                                            + vibration
+                                                    * 0.18F
+                                            + (bodyProfile == null
+                                                    ? 0.0F
+                                                    : (1.0F - bodyProfile.durabilityScore())
+                                                            * 0.14F),
+                                    0.0F,
+                                    1.0F
+                            )
+                    )
+            );
+        }
+
+        if (shaftProfile != null
+                && bladeProfile != null) {
+            connections.add(
+                    new AssemblyConnection(
+                            "drive_shaft",
+                            "blade",
+                            AssemblyConnection.Type.FASTENED,
+                            Mth.clamp(
+                                    0.70F
+                                            + bladeProfile.balance()
+                                                    * 0.16F
+                                            + bladeProfile.alignment()
+                                                    * 0.14F,
+                                    0.0F,
+                                    1.0F
+                            ),
+                            Mth.clamp(
+                                    (1.0F - bladeProfile.durabilityScore())
+                                            * 0.72F
+                                            + vibration
+                                                    * 0.22F
+                                            + heat
+                                                    * 0.06F,
+                                    0.0F,
+                                    1.0F
+                            )
+                    )
+            );
+        }
+
+        return List.copyOf(
+                connections
+        );
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        float normalizedPower =
+                Math.max(
+                        lastRequestedPower,
+                        lastGrantedPower
+                )
+                        / 4.0F;
+
+        return Math.max(
+                jammed
+                        ? 1.45F
+                        : 0.0F,
+                normalizedPower
+                        * (
+                        0.82F
+                                + vibration
+                                        * 0.42F
+                                + heat
+                                        * 0.16F
+                )
+        );
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        float amount =
+                Math.max(
+                        0.0F,
+                        fraction
+                );
+
+        if (amount <= 0.0F) {
+            return;
+        }
+
+        AssemblyPartProfile bodyProfile =
+                bodyProfile();
+
+        if (bodyProfile != null) {
+            bodyProfile.applyWear(
+                    amount
+                            * 0.35F
+            );
+
+            AssemblyItemData.writePart(
+                    body,
+                    bodyProfile
+            );
+        }
+
+        AssemblyPartProfile shaftProfile =
+                shaftProfile();
+
+        if (shaftProfile != null) {
+            shaftProfile.applyWear(
+                    amount
+                            * 0.82F
+            );
+
+            AssemblyItemData.writePart(
+                    driveShaft,
+                    shaftProfile
+            );
+        }
+
+        AssemblyPartProfile bladeProfile =
+                bladeProfile();
+
+        if (bladeProfile != null) {
+            bladeProfile.applyWear(
+                    amount
+            );
+
+            AssemblyItemData.writePart(
+                    blade,
+                    bladeProfile
+            );
+        }
+
+        vibration =
+                Mth.clamp(
+                        vibration
+                                + amount
+                                        * 0.22F,
+                        0.0F,
+                        1.0F
+                );
+
+        if (level instanceof ServerLevel server
+                && !jammed
+                && amount >= 0.10F
+                && assemblySnapshot().critical()) {
+
+            AssemblyHistory.recordFailure(
+                    server,
+                    this,
+                    "external_load"
+            );
+
+            jam(
+                    server,
+                    "external_load"
+            );
+        }
+
+        sync();
     }
 
     private static float wrap(
