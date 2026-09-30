@@ -43,14 +43,6 @@ public final class PulleyWheelRenderer
     ) {
         if (pulley.getLevel() == null) return;
 
-        renderBelt(
-                pulley,
-                poseStack,
-                bufferSource,
-                packedLight,
-                packedOverlay
-        );
-
         double renderTime =
                 pulley.getLevel().getGameTime()
                         + partialTick;
@@ -69,6 +61,15 @@ public final class PulleyWheelRenderer
                         pulley.rpm(),
                         pulley.rotationDegrees()
                 );
+
+        renderBelt(
+                pulley,
+                visualAngle,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay
+        );
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.5, 0.5);
@@ -185,6 +186,7 @@ public final class PulleyWheelRenderer
 
     private void renderBelt(
             PulleyWheelBlockEntity pulley,
+            float visualAngle,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
@@ -248,7 +250,7 @@ public final class PulleyWheelRenderer
          * Moving knots make belt motion visible without a custom texture.
          * They crawl along one strand using the driving pulley's phase.
          */
-        double phase = pulley.rotationDegrees() / 360.0;
+        double phase = visualAngle / 360.0;
         for (int i = 0; i < 8; i++) {
             double t = (i / 8.0 + phase) % 1.0;
             double x = nx * beltOffset + dx * t;
