@@ -80,6 +80,12 @@ public final class DeepOceanManager {
                     player.getVehicle()
                             instanceof DeepSeaCapsuleEntity;
 
+            if (capsule) {
+                player.setAirSupply(
+                        player.getMaxAirSupply()
+                );
+            }
+
             double safeDepth =
                     capsule
                             ? Double.MAX_VALUE
