@@ -557,3 +557,12 @@ tasks.register('pipeworkRegressionTest', JavaExec) {
     mainClass = 'net.caravidro.wayaround.industrial.pipework.PipeworkSpecTest'
 }
 tasks.named('check') { dependsOn tasks.named('pipeworkRegressionTest') }
+
+
+// Shared object-animation timeline invariants.
+tasks.register('objectAnimationRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.animation.ObjectAnimationSequenceTest'
+}
+tasks.named('check') { dependsOn tasks.named('objectAnimationRegressionTest') }
