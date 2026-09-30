@@ -116,22 +116,33 @@ After the pump:
 
 This directly supports the target visual of a believable water plant.
 
-### 3. Mechanical Mill
+### 3. Mechanical Mill — implemented
 
-The next general-purpose processing machine should be a Mechanical Mill.
+The Mechanical Mill is now part of this branch.
 
-Initial scope:
+Current scope:
 
-- two visible rotating millstones;
-- mechanical shaft input;
+- two visible millstones with the upper stone driven by SmoothObjectAnimation;
+- vertical drive shaft and visible grain hopper;
+- real rotational-power consumption through MechanicalTransmission;
 - wheat -> flour as the first process;
-- speed/load influence throughput;
-- dust particles and low grinding sound;
-- Assembly wear on stones/shaft;
-- later additional grinding recipes.
+- RPM and accepted load influence throughput;
+- dust particles and low grinding sound while working;
+- flour tray becomes visible when output exists;
+- Assembly frame/shaft/stones/hopper parts with wear and load;
+- right-click wheat to feed; empty-hand click collects flour.
 
-The mill should reuse SmoothObjectAnimation and the same Assembly/Mechanical
-contracts rather than inventing a new power system.
+This machine is intentionally recipe-light in V1. Future grinding recipes can
+extend it without changing the mechanical contract.
+
+### 4. Mechanical Pump — next target
+
+The next machine after the mill should be the Mechanical Pump, because it turns
+Pipework from rated infrastructure into active fluid infrastructure.
+
+The pump should consume rotational power, select a pressure/flow operating
+point, query PipeNetwork bottlenecks, animate a piston or impeller and become
+the first machine that actively pushes liquid through the new pipe families.
 
 ## Long-term visual target
 
