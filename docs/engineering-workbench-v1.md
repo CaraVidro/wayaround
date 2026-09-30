@@ -162,3 +162,72 @@ Natural next blocks include:
 The goal is that engineering knowledge produces useful designs, while players
 can still physically build the same machine badly, creatively or differently
 through Assembly.
+
+
+## Engineering Blueprints
+
+Engineering projects can now leave the workbench as physical
+`wayaround:engineering_blueprint` items.
+
+### Saving
+
+The workbench exposes **Save Blueprint**.
+
+- If the player is holding an Engineering Blueprint, that item is updated.
+- Otherwise a new filled Blueprint is created and inserted into the player's
+  inventory.
+- If the inventory is full, the created Blueprint is dropped rather than
+  silently destroyed.
+
+Project writes are server-authoritative and validate that the player is still
+within interaction distance of the Engineering Workbench.
+
+Updating an existing Blueprint replaces the project contents but preserves its
+identity, display name, creation timestamp and original creation coordinates.
+
+### Loading
+
+**Load Blueprint** first checks the player's hands and then the rest of the
+inventory for a filled Blueprint.
+
+Loading restores:
+
+- every calculation/block node;
+- node labels, values and units;
+- block registry ids and selected properties;
+- all graph connections;
+- node positions;
+- canvas zoom;
+- canvas pan;
+- Visual mode.
+
+The graph is reconstructed with fresh runtime node ids and connection ids are
+remapped, so the saved file is not coupled to one screen session.
+
+### Label metadata
+
+A filled Blueprint has a stable Blueprint id.
+
+Right-click the item to open a label editor modeled after the media tape label
+workflow.
+
+The player can:
+
+- give the project a custom name;
+- choose whether creation coordinates are shown;
+- choose whether creation date/time is shown.
+
+Creation location is the Engineering Workbench where the first save occurred.
+Subsequent saves preserve that original metadata.
+
+The item tooltip always exposes project node count and can optionally expose
+the creation location/date.
+
+### Storage
+
+Blueprints use the vanilla ItemStack `CUSTOM_DATA` component.
+
+The project payload is bounded to 256 nodes when sanitized. The screen model
+and the item data remain independent from world block entities, so projects can
+be traded, copied through normal ItemStack mechanics and reopened at another
+Engineering Workbench.
