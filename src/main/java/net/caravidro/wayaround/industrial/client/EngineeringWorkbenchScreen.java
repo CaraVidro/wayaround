@@ -14,15 +14,23 @@ import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGrap
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.Node;
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.NodeType;
 import net.caravidro.wayaround.industrial.engineering.EngineeringWorkbenchMenu;
+import net.caravidro.wayaround.industrial.engineering.EngineeringBlueprintData;
+import net.caravidro.wayaround.industrial.power.PowerContent;
+import net.caravidro.wayaround.network.EngineeringBlueprintSaveC2SPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class EngineeringWorkbenchScreen
         extends AbstractContainerScreen<EngineeringWorkbenchMenu> {
@@ -76,6 +84,8 @@ public final class EngineeringWorkbenchScreen
     private EditBox valueBox;
     private Button recommendedButton;
     private Button visualButton;
+    private Button saveBlueprintButton;
+    private Button loadBlueprintButton;
 
     private boolean recommendedOnly = true;
     private boolean visualMode = true;
@@ -220,6 +230,44 @@ public final class EngineeringWorkbenchScreen
                         .build();
 
         addRenderableWidget(visualButton);
+
+        saveBlueprintButton =
+                Button.builder(
+                                Component.translatable(
+                                        "container.wayaround.engineering.save_blueprint"
+                                ),
+                                button -> saveBlueprint()
+                        )
+                        .bounds(
+                                leftPos + CATALOG_WIDTH + 101,
+                                topPos + 7,
+                                92,
+                                20
+                        )
+                        .build();
+
+        addRenderableWidget(
+                saveBlueprintButton
+        );
+
+        loadBlueprintButton =
+                Button.builder(
+                                Component.translatable(
+                                        "container.wayaround.engineering.load_blueprint"
+                                ),
+                                button -> loadBlueprint()
+                        )
+                        .bounds(
+                                leftPos + CATALOG_WIDTH + 197,
+                                topPos + 7,
+                                92,
+                                20
+                        )
+                        .build();
+
+        addRenderableWidget(
+                loadBlueprintButton
+        );
 
         if (graph.nodes().isEmpty()) {
             Node starter =
@@ -2173,6 +2221,16 @@ public final class EngineeringWorkbenchScreen
                 && visualButton.isMouseOver(
                 mouseX,
                 mouseY
+        ))
+                || (saveBlueprintButton != null
+                && saveBlueprintButton.isMouseOver(
+                mouseX,
+                mouseY
+        ))
+                || (loadBlueprintButton != null
+                && loadBlueprintButton.isMouseOver(
+                mouseX,
+                mouseY
         ));
     }
 
@@ -2481,6 +2539,429 @@ public final class EngineeringWorkbenchScreen
         selectNode(
                 node.id()
         );
+    }
+
+    private void saveBlueprint() {
+        PacketDistributor.sendToServer(
+                new EngineeringBlueprintSaveC2SPayload(
+                        menu.workbenchPos()
+                                .asLong(),
+                        captureProject()
+                )
+        );
+    }
+
+    private void loadBlueprint() {
+        ItemStack stack =
+                findBlueprintStack();
+
+        EngineeringBlueprintData.Info info =
+                EngineeringBlueprintData.read(
+                        stack
+                ).orElse(null);
+
+        if (info == null) {
+            if (minecraft != null
+                    && minecraft.player != null) {
+                minecraft.player.displayClientMessage(
+                        Component.translatable(
+                                "message.wayaround.engineering_blueprint.none"
+                        ),
+                        true
+                );
+            }
+
+            return;
+        }
+
+        loadProject(
+                info.project()
+        );
+
+        if (minecraft != null
+                && minecraft.player != null) {
+            minecraft.player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.engineering_blueprint.loaded",
+                            info.title()
+                    ),
+                    true
+            );
+        }
+    }
+
+    private ItemStack findBlueprintStack() {
+        if (minecraft == null
+                || minecraft.player == null) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack main =
+                minecraft.player.getMainHandItem();
+
+        if (main.is(
+                PowerContent.ENGINEERING_BLUEPRINT.get()
+        )
+                && EngineeringBlueprintData.read(
+                main
+        ).isPresent()) {
+            return main;
+        }
+
+        ItemStack off =
+                minecraft.player.getOffhandItem();
+
+        if (off.is(
+                PowerContent.ENGINEERING_BLUEPRINT.get()
+        )
+                && EngineeringBlueprintData.read(
+                off
+        ).isPresent()) {
+            return off;
+        }
+
+        for (int slot =
+                     0;
+             slot < minecraft.player.getInventory()
+                     .getContainerSize();
+             slot++) {
+
+            ItemStack stack =
+                    minecraft.player.getInventory()
+                            .getItem(
+                                    slot
+                            );
+
+            if (stack.is(
+                    PowerContent.ENGINEERING_BLUEPRINT.get()
+            )
+                    && EngineeringBlueprintData.read(
+                    stack
+            ).isPresent()) {
+                return stack;
+            }
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    private CompoundTag captureProject() {
+        CompoundTag project =
+                new CompoundTag();
+
+        project.putDouble(
+                "Zoom",
+                canvasZoom
+        );
+        project.putDouble(
+                "PanX",
+                canvasPanX
+        );
+        project.putDouble(
+                "PanY",
+                canvasPanY
+        );
+        project.putBoolean(
+                "Visual",
+                visualMode
+        );
+
+        ListTag nodes =
+                new ListTag();
+
+        for (Node node :
+                graph.nodes()) {
+
+            CompoundTag tag =
+                    new CompoundTag();
+
+            tag.putInt(
+                    "Id",
+                    node.id()
+            );
+            tag.putString(
+                    "Type",
+                    node.type()
+                            .name()
+            );
+            tag.putInt(
+                    "X",
+                    node.x()
+            );
+            tag.putInt(
+                    "Y",
+                    node.y()
+            );
+            tag.putString(
+                    "Label",
+                    node.label()
+            );
+            tag.putDouble(
+                    "Literal",
+                    node.literal()
+            );
+            tag.putString(
+                    "Unit",
+                    node.unit()
+            );
+
+            int[] inputs =
+                    new int[
+                            node.inputCount()
+                            ];
+
+            for (int slot =
+                         0;
+                 slot < inputs.length;
+                 slot++) {
+                inputs[slot] =
+                        node.input(
+                                slot
+                        );
+            }
+
+            tag.putIntArray(
+                    "Inputs",
+                    inputs
+            );
+
+            EngineeringBlockProfile profile =
+                    blockNodes.get(
+                            node.id()
+                    );
+
+            if (profile != null) {
+                tag.putString(
+                        "Block",
+                        profile.id()
+                                .toString()
+                );
+
+                String property =
+                        blockProperties.get(
+                                node.id()
+                        );
+
+                if (property != null) {
+                    tag.putString(
+                            "Property",
+                            property
+                    );
+                }
+            }
+
+            nodes.add(
+                    tag
+            );
+        }
+
+        project.put(
+                "Nodes",
+                nodes
+        );
+
+        return project;
+    }
+
+    private void loadProject(
+            CompoundTag rawProject
+    ) {
+        CompoundTag project =
+                EngineeringBlueprintData.sanitizeProject(
+                        rawProject
+                );
+
+        graph.clear();
+        blockNodes.clear();
+        blockProperties.clear();
+
+        selectedNodeId =
+                -1;
+        pendingSourceId =
+                -1;
+        draggingNodeId =
+                -1;
+
+        Map<Integer, Node> restored =
+                new HashMap<>();
+
+        ListTag nodes =
+                project.getList(
+                        "Nodes",
+                        Tag.TAG_COMPOUND
+                );
+
+        for (int index =
+                     0;
+             index < nodes.size();
+             index++) {
+
+            CompoundTag tag =
+                    nodes.getCompound(
+                            index
+                    );
+
+            NodeType type;
+
+            try {
+                type =
+                        NodeType.valueOf(
+                                tag.getString(
+                                        "Type"
+                                )
+                        );
+
+            } catch (IllegalArgumentException ignored) {
+                continue;
+            }
+
+            Node node =
+                    graph.add(
+                            type,
+                            tag.getInt("X"),
+                            tag.getInt("Y"),
+                            tag.getString("Label"),
+                            tag.getDouble("Literal"),
+                            tag.getString("Unit")
+                    );
+
+            restored.put(
+                    tag.getInt("Id"),
+                    node
+            );
+
+            ResourceLocation blockId =
+                    ResourceLocation.tryParse(
+                            tag.getString(
+                                    "Block"
+                            )
+                    );
+
+            if (blockId != null
+                    && BuiltInRegistries.BLOCK.containsKey(
+                    blockId
+            )) {
+                Block block =
+                        BuiltInRegistries.BLOCK.get(
+                                blockId
+                        );
+
+                EngineeringBlockProfile profile =
+                        EngineeringBlockProfile.inspect(
+                                block
+                        );
+
+                blockNodes.put(
+                        node.id(),
+                        profile
+                );
+
+                String property =
+                        tag.getString(
+                                "Property"
+                        );
+
+                if (!property.isBlank()) {
+                    blockProperties.put(
+                            node.id(),
+                            property
+                    );
+                }
+            }
+        }
+
+        for (int index =
+                     0;
+             index < nodes.size();
+             index++) {
+
+            CompoundTag tag =
+                    nodes.getCompound(
+                            index
+                    );
+
+            Node target =
+                    restored.get(
+                            tag.getInt(
+                                    "Id"
+                            )
+                    );
+
+            if (target == null) {
+                continue;
+            }
+
+            int[] inputs =
+                    tag.getIntArray(
+                            "Inputs"
+                    );
+
+            for (int slot =
+                         0;
+                 slot < target.inputCount()
+                         && slot < inputs.length;
+                 slot++) {
+
+                Node source =
+                        restored.get(
+                                inputs[slot]
+                        );
+
+                if (source != null) {
+                    graph.connect(
+                            source.id(),
+                            target.id(),
+                            slot
+                    );
+                }
+            }
+        }
+
+        canvasZoom =
+                Math.clamp(
+                        project.getDouble(
+                                "Zoom"
+                        ),
+                        MIN_ZOOM,
+                        MAX_ZOOM
+                );
+
+        canvasPanX =
+                project.getDouble(
+                        "PanX"
+                );
+
+        canvasPanY =
+                project.getDouble(
+                        "PanY"
+                );
+
+        visualMode =
+                !project.contains(
+                        "Visual"
+                )
+                        || project.getBoolean(
+                        "Visual"
+                );
+
+        if (visualButton != null) {
+            visualButton.setMessage(
+                    Component.translatable(
+                            visualMode
+                                    ? "container.wayaround.engineering.visual"
+                                    : "container.wayaround.engineering.graph_only"
+                    )
+            );
+        }
+
+        if (!graph.nodes()
+                .isEmpty()) {
+            selectNode(
+                    graph.nodes()
+                            .getFirst()
+                            .id()
+            );
+        }
     }
 
     private void selectNode(
