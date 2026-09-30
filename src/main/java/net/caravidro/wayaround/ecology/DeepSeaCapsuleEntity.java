@@ -43,6 +43,10 @@ public final class DeepSeaCapsuleEntity extends Entity {
         if (pilot != null) {
             setYRot(pilot.getYRot());
             setXRot(pilot.getXRot());
+
+            if (!level().isClientSide && pilot instanceof Player player) {
+                player.setAirSupply(player.getMaxAirSupply());
+            }
         }
 
         if (!level().isClientSide) {
@@ -65,7 +69,11 @@ public final class DeepSeaCapsuleEntity extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (player.isSecondaryUseActive()) {
-            return InteractionResult.PASS;
+            if (!level().isClientSide && !isVehicle()) {
+                spawnAtLocation(EcologyContent.DEEP_SEA_CAPSULE_ITEM.get());
+                discard();
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide);
         }
         if (!level().isClientSide && !player.isPassenger()) {
             player.startRiding(this);
