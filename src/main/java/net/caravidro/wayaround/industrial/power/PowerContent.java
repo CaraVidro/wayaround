@@ -86,6 +86,11 @@ public final class PowerContent {
         ITEMS.register("engineering_workbench",
             () -> new BlockItem(ENGINEERING_WORKBENCH.get(), new Item.Properties()));
 
+    public static final DeferredItem<net.caravidro.wayaround.industrial.engineering.EngineeringBlueprintItem> ENGINEERING_BLUEPRINT =
+        ITEMS.register("engineering_blueprint",
+            () -> new net.caravidro.wayaround.industrial.engineering.EngineeringBlueprintItem(
+                new Item.Properties().stacksTo(1)));
+
     public static final DeferredItem<BlockItem> ASSEMBLY_WORKBENCH_ITEM = ITEMS.register("assembly_workbench",
         () -> new BlockItem(ASSEMBLY_WORKBENCH.get(), new Item.Properties()));
 
