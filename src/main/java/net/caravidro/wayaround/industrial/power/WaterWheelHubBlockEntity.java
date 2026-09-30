@@ -3249,7 +3249,7 @@ public final class WaterWheelHubBlockEntity
                             "plate_" + index,
                             "paddle",
                             plate.profile,
-                            plate.nailed,
+                            false,
                             (float) Math.max(
                                     0.25,
                                     plate.mass()
