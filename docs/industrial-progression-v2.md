@@ -14,6 +14,8 @@ bench workshop
     ->
 mechanical production
     ->
+industrial materials / ore refining
+    ->
 flow machinery
     ->
 large generation
@@ -282,11 +284,14 @@ Once that engine behaves well, the turbine is no longer a one-off simulation.
 ## Near-term implementation order
 
 1. Stabilize Long Saw gameplay and Assembly failures.
-2. Add a generic `FlowMachine` / directed-flow contract.
-3. Build Mechanical Fan as the first flow producer.
-4. Build Turbine as the first flow consumer / rotational producer.
-5. Couple turbine + existing generator into a small test power train.
-6. Expand that train into hydro and steam macrostructures.
-7. Replace the legacy Solar Panel with a modular electrical array.
+2. Establish graded iron and physical ore-processing chain.
+3. Use Mechanical Fan as the first generic directed-flow producer.
+4. Use Air Separator as the first real flow consumer.
+5. Add quality-aware industrial part recipes using refined/precision iron.
+6. Build Turbine as the first flow -> rotation producer.
+7. Couple turbine + existing generator into a small test power train.
+8. Expand that train into hydro and steam macrostructures.
+9. Replace the legacy Solar Panel with a modular electrical array.
 
-This order grows engines first and content second.
+This order grows materials and reusable engines first, then content.
+
