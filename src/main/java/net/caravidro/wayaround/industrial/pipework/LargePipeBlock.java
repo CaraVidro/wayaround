@@ -9,22 +9,24 @@ import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.*;
 import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.level.block.state.properties.*;
+import net.minecraft.world.level.material.*;
 import net.minecraft.world.phys.*;
 import net.minecraft.world.phys.shapes.*;
 
 /** Three-block-long hollow duct, assembled from paid sections, with real shell collision. */
-public final class LargePipeBlock extends BaseEntityBlock {
+public final class LargePipeBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
     public static final EnumProperty<Direction.Axis> AXIS=BlockStateProperties.AXIS;
     public static final BooleanProperty SHELL=BooleanProperty.create("shell");
+    public static final BooleanProperty WATERLOGGED=BlockStateProperties.WATERLOGGED;
     private final boolean colossal;
-    public LargePipeBlock(boolean colossal,Properties props){super(props);this.colossal=colossal;registerDefaultState(stateDefinition.any().setValue(AXIS,Direction.Axis.Z).setValue(SHELL,false));}
+    public LargePipeBlock(boolean colossal,Properties props){super(props);this.colossal=colossal;registerDefaultState(stateDefinition.any().setValue(AXIS,Direction.Axis.Z).setValue(SHELL,false).setValue(WATERLOGGED,false));}
     public int required(){return colossal?50:15;}
     public int radius(){return colossal?2:1;}
     public boolean colossal(){return colossal;}
     @Override protected MapCodec<? extends BaseEntityBlock> codec(){return MapCodec.unit(()->this);}
-    @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){b.add(AXIS,SHELL);}
+    @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){b.add(AXIS,SHELL,WATERLOGGED);}
     @Override protected RenderShape getRenderShape(BlockState s){return RenderShape.INVISIBLE;}
-    @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext c){return defaultBlockState().setValue(AXIS,c.getClickedFace().getAxis());}
+    @Override public BlockState getStateForPlacement(net.minecraft.world.item.context.BlockPlaceContext c){return defaultBlockState().setValue(AXIS,c.getClickedFace().getAxis()).setValue(WATERLOGGED,c.getLevel().getFluidState(c.getClickedPos()).getType()==Fluids.WATER);}
     @Override public BlockEntity newBlockEntity(BlockPos p,BlockState s){return new PipeBlockEntity(p,s);}
     @Override public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level l,BlockState s,BlockEntityType<T> type){return type==PipeworkContent.PIPE_ENTITY.get()?(w,p,b,e)->PipeBlockEntity.tick(w,p,b,(PipeBlockEntity)e):null;}
     @Override protected ItemInteractionResult useItemOn(ItemStack stack,BlockState s,Level l,BlockPos p,Player player,InteractionHand hand,BlockHitResult hit){
@@ -34,7 +36,7 @@ public final class LargePipeBlock extends BaseEntityBlock {
             if(!l.isClientSide)pipe.assemble(stack,player);
             return ItemInteractionResult.sidedSuccess(l.isClientSide);
         }
-        if(stack.is(PipeworkContent.VALVE.get())){if(!l.isClientSide)pipe.installValve(stack,player,player.getNearestViewDirection());return ItemInteractionResult.sidedSuccess(l.isClientSide);}
+        if(stack.is(PipeworkContent.VALVE.get())){if(!l.isClientSide)pipe.installValve(stack,player,hit.getDirection());return ItemInteractionResult.sidedSuccess(l.isClientSide);}
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
     @Override protected InteractionResult useWithoutItem(BlockState s,Level l,BlockPos p,Player player,BlockHitResult hit){
@@ -56,4 +58,6 @@ public final class LargePipeBlock extends BaseEntityBlock {
         }return shape;
     }
     @Override protected VoxelShape getCollisionShape(BlockState s,BlockGetter l,BlockPos p,CollisionContext c){return s.getValue(SHELL)?getShape(s,l,p,c):Shapes.empty();}
+    @Override protected FluidState getFluidState(BlockState s){return s.getValue(WATERLOGGED)?Fluids.WATER.getSource(false):super.getFluidState(s);}
+    @Override protected BlockState updateShape(BlockState s,Direction side,BlockState neighbor,LevelAccessor level,BlockPos pos,BlockPos neighborPos){if(s.getValue(WATERLOGGED))level.scheduleTick(pos,Fluids.WATER,Fluids.WATER.getTickDelay(level));return super.updateShape(s,side,neighbor,level,pos,neighborPos);}
 }

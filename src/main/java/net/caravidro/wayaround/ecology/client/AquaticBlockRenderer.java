@@ -3,6 +3,7 @@ package net.caravidro.wayaround.ecology.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -27,6 +28,8 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
         extends EntityRenderer<T> {
 
     protected final BlockRenderDispatcher blocks;
+    private final float baseShadowRadius;
+    private DistanceLod.Tier activeTier = DistanceLod.Tier.FULL;
 
     protected AquaticBlockRenderer(
             EntityRendererProvider.Context context,
@@ -34,6 +37,7 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
     ) {
         super(context);
         this.blocks = context.getBlockRenderDispatcher();
+        this.baseShadowRadius = shadowRadius;
         this.shadowRadius = shadowRadius;
     }
 
@@ -53,6 +57,11 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
             MultiBufferSource buffers,
             int light
     ) {
+        activeTier = DistanceLod.forEntity(fish);
+        this.shadowRadius = activeTier.dynamicLighting() ? baseShadowRadius : 0.0F;
+        float visualYaw = DistanceLod.quantizeDegrees(yaw, activeTier);
+        float visualPartialTick = activeTier == DistanceLod.Tier.FULL ? partialTick : 0.0F;
+
         pose.pushPose();
 
         float scale = fish.getScale();
@@ -66,17 +75,17 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
          */
         pose.mulPose(
                 Axis.YP.rotationDegrees(
-                        90.0F - yaw
+                        90.0F - visualYaw
                 )
         );
 
         applySpeciesPose(
                 fish,
-                partialTick,
+                visualPartialTick,
                 pose
         );
 
-        float age = fish.tickCount + partialTick;
+        float age = DistanceLod.quantizeTicks(fish.tickCount + visualPartialTick, activeTier);
         float swim = Mth.sin(age * swimFrequency(fish));
 
         // A tiny living roll prevents the body from looking like a rigid prop.
@@ -168,6 +177,12 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
             MultiBufferSource buffers,
             int light
     ) {
+        double volume = width * height * depth;
+        if (!activeTier.detailedGeometry()) {
+            double cutoff = activeTier == DistanceLod.Tier.COARSE ? 0.0015 : 0.0080;
+            if (volume < cutoff) return;
+        }
+
         pose.pushPose();
         pose.translate(x, y, z);
 

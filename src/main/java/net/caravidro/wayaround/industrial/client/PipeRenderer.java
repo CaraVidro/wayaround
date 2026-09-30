@@ -2,6 +2,7 @@ package net.caravidro.wayaround.industrial.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.caravidro.wayaround.industrial.pipework.*;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -15,7 +16,8 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
     public PipeRenderer(BlockEntityRendererProvider.Context context){blocks=context.getBlockRenderDispatcher();}
     @Override public void render(PipeBlockEntity pipe,float partial,PoseStack pose,MultiBufferSource buffers,int light,int overlay){
         if(pipe.getLevel()==null)return;
-        light=IndustrialRenderUtil.exteriorLight(pipe.getLevel(),pipe.getBlockPos(),light);
+        DistanceLod.Tier lod=DistanceLod.forBlock(pipe.getBlockPos());
+        if(lod.dynamicLighting()) light=IndustrialRenderUtil.exteriorLight(pipe.getLevel(),pipe.getBlockPos(),light);
         if(pipe.owner()!=null){
             var shape=pipe.getBlockState().getShape(pipe.getLevel(),pipe.getBlockPos());
             for(var box:shape.toAabbs())IndustrialRenderUtil.cuboid(blocks,pose,buffers,light,overlay,Blocks.IRON_BLOCK.defaultBlockState(),
@@ -24,7 +26,8 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
         }
         if(pipe.getBlockState().getBlock() instanceof LargePipeBlock duct){
             Direction.Axis axis=pipe.getBlockState().getValue(LargePipeBlock.AXIS);
-            for(int i=0;i<pipe.sections();i++){
+            int sectionStep=lod.detailedGeometry()?1:(lod==DistanceLod.Tier.COARSE?2:4);
+            for(int i=0;i<pipe.sections();i+=sectionStep){
                 double angle=Math.PI*2*(i%16)/16,along=-1.25+(i/16)*.75,r=duct.radius()+.33;
                 double scale=r/Math.max(Math.abs(Math.cos(angle)),Math.abs(Math.sin(angle)));double a=Math.cos(angle)*scale,b=Math.sin(angle)*scale;
                 double x=axis==Direction.Axis.X?along:a,y=axis==Direction.Axis.Y?along:axis==Direction.Axis.X?a:b,z=axis==Direction.Axis.Z?along:b;
@@ -39,7 +42,7 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
             IndustrialRenderUtil.radialWheel(blocks,pose,buffers,light,overlay,Blocks.REDSTONE_BLOCK.defaultBlockState(),Blocks.IRON_BLOCK.defaultBlockState(),8,.22,.06);
             pose.popPose();
         }
-        if(!(pipe.getBlockState().getBlock() instanceof LargePipeBlock duct)||!pipe.wet()||(pipe.hasValve()&&!pipe.open()))return;
+        if(!(pipe.getBlockState().getBlock() instanceof LargePipeBlock duct)||!pipe.wet()||(pipe.hasValve()&&!pipe.open())||!lod.particles())return;
         var player=Minecraft.getInstance().player;if(player==null)return;
         double dx=player.getX()-pipe.getBlockPos().getX()-.5,dy=player.getEyeY()-pipe.getBlockPos().getY()-.5,dz=player.getZ()-pipe.getBlockPos().getZ()-.5;
         Direction.Axis axis=pipe.getBlockState().getValue(LargePipeBlock.AXIS);
@@ -60,6 +63,6 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
         }
     }
     private static final java.util.Map<PipeBlockEntity,Long> EMITTED=new java.util.WeakHashMap<>();
-    @Override public boolean shouldRenderOffScreen(PipeBlockEntity pipe){return true;}
-    @Override public int getViewDistance(){return 64;}
+    @Override public boolean shouldRenderOffScreen(PipeBlockEntity pipe){return false;}
+    @Override public int getViewDistance(){return 256;}
 }
