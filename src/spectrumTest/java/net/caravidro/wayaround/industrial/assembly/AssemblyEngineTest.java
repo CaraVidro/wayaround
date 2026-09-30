@@ -37,6 +37,32 @@ public final class AssemblyEngineTest {
                 "Healthy unloaded assembly should not be critical"
         );
 
+        require(
+                healthySnapshot.supportRatio()
+                        == 1.0F,
+                "A part connected to a supported frame should inherit structural support through the graph"
+        );
+
+        AssemblyLoadDistribution healthyDistribution =
+                AssemblyEngine.loadDistribution(
+                        healthy,
+                        1.0F
+                );
+
+        require(
+                healthyDistribution.connectionLoad(
+                        "frame<->shaft#0"
+                ) > 0.0F,
+                "Indirectly supported shaft load must travel through its bearing connection"
+        );
+
+        require(
+                healthyDistribution.partLoad(
+                        "frame"
+                ) > 0.0F,
+                "Supported frame must receive transmitted downstream load"
+        );
+
         FakeMachine overloaded =
                 machine(
                         20.0F,
@@ -100,6 +126,128 @@ public final class AssemblyEngineTest {
                 "Damaged machines must be more vulnerable to the same external impulse"
         );
 
+        AssemblyPartProfile graphFrame =
+                AssemblyPartProfile.legacy(
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.IRON,
+                        ResourceLocation.fromNamespaceAndPath(
+                                "wayaround",
+                                "graph_frame"
+                        ),
+                        0,
+                        0.0F
+                );
+
+        AssemblyPartProfile graphBlade =
+                AssemblyPartProfile.legacy(
+                        AssemblyPartProfile.Kind.BLADE,
+                        AssemblyPartProfile.Material.WOOD,
+                        ResourceLocation.fromNamespaceAndPath(
+                                "wayaround",
+                                "graph_blade"
+                        ),
+                        0,
+                        0.0F
+                );
+
+        AssemblyGraph weakGraph =
+                AssemblyGraph.builder()
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "foundation",
+                                        "foundation",
+                                        graphFrame,
+                                        true,
+                                        0.25F
+                                )
+                        )
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "working_head",
+                                        "working_head",
+                                        graphBlade,
+                                        false,
+                                        2.0F
+                                )
+                        )
+                        .addConnection(
+                                new AssemblyConnection(
+                                        "foundation",
+                                        "working_head",
+                                        AssemblyConnection.Type.CONTACT,
+                                        0.18F,
+                                        0.0F
+                                )
+                        )
+                        .build();
+
+        AssemblyLoadDistribution weakDistribution =
+                weakGraph.solve(
+                        2.0F
+                );
+
+        require(
+                weakDistribution.maxConnectionStress()
+                        > 1.0F,
+                "A weak connection carrying most of the load must become a local hotspot"
+        );
+
+        require(
+                weakDistribution.hottestConnection()
+                        .startsWith(
+                                "foundation<->working_head"
+                        ),
+                "Graph diagnostics must identify the actual overloaded connection"
+        );
+
+        FakeMachine moduleA =
+                machine(
+                        0.0F,
+                        true,
+                        0.0F
+                );
+
+        FakeMachine moduleB =
+                machine(
+                        0.0F,
+                        false,
+                        0.0F
+                );
+
+        AssemblyGraph composed =
+                AssemblyGraph.builder()
+                        .addMachine(
+                                "turbine",
+                                moduleA
+                        )
+                        .addMachine(
+                                "generator",
+                                moduleB
+                        )
+                        .addConnection(
+                                new AssemblyConnection(
+                                        "turbine/shaft",
+                                        "generator/frame",
+                                        AssemblyConnection.Type.SHAFT,
+                                        0.92F,
+                                        0.0F
+                                )
+                        )
+                        .build();
+
+        require(
+                composed.parts()
+                        .size()
+                        == 4,
+                "Large-structure builder must keep prefixed machine fragments distinct"
+        );
+
+        require(
+                composed.supportedRatio()
+                        == 1.0F,
+                "A second module should become structurally supported through an explicit cross-module connection"
+        );
+
         System.out.println(
                 "Assembly Engine regression tests passed"
         );
@@ -152,7 +300,7 @@ public final class AssemblyEngineTest {
                         "shaft",
                         "shaft",
                         shaft,
-                        supported,
+                        false,
                         1.0F
                 )
         );
