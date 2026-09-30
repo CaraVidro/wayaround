@@ -91,6 +91,9 @@ public final class EngineeringWorkbenchScreen
 
     private EngineeringBlockProfile draggingCatalogProfile;
     private NodeType draggingPaletteType;
+    private double dragStartMouseX;
+    private double dragStartMouseY;
+    private boolean dragExceededThreshold;
 
     private boolean panningCanvas;
     private double lastPanMouseX;
@@ -1661,6 +1664,14 @@ public final class EngineeringWorkbenchScreen
         if (catalogueHit != null) {
             draggingCatalogProfile =
                     catalogueHit;
+            draggingPaletteType =
+                    null;
+            dragStartMouseX =
+                    mouseX;
+            dragStartMouseY =
+                    mouseY;
+            dragExceededThreshold =
+                    false;
 
             return true;
         }
@@ -1674,6 +1685,14 @@ public final class EngineeringWorkbenchScreen
         if (paletteHit != null) {
             draggingPaletteType =
                     paletteHit;
+            draggingCatalogProfile =
+                    null;
+            dragStartMouseX =
+                    mouseX;
+            dragStartMouseY =
+                    mouseY;
+            dragExceededThreshold =
+                    false;
 
             return true;
         }
@@ -1868,6 +1887,18 @@ public final class EngineeringWorkbenchScreen
 
         if (draggingCatalogProfile != null
                 || draggingPaletteType != null) {
+
+            double distanceSquared =
+                    (mouseX - dragStartMouseX)
+                            * (mouseX - dragStartMouseX)
+                            + (mouseY - dragStartMouseY)
+                            * (mouseY - dragStartMouseY);
+
+            if (distanceSquared >= 16.0) {
+                dragExceededThreshold =
+                        true;
+            }
+
             return true;
         }
 
@@ -1888,12 +1919,15 @@ public final class EngineeringWorkbenchScreen
     ) {
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             if (draggingCatalogProfile != null) {
+                EngineeringBlockProfile profile =
+                        draggingCatalogProfile;
+
                 if (insideCanvas(
                         mouseX,
                         mouseY
                 )) {
                     addBlockNode(
-                            draggingCatalogProfile,
+                            profile,
                             (int) Math.round(
                                     screenToGraphX(mouseX)
                                             - NODE_WIDTH * 0.5
@@ -1903,34 +1937,52 @@ public final class EngineeringWorkbenchScreen
                                             - 18.0
                             )
                     );
+
+                } else if (!dragExceededThreshold) {
+                    addBlockNodeAtVisibleCenter(
+                            profile
+                    );
                 }
 
-                draggingCatalogProfile = null;
+                draggingCatalogProfile =
+                        null;
+                dragExceededThreshold =
+                        false;
+
                 return true;
             }
 
             if (draggingPaletteType != null) {
+                NodeType type =
+                        draggingPaletteType;
+
                 if (insideCanvas(
                         mouseX,
                         mouseY
                 )) {
-                    Node node =
-                            graph.add(
-                                    draggingPaletteType,
-                                    (int) Math.round(
-                                            screenToGraphX(mouseX)
-                                                    - NODE_WIDTH * 0.5
-                                    ),
-                                    (int) Math.round(
-                                            screenToGraphY(mouseY)
-                                                    - 18.0
-                                    )
-                            );
+                    addCalculationNode(
+                            type,
+                            (int) Math.round(
+                                    screenToGraphX(mouseX)
+                                            - NODE_WIDTH * 0.5
+                            ),
+                            (int) Math.round(
+                                    screenToGraphY(mouseY)
+                                            - 18.0
+                            )
+                    );
 
-                    selectNode(node.id());
+                } else if (!dragExceededThreshold) {
+                    addCalculationNodeAtVisibleCenter(
+                            type
+                    );
                 }
 
-                draggingPaletteType = null;
+                draggingPaletteType =
+                        null;
+                dragExceededThreshold =
+                        false;
+
                 return true;
             }
 
@@ -2364,6 +2416,71 @@ public final class EngineeringWorkbenchScreen
 
         propertyScroll = 0;
         selectNode(node.id());
+    }
+
+    private void addBlockNodeAtVisibleCenter(
+            EngineeringBlockProfile profile
+    ) {
+        double centerScreenX =
+                canvasX()
+                        + canvasWidth() * 0.5;
+
+        double centerScreenY =
+                canvasY()
+                        + canvasHeight() * 0.58;
+
+        addBlockNode(
+                profile,
+                (int) Math.round(
+                        screenToGraphX(centerScreenX)
+                                - NODE_WIDTH * 0.5
+                ),
+                (int) Math.round(
+                        screenToGraphY(centerScreenY)
+                                - 18.0
+                )
+        );
+    }
+
+    private void addCalculationNodeAtVisibleCenter(
+            NodeType type
+    ) {
+        double centerScreenX =
+                canvasX()
+                        + canvasWidth() * 0.5;
+
+        double centerScreenY =
+                canvasY()
+                        + canvasHeight() * 0.58;
+
+        addCalculationNode(
+                type,
+                (int) Math.round(
+                        screenToGraphX(centerScreenX)
+                                - NODE_WIDTH * 0.5
+                ),
+                (int) Math.round(
+                        screenToGraphY(centerScreenY)
+                                - 18.0
+                )
+        );
+    }
+
+    private void addCalculationNode(
+            NodeType type,
+            int graphX,
+            int graphY
+    ) {
+        Node node =
+                graph.add(
+                        type,
+                        graphX,
+                        graphY
+                );
+
+        selectNode(
+                node.id()
+        );
     }
 
     private void selectNode(
