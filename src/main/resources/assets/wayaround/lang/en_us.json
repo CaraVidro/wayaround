@@ -708,5 +708,13 @@
   "message.wayaround.mechanical_press.started": "Mechanical press cycle started.",
   "message.wayaround.mechanical_press.status": "Mechanical press: %s | power %s",
   "message.wayaround.mechanical_press.running": "running",
-  "message.wayaround.mechanical_press.idle": "idle"
+  "message.wayaround.mechanical_press.idle": "idle",
+  "block.wayaround.mechanical_mill": "Mechanical Mill",
+  "item.wayaround.flour": "Flour",
+  "message.wayaround.mechanical_mill.full": "The grain hopper is full.",
+  "message.wayaround.mechanical_mill.inserted": "Wheat loaded: %s/16",
+  "message.wayaround.mechanical_mill.status": "Mill: wheat %s | flour %s | grind %s%% | RPM %s | %s",
+  "message.wayaround.mechanical_mill.connected": "mechanical drive connected",
+  "message.wayaround.mechanical_mill.disconnected": "no mechanical drive",
+  "tooltip.wayaround.flour": "Freshly ground flour from the Mechanical Mill."
 }
