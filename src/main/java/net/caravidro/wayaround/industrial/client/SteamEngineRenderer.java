@@ -103,7 +103,7 @@ public final class SteamEngineRenderer
         // Base skid and boiler body.
         IndustrialRenderUtil.cuboid(
                 blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                Blocks.SMOOTH_STONE.defaultBlockState(),
                 0.0, -0.42, 0.0,
                 0.92, 0.14, 0.86
         );
@@ -135,7 +135,7 @@ public final class SteamEngineRenderer
                 blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
                 lit
                         ? Blocks.REDSTONE_BLOCK.defaultBlockState()
-                        : Blocks.BLACKSTONE.defaultBlockState(),
+                        : Blocks.STONE_BRICKS.defaultBlockState(),
                 -0.12, -0.24, -0.31,
                 0.43, 0.22, 0.12
         );
