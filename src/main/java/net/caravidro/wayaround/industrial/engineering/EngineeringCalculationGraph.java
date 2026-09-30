@@ -302,11 +302,15 @@ public final class EngineeringCalculationGraph {
                             : unit;
 
             if (slot == 0) {
-                literal =
-                        safeValue;
-
                 this.unit =
                         outputUnits[slot];
+
+                if (type == NodeType.CONSTANT
+                        || type == NodeType.BLOCK_PROPERTY
+                        || type == NodeType.ATTRIBUTE) {
+                    literal =
+                            safeValue;
+                }
 
                 result =
                         safeValue;
