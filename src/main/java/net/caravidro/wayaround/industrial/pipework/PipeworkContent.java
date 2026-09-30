@@ -75,40 +75,22 @@ public final class PipeworkContent {
             );
 
     public static final DeferredItem<BlockItem> COPPER_TUBE_ITEM =
-            blockItem(
-                    PipeProfile.COPPER_TUBE.id(),
-                    COPPER_TUBE
-            );
+            pipeItem(PipeProfile.COPPER_TUBE, COPPER_TUBE);
 
     public static final DeferredItem<BlockItem> IRON_SERVICE_PIPE_ITEM =
-            blockItem(
-                    PipeProfile.IRON_SERVICE_PIPE.id(),
-                    IRON_SERVICE_PIPE
-            );
+            pipeItem(PipeProfile.IRON_SERVICE_PIPE, IRON_SERVICE_PIPE);
 
     public static final DeferredItem<BlockItem> STEEL_WATER_MAIN_ITEM =
-            blockItem(
-                    PipeProfile.STEEL_WATER_MAIN.id(),
-                    STEEL_WATER_MAIN
-            );
+            pipeItem(PipeProfile.STEEL_WATER_MAIN, STEEL_WATER_MAIN);
 
     public static final DeferredItem<BlockItem> BRASS_GAS_LINE_ITEM =
-            blockItem(
-                    PipeProfile.BRASS_GAS_LINE.id(),
-                    BRASS_GAS_LINE
-            );
+            pipeItem(PipeProfile.BRASS_GAS_LINE, BRASS_GAS_LINE);
 
     public static final DeferredItem<BlockItem> REINFORCED_GAS_PIPE_ITEM =
-            blockItem(
-                    PipeProfile.REINFORCED_GAS_PIPE.id(),
-                    REINFORCED_GAS_PIPE
-            );
+            pipeItem(PipeProfile.REINFORCED_GAS_PIPE, REINFORCED_GAS_PIPE);
 
     public static final DeferredItem<BlockItem> INSULATED_STEAM_PIPE_ITEM =
-            blockItem(
-                    PipeProfile.INSULATED_STEAM_PIPE.id(),
-                    INSULATED_STEAM_PIPE
-            );
+            pipeItem(PipeProfile.INSULATED_STEAM_PIPE, INSULATED_STEAM_PIPE);
 
     public static final DeferredBlock<PipeSupportBlock> FLOOR_PIPE_SUPPORT =
             BLOCKS.register(
@@ -262,6 +244,20 @@ public final class PipeworkContent {
                                 )
                                 .noOcclusion(),
                         profile
+                )
+        );
+    }
+
+    private static DeferredItem<BlockItem> pipeItem(
+            PipeProfile profile,
+            DeferredBlock<PipeBlock> block
+    ) {
+        return ITEMS.register(
+                profile.id(),
+                () -> new PipeBlockItem(
+                        block.get(),
+                        profile,
+                        new Item.Properties()
                 )
         );
     }
