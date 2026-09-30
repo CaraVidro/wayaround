@@ -21,6 +21,22 @@ public final class AssemblyEngine {
         Collection<AssemblyConnection> connections =
                 machine.assemblyConnections();
 
+        float load =
+                Math.max(
+                        0.0F,
+                        machine.currentAssemblyLoad()
+                );
+
+        AssemblyGraph graph =
+                AssemblyGraph.fromMachine(
+                        machine
+                );
+
+        AssemblyLoadDistribution distribution =
+                graph.solve(
+                        load
+                );
+
         if (parts.isEmpty()) {
             return new AssemblySnapshot(
                     machine.assemblyType(),
@@ -30,10 +46,7 @@ public final class AssemblyEngine {
                     0.0F,
                     0.0F,
                     0.0F,
-                    Math.max(
-                            0.0F,
-                            machine.currentAssemblyLoad()
-                    ),
+                    load,
                     Float.POSITIVE_INFINITY,
                     "",
                     false,
@@ -139,8 +152,7 @@ public final class AssemblyEngine {
                                 / weightTotal;
 
         float supportRatio =
-                supported
-                        / (float) parts.size();
+                graph.supportedRatio();
 
         float structuralIntegrity =
                 Mth.clamp(
@@ -167,15 +179,21 @@ public final class AssemblyEngine {
                         )
                 );
 
-        float load =
-                Math.max(
-                        0.0F,
-                        machine.currentAssemblyLoad()
-                );
-
-        float stressRatio =
+        float globalStress =
                 load
                         / loadCapacity;
+
+        /*
+         * Global averages are useful for quick inspection, but a real machine
+         * fails locally first. The graph catches a weak bearing/nail/shaft that
+         * is carrying too much of the route even when average integrity looks
+         * healthy.
+         */
+        float stressRatio =
+                Math.max(
+                        globalStress,
+                        distribution.maxLocalizedStress()
+                );
 
         boolean valid =
                 supportRatio >= 0.50F
@@ -184,7 +202,13 @@ public final class AssemblyEngine {
         boolean critical =
                 !valid
                         || structuralIntegrity < 0.18F
-                        || stressRatio > 1.15F;
+                        || stressRatio > 1.15F
+                        || (
+                        load > 0.05F
+                                && distribution.unsupportedLoad()
+                                > load
+                                * 0.10F
+                );
 
         return new AssemblySnapshot(
                 machine.assemblyType(),
@@ -199,6 +223,29 @@ public final class AssemblyEngine {
                 weakest,
                 valid,
                 critical
+        );
+    }
+
+    public static AssemblyLoadDistribution loadDistribution(
+            AssemblyMachine machine
+    ) {
+        return loadDistribution(
+                machine,
+                machine.currentAssemblyLoad()
+        );
+    }
+
+    public static AssemblyLoadDistribution loadDistribution(
+            AssemblyMachine machine,
+            float load
+    ) {
+        return AssemblyGraph.fromMachine(
+                machine
+        ).solve(
+                Math.max(
+                        0.0F,
+                        load
+                )
         );
     }
 
