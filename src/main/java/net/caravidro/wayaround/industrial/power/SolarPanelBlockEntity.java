@@ -97,6 +97,92 @@ public final class SolarPanelBlockEntity
             level.getRainLevel(1.0F), level.getThunderLevel(1.0F), fog, exposed);
     }
 
+    @Override
+    public ResourceLocation assemblyType() {
+        return ResourceLocation.fromNamespaceAndPath(
+                "wayaround",
+                "solar_panel"
+        );
+    }
+
+    @Override
+    public BlockPos assemblyAnchor() {
+        return worldPosition;
+    }
+
+    @Override
+    public Collection<AssemblyPartNode> assemblyParts() {
+        ResourceLocation source =
+                assemblyType();
+
+        return List.of(
+                LegacyMachineAssembly.part(
+                        "frame",
+                        "panel frame",
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.IRON,
+                        source,
+                        assemblyWear * 0.72F,
+                        true,
+                        1.10F
+                ),
+                LegacyMachineAssembly.part(
+                        "collector",
+                        "collector",
+                        AssemblyPartProfile.Kind.GENERAL,
+                        AssemblyPartProfile.Material.COPPER,
+                        source,
+                        assemblyWear,
+                        true,
+                        0.82F
+                )
+        );
+    }
+
+    @Override
+    public Collection<AssemblyConnection> assemblyConnections() {
+        return List.of(
+                new AssemblyConnection(
+                        "frame",
+                        "collector",
+                        AssemblyConnection.Type.FASTENED,
+                        0.93F,
+                        Mth.clamp(
+                                assemblyWear * 0.82F,
+                                0.0F,
+                                1.0F
+                        )
+                )
+        );
+    }
+
+    @Override
+    public float currentAssemblyLoad() {
+        return Mth.clamp(
+                (float) (
+                        generationPerTick
+                                / SolarPower.PEAK_FE_PER_TICK
+                                * 0.72
+                ),
+                0.0F,
+                0.80F
+        );
+    }
+
+    @Override
+    public void applyAssemblyWear(
+            float fraction
+    ) {
+        assemblyWear =
+                LegacyMachineAssembly.addWear(
+                        assemblyWear,
+                        fraction,
+                        0.72F
+                );
+
+        setChanged();
+    }
+
     public Component status() {
         if (level instanceof ServerLevel server) updateEnvironment(server);
         return Component.translatable("message.wayaround.solar_panel.status",
