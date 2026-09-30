@@ -365,7 +365,7 @@ public final class MechanicalTransmissionBlockEntity
                 stack,
                 getBlockState()
                         .getBlock()
-                        instanceof MechanicalGearboxBlock
+                        instanceof MechanicalGearboxBlock || getBlockState().getBlock() instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock
                         ? AssemblyPartProfile.Kind.GEARBOX
                         : AssemblyPartProfile.Kind.SHAFT,
                 0,

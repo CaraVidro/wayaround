@@ -26,7 +26,7 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
             Direction.Axis axis=pipe.getBlockState().getValue(LargePipeBlock.AXIS);
             for(int i=0;i<pipe.sections();i++){
                 double angle=Math.PI*2*(i%16)/16,along=-1.25+(i/16)*.75,r=duct.radius()+.33;
-                double a=Math.cos(angle)*r,b=Math.sin(angle)*r;
+                double scale=r/Math.max(Math.abs(Math.cos(angle)),Math.abs(Math.sin(angle)));double a=Math.cos(angle)*scale,b=Math.sin(angle)*scale;
                 double x=axis==Direction.Axis.X?along:a,y=axis==Direction.Axis.Y?along:axis==Direction.Axis.X?a:b,z=axis==Direction.Axis.Z?along:b;
                 IndustrialRenderUtil.cuboid(blocks,pose,buffers,light,overlay,Blocks.COPPER_BLOCK.defaultBlockState(),.5+x,.5+y,.5+z,.09,.09,.09);
             }
@@ -39,7 +39,7 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
             IndustrialRenderUtil.radialWheel(blocks,pose,buffers,light,overlay,Blocks.REDSTONE_BLOCK.defaultBlockState(),Blocks.IRON_BLOCK.defaultBlockState(),8,.22,.06);
             pose.popPose();
         }
-        if(!(pipe.getBlockState().getBlock() instanceof LargePipeBlock duct)||!pipe.wet())return;
+        if(!(pipe.getBlockState().getBlock() instanceof LargePipeBlock duct)||!pipe.wet()||(pipe.hasValve()&&!pipe.open()))return;
         var player=Minecraft.getInstance().player;if(player==null)return;
         double dx=player.getX()-pipe.getBlockPos().getX()-.5,dy=player.getEyeY()-pipe.getBlockPos().getY()-.5,dz=player.getZ()-pipe.getBlockPos().getZ()-.5;
         Direction.Axis axis=pipe.getBlockState().getValue(LargePipeBlock.AXIS);

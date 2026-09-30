@@ -114,6 +114,9 @@ public final class IndustrialPipeBlock extends PipeBlock implements net.minecraf
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
+    @Override public void setPlacedBy(Level level,BlockPos pos,BlockState state,net.minecraft.world.entity.LivingEntity player,net.minecraft.world.item.ItemStack stack){
+        if(!level.isClientSide&&level.getBlockEntity(pos) instanceof PipeBlockEntity pipe)pipe.restoreBody(stack);
+    }
     @Override public net.minecraft.world.level.block.entity.BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new PipeBlockEntity(pos, state);
     }

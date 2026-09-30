@@ -199,7 +199,7 @@ public final class PipeworkContent {
                                         strength * 1.8F
                                 )
                                 .sound(sound)
-                                .noOcclusion()
+                                .noOcclusion().noLootTable()
                 )
         );
     }

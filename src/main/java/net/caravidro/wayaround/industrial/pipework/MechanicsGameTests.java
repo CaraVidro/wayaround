@@ -22,7 +22,7 @@ public final class MechanicsGameTests {
         h.assertTrue(h.getBlockState(new BlockPos(5,2,6)).isAir(),"Intake removes the actual source block");
         h.assertTrue(pipe.amount()==760,"A 1000-unit bucket loses only the 240-unit outlet spray");
         h.assertTrue(h.getBlockState(new BlockPos(5,2,4)).isAir(),"Small outlet sprays rather than spawning a source block");
-        var saved=pipe.getUpdateTag(h.getLevel().registryAccess());pipe.loadWithComponents(saved,h.getLevel().registryAccess());
+        var saved=pipe.saveWithoutMetadata(h.getLevel().registryAccess());pipe.loadWithComponents(saved,h.getLevel().registryAccess());
         h.assertTrue(pipe.amount()==760&&pipe.hasValve()&&pipe.open(),"Fluid budget, valve and orientation survive saves");
         h.succeed();
     }
@@ -97,7 +97,7 @@ public final class MechanicsGameTests {
         h.assertTrue(parts.isEmpty()&&pipe.sections()==50&&pipe.complete(),"Exactly fifty sections finish the colossal duct");
         h.setBlock(5,4,3,Blocks.LAVA);pipe.installValve(new ItemStack(PipeworkContent.VALVE.get()),player,Direction.SOUTH);pipe.turn(player);PipeFlow.pump(h.getLevel(),pipe);
         h.assertTrue(h.getBlockState(new BlockPos(5,4,3)).isAir()&&h.getBlockState(new BlockPos(5,4,7)).is(Blocks.LAVA),"Liquid transport also moves real lava without replacing it with water");
-        var saved=pipe.getUpdateTag(h.getLevel().registryAccess());pipe.loadWithComponents(saved,h.getLevel().registryAccess());h.assertTrue(pipe.sections()==50,"Assembly count persists");
+        var saved=pipe.saveWithoutMetadata(h.getLevel().registryAccess());pipe.loadWithComponents(saved,h.getLevel().registryAccess());h.assertTrue(pipe.sections()==50,"Assembly count persists");
         pipe.dismantle();
         for(BlockPos pos:PipeBlockEntity.shellPositions(pipe.getBlockPos(),pipe.getBlockState()))h.assertTrue(!h.getLevel().getBlockState(pos).is(PipeworkContent.COLOSSAL.get()),"Dismantling removes every owned shell block");
         int dropped=h.getLevel().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new net.minecraft.world.phys.AABB(pipe.getBlockPos()).inflate(2)).stream().filter(e->e.getItem().is(PipeworkContent.COLOSSAL_ITEM.get())).mapToInt(e->e.getItem().getCount()).sum();

@@ -11,7 +11,7 @@ public final class LargePipeItem extends BlockItem {
     }
     @Override protected boolean placeBlock(BlockPlaceContext context,BlockState state){
         if(!super.placeBlock(context,state))return false;
-        if(context.getLevel().getBlockEntity(context.getClickedPos()) instanceof PipeBlockEntity pipe)pipe.firstSection();
+        if(context.getLevel().getBlockEntity(context.getClickedPos()) instanceof PipeBlockEntity pipe)pipe.firstSection(context.getItemInHand());
         return true;
     }
 }
