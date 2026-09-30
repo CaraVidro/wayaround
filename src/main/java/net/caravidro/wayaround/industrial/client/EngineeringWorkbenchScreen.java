@@ -2716,6 +2716,8 @@ public final class EngineeringWorkbenchScreen
             return true;
         }
 
+        clearPendingConnection();
+
         return super.mouseClicked(
                 mouseX,
                 mouseY,
