@@ -405,6 +405,172 @@ public final class AssemblyEngineTest {
                 "Reversing pressure differential must reverse the release direction"
         );
 
+        AssemblyPartProfile supportProfile =
+                AssemblyPartProfile.legacy(
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.STEEL,
+                        ResourceLocation.fromNamespaceAndPath(
+                                "wayaround",
+                                "parallel_support"
+                        ),
+                        0,
+                        0.0F
+                );
+
+        AssemblyPartProfile loadProfile =
+                AssemblyPartProfile.legacy(
+                        AssemblyPartProfile.Kind.FRAME,
+                        AssemblyPartProfile.Material.IRON,
+                        ResourceLocation.fromNamespaceAndPath(
+                                "wayaround",
+                                "parallel_load"
+                        ),
+                        0,
+                        0.0F
+                );
+
+        AssemblyGraph parallel =
+                AssemblyGraph.builder()
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "left_support",
+                                        "support",
+                                        supportProfile.copy(),
+                                        true,
+                                        0.10F
+                                )
+                        )
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "right_support",
+                                        "support",
+                                        supportProfile.copy(),
+                                        true,
+                                        0.10F
+                                )
+                        )
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "load",
+                                        "machine",
+                                        loadProfile,
+                                        false,
+                                        3.0F
+                                )
+                        )
+                        .addConnection(
+                                new AssemblyConnection(
+                                        "load",
+                                        "left_support",
+                                        AssemblyConnection.Type.SUPPORT,
+                                        0.90F,
+                                        0.0F
+                                )
+                        )
+                        .addConnection(
+                                new AssemblyConnection(
+                                        "load",
+                                        "right_support",
+                                        AssemblyConnection.Type.SUPPORT,
+                                        0.90F,
+                                        0.0F
+                                )
+                        )
+                        .build();
+
+        AssemblyLoadDistribution parallelLoad =
+                parallel.solve(
+                        3.0F
+                );
+
+        float leftLoad =
+                parallelLoad.connectionLoad(
+                        "load<->left_support#0"
+                );
+
+        float rightLoad =
+                parallelLoad.connectionLoad(
+                        "load<->right_support#1"
+                );
+
+        require(
+                leftLoad > 0.0F
+                        && rightLoad > 0.0F,
+                "Parallel supports must share load instead of selecting one winner"
+        );
+
+        require(
+                Math.abs(
+                        leftLoad
+                                - rightLoad
+                ) < 0.05F,
+                "Symmetric supports should carry approximately equal load"
+        );
+
+        AssemblyGraph degradedParallel =
+                AssemblyGraph.builder()
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "left_support",
+                                        "support",
+                                        supportProfile.copy(),
+                                        true,
+                                        0.10F
+                                )
+                        )
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "right_support",
+                                        "support",
+                                        supportProfile.copy(),
+                                        true,
+                                        0.10F
+                                )
+                        )
+                        .addPart(
+                                new AssemblyPartNode(
+                                        "load",
+                                        "machine",
+                                        loadProfile.copy(),
+                                        false,
+                                        3.0F
+                                )
+                        )
+                        .addConnection(
+                                new AssemblyConnection(
+                                        "load",
+                                        "left_support",
+                                        AssemblyConnection.Type.SUPPORT,
+                                        0.24F,
+                                        0.55F
+                                )
+                        )
+                        .addConnection(
+                                new AssemblyConnection(
+                                        "load",
+                                        "right_support",
+                                        AssemblyConnection.Type.SUPPORT,
+                                        0.90F,
+                                        0.0F
+                                )
+                        )
+                        .build();
+
+        AssemblyLoadDistribution degradedLoad =
+                degradedParallel.solve(
+                        3.0F
+                );
+
+        require(
+                degradedLoad.connectionLoad(
+                        "load<->right_support#1"
+                )
+                        > degradedLoad.connectionLoad(
+                        "load<->left_support#0"
+                ),
+                "When one support weakens, load must migrate into the healthier parallel path"
+        );
+
         System.out.println(
                 "Assembly Engine regression tests passed"
         );
