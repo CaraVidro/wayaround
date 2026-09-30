@@ -161,7 +161,7 @@ public final class AssemblyGraph {
 
         for (String id :
                 parts.keySet()) {
-            if (routing.reachable()
+            if (routing.distance()
                     .containsKey(
                             id
                     )) {
@@ -251,87 +251,222 @@ public final class AssemblyGraph {
         float unsupportedLoad =
                 0.0F;
 
-        int supportedParts =
-                0;
+        /*
+         * Seed every part's own share once. Routing is then performed globally
+         * from the farthest nodes toward supports, so merged loads only travel
+         * through each node once. This scales much better than solving one
+         * independent path per part and naturally permits parallel supports.
+         */
+        Map<String, Float> pending =
+                new HashMap<>();
 
         for (Map.Entry<String, AssemblyPartNode> entry :
                 parts.entrySet()) {
 
-            String sourceId =
+            String id =
                     entry.getKey();
 
-            AssemblyPartNode source =
+            AssemblyPartNode part =
                     entry.getValue();
 
             float localLoad =
                     load
                             * Math.max(
                             0.05F,
-                            source.loadShare()
+                            part.loadShare()
                     )
                             / Math.max(
                             0.05F,
                             totalShare
                     );
 
-            List<Edge> path =
-                    pathToSupport(
-                            sourceId,
-                            routing
-                    );
+            partLoads.put(
+                    id,
+                    localLoad
+            );
 
-            if (path == null) {
+            if (!routing.distance()
+                    .containsKey(
+                            id
+                    )) {
                 unsupportedLoad +=
                         localLoad;
-
-                partLoads.merge(
-                        sourceId,
-                        localLoad,
-                        Float::sum
-                );
 
                 continue;
             }
 
-            supportedParts++;
-
-            partLoads.merge(
-                    sourceId,
-                    localLoad,
-                    Float::sum
+            pending.put(
+                    id,
+                    localLoad
             );
+        }
 
-            String cursor =
-                    sourceId;
+        ArrayList<String> ordered =
+                new ArrayList<>(
+                        routing.distance()
+                                .keySet()
+                );
+
+        ordered.sort(
+                Comparator.comparingDouble(
+                        (String id) ->
+                                routing.distance()
+                                        .getOrDefault(
+                                                id,
+                                                0.0
+                                        )
+                ).reversed()
+        );
+
+        for (String id :
+                ordered) {
+
+            AssemblyPartNode part =
+                    parts.get(
+                            id
+                    );
+
+            if (part == null
+                    || part.supported()) {
+                continue;
+            }
+
+            float amount =
+                    pending.getOrDefault(
+                            id,
+                            0.0F
+                    );
+
+            if (amount <= 0.0F) {
+                continue;
+            }
+
+            double currentDistance =
+                    routing.distance()
+                            .getOrDefault(
+                                    id,
+                                    Double.POSITIVE_INFINITY
+                            );
+
+            ArrayList<RouteChoice> choices =
+                    new ArrayList<>();
+
+            double totalWeight =
+                    0.0;
 
             for (Edge edge :
-                    path) {
+                    adjacency.getOrDefault(
+                            id,
+                            List.of()
+                    )) {
 
-                connectionLoads.merge(
-                        edge.key(),
-                        localLoad,
-                        Float::sum
-                );
+                AssemblyConnection connection =
+                        edge.connection();
 
-                String next =
-                        edge.other(
-                                cursor
-                        );
-
-                if (next == null) {
-                    break;
+                if (connection.condition()
+                        < MIN_CONNECTION_CONDITION) {
+                    continue;
                 }
 
-                partLoads.merge(
-                        next,
-                        localLoad,
+                String other =
+                        edge.other(
+                                id
+                        );
+
+                if (other == null) {
+                    continue;
+                }
+
+                double nextDistance =
+                        routing.distance()
+                                .getOrDefault(
+                                        other,
+                                        Double.POSITIVE_INFINITY
+                                );
+
+                if (!(nextDistance
+                        + 1.0E-7
+                        < currentDistance)) {
+                    continue;
+                }
+
+                double capacity =
+                        connectionCapacity(
+                                connection
+                        );
+
+                /*
+                 * Stronger routes receive more load, but shorter paths get a
+                 * mild preference. The preference is intentionally mild so two
+                 * real supports both carry load instead of one winner taking
+                 * everything.
+                 */
+                double weight =
+                        capacity
+                                / (
+                                1.0
+                                        + nextDistance
+                                                * 0.15
+                        );
+
+                if (weight <= 0.0) {
+                    continue;
+                }
+
+                choices.add(
+                        new RouteChoice(
+                                edge,
+                                other,
+                                weight
+                        )
+                );
+
+                totalWeight +=
+                        weight;
+            }
+
+            if (choices.isEmpty()
+                    || totalWeight <= 0.0) {
+                unsupportedLoad +=
+                        amount;
+
+                continue;
+            }
+
+            for (RouteChoice choice :
+                    choices) {
+
+                float share =
+                        (float) (
+                                amount
+                                        * choice.weight()
+                                        / totalWeight
+                        );
+
+                connectionLoads.merge(
+                        choice.edge()
+                                .key(),
+                        share,
                         Float::sum
                 );
 
-                cursor =
-                        next;
+                partLoads.merge(
+                        choice.next(),
+                        share,
+                        Float::sum
+                );
+
+                pending.merge(
+                        choice.next(),
+                        share,
+                        Float::sum
+                );
             }
         }
+
+        int supportedParts =
+                routing.distance()
+                        .size();
 
         float maxPartStress =
                 0.0F;
@@ -423,72 +558,6 @@ public final class AssemblyGraph {
         );
     }
 
-    private List<Edge> pathToSupport(
-            String start,
-            Routing routing
-    ) {
-        if (!routing.reachable()
-                .containsKey(
-                        start
-                )) {
-            return null;
-        }
-
-        if (parts.get(
-                start
-        ).supported()) {
-            return List.of();
-        }
-
-        ArrayList<Edge> path =
-                new ArrayList<>();
-
-        String cursor =
-                start;
-
-        int guard =
-                parts.size()
-                        + 1;
-
-        while (!parts.get(
-                cursor
-        ).supported()
-                && guard-- > 0) {
-
-            Edge edge =
-                    routing.nextEdge()
-                            .get(
-                                    cursor
-                            );
-
-            String next =
-                    routing.nextNode()
-                            .get(
-                                    cursor
-                            );
-
-            if (edge == null
-                    || next == null) {
-                return null;
-            }
-
-            path.add(
-                    edge
-            );
-
-            cursor =
-                    next;
-        }
-
-        if (guard <= 0) {
-            return null;
-        }
-
-        return List.copyOf(
-                path
-        );
-    }
-
     /**
      * Multi-source Dijkstra from every direct world support. This is computed
      * once for the immutable graph, so a large plant does not run a full graph
@@ -508,15 +577,6 @@ public final class AssemblyGraph {
         Map<String, Double> distance =
                 new HashMap<>();
 
-        Map<String, Edge> nextEdge =
-                new HashMap<>();
-
-        Map<String, String> nextNode =
-                new HashMap<>();
-
-        Map<String, Boolean> reachable =
-                new HashMap<>();
-
         for (Map.Entry<String, AssemblyPartNode> entry :
                 parts.entrySet()) {
             if (!entry.getValue()
@@ -527,11 +587,6 @@ public final class AssemblyGraph {
             distance.put(
                     entry.getKey(),
                     0.0
-            );
-
-            reachable.put(
-                    entry.getKey(),
-                    true
             );
 
             queue.add(
@@ -602,25 +657,6 @@ public final class AssemblyGraph {
                         nextCost
                 );
 
-                /*
-                 * Search runs support -> outside, but routing needs outside ->
-                 * support, so this edge/node becomes the next hop back inward.
-                 */
-                nextEdge.put(
-                        other,
-                        edge
-                );
-
-                nextNode.put(
-                        other,
-                        current.id()
-                );
-
-                reachable.put(
-                        other,
-                        true
-                );
-
                 queue.add(
                         new PathNode(
                                 other,
@@ -632,13 +668,7 @@ public final class AssemblyGraph {
 
         return new Routing(
                 Map.copyOf(
-                        nextEdge
-                ),
-                Map.copyOf(
-                        nextNode
-                ),
-                Map.copyOf(
-                        reachable
+                        distance
                 )
         );
     }
@@ -734,9 +764,14 @@ public final class AssemblyGraph {
     }
 
     private record Routing(
-            Map<String, Edge> nextEdge,
-            Map<String, String> nextNode,
-            Map<String, Boolean> reachable
+            Map<String, Double> distance
+    ) {
+    }
+
+    private record RouteChoice(
+            Edge edge,
+            String next,
+            double weight
     ) {
     }
 
