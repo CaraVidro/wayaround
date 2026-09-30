@@ -2564,33 +2564,20 @@ public final class EngineeringWorkbenchScreen
                     profile
             );
 
-            blockProperties.put(
-                    pinned.id(),
+            configureBlockOutputs(
+                    pinned,
+                    profile,
                     property.key()
             );
 
-            selectNode(pinned.id());
+            selectNode(
+                    pinned.id()
+            );
 
         } else {
-            selected.label(
-                    trim(
-                            displayName(profile.block())
-                                    + " · "
-                                    + property.label(),
-                            24
-                    )
-            );
-
-            selected.literal(
-                    property.numericValue()
-            );
-
-            selected.unit(
-                    property.unit()
-            );
-
-            blockProperties.put(
-                    selected.id(),
+            configureBlockOutputs(
+                    selected,
+                    profile,
                     property.key()
             );
 
@@ -2642,8 +2629,9 @@ public final class EngineeringWorkbenchScreen
                 profile
         );
 
-        blockProperties.put(
-                node.id(),
+        configureBlockOutputs(
+                node,
+                profile,
                 key
         );
 
@@ -2711,9 +2699,320 @@ public final class EngineeringWorkbenchScreen
                         graphY
                 );
 
+        configureSemanticNode(
+                node
+        );
+
+        graph.recalculate();
+
         selectNode(
                 node.id()
         );
+    }
+
+    private void configureBlockOutputs(
+            Node node,
+            EngineeringBlockProfile profile,
+            String propertyKey
+    ) {
+        EngineeringBlockProfile.Property property =
+                profile.property(
+                        propertyKey
+                );
+
+        if (property == null
+                || !property.numeric()) {
+            property =
+                    profile.property(
+                            "mass"
+                    );
+        }
+
+        if (property == null) {
+            return;
+        }
+
+        blockProperties.put(
+                node.id(),
+                property.key()
+        );
+
+        node.label(
+                trim(
+                        displayName(
+                                profile.block()
+                        )
+                                + " · "
+                                + property.label(),
+                        24
+                )
+        );
+
+        node.output(
+                0,
+                property.numericValue(),
+                outputAbbreviation(
+                        property
+                ),
+                property.unit()
+        );
+
+        node.output(
+                1,
+                profile.widthMeters(),
+                "W",
+                "m"
+        );
+
+        node.output(
+                2,
+                profile.heightMeters(),
+                "H",
+                "m"
+        );
+
+        node.output(
+                3,
+                profile.depthMeters(),
+                "D",
+                "m"
+        );
+    }
+
+    private void configureSemanticNode(
+            Node node
+    ) {
+        switch (node.type()) {
+            case ATTRIBUTE -> {
+                node.literal(
+                        1.0
+                );
+                configureAttribute(
+                        node,
+                        ATTRIBUTE_PRESETS.getFirst()
+                );
+            }
+
+            case NOTE -> {
+                node.label(
+                        "Note"
+                );
+                node.parameter(
+                        "Write an engineering note..."
+                );
+            }
+
+            case MATERIAL_CONVERT -> {
+                ResourceLocation oak =
+                        ResourceLocation.withDefaultNamespace(
+                                "oak_planks"
+                        );
+
+                Block block =
+                        BuiltInRegistries.BLOCK.get(
+                                oak
+                        );
+
+                configureMaterialConverter(
+                        node,
+                        EngineeringBlockProfile.inspect(
+                                block
+                        )
+                );
+            }
+
+            case WIND_FORCE -> {
+                node.label(
+                        "Wind force"
+                );
+                node.unit(
+                        "N"
+                );
+                node.output(
+                        0,
+                        0.0,
+                        "F",
+                        "N"
+                );
+            }
+
+            case WATER_FORCE -> {
+                node.label(
+                        "Water force"
+                );
+                node.unit(
+                        "N"
+                );
+                node.output(
+                        0,
+                        0.0,
+                        "F",
+                        "N"
+                );
+            }
+
+            case GRAVITY_LOAD -> {
+                node.label(
+                        "Gravity load"
+                );
+                node.unit(
+                        "N"
+                );
+                node.output(
+                        0,
+                        0.0,
+                        "Fg",
+                        "N"
+                );
+            }
+
+            case ACCELERATION -> {
+                node.label(
+                        "Acceleration"
+                );
+                node.unit(
+                        "m/s²"
+                );
+                node.output(
+                        0,
+                        0.0,
+                        "a",
+                        "m/s²"
+                );
+            }
+
+            case TIME_STEP -> {
+                node.label(
+                        "Rate × time"
+                );
+                node.output(
+                        0,
+                        0.0,
+                        "Δ",
+                        ""
+                );
+            }
+
+            case DISPLACEMENT -> {
+                node.label(
+                        "Displacement"
+                );
+                node.unit(
+                        "m"
+                );
+                node.output(
+                        0,
+                        0.0,
+                        "s",
+                        "m"
+                );
+            }
+
+            default -> {
+                if (node.outputCount() > 0) {
+                    node.output(
+                            0,
+                            node.literal(),
+                            "out",
+                            node.unit()
+                    );
+                }
+            }
+        }
+    }
+
+    private void configureAttribute(
+            Node node,
+            AttributePreset preset
+    ) {
+        node.parameter(
+                preset.key()
+        );
+
+        node.label(
+                preset.label()
+        );
+
+        node.unit(
+                preset.unit()
+        );
+
+        node.output(
+                0,
+                node.literal(),
+                "out",
+                preset.unit()
+        );
+    }
+
+    private void configureMaterialConverter(
+            Node node,
+            EngineeringBlockProfile profile
+    ) {
+        double faceArea =
+                Math.max(
+                        profile.widthMeters()
+                                * profile.heightMeters(),
+                        Math.max(
+                                profile.widthMeters()
+                                        * profile.depthMeters(),
+                                profile.heightMeters()
+                                        * profile.depthMeters()
+                        )
+                );
+
+        node.parameter(
+                profile.id()
+                        .toString()
+        );
+
+        node.label(
+                trim(
+                        "To "
+                                + displayName(
+                                profile.block()
+                        ),
+                        24
+                )
+        );
+
+        node.literal(
+                Math.max(
+                        0.000001,
+                        faceArea
+                )
+        );
+
+        node.unit(
+                "blocks"
+        );
+
+        node.output(
+                0,
+                0.0,
+                "qty",
+                "blocks"
+        );
+    }
+
+    private static String outputAbbreviation(
+            EngineeringBlockProfile.Property property
+    ) {
+        return switch (property.key()) {
+            case "mass" -> "M";
+            case "volume" -> "V";
+            case "hardness" -> "Hard";
+            case "blast_resistance" -> "Blast";
+            case "compression" -> "Comp";
+            case "tension" -> "Ten";
+            case "stiffness" -> "E";
+            case "thermal" -> "k";
+            case "flammability" -> "Fire";
+            default -> trim(
+                    property.label(),
+                    5
+            );
+        };
     }
 
     private void saveBlueprint() {
