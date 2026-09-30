@@ -46,7 +46,7 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
     private void tick(ServerLevel level) {
         if (!WorldFeatureRuntime.enabled(level,WorldFeature.INDUSTRIAL_MACHINES)
                 || !WorldFeatureRuntime.enabled(level,WorldFeature.POWER_NETWORKS)
-                || !WorldFeatureRuntime.enabled(level,WorldFeature.ASSEMBLY)) { rpm = 0; return; }
+                || !WorldFeatureRuntime.enabled(level,WorldFeature.ASSEMBLY)) { if (rpm != 0) { rpm = 0; load = 0; sync(); } return; }
         float oldRpm = rpm; boolean oldSupported = supported, oldStalled = stalled;
         supported = supportsValid();
         if (level.getGameTime() % 5 == 0 && parts.complete() && supported) {
@@ -152,7 +152,8 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         if(size()!=CrusherSize.LARGE||level==null||level.isClientSide||!parts.complete()||!supportsValid()
                 || delivered.isEmpty()||delivered.size()>MAX_STACKS)return false;
         int count=0;
-        for(ItemStack stack:delivered){if(stack.isEmpty()||stack.getCount()>stack.getMaxStackSize()||CrushingRecipe.find(stack)==null)return false;count+=stack.getCount();}
+        Set<ItemStack> unique = Collections.newSetFromMap(new IdentityHashMap<>());
+        for(ItemStack stack:delivered){if(stack == null || !unique.add(stack) || stack.isEmpty()||stack.getCount()>stack.getMaxStackSize()||CrushingRecipe.find(stack)==null)return false;count+=stack.getCount();}
         if(count+inputCount()>inputCapacity()||input.size()+delivered.size()>MAX_STACKS)return false;
         for(ItemStack stack:delivered)input.add(stack.copy());
         for(ItemStack stack:delivered)stack.setCount(0);

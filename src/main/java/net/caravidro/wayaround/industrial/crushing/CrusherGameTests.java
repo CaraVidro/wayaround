@@ -32,7 +32,7 @@ public final class CrusherGameTests {
             }
         }return entity;
     }
-    @GameTest(template="wayaround:ship_test",batch="crushing",timeoutTicks=80)
+    @GameTest(template="assembly_test",batch="crushing",timeoutTicks=80)
     public static void assemblyAndSmallAdmission(GameTestHelper helper){
         var crusher=crusher(helper,CrusherSize.SMALL,false);
         helper.assertTrue(crusher.offer(new ItemStack(Items.RAW_IRON,64))==0,"Empty frame must not admit material");
@@ -45,7 +45,7 @@ public final class CrusherGameTests {
         helper.assertTrue(crusher.parts().nodes(true).size()==4,"All four installed components appear in the Assembly graph");
         helper.succeed();
     }
-    @GameTest(template="wayaround:ship_test",batch="crushing",timeoutTicks=80)
+    @GameTest(template="assembly_test",batch="crushing",timeoutTicks=80)
     public static void mediumNeedsPhysicalSupports(GameTestHelper helper){
         var crusher=crusher(helper,CrusherSize.MEDIUM,true);
         helper.assertTrue(crusher.offer(new ItemStack(Items.IRON_ORE,64))==64,"Medium admits a stack");
@@ -54,12 +54,14 @@ public final class CrusherGameTests {
         helper.assertTrue(crusher.offer(new ItemStack(Items.IRON_ORE))==0,"Unsupported intake must not silently eat items");
         helper.succeed();
     }
-    @GameTest(template="wayaround:ship_test",batch="crushing",timeoutTicks=80)
+    @GameTest(template="assembly_test",batch="crushing",timeoutTicks=80)
     public static void largeAtomicPayloadAndSave(GameTestHelper helper){
         var crusher=crusher(helper,CrusherSize.LARGE,true);
         var valid=new ItemStack(Items.IRON_ORE,32);var invalid=new ItemStack(Items.DIRT);
         helper.assertTrue(!crusher.offerConnectedBatch(List.of(valid,invalid)),"Unsupported payload must be rejected atomically");
         helper.assertTrue(valid.getCount()==32&&crusher.inputCount()==0,"Failed delivery must preserve caller and machine inventories");
+        helper.assertTrue(!crusher.offerConnectedBatch(List.of(valid,valid)),"The same stack reference cannot be delivered twice");
+        helper.assertTrue(valid.getCount()==32&&crusher.inputCount()==0,"Aliased batch rejection must be atomic");
         var second=new ItemStack(Items.DEEPSLATE_IRON_ORE,32);
         helper.assertTrue(crusher.offerConnectedBatch(List.of(valid,second)),"Large intake accepts a physically delivered valid payload");
         helper.assertTrue(valid.isEmpty()&&second.isEmpty()&&crusher.inputCount()==64,"Successful delivery must transfer ownership without duplication");
@@ -71,7 +73,7 @@ public final class CrusherGameTests {
         helper.assertTrue(AssemblyItemData.readPart(restored.parts().stack(MachinePartSpec.Role.TOOL)).wear()>0,"Actual component wear must survive reload");
         helper.succeed();
     }
-    @GameTest(template="wayaround:ship_test",batch="crushing",timeoutTicks=80)
+    @GameTest(template="assembly_test",batch="crushing",timeoutTicks=80)
     public static void manualPowerProcessesIron(GameTestHelper helper){
         var crusher=crusher(helper,CrusherSize.SMALL,true);
         helper.setBlock(5,2,6,PowerContent.MANUAL_CRANK.get());
@@ -87,7 +89,7 @@ public final class CrusherGameTests {
         helper.assertTrue(AssemblyItemData.readPart(crusher.parts().stack(MachinePartSpec.Role.TOOL)).wear()>0,"Work must wear the actual installed tool");
         helper.succeed();
     }
-    @GameTest(template="wayaround:ship_test",batch="crushing",timeoutTicks=80)
+    @GameTest(template="assembly_test",batch="crushing",timeoutTicks=80)
     public static void millFrameAndLegacyMigration(GameTestHelper helper){
         helper.setBlock(5,2,5,PowerContent.MECHANICAL_MILL.get());
         var mill=(MechanicalMillBlockEntity)helper.getLevel().getBlockEntity(helper.absolutePos(new BlockPos(5,2,5)));

@@ -216,7 +216,8 @@ public final class MechanicalMillRenderer
         renderStoneDisc(
                 0.17,
                 0.0F,
-                (reinforced ? Blocks.IRON_BLOCK : Blocks.STONE).defaultBlockState(),
+                Blocks.STONE.defaultBlockState(),
+                reinforced,
                 poseStack,
                 bufferSource,
                 light,
@@ -248,7 +249,8 @@ public final class MechanicalMillRenderer
         renderStoneDisc(
                 0.0,
                 angle,
-                (reinforced ? Blocks.IRON_BLOCK : Blocks.SMOOTH_STONE).defaultBlockState(),
+                Blocks.SMOOTH_STONE.defaultBlockState(),
+                reinforced,
                 poseStack,
                 bufferSource,
                 light,
@@ -262,6 +264,7 @@ public final class MechanicalMillRenderer
             double y,
             float angle,
             BlockState stone,
+            boolean reinforced,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int light,
@@ -304,6 +307,14 @@ public final class MechanicalMillRenderer
                     0.13,
                     0.18
             );
+        }
+
+        if (reinforced) {
+            for (int index = 0; index < 16; index++) {
+                double a = Math.PI * 2 * index / 16;
+                renderCuboid(poseStack, bufferSource, light, overlay, Blocks.IRON_BLOCK.defaultBlockState(),
+                    Math.cos(a) * .36, 0, Math.sin(a) * .36, .09, .065, .09);
+            }
         }
 
         renderCuboid(
@@ -398,6 +409,9 @@ public final class MechanicalMillRenderer
             int light,
             int overlay
     ) {
+        poseStack.pushPose();
+        poseStack.scale(wide ? 1.0F : .72F, 1.0F, wide ? 1.0F : .72F);
+
         BlockState wood =
                 (wide ? Blocks.IRON_BLOCK : Blocks.OAK_PLANKS).defaultBlockState();
 
@@ -486,6 +500,7 @@ public final class MechanicalMillRenderer
                     0.40
             );
         }
+        poseStack.popPose();
     }
 
     private void renderFlourTray(

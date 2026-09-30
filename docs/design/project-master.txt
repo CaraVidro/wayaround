@@ -1420,5 +1420,3 @@ O projeto é modular.
 Cada sistema deve poder nascer, funcionar sozinho e posteriormente conversar com os outros.
 O objetivo não é terminar tudo de uma vez.
 O objetivo é construir uma fundação suficientemente boa para que, ao adicionar a próxima ideia absurda, ela possa realmente fazer parte do mesmo mundo.
-
-

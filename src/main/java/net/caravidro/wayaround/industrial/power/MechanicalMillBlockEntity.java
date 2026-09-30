@@ -109,6 +109,7 @@ public final class MechanicalMillBlockEntity
                 WorldFeature.INDUSTRIAL_MACHINES
         )
                 || !WorldFeatureRuntime.enabled(level, WorldFeature.ASSEMBLY)) {
+            if (mill.rpm != 0) { mill.rpm = 0; mill.lastPower = 0; mill.connected = false; mill.sync(); }
             return;
         }
 

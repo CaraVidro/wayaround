@@ -1692,4 +1692,3 @@ Depois alguém instala uma antena.
 Depois outra pessoa transmite da hidrelétrica.
 E, quando o jogador perceber, o servidor possui:
 indústria, infraestrutura, moeda, comunicação, engenharia, imprensa, história e cidades — tudo criado pelos próprios jogadores.
-
