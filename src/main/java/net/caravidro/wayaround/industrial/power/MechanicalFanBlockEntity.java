@@ -4,8 +4,10 @@ import java.util.Collection;
 import java.util.List;
 
 import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
+import net.caravidro.wayaround.industrial.assembly.AssemblyEngine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyFailureEvent;
 import net.caravidro.wayaround.industrial.assembly.AssemblyFailureMode;
+import net.caravidro.wayaround.industrial.assembly.AssemblyLoadCase;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
@@ -20,6 +22,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 public final class MechanicalFanBlockEntity
         extends BlockEntity
@@ -209,6 +212,28 @@ public final class MechanicalFanBlockEntity
                             0.0F,
                             1.0F
                     );
+
+            AssemblyEngine.dispatchFailure(
+                    fan,
+                    new AssemblyLoadCase(
+                            AssemblyLoadCase.Kind.MECHANICAL,
+                            fan.currentAssemblyLoad(),
+                            Vec3.atLowerCornerOf(
+                                    facing.getNormal()
+                            ),
+                            Mth.clamp(
+                                    normalized
+                                            * 0.70F
+                                            + (
+                                            fan.blocked
+                                                    ? 0.30F
+                                                    : 0.0F
+                                    ),
+                                    0.0F,
+                                    1.0F
+                            )
+                    )
+            );
 
             fan.setChanged();
         }
