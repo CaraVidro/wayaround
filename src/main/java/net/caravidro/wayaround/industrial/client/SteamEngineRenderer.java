@@ -47,6 +47,8 @@ public final class SteamEngineRenderer
             return;
         }
 
+        packedLight = IndustrialRenderUtil.exteriorLight(engine.getLevel(), engine.getBlockPos(), packedLight);
+
         boolean lit =
                 engine.getBlockState()
                         .getValue(

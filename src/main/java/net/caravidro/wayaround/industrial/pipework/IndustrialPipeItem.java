@@ -35,58 +35,7 @@ public final class IndustrialPipeItem
             List<Component> tooltip,
             TooltipFlag flag
     ) {
-        String media =
-                spec.media()
-                        .stream()
-                        .map(
-                                medium -> Component.translatable(
-                                        "pipe_medium.wayaround."
-                                                + medium.name()
-                                                .toLowerCase(
-                                                        java.util.Locale.ROOT
-                                                )
-                                ).getString()
-                        )
-                        .collect(
-                                Collectors.joining(
-                                        " / "
-                                )
-                        );
-
-        tooltip.add(
-                Component.translatable(
-                        "tooltip.wayaround.pipework.media",
-                        media
-                ).withStyle(
-                        ChatFormatting.GRAY
-                )
-        );
-
-        tooltip.add(
-                Component.translatable(
-                        "tooltip.wayaround.pipework.flow",
-                        spec.flowPerTick()
-                ).withStyle(
-                        ChatFormatting.DARK_AQUA
-                )
-        );
-
-        tooltip.add(
-                Component.translatable(
-                        "tooltip.wayaround.pipework.pressure",
-                        spec.maxPressureBar()
-                ).withStyle(
-                        ChatFormatting.BLUE
-                )
-        );
-
-        tooltip.add(
-                Component.translatable(
-                        "tooltip.wayaround.pipework.temperature",
-                        spec.maxTemperatureC()
-                ).withStyle(
-                        ChatFormatting.GOLD
-                )
-        );
+        // Material and geometry communicate the use; no numerical specification HUD.
+        super.appendHoverText(stack, context, tooltip, flag);
     }
 }

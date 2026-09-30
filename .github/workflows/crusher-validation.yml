@@ -1,9 +1,11 @@
 name: Crusher assembly validation
 on:
   push:
-    branches: [feature/assembly-crushers-v1]
+    branches: [feature/assembly-crushers-v1, feature/mechanics-pipeflow-v1]
   pull_request:
     paths:
+      - 'src/main/java/net/caravidro/wayaround/industrial/mechanical/**'
+      - 'src/main/java/net/caravidro/wayaround/industrial/pipework/**'
       - 'src/main/java/net/caravidro/wayaround/industrial/crushing/**'
       - 'src/main/java/net/caravidro/wayaround/industrial/client/CrusherRenderer.java'
       - 'src/main/java/net/caravidro/wayaround/industrial/power/MechanicalMill*'

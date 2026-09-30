@@ -230,15 +230,6 @@ public final class WaterWheelHubBlock
             Player player,
             BlockHitResult hit
     ) {
-        if (!level.isClientSide
-                && level.getBlockEntity(pos)
-                instanceof WaterWheelHubBlockEntity hub) {
-
-            player.displayClientMessage(
-                    hub.status(),
-                    true
-            );
-        }
 
         return InteractionResult.sidedSuccess(
                 level.isClientSide

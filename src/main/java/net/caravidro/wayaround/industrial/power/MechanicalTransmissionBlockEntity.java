@@ -374,6 +374,7 @@ public final class MechanicalTransmissionBlockEntity
     }
 
     private ItemStack defaultPart() {
+        if (getBlockState().getBlock() instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock gear) return new ItemStack(gear.asItem());
         return new ItemStack(
                 getBlockState()
                         .getBlock()

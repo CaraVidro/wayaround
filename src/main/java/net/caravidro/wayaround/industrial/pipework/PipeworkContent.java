@@ -35,6 +35,14 @@ public final class PipeworkContent {
                     WayAround.MODID
             );
 
+    private static final DeferredRegister<net.minecraft.world.level.block.entity.BlockEntityType<?>> ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, WayAround.MODID);
+    public static final DeferredItem<Item> VALVE = ITEMS.register("pipe_valve", () -> new Item(new Item.Properties()));
+    public static final DeferredBlock<LargePipeBlock> GIANT = BLOCKS.register("giant_water_pipe", () -> new LargePipeBlock(false, BlockBehaviour.Properties.of().strength(4).sound(SoundType.METAL).noOcclusion().noLootTable()));
+    public static final DeferredBlock<LargePipeBlock> COLOSSAL = BLOCKS.register("colossal_pipe", () -> new LargePipeBlock(true, BlockBehaviour.Properties.of().strength(5).sound(SoundType.METAL).noOcclusion().noLootTable()));
+    public static final DeferredItem<BlockItem> GIANT_ITEM = ITEMS.register("giant_water_pipe", () -> new LargePipeItem(GIANT.get(), new Item.Properties()));
+    public static final DeferredItem<BlockItem> COLOSSAL_ITEM = ITEMS.register("colossal_pipe", () -> new LargePipeItem(COLOSSAL.get(), new Item.Properties()));
+    public static final DeferredHolder<net.minecraft.world.level.block.entity.BlockEntityType<?>, net.minecraft.world.level.block.entity.BlockEntityType<PipeBlockEntity>> PIPE_ENTITY = ENTITIES.register("pipework", () -> net.minecraft.world.level.block.entity.BlockEntityType.Builder.of(PipeBlockEntity::new, SMALL_COPPER_PIPE.get(), IRON_WATER_PIPE.get(), LARGE_WATER_MAIN.get(), THIN_GAS_PIPE.get(), STEEL_PRESSURE_PIPE.get(), INSULATED_STEAM_PIPE.get(), GIANT.get(), COLOSSAL.get()).build(null));
+
     public static final PipeSpec SMALL_COPPER_SPEC = PipeCatalog.SMALL_COPPER;
     public static final PipeSpec IRON_WATER_SPEC = PipeCatalog.IRON_WATER;
     public static final PipeSpec LARGE_WATER_MAIN_SPEC = PipeCatalog.LARGE_WATER_MAIN;
@@ -144,6 +152,9 @@ public final class PipeworkContent {
                             )
                             .displayItems(
                                     (parameters, output) -> {
+                                        output.accept(VALVE.get());
+                                        output.accept(GIANT_ITEM.get());
+                                        output.accept(COLOSSAL_ITEM.get());
                                         output.accept(
                                                 SMALL_COPPER_PIPE_ITEM.get()
                                         );
@@ -212,5 +223,6 @@ public final class PipeworkContent {
         BLOCKS.register(bus);
         ITEMS.register(bus);
         TABS.register(bus);
+        ENTITIES.register(bus);
     }
 }

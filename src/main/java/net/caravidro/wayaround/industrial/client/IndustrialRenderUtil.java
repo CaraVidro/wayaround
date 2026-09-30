@@ -13,6 +13,17 @@ final class IndustrialRenderUtil {
     private IndustrialRenderUtil() {
     }
 
+    static int exteriorLight(net.minecraft.world.level.Level level, net.minecraft.core.BlockPos pos, int original) {
+        int block = net.minecraft.client.renderer.LightTexture.block(original);
+        int sky = net.minecraft.client.renderer.LightTexture.sky(original);
+        for (Direction side : Direction.values()) {
+            int light = net.minecraft.client.renderer.LevelRenderer.getLightColor(level, pos.relative(side));
+            block = Math.max(block, net.minecraft.client.renderer.LightTexture.block(light));
+            sky = Math.max(sky, net.minecraft.client.renderer.LightTexture.sky(light));
+        }
+        return net.minecraft.client.renderer.LightTexture.pack(block, sky);
+    }
+
     static void orientHorizontal(
             PoseStack poseStack,
             Direction facing

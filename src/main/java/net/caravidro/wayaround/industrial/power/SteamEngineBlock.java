@@ -52,13 +52,13 @@ public final class SteamEngineBlock extends BaseEntityBlock {
             } else if (engine.addCoal()) {
                 stack.consume(1, player);
             }
-            player.displayClientMessage(engine.status(), true);
+
         }
         return ItemInteractionResult.sidedSuccess(level.isClientSide);
     }
     @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof SteamEngineBlockEntity engine) {
-            player.displayClientMessage(engine.status(), true);
+
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }

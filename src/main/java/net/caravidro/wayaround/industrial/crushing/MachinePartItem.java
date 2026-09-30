@@ -14,6 +14,6 @@ public final class MachinePartItem extends Item {
             List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.wayaround.machine_part." + spec.role().name().toLowerCase(java.util.Locale.ROOT)));
-        tooltip.add(Component.translatable("tooltip.wayaround.machine_part." + spec.id()));
+        if (flag.isAdvanced()) tooltip.add(Component.translatable("tooltip.wayaround.machine_part." + spec.id()));
     }
 }

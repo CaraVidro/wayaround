@@ -1,0 +1,15 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "wayaround:block/large_mechanical_gear",
+      "y": 90
+    },
+    "axis=y": {
+      "model": "wayaround:block/large_mechanical_gear",
+      "x": 90
+    },
+    "axis=z": {
+      "model": "wayaround:block/large_mechanical_gear"
+    }
+  }
+}

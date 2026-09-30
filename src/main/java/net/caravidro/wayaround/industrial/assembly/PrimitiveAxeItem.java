@@ -23,7 +23,7 @@ public final class PrimitiveAxeItem extends AxeItem {
     ) {
         super.appendHoverText(stack, context, tooltipComponents, tooltipFlag);
         PrimitiveAssemblyState state = AssemblyItemData.readAssembly(stack);
-        if (state == null) return;
+        if (state == null || !tooltipFlag.isAdvanced()) return;
 
         tooltipComponents.add(Component.translatable("tooltip.wayaround.assembly.manufactured")
                 .withStyle(ChatFormatting.DARK_GRAY));

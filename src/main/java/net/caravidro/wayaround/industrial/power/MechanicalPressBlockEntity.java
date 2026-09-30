@@ -115,6 +115,10 @@ public final class MechanicalPressBlockEntity
                     0.70F
             );
 
+            server.sendParticles(net.minecraft.core.particles.ParticleTypes.POOF,
+                    pos.getX()+.5,pos.getY()+.3,pos.getZ()+.5,10,.28,.03,.28,.025);
+            server.sendParticles(net.minecraft.core.particles.ParticleTypes.CRIT,
+                    pos.getX()+.5,pos.getY()+.3,pos.getZ()+.5,5,.20,.05,.20,.06);
             press.setChanged();
         }
 
