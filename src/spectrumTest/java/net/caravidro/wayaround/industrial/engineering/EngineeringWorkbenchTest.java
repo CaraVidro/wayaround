@@ -2,6 +2,9 @@ package net.caravidro.wayaround.industrial.engineering;
 
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.Node;
 import net.caravidro.wayaround.industrial.engineering.EngineeringCalculationGraph.NodeType;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 
 public final class EngineeringWorkbenchTest {
 
@@ -11,6 +14,7 @@ public final class EngineeringWorkbenchTest {
         graphRecalculatesThroughConnections();
         cyclesAreRejected();
         beamFormulaMatchesReference();
+        blueprintProjectIsBounded();
 
         System.out.println(
                 "Engineering workbench regression tests passed"
@@ -169,6 +173,77 @@ public final class EngineeringWorkbenchTest {
                 20.0,
                 moment.result(),
                 "qL²/8 reference value must match"
+        );
+    }
+
+    private static void blueprintProjectIsBounded() {
+        CompoundTag project =
+                new CompoundTag();
+
+        ListTag nodes =
+                new ListTag();
+
+        for (int index =
+                     0;
+             index < 300;
+             index++) {
+
+            CompoundTag node =
+                    new CompoundTag();
+
+            node.putInt(
+                    "Id",
+                    index
+            );
+
+            nodes.add(
+                    node
+            );
+        }
+
+        project.put(
+                "Nodes",
+                nodes
+        );
+
+        project.putDouble(
+                "Zoom",
+                99.0
+        );
+
+        project.putDouble(
+                "PanX",
+                999999.0
+        );
+
+        CompoundTag sanitized =
+                EngineeringBlueprintData.sanitizeProject(
+                        project
+                );
+
+        require(
+                sanitized.getList(
+                        "Nodes",
+                        Tag.TAG_COMPOUND
+                ).size()
+                        == 256,
+                "Blueprint sanitization must cap node count"
+        );
+
+        requireNear(
+                2.40,
+                sanitized.getDouble(
+                        "Zoom"
+                ),
+                "Blueprint zoom must be bounded"
+        );
+
+        requireNear(
+                100000.0,
+                sanitized.getDouble(
+                        "PanX"
+                ),
+                "Blueprint pan must be bounded"
         );
     }
 
