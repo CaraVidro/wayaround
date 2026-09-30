@@ -1676,7 +1676,9 @@ public final class EngineeringWorkbenchScreen
             GuiGraphics graphics
     ) {
         Node node =
-                graph.node(selectedNodeId);
+                graph.node(
+                        selectedNodeId
+                );
 
         if (node == null) {
             return;
@@ -1691,7 +1693,8 @@ public final class EngineeringWorkbenchScreen
         int width =
                 canvasWidth() - 16;
 
-        int height = 76;
+        int height =
+                76;
 
         graphics.fill(
                 x,
@@ -1719,16 +1722,28 @@ public final class EngineeringWorkbenchScreen
                 y + 43;
 
         double a =
-                inputResult(node, 0);
+                inputResult(
+                        node,
+                        0
+                );
 
         double b =
-                inputResult(node, 1);
+                inputResult(
+                        node,
+                        1
+                );
 
-        double c =
-                inputResult(node, 2);
+        double cValue =
+                inputResult(
+                        node,
+                        2
+                );
+
+        double phase =
+                visualLoopPhase();
 
         switch (node.type()) {
-            case CONSTANT, BLOCK_PROPERTY ->
+            case CONSTANT, BLOCK_PROPERTY, ATTRIBUTE ->
                     drawPoint(
                             graphics,
                             cx,
@@ -1736,12 +1751,79 @@ public final class EngineeringWorkbenchScreen
                             0xFFFFC857
                     );
 
+            case NOTE -> {
+                graphics.drawString(
+                        font,
+                        trim(
+                                node.parameter(),
+                                46
+                        ),
+                        x + 12,
+                        cy - 4,
+                        0xFFFFE49B,
+                        false
+                );
+            }
+
+            case MATERIAL_CONVERT -> {
+                ResourceLocation material =
+                        ResourceLocation.tryParse(
+                                node.parameter()
+                        );
+
+                if (material != null
+                        && BuiltInRegistries.BLOCK.containsKey(
+                        material
+                )) {
+
+                    ItemStack stack =
+                            new ItemStack(
+                                    BuiltInRegistries.BLOCK.get(
+                                            material
+                                    ).asItem()
+                            );
+
+                    int count =
+                            (int) Math.clamp(
+                                    Math.ceil(
+                                            Math.abs(
+                                                    node.result()
+                                            )
+                                    ),
+                                    1,
+                                    6
+                            );
+
+                    int startX =
+                            cx
+                                    - count
+                                            * 9;
+
+                    for (int index = 0;
+                         index < count;
+                         index++) {
+                        graphics.renderItem(
+                                stack,
+                                startX
+                                        + index * 18,
+                                cy - 8
+                        );
+                    }
+                }
+            }
+
             case ADD, SUBTRACT -> {
                 int first =
-                        visualLength(a, 48);
+                        visualLength(
+                                a,
+                                48
+                        );
 
                 int second =
-                        visualLength(b, 48);
+                        visualLength(
+                                b,
+                                48
+                        );
 
                 int result =
                         visualLength(
@@ -1781,13 +1863,19 @@ public final class EngineeringWorkbenchScreen
                 int w =
                         Math.max(
                                 6,
-                                visualLength(a, 75)
+                                visualLength(
+                                        a,
+                                        75
+                                )
                         );
 
                 int h =
                         Math.max(
                                 6,
-                                visualLength(b, 35)
+                                visualLength(
+                                        b,
+                                        35
+                                )
                         );
 
                 drawRectOutline(
@@ -1804,19 +1892,28 @@ public final class EngineeringWorkbenchScreen
                 int w =
                         Math.max(
                                 12,
-                                visualLength(a, 55)
+                                visualLength(
+                                        a,
+                                        55
+                                )
                         );
 
                 int h =
                         Math.max(
                                 10,
-                                visualLength(b, 28)
+                                visualLength(
+                                        b,
+                                        28
+                                )
                         );
 
                 int d =
                         Math.max(
                                 7,
-                                visualLength(c, 18)
+                                visualLength(
+                                        cValue,
+                                        18
+                                )
                         );
 
                 drawBox(
@@ -1834,7 +1931,10 @@ public final class EngineeringWorkbenchScreen
                 int radius =
                         Math.max(
                                 5,
-                                visualLength(a, 25)
+                                visualLength(
+                                        a,
+                                        25
+                                )
                         );
 
                 drawCircle(
@@ -1850,13 +1950,19 @@ public final class EngineeringWorkbenchScreen
                 int w =
                         Math.max(
                                 8,
-                                visualLength(b, 70)
+                                visualLength(
+                                        b,
+                                        70
+                                )
                         );
 
                 int h =
                         Math.max(
                                 8,
-                                visualLength(a, 38)
+                                visualLength(
+                                        a,
+                                        38
+                                )
                         );
 
                 int x0 =
@@ -1944,6 +2050,7 @@ public final class EngineeringWorkbenchScreen
                                 0xFFFFB85C
                         );
                     }
+
                 } else {
                     drawArrowDown(
                             graphics,
@@ -1954,26 +2061,219 @@ public final class EngineeringWorkbenchScreen
                     );
                 }
             }
+
+            case WIND_FORCE, WATER_FORCE -> {
+                int left =
+                        x + 20;
+
+                int right =
+                        x + width - 22;
+
+                int bodyX =
+                        (int) Math.round(
+                                left
+                                        + (
+                                        right - left
+                                )
+                                        * phase
+                        );
+
+                int forceColor =
+                        node.type()
+                                == NodeType.WIND_FORCE
+                                ? 0xFFB7E8FF
+                                : 0xFF72BFFF;
+
+                for (int row = -1;
+                     row <= 1;
+                     row++) {
+
+                    int yy =
+                            cy
+                                    + row * 11;
+
+                    drawLine(
+                            graphics,
+                            left,
+                            yy,
+                            bodyX - 9,
+                            yy,
+                            forceColor
+                    );
+
+                    drawLine(
+                            graphics,
+                            bodyX - 9,
+                            yy,
+                            bodyX - 13,
+                            yy - 3,
+                            forceColor
+                    );
+
+                    drawLine(
+                            graphics,
+                            bodyX - 9,
+                            yy,
+                            bodyX - 13,
+                            yy + 3,
+                            forceColor
+                    );
+                }
+
+                graphics.fill(
+                        bodyX - 5,
+                        cy - 9,
+                        bodyX + 6,
+                        cy + 10,
+                        0xFFD8DDE1
+                );
+            }
+
+            case GRAVITY_LOAD -> {
+                graphics.fill(
+                        cx - 12,
+                        cy - 17,
+                        cx + 13,
+                        cy - 5,
+                        0xFFD8DDE1
+                );
+
+                drawArrowDown(
+                        graphics,
+                        cx,
+                        cy - 2,
+                        cy + 23,
+                        0xFFFFB85C
+                );
+            }
+
+            case ACCELERATION, DISPLACEMENT -> {
+                double shaped =
+                        node.type()
+                                == NodeType.ACCELERATION
+                                ? phase * phase
+                                : phase * phase * phase;
+
+                int left =
+                        x + 23;
+
+                int right =
+                        x + width - 23;
+
+                int bodyX =
+                        (int) Math.round(
+                                left
+                                        + (
+                                        right - left
+                                )
+                                        * shaped
+                        );
+
+                drawLine(
+                        graphics,
+                        left,
+                        cy + 13,
+                        right,
+                        cy + 13,
+                        0xFF53616B
+                );
+
+                graphics.fill(
+                        bodyX - 6,
+                        cy - 5,
+                        bodyX + 7,
+                        cy + 8,
+                        0xFF8FE38F
+                );
+            }
+
+            case TIME_STEP -> {
+                int left =
+                        x + 22;
+
+                int right =
+                        x + width - 22;
+
+                int marker =
+                        (int) Math.round(
+                                left
+                                        + (
+                                        right - left
+                                )
+                                        * phase
+                        );
+
+                drawLine(
+                        graphics,
+                        left,
+                        cy,
+                        right,
+                        cy,
+                        0xFF87949D
+                );
+
+                graphics.fill(
+                        marker - 2,
+                        cy - 7,
+                        marker + 3,
+                        cy + 8,
+                        0xFFFFD26F
+                );
+            }
         }
 
-        graphics.drawString(
-                font,
-                trim(
-                        "= "
-                                + formatNumber(node.result())
-                                + (
-                                node.unit().isEmpty()
-                                        ? ""
-                                        : " "
-                                                + node.unit()
-                        ),
-                        22
-                ),
-                x + width - 108,
-                y + 5,
-                0xFF77E088,
-                false
-        );
+        if (node.outputCount() > 0) {
+            graphics.drawString(
+                    font,
+                    trim(
+                            "= "
+                                    + formatNumber(
+                                    node.result()
+                            )
+                                    + (
+                                    node.unit().isEmpty()
+                                            ? ""
+                                            : " "
+                                                    + node.unit()
+                            ),
+                            22
+                    ),
+                    x + width - 108,
+                    y + 5,
+                    0xFF77E088,
+                    false
+            );
+        }
+    }
+
+    private double visualLoopPhase() {
+        double ticks;
+
+        if (minecraft != null
+                && minecraft.level != null) {
+            ticks =
+                    minecraft.level.getGameTime()
+                            + renderPartialTick;
+
+        } else {
+            ticks =
+                    System.nanoTime()
+                            / 50_000_000.0;
+        }
+
+        double loop =
+                90.0;
+
+        double value =
+                ticks % loop;
+
+        if (value < 0.0) {
+            value +=
+                    loop;
+        }
+
+        return value
+                / loop;
     }
 
     @Override
@@ -1991,6 +2291,9 @@ public final class EngineeringWorkbenchScreen
             int mouseY,
             float partialTick
     ) {
+        renderPartialTick =
+                partialTick;
+
         renderBackground(
                 graphics,
                 mouseX,
@@ -4476,7 +4779,12 @@ public final class EngineeringWorkbenchScreen
 
         return source == null
                 ? 0.0
-                : source.result();
+                : graph.outputValue(
+                source.id(),
+                node.inputOutput(
+                        slot
+                )
+        );
     }
 
     private int recommendedRank(
@@ -4519,6 +4827,9 @@ public final class EngineeringWorkbenchScreen
     ) {
         return switch (type) {
             case CONSTANT -> "Number";
+            case ATTRIBUTE -> "Attribute";
+            case NOTE -> "Note";
+            case MATERIAL_CONVERT -> "Material";
             case ADD -> "+ Add";
             case SUBTRACT -> "- Sub";
             case MULTIPLY -> "× Mul";
@@ -4532,6 +4843,12 @@ public final class EngineeringWorkbenchScreen
             case STRESS -> "F/A";
             case BEAM_UDL_MOMENT -> "qL²/8";
             case BEAM_CENTER_MOMENT -> "PL/4";
+            case WIND_FORCE -> "Wind F";
+            case WATER_FORCE -> "Water F";
+            case GRAVITY_LOAD -> "Gravity";
+            case ACCELERATION -> "F/m";
+            case TIME_STEP -> "Rate×t";
+            case DISPLACEMENT -> "½at²";
             case BLOCK_PROPERTY -> "Block";
         };
     }
@@ -4541,6 +4858,12 @@ public final class EngineeringWorkbenchScreen
             int slot
     ) {
         return switch (type) {
+            case ATTRIBUTE ->
+                    "value";
+
+            case MATERIAL_CONVERT ->
+                    "area";
+
             case RECTANGLE_AREA ->
                     slot == 0
                             ? "W"
@@ -4581,9 +4904,34 @@ public final class EngineeringWorkbenchScreen
                             ? "P"
                             : "L";
 
+            case WIND_FORCE, WATER_FORCE ->
+                    slot == 0
+                            ? "speed"
+                            : "area";
+
+            case GRAVITY_LOAD ->
+                    "mass";
+
+            case ACCELERATION ->
+                    slot == 0
+                            ? "force"
+                            : "mass";
+
+            case TIME_STEP ->
+                    slot == 0
+                            ? "rate"
+                            : "time";
+
+            case DISPLACEMENT ->
+                    slot == 0
+                            ? "accel"
+                            : "time";
+
             default ->
                     "in"
-                            + (slot + 1);
+                            + (
+                            slot + 1
+                    );
         };
     }
 
@@ -4594,6 +4942,12 @@ public final class EngineeringWorkbenchScreen
                 switch (type) {
                     case CONSTANT ->
                             "Editable design value.";
+                    case ATTRIBUTE ->
+                            "Typed value; connected input overrides local value.";
+                    case NOTE ->
+                            "Annotation only. No mathematical output.";
+                    case MATERIAL_CONVERT ->
+                            "Area ÷ material face area = required blocks.";
                     case ADD ->
                             "Adds two design quantities.";
                     case SUBTRACT ->
@@ -4620,8 +4974,20 @@ public final class EngineeringWorkbenchScreen
                             "Max simple beam moment.";
                     case BEAM_CENTER_MOMENT ->
                             "Center point-load moment.";
+                    case WIND_FORCE ->
+                            "0.5 × air density × Cd × speed² × area.";
+                    case WATER_FORCE ->
+                            "0.5 × water density × Cd × speed² × area.";
+                    case GRAVITY_LOAD ->
+                            "Mass × standard gravity.";
+                    case ACCELERATION ->
+                            "Newton: force ÷ mass.";
+                    case TIME_STEP ->
+                            "Projects a rate across elapsed time.";
+                    case DISPLACEMENT ->
+                            "Constant-acceleration estimate: ½at².";
                     case BLOCK_PROPERTY ->
-                            "Output from a selected block.";
+                            "Selected block attribute plus W/H/D outputs.";
                 }
         );
     }
