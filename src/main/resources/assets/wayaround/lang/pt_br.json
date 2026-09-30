@@ -708,5 +708,13 @@
   "message.wayaround.mechanical_press.started": "Ciclo da prensa mecânica iniciado.",
   "message.wayaround.mechanical_press.status": "Prensa mecânica: %s | potência %s",
   "message.wayaround.mechanical_press.running": "funcionando",
-  "message.wayaround.mechanical_press.idle": "parada"
+  "message.wayaround.mechanical_press.idle": "parada",
+  "block.wayaround.mechanical_mill": "Moinho Mecânico",
+  "item.wayaround.flour": "Farinha",
+  "message.wayaround.mechanical_mill.full": "O funil de grãos está cheio.",
+  "message.wayaround.mechanical_mill.inserted": "Trigo carregado: %s/16",
+  "message.wayaround.mechanical_mill.status": "Moinho: trigo %s | farinha %s | moagem %s%% | RPM %s | %s",
+  "message.wayaround.mechanical_mill.connected": "transmissão mecânica conectada",
+  "message.wayaround.mechanical_mill.disconnected": "sem transmissão mecânica",
+  "tooltip.wayaround.flour": "Farinha recém-moída no Moinho Mecânico."
 }
