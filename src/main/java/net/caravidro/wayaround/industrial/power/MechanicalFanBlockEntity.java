@@ -261,7 +261,7 @@ public final class MechanicalFanBlockEntity
 
         for (Entity entity :
                 server.getEntities(
-                        null,
+                        (Entity) null,
                         corridor,
                         candidate -> candidate.isAlive()
                                 && !candidate.isSpectator()
