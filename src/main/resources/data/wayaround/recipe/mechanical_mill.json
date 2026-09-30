@@ -1,0 +1,12 @@
+{
+  "type":"minecraft:crafting_shaped",
+  "category":"misc",
+  "pattern":["SHS","SAS","PPP"],
+  "key":{
+    "S":{"item":"minecraft:smooth_stone"},
+    "H":{"item":"minecraft:hopper"},
+    "A":{"item":"wayaround:mechanical_shaft"},
+    "P":{"item":"minecraft:spruce_planks"}
+  },
+  "result":{"id":"wayaround:mechanical_mill","count":1}
+}
