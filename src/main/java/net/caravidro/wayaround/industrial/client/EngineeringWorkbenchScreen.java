@@ -1155,6 +1155,18 @@ public final class EngineeringWorkbenchScreen
                         )
                 );
 
+        int listBottom =
+                topPos
+                        + imageHeight
+                        - 18;
+
+        graphics.enableScissor(
+                x,
+                listY,
+                x + PROPERTY_WIDTH - 18,
+                listBottom
+        );
+
         for (int row = 0;
              row < rows;
              row++) {
@@ -1239,6 +1251,8 @@ public final class EngineeringWorkbenchScreen
                     false
             );
         }
+
+        graphics.disableScissor();
 
         graphics.drawString(
                 font,
