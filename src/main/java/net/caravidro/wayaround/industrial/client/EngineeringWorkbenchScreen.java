@@ -703,14 +703,20 @@ public final class EngineeringWorkbenchScreen
                     continue;
                 }
 
+                int sourceOutput =
+                        target.inputOutput(
+                                slot
+                        );
+
                 int sx =
                         source.x()
                                 + NODE_WIDTH;
 
                 int sy =
-                        source.y()
-                                + nodeHeight(source)
-                                        / 2;
+                        outputPortYLocal(
+                                source,
+                                sourceOutput
+                        );
 
                 int tx =
                         target.x();
@@ -766,20 +772,40 @@ public final class EngineeringWorkbenchScreen
                 node.y();
 
         int height =
-                nodeHeight(node);
+                nodeHeight(
+                        node
+                );
 
         boolean selected =
                 node.id()
                         == selectedNodeId;
+
+        int bodyColor =
+                node.type()
+                        == NodeType.NOTE
+                        ? (selected
+                        ? 0xFF655D3E
+                        : 0xFF45402D)
+                        : (selected
+                        ? 0xFF40566A
+                        : 0xFF29333D);
+
+        int headerColor =
+                node.type()
+                        == NodeType.NOTE
+                        ? (selected
+                        ? 0xFF807348
+                        : 0xFF5B5335)
+                        : (selected
+                        ? 0xFF52718A
+                        : 0xFF374550);
 
         graphics.fill(
                 x,
                 y,
                 x + NODE_WIDTH,
                 y + height,
-                selected
-                        ? 0xFF40566A
-                        : 0xFF29333D
+                bodyColor
         );
 
         graphics.fill(
@@ -787,9 +813,7 @@ public final class EngineeringWorkbenchScreen
                 y + 1,
                 x + NODE_WIDTH - 1,
                 y + NODE_HEADER,
-                selected
-                        ? 0xFF52718A
-                        : 0xFF374550
+                headerColor
         );
 
         graphics.drawString(
@@ -813,30 +837,83 @@ public final class EngineeringWorkbenchScreen
                 false
         );
 
-        String result =
-                formatNumber(
-                        node.result()
-                )
-                        + (
-                        node.unit().isEmpty()
-                                ? ""
-                                : " "
-                                        + node.unit()
-                );
+        if (node.type()
+                == NodeType.NOTE) {
 
-        graphics.drawString(
-                font,
-                trim(
-                        result,
-                        16
-                ),
-                x + 6,
-                y + height - 11,
-                Double.isFinite(node.result())
-                        ? 0xFF8FE38F
-                        : 0xFFFF7474,
-                false
-        );
+            graphics.drawString(
+                    font,
+                    trim(
+                            node.parameter()
+                                    .isBlank()
+                                    ? "Annotation"
+                                    : node.parameter(),
+                            18
+                    ),
+                    x + 6,
+                    y + 23,
+                    0xFFFFE7A4,
+                    false
+            );
+
+        } else {
+            String result =
+                    formatNumber(
+                            node.result()
+                    )
+                            + (
+                            node.unit().isEmpty()
+                                    ? ""
+                                    : " "
+                                            + node.unit()
+                    );
+
+            graphics.drawString(
+                    font,
+                    trim(
+                            result,
+                            16
+                    ),
+                    x + 6,
+                    y + height - 11,
+                    Double.isFinite(
+                            node.result()
+                    )
+                            ? 0xFF8FE38F
+                            : 0xFFFF7474,
+                    false
+            );
+        }
+
+        if (node.type()
+                == NodeType.ATTRIBUTE) {
+
+            String local =
+                    "local "
+                            + formatNumber(
+                            node.literal()
+                    )
+                            + (
+                            node.unit()
+                                    .isEmpty()
+                                    ? ""
+                                    : " "
+                                            + node.unit()
+                    );
+
+            graphics.drawString(
+                    font,
+                    trim(
+                            local,
+                            15
+                    ),
+                    x + 7,
+                    y + 24,
+                    node.input(0) >= 0
+                            ? 0xFF77838C
+                            : 0xFFFFC66D,
+                    false
+            );
+        }
 
         for (int slot = 0;
              slot < node.inputCount();
@@ -871,15 +948,58 @@ public final class EngineeringWorkbenchScreen
             );
         }
 
-        graphics.fill(
-                x + NODE_WIDTH - 2,
-                y + height / 2 - 2,
-                x + NODE_WIDTH + 3,
-                y + height / 2 + 3,
-                pendingSourceId == node.id()
-                        ? 0xFFFFC45B
-                        : 0xFF8FE38F
-        );
+        for (int output = 0;
+             output < node.outputCount();
+             output++) {
+
+            int portY =
+                    outputPortYLocal(
+                            node,
+                            output
+                    );
+
+            boolean pending =
+                    pendingSourceId == node.id()
+                            && pendingSourceOutput
+                            == output
+                            && hasPendingConnection();
+
+            graphics.fill(
+                    x + NODE_WIDTH - 2,
+                    portY - 2,
+                    x + NODE_WIDTH + 3,
+                    portY + 3,
+                    pending
+                            ? 0xFFFFC45B
+                            : 0xFF8FE38F
+            );
+
+            String outputLabel =
+                    node.outputLabel(
+                            output
+                    );
+
+            if (!outputLabel.isBlank()) {
+                graphics.drawString(
+                        font,
+                        trim(
+                                outputLabel,
+                                8
+                        ),
+                        x + NODE_WIDTH
+                                - 7
+                                - font.width(
+                                trim(
+                                        outputLabel,
+                                        8
+                                )
+                        ),
+                        portY - 4,
+                        0xFFB8E5B8,
+                        false
+                );
+            }
+        }
     }
 
     private void renderProperties(
@@ -3195,10 +3315,21 @@ public final class EngineeringWorkbenchScreen
     private int nodeHeight(
             Node node
     ) {
+        if (node.type()
+                == NodeType.NOTE) {
+            return 46;
+        }
+
+        int portRows =
+                Math.max(
+                        node.inputCount(),
+                        node.outputCount()
+                );
+
         return Math.max(
                 40,
                 30
-                        + node.inputCount()
+                        + portRows
                                 * NODE_INPUT_SPACING
         );
     }
@@ -3209,7 +3340,17 @@ public final class EngineeringWorkbenchScreen
     ) {
         return node.y()
                 + NODE_HEADER
-                + 6
+                + 7
+                + slot * NODE_INPUT_SPACING;
+    }
+
+    private int outputPortYLocal(
+            Node node,
+            int slot
+    ) {
+        return node.y()
+                + NODE_HEADER
+                + 7
                 + slot * NODE_INPUT_SPACING;
     }
 
