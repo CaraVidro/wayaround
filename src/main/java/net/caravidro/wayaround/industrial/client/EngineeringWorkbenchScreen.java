@@ -43,6 +43,10 @@ public final class EngineeringWorkbenchScreen
     private static final int NODE_HEADER = 15;
     private static final int NODE_INPUT_SPACING = 10;
     private static final int CATALOG_ROW = 21;
+    private static final int PALETTE_COLUMNS = 7;
+    private static final int PALETTE_VISIBLE_ROWS = 2;
+    private static final int PALETTE_CELL_WIDTH = 58;
+    private static final int PALETTE_ROW_HEIGHT = 18;
 
     private static final double MIN_ZOOM = 0.45;
     private static final double MAX_ZOOM = 2.40;
@@ -62,7 +66,36 @@ public final class EngineeringWorkbenchScreen
                     NodeType.SAFETY_FACTOR,
                     NodeType.STRESS,
                     NodeType.BEAM_UDL_MOMENT,
-                    NodeType.BEAM_CENTER_MOMENT
+                    NodeType.BEAM_CENTER_MOMENT,
+                    NodeType.ATTRIBUTE,
+                    NodeType.NOTE,
+                    NodeType.MATERIAL_CONVERT,
+                    NodeType.WIND_FORCE,
+                    NodeType.WATER_FORCE,
+                    NodeType.GRAVITY_LOAD,
+                    NodeType.ACCELERATION,
+                    NodeType.TIME_STEP,
+                    NodeType.DISPLACEMENT
+            );
+
+    private record AttributePreset(
+            String key,
+            String label,
+            String unit
+    ) {}
+
+    private static final List<AttributePreset> ATTRIBUTE_PRESETS =
+            List.of(
+                    new AttributePreset("force", "Force", "N"),
+                    new AttributePreset("mass", "Mass", "kg"),
+                    new AttributePreset("length", "Length", "m"),
+                    new AttributePreset("area", "Area", "m²"),
+                    new AttributePreset("volume", "Volume", "m³"),
+                    new AttributePreset("speed", "Speed", "m/s"),
+                    new AttributePreset("time", "Time", "s"),
+                    new AttributePreset("temperature", "Temperature", "°C"),
+                    new AttributePreset("pressure", "Pressure", "Pa"),
+                    new AttributePreset("density", "Density", "kg/m³")
             );
 
     private final EngineeringCalculationGraph graph =
@@ -82,6 +115,7 @@ public final class EngineeringWorkbenchScreen
 
     private EditBox searchBox;
     private EditBox valueBox;
+    private EditBox noteBox;
     private Button recommendedButton;
     private Button visualButton;
     private Button saveBlueprintButton;
@@ -92,8 +126,10 @@ public final class EngineeringWorkbenchScreen
 
     private int catalogScroll;
     private int propertyScroll;
+    private int paletteScrollRow;
     private int selectedNodeId = -1;
     private int pendingSourceId = -1;
+    private int pendingSourceOutput;
 
     private int draggingNodeId = -1;
     private double dragNodeOffsetX;
@@ -114,6 +150,8 @@ public final class EngineeringWorkbenchScreen
     private double canvasPanY;
 
     private boolean syncingValueBox;
+    private boolean syncingNoteBox;
+    private float renderPartialTick;
 
     public EngineeringWorkbenchScreen(
             EngineeringWorkbenchMenu menu,
@@ -173,6 +211,23 @@ public final class EngineeringWorkbenchScreen
         valueBox.setVisible(false);
         valueBox.setResponder(this::updateLiteralFromEditor);
         addRenderableWidget(valueBox);
+
+        noteBox =
+                new EditBox(
+                        font,
+                        leftPos + imageWidth - PROPERTY_WIDTH + 10,
+                        topPos + imageHeight - 27,
+                        PROPERTY_WIDTH - 20,
+                        18,
+                        Component.translatable(
+                                "container.wayaround.engineering.note"
+                        )
+                );
+
+        noteBox.setMaxLength(96);
+        noteBox.setVisible(false);
+        noteBox.setResponder(this::updateNoteFromEditor);
+        addRenderableWidget(noteBox);
 
         recommendedButton =
                 Button.builder(
