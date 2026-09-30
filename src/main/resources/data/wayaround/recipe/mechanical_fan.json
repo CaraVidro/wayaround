@@ -1,0 +1,6 @@
+{
+  "type":"minecraft:crafting_shaped","category":"misc",
+  "pattern":[" I ","ISI"," I "],
+  "key":{"I":{"item":"minecraft:iron_ingot"},"S":{"item":"wayaround:mechanical_shaft"}},
+  "result":{"id":"wayaround:mechanical_fan","count":1}
+}
