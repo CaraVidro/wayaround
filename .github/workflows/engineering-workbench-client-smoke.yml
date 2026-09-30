@@ -1,0 +1,52 @@
+name: Engineering Workbench Client Smoke
+
+on:
+  push:
+    branches:
+      - feature/engineering-workbench-v1
+
+jobs:
+  runclient-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Start NeoForge client
+        shell: bash
+        run: |
+          chmod +x gradlew
+          set +e
+          timeout 150s xvfb-run -a ./gradlew runClient --no-daemon > runclient.log 2>&1
+          code=$?
+          cat runclient.log
+
+          if [ "$code" -eq 124 ]; then
+            if ! grep -Eqi "ModLauncher running" runclient.log ||                ! grep -Eqi "Backend library: LWJGL" runclient.log ||                ! grep -Eqi "Reloading ResourceManager" runclient.log; then
+              echo "Client did not reach full resource/render startup."
+              exit 1
+            fi
+
+            if grep -Eqi "Missing textures in model wayaround:engineering_workbench|Unable to load model.*wayaround:engineering_workbench|Exception.*EngineeringWorkbench(Screen|Menu|Block)" runclient.log; then
+              echo "Engineering Workbench reported a model/screen load error."
+              exit 1
+            fi
+
+            echo "runClient stayed alive through the Engineering Workbench smoke window."
+            exit 0
+          fi
+
+          exit "$code"
