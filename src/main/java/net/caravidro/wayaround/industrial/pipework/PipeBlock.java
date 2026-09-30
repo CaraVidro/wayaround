@@ -261,7 +261,8 @@ public final class PipeBlock
             if (stack.is(Items.WATER_BUCKET)
                     && profile.accepts(
                     PipeMedium.WATER
-            )) {
+            )
+                    && pipe.freeCapacity() >= 1_000) {
 
                 int accepted =
                         pipe.insert(
@@ -322,7 +323,8 @@ public final class PipeBlock
 
             if (stack.is(
                     PipeworkContent.COMPRESSED_AIR_CANISTER.get()
-            )) {
+            )
+                    && pipe.freeCapacity() >= 1_000) {
                 int accepted =
                         pipe.insert(
                                 PipeMedium.AIR,
@@ -347,7 +349,8 @@ public final class PipeBlock
 
             if (stack.is(
                     PipeworkContent.STEAM_CANISTER.get()
-            )) {
+            )
+                    && pipe.freeCapacity() >= 1_000) {
                 if (!profile.hotSteamRated()) {
                     player.displayClientMessage(
                             Component.translatable(
