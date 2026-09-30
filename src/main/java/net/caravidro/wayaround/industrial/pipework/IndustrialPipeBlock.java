@@ -11,11 +11,18 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.PipeBlock;
+import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 
-public final class IndustrialPipeBlock extends PipeBlock implements net.minecraft.world.level.block.EntityBlock {
+public final class IndustrialPipeBlock extends PipeBlock implements net.minecraft.world.level.block.EntityBlock, SimpleWaterloggedBlock {
+
+    public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
 
     private final PipeSpec spec;
 
@@ -36,7 +43,7 @@ public final class IndustrialPipeBlock extends PipeBlock implements net.minecraf
             );
         }
 
-        registerDefaultState(initial);
+        registerDefaultState(initial.setValue(WATERLOGGED, false));
     }
 
     public PipeSpec spec() {
@@ -55,7 +62,8 @@ public final class IndustrialPipeBlock extends PipeBlock implements net.minecraf
             BlockPlaceContext context
     ) {
         BlockState state =
-                defaultBlockState();
+                defaultBlockState().setValue(WATERLOGGED,
+                        context.getLevel().getFluidState(context.getClickedPos()).getType() == Fluids.WATER);
 
         for (Direction direction : Direction.values()) {
             state =
@@ -80,10 +88,20 @@ public final class IndustrialPipeBlock extends PipeBlock implements net.minecraf
             BlockPos pos,
             BlockPos neighborPos
     ) {
+        if (state.getValue(WATERLOGGED)) {
+            level.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
+        }
         return state.setValue(
                 PROPERTY_BY_DIRECTION.get(side),
                 connects(level, neighborPos)
         );
+    }
+
+    @Override
+    protected FluidState getFluidState(BlockState state) {
+        return state.getValue(WATERLOGGED)
+                ? Fluids.WATER.getSource(false)
+                : super.getFluidState(state);
     }
 
     private boolean connects(
@@ -149,7 +167,8 @@ public final class IndustrialPipeBlock extends PipeBlock implements net.minecraf
                 SOUTH,
                 WEST,
                 UP,
-                DOWN
+                DOWN,
+                WATERLOGGED
         );
     }
 }
