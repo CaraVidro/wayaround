@@ -2772,7 +2772,7 @@ public final class WaterWheelHubBlockEntity
                     );
 
                     server.sendParticles(
-                            ParticleTypes.BLOCK,
+                            ParticleTypes.POOF,
                             worldPosition.getX()
                                     + 0.5,
                             worldPosition.getY()
