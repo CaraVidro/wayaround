@@ -635,7 +635,7 @@ public final class EngineeringWorkbenchScreen
                 false
         );
 
-        if (pendingSourceId >= 0) {
+        if (hasPendingConnection()) {
             graphics.drawString(
                     font,
                     Component.translatable(
@@ -2149,6 +2149,8 @@ public final class EngineeringWorkbenchScreen
                 mouseX,
                 mouseY
         )) {
+            clearPendingConnection();
+
             return super.mouseClicked(
                     mouseX,
                     mouseY,
@@ -2162,6 +2164,8 @@ public final class EngineeringWorkbenchScreen
                 mouseX,
                 mouseY
         )) {
+
+            clearPendingConnection();
 
             panningCanvas = true;
             lastPanMouseX = mouseX;
@@ -2184,6 +2188,8 @@ public final class EngineeringWorkbenchScreen
                 );
 
         if (catalogueHit != null) {
+            clearPendingConnection();
+
             draggingCatalogProfile =
                     catalogueHit;
             draggingPaletteType =
@@ -2205,6 +2211,8 @@ public final class EngineeringWorkbenchScreen
                 );
 
         if (paletteHit != null) {
+            clearPendingConnection();
+
             draggingPaletteType =
                     paletteHit;
             draggingCatalogProfile =
@@ -2223,6 +2231,15 @@ public final class EngineeringWorkbenchScreen
                 mouseX,
                 mouseY
         )) {
+            clearPendingConnection();
+            return true;
+        }
+
+        if (handleCalculationInspectorClick(
+                mouseX,
+                mouseY
+        )) {
+            clearPendingConnection();
             return true;
         }
 
@@ -2263,27 +2280,50 @@ public final class EngineeringWorkbenchScreen
                     }
 
                     if (pendingSourceId == node.id()) {
-                        pendingSourceId = -1;
+                        clearPendingConnection();
                     }
 
                     return true;
                 }
 
-                if (inside(
-                        graphX,
-                        graphY,
-                        x + NODE_WIDTH - 5,
-                        y + h / 2 - 5,
-                        10,
-                        10
-                )) {
-                    pendingSourceId =
-                            pendingSourceId == node.id()
-                                    ? -1
-                                    : node.id();
+                for (int output = 0;
+                     output < node.outputCount();
+                     output++) {
 
-                    selectNode(node.id());
-                    return true;
+                    int portY =
+                            outputPortYLocal(
+                                    node,
+                                    output
+                            );
+
+                    if (inside(
+                            graphX,
+                            graphY,
+                            x + NODE_WIDTH - 4,
+                            portY - 4,
+                            8,
+                            8
+                    )) {
+
+                        if (pendingSourceId == node.id()
+                                && pendingSourceOutput == output
+                                && hasPendingConnection()) {
+                            clearPendingConnection();
+
+                        } else {
+                            pendingSourceId =
+                                    node.id();
+
+                            pendingSourceOutput =
+                                    output;
+                        }
+
+                        selectNode(
+                                node.id()
+                        );
+
+                        return true;
+                    }
                 }
 
                 for (int slot = 0;
@@ -2304,14 +2344,15 @@ public final class EngineeringWorkbenchScreen
                             12,
                             12
                     )) {
-                        if (pendingSourceId >= 0) {
+                        if (hasPendingConnection()) {
                             graph.connect(
                                     pendingSourceId,
+                                    pendingSourceOutput,
                                     node.id(),
                                     slot
                             );
 
-                            pendingSourceId = -1;
+                            clearPendingConnection();
 
                         } else if (node.input(slot) >= 0) {
                             graph.disconnect(
@@ -2333,6 +2374,8 @@ public final class EngineeringWorkbenchScreen
                         NODE_WIDTH,
                         h
                 )) {
+                    clearPendingConnection();
+
                     selectNode(node.id());
 
                     draggingNodeId =
@@ -2348,8 +2391,11 @@ public final class EngineeringWorkbenchScreen
                 }
             }
 
+            clearPendingConnection();
+
             selectedNodeId = -1;
             valueBox.setVisible(false);
+            noteBox.setVisible(false);
             return true;
         }
 
@@ -2444,20 +2490,75 @@ public final class EngineeringWorkbenchScreen
                 EngineeringBlockProfile profile =
                         draggingCatalogProfile;
 
+                Node selected =
+                        graph.node(
+                                selectedNodeId
+                        );
+
                 if (insideCanvas(
                         mouseX,
                         mouseY
                 )) {
-                    addBlockNode(
-                            profile,
-                            (int) Math.round(
-                                    screenToGraphX(mouseX)
-                                            - NODE_WIDTH * 0.5
-                            ),
-                            (int) Math.round(
-                                    screenToGraphY(mouseY)
-                                            - 18.0
-                            )
+
+                    double graphX =
+                            screenToGraphX(
+                                    mouseX
+                            );
+
+                    double graphY =
+                            screenToGraphY(
+                                    mouseY
+                            );
+
+                    Node target =
+                            nodeAtGraphPoint(
+                                    graphX,
+                                    graphY
+                            );
+
+                    if (target != null
+                            && target.type()
+                            == NodeType.MATERIAL_CONVERT) {
+
+                        configureMaterialConverter(
+                                target,
+                                profile
+                        );
+
+                        graph.recalculate();
+
+                        selectNode(
+                                target.id()
+                        );
+
+                    } else {
+                        addBlockNode(
+                                profile,
+                                (int) Math.round(
+                                        graphX
+                                                - NODE_WIDTH * 0.5
+                                ),
+                                (int) Math.round(
+                                        graphY
+                                                - 18.0
+                                )
+                        );
+                    }
+
+                } else if (!dragExceededThreshold
+                        && selected != null
+                        && selected.type()
+                        == NodeType.MATERIAL_CONVERT) {
+
+                    configureMaterialConverter(
+                            selected,
+                            profile
+                    );
+
+                    graph.recalculate();
+
+                    selectNode(
+                            selected.id()
                     );
 
                 } else if (!dragExceededThreshold) {
@@ -2671,7 +2772,9 @@ public final class EngineeringWorkbenchScreen
         if ((searchBox != null
                 && searchBox.isFocused())
                 || (valueBox != null
-                && valueBox.isFocused())) {
+                && valueBox.isFocused())
+                || (noteBox != null
+                && noteBox.isFocused())) {
 
             return super.keyPressed(
                     keyCode,
@@ -2688,13 +2791,13 @@ public final class EngineeringWorkbenchScreen
             blockNodes.remove(selectedNodeId);
             blockProperties.remove(selectedNodeId);
             selectedNodeId = -1;
-            pendingSourceId = -1;
+            clearPendingConnection();
             return true;
         }
 
         if (keyCode == GLFW.GLFW_KEY_ESCAPE
-                && pendingSourceId >= 0) {
-            pendingSourceId = -1;
+                && hasPendingConnection()) {
+            clearPendingConnection();
             return true;
         }
 
@@ -3620,8 +3723,7 @@ public final class EngineeringWorkbenchScreen
 
         selectedNodeId =
                 -1;
-        pendingSourceId =
-                -1;
+        clearPendingConnection();
         draggingNodeId =
                 -1;
 
