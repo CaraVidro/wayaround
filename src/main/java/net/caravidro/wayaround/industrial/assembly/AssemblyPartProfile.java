@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.assembly;
 
+import net.caravidro.wayaround.industrial.material.IndustrialMetalGrade;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -106,6 +107,101 @@ public final class AssemblyPartProfile {
 
         return new AssemblyPartProfile(kind, material, sourceItem, orientation, resistance, alignment,
                 0.0F, quality, balance, tension, 0.0F);
+    }
+
+    public static AssemblyPartProfile gradedIron(
+            Kind kind,
+            ResourceLocation sourceItem,
+            int orientation,
+            RandomSource random,
+            IndustrialMetalGrade grade
+    ) {
+        IndustrialMetalGrade effective =
+                grade == null
+                        ? IndustrialMetalGrade.LOW
+                        : grade;
+
+        float quality =
+                clamp01(
+                        effective.workmanshipFloor()
+                                + random.nextFloat()
+                                        * (
+                                        effective == IndustrialMetalGrade.HIGH
+                                                ? 0.035F
+                                                : 0.075F
+                                )
+                );
+
+        float resistance =
+                clamp01(
+                        Material.IRON.resistance()
+                                * (
+                                0.74F
+                                        + quality
+                                                * 0.26F
+                        )
+                                * effective.resistanceMultiplier()
+                );
+
+        float alignment =
+                clamp01(
+                        0.58F
+                                + quality
+                                        * 0.34F
+                                + (
+                                random.nextFloat()
+                                        - 0.5F
+                        )
+                                        * 0.05F
+                );
+
+        float balance =
+                clamp01(
+                        0.56F
+                                + quality
+                                        * 0.36F
+                                + (
+                                random.nextFloat()
+                                        - 0.5F
+                        )
+                                        * 0.05F
+                );
+
+        float fatigue =
+                clamp01(
+                        (
+                                1.0F
+                                        - effective.fatigueFactor()
+                        )
+                                * 0.22F
+                                + (
+                                effective == IndustrialMetalGrade.LOW
+                                        ? random.nextFloat()
+                                                * 0.045F
+                                        : random.nextFloat()
+                                                * 0.015F
+                        )
+                );
+
+        return new AssemblyPartProfile(
+                kind,
+                Material.IRON,
+                sourceItem,
+                orientation,
+                resistance,
+                alignment,
+                0.0F,
+                quality,
+                balance,
+                kind == Kind.FASTENER
+                        ? 0.78F
+                                + quality
+                                        * 0.14F
+                        : 0.48F
+                                + quality
+                                        * 0.28F,
+                fatigue
+        );
     }
 
     public static AssemblyPartProfile knappedStone(
