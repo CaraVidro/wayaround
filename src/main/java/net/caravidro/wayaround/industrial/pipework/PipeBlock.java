@@ -230,7 +230,7 @@ public final class PipeBlock
     ) {
         if (!(level.getBlockEntity(pos)
                 instanceof PipeBlockEntity pipe)) {
-            return InteractionResult.PASS;
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
         if (!level.isClientSide) {
