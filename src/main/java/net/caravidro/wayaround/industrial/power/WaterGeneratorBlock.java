@@ -37,7 +37,7 @@ public final class WaterGeneratorBlock
     protected RenderShape getRenderShape(
             BlockState state
     ) {
-        return RenderShape.MODEL;
+        return RenderShape.INVISIBLE;
     }
 
     @Override
