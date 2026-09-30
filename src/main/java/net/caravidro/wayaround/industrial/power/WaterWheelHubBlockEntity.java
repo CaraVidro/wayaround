@@ -12,6 +12,9 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.AssemblyAdvancements;
 import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
 import net.caravidro.wayaround.industrial.assembly.AssemblyEngine;
+import net.caravidro.wayaround.industrial.assembly.AssemblyFailureEvent;
+import net.caravidro.wayaround.industrial.assembly.AssemblyFailureMode;
+import net.caravidro.wayaround.industrial.assembly.AssemblyLoadCase;
 import net.caravidro.wayaround.industrial.assembly.AssemblyHistory;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
@@ -264,6 +267,10 @@ public final class WaterWheelHubBlockEntity
                 20
         ) == 0) {
             hub.applyWear(
+                    server
+            );
+
+            hub.evaluateLocalizedAssemblyFailure(
                     server
             );
         }
@@ -2548,6 +2555,367 @@ public final class WaterWheelHubBlockEntity
 
         if (changed) {
             setChanged();
+        }
+    }
+
+    private void evaluateLocalizedAssemblyFailure(
+            ServerLevel level
+    ) {
+        float load =
+                currentAssemblyLoad();
+
+        if (load < 0.28F
+                || plates.isEmpty()) {
+            return;
+        }
+
+        float cyclicity =
+                Mth.clamp(
+                        Math.abs(
+                                rpm
+                        )
+                                / 22.0F
+                                + Math.abs(
+                                rpmDelta
+                        )
+                                        / 18.0F,
+                        0.0F,
+                        1.0F
+                );
+
+        AssemblyLoadCase loadCase =
+                AssemblyLoadCase.mechanical(
+                        load,
+                        Vec3.ZERO,
+                        cyclicity
+                );
+
+        AssemblyEngine.dispatchFailure(
+                this,
+                loadCase
+        );
+    }
+
+    @Override
+    public void applyAssemblyFailure(
+            AssemblyFailureEvent failure
+    ) {
+        if (failure == null
+                || !(level instanceof ServerLevel server)) {
+            return;
+        }
+
+        boolean changed =
+                false;
+
+        int plateIndex =
+                plateIndexFromFailure(
+                        failure
+                );
+
+        if (failure.target()
+                == AssemblyFailureEvent.Target.CONNECTION
+                && plateIndex >= 0
+                && plateIndex < plates.size()) {
+
+            Plate plate =
+                    plates.get(
+                            plateIndex
+                    );
+
+            float severity =
+                    Mth.clamp(
+                            failure.severity(),
+                            0.0F,
+                            4.0F
+                    );
+
+            if (failure.mode()
+                    == AssemblyFailureMode.PULL_OUT
+                    || failure.mode()
+                    == AssemblyFailureMode.DETACH
+                    || failure.mode()
+                    == AssemblyFailureMode.SHEAR
+                    || failure.mode()
+                    == AssemblyFailureMode.SLIP) {
+
+                plate.looseSwingVelocity +=
+                        (
+                                server.random.nextBoolean()
+                                        ? 1.0F
+                                        : -1.0F
+                        )
+                                * (
+                                0.55F
+                                        + severity
+                                                * 0.85F
+                        );
+
+                if (plate.nailed
+                        && !plate.nail.isEmpty()) {
+                    int durability =
+                            Math.max(
+                                    1,
+                                    AssemblyItemData.nailDurability(
+                                            plate.nail
+                                    )
+                            );
+
+                    plate.nailWear +=
+                            Math.max(
+                                    1,
+                                    Math.round(
+                                            durability
+                                                    * (
+                                                    0.18F
+                                                            + severity
+                                                                    * 0.34F
+                                            )
+                                    )
+                            );
+
+                    if (failure.mode()
+                            == AssemblyFailureMode.PULL_OUT
+                            || failure.mode()
+                            == AssemblyFailureMode.DETACH
+                            || failure.severity() > 0.90F
+                            || plate.nailWear >= durability) {
+
+                        plate.nailed =
+                                false;
+
+                        plate.nail =
+                                ItemStack.EMPTY;
+
+                        plate.nailWear =
+                                0;
+                    }
+                } else {
+                    plate.nailed =
+                            false;
+                }
+
+                plate.profile.applyWear(
+                        0.025F
+                                + severity
+                                        * 0.045F
+                );
+
+                changed =
+                        true;
+            }
+        }
+
+        if (failure.target()
+                == AssemblyFailureEvent.Target.PART) {
+
+            if (plateIndex >= 0
+                    && plateIndex < plates.size()) {
+
+                Plate plate =
+                        plates.get(
+                                plateIndex
+                        );
+
+                float severity =
+                        Mth.clamp(
+                                failure.severity(),
+                                0.0F,
+                                4.0F
+                        );
+
+                plate.profile.applyWear(
+                        0.045F
+                                + severity
+                                        * 0.085F
+                );
+
+                plate.wear =
+                        Math.max(
+                                plate.wear,
+                                Math.round(
+                                        plate.profile.wear()
+                                                * AssemblyItemData.MAX_COMPONENT_WEAR
+                                )
+                        );
+
+                plate.looseSwingVelocity +=
+                        (
+                                server.random.nextBoolean()
+                                        ? 1.0F
+                                        : -1.0F
+                        )
+                                * (
+                                0.45F
+                                        + severity
+                                                * 0.65F
+                        );
+
+                if (destructivePartFailure(
+                        failure.mode()
+                )
+                        && failure.severity() > 0.20F) {
+
+                    plates.remove(
+                            plateIndex
+                    );
+
+                    server.playSound(
+                            null,
+                            worldPosition,
+                            SoundEvents.WOOD_BREAK,
+                            SoundSource.BLOCKS,
+                            0.95F,
+                            0.68F
+                                    + server.random.nextFloat()
+                                            * 0.12F
+                    );
+
+                    server.sendParticles(
+                            ParticleTypes.BLOCK,
+                            worldPosition.getX()
+                                    + 0.5,
+                            worldPosition.getY()
+                                    + 0.5,
+                            worldPosition.getZ()
+                                    + 0.5,
+                            8,
+                            0.65,
+                            0.65,
+                            0.65,
+                            0.05
+                    );
+                }
+
+                changed =
+                        true;
+            } else if ("frame".equals(
+                    failure.targetId()
+            )) {
+
+                frameWear =
+                        Math.min(
+                                AssemblyItemData.MAX_COMPONENT_WEAR,
+                                frameWear
+                                        + Math.max(
+                                        80,
+                                        Math.round(
+                                                320.0F
+                                                        + failure.severity()
+                                                                * 1_150.0F
+                                        )
+                                )
+                        );
+
+                if (destructivePartFailure(
+                        failure.mode()
+                )
+                        && failure.severity() > 0.65F) {
+                    failureCountdown =
+                            failureCountdown < 0
+                                    ? 36
+                                    : Math.min(
+                                    failureCountdown,
+                                    36
+                            );
+                }
+
+                changed =
+                        true;
+            }
+        }
+
+        if (!changed) {
+            AssemblyMachine.super.applyAssemblyFailure(
+                    failure
+            );
+
+            return;
+        }
+
+        AssemblyHistory.recordFailure(
+                server,
+                this,
+                "localized_"
+                        + failure.mode()
+                                .name()
+                                .toLowerCase(
+                                        Locale.ROOT
+                                )
+                        + "_"
+                        + failure.targetId()
+        );
+
+        sync();
+    }
+
+    private static boolean destructivePartFailure(
+            AssemblyFailureMode mode
+    ) {
+        return mode == AssemblyFailureMode.SPLIT
+                || mode == AssemblyFailureMode.FRACTURE
+                || mode == AssemblyFailureMode.SNAP
+                || mode == AssemblyFailureMode.RUPTURE
+                || mode == AssemblyFailureMode.TEAR;
+    }
+
+    private int plateIndexFromFailure(
+            AssemblyFailureEvent failure
+    ) {
+        int index =
+                plateIndexFromId(
+                        failure.targetId()
+                );
+
+        if (index >= 0) {
+            return index;
+        }
+
+        index =
+                plateIndexFromId(
+                        failure.firstPart()
+                );
+
+        if (index >= 0) {
+            return index;
+        }
+
+        return plateIndexFromId(
+                failure.secondPart()
+        );
+    }
+
+    private static int plateIndexFromId(
+            String id
+    ) {
+        if (id == null
+                || !id.startsWith(
+                "plate_"
+        )) {
+            return -1;
+        }
+
+        int end =
+                id.indexOf(
+                        '<'
+                );
+
+        String value =
+                end > 6
+                        ? id.substring(
+                        6,
+                        end
+                )
+                        : id.substring(
+                        6
+                );
+
+        try {
+            return Integer.parseInt(
+                    value
+            );
+        } catch (NumberFormatException ignored) {
+            return -1;
         }
     }
 
