@@ -18,6 +18,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
@@ -132,6 +135,12 @@ public final class WaterGeneratorBlockEntity
         int oldEnergy =
                 generator.buffer.stored();
 
+        int oldGeneration =
+                generator.generationPerTick;
+
+        boolean oldConnected =
+                generator.mechanicalConnected;
+
         float mechanical =
                 0.0F;
 
@@ -231,6 +240,19 @@ public final class WaterGeneratorBlockEntity
         if (oldEnergy
                 != generator.buffer.stored()) {
             generator.setChanged();
+        }
+
+        if ((oldGeneration
+                != generator.generationPerTick
+                || oldConnected
+                        != generator.mechanicalConnected)
+                && Math.floorMod(
+                level.getGameTime()
+                        + pos.asLong(),
+                3
+        ) == 0) {
+
+            generator.sync();
         }
     }
 
@@ -339,6 +361,14 @@ public final class WaterGeneratorBlockEntity
         setChanged();
     }
 
+    public int generationPerTick() {
+        return generationPerTick;
+    }
+
+    public boolean mechanicalConnected() {
+        return mechanicalConnected;
+    }
+
     public Component status() {
         return Component.translatable(
                 "message.wayaround.water_generator.status_v1",
@@ -379,6 +409,11 @@ public final class WaterGeneratorBlockEntity
                 "AssemblyWear",
                 assemblyWear
         );
+
+        tag.putBoolean(
+                "MechanicalConnected",
+                mechanicalConnected
+        );
     }
 
     @Override
@@ -414,5 +449,48 @@ public final class WaterGeneratorBlockEntity
                         0.0F,
                         1.0F
                 );
+
+        mechanicalConnected =
+                tag.getBoolean(
+                        "MechanicalConnected"
+                );
+    }
+
+    private void sync() {
+        setChanged();
+
+        if (level != null) {
+            BlockState state =
+                    getBlockState();
+
+            level.sendBlockUpdated(
+                    worldPosition,
+                    state,
+                    state,
+                    3
+            );
+        }
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(
+            HolderLookup.Provider registries
+    ) {
+        CompoundTag tag =
+                new CompoundTag();
+
+        saveAdditional(
+                tag,
+                registries
+        );
+
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(
+                this
+        );
     }
 }
