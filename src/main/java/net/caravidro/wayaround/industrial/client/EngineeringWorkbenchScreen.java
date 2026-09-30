@@ -20,38 +20,24 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 
 public final class EngineeringWorkbenchScreen
         extends AbstractContainerScreen<EngineeringWorkbenchMenu> {
 
-    private static final int CATALOG_WIDTH =
-            126;
+    private static final int CATALOG_WIDTH = 126;
+    private static final int PROPERTY_WIDTH = 166;
+    private static final int TOP = 28;
+    private static final int BOTTOM_TOOLBAR_HEIGHT = 54;
+    private static final int NODE_WIDTH = 104;
+    private static final int NODE_HEADER = 15;
+    private static final int NODE_INPUT_SPACING = 10;
+    private static final int CATALOG_ROW = 21;
 
-    private static final int PROPERTY_WIDTH =
-            166;
-
-    private static final int TOP =
-            28;
-
-    private static final int BOTTOM_TOOLBAR_HEIGHT =
-            54;
-
-    private static final int NODE_WIDTH =
-            104;
-
-    private static final int NODE_HEADER =
-            15;
-
-    private static final int NODE_INPUT_SPACING =
-            10;
-
-    private static final int CATALOG_ROW =
-            21;
+    private static final double MIN_ZOOM = 0.45;
+    private static final double MAX_ZOOM = 2.40;
 
     private static final List<NodeType> PALETTE =
             List.of(
@@ -88,27 +74,31 @@ public final class EngineeringWorkbenchScreen
 
     private EditBox searchBox;
     private EditBox valueBox;
+    private Button recommendedButton;
+    private Button visualButton;
 
-    private boolean recommendedOnly =
-            true;
-
-    private boolean visualMode =
-            true;
+    private boolean recommendedOnly = true;
+    private boolean visualMode = true;
 
     private int catalogScroll;
     private int propertyScroll;
+    private int selectedNodeId = -1;
+    private int pendingSourceId = -1;
 
-    private int selectedNodeId =
-            -1;
+    private int draggingNodeId = -1;
+    private double dragNodeOffsetX;
+    private double dragNodeOffsetY;
 
-    private int pendingSourceId =
-            -1;
+    private EngineeringBlockProfile draggingCatalogProfile;
+    private NodeType draggingPaletteType;
 
-    private int draggingNodeId =
-            -1;
+    private boolean panningCanvas;
+    private double lastPanMouseX;
+    private double lastPanMouseY;
 
-    private int dragOffsetX;
-    private int dragOffsetY;
+    private double canvasZoom = 1.0;
+    private double canvasPanX;
+    private double canvasPanY;
 
     private boolean syncingValueBox;
 
@@ -117,17 +107,9 @@ public final class EngineeringWorkbenchScreen
             Inventory inventory,
             Component title
     ) {
-        super(
-                menu,
-                inventory,
-                title
-        );
-
-        imageWidth =
-                580;
-
-        imageHeight =
-                318;
+        super(menu, inventory, title);
+        imageWidth = 580;
+        imageHeight = 318;
     }
 
     @Override
@@ -156,16 +138,12 @@ public final class EngineeringWorkbenchScreen
 
         searchBox.setResponder(
                 value -> {
-                    catalogScroll =
-                            0;
-
+                    catalogScroll = 0;
                     refreshFilter();
                 }
         );
 
-        addRenderableWidget(
-                searchBox
-        );
+        addRenderableWidget(searchBox);
 
         valueBox =
                 new EditBox(
@@ -179,28 +157,17 @@ public final class EngineeringWorkbenchScreen
                         )
                 );
 
-        valueBox.setVisible(
-                false
-        );
+        valueBox.setVisible(false);
+        valueBox.setResponder(this::updateLiteralFromEditor);
+        addRenderableWidget(valueBox);
 
-        valueBox.setResponder(
-                value -> updateLiteralFromEditor(
-                        value
-                )
-        );
-
-        addRenderableWidget(
-                valueBox
-        );
-
-        addRenderableWidget(
+        recommendedButton =
                 Button.builder(
                                 Component.translatable(
                                         "container.wayaround.engineering.recommended"
                                 ),
                                 button -> {
-                                    recommendedOnly =
-                                            !recommendedOnly;
+                                    recommendedOnly = !recommendedOnly;
 
                                     button.setMessage(
                                             Component.translatable(
@@ -210,9 +177,7 @@ public final class EngineeringWorkbenchScreen
                                             )
                                     );
 
-                                    catalogScroll =
-                                            0;
-
+                                    catalogScroll = 0;
                                     refreshFilter();
                                 }
                         )
@@ -222,17 +187,17 @@ public final class EngineeringWorkbenchScreen
                                 112,
                                 20
                         )
-                        .build()
-        );
+                        .build();
 
-        addRenderableWidget(
+        addRenderableWidget(recommendedButton);
+
+        visualButton =
                 Button.builder(
                                 Component.translatable(
                                         "container.wayaround.engineering.visual"
                                 ),
                                 button -> {
-                                    visualMode =
-                                            !visualMode;
+                                    visualMode = !visualMode;
 
                                     button.setMessage(
                                             Component.translatable(
@@ -249,15 +214,11 @@ public final class EngineeringWorkbenchScreen
                                 88,
                                 20
                         )
-                        .build()
-        );
+                        .build();
 
-        /*
-         * A new project is not a totally empty void. One meter starts as the
-         * simplest possible geometric idea: a point carrying the value 1.
-         */
-        if (graph.nodes()
-                .isEmpty()) {
+        addRenderableWidget(visualButton);
+
+        if (graph.nodes().isEmpty()) {
             Node starter =
                     graph.add(
                             NodeType.CONSTANT,
@@ -268,9 +229,7 @@ public final class EngineeringWorkbenchScreen
                             "m"
                     );
 
-            selectNode(
-                    starter.id()
-            );
+            selectNode(starter.id());
         }
 
         refreshFilter();
@@ -279,31 +238,21 @@ public final class EngineeringWorkbenchScreen
     private void buildCatalog() {
         catalog.clear();
 
-        for (Block block :
-                BuiltInRegistries.BLOCK) {
-
-            if (!EngineeringBlockProfile.catalogVisible(
-                    block
-            )) {
+        for (Block block : BuiltInRegistries.BLOCK) {
+            if (!EngineeringBlockProfile.catalogVisible(block)) {
                 continue;
             }
 
             catalog.add(
-                    EngineeringBlockProfile.inspect(
-                            block
-                    )
+                    EngineeringBlockProfile.inspect(block)
             );
         }
 
         catalog.sort(
                 Comparator
-                        .comparingInt(
-                                this::recommendedRank
-                        )
+                        .comparingInt(this::recommendedRank)
                         .thenComparing(
-                                profile -> displayName(
-                                        profile.block()
-                                ),
+                                profile -> displayName(profile.block()),
                                 String.CASE_INSENSITIVE_ORDER
                         )
         );
@@ -317,62 +266,41 @@ public final class EngineeringWorkbenchScreen
                         ? ""
                         : searchBox.getValue()
                                 .trim()
-                                .toLowerCase(
-                                        Locale.ROOT
-                                );
+                                .toLowerCase(Locale.ROOT);
 
-        for (EngineeringBlockProfile profile :
-                catalog) {
-
+        for (EngineeringBlockProfile profile : catalog) {
             if (recommendedOnly
-                    && recommendedRank(
-                    profile
-            ) >= 1000) {
+                    && recommendedRank(profile) >= 1000) {
                 continue;
             }
 
             String name =
-                    displayName(
-                            profile.block()
-                    )
-                            .toLowerCase(
-                                    Locale.ROOT
-                            );
+                    displayName(profile.block())
+                            .toLowerCase(Locale.ROOT);
 
             String id =
                     profile.id()
                             .toString()
-                            .toLowerCase(
-                                    Locale.ROOT
-                            );
+                            .toLowerCase(Locale.ROOT);
 
             if (!query.isEmpty()
-                    && !name.contains(
-                    query
-            )
-                    && !id.contains(
-                    query
-            )) {
+                    && !name.contains(query)
+                    && !id.contains(query)) {
                 continue;
             }
 
-            filtered.add(
-                    profile
-            );
+            filtered.add(profile);
         }
-
-        int maximum =
-                Math.max(
-                        0,
-                        filtered.size()
-                                - visibleCatalogRows()
-                );
 
         catalogScroll =
                 Math.clamp(
                         catalogScroll,
                         0,
-                        maximum
+                        Math.max(
+                                0,
+                                filtered.size()
+                                        - visibleCatalogRows()
+                        )
                 );
     }
 
@@ -383,51 +311,26 @@ public final class EngineeringWorkbenchScreen
             int mouseX,
             int mouseY
     ) {
-        int x =
-                leftPos;
-
-        int y =
-                topPos;
-
         graphics.fill(
-                x,
-                y,
-                x + imageWidth,
-                y + imageHeight,
+                leftPos,
+                topPos,
+                leftPos + imageWidth,
+                topPos + imageHeight,
                 0xFF171A1E
         );
 
         graphics.fill(
-                x + 3,
-                y + 3,
-                x + imageWidth - 3,
-                y + imageHeight - 3,
+                leftPos + 3,
+                topPos + 3,
+                leftPos + imageWidth - 3,
+                topPos + imageHeight - 3,
                 0xFF242A30
         );
 
-        renderCatalog(
-                graphics,
-                mouseX,
-                mouseY
-        );
-
-        renderCanvas(
-                graphics,
-                mouseX,
-                mouseY
-        );
-
-        renderProperties(
-                graphics,
-                mouseX,
-                mouseY
-        );
-
-        renderPalette(
-                graphics,
-                mouseX,
-                mouseY
-        );
+        renderCatalog(graphics, mouseX, mouseY);
+        renderCanvas(graphics, mouseX, mouseY);
+        renderProperties(graphics, mouseX, mouseY);
+        renderPalette(graphics, mouseX, mouseY);
     }
 
     private void renderCatalog(
@@ -435,17 +338,14 @@ public final class EngineeringWorkbenchScreen
             int mouseX,
             int mouseY
     ) {
-        int x =
-                leftPos;
-
-        int y =
-                topPos;
+        int startY =
+                topPos + 66;
 
         graphics.fill(
-                x + 4,
-                y + TOP,
-                x + CATALOG_WIDTH,
-                y + imageHeight - 4,
+                leftPos + 4,
+                topPos + TOP,
+                leftPos + CATALOG_WIDTH,
+                topPos + imageHeight - 4,
                 0xFF1B2026
         );
 
@@ -454,87 +354,74 @@ public final class EngineeringWorkbenchScreen
                 Component.translatable(
                         "container.wayaround.engineering.catalog"
                 ),
-                x + 9,
-                y + 53,
+                leftPos + 9,
+                topPos + 53,
                 0xFFBFD6E5,
                 false
         );
 
-        int startY =
-                y + 66;
-
         int rows =
                 visibleCatalogRows();
 
-        for (int row =
-                     0;
-             row < rows;
-             row++) {
-
+        for (int row = 0; row < rows; row++) {
             int index =
-                    catalogScroll
-                            + row;
+                    catalogScroll + row;
 
             if (index >= filtered.size()) {
                 break;
             }
 
             EngineeringBlockProfile profile =
-                    filtered.get(
-                            index
-                    );
+                    filtered.get(index);
 
             int rowY =
-                    startY
-                            + row
-                                    * CATALOG_ROW;
+                    startY + row * CATALOG_ROW;
 
             boolean hovered =
                     inside(
                             mouseX,
                             mouseY,
-                            x + 7,
+                            leftPos + 7,
                             rowY,
                             CATALOG_WIDTH - 14,
                             CATALOG_ROW - 2
                     );
 
+            boolean dragging =
+                    draggingCatalogProfile == profile;
+
             graphics.fill(
-                    x + 7,
+                    leftPos + 7,
                     rowY,
-                    x + CATALOG_WIDTH - 7,
+                    leftPos + CATALOG_WIDTH - 7,
                     rowY + CATALOG_ROW - 2,
-                    hovered
-                            ? 0xFF3A4B58
-                            : 0xFF2A323A
+                    dragging
+                            ? 0xFF496B55
+                            : hovered
+                                    ? 0xFF3A4B58
+                                    : 0xFF2A323A
             );
 
             ItemStack stack =
                     new ItemStack(
-                            profile.block()
-                                    .asItem()
+                            profile.block().asItem()
                     );
 
             if (!stack.isEmpty()) {
                 graphics.renderItem(
                         stack,
-                        x + 9,
+                        leftPos + 9,
                         rowY + 1
                 );
             }
 
-            String name =
-                    trim(
-                            displayName(
-                                    profile.block()
-                            ),
-                            14
-                    );
-
             graphics.drawString(
                     font,
-                    name,
-                    x + 28,
+                    trim(
+                            displayName(profile.block()),
+                            14
+                    ),
+                    leftPos + 28,
                     rowY + 5,
                     hovered
                             ? 0xFFFFFFFF
@@ -549,7 +436,7 @@ public final class EngineeringWorkbenchScreen
                     Component.translatable(
                             "container.wayaround.engineering.no_results"
                     ),
-                    x + 10,
+                    leftPos + 10,
                     startY + 8,
                     0xFF8D9BA4,
                     false
@@ -562,19 +449,10 @@ public final class EngineeringWorkbenchScreen
             int mouseX,
             int mouseY
     ) {
-        int x0 =
-                canvasX();
-
-        int y0 =
-                canvasY();
-
-        int x1 =
-                canvasX()
-                        + canvasWidth();
-
-        int y1 =
-                canvasY()
-                        + canvasHeight();
+        int x0 = canvasX();
+        int y0 = canvasY();
+        int x1 = x0 + canvasWidth();
+        int y1 = y0 + canvasHeight();
 
         graphics.fill(
                 x0,
@@ -584,44 +462,63 @@ public final class EngineeringWorkbenchScreen
                 0xFF101419
         );
 
-        for (int x =
-                     x0;
-             x < x1;
-             x += 12) {
-            for (int y =
-                         y0;
-                 y < y1;
-                 y += 12) {
-
-                graphics.fill(
-                        x,
-                        y,
-                        x + 1,
-                        y + 1,
-                        0xFF28313A
-                );
-            }
-        }
-
-        renderConnections(
-                graphics
+        renderGrid(
+                graphics,
+                x0,
+                y0,
+                x1,
+                y1
         );
 
-        for (Node node :
-                graph.nodes()) {
-            renderNode(
+        graphics.enableScissor(
+                x0,
+                y0,
+                x1,
+                y1
+        );
+
+        graphics.pose().pushPose();
+        graphics.pose().translate(
+                (float) (x0 + canvasPanX),
+                (float) (y0 + canvasPanY),
+                0.0F
+        );
+        graphics.pose().scale(
+                (float) canvasZoom,
+                (float) canvasZoom,
+                1.0F
+        );
+
+        renderConnectionsLocal(graphics);
+
+        for (Node node : graph.nodes()) {
+            renderNodeLocal(
                     graphics,
-                    node,
-                    mouseX,
-                    mouseY
+                    node
             );
         }
 
+        graphics.pose().popPose();
+        graphics.disableScissor();
+
         if (visualMode) {
-            renderVisualPreview(
-                    graphics
-            );
+            renderVisualPreview(graphics);
         }
+
+        graphics.drawString(
+                font,
+                Component.literal(
+                        String.format(
+                                Locale.ROOT,
+                                "%.0f%%",
+                                canvasZoom * 100.0
+                        )
+                ),
+                x1 - 37,
+                y1 - 12,
+                0xFF70808A,
+                false
+        );
 
         if (pendingSourceId >= 0) {
             graphics.drawString(
@@ -637,22 +534,63 @@ public final class EngineeringWorkbenchScreen
         }
     }
 
-    private void renderConnections(
+    private void renderGrid(
+            GuiGraphics graphics,
+            int x0,
+            int y0,
+            int x1,
+            int y1
+    ) {
+        double spacing =
+                Math.max(
+                        7.0,
+                        18.0 * canvasZoom
+                );
+
+        double startX =
+                x0
+                        + positiveMod(
+                        canvasPanX,
+                        spacing
+                );
+
+        double startY =
+                y0
+                        + positiveMod(
+                        canvasPanY,
+                        spacing
+                );
+
+        for (double x = startX;
+             x < x1;
+             x += spacing) {
+
+            for (double y = startY;
+                 y < y1;
+                 y += spacing) {
+
+                graphics.fill(
+                        (int) Math.round(x),
+                        (int) Math.round(y),
+                        (int) Math.round(x) + 1,
+                        (int) Math.round(y) + 1,
+                        0xFF28313A
+                );
+            }
+        }
+    }
+
+    private void renderConnectionsLocal(
             GuiGraphics graphics
     ) {
-        for (Node target :
-                graph.nodes()) {
-
-            for (int slot =
-                         0;
+        for (Node target : graph.nodes()) {
+            for (int slot = 0;
                  slot < target.inputCount();
                  slot++) {
 
                 Node source =
                         graph.node(
-                                target.input(
-                                        slot
-                                )
+                                target.input(slot)
                         );
 
                 if (source == null) {
@@ -660,27 +598,19 @@ public final class EngineeringWorkbenchScreen
                 }
 
                 int sx =
-                        nodeScreenX(
-                                source
-                        )
+                        source.x()
                                 + NODE_WIDTH;
 
                 int sy =
-                        nodeScreenY(
-                                source
-                        )
-                                + nodeHeight(
-                                source
-                        )
-                                / 2;
+                        source.y()
+                                + nodeHeight(source)
+                                        / 2;
 
                 int tx =
-                        nodeScreenX(
-                                target
-                        );
+                        target.x();
 
                 int ty =
-                        inputPortY(
+                        inputPortYLocal(
                                 target,
                                 slot
                         );
@@ -719,26 +649,18 @@ public final class EngineeringWorkbenchScreen
         }
     }
 
-    private void renderNode(
+    private void renderNodeLocal(
             GuiGraphics graphics,
-            Node node,
-            int mouseX,
-            int mouseY
+            Node node
     ) {
         int x =
-                nodeScreenX(
-                        node
-                );
+                node.x();
 
         int y =
-                nodeScreenY(
-                        node
-                );
+                node.y();
 
         int height =
-                nodeHeight(
-                        node
-                );
+                nodeHeight(node);
 
         boolean selected =
                 node.id()
@@ -790,8 +712,7 @@ public final class EngineeringWorkbenchScreen
                         node.result()
                 )
                         + (
-                        node.unit()
-                                .isEmpty()
+                        node.unit().isEmpty()
                                 ? ""
                                 : " "
                                         + node.unit()
@@ -805,21 +726,18 @@ public final class EngineeringWorkbenchScreen
                 ),
                 x + 6,
                 y + height - 11,
-                Double.isFinite(
-                        node.result()
-                )
+                Double.isFinite(node.result())
                         ? 0xFF8FE38F
                         : 0xFFFF7474,
                 false
         );
 
-        for (int slot =
-                     0;
+        for (int slot = 0;
              slot < node.inputCount();
              slot++) {
 
             int portY =
-                    inputPortY(
+                    inputPortYLocal(
                             node,
                             slot
                     );
@@ -829,9 +747,7 @@ public final class EngineeringWorkbenchScreen
                     portY - 2,
                     x + 3,
                     portY + 3,
-                    node.input(
-                            slot
-                    ) >= 0
+                    node.input(slot) >= 0
                             ? 0xFF66C8FF
                             : 0xFF78848E
             );
@@ -854,8 +770,7 @@ public final class EngineeringWorkbenchScreen
                 y + height / 2 - 2,
                 x + NODE_WIDTH + 3,
                 y + height / 2 + 3,
-                pendingSourceId
-                        == node.id()
+                pendingSourceId == node.id()
                         ? 0xFFFFC45B
                         : 0xFF8FE38F
         );
@@ -871,14 +786,11 @@ public final class EngineeringWorkbenchScreen
                         + imageWidth
                         - PROPERTY_WIDTH;
 
-        int y =
-                topPos;
-
         graphics.fill(
                 x,
-                y + TOP,
+                topPos + TOP,
                 leftPos + imageWidth - 4,
-                y + imageHeight - 4,
+                topPos + imageHeight - 4,
                 0xFF1B2026
         );
 
@@ -888,20 +800,16 @@ public final class EngineeringWorkbenchScreen
                         "container.wayaround.engineering.properties"
                 ),
                 x + 8,
-                y + 35,
+                topPos + 35,
                 0xFFBFD6E5,
                 false
         );
 
         Node selected =
-                graph.node(
-                        selectedNodeId
-                );
+                graph.node(selectedNodeId);
 
         if (selected == null) {
-            valueBox.setVisible(
-                    false
-            );
+            valueBox.setVisible(false);
 
             graphics.drawString(
                     font,
@@ -909,7 +817,7 @@ public final class EngineeringWorkbenchScreen
                             "container.wayaround.engineering.select_hint"
                     ),
                     x + 8,
-                    y + 52,
+                    topPos + 52,
                     0xFF8998A3,
                     false
             );
@@ -918,31 +826,26 @@ public final class EngineeringWorkbenchScreen
         }
 
         EngineeringBlockProfile profile =
-                blockNodes.get(
-                        selected.id()
-                );
+                blockNodes.get(selected.id());
 
         if (profile != null) {
-            valueBox.setVisible(
-                    false
-            );
+            valueBox.setVisible(false);
 
             renderBlockProperties(
                     graphics,
                     selected,
                     profile,
                     x + 7,
-                    y + 50,
+                    topPos + 50,
                     mouseX,
                     mouseY
             );
-
         } else {
             renderCalculationProperties(
                     graphics,
                     selected,
                     x + 8,
-                    y + 53
+                    topPos + 53
             );
         }
     }
@@ -958,8 +861,7 @@ public final class EngineeringWorkbenchScreen
     ) {
         ItemStack stack =
                 new ItemStack(
-                        profile.block()
-                                .asItem()
+                        profile.block().asItem()
                 );
 
         if (!stack.isEmpty()) {
@@ -973,9 +875,7 @@ public final class EngineeringWorkbenchScreen
         graphics.drawString(
                 font,
                 trim(
-                        displayName(
-                                profile.block()
-                        ),
+                        displayName(profile.block()),
                         19
                 ),
                 x + 20,
@@ -986,8 +886,10 @@ public final class EngineeringWorkbenchScreen
 
         graphics.drawString(
                 font,
-                profile.id()
-                        .toString(),
+                trim(
+                        profile.id().toString(),
+                        23
+                ),
                 x,
                 y + 21,
                 0xFF71808C,
@@ -997,14 +899,11 @@ public final class EngineeringWorkbenchScreen
         int listY =
                 y + 35;
 
-        int available =
-                imageHeight
-                        - 96;
-
         int rows =
                 Math.max(
                         1,
-                        available / 22
+                        (imageHeight - 96)
+                                / 22
                 );
 
         List<EngineeringBlockProfile.Property> properties =
@@ -1021,34 +920,27 @@ public final class EngineeringWorkbenchScreen
                         )
                 );
 
-        for (int row =
-                     0;
+        for (int row = 0;
              row < rows;
              row++) {
 
             int index =
-                    propertyScroll
-                            + row;
+                    propertyScroll + row;
 
             if (index >= properties.size()) {
                 break;
             }
 
             EngineeringBlockProfile.Property property =
-                    properties.get(
-                            index
-                    );
+                    properties.get(index);
 
             int rowY =
-                    listY
-                            + row * 22;
+                    listY + row * 22;
 
             boolean active =
                     property.key()
                             .equals(
-                                    blockProperties.get(
-                                            node.id()
-                                    )
+                                    blockProperties.get(node.id())
                             );
 
             boolean hovered =
@@ -1092,8 +984,7 @@ public final class EngineeringWorkbenchScreen
             String value =
                     property.display()
                             + (
-                            property.unit()
-                                    .isEmpty()
+                            property.unit().isEmpty()
                                     ? ""
                                     : " "
                                             + property.unit()
@@ -1134,8 +1025,7 @@ public final class EngineeringWorkbenchScreen
     ) {
         graphics.drawString(
                 font,
-                node.type()
-                        .label(),
+                node.type().label(),
                 x,
                 y,
                 0xFFFFFFFF,
@@ -1146,12 +1036,9 @@ public final class EngineeringWorkbenchScreen
                 font,
                 Component.literal(
                         "Result: "
-                                + formatNumber(
-                                node.result()
-                        )
+                                + formatNumber(node.result())
                                 + (
-                                node.unit()
-                                        .isEmpty()
+                                node.unit().isEmpty()
                                         ? ""
                                         : " "
                                                 + node.unit()
@@ -1165,9 +1052,7 @@ public final class EngineeringWorkbenchScreen
 
         graphics.drawString(
                 font,
-                calculationExplanation(
-                        node.type()
-                ),
+                calculationExplanation(node.type()),
                 x,
                 y + 31,
                 0xFF9EADB7,
@@ -1178,29 +1063,20 @@ public final class EngineeringWorkbenchScreen
                 node.type()
                         == NodeType.CONSTANT;
 
-        valueBox.setVisible(
-                editable
-        );
+        valueBox.setVisible(editable);
 
         if (editable
                 && !valueBox.isFocused()) {
+
             String expected =
-                    formatEditable(
-                            node.literal()
-                    );
+                    formatEditable(node.literal());
 
             if (!expected.equals(
                     valueBox.getValue()
             )) {
-                syncingValueBox =
-                        true;
-
-                valueBox.setValue(
-                        expected
-                );
-
-                syncingValueBox =
-                        false;
+                syncingValueBox = true;
+                valueBox.setValue(expected);
+                syncingValueBox = false;
             }
         }
 
@@ -1264,14 +1140,10 @@ public final class EngineeringWorkbenchScreen
                 false
         );
 
-        int cellWidth =
-                58;
+        int cellWidth = 58;
+        int rowHeight = 18;
 
-        int rowHeight =
-                18;
-
-        for (int index =
-                     0;
+        for (int index = 0;
              index < PALETTE.size();
              index++) {
 
@@ -1283,13 +1155,11 @@ public final class EngineeringWorkbenchScreen
 
             int x =
                     x0 + 5
-                            + column
-                                    * cellWidth;
+                            + column * cellWidth;
 
             int y =
                     y0 + 17
-                            + row
-                                    * rowHeight;
+                            + row * rowHeight;
 
             boolean hovered =
                     inside(
@@ -1301,22 +1171,26 @@ public final class EngineeringWorkbenchScreen
                             16
                     );
 
+            boolean dragging =
+                    draggingPaletteType
+                            == PALETTE.get(index);
+
             graphics.fill(
                     x,
                     y,
                     x + cellWidth - 3,
                     y + 16,
-                    hovered
-                            ? 0xFF475663
-                            : 0xFF2C353D
+                    dragging
+                            ? 0xFF526A4F
+                            : hovered
+                                    ? 0xFF475663
+                                    : 0xFF2C353D
             );
 
             graphics.drawString(
                     font,
                     paletteLabel(
-                            PALETTE.get(
-                                    index
-                            )
+                            PALETTE.get(index)
                     ),
                     x + 4,
                     y + 4,
@@ -1330,9 +1204,7 @@ public final class EngineeringWorkbenchScreen
             GuiGraphics graphics
     ) {
         Node node =
-                graph.node(
-                        selectedNodeId
-                );
+                graph.node(selectedNodeId);
 
         if (node == null) {
             return;
@@ -1347,8 +1219,7 @@ public final class EngineeringWorkbenchScreen
         int width =
                 canvasWidth() - 16;
 
-        int height =
-                76;
+        int height = 76;
 
         graphics.fill(
                 x,
@@ -1376,22 +1247,13 @@ public final class EngineeringWorkbenchScreen
                 y + 43;
 
         double a =
-                inputResult(
-                        node,
-                        0
-                );
+                inputResult(node, 0);
 
         double b =
-                inputResult(
-                        node,
-                        1
-                );
+                inputResult(node, 1);
 
         double c =
-                inputResult(
-                        node,
-                        2
-                );
+                inputResult(node, 2);
 
         switch (node.type()) {
             case CONSTANT, BLOCK_PROPERTY ->
@@ -1404,16 +1266,10 @@ public final class EngineeringWorkbenchScreen
 
             case ADD, SUBTRACT -> {
                 int first =
-                        visualLength(
-                                a,
-                                48
-                        );
+                        visualLength(a, 48);
 
                 int second =
-                        visualLength(
-                                b,
-                                48
-                        );
+                        visualLength(b, 48);
 
                 int result =
                         visualLength(
@@ -1453,19 +1309,13 @@ public final class EngineeringWorkbenchScreen
                 int w =
                         Math.max(
                                 6,
-                                visualLength(
-                                        a,
-                                        75
-                                )
+                                visualLength(a, 75)
                         );
 
                 int h =
                         Math.max(
                                 6,
-                                visualLength(
-                                        b,
-                                        35
-                                )
+                                visualLength(b, 35)
                         );
 
                 drawRectOutline(
@@ -1482,28 +1332,19 @@ public final class EngineeringWorkbenchScreen
                 int w =
                         Math.max(
                                 12,
-                                visualLength(
-                                        a,
-                                        55
-                                )
+                                visualLength(a, 55)
                         );
 
                 int h =
                         Math.max(
                                 10,
-                                visualLength(
-                                        b,
-                                        28
-                                )
+                                visualLength(b, 28)
                         );
 
                 int d =
                         Math.max(
                                 7,
-                                visualLength(
-                                        c,
-                                        18
-                                )
+                                visualLength(c, 18)
                         );
 
                 drawBox(
@@ -1521,10 +1362,7 @@ public final class EngineeringWorkbenchScreen
                 int radius =
                         Math.max(
                                 5,
-                                visualLength(
-                                        a,
-                                        25
-                                )
+                                visualLength(a, 25)
                         );
 
                 drawCircle(
@@ -1540,19 +1378,13 @@ public final class EngineeringWorkbenchScreen
                 int w =
                         Math.max(
                                 8,
-                                visualLength(
-                                        b,
-                                        70
-                                )
+                                visualLength(b, 70)
                         );
 
                 int h =
                         Math.max(
                                 8,
-                                visualLength(
-                                        a,
-                                        38
-                                )
+                                visualLength(a, 38)
                         );
 
                 int x0 =
@@ -1628,8 +1460,7 @@ public final class EngineeringWorkbenchScreen
                 if (node.type()
                         == NodeType.BEAM_UDL_MOMENT) {
 
-                    for (int offset =
-                                 -48;
+                    for (int offset = -48;
                          offset <= 48;
                          offset += 16) {
 
@@ -1641,7 +1472,6 @@ public final class EngineeringWorkbenchScreen
                                 0xFFFFB85C
                         );
                     }
-
                 } else {
                     drawArrowDown(
                             graphics,
@@ -1658,12 +1488,9 @@ public final class EngineeringWorkbenchScreen
                 font,
                 trim(
                         "= "
-                                + formatNumber(
-                                node.result()
-                        )
+                                + formatNumber(node.result())
                                 + (
-                                node.unit()
-                                        .isEmpty()
+                                node.unit().isEmpty()
                                         ? ""
                                         : " "
                                                 + node.unit()
@@ -1706,11 +1533,79 @@ public final class EngineeringWorkbenchScreen
                 partialTick
         );
 
+        renderDragGhost(
+                graphics,
+                mouseX,
+                mouseY
+        );
+
         renderTooltip(
                 graphics,
                 mouseX,
                 mouseY
         );
+    }
+
+    private void renderDragGhost(
+            GuiGraphics graphics,
+            int mouseX,
+            int mouseY
+    ) {
+        if (draggingCatalogProfile != null) {
+            ItemStack stack =
+                    new ItemStack(
+                            draggingCatalogProfile.block()
+                                    .asItem()
+                    );
+
+            graphics.fill(
+                    mouseX - 4,
+                    mouseY - 4,
+                    mouseX + 112,
+                    mouseY + 20,
+                    0xDD273039
+            );
+
+            if (!stack.isEmpty()) {
+                graphics.renderItem(
+                        stack,
+                        mouseX,
+                        mouseY
+                );
+            }
+
+            graphics.drawString(
+                    font,
+                    trim(
+                            displayName(
+                                    draggingCatalogProfile.block()
+                            ),
+                            15
+                    ),
+                    mouseX + 20,
+                    mouseY + 5,
+                    0xFFFFFFFF,
+                    false
+            );
+
+        } else if (draggingPaletteType != null) {
+            graphics.fill(
+                    mouseX - 4,
+                    mouseY - 4,
+                    mouseX + 92,
+                    mouseY + 17,
+                    0xDD273039
+            );
+
+            graphics.drawString(
+                    font,
+                    draggingPaletteType.label(),
+                    mouseX,
+                    mouseY,
+                    0xFFFFFFFF,
+                    false
+            );
+        }
     }
 
     @Override
@@ -1719,22 +1614,67 @@ public final class EngineeringWorkbenchScreen
             double mouseY,
             int button
     ) {
-        if (super.mouseClicked(
-                mouseX,
-                mouseY,
-                button
-        )) {
-            return true;
-        }
-
-        if (button != 0) {
-            return false;
-        }
-
-        if (handleCatalogClick(
+        /*
+         * Widgets get first refusal only when the click is actually over one.
+         * AbstractContainerScreen otherwise consumes ordinary left clicks even
+         * though this menu has no slots, which made the engineering canvas
+         * look completely dead.
+         */
+        if (isWidgetClick(
                 mouseX,
                 mouseY
         )) {
+            return super.mouseClicked(
+                    mouseX,
+                    mouseY,
+                    button
+            );
+        }
+
+        if ((button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE
+                || button == GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+                && insideCanvas(
+                mouseX,
+                mouseY
+        )) {
+
+            panningCanvas = true;
+            lastPanMouseX = mouseX;
+            lastPanMouseY = mouseY;
+            return true;
+        }
+
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            return super.mouseClicked(
+                    mouseX,
+                    mouseY,
+                    button
+            );
+        }
+
+        EngineeringBlockProfile catalogueHit =
+                catalogProfileAt(
+                        mouseX,
+                        mouseY
+                );
+
+        if (catalogueHit != null) {
+            draggingCatalogProfile =
+                    catalogueHit;
+
+            return true;
+        }
+
+        NodeType paletteHit =
+                paletteTypeAt(
+                        mouseX,
+                        mouseY
+                );
+
+        if (paletteHit != null) {
+            draggingPaletteType =
+                    paletteHit;
+
             return true;
         }
 
@@ -1745,161 +1685,138 @@ public final class EngineeringWorkbenchScreen
             return true;
         }
 
-        if (handlePaletteClick(
+        if (insideCanvas(
                 mouseX,
                 mouseY
         )) {
-            return true;
-        }
+            double graphX =
+                    screenToGraphX(mouseX);
 
-        for (Node node :
-                reversedNodes()) {
+            double graphY =
+                    screenToGraphY(mouseY);
 
-            int x =
-                    nodeScreenX(
-                            node
-                    );
+            for (Node node : reversedNodes()) {
+                int x =
+                        node.x();
 
-            int y =
-                    nodeScreenY(
-                            node
-                    );
+                int y =
+                        node.y();
 
-            int h =
-                    nodeHeight(
-                            node
-                    );
-
-            if (inside(
-                    mouseX,
-                    mouseY,
-                    x + NODE_WIDTH - 14,
-                    y,
-                    14,
-                    NODE_HEADER
-            )) {
-                graph.remove(
-                        node.id()
-                );
-
-                blockNodes.remove(
-                        node.id()
-                );
-
-                blockProperties.remove(
-                        node.id()
-                );
-
-                if (selectedNodeId
-                        == node.id()) {
-                    selectedNodeId =
-                            -1;
-                }
-
-                if (pendingSourceId
-                        == node.id()) {
-                    pendingSourceId =
-                            -1;
-                }
-
-                return true;
-            }
-
-            if (inside(
-                    mouseX,
-                    mouseY,
-                    x + NODE_WIDTH - 5,
-                    y + h / 2 - 5,
-                    10,
-                    10
-            )) {
-                pendingSourceId =
-                        pendingSourceId
-                                == node.id()
-                                ? -1
-                                : node.id();
-
-                selectNode(
-                        node.id()
-                );
-
-                return true;
-            }
-
-            for (int slot =
-                         0;
-                 slot < node.inputCount();
-                 slot++) {
-
-                int py =
-                        inputPortY(
-                                node,
-                                slot
-                        );
+                int h =
+                        nodeHeight(node);
 
                 if (inside(
-                        mouseX,
-                        mouseY,
-                        x - 6,
-                        py - 6,
-                        12,
-                        12
+                        graphX,
+                        graphY,
+                        x + NODE_WIDTH - 14,
+                        y,
+                        14,
+                        NODE_HEADER
                 )) {
-                    if (pendingSourceId >= 0) {
-                        graph.connect(
-                                pendingSourceId,
-                                node.id(),
-                                slot
-                        );
+                    graph.remove(node.id());
+                    blockNodes.remove(node.id());
+                    blockProperties.remove(node.id());
 
-                        pendingSourceId =
-                                -1;
-
-                    } else if (node.input(
-                            slot
-                    ) >= 0) {
-                        graph.disconnect(
-                                node.id(),
-                                slot
-                        );
+                    if (selectedNodeId == node.id()) {
+                        selectedNodeId = -1;
                     }
 
-                    selectNode(
-                            node.id()
-                    );
+                    if (pendingSourceId == node.id()) {
+                        pendingSourceId = -1;
+                    }
+
+                    return true;
+                }
+
+                if (inside(
+                        graphX,
+                        graphY,
+                        x + NODE_WIDTH - 5,
+                        y + h / 2 - 5,
+                        10,
+                        10
+                )) {
+                    pendingSourceId =
+                            pendingSourceId == node.id()
+                                    ? -1
+                                    : node.id();
+
+                    selectNode(node.id());
+                    return true;
+                }
+
+                for (int slot = 0;
+                     slot < node.inputCount();
+                     slot++) {
+
+                    int portY =
+                            inputPortYLocal(
+                                    node,
+                                    slot
+                            );
+
+                    if (inside(
+                            graphX,
+                            graphY,
+                            x - 6,
+                            portY - 6,
+                            12,
+                            12
+                    )) {
+                        if (pendingSourceId >= 0) {
+                            graph.connect(
+                                    pendingSourceId,
+                                    node.id(),
+                                    slot
+                            );
+
+                            pendingSourceId = -1;
+
+                        } else if (node.input(slot) >= 0) {
+                            graph.disconnect(
+                                    node.id(),
+                                    slot
+                            );
+                        }
+
+                        selectNode(node.id());
+                        return true;
+                    }
+                }
+
+                if (inside(
+                        graphX,
+                        graphY,
+                        x,
+                        y,
+                        NODE_WIDTH,
+                        h
+                )) {
+                    selectNode(node.id());
+
+                    draggingNodeId =
+                            node.id();
+
+                    dragNodeOffsetX =
+                            graphX - node.x();
+
+                    dragNodeOffsetY =
+                            graphY - node.y();
 
                     return true;
                 }
             }
 
-            if (inside(
-                    mouseX,
-                    mouseY,
-                    x,
-                    y,
-                    NODE_WIDTH,
-                    h
-            )) {
-                selectNode(
-                        node.id()
-                );
-
-                draggingNodeId =
-                        node.id();
-
-                dragOffsetX =
-                        (int) mouseX
-                                - x;
-
-                dragOffsetY =
-                        (int) mouseY
-                                - y;
-
-                return true;
-            }
+            selectedNodeId = -1;
+            valueBox.setVisible(false);
+            return true;
         }
 
-        return false;
+        return super.mouseClicked(
+                mouseX,
+                mouseY,
+                button
+        );
     }
 
     @Override
@@ -1910,8 +1827,23 @@ public final class EngineeringWorkbenchScreen
             double dragX,
             double dragY
     ) {
+        if (panningCanvas
+                && (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE
+                || button == GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
+
+            canvasPanX +=
+                    mouseX - lastPanMouseX;
+
+            canvasPanY +=
+                    mouseY - lastPanMouseY;
+
+            lastPanMouseX = mouseX;
+            lastPanMouseY = mouseY;
+            return true;
+        }
+
         if (draggingNodeId >= 0
-                && button == 0) {
+                && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 
             Node node =
                     graph.node(
@@ -1919,42 +1851,23 @@ public final class EngineeringWorkbenchScreen
                     );
 
             if (node != null) {
-                int localX =
-                        (int) mouseX
-                                - canvasX()
-                                - dragOffsetX;
-
-                int localY =
-                        (int) mouseY
-                                - canvasY()
-                                - dragOffsetY;
-
                 node.move(
-                        Math.clamp(
-                                localX,
-                                2,
-                                Math.max(
-                                        2,
-                                        canvasWidth()
-                                                - NODE_WIDTH
-                                                - 2
-                                )
+                        (int) Math.round(
+                                screenToGraphX(mouseX)
+                                        - dragNodeOffsetX
                         ),
-                        Math.clamp(
-                                localY,
-                                2,
-                                Math.max(
-                                        2,
-                                        canvasHeight()
-                                                - nodeHeight(
-                                                node
-                                        )
-                                                - 2
-                                )
+                        (int) Math.round(
+                                screenToGraphY(mouseY)
+                                        - dragNodeOffsetY
                         )
                 );
             }
 
+            return true;
+        }
+
+        if (draggingCatalogProfile != null
+                || draggingPaletteType != null) {
             return true;
         }
 
@@ -1973,8 +1886,67 @@ public final class EngineeringWorkbenchScreen
             double mouseY,
             int button
     ) {
-        draggingNodeId =
-                -1;
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            if (draggingCatalogProfile != null) {
+                if (insideCanvas(
+                        mouseX,
+                        mouseY
+                )) {
+                    addBlockNode(
+                            draggingCatalogProfile,
+                            (int) Math.round(
+                                    screenToGraphX(mouseX)
+                                            - NODE_WIDTH * 0.5
+                            ),
+                            (int) Math.round(
+                                    screenToGraphY(mouseY)
+                                            - 18.0
+                            )
+                    );
+                }
+
+                draggingCatalogProfile = null;
+                return true;
+            }
+
+            if (draggingPaletteType != null) {
+                if (insideCanvas(
+                        mouseX,
+                        mouseY
+                )) {
+                    Node node =
+                            graph.add(
+                                    draggingPaletteType,
+                                    (int) Math.round(
+                                            screenToGraphX(mouseX)
+                                                    - NODE_WIDTH * 0.5
+                                    ),
+                                    (int) Math.round(
+                                            screenToGraphY(mouseY)
+                                                    - 18.0
+                                    )
+                            );
+
+                    selectNode(node.id());
+                }
+
+                draggingPaletteType = null;
+                return true;
+            }
+
+            if (draggingNodeId >= 0) {
+                draggingNodeId = -1;
+                return true;
+            }
+        }
+
+        if ((button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE
+                || button == GLFW.GLFW_MOUSE_BUTTON_RIGHT)
+                && panningCanvas) {
+
+            panningCanvas = false;
+            return true;
+        }
 
         return super.mouseReleased(
                 mouseX,
@@ -2001,9 +1973,7 @@ public final class EngineeringWorkbenchScreen
             catalogScroll =
                     Math.clamp(
                             catalogScroll
-                                    - (int) Math.signum(
-                                    scrollY
-                            ),
+                                    - (int) Math.signum(scrollY),
                             0,
                             Math.max(
                                     0,
@@ -2029,24 +1999,18 @@ public final class EngineeringWorkbenchScreen
                 imageHeight - TOP
         )) {
             Node selected =
-                    graph.node(
-                            selectedNodeId
-                    );
+                    graph.node(selectedNodeId);
 
             EngineeringBlockProfile profile =
                     selected == null
                             ? null
-                            : blockNodes.get(
-                            selected.id()
-                    );
+                            : blockNodes.get(selected.id());
 
             if (profile != null) {
                 propertyScroll =
                         Math.clamp(
                                 propertyScroll
-                                        - (int) Math.signum(
-                                        scrollY
-                                ),
+                                        - (int) Math.signum(scrollY),
                                 0,
                                 Math.max(
                                         0,
@@ -2058,6 +2022,21 @@ public final class EngineeringWorkbenchScreen
 
                 return true;
             }
+        }
+
+        if (insideCanvas(
+                mouseX,
+                mouseY
+        )
+                && scrollY != 0.0) {
+
+            zoomCanvasAt(
+                    mouseX,
+                    mouseY,
+                    scrollY
+            );
+
+            return true;
         }
 
         return super.mouseScrolled(
@@ -2074,8 +2053,11 @@ public final class EngineeringWorkbenchScreen
             int scanCode,
             int modifiers
     ) {
-        if (valueBox != null
-                && valueBox.isFocused()) {
+        if ((searchBox != null
+                && searchBox.isFocused())
+                || (valueBox != null
+                && valueBox.isFocused())) {
+
             return super.keyPressed(
                     keyCode,
                     scanCode,
@@ -2087,32 +2069,24 @@ public final class EngineeringWorkbenchScreen
                 || keyCode == GLFW.GLFW_KEY_BACKSPACE)
                 && selectedNodeId >= 0) {
 
-            graph.remove(
-                    selectedNodeId
-            );
-
-            blockNodes.remove(
-                    selectedNodeId
-            );
-
-            blockProperties.remove(
-                    selectedNodeId
-            );
-
-            selectedNodeId =
-                    -1;
-
-            pendingSourceId =
-                    -1;
-
+            graph.remove(selectedNodeId);
+            blockNodes.remove(selectedNodeId);
+            blockProperties.remove(selectedNodeId);
+            selectedNodeId = -1;
+            pendingSourceId = -1;
             return true;
         }
 
         if (keyCode == GLFW.GLFW_KEY_ESCAPE
                 && pendingSourceId >= 0) {
-            pendingSourceId =
-                    -1;
+            pendingSourceId = -1;
+            return true;
+        }
 
+        if (keyCode == GLFW.GLFW_KEY_HOME) {
+            canvasZoom = 1.0;
+            canvasPanX = 0.0;
+            canvasPanY = 0.0;
             return true;
         }
 
@@ -2123,7 +2097,34 @@ public final class EngineeringWorkbenchScreen
         );
     }
 
-    private boolean handleCatalogClick(
+    private boolean isWidgetClick(
+            double mouseX,
+            double mouseY
+    ) {
+        return (searchBox != null
+                && searchBox.isMouseOver(
+                mouseX,
+                mouseY
+        ))
+                || (valueBox != null
+                && valueBox.visible
+                && valueBox.isMouseOver(
+                mouseX,
+                mouseY
+        ))
+                || (recommendedButton != null
+                && recommendedButton.isMouseOver(
+                mouseX,
+                mouseY
+        ))
+                || (visualButton != null
+                && visualButton.isMouseOver(
+                mouseX,
+                mouseY
+        ));
+    }
+
+    private EngineeringBlockProfile catalogProfileAt(
             double mouseX,
             double mouseY
     ) {
@@ -2139,33 +2140,69 @@ public final class EngineeringWorkbenchScreen
                 visibleCatalogRows()
                         * CATALOG_ROW
         )) {
-            return false;
+            return null;
         }
 
         int row =
-                ((int) mouseY
-                        - startY)
+                ((int) mouseY - startY)
                         / CATALOG_ROW;
 
         int index =
-                catalogScroll
-                        + row;
+                catalogScroll + row;
 
-        if (index < 0
-                || index >= filtered.size()) {
-            return false;
+        return index >= 0
+                && index < filtered.size()
+                ? filtered.get(index)
+                : null;
+    }
+
+    private NodeType paletteTypeAt(
+            double mouseX,
+            double mouseY
+    ) {
+        int x0 =
+                canvasX();
+
+        int y0 =
+                topPos
+                        + imageHeight
+                        - BOTTOM_TOOLBAR_HEIGHT
+                        + 17;
+
+        int cellWidth = 58;
+        int rowHeight = 18;
+
+        for (int index = 0;
+             index < PALETTE.size();
+             index++) {
+
+            int column =
+                    index % 7;
+
+            int row =
+                    index / 7;
+
+            int x =
+                    x0 + 5
+                            + column * cellWidth;
+
+            int y =
+                    y0
+                            + row * rowHeight;
+
+            if (inside(
+                    mouseX,
+                    mouseY,
+                    x,
+                    y,
+                    cellWidth - 3,
+                    16
+            )) {
+                return PALETTE.get(index);
+            }
         }
 
-        EngineeringBlockProfile profile =
-                filtered.get(
-                        index
-                );
-
-        addBlockNode(
-                profile
-        );
-
-        return true;
+        return null;
     }
 
     private boolean handlePropertyClick(
@@ -2173,16 +2210,12 @@ public final class EngineeringWorkbenchScreen
             double mouseY
     ) {
         Node selected =
-                graph.node(
-                        selectedNodeId
-                );
+                graph.node(selectedNodeId);
 
         EngineeringBlockProfile profile =
                 selected == null
                         ? null
-                        : blockNodes.get(
-                        selected.id()
-                );
+                        : blockNodes.get(selected.id());
 
         if (profile == null) {
             return false;
@@ -2209,25 +2242,19 @@ public final class EngineeringWorkbenchScreen
         }
 
         int row =
-                ((int) mouseY
-                        - listY)
+                ((int) mouseY - listY)
                         / 22;
 
         int index =
-                propertyScroll
-                        + row;
+                propertyScroll + row;
 
         if (index < 0
-                || index >= profile.properties()
-                        .size()) {
+                || index >= profile.properties().size()) {
             return false;
         }
 
         EngineeringBlockProfile.Property property =
-                profile.properties()
-                        .get(
-                                index
-                        );
+                profile.properties().get(index);
 
         if (!property.numeric()) {
             return true;
@@ -2237,21 +2264,8 @@ public final class EngineeringWorkbenchScreen
             Node pinned =
                     graph.add(
                             NodeType.BLOCK_PROPERTY,
-                            Math.clamp(
-                                    selected.x()
-                                            + 118,
-                                    2,
-                                    canvasWidth()
-                                            - NODE_WIDTH
-                                            - 2
-                            ),
-                            Math.clamp(
-                                    selected.y()
-                                            + 18,
-                                    2,
-                                    canvasHeight()
-                                            - 55
-                            ),
+                            selected.x() + 118,
+                            selected.y() + 18,
                             trim(
                                     property.label(),
                                     18
@@ -2270,16 +2284,12 @@ public final class EngineeringWorkbenchScreen
                     property.key()
             );
 
-            selectNode(
-                    pinned.id()
-            );
+            selectNode(pinned.id());
 
         } else {
             selected.label(
                     trim(
-                            displayName(
-                                    profile.block()
-                            )
+                            displayName(profile.block())
                                     + " · "
                                     + property.label(),
                             24
@@ -2305,94 +2315,13 @@ public final class EngineeringWorkbenchScreen
         return true;
     }
 
-    private boolean handlePaletteClick(
-            double mouseX,
-            double mouseY
-    ) {
-        int x0 =
-                canvasX();
-
-        int y0 =
-                topPos
-                        + imageHeight
-                        - BOTTOM_TOOLBAR_HEIGHT
-                        + 17;
-
-        int cellWidth =
-                58;
-
-        int rowHeight =
-                18;
-
-        for (int index =
-                     0;
-             index < PALETTE.size();
-             index++) {
-
-            int column =
-                    index % 7;
-
-            int row =
-                    index / 7;
-
-            int x =
-                    x0 + 5
-                            + column
-                                    * cellWidth;
-
-            int y =
-                    y0
-                            + row
-                                    * rowHeight;
-
-            if (!inside(
-                    mouseX,
-                    mouseY,
-                    x,
-                    y,
-                    cellWidth - 3,
-                    16
-            )) {
-                continue;
-            }
-
-            NodeType type =
-                    PALETTE.get(
-                            index
-                    );
-
-            Node node =
-                    graph.add(
-                            type,
-                            132
-                                    + (
-                                    index % 3
-                            )
-                                    * 16,
-                            126
-                                    + (
-                                    index % 4
-                            )
-                                    * 12
-                    );
-
-            selectNode(
-                    node.id()
-            );
-
-            return true;
-        }
-
-        return false;
-    }
-
     private void addBlockNode(
-            EngineeringBlockProfile profile
+            EngineeringBlockProfile profile,
+            int graphX,
+            int graphY
     ) {
         EngineeringBlockProfile.Property property =
-                profile.property(
-                        "mass"
-                );
+                profile.property("mass");
 
         double value =
                 property == null
@@ -2412,33 +2341,10 @@ public final class EngineeringWorkbenchScreen
         Node node =
                 graph.add(
                         NodeType.BLOCK_PROPERTY,
-                        18
-                                + (
-                                graph.nodes()
-                                        .size()
-                                        * 17
-                        )
-                                % Math.max(
-                                20,
-                                canvasWidth()
-                                        - NODE_WIDTH
-                                        - 28
-                        ),
-                        105
-                                + (
-                                graph.nodes()
-                                        .size()
-                                        * 13
-                        )
-                                % Math.max(
-                                20,
-                                canvasHeight()
-                                        - 155
-                        ),
+                        graphX,
+                        graphY,
                         trim(
-                                displayName(
-                                        profile.block()
-                                )
+                                displayName(profile.block())
                                         + " · Weight",
                                 24
                         ),
@@ -2456,56 +2362,36 @@ public final class EngineeringWorkbenchScreen
                 key
         );
 
-        propertyScroll =
-                0;
-
-        selectNode(
-                node.id()
-        );
+        propertyScroll = 0;
+        selectNode(node.id());
     }
 
     private void selectNode(
             int id
     ) {
-        selectedNodeId =
-                id;
-
-        propertyScroll =
-                0;
+        selectedNodeId = id;
+        propertyScroll = 0;
 
         Node node =
-                graph.node(
-                        id
-                );
+                graph.node(id);
 
         if (node == null
                 || node.type()
                         != NodeType.CONSTANT) {
             if (valueBox != null) {
-                valueBox.setVisible(
-                        false
-                );
+                valueBox.setVisible(false);
             }
 
             return;
         }
 
         if (valueBox != null) {
-            syncingValueBox =
-                    true;
-
+            syncingValueBox = true;
             valueBox.setValue(
-                    formatEditable(
-                            node.literal()
-                    )
+                    formatEditable(node.literal())
             );
-
-            syncingValueBox =
-                    false;
-
-            valueBox.setVisible(
-                    true
-            );
+            syncingValueBox = false;
+            valueBox.setVisible(true);
         }
     }
 
@@ -2517,9 +2403,7 @@ public final class EngineeringWorkbenchScreen
         }
 
         Node node =
-                graph.node(
-                        selectedNodeId
-                );
+                graph.node(selectedNodeId);
 
         if (node == null
                 || node.type()
@@ -2536,14 +2420,90 @@ public final class EngineeringWorkbenchScreen
                             )
                     );
 
-            node.literal(
-                    value
-            );
-
+            node.literal(value);
             graph.recalculate();
 
         } catch (NumberFormatException ignored) {
         }
+    }
+
+    private void zoomCanvasAt(
+            double mouseX,
+            double mouseY,
+            double scrollY
+    ) {
+        double graphX =
+                screenToGraphX(mouseX);
+
+        double graphY =
+                screenToGraphY(mouseY);
+
+        double factor =
+                scrollY > 0.0
+                        ? 1.12
+                        : 1.0 / 1.12;
+
+        double newZoom =
+                Math.clamp(
+                        canvasZoom * factor,
+                        MIN_ZOOM,
+                        MAX_ZOOM
+                );
+
+        if (Math.abs(
+                newZoom - canvasZoom
+        ) < 0.00001) {
+            return;
+        }
+
+        canvasZoom =
+                newZoom;
+
+        canvasPanX =
+                mouseX
+                        - canvasX()
+                        - graphX * canvasZoom;
+
+        canvasPanY =
+                mouseY
+                        - canvasY()
+                        - graphY * canvasZoom;
+    }
+
+    private boolean insideCanvas(
+            double mouseX,
+            double mouseY
+    ) {
+        return inside(
+                mouseX,
+                mouseY,
+                canvasX(),
+                canvasY(),
+                canvasWidth(),
+                canvasHeight()
+        );
+    }
+
+    private double screenToGraphX(
+            double screenX
+    ) {
+        return (
+                screenX
+                        - canvasX()
+                        - canvasPanX
+        )
+                / canvasZoom;
+    }
+
+    private double screenToGraphY(
+            double screenY
+    ) {
+        return (
+                screenY
+                        - canvasY()
+                        - canvasPanY
+        )
+                / canvasZoom;
     }
 
     private int canvasX() {
@@ -2574,26 +2534,9 @@ public final class EngineeringWorkbenchScreen
     private int visibleCatalogRows() {
         return Math.max(
                 1,
-                (
-                        imageHeight
-                                - 72
-                )
+                (imageHeight - 72)
                         / CATALOG_ROW
         );
-    }
-
-    private int nodeScreenX(
-            Node node
-    ) {
-        return canvasX()
-                + node.x();
-    }
-
-    private int nodeScreenY(
-            Node node
-    ) {
-        return canvasY()
-                + node.y();
     }
 
     private int nodeHeight(
@@ -2607,17 +2550,14 @@ public final class EngineeringWorkbenchScreen
         );
     }
 
-    private int inputPortY(
+    private int inputPortYLocal(
             Node node,
             int slot
     ) {
-        return nodeScreenY(
-                node
-        )
+        return node.y()
                 + NODE_HEADER
                 + 6
-                + slot
-                        * NODE_INPUT_SPACING;
+                + slot * NODE_INPUT_SPACING;
     }
 
     private List<Node> reversedNodes() {
@@ -2626,10 +2566,7 @@ public final class EngineeringWorkbenchScreen
                         graph.nodes()
                 );
 
-        java.util.Collections.reverse(
-                nodes
-        );
-
+        java.util.Collections.reverse(nodes);
         return nodes;
     }
 
@@ -2643,9 +2580,7 @@ public final class EngineeringWorkbenchScreen
 
         Node source =
                 graph.node(
-                        node.input(
-                                slot
-                        )
+                        node.input(slot)
                 );
 
         return source == null
@@ -2657,8 +2592,7 @@ public final class EngineeringWorkbenchScreen
             EngineeringBlockProfile profile
     ) {
         String path =
-                profile.id()
-                        .getPath();
+                profile.id().getPath();
 
         return switch (path) {
             case "oak_planks" -> 0;
@@ -2675,9 +2609,7 @@ public final class EngineeringWorkbenchScreen
             case "obsidian" -> 11;
             default -> profile.id()
                     .getNamespace()
-                    .equals(
-                            "wayaround"
-                    )
+                    .equals("wayaround")
                     ? 100
                     : 1000;
         };
@@ -2760,9 +2692,7 @@ public final class EngineeringWorkbenchScreen
 
             default ->
                     "in"
-                            + (
-                            slot + 1
-                    );
+                            + (slot + 1);
         };
     }
 
@@ -2809,16 +2739,12 @@ public final class EngineeringWorkbenchScreen
             double value,
             int maximum
     ) {
-        if (!Double.isFinite(
-                value
-        )) {
+        if (!Double.isFinite(value)) {
             return 0;
         }
 
         double magnitude =
-                Math.abs(
-                        value
-                );
+                Math.abs(value);
 
         if (magnitude < 0.000001) {
             return 0;
@@ -2832,9 +2758,7 @@ public final class EngineeringWorkbenchScreen
                                 * 18.0;
 
         return (int) Math.clamp(
-                Math.round(
-                        scaled
-                ),
+                Math.round(scaled),
                 2,
                 maximum
         );
@@ -2843,22 +2767,17 @@ public final class EngineeringWorkbenchScreen
     private static String formatNumber(
             double value
     ) {
-        if (!Double.isFinite(
-                value
-        )) {
+        if (!Double.isFinite(value)) {
             return "—";
         }
 
         double absolute =
-                Math.abs(
-                        value
-                );
+                Math.abs(value);
 
         if (absolute >= 1000000.0
-                || (
-                absolute > 0.0
-                        && absolute < 0.001
-        )) {
+                || (absolute > 0.0
+                && absolute < 0.001)) {
+
             return String.format(
                     Locale.ROOT,
                     "%.2e",
@@ -2894,14 +2813,11 @@ public final class EngineeringWorkbenchScreen
     ) {
         if (Math.abs(
                 value
-                        - Math.rint(
-                        value
-                )
+                        - Math.rint(value)
         ) < 0.000001) {
+
             return Long.toString(
-                    Math.round(
-                            value
-                    )
+                    Math.round(value)
             );
         }
 
@@ -2919,6 +2835,7 @@ public final class EngineeringWorkbenchScreen
         if (value == null
                 || value.length()
                         <= maximum) {
+
             return value == null
                     ? ""
                     : value;
@@ -2937,15 +2854,27 @@ public final class EngineeringWorkbenchScreen
     private static boolean inside(
             double mouseX,
             double mouseY,
-            int x,
-            int y,
-            int width,
-            int height
+            double x,
+            double y,
+            double width,
+            double height
     ) {
         return mouseX >= x
                 && mouseX < x + width
                 && mouseY >= y
                 && mouseY < y + height;
+    }
+
+    private static double positiveMod(
+            double value,
+            double modulus
+    ) {
+        double result =
+                value % modulus;
+
+        return result < 0.0
+                ? result + modulus
+                : result;
     }
 
     private static void drawPoint(
@@ -2972,9 +2901,7 @@ public final class EngineeringWorkbenchScreen
             int color
     ) {
         int dx =
-                Math.abs(
-                        x1 - x0
-                );
+                Math.abs(x1 - x0);
 
         int sx =
                 x0 < x1
@@ -2982,9 +2909,7 @@ public final class EngineeringWorkbenchScreen
                         : -1;
 
         int dy =
-                -Math.abs(
-                        y1 - y0
-                );
+                -Math.abs(y1 - y0);
 
         int sy =
                 y0 < y1
@@ -3012,19 +2937,13 @@ public final class EngineeringWorkbenchScreen
                     2 * error;
 
             if (twice >= dy) {
-                error +=
-                        dy;
-
-                x0 +=
-                        sx;
+                error += dy;
+                x0 += sx;
             }
 
             if (twice <= dx) {
-                error +=
-                        dx;
-
-                y0 +=
-                        sy;
+                error += dx;
+                y0 += sy;
             }
         }
     }
@@ -3157,8 +3076,7 @@ public final class EngineeringWorkbenchScreen
         int previousY =
                 cy;
 
-        for (int step =
-                     1;
+        for (int step = 1;
              step <= 32;
              step++) {
 
@@ -3171,18 +3089,14 @@ public final class EngineeringWorkbenchScreen
             int x =
                     cx
                             + (int) Math.round(
-                            Math.cos(
-                                    angle
-                            )
+                            Math.cos(angle)
                                     * radius
                     );
 
             int y =
                     cy
                             + (int) Math.round(
-                            Math.sin(
-                                    angle
-                            )
+                            Math.sin(angle)
                                     * radius
                     );
 
@@ -3195,11 +3109,8 @@ public final class EngineeringWorkbenchScreen
                     color
             );
 
-            previousX =
-                    x;
-
-            previousY =
-                    y;
+            previousX = x;
+            previousY = y;
         }
     }
 
