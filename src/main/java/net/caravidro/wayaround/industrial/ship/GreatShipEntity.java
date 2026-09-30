@@ -1046,9 +1046,9 @@ public final class GreatShipEntity
         double targetHeave =
                 Mth.clamp(
                         waveResponse.meanHeight()
-                                * 0.62,
-                        -1.35,
-                        1.35
+                                * 0.74,
+                        -2.10,
+                        2.10
                 );
 
         waveHeaveVelocity +=
@@ -1075,8 +1075,8 @@ public final class GreatShipEntity
         waveHeave =
                 Mth.clamp(
                         waveHeave,
-                        -1.55,
-                        1.55
+                        -2.35,
+                        2.35
                 );
 
         wavePitch +=
