@@ -71,8 +71,10 @@ public final class MechanicalTransmission {
             }
         }
         if(conflict||feeds.isEmpty())return null; // contradictory tooth loops physically lock
-        Feed best=feeds.values().stream().max(Comparator.comparingDouble(f->sourceScore(f.source())*f.efficiency())).orElseThrow();
-        List<Feed> compatible=feeds.values().stream().filter(f->Math.abs(f.rpm()-best.rpm())<=Math.max(2,Math.abs(best.rpm())*.25F)).toList();
+        Feed best=feeds.values().stream().max(Comparator.<Feed>comparingInt(f->Math.abs(f.rpm())>.05F?1:0)
+                .thenComparingDouble(f->sourceScore(f.source())*f.efficiency())).orElseThrow();
+        if(feeds.values().stream().anyMatch(f->f.rpm()*best.rpm()<-.01F))return null; // opposing wheels jam a rigid axle
+        List<Feed> compatible=feeds.values().stream().filter(f->Math.abs(f.rpm())>.05F||Math.abs(best.rpm())<=.05F).toList();
         return new CombinedPower(level,compatible,output);
     }
     private static boolean transmission(BlockState s){return s.getBlock() instanceof MechanicalShaftBlock||s.getBlock() instanceof MechanicalGearboxBlock||s.getBlock() instanceof GearBlock;}

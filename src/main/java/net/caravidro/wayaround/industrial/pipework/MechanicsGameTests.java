@@ -87,7 +87,13 @@ public final class MechanicsGameTests {
         }
         var combined=MechanicalTransmission.forNode(h.getLevel(),h.absolutePos(new BlockPos(5,2,5)));
         h.assertTrue(combined!=null&&combined.power()>10&&combined.torque()>5,"Two distinct water wheels sum available force on their shared axle");
-        h.assertTrue(Math.abs(combined.rpm()-20)<.01,"Equal wheel speeds do not magically double unloaded RPM");h.succeed();
+        h.assertTrue(Math.abs(combined.rpm()-20)<.01,"Equal wheel speeds do not magically double unloaded RPM");
+        var second=(WaterWheelHubBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(new BlockPos(5,2,6)));
+        var saved=second.getUpdateTag(h.getLevel().registryAccess());saved.putFloat("Rpm",12);second.loadWithComponents(saved,h.getLevel().registryAccess());
+        var unequal=MechanicalTransmission.forNode(h.getLevel(),h.absolutePos(new BlockPos(5,2,5)));
+        h.assertTrue(unequal!=null&&unequal.power()>10&&Math.abs(unequal.rpm()-16)<.01,"Slower same-direction wheels still contribute their real power");
+        saved.putFloat("Rpm",-20);second.loadWithComponents(saved,h.getLevel().registryAccess());
+        h.assertTrue(MechanicalTransmission.forNode(h.getLevel(),h.absolutePos(new BlockPos(5,2,5)))==null,"Opposing wheels cannot magically clutch themselves out of a rigid axle");h.succeed();
     }
     @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
     public static void fiftySectionsAndLavaRemainPhysical(GameTestHelper h){
