@@ -17,12 +17,6 @@ import net.minecraft.world.phys.BlockHitResult;
 
 public final class IndustrialPipeBlock extends PipeBlock {
 
-    public static final MapCodec<IndustrialPipeBlock> CODEC =
-            MapCodec.unit(() -> new IndustrialPipeBlock(
-                    PipeworkContent.SMALL_COPPER_SPEC,
-                    Properties.of().noOcclusion()
-            ));
-
     private final PipeSpec spec;
 
     public IndustrialPipeBlock(
@@ -51,7 +45,9 @@ public final class IndustrialPipeBlock extends PipeBlock {
 
     @Override
     protected MapCodec<? extends PipeBlock> codec() {
-        return CODEC;
+        return MapCodec.unit(
+                () -> this
+        );
     }
 
     @Override
