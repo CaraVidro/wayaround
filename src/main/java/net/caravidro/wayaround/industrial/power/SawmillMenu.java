@@ -27,7 +27,7 @@ public final class SawmillMenu
                 inventory,
                 null,
                 new SimpleContainerData(
-                        3
+                        4
                 )
         );
     }
@@ -85,6 +85,12 @@ public final class SawmillMenu
     public boolean manualCranking() {
         return data.get(
                 2
+        ) > 0;
+    }
+
+    public boolean longTableMode() {
+        return data.get(
+                3
         ) > 0;
     }
 
