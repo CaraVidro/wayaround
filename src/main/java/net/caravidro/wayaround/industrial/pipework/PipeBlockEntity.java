@@ -61,7 +61,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
             if(!level.isInWorldBounds(p)||!level.hasChunkAt(p))return false;
             BlockState existing=level.getBlockState(p);
             if(level.getBlockEntity(p) instanceof PipeBlockEntity part&&center.equals(part.owner))continue;
-            if(!existing.canBeReplaced()||!existing.getFluidState().isEmpty())return false;
+            if(!existing.canBeReplaced())return false;
         }return true;
     }
     private ItemStack section(ItemStack stack){
@@ -81,8 +81,11 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         List<BlockPos> positions=shellPositions(worldPosition,getBlockState());int count=(positions.size()*sections+b.required()-1)/b.required();
         for(int i=0;i<count;i++){BlockPos p=positions.get(i);
             if(level.getBlockEntity(p) instanceof PipeBlockEntity existing&&worldPosition.equals(existing.owner))continue;
-            if(!level.getBlockState(p).canBeReplaced())continue;
-            level.setBlock(p,getBlockState().setValue(LargePipeBlock.SHELL,true),3);
+            BlockState existing=level.getBlockState(p);
+            if(!existing.canBeReplaced())continue;
+            BlockState shellState=getBlockState().setValue(LargePipeBlock.SHELL,true)
+                    .setValue(LargePipeBlock.WATERLOGGED,level.getFluidState(p).getType()==net.minecraft.world.level.material.Fluids.WATER);
+            level.setBlock(p,shellState,3);
             if(level.getBlockEntity(p) instanceof PipeBlockEntity shell){shell.owner=worldPosition;shell.sync();}
         }
     }
