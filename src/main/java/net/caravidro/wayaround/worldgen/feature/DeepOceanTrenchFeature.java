@@ -19,7 +19,7 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  *
  * The old implementation dropped each deep-ocean chunk to roughly the same
  * absolute Y, which could leave a biome-border wall. This version samples the
- * surrounding biome field and eases into the abyss over ~40 blocks.
+ * surrounding biome field and eases into the abyss over ~16 blocks.
  */
 public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfiguration> {
     public DeepOceanTrenchFeature(Codec<NoneFeatureConfiguration> codec) {
@@ -147,7 +147,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             int z,
             int seaLevel
     ) {
-        int[] radii = {8, 16, 24, 32, 40};
+        int[] radii = {4, 8, 12, 16};
 
         for (int index = 0; index < radii.length; index++) {
             int r = radii[index];
@@ -160,7 +160,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
                             && isDeepOcean(level, x - r, z - r, seaLevel - 8);
 
             if (!surrounded) {
-                return 0.10 + index * 0.19;
+                return 0.12 + index * 0.22;
             }
         }
 
