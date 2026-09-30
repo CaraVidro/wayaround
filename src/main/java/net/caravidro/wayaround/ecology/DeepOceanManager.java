@@ -9,8 +9,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -33,7 +33,7 @@ public final class DeepOceanManager {
                 event.getServer()
                         .getTickCount();
 
-        if ((now % 10L) != 0L) {
+        if ((now % 20L) != 0L) {
             return;
         }
 
@@ -49,7 +49,7 @@ public final class DeepOceanManager {
                 continue;
             }
 
-            if ((now % 40L) == 0L) {
+            if ((now % 400L) == 0L) {
                 cleanLegacyFloatingOceanDecor(
                         player.serverLevel(),
                         player.blockPosition()
@@ -67,57 +67,86 @@ public final class DeepOceanManager {
                     )
                             == AccessoryKind.DIVIN_SUIT;
 
-            if (divin) {
-                player.removeEffect(
-                        MobEffects.DARKNESS
-                );
-                player.removeEffect(
-                        MobEffects.BLINDNESS
-                );
-
-                player.addEffect(
-                        new MobEffectInstance(
-                                MobEffects.NIGHT_VISION,
-                                260,
-                                0,
-                                true,
-                                false,
-                                false
-                        )
-                );
-
-                continue;
-            }
-
             double depth =
                     player.serverLevel()
                             .getSeaLevel()
                             - player.getY();
 
-            if (depth > 38.0) {
-                player.addEffect(
-                        new MobEffectInstance(
-                                MobEffects.DARKNESS,
-                                80,
-                                0,
-                                true,
-                                false,
-                                false
-                        )
+            /*
+             * Darkness is now rendered as one smooth client fog curve.
+             * The diving suit is pressure equipment, not magical night vision.
+             */
+            boolean capsule =
+                    player.getVehicle()
+                            instanceof DeepSeaCapsuleEntity;
+
+            double safeDepth =
+                    capsule
+                            ? Double.MAX_VALUE
+                            : divin
+                            ? 58.0
+                            : 34.0;
+
+            if (depth > safeDepth) {
+                float pressureDamage =
+                        (float) Math.min(
+                                8.0,
+                                0.75
+                                        + (depth - safeDepth)
+                                        / 16.0
+                        );
+
+                player.hurt(
+                        player.damageSources().generic(),
+                        pressureDamage
                 );
             }
 
-            if (depth > 82.0) {
-                player.addEffect(
-                        new MobEffectInstance(
-                                MobEffects.BLINDNESS,
-                                36,
-                                0,
-                                true,
-                                false,
-                                false
-                        )
-                );
+            if (depth > 46.0) {
+                var data =
+                        player.getPersistentData();
+
+                long nextSound =
+                        data.getLong(
+                                "WayAroundNextAbyssSound"
+                        );
+
+                if (now >= nextSound) {
+                    int choice =
+                            player.getRandom()
+                                    .nextInt(3);
+
+                    var sound =
+                            switch (choice) {
+                                case 0 -> SoundEvents.AMBIENT_CAVE;
+                                case 1 -> SoundEvents.WARDEN_HEARTBEAT;
+                                default -> SoundEvents.PHANTOM_FLAP;
+                            };
+
+                    player.serverLevel()
+                            .playSound(
+                                    null,
+                                    player.blockPosition(),
+                                    sound,
+                                    SoundSource.AMBIENT,
+                                    0.38F
+                                            + player.getRandom()
+                                                    .nextFloat()
+                                                    * 0.28F,
+                                    0.42F
+                                            + player.getRandom()
+                                                    .nextFloat()
+                                                    * 0.34F
+                            );
+
+                    data.putLong(
+                            "WayAroundNextAbyssSound",
+                            now
+                                    + 180L
+                                    + player.getRandom()
+                                            .nextInt(520)
+                    );
+                }
             }
         }
     }
