@@ -212,6 +212,12 @@ public final class IndustrialContent {
                                                 PowerContent.MECHANICAL_PRESS_ITEM.get()
                                         );
                                         output.accept(
+                                                PowerContent.MECHANICAL_MILL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                PowerContent.WHEAT_FLOUR.get()
+                                        );
+                                        output.accept(
                                                 NexusContent.NEXUSTOR_BASE_ITEM.get()
                                         );
                                         output.accept(
