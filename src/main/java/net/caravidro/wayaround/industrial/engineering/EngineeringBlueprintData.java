@@ -22,14 +22,21 @@ public final class EngineeringBlueprintData {
     private static final String Y = "WayAroundBlueprintY";
     private static final String Z = "WayAroundBlueprintZ";
     private static final String PROJECT = "WayAroundEngineeringProject";
+    private static final String KIND = "WayAroundBlueprintKind";
 
     private static final int MAX_NODES = 256;
 
     private EngineeringBlueprintData() {
     }
 
+    public enum Kind {
+        ENGINEERING,
+        ARCHITECTURE
+    }
+
     public record Info(
             String blueprintId,
+            Kind kind,
             String title,
             long createdAtMillis,
             boolean showCoordinates,
@@ -60,6 +67,11 @@ public final class EngineeringBlueprintData {
                 old == null
                         ? UUID.randomUUID().toString()
                         : old.blueprintId();
+
+        Kind kind =
+                old == null
+                        ? Kind.ENGINEERING
+                        : old.kind();
 
         String title =
                 old == null
@@ -104,6 +116,7 @@ public final class EngineeringBlueprintData {
                 stack,
                 tag -> {
                     tag.putString(ID, id);
+                    tag.putString(KIND, kind.name());
                     tag.putString(TITLE, sanitizeTitle(title));
                     tag.putLong(CREATED_AT, time);
                     tag.putBoolean(SHOW_COORDS, showCoordinates);
@@ -188,9 +201,17 @@ public final class EngineeringBlueprintData {
                             + shortId(id);
         }
 
+        Kind kind =
+                parseKind(
+                        tag.getString(
+                                KIND
+                        )
+                );
+
         return Optional.of(
                 new Info(
                         id,
+                        kind,
                         title,
                         Math.max(
                                 0L,
@@ -268,6 +289,24 @@ public final class EngineeringBlueprintData {
         );
 
         return project;
+    }
+
+    private static Kind parseKind(
+            String raw
+    ) {
+        if (raw == null
+                || raw.isBlank()) {
+            return Kind.ENGINEERING;
+        }
+
+        try {
+            return Kind.valueOf(
+                    raw
+            );
+
+        } catch (IllegalArgumentException ignored) {
+            return Kind.ENGINEERING;
+        }
     }
 
     private static String sanitizeTitle(
