@@ -42,7 +42,7 @@ public final class DeepSeaCapsuleEntity extends Entity {
         Entity pilot = getFirstPassenger();
         if (pilot != null) {
             setYRot(pilot.getYRot());
-            setXRot(0.0F);
+            setXRot(pilot.getXRot());
         }
 
         if (!level().isClientSide) {
