@@ -3,6 +3,7 @@ package net.caravidro.wayaround.mixin;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.geography.AntarcticField;
+import net.caravidro.wayaround.worldgen.geography.VolcanicField;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
@@ -34,6 +35,9 @@ public abstract class OverworldBiomeMixin {
     private static boolean wayaround$loggedSouthernOcean =
             false;
 
+    private static boolean wayaround$loggedVolcanic =
+            false;
+
 
     /*
      * =========================================================
@@ -62,9 +66,18 @@ public abstract class OverworldBiomeMixin {
             Climate.Sampler sampler,
             CallbackInfoReturnable<Holder<Biome>> cir
     ) {
-        if (!WorldFeatureRuntime.serverEnabled(
-                WorldFeature.ANTARCTICA
-        )) {
+        boolean antarcticaEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.ANTARCTICA
+                );
+
+        boolean volcanicEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.VOLCANIC_REGIONS
+                );
+
+        if (!antarcticaEnabled
+                && !volcanicEnabled) {
             return;
         }
 
@@ -110,6 +123,8 @@ public abstract class OverworldBiomeMixin {
          */
 
         if (
+                antarcticaEnabled
+                &&
                 AntarcticField.isAntarctic(
                         blockX,
                         blockZ
@@ -165,6 +180,46 @@ public abstract class OverworldBiomeMixin {
 
         /*
          * =====================================================
+         * VOLCANIC HIGHLANDS
+         * =====================================================
+         *
+         * Giant volcanic provinces live far away from the polar transition.
+         * The field itself also refuses to overlap Antarctic influence.
+         */
+
+        if (
+                volcanicEnabled
+                &&
+                VolcanicField.isVolcanic(
+                        blockX,
+                        blockZ
+                )
+        ) {
+
+            cir.setReturnValue(
+                    WayAroundBiomes
+                            .getVolcanicHighlands()
+            );
+
+            if (
+                    !wayaround$loggedVolcanic
+            ) {
+                wayaround$loggedVolcanic =
+                        true;
+
+                WayAround.LOGGER.info(
+                        "WayAround selecionou Volcanic Highlands! X={} Z={}",
+                        blockX,
+                        blockZ
+                );
+            }
+
+            return;
+        }
+
+
+        /*
+         * =====================================================
          * SOUTHERN OCEAN
          * =====================================================
          *
@@ -173,6 +228,8 @@ public abstract class OverworldBiomeMixin {
          */
 
         if (
+                antarcticaEnabled
+                &&
                 AntarcticField.isSouthernOcean(
                         blockX,
                         blockZ
