@@ -106,9 +106,9 @@ public final class TreeWoodSegmentBlock extends Block {
         double width =
                 switch (thickness) {
                     case 1 -> 4.0;
-                    case 2 -> 6.0;
-                    case 3 -> 8.0;
-                    default -> 10.0;
+                    case 2 -> 7.0;
+                    case 3 -> 10.0;
+                    default -> 14.0;
                 };
 
         double min =
