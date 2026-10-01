@@ -60,3 +60,32 @@ Dedicated-server GameTests cover:
 - two distinct water wheels sharing an axle, and exhaustion of combined crank budgets.
 
 GitHub Actions also builds the full mod and starts a client to verify registration and changed machinery/pipe assets. That smoke checks resource loading; it is not a pixel-by-pixel visual inspection of every assembled machine. Existing unrelated fish/media asset warnings are outside this revision.
+
+
+## Mechanical Pump V1
+
+Pipework now has its first dedicated rotational fluid machine.
+
+The Mechanical Pump is deliberately a simple Assembly machine:
+
+- the crafted block is only the iron/copper housing;
+- one physical **Pump Impeller Cartridge** completes its internals;
+- suction and discharge pipes are external infrastructure, not fake internal
+  assembly slots;
+- rotation is accepted from side or vertical shaft/gear networks;
+- the pump owns a bounded 2000 mB buffer;
+- suction can pull from direct tanks/sources or a bounded liquid pipe network;
+- discharge reuses the existing PipeFlow outlet routing;
+- actual transfer is limited by RPM, received mechanical power and the output
+  network bottleneck;
+- a closed valve on the discharge root blocks transfer;
+- liquid-only routing rejects gas-only pipe families;
+- the renderer exposes the impeller only after it is physically installed.
+
+A world source is removed only as a full 1000 mB bucket into available pump
+buffer. Low-RPM pumps may therefore gulp a bucket and meter it out over several
+ticks; this avoids requiring 1000 u/t instantaneous flow while still conserving
+the real source block.
+
+The pump currently models a simple pressure estimate and network pressure cap,
+not a complete pump curve, cavitation model or hydrostatic solver.
