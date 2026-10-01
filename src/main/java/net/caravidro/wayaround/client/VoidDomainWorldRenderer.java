@@ -951,8 +951,37 @@ public final class VoidDomainWorldRenderer {
         for (VoidDomainClientEffects.VisualDomain domain :
                 domains) {
 
+            float formation =
+                    Math.max(
+                            0.0F,
+                            Math.min(
+                                    1.0F,
+                                    domain.formationProgress()
+                            )
+                    );
+
+            float eased =
+                    formation
+                            * formation
+                            * (
+                            3.0F
+                                    - 2.0F
+                                            * formation
+                    );
+
+            /*
+             * The shell is born close to the caster and expands into the full
+             * Domain radius while individual facets reveal at slightly
+             * different moments. It reads as "the sphere is assembling" rather
+             * than a finished bubble popping into existence in one frame.
+             */
             float radius =
-                    domain.radius();
+                    domain.radius()
+                            * (
+                            0.12F
+                                    + 0.88F
+                                            * eased
+                    );
 
             AABB bounds =
                     new AABB(
@@ -1003,6 +1032,45 @@ public final class VoidDomainWorldRenderer {
                      lon < EXTERIOR_LONGITUDE_SEGMENTS;
                      lon++) {
 
+                    long tileHash =
+                            mix(
+                                    ((long) lat << 32)
+                                            ^ lon
+                                                    * 0x9E3779B97F4A7C15L
+                            );
+
+                    float threshold =
+                            (
+                                    (tileHash >>> 40)
+                                            & 0xFFFFL
+                            )
+                                    / 65535.0F
+                                    * 0.78F;
+
+                    if (formation
+                            < threshold) {
+                        continue;
+                    }
+
+                    float tileReveal =
+                            Math.max(
+                                    0.0F,
+                                    Math.min(
+                                            1.0F,
+                                            (formation - threshold)
+                                                    / 0.22F
+                                    )
+                            );
+
+                    tileReveal =
+                            tileReveal
+                                    * tileReveal
+                                    * (
+                                    3.0F
+                                            - 2.0F
+                                                    * tileReveal
+                            );
+
                     double theta0 =
                             Math.PI * 2.0
                                     * lon
@@ -1042,9 +1110,14 @@ public final class VoidDomainWorldRenderer {
                             );
 
                     int alpha =
-                            (lat + lon) % 2 == 0
-                                    ? 84
-                                    : 112;
+                            Math.round(
+                                    (
+                                            (lat + lon) % 2 == 0
+                                                    ? 176.0F
+                                                    : 220.0F
+                                    )
+                                            * tileReveal
+                            );
 
                     any |= solidTriangle(
                             buffer,
