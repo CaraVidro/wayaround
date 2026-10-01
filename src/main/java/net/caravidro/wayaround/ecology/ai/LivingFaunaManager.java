@@ -1096,6 +1096,36 @@ public final class LivingFaunaManager {
         );
     }
 
+    private static <T extends Entity> T nearestByDistance(
+            Entity origin,
+            List<T> candidates
+    ) {
+        T nearest =
+                null;
+
+        double best =
+                Double.MAX_VALUE;
+
+        for (T candidate :
+                candidates) {
+
+            double distance =
+                    origin.distanceToSqr(
+                            candidate
+                    );
+
+            if (distance < best) {
+                best =
+                        distance;
+
+                nearest =
+                        candidate;
+            }
+        }
+
+        return nearest;
+    }
+
     private static boolean feedFish(
             ServerLevel level,
             AbstractFish fish
@@ -1129,7 +1159,9 @@ public final class LivingFaunaManager {
         }
 
         ItemEntity food =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 ItemEntity.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -1151,13 +1183,7 @@ public final class LivingFaunaManager {
                                                 item.getItem()
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (food == null) {
             data.putLong(
@@ -1613,7 +1639,9 @@ public final class LivingFaunaManager {
         }
 
         ItemEntity meat =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        predator,
+                        level.getEntitiesOfClass(
                                 ItemEntity.class,
                                 predator.getBoundingBox()
                                         .inflate(
@@ -1627,13 +1655,7 @@ public final class LivingFaunaManager {
                                                 item.getItem()
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        predator::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (meat == null) {
             data.putLong(
@@ -2123,7 +2145,9 @@ public final class LivingFaunaManager {
         }
 
         AbstractFish nearest =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        whale,
+                        level.getEntitiesOfClass(
                                 AbstractFish.class,
                                 whale.getBoundingBox()
                                         .inflate(
@@ -2153,13 +2177,7 @@ public final class LivingFaunaManager {
                                                         : 1.30F
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        whale::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (nearest == null) {
             data.putLong(
@@ -2323,7 +2341,9 @@ public final class LivingFaunaManager {
             AbstractFish fish
     ) {
         AbstractFish predator =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 AbstractFish.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2336,13 +2356,7 @@ public final class LivingFaunaManager {
                                                 && candidate != fish
                                                 && candidate instanceof AquaticPredator
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (predator == null) {
             return false;
@@ -2571,7 +2585,9 @@ public final class LivingFaunaManager {
             AquaticPredator predator
     ) {
         AbstractFish stronger =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 AbstractFish.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2607,13 +2623,7 @@ public final class LivingFaunaManager {
                                                 )
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (stronger == null) {
             return false;
@@ -2785,7 +2795,9 @@ public final class LivingFaunaManager {
         }
 
         JellyfishEntity jelly =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 JellyfishEntity.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2796,13 +2808,7 @@ public final class LivingFaunaManager {
                                 other ->
                                         other.isAlive()
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (jelly == null) {
             return false;
@@ -2851,7 +2857,9 @@ public final class LivingFaunaManager {
         }
 
         MantaRayEntity manta =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 MantaRayEntity.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2865,13 +2873,7 @@ public final class LivingFaunaManager {
                                                 other
                                         ) >= 0.75F
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (manta == null) {
             return false;
