@@ -181,6 +181,13 @@ public final class ElectronicsContent {
                                     .sound(
                                             SoundType.COPPER
                                     )
+                                    .lightLevel(
+                                            state -> state.getValue(
+                                                    CircuitControllerBlock.LED_ACTIVE
+                                            )
+                                                    ? 8
+                                                    : 0
+                                    )
                     )
             );
 
