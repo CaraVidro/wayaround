@@ -232,4 +232,29 @@ public final class MechanicsGameTests {
         h.succeed();
     }
 
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void sharedMechanicalLoadSeparatesPowerTorqueAndSpeed(GameTestHelper h){
+        IRotationalPower weakFast=new IRotationalPower(){
+            public float rpm(){return 72F;}
+            public float torque(){return 1.25F;}
+            public float power(){return 2F;}
+            public Direction.Axis axis(){return Direction.Axis.X;}
+            public int rotationDirection(){return 1;}
+        };
+
+        MechanicalLoad.Demand demand=MechanicalLoad.sample(weakFast,4F,3F,48F);
+        h.assertTrue(demand.powerStarved(),"A source with too little available power is detected as power-starved");
+        h.assertTrue(demand.torqueStarved(),"High RPM cannot substitute missing torque for heavy work");
+        h.assertTrue(demand.overspeed()>.45F,"The same shared model exposes overspeed relative to a machine-safe RPM");
+        h.assertTrue(Math.abs(MechanicalLoad.fulfillment(4F,2F)-.5F)<.001F,
+                "Granted power is represented as bounded demand fulfillment");
+
+        float normal=MechanicalLoad.failureStress(.55F,0F,.08F,.18F,.95F);
+        float abused=MechanicalLoad.failureStress(1.6F,.8F,.7F,1.2F,.2F);
+        h.assertTrue(abused>normal&&abused>1F,
+                "Combined load, speed, heat, vibration and poor condition produce higher failure stress");
+        h.succeed();
+    }
+
+
 }
