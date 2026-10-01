@@ -10,6 +10,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.phys.AABB;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffects;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -52,6 +56,13 @@ public final class DeepOceanManager {
 
             if ((now % 400L) == 0L) {
                 cleanLegacyFloatingOceanDecor(
+                        player.serverLevel(),
+                        player.blockPosition()
+                );
+            }
+
+            if ((now % 100L) == 0L) {
+                trimLegacyDeepOceanPopulation(
                         player.serverLevel(),
                         player.blockPosition()
                 );
@@ -157,6 +168,82 @@ public final class DeepOceanManager {
                     );
                 }
             }
+        }
+    }
+
+    private static void trimLegacyDeepOceanPopulation(
+            ServerLevel level,
+            BlockPos center
+    ) {
+        /*
+         * Safety net for worlds that spent time on the old "every fish is
+         * persistent forever" builds. New wildlife can despawn normally, but
+         * already-saved fish may still carry the persistence flag.
+         */
+        AABB area =
+                new AABB(
+                        center
+                ).inflate(
+                        96.0,
+                        56.0,
+                        96.0
+                );
+
+        List<AguaWorldFishEntity> fish =
+                new ArrayList<>(
+                        level.getEntitiesOfClass(
+                                AguaWorldFishEntity.class,
+                                area,
+                                entity -> entity.isAlive()
+                                        && !entity.hasCustomName()
+                        )
+                );
+
+        final int hardCap =
+                40;
+
+        final int target =
+                32;
+
+        if (fish.size() <= hardCap) {
+            return;
+        }
+
+        fish.sort(
+                Comparator.comparingDouble(
+                        (AguaWorldFishEntity entity) ->
+                                entity.distanceToSqr(
+                                        center.getX() + 0.5,
+                                        center.getY() + 0.5,
+                                        center.getZ() + 0.5
+                                )
+                ).reversed()
+        );
+
+        int remove =
+                fish.size()
+                        - target;
+
+        for (AguaWorldFishEntity entity :
+                fish) {
+            if (remove <= 0) {
+                break;
+            }
+
+            /*
+             * Keep the nearby visible ecosystem intact; cull the accumulated
+             * outer ring first, which is what hurts simulation/render cost.
+             */
+            if (entity.distanceToSqr(
+                    center.getX() + 0.5,
+                    center.getY() + 0.5,
+                    center.getZ() + 0.5
+            ) < 24.0 * 24.0) {
+                continue;
+            }
+
+            entity.discard();
+            remove--;
         }
     }
 
