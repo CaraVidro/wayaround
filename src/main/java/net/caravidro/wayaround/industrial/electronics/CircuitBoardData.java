@@ -536,6 +536,14 @@ public final class CircuitBoardData {
         );
     }
 
+    public boolean hasRuntimeOutputPath() {
+        return hasSignalPath()
+                || connected(
+                ComponentType.DISTANCE_DETECTOR,
+                ComponentType.OUTPUT_TERMINAL
+        );
+    }
+
     public float complexity() {
         return Mth.clamp(
                 componentCount()
