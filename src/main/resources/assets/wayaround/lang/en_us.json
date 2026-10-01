@@ -990,5 +990,8 @@
   "container.wayaround.electronics.upgrade_compact": "%sx %s • %sx %s • %sx %s",
   "container.wayaround.electronics.expand_shift": "SHIFT + CLICK: EXPAND PCB",
   "message.wayaround.circuit_workbench.upgrade_missing": "PCB expansion aborted: all upgrade materials must be present before anything is consumed.",
-  "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s)."
+  "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s).",
+  "entity.wayaround.deep_sea_submarine": "Abyss Submarine",
+  "item.wayaround.deep_sea_submarine": "Abyss Submarine",
+  "entity.wayaround.player_corpse": "Player Corpse"
 }
