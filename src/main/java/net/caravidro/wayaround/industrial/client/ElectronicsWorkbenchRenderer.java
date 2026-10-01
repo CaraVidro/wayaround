@@ -16,7 +16,7 @@ public final class ElectronicsWorkbenchRenderer
 
     private static final double BOARD_WIDTH = 0.70;
     private static final double BOARD_DEPTH = 0.48;
-    private static final double BOARD_Y = 0.802;
+    private static final double BOARD_Y = 0.780;
 
     private final BlockRenderDispatcher blockRenderer;
 
