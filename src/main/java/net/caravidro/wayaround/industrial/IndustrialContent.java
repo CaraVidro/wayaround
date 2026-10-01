@@ -81,6 +81,11 @@ public final class IndustrialContent {
                                         output.accept(PowerContent.STEAM_PRESSURE_GAUGE.get());
                                         output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
                                         output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
+                                        output.accept(PowerContent.FUSE_BOX_ITEM.get());
+                                        output.accept(PowerContent.TRANSFORMER_ITEM.get());
+                                        output.accept(PowerContent.HIGH_VOLTAGE_LINE_ITEM.get());
+                                        output.accept(PowerContent.UTILITY_POLE_ITEM.get());
+                                        output.accept(PowerContent.ELECTRIC_MOTOR_ITEM.get());
                                         output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
                                         output.accept(PowerContent.MECHANICAL_FAN_ITEM.get());
                                         output.accept(PowerContent.FLOUR.get());
