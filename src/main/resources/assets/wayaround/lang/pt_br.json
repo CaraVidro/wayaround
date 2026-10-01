@@ -999,5 +999,11 @@
   "block.wayaround.forest_shrub": "Arbusto de Floresta",
   "block.wayaround.flowering_shrub": "Arbusto Florido",
   "block.wayaround.mushroom_patch": "Colônia de Cogumelos",
-  "block.wayaround.dry_shrub": "Arbusto Seco"
+  "block.wayaround.dry_shrub": "Arbusto Seco",
+  "block.wayaround.marsh_cattails": "Taboas do Brejo",
+  "block.wayaround.broadleaf_fern": "Samambaia de Folha Larga",
+  "block.wayaround.moss_tuft": "Tufo de Musgo",
+  "block.wayaround.thorn_bush": "Arbusto Espinhoso",
+  "block.wayaround.wildflower_cluster": "Moita de Flores Silvestres",
+  "block.wayaround.marsh_grass_clump": "Tufo de Capim do Brejo"
 }
