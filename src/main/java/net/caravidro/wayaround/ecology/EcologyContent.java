@@ -160,6 +160,17 @@ public final class EcologyContent {
                             .build("wayaround:jellyfish")
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<DeepSeaCapsuleEntity>> DEEP_SEA_CAPSULE =
+            ENTITIES.register(
+                    "deep_sea_capsule",
+                    () -> EntityType.Builder
+                            .of(DeepSeaCapsuleEntity::new, MobCategory.MISC)
+                            .sized(1.35F, 1.65F)
+                            .clientTrackingRange(16)
+                            .updateInterval(1)
+                            .build("wayaround:deep_sea_capsule")
+            );
+
     public static final DeferredHolder<EntityType<?>, EntityType<OarfishEntity>> OARFISH =
             ENTITIES.register(
                     "oarfish",
@@ -512,6 +523,15 @@ public final class EcologyContent {
      * bypasses the living-fish hook system and lets Minecraft materialize
      * ordinary fishing loot again.
      */
+    public static final DeferredItem<DeepSeaCapsuleItem> DEEP_SEA_CAPSULE_ITEM =
+            ITEMS.register(
+                    "deep_sea_capsule",
+                    () -> new DeepSeaCapsuleItem(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                    )
+            );
+
     public static final DeferredItem<FishingRodItem> MAGIC_FISHING_ROD =
             ITEMS.register(
                     "magic_fishing_rod",
@@ -1056,6 +1076,9 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 SEAGULL_SPAWN_EGG.get()
+                                        );
+                                        output.accept(
+                                                DEEP_SEA_CAPSULE_ITEM.get()
                                         );
                                         output.accept(
                                                 MAGIC_FISHING_ROD.get()

@@ -150,9 +150,9 @@ public final class JellyfishEntity extends AguaWorldFishEntity {
 
         if (scale != null
                 && scale.getBaseValue()
-                        < 3.20) {
+                        < 6.40) {
             scale.setBaseValue(
-                    3.20
+                    6.40
             );
             refreshDimensions();
         }
@@ -288,7 +288,7 @@ public final class JellyfishEntity extends AguaWorldFishEntity {
                 6,
                 true,
                 5.5F,
-                2.85F
+                4.80F
         );
 
         private final int id;

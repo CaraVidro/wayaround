@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.ecology.ai;
 
+import net.caravidro.wayaround.ecology.DeepOceanManager;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -3532,6 +3534,15 @@ public final class LivingFaunaManager {
             float anomaly =
                     level.random.nextFloat();
 
+            boolean abyssal =
+                    DeepOceanManager.isDeepOcean(
+                            level,
+                            fish.blockPosition()
+                    )
+                            && level.getSeaLevel()
+                            - fish.getY()
+                            > 48.0;
+
             float base;
 
             if (sunFish) {
@@ -3668,6 +3679,38 @@ public final class LivingFaunaManager {
 
             } else if (fish instanceof WhaleEntity) {
                 base = 0.88F + level.random.nextFloat() * 0.26F;
+            }
+
+            /*
+             * Surface monsters remain exceptional. In the true abyss, however,
+             * huge old individuals are part of the normal visual language.
+             */
+            if (abyssal
+                    && !(fish instanceof SardineEntity)
+                    && !(fish instanceof ClownfishEntity)
+                    && !(fish instanceof SeahorseEntity)
+                    && !(fish instanceof WhaleEntity)
+                    && !(fish instanceof SpermWhaleEntity)) {
+                float abyssRoll =
+                        level.random.nextFloat();
+
+                if (abyssRoll < 0.18F) {
+                    base =
+                            Math.max(
+                                    base,
+                                    3.8F
+                                            + level.random.nextFloat()
+                                                    * 3.0F
+                            );
+                } else if (abyssRoll < 0.55F) {
+                    base =
+                            Math.max(
+                                    base,
+                                    1.65F
+                                            + level.random.nextFloat()
+                                                    * 1.75F
+                            );
+                }
             }
 
             data.putFloat(

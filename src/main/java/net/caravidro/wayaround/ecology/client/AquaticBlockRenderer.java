@@ -57,6 +57,10 @@ abstract class AquaticBlockRenderer<T extends AbstractFish>
             MultiBufferSource buffers,
             int light
     ) {
+        if (!DeepOceanClientVisibility.shouldRender(fish)) {
+            return;
+        }
+
         activeTier = DistanceLod.forEntity(fish);
         this.shadowRadius = activeTier.dynamicLighting() ? baseShadowRadius : 0.0F;
         float visualYaw = DistanceLod.quantizeDegrees(yaw, activeTier);
