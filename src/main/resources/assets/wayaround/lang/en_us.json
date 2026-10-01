@@ -873,5 +873,16 @@
   "message.wayaround.circuit_controller.board_removed": "Circuit board removed from the controller.",
   "message.wayaround.circuit_controller.no_board": "no board",
   "message.wayaround.circuit_controller.has_board": "board installed",
-  "message.wayaround.circuit_controller.status": "Controller: %s | %s/%s FE | draw %s FE/t | input %s | output %s | %s components | %s traces"
+  "message.wayaround.circuit_controller.status": "Controller: %s | %s/%s FE | draw %s FE/t | input %s | output %s | %s components | %s traces",
+  "block.wayaround.electronics_workbench": "Electronics Workbench",
+  "block.wayaround.steam_boiler": "Steam Boiler",
+  "item.wayaround.boiler_pressure_vessel": "Boiler Pressure Vessel",
+  "item.wayaround.boiler_safety_valve": "Boiler Safety Valve",
+  "message.wayaround.steam_boiler.status": "Boiler: %s | Water %s/%s mB | Steam %s/%s | Pressure %s bar | %s °C | Heat %s%% | Coal %s",
+  "message.wayaround.steam_boiler.complete": "assembled",
+  "message.wayaround.steam_boiler.incomplete": "missing pressure vessel / safety valve",
+  "message.wayaround.steam_engine.status_v2": "Steam %s/%s | Pressure %s bar | %s °C | RPM %s | Torque %s | Mechanical power %s",
+  "screen.wayaround.update_log.milestone15": "Milestone 1.5: Steam Age / heat → steam → pressure → rotation → electricity.",
+  "screen.wayaround.update_log.steam_chain": "Boilers, steam-rated pipes and piston engines are now separate physical stages.",
+  "screen.wayaround.update_log.professions": "Electronics moved to its own Electronics Workbench; Engineering stays focused on design/calculation."
 }
