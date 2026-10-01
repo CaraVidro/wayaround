@@ -289,7 +289,7 @@ public final class WaterSurfaceRenderer {
                     + wave(
                             x,
                             z,
-                            time,
+                            waveTime,
                             amplitude
                     );
 
@@ -298,7 +298,7 @@ public final class WaterSurfaceRenderer {
                     + wave(
                             x + 1,
                             z,
-                            time,
+                            waveTime,
                             amplitude
                     );
 
@@ -307,7 +307,7 @@ public final class WaterSurfaceRenderer {
                     + wave(
                             x + 1,
                             z + 1,
-                            time,
+                            waveTime,
                             amplitude
                     );
 
@@ -316,7 +316,7 @@ public final class WaterSurfaceRenderer {
                     + wave(
                             x,
                             z + 1,
-                            time,
+                            waveTime,
                             amplitude
                     );
 
