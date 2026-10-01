@@ -215,9 +215,10 @@ public final class EcologyContent {
             ENTITIES.register(
                     "cleinton",
                     () -> EntityType.Builder
-                            .of(CleintonEntity::new, MobCategory.WATER_AMBIENT)
-                            .sized(0.62F, 0.30F)
-                            .clientTrackingRange(20)
+                            .of(CleintonEntity::new, MobCategory.CREATURE)
+                            .sized(0.86F, 0.72F)
+                            .clientTrackingRange(24)
+                            .fireImmune()
                             .build("wayaround:cleinton")
             );
 
