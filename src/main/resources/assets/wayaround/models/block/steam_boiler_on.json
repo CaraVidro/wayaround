@@ -1,0 +1,6 @@
+{
+  "parent": "wayaround:block/steam_boiler",
+  "textures": {
+    "fire": "minecraft:block/redstone_block"
+  }
+}
