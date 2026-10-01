@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.client;
 
 import net.caravidro.wayaround.domain.DomainIntroManager;
+import net.caravidro.wayaround.domain.VoidDomainPresentation;
 import net.minecraft.resources.ResourceLocation;
 
 public record DomainIntroProfile(
@@ -29,6 +30,9 @@ public record DomainIntroProfile(
 
     public static final byte POSE_SHADOWS =
             3;
+
+    public static final byte POSE_VOID_EXIT =
+            4;
 
     public static DomainIntroProfile forStyle(
             byte style,
@@ -99,30 +103,44 @@ public record DomainIntroProfile(
                             "DOMÍNIO DE EXPANSÃO"
                     );
 
-            default ->
-                    new DomainIntroProfile(
-                            0xF0030307,
-                            0xFFFFFFFF,
-                            0xFF448AFF,
-                            0xFFFF304A,
-                            0xFFB55CFF,
-                            ResourceLocation.fromNamespaceAndPath(
-                                    "wayaround",
-                                    "textures/gui/domain/void_apex.png"
-                            ),
-                            false,
-                            1024,
-                            256,
-                            variant
-                                    == DomainIntroManager.APEX
-                                    ? POSE_VOID_APEX
-                                    : POSE_SIMPLE,
-                            false,
-                            variant
-                                    == DomainIntroManager.APEX
-                                    ? "DOMÍNIO DE EXPANSÃO ABSOLUTO"
-                                    : "DOMÍNIO DE EXPANSÃO"
-                    );
+            default -> {
+                VoidDomainPresentation presentation =
+                        VoidDomainPresentation.byId(
+                                variant
+                        );
+
+                boolean absolute =
+                        presentation
+                                == VoidDomainPresentation.ABSOLUTE;
+
+                yield new DomainIntroProfile(
+                        0xF0030307,
+                        0xFFFFFFFF,
+                        0xFF448AFF,
+                        0xFFFFE2A2,
+                        0xFFB55CFF,
+                        ResourceLocation.fromNamespaceAndPath(
+                                "wayaround",
+                                absolute
+                                        ? "textures/gui/domain/void_absolute.png"
+                                        : "textures/gui/domain/void_apex.png"
+                        ),
+                        absolute,
+                        absolute
+                                ? 320
+                                : 1024,
+                        absolute
+                                ? 180
+                                : 256,
+                        absolute
+                                ? POSE_VOID_APEX
+                                : POSE_SIMPLE,
+                        false,
+                        absolute
+                                ? "DOMÍNIO DE EXPANSÃO ABSOLUTO"
+                                : "DOMÍNIO DE EXPANSÃO"
+                );
+            }
         };
     }
 }
