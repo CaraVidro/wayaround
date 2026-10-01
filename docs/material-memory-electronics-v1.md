@@ -107,15 +107,20 @@ Existing WayAround generators and `EnergyNetwork` can therefore power it through
 
 There is no separate "electronics energy".
 
-The controller:
+The controller is now the physical runtime socket for a finished board:
 
-- accepts a player-built circuit board;
-- consumes FE according to circuit complexity;
-- reads an electrical/redstone input from its rear;
-- requires a real conductive path from INPUT_TERMINAL to OUTPUT_TERMINAL;
-- emits the resulting signal from its facing side;
-- ages the copper board while operating;
-- can suffer conductivity loss as corrosion/heat history grows.
+- remove the PCB from the Electronics Workbench after editing;
+- right-click the Circuit Controller with the board to install it visibly on the controller;
+- Shift + empty-hand use removes that same board again with its exact layout intact;
+- FE from the existing WayAround electrical network powers the board;
+- redstone entering the **rear** becomes the INPUT_TERMINAL source;
+- an OUTPUT_TERMINAL routed through copper emits redstone from the controller's **front**;
+- Distance Detector components are independent signal sources: they scan living entities up to 16 blocks in front of the controller and create a stronger 1–15 signal for nearer targets;
+- LED components are visual sinks and make the controller glow when a routed source is active;
+- Buzzer components are audio sinks and emit reinforced note-like pulses whose pitch follows signal strength;
+- all of those active parts use the same explicit physical copper graph as ordinary input/output routing;
+- the controller consumes FE according to circuit complexity;
+- the board still ages while operating and conductivity can fall as corrosion/heat history grows.
 
 ## Why this is a seed instead of a computer update
 
