@@ -993,5 +993,11 @@
   "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s).",
   "entity.wayaround.deep_sea_submarine": "Abyss Submarine",
   "item.wayaround.deep_sea_submarine": "Abyss Submarine",
-  "entity.wayaround.player_corpse": "Player Corpse"
+  "entity.wayaround.player_corpse": "Player Corpse",
+  "block.wayaround.bracken_fern": "Bracken Fern",
+  "block.wayaround.wild_reeds": "Wild Reeds",
+  "block.wayaround.forest_shrub": "Forest Shrub",
+  "block.wayaround.flowering_shrub": "Flowering Shrub",
+  "block.wayaround.mushroom_patch": "Mushroom Patch",
+  "block.wayaround.dry_shrub": "Dry Shrub"
 }
