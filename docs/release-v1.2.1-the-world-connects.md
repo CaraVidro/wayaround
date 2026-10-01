@@ -64,6 +64,7 @@ Implemented in the development branch:
 - pipe pressure/temperature ratings affect steam transmission and structural damage;
 - Steam Engine no longer burns coal/water internally and no longer creates FE directly;
 - Steam Engine now consumes piped steam and exposes RPM, torque and mechanical power;
+- normal steam-machine feedback is qualitative, while exact pressure/RPM/temperature readings require a Steam Pressure Gauge;
 - steam-generated electricity now requires a downstream mechanical generator;
 - dedicated Steam Age GameTests.
 
