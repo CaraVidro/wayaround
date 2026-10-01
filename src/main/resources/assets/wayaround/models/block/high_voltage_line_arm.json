@@ -1,0 +1,40 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/copper_block",
+    "wire": "minecraft:block/copper_block",
+    "insulator": "minecraft:block/black_concrete"
+  },
+  "elements": [
+    {
+      "from": [
+        7,
+        7,
+        0
+      ],
+      "to": [
+        9,
+        9,
+        7
+      ],
+      "faces": {
+        "down": {
+          "texture": "#insulator"
+        },
+        "up": {
+          "texture": "#insulator"
+        },
+        "north": {
+          "texture": "#wire",
+          "cullface": "north"
+        },
+        "west": {
+          "texture": "#insulator"
+        },
+        "east": {
+          "texture": "#insulator"
+        }
+      }
+    }
+  ]
+}
