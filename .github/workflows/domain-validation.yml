@@ -1,0 +1,87 @@
+name: Domain Expansion visual validation
+
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/net/caravidro/wayaround/client/DomainIntroClient.java'
+      - 'src/main/java/net/caravidro/wayaround/client/DomainIntroProfile.java'
+      - 'src/main/java/net/caravidro/wayaround/client/VoidDomainClientEffects.java'
+      - 'src/main/java/net/caravidro/wayaround/client/VoidDomainWorldRenderer.java'
+      - 'src/main/java/net/caravidro/wayaround/domain/**'
+      - 'src/main/java/net/caravidro/wayaround/network/DomainIntroS2CPayload.java'
+      - 'src/main/java/net/caravidro/wayaround/network/VoidDomainVisualPayload.java'
+      - '.github/workflows/domain-validation.yml'
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Domain-connected GameTests
+        run: bash gradlew runCrushingGameTestServer --console=plain
+
+      - name: Domain client/render smoke
+        env:
+          ALSOFT_DRIVERS: "null"
+        shell: bash
+        run: |
+          python - <<'PYCLIENT'
+          import os, re, signal, subprocess, time
+          from pathlib import Path
+
+          path = Path('domain-client-smoke.log')
+          ready = False
+
+          with path.open('w') as log:
+              process = subprocess.Popen(
+                  ['xvfb-run', '-a', 'bash', 'gradlew', 'runClient', '--console=plain'],
+                  stdout=log,
+                  stderr=subprocess.STDOUT,
+                  start_new_session=True,
+              )
+              try:
+                  deadline = time.monotonic() + 180
+                  while process.poll() is None and time.monotonic() < deadline:
+                      text = path.read_text(errors='replace')
+                      audio = 'OpenAL initialized' in text or 'Sound engine started' in text
+                      if audio and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                          ready = True
+                          break
+                      time.sleep(1)
+              finally:
+                  if process.poll() is None:
+                      os.killpg(process.pid, signal.SIGTERM)
+                  try:
+                      process.wait(timeout=15)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(process.pid, signal.SIGKILL)
+                      process.wait()
+
+          text = path.read_text(errors='replace')
+
+          fatal = re.compile(
+              r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidMixinException'
+          )
+
+          if not ready or fatal.search(text):
+              print('\n'.join(text.splitlines()[-180:]))
+              raise SystemExit(1)
+
+          print('Domain GameTests and client render smoke reached a clean initialized state')
+          PYCLIENT
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: domain-expansion-validation
+          path: |
+            domain-client-smoke.log
+            run/logs/latest.log
+            build/reports/**
