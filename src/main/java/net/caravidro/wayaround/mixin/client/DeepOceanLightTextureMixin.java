@@ -71,6 +71,11 @@ public abstract class DeepOceanLightTextureMixin {
             return;
         }
 
+        float lamp =
+                DeepOceanClientVisibility.vehicleLampStrength(
+                        minecraft.player
+                );
+
         for (int skyLight = 0; skyLight < 16; skyLight++) {
             for (int blockLight = 0; blockLight < 16; blockLight++) {
                 int color =
@@ -98,11 +103,21 @@ public abstract class DeepOceanLightTextureMixin {
 
                 artificial *= artificial;
 
+                float lampFloor =
+                        lamp
+                                * 0.34F;
+
+                float visibleLight =
+                        Math.max(
+                                lampFloor,
+                                artificial * 0.96F
+                        );
+
                 float abyssFactor =
                         net.minecraft.util.Mth.lerp(
                                 abyss,
                                 1.0F,
-                                artificial * 0.96F
+                                visibleLight
                         );
 
                 red = clamp255(red * abyssFactor);
