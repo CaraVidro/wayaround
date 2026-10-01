@@ -32,9 +32,6 @@ public final class ElectronicsWorkbenchScreen
     private static final int BOARD_CELL = 52;
     private static final int BOARD_WIDTH =
             CircuitBoardData.WIDTH * BOARD_CELL;
-    private static final int BOARD_HEIGHT =
-            CircuitBoardData.HEIGHT * BOARD_CELL;
-
     private static final double MIN_ZOOM = 0.55;
     private static final double MAX_ZOOM = 2.35;
 
@@ -388,11 +385,18 @@ public final class ElectronicsWorkbenchScreen
                 1.0F
         );
 
+        CircuitBoardData board =
+                board();
+
+        int boardHeight =
+                board.activeHeight()
+                        * BOARD_CELL;
+
         graphics.fill(
                 0,
                 0,
                 BOARD_WIDTH,
-                BOARD_HEIGHT,
+                boardHeight,
                 0xFF285B32
         );
 
@@ -400,12 +404,9 @@ public final class ElectronicsWorkbenchScreen
                 4,
                 4,
                 BOARD_WIDTH - 4,
-                BOARD_HEIGHT - 4,
+                boardHeight - 4,
                 0xFF347441
         );
-
-        CircuitBoardData board =
-                board();
 
         hoveredCell =
                 cellAt(
@@ -442,7 +443,7 @@ public final class ElectronicsWorkbenchScreen
         }
 
         for (int y = 0;
-             y < CircuitBoardData.HEIGHT;
+             y < board.activeHeight();
              y++) {
             for (int x = 0;
                  x < CircuitBoardData.WIDTH;
@@ -667,7 +668,7 @@ public final class ElectronicsWorkbenchScreen
                 Component.translatable(
                         "container.wayaround.electronics.board_usage",
                         board.componentCount(),
-                        CircuitBoardData.CELL_COUNT
+                        board.activeCellCount()
                 ),
                 x + 8,
                 line,
@@ -696,13 +697,13 @@ public final class ElectronicsWorkbenchScreen
         graphics.drawString(
                 font,
                 Component.translatable(
-                        board.hasSignalPath()
+                        board.hasRuntimeOutputPath()
                                 ? "container.wayaround.electronics.signal_closed"
                                 : "container.wayaround.electronics.signal_open"
                 ),
                 x + 8,
                 line,
-                board.hasSignalPath()
+                board.hasRuntimeOutputPath()
                         ? 0xFF75D786
                         : 0xFF89918D,
                 false
@@ -867,6 +868,129 @@ public final class ElectronicsWorkbenchScreen
                 );
             }
         }
+
+        renderUpgradePanel(
+                graphics,
+                board,
+                x
+        );
+    }
+
+    private void renderUpgradePanel(
+            GuiGraphics graphics,
+            CircuitBoardData board,
+            int x
+    ) {
+        int panelY =
+                topPos
+                        + imageHeight
+                        - 76;
+
+        graphics.fill(
+                x + 5,
+                panelY,
+                leftPos + imageWidth - 10,
+                topPos + imageHeight - 8,
+                0xEE111817
+        );
+
+        graphics.drawString(
+                font,
+                Component.translatable(
+                        "container.wayaround.electronics.board_size",
+                        CircuitBoardData.WIDTH,
+                        board.activeHeight(),
+                        board.expansionLevel()
+                ),
+                x + 8,
+                panelY + 5,
+                0xFFA8C7B4,
+                false
+        );
+
+        if (!board.canExpand()) {
+            graphics.drawString(
+                    font,
+                    Component.translatable(
+                            "container.wayaround.electronics.board_max"
+                    ),
+                    x + 8,
+                    panelY + 21,
+                    0xFFE3C66B,
+                    false
+            );
+            return;
+        }
+
+        CircuitBoardData.UpgradeCost cost =
+                board.nextUpgradeCost();
+
+        if (cost == null) {
+            return;
+        }
+
+        graphics.drawString(
+                font,
+                Component.translatable(
+                        "container.wayaround.electronics.expand_to",
+                        CircuitBoardData.WIDTH,
+                        board.nextHeight()
+                ),
+                x + 8,
+                panelY + 18,
+                0xFFD7DED9,
+                false
+        );
+
+        graphics.drawString(
+                font,
+                Component.translatable(
+                        "container.wayaround.electronics.upgrade_compact",
+                        cost.copperCount(),
+                        shortMaterialName(cost.copper()),
+                        cost.redstoneCount(),
+                        shortMaterialName(cost.redstone()),
+                        cost.diamondCount(),
+                        shortMaterialName(cost.diamond())
+                ),
+                x + 8,
+                panelY + 31,
+                0xFFA7A7A7,
+                false
+        );
+
+        int bx =
+                upgradeButtonX();
+
+        int by =
+                upgradeButtonY();
+
+        graphics.fill(
+                bx,
+                by,
+                bx + upgradeButtonWidth(),
+                by + 16,
+                0xFF365544
+        );
+
+        graphics.drawCenteredString(
+                font,
+                Component.translatable(
+                        "container.wayaround.electronics.expand_shift"
+                ),
+                bx + upgradeButtonWidth() / 2,
+                by + 4,
+                0xFFEAF2EA
+        );
+    }
+
+    private String shortMaterialName(
+            Item item
+    ) {
+        return new ItemStack(
+                item
+        ).getHoverName()
+                .getString();
     }
 
     @Override
@@ -875,6 +999,31 @@ public final class ElectronicsWorkbenchScreen
             double mouseY,
             int button
     ) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
+                && inside(
+                mouseX,
+                mouseY,
+                upgradeButtonX(),
+                upgradeButtonY(),
+                upgradeButtonWidth(),
+                16
+        )) {
+            CircuitBoardData board =
+                    board();
+
+            if (board.canExpand()
+                    && hasShiftDown()) {
+                send(
+                        CircuitWorkbenchActionC2SPayload.UPGRADE,
+                        0,
+                        -1,
+                        -1
+                );
+            }
+
+            return true;
+        }
+
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE
                 && insideCanvas(
                 mouseX,
@@ -1188,7 +1337,9 @@ public final class ElectronicsWorkbenchScreen
         panY =
                 (
                         canvasHeight()
-                                - BOARD_HEIGHT * zoom
+                                - board().activeHeight()
+                                        * BOARD_CELL
+                                        * zoom
                 )
                         * 0.5;
     }
@@ -1316,10 +1467,18 @@ public final class ElectronicsWorkbenchScreen
                         y / BOARD_CELL
                 );
 
-        return CircuitBoardData.cell(
-                cellX,
-                cellY
-        );
+        int cell =
+                CircuitBoardData.cell(
+                        cellX,
+                        cellY
+                );
+
+        return board()
+                .isCellAvailable(
+                        cell
+                )
+                        ? cell
+                        : -1;
     }
 
     private boolean connectorAt(
@@ -1462,6 +1621,24 @@ public final class ElectronicsWorkbenchScreen
         return imageHeight
                 - TOP
                 - 5;
+    }
+
+    private int upgradeButtonX() {
+        return leftPos
+                + imageWidth
+                - PROPERTY_WIDTH
+                + 10;
+    }
+
+    private int upgradeButtonY() {
+        return topPos
+                + imageHeight
+                - 27;
+    }
+
+    private int upgradeButtonWidth() {
+        return PROPERTY_WIDTH
+                - 25;
     }
 
     private boolean insideCanvas(
