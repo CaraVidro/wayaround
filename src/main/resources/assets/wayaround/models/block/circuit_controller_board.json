@@ -1,0 +1,91 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "board": "minecraft:block/green_concrete",
+    "copper": "minecraft:block/copper_block",
+    "particle": "minecraft:block/green_concrete"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        16.05,
+        3
+      ],
+      "to": [
+        14,
+        16.45,
+        13
+      ],
+      "shade": false,
+      "faces": {
+        "down": {
+          "texture": "#board"
+        },
+        "up": {
+          "texture": "#board"
+        },
+        "north": {
+          "texture": "#board"
+        },
+        "south": {
+          "texture": "#board"
+        },
+        "west": {
+          "texture": "#board"
+        },
+        "east": {
+          "texture": "#board"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        16.45,
+        3
+      ],
+      "to": [
+        14,
+        16.58,
+        3.45
+      ],
+      "shade": false,
+      "faces": {
+        "up": {
+          "texture": "#copper"
+        },
+        "north": {
+          "texture": "#copper"
+        },
+        "south": {
+          "texture": "#copper"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        16.45,
+        12.55
+      ],
+      "to": [
+        14,
+        16.58,
+        13
+      ],
+      "shade": false,
+      "faces": {
+        "up": {
+          "texture": "#copper"
+        },
+        "north": {
+          "texture": "#copper"
+        },
+        "south": {
+          "texture": "#copper"
+        }
+      }
+    }
+  ]
+}
