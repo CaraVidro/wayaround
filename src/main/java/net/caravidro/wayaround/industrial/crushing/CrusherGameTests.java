@@ -26,7 +26,7 @@ public final class CrusherGameTests {
         }
         if(assembled){
             Player player=helper.makeMockPlayer(GameType.SURVIVAL);
-            for(String id:new String[]{"light_machine_shaft","plain_machine_bearing",size.id()+"_crushing_tool","narrow_machine_hopper"}){
+            for(String id:new String[]{"crusher_drive_cartridge",size.id()+"_crushing_tool","narrow_machine_hopper"}){
                 ItemStack stack=new ItemStack(CrusherContent.part(id),2);entity.install(player,stack);
                 helper.assertTrue(stack.getCount()==1,"Installing consumes exactly one physical component");
             }
@@ -38,11 +38,11 @@ public final class CrusherGameTests {
         helper.assertTrue(crusher.offer(new ItemStack(Items.RAW_IRON,64))==0,"Empty frame must not admit material");
         helper.assertTrue(crusher.assemblyParts().size()==1,"Empty frame cannot contain ghost tools");
         Player player=helper.makeMockPlayer(GameType.SURVIVAL);
-        for(String id:new String[]{"light_machine_shaft","plain_machine_bearing","small_crushing_tool","wide_machine_hopper"})
+        for(String id:new String[]{"crusher_drive_cartridge","small_crushing_tool","wide_machine_hopper"})
             crusher.install(player,new ItemStack(CrusherContent.part(id)));
         helper.assertTrue(crusher.offer(new ItemStack(Items.RAW_IRON,64))==1,"Wide feed must not turn small crusher into a bulk processor");
         helper.assertTrue(crusher.offer(new ItemStack(Items.RAW_IRON))==0,"Full small crusher must reject another item");
-        helper.assertTrue(crusher.parts().nodes(true).size()==4,"All four installed components appear in the Assembly graph");
+        helper.assertTrue(crusher.parts().nodes(true).size()==3,"Simplified crusher exposes hopper, drive cartridge and tool");
         helper.succeed();
     }
     @GameTest(template="assembly_test",batch="crushing",timeoutTicks=80)
