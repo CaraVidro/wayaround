@@ -980,5 +980,7 @@
   "container.wayaround.electronics.property.relay": "Electromechanical switching component reserved for deeper board logic.",
   "container.wayaround.electronics.property.led": "Visual sink. Lights when a connected source carries signal in a powered controller.",
   "container.wayaround.electronics.property.buzzer": "Audio sink. Emits note-like pulses when a connected source is active.",
-  "container.wayaround.electronics.property.distance_detector": "Sensor source. Detects living entities up to 16 blocks in front; closer targets produce stronger signal."
+  "container.wayaround.electronics.property.distance_detector": "Sensor source. Detects living entities up to 16 blocks in front; closer targets produce stronger signal.",
+  "screen.wayaround.update_log.splash_readability": "Authored dialogue splashes now wrap into readable lines instead of shrinking into microscopic text.",
+  "screen.wayaround.update_log.active_electronics": "Active electronics: corrected PCB lighting, rear-input/front-output Controller, LED, Buzzer and Distance Detector."
 }
