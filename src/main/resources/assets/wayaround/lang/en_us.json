@@ -982,5 +982,13 @@
   "container.wayaround.electronics.property.buzzer": "Audio sink. Emits note-like pulses when a connected source is active.",
   "container.wayaround.electronics.property.distance_detector": "Sensor source. Detects living entities up to 16 blocks in front; closer targets produce stronger signal.",
   "screen.wayaround.update_log.splash_readability": "Authored dialogue splashes now wrap into readable lines instead of shrinking into microscopic text.",
-  "screen.wayaround.update_log.active_electronics": "Active electronics: corrected PCB lighting, rear-input/front-output Controller, LED, Buzzer and Distance Detector."
+  "screen.wayaround.update_log.active_electronics": "Active electronics: corrected PCB lighting, rear-input/front-output Controller, LED, Buzzer and Distance Detector.",
+  "tooltip.wayaround.circuit_board.size": "PCB size: %sx%s • expansion %s/%s",
+  "container.wayaround.electronics.board_size": "PCB %sx%s • expansion %s",
+  "container.wayaround.electronics.board_max": "MAX PCB SIZE REACHED",
+  "container.wayaround.electronics.expand_to": "Expand to %sx%s",
+  "container.wayaround.electronics.upgrade_compact": "%sx %s • %sx %s • %sx %s",
+  "container.wayaround.electronics.expand_shift": "SHIFT + CLICK: EXPAND PCB",
+  "message.wayaround.circuit_workbench.upgrade_missing": "PCB expansion aborted: all upgrade materials must be present before anything is consumed.",
+  "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s)."
 }
