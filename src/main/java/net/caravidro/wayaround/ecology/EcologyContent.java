@@ -908,6 +908,146 @@ public final class EcologyContent {
                     )
             );
 
+    public static final DeferredBlock<EcologyPlantBlock> MARSH_CATTAILS =
+            BLOCKS.register(
+                    "marsh_cattails",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MARSH_CATTAILS_ITEM =
+            ITEMS.register(
+                    "marsh_cattails",
+                    () -> new BlockItem(
+                            MARSH_CATTAILS.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> BROADLEAF_FERN =
+            BLOCKS.register(
+                    "broadleaf_fern",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> BROADLEAF_FERN_ITEM =
+            ITEMS.register(
+                    "broadleaf_fern",
+                    () -> new BlockItem(
+                            BROADLEAF_FERN.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> MOSS_TUFT =
+            BLOCKS.register(
+                    "moss_tuft",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.MOSS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MOSS_TUFT_ITEM =
+            ITEMS.register(
+                    "moss_tuft",
+                    () -> new BlockItem(
+                            MOSS_TUFT.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> THORN_BUSH =
+            BLOCKS.register(
+                    "thorn_bush",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.WOOD)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .strength(
+                                            0.16F
+                                    )
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> THORN_BUSH_ITEM =
+            ITEMS.register(
+                    "thorn_bush",
+                    () -> new BlockItem(
+                            THORN_BUSH.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> WILDFLOWER_CLUSTER =
+            BLOCKS.register(
+                    "wildflower_cluster",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> WILDFLOWER_CLUSTER_ITEM =
+            ITEMS.register(
+                    "wildflower_cluster",
+                    () -> new BlockItem(
+                            WILDFLOWER_CLUSTER.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> MARSH_GRASS_CLUMP =
+            BLOCKS.register(
+                    "marsh_grass_clump",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MARSH_GRASS_CLUMP_ITEM =
+            ITEMS.register(
+                    "marsh_grass_clump",
+                    () -> new BlockItem(
+                            MARSH_GRASS_CLUMP.get(),
+                            new Item.Properties()
+                    )
+            );
+
     public static final DeferredBlock<AquaticFloorLifeBlock> SEA_CUCUMBER =
             BLOCKS.register(
                     "sea_cucumber",
@@ -1413,6 +1553,24 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 DRY_SHRUB_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MARSH_CATTAILS_ITEM.get()
+                                        );
+                                        output.accept(
+                                                BROADLEAF_FERN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MOSS_TUFT_ITEM.get()
+                                        );
+                                        output.accept(
+                                                THORN_BUSH_ITEM.get()
+                                        );
+                                        output.accept(
+                                                WILDFLOWER_CLUSTER_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MARSH_GRASS_CLUMP_ITEM.get()
                                         );
                                     }
                             )
