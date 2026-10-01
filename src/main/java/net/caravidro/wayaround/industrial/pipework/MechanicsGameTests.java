@@ -167,4 +167,66 @@ public final class MechanicsGameTests {
         h.succeed();
     }
 
+
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=100)
+    public static void crankActuallyDrivesMechanicalPump(GameTestHelper h){
+        BlockPos pumpLocal=new BlockPos(5,2,5);
+        BlockPos crankLocal=new BlockPos(6,2,5);
+        BlockPos sourceLocal=new BlockPos(5,2,6);
+        BlockPos dischargeLocal=new BlockPos(5,2,4);
+
+        h.setBlock(pumpLocal.below(),Blocks.STONE);
+        h.setBlock(
+                pumpLocal,
+                PipeworkContent.MECHANICAL_PUMP.get()
+                        .defaultBlockState()
+                        .setValue(MechanicalPumpBlock.FACING,Direction.NORTH)
+        );
+        h.setBlock(
+                crankLocal,
+                PowerContent.MANUAL_CRANK.get()
+                        .defaultBlockState()
+                        .setValue(ManualCrankBlock.FACING,Direction.WEST)
+        );
+        h.setBlock(sourceLocal,Blocks.WATER);
+        pipe(h,5,2,4,PipeworkContent.SMALL_COPPER_PIPE.get());
+
+        var pump=(MechanicalPumpBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(pumpLocal));
+        var crank=(ManualCrankBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(crankLocal));
+        var player=h.makeMockPlayer(GameType.SURVIVAL);
+
+        var cartridge=new ItemStack(PipeworkContent.PUMP_IMPELLER.get());
+        pump.installImpeller(player,cartridge);
+        crank.crank(player);
+
+        for(int tick=0;tick<18;tick++){
+            ManualCrankBlockEntity.serverTick(
+                    h.getLevel(),
+                    crank.getBlockPos(),
+                    crank.getBlockState(),
+                    crank
+            );
+            MechanicalPumpBlockEntity.serverTick(
+                    h.getLevel(),
+                    pump.getBlockPos(),
+                    pump.getBlockState(),
+                    pump
+            );
+        }
+
+        h.assertTrue(
+                h.getBlockState(sourceLocal).isAir(),
+                "A powered pump must pull the real source block behind it"
+        );
+        h.assertTrue(
+                pump.rpm()>8&&pump.flowPerTick()>0,
+                "Crank power must produce pump RPM and bounded discharge flow"
+        );
+        h.assertTrue(
+                pump.bufferAmount()<1000,
+                "Transferred liquid must leave the pump buffer instead of duplicating"
+        );
+        h.succeed();
+    }
+
 }
