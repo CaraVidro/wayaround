@@ -4,6 +4,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 import net.caravidro.wayaround.worldgen.geography.VolcanicField;
+import net.caravidro.wayaround.worldgen.geography.GreatRiftField;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
@@ -36,6 +37,9 @@ public abstract class OverworldBiomeMixin {
             false;
 
     private static boolean wayaround$loggedVolcanic =
+            false;
+
+    private static boolean wayaround$loggedGreatRift =
             false;
 
 
@@ -76,8 +80,14 @@ public abstract class OverworldBiomeMixin {
                         WorldFeature.VOLCANIC_REGIONS
                 );
 
+        boolean riftEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.GREAT_RIFTS
+                );
+
         if (!antarcticaEnabled
-                && !volcanicEnabled) {
+                && !volcanicEnabled
+                && !riftEnabled) {
             return;
         }
 
@@ -209,6 +219,43 @@ public abstract class OverworldBiomeMixin {
 
                 WayAround.LOGGER.info(
                         "WayAround selecionou Volcanic Highlands! X={} Z={}",
+                        blockX,
+                        blockZ
+                );
+            }
+
+            return;
+        }
+
+
+        /*
+         * =====================================================
+         * GREAT RIFT
+         * =====================================================
+         */
+
+        if (
+                riftEnabled
+                &&
+                GreatRiftField.isGreatRift(
+                        blockX,
+                        blockZ
+                )
+        ) {
+
+            cir.setReturnValue(
+                    WayAroundBiomes
+                            .getGreatRift()
+            );
+
+            if (
+                    !wayaround$loggedGreatRift
+            ) {
+                wayaround$loggedGreatRift =
+                        true;
+
+                WayAround.LOGGER.info(
+                        "WayAround selecionou Great Rift! X={} Z={}",
                         blockX,
                         blockZ
                 );
