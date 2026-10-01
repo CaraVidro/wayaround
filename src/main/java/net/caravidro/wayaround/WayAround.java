@@ -44,6 +44,8 @@ import net.caravidro.wayaround.worldgen.weather.command.BlizzardCommand;
 import net.caravidro.wayaround.worldgen.weather.command.WindTestCommand;
 import net.caravidro.wayaround.worldgen.weather.fire.EnhancedFireVisuals;
 import net.caravidro.wayaround.worldgen.weather.fire.FireContent;
+import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
+import net.caravidro.wayaround.worldgen.volcanic.VolcanicThermalEnvironment;
 import net.caravidro.wayaround.war.WarBallistics;
 import net.caravidro.wayaround.war.WarContent;
 import net.neoforged.bus.api.IEventBus;
@@ -82,6 +84,10 @@ public class WayAround {
         net.caravidro.wayaround.effect.WayAroundEffects.register(modEventBus);
         AntarcticTorches.BLOCKS.register(modEventBus);
         modEventBus.addListener(WayAroundNetwork::register);
+
+        EnvironmentalTemperature.registerAmbientModifier(
+                VolcanicThermalEnvironment::modify
+        );
 
         // Ciclo de vida do mundo e dos chunks.
         NeoForge.EVENT_BUS.addListener(WayAroundBiomes::onServerAboutToStart);
