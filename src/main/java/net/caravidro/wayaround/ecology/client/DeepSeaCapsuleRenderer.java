@@ -174,7 +174,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 dark,
                 0.0,
                 -0.02,
-                0.50,
+                -0.50,
                 0.68,
                 0.58,
                 0.16
@@ -288,7 +288,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 copper,
                 -0.36,
                 0.28,
-                -0.555,
+                0.555,
                 0.055,
                 0.52,
                 0.055,
@@ -304,7 +304,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 copper,
                 0.36,
                 0.28,
-                -0.555,
+                0.555,
                 0.055,
                 0.52,
                 0.055,
@@ -320,7 +320,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 copper,
                 -0.36,
                 -0.27,
-                -0.555,
+                0.555,
                 0.055,
                 0.52,
                 0.055,
@@ -336,7 +336,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 copper,
                 0.36,
                 -0.27,
-                -0.555,
+                0.555,
                 0.055,
                 0.52,
                 0.055,
@@ -360,7 +360,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                         .defaultBlockState(),
                 0.0,
                 0.07,
-                -0.548,
+                0.548,
                 0.66,
                 0.66,
                 0.09
@@ -375,7 +375,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                         .defaultBlockState(),
                 0.0,
                 0.07,
-                -0.603,
+                0.603,
                 0.53,
                 0.53,
                 0.045
@@ -390,7 +390,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                         .defaultBlockState(),
                 -0.12,
                 0.20,
-                -0.630,
+                0.630,
                 0.12,
                 0.16,
                 0.020
@@ -586,7 +586,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
         pose.translate(
                 0.39,
                 -0.27,
-                -0.54
+                0.54
         );
 
         pose.mulPose(
@@ -604,7 +604,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                         .defaultBlockState(),
                 0.0,
                 0.0,
-                -0.06,
+                0.06,
                 0.30,
                 0.22,
                 0.16
@@ -618,7 +618,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                         .defaultBlockState(),
                 0.0,
                 0.0,
-                -0.19,
+                0.19,
                 0.23,
                 0.20,
                 0.22
@@ -633,7 +633,7 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                         .defaultBlockState(),
                 0.0,
                 0.0,
-                -0.335,
+                0.335,
                 0.17,
                 0.15,
                 0.12
@@ -653,8 +653,8 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                             * 0.34;
 
             double z =
-                    -0.66
-                            - i
+                    0.66
+                            + i
                             * 0.80;
 
             double width =
