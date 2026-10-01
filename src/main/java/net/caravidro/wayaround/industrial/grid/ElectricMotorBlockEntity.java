@@ -203,11 +203,9 @@ public final class ElectricMotorBlockEntity
         }
 
         motor.availablePower =
-                Math.max(
-                        0.0F,
-                        motor.rpm
-                                / 36.0F
-                                * motor.torque
+                GridPhysics.mechanicalPower(
+                        motor.rpm,
+                        motor.torque
                 );
 
         if (paid > 0
@@ -340,11 +338,9 @@ public final class ElectricMotorBlockEntity
                 );
 
         availablePower =
-                Math.max(
-                        0.0F,
-                        rpm
-                                / 36.0F
-                                * torque
+                GridPhysics.mechanicalPower(
+                        rpm,
+                        torque
                 );
     }
 }
