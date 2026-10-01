@@ -1,7 +1,6 @@
 package net.caravidro.wayaround.mixin.client;
 
 import net.caravidro.wayaround.client.AntarcticClientLighting;
-import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -46,53 +45,58 @@ public abstract class AntarcticSkyMixin {
                         cameraPosition
                 );
 
-        boolean antarctic =
-                level.getBiome(
+        if (!level.dimension().equals(
+                Level.OVERWORLD
+        )) {
+            return;
+        }
+
+        float polar =
+                AntarcticClientLighting.polarInfluence(
+                        level,
                         cameraBlock
-                ).is(
-                        WayAroundBiomes
-                                .ANTARCTIC_ICE_SHEET
                 );
 
         Vec3 vanilla =
                 cir.getReturnValue();
 
-        if (!antarctic) {
-            if (!level.dimension().equals(Level.OVERWORLD)) {
-                return;
-            }
+        LocalWeatherField.Sample weather =
+                LocalWeatherField.sample(
+                        cameraPosition.x,
+                        cameraPosition.z,
+                        level.getGameTime()
+                );
 
-            LocalWeatherField.Sample weather =
-                    LocalWeatherField.sample(
-                            cameraPosition.x,
-                            cameraPosition.z,
-                            level.getGameTime()
-                    );
+        float shade =
+                Math.min(
+                        0.58F,
+                        weather.cloud() * 0.12F
+                                + weather.rain() * 0.46F
+                );
 
-            float shade =
-                    Math.min(
-                            0.58F,
-                            weather.cloud() * 0.12F
-                            + weather.rain() * 0.46F
-                    );
+        Vec3 stormSky =
+                new Vec3(
+                        0.36,
+                        0.42,
+                        0.46
+                );
 
-            if (shade <= 0.001F) {
-                return;
-            }
+        Vec3 weatherColor =
+                shade <= 0.001F
+                        ? vanilla
+                        : lerp(
+                        vanilla,
+                        stormSky,
+                        shade
+                                * (
+                                1.0F
+                                        - polar * 0.30F
+                        )
+                );
 
-            Vec3 stormSky =
-                    new Vec3(
-                            0.36,
-                            0.42,
-                            0.46
-                    );
-
+        if (polar <= 0.001F) {
             cir.setReturnValue(
-                    lerp(
-                            vanilla,
-                            stormSky,
-                            shade
-                    )
+                    weatherColor
             );
             return;
         }
@@ -127,9 +131,10 @@ public abstract class AntarcticSkyMixin {
          */
         Vec3 dayColor =
                 lerp(
-                        vanilla,
+                        weatherColor,
                         polarDay,
                         0.72
+                                * polar
                 );
 
         /*
@@ -154,6 +159,7 @@ public abstract class AntarcticSkyMixin {
                         dayColor,
                         polarNight,
                         night
+                                * polar
                 );
 
         cir.setReturnValue(
