@@ -146,6 +146,7 @@ public final class IndustrialContent {
                                                 PowerContent.MECHANICAL_MILL_ITEM.get()
                                         );
                                         net.caravidro.wayaround.industrial.crushing.CrusherContent.fillTab(output);
+                                        net.caravidro.wayaround.industrial.washing.OreWashingContent.fillTab(output);
                                         output.accept(
                                                 PowerContent.SAWMILL_CRANK.get()
                                         );
@@ -240,6 +241,7 @@ public final class IndustrialContent {
         PowerContent.register(bus);
         ElectronicsContent.register(bus);
         net.caravidro.wayaround.industrial.crushing.CrusherContent.register(bus);
+        net.caravidro.wayaround.industrial.washing.OreWashingContent.register(bus);
         PipeworkContent.register(bus);
         CoalShipContent.register(bus);
         ExperimentalShipContent.register(bus);
