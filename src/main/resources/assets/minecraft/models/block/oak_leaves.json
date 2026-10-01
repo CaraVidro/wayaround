@@ -1,0 +1,6 @@
+{
+  "parent": "wayaround:block/organic_leaves",
+  "textures": {
+    "all": "minecraft:block/oak_leaves"
+  }
+}
