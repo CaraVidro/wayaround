@@ -823,5 +823,18 @@
   "message.wayaround.mechanical_pump.impeller_ready": "impeller installed",
   "message.wayaround.mechanical_pump.impeller_missing": "missing impeller cartridge",
   "message.wayaround.mechanical_pump.pipe_ready": "discharge connected",
-  "message.wayaround.mechanical_pump.pipe_missing": "no discharge pipe"
+  "message.wayaround.mechanical_pump.pipe_missing": "no discharge pipe",
+  "screen.wayaround.update_log.button": "UPDATE LOG",
+  "screen.wayaround.update_log.preview": "NEXT // %s — %s",
+  "screen.wayaround.update_log.title": "%s — %s",
+  "screen.wayaround.update_log.subtitle": "THE WORLD CONNECTS // development log",
+  "screen.wayaround.update_log.dev": "Development preview — this named release is not published yet.",
+  "screen.wayaround.update_log.milestone": "Milestone 1.3: Physical Industry / shared mechanical-load rules.",
+  "screen.wayaround.update_log.load": "Mechanical consumers now speak the same language: demand, power and load.",
+  "screen.wayaround.update_log.torque": "Torque starvation can stall heavy work instead of faking free speed.",
+  "screen.wayaround.update_log.transmission": "Shafts, gears and transmissions carry real load, heat and wear.",
+  "screen.wayaround.update_log.failure": "Stress can become vibration, overheating, slipping, jams and component failure.",
+  "screen.wayaround.update_log.machines": "Pump, crusher and sawmill are being connected to the same physical framework.",
+  "screen.wayaround.update_log.future": "Foundation prepared for steam, generators, heavy industry and large infrastructure.",
+  "screen.wayaround.update_log.release_note": "v1.2.1 will become the active version only when THE WORLD CONNECTS is finished."
 }
