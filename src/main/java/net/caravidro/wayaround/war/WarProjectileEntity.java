@@ -251,7 +251,7 @@ public final class WarProjectileEntity extends Entity {
             server.playSound(
                     null,
                     blockPosition(),
-                    SoundEvents.SHIELD_BLOCK.value(),
+                    SoundEvents.SHIELD_BLOCK,
                     SoundSource.HOSTILE,
                     0.72F,
                     1.35F
