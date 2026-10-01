@@ -35,6 +35,13 @@ public final class VoiceServer {
             return;
         }
 
+        if (!sender.isAlive()) {
+            RATE_LIMIT.remove(
+                    sender.getUUID()
+            );
+            return;
+        }
+
         if (pcm == null
                 || pcm.length == 0
                 || pcm.length > VoiceConstants.MAX_PACKET_BYTES) {
