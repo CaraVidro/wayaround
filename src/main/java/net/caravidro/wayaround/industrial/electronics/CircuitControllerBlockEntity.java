@@ -530,7 +530,22 @@ public final class CircuitControllerBlockEntity
                     );
         }
 
-        if (updated != state) {
+        boolean hasBoard =
+                !board.isEmpty();
+
+        if (state.getValue(
+                CircuitControllerBlock.HAS_BOARD
+        ) != hasBoard) {
+            updated =
+                    updated.setValue(
+                            CircuitControllerBlock.HAS_BOARD,
+                            hasBoard
+                    );
+        }
+
+        if (!updated.equals(
+                state
+        )) {
             level.setBlock(
                     worldPosition,
                     updated,
