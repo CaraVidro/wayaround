@@ -77,6 +77,24 @@ public final class PlayerCorpseManager {
                     );
         }
 
+        ItemStack carried =
+                player.containerMenu
+                        .getCarried();
+
+        if (!carried.isEmpty()) {
+            stored.add(
+                    new PlayerCorpseEntity.StoredStack(
+                            -1,
+                            carried.copy()
+                    )
+            );
+
+            player.containerMenu
+                    .setCarried(
+                            ItemStack.EMPTY
+                    );
+        }
+
         for (ItemStack accessory :
                 AccessoryManager.takeAllEquipped(
                         player
