@@ -835,42 +835,19 @@ public final class PipeFlow {
                 PipeBlockEntity terminal =
                         outlet.pipe();
 
-                FluidStack stored =
-                        terminal.stored();
+                /*
+                 * A one-pipe legacy valve owns the exact FluidStack passed to
+                 * deliver(). Do not "receive" that same stack back into itself
+                 * or the amount doubles before the caller removes it.
+                 */
+                boolean sourceIsTerminal =
+                        terminal.stored()
+                        == fluid;
 
-                boolean compatible =
-                        stored.isEmpty()
-                                || FluidStack.isSameFluidSameComponents(
-                                stored,
-                                fluid
-                        );
+                if (sourceIsTerminal) {
+                    if (terminal.amount() >= 1000
+                            && limit >= 1000) {
 
-                if (compatible) {
-                    int room =
-                            Math.max(
-                                    0,
-                                    terminal.capacity()
-                                            - terminal.amount()
-                            );
-
-                    int accepted =
-                            Math.min(
-                                    limit,
-                                    room
-                            );
-
-                    if (accepted > 0) {
-                        terminal.receive(
-                                fluid.copyWithAmount(
-                                        accepted
-                                )
-                        );
-
-                        consumed =
-                                accepted;
-                    }
-
-                    if (terminal.amount() >= 1000) {
                         int released =
                                 spill(
                                         level,
@@ -879,12 +856,14 @@ public final class PipeFlow {
                                         true
                                 );
 
-                        if (released > 0) {
-                            terminal.used(
-                                    released
-                            );
-                        }
-                    } else if (accepted > 0) {
+                        /*
+                         * The valve caller removes this returned amount from
+                         * its own tank, so do not terminal.used() here.
+                         */
+                        consumed =
+                                released;
+
+                    } else if (!fluid.isEmpty()) {
                         jet(
                                 level,
                                 end,
@@ -892,6 +871,68 @@ public final class PipeFlow {
                                 fluid,
                                 3
                         );
+                    }
+
+                } else {
+                    FluidStack stored =
+                            terminal.stored();
+
+                    boolean compatible =
+                            stored.isEmpty()
+                                    || FluidStack.isSameFluidSameComponents(
+                                    stored,
+                                    fluid
+                            );
+
+                    if (compatible) {
+                        int room =
+                                Math.max(
+                                        0,
+                                        terminal.capacity()
+                                                - terminal.amount()
+                                );
+
+                        int accepted =
+                                Math.min(
+                                        limit,
+                                        room
+                                );
+
+                        if (accepted > 0) {
+                            terminal.receive(
+                                    fluid.copyWithAmount(
+                                            accepted
+                                    )
+                            );
+
+                            consumed =
+                                    accepted;
+                        }
+
+                        if (terminal.amount() >= 1000) {
+                            int released =
+                                    spill(
+                                            level,
+                                            end,
+                                            terminal.stored(),
+                                            true
+                                    );
+
+                            if (released > 0) {
+                                terminal.used(
+                                        released
+                                );
+                            }
+
+                        } else if (accepted > 0) {
+                            jet(
+                                    level,
+                                    end,
+                                    outlet.direction(),
+                                    fluid,
+                                    3
+                            );
+                        }
                     }
                 }
 
