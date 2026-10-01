@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.storage.ColdDirectoryArchive;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -58,6 +59,11 @@ public final class VoskSpeechRecognizer {
     private static final AtomicBoolean WARMUP_STARTED =
             new AtomicBoolean(false);
 
+    private static final AtomicBoolean MAINTAINING = new AtomicBoolean();
+    private static volatile long lastRequiredNanos = System.nanoTime();
+    private static long lastModelUseNanos = System.nanoTime();
+    // Protected by VoskSpeechRecognizer.class, including native decoder creation.
+    private static int modelUsers;
     private static volatile Model model;
     private static volatile String lastError = "";
 
@@ -191,25 +197,26 @@ public final class VoskSpeechRecognizer {
             closed =
                     true;
 
-            recognizer.close();
+            try {
+                recognizer.close();
+            } finally {
+                releaseModel();
+            }
         }
     }
 
-    public static StreamingSession openStreamingSession()
-            throws Exception {
-        Recognizer recognizer =
-                new Recognizer(
-                        ensureModel(),
-                        RECOGNITION_SAMPLE_RATE
-                );
-
-        recognizer.setWords(
-                false
-        );
-
-        return new StreamingSession(
-                recognizer
-        );
+    public static StreamingSession openStreamingSession() throws Exception {
+        Model local = acquireModel();
+        Recognizer recognizer = null;
+        try {
+            recognizer = new Recognizer(local, RECOGNITION_SAMPLE_RATE);
+            recognizer.setWords(false);
+            return new StreamingSession(recognizer);
+        } catch (Throwable failure) {
+            try { if (recognizer != null) recognizer.close(); }
+            finally { releaseModel(); }
+            throw failure;
+        }
     }
 
     private static String textField(
@@ -247,9 +254,7 @@ public final class VoskSpeechRecognizer {
     }
 
     public static boolean isModelInstalled() {
-        return isValidModelRoot(
-                modelDirectory()
-        );
+        return isValidModelRoot(modelDirectory()) || ColdDirectoryArchive.isCold(modelDirectory());
     }
 
     public static boolean isPreparing() {
@@ -324,6 +329,9 @@ public final class VoskSpeechRecognizer {
             return "Modelo local: baixando/preparando...";
         }
 
+        if (ColdDirectoryArchive.isCold(modelDirectory()) && !isValidModelRoot(modelDirectory())) {
+            return "Modelo local: hibernando (restauracao local ao usar)";
+        }
         if (isModelInstalled()) {
             return "Modelo local: instalado";
         }
@@ -373,16 +381,7 @@ public final class VoskSpeechRecognizer {
 
                                 downloadAndInstallModel();
 
-                                synchronized (VoskSpeechRecognizer.class) {
-                                    if (model == null) {
-                                        model =
-                                                new Model(
-                                                        modelDirectory()
-                                                                .toAbsolutePath()
-                                                                .toString()
-                                                );
-                                    }
-                                }
+                                ensureModel();
 
                                 lastError = "";
 
@@ -425,12 +424,14 @@ public final class VoskSpeechRecognizer {
             );
         }
 
+        boolean acquired = false;
         try {
             long started =
                     System.nanoTime();
 
             Model localModel =
-                    ensureModel();
+                    acquireModel();
+            acquired = true;
 
             long modelReady =
                     System.nanoTime();
@@ -574,6 +575,8 @@ public final class VoskSpeechRecognizer {
                     "",
                     message
             );
+        } finally {
+            if (acquired) releaseModel();
         }
     }
 
@@ -649,42 +652,65 @@ public final class VoskSpeechRecognizer {
         );
     }
 
-    private static Model ensureModel()
-            throws Exception {
-
-        Model existing =
-                model;
-
-        if (existing != null) {
-            return existing;
+    private static synchronized Model ensureModel() throws Exception {
+        lastModelUseNanos = System.nanoTime();
+        if (model != null) return model;
+        if (ColdDirectoryArchive.isCold(modelDirectory())) {
+            WayAround.LOGGER.info("[Voice/Storage] restoring local speech model");
+            ColdDirectoryArchive.restore(modelDirectory(), MAX_MODEL_EXTRACTED_BYTES,
+                    VoskSpeechRecognizer::isValidModelRoot);
         }
-
-        if (!isModelInstalled()) {
+        if (!isValidModelRoot(modelDirectory())) {
             throw new IllegalStateException(
-                    "modelo Vosk nao instalado; abra Way Around Voice e autorize o download manual"
-            );
+                    "modelo Vosk nao instalado; abra Way Around Voice e autorize o download manual");
         }
+        model = new Model(modelDirectory().toAbsolutePath().toString());
+        lastError = "";
+        return model;
+    }
 
-        synchronized (VoskSpeechRecognizer.class) {
-            if (model != null) {
-                return model;
+    private static synchronized Model acquireModel() throws Exception {
+        Model local = ensureModel();
+        modelUsers++;
+        return local;
+    }
+
+    private static synchronized void releaseModel() {
+        modelUsers--;
+        lastModelUseNanos = System.nanoTime();
+    }
+
+    /** Called at most once a minute, never compresses or unloads on the game thread. */
+    public static void maintainStorageAsync(boolean required) {
+        if (required) {
+            lastRequiredNanos = System.nanoTime();
+            return;
+        }
+        if (!MAINTAINING.compareAndSet(false, true)) return;
+        Thread worker = new Thread(() -> {
+            try {
+                synchronized (VoskSpeechRecognizer.class) {
+                    long idle = System.nanoTime() - Math.max(lastRequiredNanos, lastModelUseNanos);
+                    if (modelUsers != 0 || PREPARING.get() || WARMUP_STARTED.get()) return;
+                    if (idle >= Duration.ofMinutes(2).toNanos() && model != null) {
+                        model.close();
+                        model = null;
+                        WayAround.LOGGER.info("[Voice/Storage] idle speech model released from RAM");
+                    }
+                    if (idle >= Duration.ofMinutes(30).toNanos() && model == null
+                            && isValidModelRoot(modelDirectory())) {
+                        long saved = ColdDirectoryArchive.freeze(modelDirectory(), MAX_MODEL_EXTRACTED_BYTES);
+                        if (saved > 0) WayAround.LOGGER.info("[Voice/Storage] hibernated speech model; saved {} bytes", saved);
+                    }
+                }
+            } catch (Throwable failure) {
+                WayAround.LOGGER.warn("[Voice/Storage] maintenance deferred: {}", failure.toString());
+            } finally {
+                MAINTAINING.set(false);
             }
-
-            /*
-             * Loading an already-installed local model is allowed. No network
-             * access occurs here.
-             */
-            model =
-                    new Model(
-                            modelDirectory()
-                                    .toAbsolutePath()
-                                    .toString()
-                    );
-
-            lastError = "";
-
-            return model;
-        }
+        }, "WayAround-ColdStorage");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private static void downloadAndInstallModel()
