@@ -64,12 +64,18 @@ public final class VoidDomainClientEffects {
             "nao tente terminar o pensamento"
     };
 
+    private static final int FORMATION_TICKS =
+            32;
+
     private static UUID localDomain;
+    private static UUID preparingDomain;
     private static boolean trapped;
     private static boolean lingeringFromTrap;
     private static int insideTicks;
     private static int aftershockTicks;
     private static int whiteFlashTicks;
+    private static int formationWhiteTicks;
+    private static int formationWhiteTotal;
     private static boolean hadLevel;
 
     public static void receive(
@@ -87,6 +93,24 @@ public final class VoidDomainClientEffects {
                         .getGameTime();
 
         if (payload.action()
+                == VoidDomainVisualPayload.PREPARE) {
+
+            preparingDomain =
+                    payload.owner();
+
+            formationWhiteTotal =
+                    Math.max(
+                            1,
+                            payload.durationTicks()
+                    );
+
+            formationWhiteTicks =
+                    formationWhiteTotal;
+
+            return;
+        }
+
+        if (payload.action()
                 == VoidDomainVisualPayload.OPEN) {
 
             DOMAINS.put(
@@ -99,17 +123,12 @@ public final class VoidDomainClientEffects {
                                     payload.z()
                             ),
                             payload.radius(),
+                            tick,
                             tick
                                     + payload.durationTicks()
                                     + 20L
                     )
             );
-
-            whiteFlashTicks =
-                    Math.max(
-                            whiteFlashTicks,
-                            11
-                    );
 
             return;
         }
@@ -119,6 +138,20 @@ public final class VoidDomainClientEffects {
 
             localDomain =
                     payload.owner();
+
+            if (payload.owner()
+                    .equals(
+                            preparingDomain
+                    )) {
+                preparingDomain =
+                        null;
+
+                formationWhiteTicks =
+                        0;
+
+                formationWhiteTotal =
+                        0;
+            }
 
             trapped =
                     payload.trapped();
@@ -155,6 +188,7 @@ public final class VoidDomainClientEffects {
                                     payload.z()
                             ),
                             payload.radius(),
+                            tick - FORMATION_TICKS,
                             tick
                                     + payload.durationTicks()
                                     + 20L
@@ -170,6 +204,18 @@ public final class VoidDomainClientEffects {
             DOMAINS.remove(
                     payload.owner()
             );
+
+            if (payload.owner()
+                    .equals(
+                            preparingDomain
+                    )) {
+                preparingDomain =
+                        null;
+                formationWhiteTicks =
+                        0;
+                formationWhiteTotal =
+                        0;
+            }
 
             if (payload.owner()
                     .equals(
@@ -222,7 +268,8 @@ public final class VoidDomainClientEffects {
         return new VisualDomain(
                 state.owner,
                 state.center,
-                state.radius
+                state.radius,
+                1.0F
         );
     }
 
@@ -248,11 +295,20 @@ public final class VoidDomainClientEffects {
                 continue;
             }
 
+            float formation =
+                    Mth.clamp(
+                            (tick - state.openedAt)
+                                    / (float) FORMATION_TICKS,
+                            0.0F,
+                            1.0F
+                    );
+
             result.add(
                     new VisualDomain(
                             state.owner,
                             state.center,
-                            state.radius
+                            state.radius,
+                            formation
                     )
             );
         }
@@ -276,6 +332,9 @@ public final class VoidDomainClientEffects {
                 insideTicks = 0;
                 aftershockTicks = 0;
                 whiteFlashTicks = 0;
+                preparingDomain = null;
+                formationWhiteTicks = 0;
+                formationWhiteTotal = 0;
             }
 
             hadLevel =
@@ -302,6 +361,55 @@ public final class VoidDomainClientEffects {
 
             if (tick > state.expiresAt) {
                 iterator.remove();
+            }
+        }
+
+        if (formationWhiteTicks > 0) {
+            formationWhiteTicks--;
+        }
+
+        if (formationWhiteTicks > 0
+                && formationWhiteTotal > 0) {
+
+            float elapsed =
+                    1.0F
+                            - formationWhiteTicks
+                                    / (float) formationWhiteTotal;
+
+            float fade =
+                    Mth.clamp(
+                            (elapsed - 0.62F)
+                                    / 0.38F,
+                            0.0F,
+                            1.0F
+                    );
+
+            fade =
+                    fade * fade
+                            * (
+                            3.0F
+                                    - 2.0F * fade
+                    );
+
+            int alpha =
+                    Mth.clamp(
+                            Math.round(
+                                    255.0F
+                                            * fade
+                            ),
+                            0,
+                            255
+                    );
+
+            if (alpha > 0) {
+                graphics.fill(
+                        0,
+                        0,
+                        width,
+                        height,
+                        alpha << 24
+                                | 0xFFFFFF
+                );
             }
         }
 
@@ -594,12 +702,14 @@ public final class VoidDomainClientEffects {
         private final UUID owner;
         private final Vec3 center;
         private final float radius;
+        private final long openedAt;
         private final long expiresAt;
 
         private DomainVisual(
                 UUID owner,
                 Vec3 center,
                 float radius,
+                long openedAt,
                 long expiresAt
         ) {
             this.owner =
@@ -611,6 +721,9 @@ public final class VoidDomainClientEffects {
             this.radius =
                     radius;
 
+            this.openedAt =
+                    openedAt;
+
             this.expiresAt =
                     expiresAt;
         }
@@ -619,7 +732,8 @@ public final class VoidDomainClientEffects {
     public record VisualDomain(
             UUID owner,
             Vec3 center,
-            float radius
+            float radius,
+            float formationProgress
     ) {
     }
 }
