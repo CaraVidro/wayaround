@@ -152,6 +152,14 @@ public final class PipeFlow {
             PipeBlockEntity root,
             Direction rootFlow
     ) {
+        if (root.hasValve()
+                && (
+                !root.open()
+                        || root.flow() != rootFlow
+        )) {
+            return List.of();
+        }
+
         ArrayDeque<Step> queue =
                 new ArrayDeque<>();
 
@@ -177,6 +185,10 @@ public final class PipeFlow {
 
             PipeBlockEntity pipe =
                     step.pipe();
+
+            if (!supportsLiquid(pipe)) {
+                continue;
+            }
 
             if (!seen.add(
                     pipe.getBlockPos()
@@ -373,7 +385,8 @@ public final class PipeFlow {
                 intakePos
         ) instanceof PipeBlockEntity root
                 && root.owner() == null
-                && root.complete()) {
+                && root.complete()
+                && supportsLiquid(root)) {
 
             return pullFromNetwork(
                     level,
@@ -457,6 +470,10 @@ public final class PipeFlow {
                         );
 
                 if (next != null) {
+                    if (!supportsLiquid(next)) {
+                        continue;
+                    }
+
                     if (step.previous() != null
                             && next.getBlockPos()
                             .equals(
@@ -515,6 +532,22 @@ public final class PipeFlow {
         }
 
         return FluidStack.EMPTY;
+    }
+
+    private static boolean supportsLiquid(
+            PipeBlockEntity pipe
+    ) {
+        if (pipe.getBlockState().getBlock()
+                instanceof LargePipeBlock) {
+            return true;
+        }
+
+        return pipe.getBlockState().getBlock()
+                instanceof IndustrialPipeBlock industrial
+                && industrial.spec()
+                        .supports(
+                                PipeSpec.PipeMedium.LIQUID
+                        );
     }
 
     private static FluidStack drainExternal(
