@@ -75,6 +75,9 @@ public final class IndustrialContent {
                                     (parameters, output) -> {
                                         output.accept(REFORCED_BLASTER_ITEM.get());
                                         output.accept(PowerContent.SOLAR_PANEL_ITEM.get());
+                                        output.accept(PowerContent.STEAM_BOILER_ITEM.get());
+                                        output.accept(PowerContent.BOILER_PRESSURE_VESSEL.get());
+                                        output.accept(PowerContent.BOILER_SAFETY_VALVE.get());
                                         output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
                                         output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
                                         output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
