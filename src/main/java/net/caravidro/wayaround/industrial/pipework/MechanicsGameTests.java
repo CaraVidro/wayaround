@@ -7,6 +7,7 @@ import net.minecraft.world.item.*;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.*;
 import net.neoforged.neoforge.gametest.*;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 @GameTestHolder("wayaround_crushing")
 @PrefixGameTestTemplate(false)
@@ -118,6 +119,52 @@ public final class MechanicsGameTests {
                 net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wayaround","test"),null));
         h.assertTrue(pipe.structuralIntegrity()<.65F,"Physical structural damage weakens the filled pipe");
         h.runAfterDelay(25,()->{h.assertTrue(pipe.amount()==990||pipe.amount()==980,"Leaking consumes buffered liquid even with its valve closed");h.succeed();});
+    }
+
+
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void mechanicalPumpUsesOneInstalledModule(GameTestHelper h){
+        BlockPos local=new BlockPos(5,2,5);
+        h.setBlock(local.below(),Blocks.STONE);
+        h.setBlock(local,PipeworkContent.MECHANICAL_PUMP.get());
+        var pump=(MechanicalPumpBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(local));
+        h.assertTrue(pump!=null&&!pump.hasImpeller()&&pump.assemblyParts().size()==1,
+                "New pump is a housing, not a magically complete machine");
+        var player=h.makeMockPlayer(GameType.SURVIVAL);
+        var cartridge=new ItemStack(PipeworkContent.PUMP_IMPELLER.get(),2);
+        pump.installImpeller(player,cartridge);
+        h.assertTrue(cartridge.getCount()==1&&pump.hasImpeller()&&pump.assemblyParts().size()==2,
+                "Exactly one physical impeller cartridge completes the pump internals");
+        h.succeed();
+    }
+
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void machinePullAndPushConserveFluid(GameTestHelper h){
+        BlockPos sourceLocal=new BlockPos(5,2,6);
+        h.setBlock(sourceLocal,Blocks.WATER);
+        FluidStack pulled=PipeFlow.pullForMachine(
+                h.getLevel(),
+                h.absolutePos(sourceLocal),
+                Direction.NORTH,
+                1000,
+                FluidStack.EMPTY
+        );
+        h.assertTrue(pulled.getAmount()==1000&&h.getBlockState(sourceLocal).isAir(),
+                "Machine suction removes exactly one real source bucket");
+
+        var outlet=pipe(h,5,2,5,PipeworkContent.SMALL_COPPER_PIPE.get());
+        int pushed=PipeFlow.pushFromMachine(
+                h.getLevel(),
+                outlet,
+                Direction.NORTH,
+                pulled,
+                1000
+        );
+        h.assertTrue(pushed==240,
+                "Pump discharge is capped by the attached copper-pipe bottleneck");
+        h.assertTrue(pulled.getAmount()==1000,
+                "PipeFlow reports consumed amount; caller still owns and shrinks its buffer exactly once");
+        h.succeed();
     }
 
 }
