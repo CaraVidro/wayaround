@@ -159,6 +159,109 @@ public final class ElectronicsGameTests {
             batch = "electronics",
             timeoutTicks = 80
     )
+    public static void activeSensorOutputsUseTheSamePhysicalTraceGraph(
+            GameTestHelper helper
+    ) {
+        CircuitBoardData board =
+                CircuitBoardData.empty();
+
+        int sensor =
+                CircuitBoardData.cell(
+                        0,
+                        1
+                );
+
+        int led =
+                CircuitBoardData.cell(
+                        2,
+                        1
+                );
+
+        int buzzer =
+                CircuitBoardData.cell(
+                        3,
+                        2
+                );
+
+        int output =
+                CircuitBoardData.cell(
+                        5,
+                        1
+                );
+
+        helper.assertTrue(
+                board.place(
+                        sensor,
+                        CircuitBoardData.ComponentType.DISTANCE_DETECTOR
+                )
+                        && board.place(
+                        led,
+                        CircuitBoardData.ComponentType.LED
+                )
+                        && board.place(
+                        buzzer,
+                        CircuitBoardData.ComponentType.BUZZER
+                )
+                        && board.place(
+                        output,
+                        CircuitBoardData.ComponentType.OUTPUT_TERMINAL
+                ),
+                "Active electronics components must occupy real PCB positions"
+        );
+
+        helper.assertTrue(
+                board.addTrace(
+                        sensor,
+                        led
+                )
+                        && board.addTrace(
+                        led,
+                        buzzer
+                )
+                        && board.addTrace(
+                        buzzer,
+                        output
+                ),
+                "Sensor and output components must use explicit copper traces"
+        );
+
+        helper.assertTrue(
+                board.connected(
+                        CircuitBoardData.ComponentType.DISTANCE_DETECTOR,
+                        CircuitBoardData.ComponentType.LED
+                ),
+                "A distance detector must be able to drive a routed LED"
+        );
+
+        helper.assertTrue(
+                board.connected(
+                        CircuitBoardData.ComponentType.DISTANCE_DETECTOR,
+                        CircuitBoardData.ComponentType.BUZZER
+                ),
+                "A distance detector must be able to drive a routed buzzer"
+        );
+
+        helper.assertTrue(
+                board.connected(
+                        CircuitBoardData.ComponentType.DISTANCE_DETECTOR,
+                        CircuitBoardData.ComponentType.OUTPUT_TERMINAL
+                ),
+                "A distance detector must be able to drive the controller output"
+        );
+
+        helper.assertTrue(
+                !board.hasSignalPath(),
+                "Sensor-only circuits do not pretend to have a rear-input terminal path"
+        );
+
+        helper.succeed();
+    }
+
+    @GameTest(
+            template = "assembly_test",
+            batch = "electronics",
+            timeoutTicks = 80
+    )
     public static void materialHistorySurvivesBeyondOrdinaryWear(
             GameTestHelper helper
     ) {
