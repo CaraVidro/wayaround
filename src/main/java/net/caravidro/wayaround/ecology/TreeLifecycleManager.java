@@ -5,9 +5,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.domain.VoidDomainManager;
 import net.caravidro.wayaround.time.TimeAgingEngine;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
+import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -18,6 +20,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -49,7 +52,11 @@ public final class TreeLifecycleManager {
             BlockPos surface,
             RandomSource random
     ) {
-        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.TIME_AGING)) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.TIME_AGING)
+                || !supportsDeadWood(
+                level,
+                surface
+        )) {
             return;
         }
 
@@ -177,7 +184,11 @@ public final class TreeLifecycleManager {
             BlockPos near,
             RandomSource random
     ) {
-        if (random.nextFloat() > 0.045F) {
+        if (!supportsDeadWood(
+                level,
+                near
+        )
+                || random.nextFloat() > 0.045F) {
             return;
         }
 
@@ -324,6 +335,111 @@ public final class TreeLifecycleManager {
     public static void stop(ServerStoppedEvent event) {
         DEAD_TREES.clear();
         FALLS.clear();
+    }
+
+    /**
+     * Dead wood is an ecological result, not a universal decoration.
+     *
+     * The old seeding fallback only needed a full support block, which meant
+     * it could happily place rotting logs on Antarctic terrain and even on the
+     * invisible Barrier floor of Void pocket-space. Restrict it to plausible
+     * vegetated biomes and explicitly reject technical/polar spaces.
+     */
+    private static boolean supportsDeadWood(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        if (level == null
+                || pos == null
+                || !level.dimension()
+                .equals(
+                        Level.OVERWORLD
+                )
+                || VoidDomainManager.isInsidePocket(
+                level,
+                pos
+        )
+                || AntarcticField.isAntarctic(
+                pos.getX(),
+                pos.getZ()
+        )
+                || AntarcticField.isSouthernOcean(
+                pos.getX(),
+                pos.getZ()
+        )) {
+            return false;
+        }
+
+        String biome =
+                level.getBiome(
+                        pos
+                )
+                        .unwrapKey()
+                        .map(
+                                key -> key.location()
+                                        .getPath()
+                        )
+                        .orElse(
+                                ""
+                        );
+
+        if (biome.contains(
+                "ocean"
+        )
+                || biome.contains(
+                "beach"
+        )
+                || biome.contains(
+                "desert"
+        )
+                || biome.contains(
+                "badlands"
+        )
+                || biome.contains(
+                "frozen"
+        )
+                || biome.contains(
+                "snowy"
+        )
+                || biome.contains(
+                "ice"
+        )
+                || biome.contains(
+                "antarctic"
+        )) {
+            return false;
+        }
+
+        return biome.contains(
+                "forest"
+        )
+                || biome.contains(
+                "taiga"
+        )
+                || biome.contains(
+                "jungle"
+        )
+                || biome.contains(
+                "savanna"
+        )
+                || biome.contains(
+                "plains"
+        )
+                || biome.contains(
+                "meadow"
+        )
+                || biome.contains(
+                "grove"
+        )
+                || biome.contains(
+                "swamp"
+        )
+                || biome.contains(
+                "river"
+        )
+                || biome.contains(
+                "cherry"
+        );
     }
 
     private static void markDead(
