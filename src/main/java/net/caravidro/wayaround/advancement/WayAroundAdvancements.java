@@ -221,9 +221,14 @@ public final class WayAroundAdvancements {
     public static void vistaAntarctica(
             ServerPlayer player
     ) {
-        vistaRoot(
+        /*
+         * Preserve the visual route even for teleport/command entry:
+         * Southern Ocean is the direct parent of Antarctica.
+         */
+        vistaSouthernOcean(
                 player
         );
+
         revoke(
                 player,
                 "vista/antarctica_hint",
