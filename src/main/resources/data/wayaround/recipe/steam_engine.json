@@ -2,22 +2,22 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "ICI",
-    "BFB",
+    "IPI",
+    "CSC",
     "IRI"
   ],
   "key": {
     "I": {
       "item": "minecraft:iron_ingot"
     },
+    "P": {
+      "item": "minecraft:piston"
+    },
     "C": {
       "item": "minecraft:copper_ingot"
     },
-    "B": {
-      "item": "minecraft:bucket"
-    },
-    "F": {
-      "item": "minecraft:furnace"
+    "S": {
+      "item": "wayaround:mechanical_shaft"
     },
     "R": {
       "item": "minecraft:redstone"
