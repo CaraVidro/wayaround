@@ -943,10 +943,16 @@ public final class DomainIntroClient {
                     180.0F
             );
 
+            /*
+             * PlayerModel is already authored in model-space with Y pointing
+             * down from the head toward the feet. Mirroring GUI Y here flips
+             * the entire character upside-down. Keep Y positive and flip Z
+             * only, matching the usual inventory/entity GUI convention.
+             */
             pose.scale(
                     scale,
-                    -scale,
-                    scale
+                    scale,
+                    -scale
             );
 
             pose.mulPose(
