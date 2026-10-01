@@ -56,6 +56,22 @@ public final class CircuitBoardItem
                 )
         );
 
+        tooltip.add(
+                Component.translatable(
+                        "tooltip.wayaround.circuit_board.workflow"
+                ).withStyle(
+                        ChatFormatting.DARK_AQUA
+                )
+        );
+
+        tooltip.add(
+                Component.translatable(
+                        "tooltip.wayaround.circuit_board.signal_flow"
+                ).withStyle(
+                        ChatFormatting.DARK_GRAY
+                )
+        );
+
         MaterialMemory memory =
                 AssemblyItemData.readMaterialMemory(
                         stack
