@@ -4,6 +4,8 @@ import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -35,6 +37,12 @@ public final class ElectronicsContent {
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
             DeferredRegister.create(
                     Registries.BLOCK_ENTITY_TYPE,
+                    WayAround.MODID
+            );
+
+    private static final DeferredRegister<MenuType<?>> MENUS =
+            DeferredRegister.create(
+                    Registries.MENU,
                     WayAround.MODID
             );
 
@@ -131,6 +139,18 @@ public final class ElectronicsContent {
                             )
             );
 
+    public static final DeferredHolder<
+            MenuType<?>,
+            MenuType<ElectronicsWorkbenchMenu>
+            > ELECTRONICS_WORKBENCH_MENU =
+            MENUS.register(
+                    "electronics_workbench",
+                    () -> new MenuType<>(
+                            ElectronicsWorkbenchMenu::new,
+                            FeatureFlags.VANILLA_SET
+                    )
+            );
+
     public static final DeferredBlock<CircuitControllerBlock> CIRCUIT_CONTROLLER =
             BLOCKS.register(
                     "circuit_controller",
@@ -202,6 +222,10 @@ public final class ElectronicsContent {
         );
 
         BLOCK_ENTITIES.register(
+                bus
+        );
+
+        MENUS.register(
                 bus
         );
 
