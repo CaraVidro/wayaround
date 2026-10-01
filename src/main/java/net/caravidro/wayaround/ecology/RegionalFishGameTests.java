@@ -36,8 +36,9 @@ public final class RegionalFishGameTests {
             CompoundTag saved = new CompoundTag();
             fish.saveWithoutId(saved);
             other.load(saved);
-            helper.assertTrue(other.isPersistenceRequired() && other.getPersistentData().getInt("WayAroundFishMeals") == 17,
-                    "World save preserves ecology");
+            helper.assertTrue(!other.isPersistenceRequired()
+                            && other.getPersistentData().getInt("WayAroundFishMeals") == 17,
+                    "World save preserves ecology without forcing every natural fish to persist forever");
             helper.assertTrue(net.caravidro.wayaround.ecology.ai.LivingFaunaManager.meatForFish(fish)
                     .is(RegionalFishSpecies.MEAT.get(species).get()), "Fishing/drop meat identity");
         }
