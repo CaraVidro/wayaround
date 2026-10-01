@@ -990,5 +990,8 @@
   "container.wayaround.electronics.upgrade_compact": "%sx %s • %sx %s • %sx %s",
   "container.wayaround.electronics.expand_shift": "SHIFT + CLIQUE: EXPANDIR PCB",
   "message.wayaround.circuit_workbench.upgrade_missing": "Expansão cancelada: todos os materiais precisam existir antes de qualquer item ser consumido.",
-  "message.wayaround.circuit_workbench.upgraded": "PCB expandida para %sx%s (nível %s)."
+  "message.wayaround.circuit_workbench.upgraded": "PCB expandida para %sx%s (nível %s).",
+  "entity.wayaround.deep_sea_submarine": "Submarino Abissal",
+  "item.wayaround.deep_sea_submarine": "Submarino Abissal",
+  "entity.wayaround.player_corpse": "Corpo do Jogador"
 }
