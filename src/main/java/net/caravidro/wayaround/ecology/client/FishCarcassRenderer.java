@@ -62,8 +62,8 @@ public final class FishCarcassRenderer
         pose.translate(
                 0.0,
                 carcass.isInWaterOrBubble()
-                        ? -0.025
-                        : -0.105,
+                        ? 0.015
+                        : 0.105,
                 0.0
         );
 
