@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.mixin.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import net.caravidro.wayaround.ecology.DeepSeaSubmarineEntity;
 import net.caravidro.wayaround.ecology.client.DeepOceanClientVisibility;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -103,8 +104,20 @@ public abstract class DeepOceanLightTextureMixin {
 
                 artificial *= artificial;
 
+                /*
+                 * The submarine no longer gets a global fake brightness
+                 * floor. Its moving vanilla LIGHT blocks now feed the real
+                 * blockLight channel below. Keep the old soft floor only for
+                 * the descent capsule until it receives the same treatment.
+                 */
+                boolean realSubmarineLight =
+                        minecraft.player.getVehicle()
+                                instanceof DeepSeaSubmarineEntity;
+
                 float lampFloor =
-                        lamp
+                        realSubmarineLight
+                                ? 0.0F
+                                : lamp
                                 * 0.34F;
 
                 float visibleLight =
