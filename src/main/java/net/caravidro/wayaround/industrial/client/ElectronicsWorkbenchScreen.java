@@ -942,21 +942,28 @@ public final class ElectronicsWorkbenchScreen
                 false
         );
 
-        graphics.drawString(
-                font,
-                Component.translatable(
-                        "container.wayaround.electronics.upgrade_compact",
-                        cost.copperCount(),
-                        shortMaterialName(cost.copper()),
-                        cost.redstoneCount(),
-                        shortMaterialName(cost.redstone()),
-                        cost.diamondCount(),
-                        shortMaterialName(cost.diamond())
-                ),
+        renderUpgradeMaterial(
+                graphics,
+                cost.copper(),
+                cost.copperCount(),
                 x + 8,
-                panelY + 31,
-                0xFFA7A7A7,
-                false
+                panelY + 29
+        );
+
+        renderUpgradeMaterial(
+                graphics,
+                cost.redstone(),
+                cost.redstoneCount(),
+                x + 50,
+                panelY + 29
+        );
+
+        renderUpgradeMaterial(
+                graphics,
+                cost.diamond(),
+                cost.diamondCount(),
+                x + 92,
+                panelY + 29
         );
 
         int bx =
@@ -984,13 +991,34 @@ public final class ElectronicsWorkbenchScreen
         );
     }
 
-    private String shortMaterialName(
-            Item item
+    private void renderUpgradeMaterial(
+            GuiGraphics graphics,
+            Item item,
+            int count,
+            int x,
+            int y
     ) {
-        return new ItemStack(
-                item
-        ).getHoverName()
-                .getString();
+        ItemStack stack =
+                new ItemStack(
+                        item
+                );
+
+        graphics.renderItem(
+                stack,
+                x,
+                y
+        );
+
+        graphics.drawString(
+                font,
+                Integer.toString(
+                        count
+                ),
+                x + 18,
+                y + 5,
+                0xFFE2E2E2,
+                false
+        );
     }
 
     @Override
