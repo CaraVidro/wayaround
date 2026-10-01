@@ -61,8 +61,14 @@ public abstract class AntarcticPossibleBiomesMixin {
                         WorldFeature.VOLCANIC_REGIONS
                 );
 
+        boolean riftEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.GREAT_RIFTS
+                );
+
         if (!antarcticaEnabled
-                && !volcanicEnabled) {
+                && !volcanicEnabled
+                && !riftEnabled) {
             return;
         }
 
@@ -120,6 +126,13 @@ public abstract class AntarcticPossibleBiomesMixin {
                         : null;
 
 
+        Holder<Biome> greatRift =
+                riftEnabled
+                        ? WayAroundBiomes
+                        .getGreatRift()
+                        : null;
+
+
         /*
          * Conjunto original de biomas conhecidos
          * pelo BiomeSource.
@@ -162,6 +175,12 @@ public abstract class AntarcticPossibleBiomesMixin {
         if (volcanicHighlands != null) {
             expanded.add(
                     volcanicHighlands
+            );
+        }
+
+        if (greatRift != null) {
+            expanded.add(
+                    greatRift
             );
         }
 

@@ -32,6 +32,7 @@ import net.caravidro.wayaround.sounds.WayAroundSounds;
 import net.caravidro.wayaround.spectrum.SpectrumCommands;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.WayAroundFeatures;
+import net.caravidro.wayaround.worldgen.geography.GreatRiftCommands;
 import net.caravidro.wayaround.worldgen.WorldgenRegistry;
 import net.caravidro.wayaround.worldgen.weather.AntarcticBlizzard;
 import net.caravidro.wayaround.worldgen.weather.AntarcticTorches;
@@ -124,6 +125,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(KrakenCommands::register);
         NeoForge.EVENT_BUS.addListener(NexusCommands::register);
         NeoForge.EVENT_BUS.addListener(VolcanicCommands::register);
+        NeoForge.EVENT_BUS.addListener(GreatRiftCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);
