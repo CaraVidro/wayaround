@@ -2,10 +2,9 @@ package net.caravidro.wayaround.industrial.pipework;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -200,6 +199,7 @@ public final class PipeFlow {
 
             if (!seen.add(
                     pipe.getBlockPos()
+                            .asLong()
             )) {
                 continue;
             }
@@ -257,6 +257,7 @@ public final class PipeFlow {
 
                 if (seen.contains(
                         next.getBlockPos()
+                                .asLong()
                 )) {
                     continue;
                 }
@@ -476,6 +477,7 @@ public final class PipeFlow {
 
                     if (!seen.contains(
                             next.getBlockPos()
+                                    .asLong()
                     )) {
                         queue.addLast(
                                 new SuctionStep(
