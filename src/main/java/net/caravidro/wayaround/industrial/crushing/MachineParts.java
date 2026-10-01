@@ -89,16 +89,36 @@ public final class MachineParts {
         return stack(role).getItem() instanceof MachinePartItem item ? item.spec() : null;
     }
     public float driveCost() {
-        float value = 1; for (var role : MachinePartSpec.Role.values()) {
-            var spec = spec(role); if (spec != null) value *= spec.driveCost();
-        } return value;
+        float value = 1;
+        for (var role : MachinePartSpec.Role.values()) {
+            var spec = spec(role);
+            if (spec == null) {
+                if (role == MachinePartSpec.Role.BEARING && integratedCrusherDrive()) {
+                    // Bearing losses are already represented by the cartridge.
+                    continue;
+                }
+                continue;
+            }
+            value *= spec.driveCost();
+        }
+        return value;
     }
+
     public float speed() {
         if (!complete()) return 0;
-        float value = 1; for (var role : MachinePartSpec.Role.values()) {
+        float value = 1;
+        for (var role : MachinePartSpec.Role.values()) {
+            var spec = spec(role);
+            if (spec == null) {
+                if (role == MachinePartSpec.Role.BEARING && integratedCrusherDrive()) {
+                    continue;
+                }
+                return 0;
+            }
             var profile = AssemblyItemData.readPart(stack(role));
-            value *= spec(role).speed() * (profile == null ? 1 : .65F + profile.assemblyScore() * .35F);
-        } return value;
+            value *= spec.speed() * (profile == null ? 1 : .65F + profile.assemblyScore() * .35F);
+        }
+        return value;
     }
     public float condition(MachinePartSpec.Role role) {
         var spec = spec(role);
