@@ -262,6 +262,84 @@ public final class ElectronicsGameTests {
             batch = "electronics",
             timeoutTicks = 80
     )
+    public static void pcbExpansionPreservesExistingCoordinatesAndEscalatesCost(
+            GameTestHelper helper
+    ) {
+        CircuitBoardData board =
+                CircuitBoardData.empty();
+
+        int oldEdge =
+                CircuitBoardData.cell(
+                        5,
+                        3
+                );
+
+        helper.assertTrue(
+                board.place(
+                        oldEdge,
+                        CircuitBoardData.ComponentType.RESISTOR
+                ),
+                "Base PCB must expose its original 6x4 cell grid"
+        );
+
+        helper.assertTrue(
+                !board.isCellAvailable(
+                        CircuitBoardData.cell(
+                                0,
+                                4
+                        )
+                ),
+                "The fifth PCB row must start locked"
+        );
+
+        helper.assertTrue(
+                board.expand()
+                        && board.activeHeight() == 5
+                        && board.component(
+                        oldEdge
+                ) == CircuitBoardData.ComponentType.RESISTOR,
+                "Expanding the PCB must add a row without shifting old component coordinates"
+        );
+
+        helper.assertTrue(
+                board.isCellAvailable(
+                        CircuitBoardData.cell(
+                                0,
+                                4
+                        )
+                ),
+                "One expansion level must unlock exactly one new physical row"
+        );
+
+        while (board.canExpand()) {
+            board.expand();
+        }
+
+        CircuitBoardData.UpgradeCost finalCost =
+                CircuitBoardData.upgradeCostForLevel(
+                        3
+                );
+
+        helper.assertTrue(
+                board.activeHeight() == CircuitBoardData.MAX_HEIGHT
+                        && finalCost != null
+                        && finalCost.copper() == net.minecraft.world.item.Items.COPPER_BLOCK
+                        && finalCost.redstone() == net.minecraft.world.item.Items.REDSTONE_BLOCK
+                        && finalCost.diamond() == net.minecraft.world.item.Items.DIAMOND_BLOCK
+                        && finalCost.copperCount() == 64
+                        && finalCost.redstoneCount() == 64
+                        && finalCost.diamondCount() == 64,
+                "The final PCB expansion must cost one full stack of copper, redstone and diamond blocks"
+        );
+
+        helper.succeed();
+    }
+
+    @GameTest(
+            template = "assembly_test",
+            batch = "electronics",
+            timeoutTicks = 80
+    )
     public static void materialHistorySurvivesBeyondOrdinaryWear(
             GameTestHelper helper
     ) {

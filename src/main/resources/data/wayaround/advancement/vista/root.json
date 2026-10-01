@@ -16,8 +16,8 @@
     "background": "minecraft:textures/gui/advancements/backgrounds/adventure.png"
   },
   "criteria": {
-    "noticed": {
-      "trigger": "minecraft:impossible"
+    "opened": {
+      "trigger": "minecraft:tick"
     }
   }
 }

@@ -87,7 +87,7 @@ Electronics uses a dedicated **Electronics Workbench** with a physical PCB edito
 2. right-click the bench again with an empty hand to remove that same board, preserving its exact layout;
 3. Shift + right-click while a board is seated to open the PCB editor;
 4. the component list is generated from electronic parts that actually exist in the player's inventory;
-5. drag a component from that list into one of the board's limited 6×4 physical positions;
+5. drag a component from that list into one of the board's currently unlocked physical positions;
 6. each placed component exposes a copper connection pad in the editor;
 7. click one pad and then another to route a copper trace;
 8. longer traces consume more Copper Trace items than short neighboring connections;
@@ -95,7 +95,9 @@ Electronics uses a dedicated **Electronics Workbench** with a physical PCB edito
 
 The editor supports zoom and panning, similar to the Engineering Workbench, but it is not a block catalogue. Its left panel is inventory-driven and its right panel describes the selected electronic component and board state.
 
-The Circuit Board item itself is a simple green 3D PCB. When it is seated on the Electronics Workbench, the board is rendered on the tabletop. Installed resistors, capacitors, diodes, transistors, relays, terminals and copper routes remain visibly present in-world even after the GUI is closed.
+The Circuit Board item itself is a simple green 3D PCB. It begins as a 6×4 board and can be expanded one physical row at a time up to 6×8. Each expansion is performed on the Electronics Workbench, checks the complete material bill before consuming anything, and becomes sharply more expensive; the final row costs 64 Copper Blocks, 64 Redstone Blocks and 64 Diamond Blocks. Legacy 6×4 boards are migrated without shifting their old cells or traces.
+
+When it is seated on the Electronics Workbench, the board is rendered on the tabletop and physically grows as rows are unlocked. Installed resistors, capacitors, diodes, transistors, relays, terminals and copper routes remain visibly present in-world even after the GUI is closed.
 
 This separation is intentional. The Engineering Workbench remains focused on calculation, blueprints and engineering design; the Electronics Workbench becomes the physical workspace for the electronics profession-like role.
 

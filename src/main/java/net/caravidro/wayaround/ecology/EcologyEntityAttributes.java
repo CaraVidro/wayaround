@@ -369,9 +369,11 @@ public final class EcologyEntityAttributes {
 
         event.put(
                 EcologyContent.CLEINTON.get(),
-                AbstractFish.createAttributes()
-                        .add(Attributes.MAX_HEALTH, 8.0)
-                        .add(Attributes.MOVEMENT_SPEED, 0.30)
+                Mob.createMobAttributes()
+                        .add(Attributes.MAX_HEALTH, 20.0)
+                        .add(Attributes.MOVEMENT_SPEED, 0.26)
+                        .add(Attributes.FOLLOW_RANGE, 24.0)
+                        .add(Attributes.KNOCKBACK_RESISTANCE, 1.0)
                         .build()
         );
 

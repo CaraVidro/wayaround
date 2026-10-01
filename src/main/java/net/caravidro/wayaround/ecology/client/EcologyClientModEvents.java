@@ -125,10 +125,7 @@ public final class EcologyClientModEvents {
 
         event.registerEntityRenderer(
                 EcologyContent.CLEINTON.get(),
-                context -> new AguaWorldSpeciesRenderer<>(
-                        context,
-                        AguaWorldSpeciesRenderer.Profile.CLEINTON
-                )
+                CleintonRenderer::new
         );
 
         event.registerEntityRenderer(

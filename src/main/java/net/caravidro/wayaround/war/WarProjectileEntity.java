@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import net.caravidro.wayaround.infinity.InfinityManager;
+import net.caravidro.wayaround.ecology.CleintonEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -181,6 +182,80 @@ public final class WarProjectileEntity extends Entity {
 
         if (held) {
             markInfinityAffected();
+        }
+    }
+
+    public void reflectFrom(
+            Entity reflector
+    ) {
+        Vec3 velocity =
+                getDeltaMovement();
+
+        if (velocity.lengthSqr() < 0.0001) {
+            return;
+        }
+
+        Vec3 reflected =
+                velocity.scale(
+                        -1.12
+                ).add(
+                        0.0,
+                        0.028,
+                        0.0
+                );
+
+        /*
+         * The reflected round must be allowed to hit its original shooter.
+         * Clearing the player owner also prevents the ordinary owner filter
+         * from treating the shooter as permanently immune to their own shot.
+         */
+        ownerId =
+                null;
+
+        setInfinityHeld(
+                false
+        );
+
+        setDeltaMovement(
+                reflected
+        );
+
+        setPos(
+                position()
+                        .add(
+                                reflected.normalize()
+                                        .scale(
+                                                0.48
+                                        )
+                        )
+        );
+
+        orientFrom(
+                reflected
+        );
+
+        if (level()
+                instanceof ServerLevel server) {
+            server.sendParticles(
+                    ParticleTypes.ENCHANTED_HIT,
+                    getX(),
+                    getY(),
+                    getZ(),
+                    10,
+                    0.10,
+                    0.10,
+                    0.10,
+                    0.08
+            );
+
+            server.playSound(
+                    null,
+                    blockPosition(),
+                    SoundEvents.SHIELD_BLOCK,
+                    SoundSource.HOSTILE,
+                    0.72F,
+                    1.35F
+            );
         }
     }
 
@@ -433,6 +508,14 @@ public final class WarProjectileEntity extends Entity {
             ServerLevel level,
             Impact impact
     ) {
+        if (impact.entity
+                instanceof CleintonEntity cleiton) {
+            cleiton.reflectWarProjectile(
+                    this
+            );
+            return;
+        }
+
         ServerPlayer owner =
                 ownerId == null
                         ? null

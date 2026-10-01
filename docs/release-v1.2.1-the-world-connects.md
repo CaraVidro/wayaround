@@ -99,7 +99,7 @@ And the reverse conversion is now possible:
 - the Electronics Workbench now seats exactly one real Circuit Board at a time;
 - normal click seats/removes the PCB and Shift + click opens the editor;
 - the PCB editor supports zoom/pan and uses only electronic components actually present in the player's inventory;
-- components are dragged onto the board's finite 6×4 layout;
+- components are dragged onto a physical layout that starts at 6×4 and can be expanded row-by-row to 6×8;
 - copper connections are created pad-to-pad and consume Copper Trace according to route distance;
 - the Circuit Board is now a green 3D model;
 - installed components and copper traces are rendered physically on the workbench after the GUI closes;
@@ -107,14 +107,27 @@ And the reverse conversion is now possible:
 - PCB rendering uses exterior lighting and reduced model shading to avoid black boards on the table;
 - finished boards can be removed from the workbench and installed visibly in the Circuit Controller;
 - controller rear redstone and FE now provide the board's runtime inputs;
-- LED, reinforced Buzzer and Distance Detector components add visual, audio and proximity behavior to the same copper graph.
+- LED, reinforced Buzzer and Distance Detector components add visual, audio and proximity behavior to the same copper graph;
+- PCB expansion is material-gated and increasingly expensive, ending at 64 Copper Blocks + 64 Redstone Blocks + 64 Diamond Blocks for the final row;
+- old 6×4 PCB saves migrate to the expanded format without shifting existing components or traces.
 
 ### Emblem discovery tree
 
 - only the root/entry emblem of each WayAround emblem tab is intended to be visible from the start;
 - most downstream emblems are hidden until discovered;
 - more branches use temporary hint emblems that disappear when the real discovery is earned;
-- new hint progressions include accessories, moving images, warfare escalation and multi-line mechanical transmission.
+- new hint progressions include accessories, moving images, warfare escalation and multi-line mechanical transmission;
+- each emblem tab exposes one real starter emblem from the beginning, with deliberately vague wording;
+- temporary clue nodes explicitly begin with `TIP:`, while deeper real emblems remain hidden.
+
+### Abyss ecology / Cleiton
+
+- procedural clouds no longer render through an underwater camera;
+- deep-ocean skylight decays much earlier and the abyss fog converges to true black rather than leaving a blue water veil;
+- naturally spawned WayAround fish are allowed to despawn again instead of accumulating forever;
+- a bounded legacy-population cleanup removes distant accumulated fish first while preserving the nearby visible ecosystem;
+- Cleiton keeps the legacy `wayaround:cleinton` registry ID for save compatibility but is displayed as **Cleiton**;
+- Cleiton is a persistent four-legged amphibious fish-creature, cannot be damaged or knocked back, and reflects ordinary and WayAround ballistic projectiles.
 
 ### Connected-world polish
 

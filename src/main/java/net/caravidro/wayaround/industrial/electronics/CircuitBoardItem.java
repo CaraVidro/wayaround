@@ -37,7 +37,7 @@ public final class CircuitBoardItem
                 Component.translatable(
                         "tooltip.wayaround.circuit_board.layout",
                         board.componentCount(),
-                        CircuitBoardData.CELL_COUNT,
+                        board.activeCellCount(),
                         board.traceCount()
                 ).withStyle(
                         ChatFormatting.GRAY
@@ -46,13 +46,25 @@ public final class CircuitBoardItem
 
         tooltip.add(
                 Component.translatable(
-                        board.hasSignalPath()
+                        board.hasRuntimeOutputPath()
                                 ? "tooltip.wayaround.circuit_board.path_ready"
                                 : "tooltip.wayaround.circuit_board.path_open"
                 ).withStyle(
-                        board.hasSignalPath()
+                        board.hasRuntimeOutputPath()
                                 ? ChatFormatting.GREEN
                                 : ChatFormatting.DARK_GRAY
+                )
+        );
+
+        tooltip.add(
+                Component.translatable(
+                        "tooltip.wayaround.circuit_board.size",
+                        CircuitBoardData.WIDTH,
+                        board.activeHeight(),
+                        board.expansionLevel(),
+                        CircuitBoardData.MAX_EXPANSION_LEVEL
+                ).withStyle(
+                        ChatFormatting.DARK_GREEN
                 )
         );
 

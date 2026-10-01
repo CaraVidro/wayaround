@@ -23,6 +23,7 @@ public record CircuitWorkbenchActionC2SPayload(
     public static final int PLACE = 0;
     public static final int CONNECT = 1;
     public static final int REMOVE = 2;
+    public static final int UPGRADE = 3;
 
     public static final Type<CircuitWorkbenchActionC2SPayload> TYPE =
             new Type<>(
@@ -128,6 +129,10 @@ public record CircuitWorkbenchActionC2SPayload(
                         case REMOVE -> workbench.removeCell(
                                 player,
                                 payload.a()
+                        );
+
+                        case UPGRADE -> workbench.upgradeBoard(
+                                player
                         );
 
                         default -> {
