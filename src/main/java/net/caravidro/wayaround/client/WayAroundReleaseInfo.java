@@ -58,6 +58,9 @@ public final class WayAroundReleaseInfo {
                 Component.translatable("screen.wayaround.update_log.professions"),
                 Component.translatable("screen.wayaround.update_log.milestone15"),
                 Component.translatable("screen.wayaround.update_log.steam_chain"),
+                Component.translatable("screen.wayaround.update_log.milestone16"),
+                Component.translatable("screen.wayaround.update_log.grid"),
+                Component.translatable("screen.wayaround.update_log.polar_fix"),
                 Component.translatable("screen.wayaround.update_log.future")
         );
     }
