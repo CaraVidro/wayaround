@@ -811,5 +811,17 @@
   "item.wayaround.raw_anglerfish_meat": "Raw Abyssal Anglerfish Meat",
   "item.wayaround.cooked_anglerfish_meat": "Cooked Abyssal Anglerfish Meat",
   "entity.wayaround.deep_sea_capsule": "Deep-Sea Capsule",
-  "item.wayaround.deep_sea_capsule": "Deep-Sea Capsule"
+  "item.wayaround.deep_sea_capsule": "Deep-Sea Capsule",
+  "block.wayaround.mechanical_pump": "Mechanical Pump Housing",
+  "item.wayaround.pump_impeller_cartridge": "Pump Impeller Cartridge",
+  "item.wayaround.crusher_drive_cartridge": "Crusher Drive Cartridge",
+  "item.wayaround.reinforced_crusher_drive_cartridge": "Reinforced Crusher Drive Cartridge",
+  "tooltip.wayaround.machine_part.crusher_drive_cartridge": "Integrated shaft and bearings for ordinary crushers; one installed drive module.",
+  "tooltip.wayaround.machine_part.reinforced_crusher_drive_cartridge": "Heavy integrated shaft and bearings; better shock resistance at greater drive cost.",
+  "message.wayaround.crusher.use_drive_cartridge": "Crushers now use a drive cartridge: shaft and bearings are one installed module.",
+  "message.wayaround.mechanical_pump.status": "Pump: %s | %s RPM | %s u/t | %s bar | buffer %s mB | %s",
+  "message.wayaround.mechanical_pump.impeller_ready": "impeller installed",
+  "message.wayaround.mechanical_pump.impeller_missing": "missing impeller cartridge",
+  "message.wayaround.mechanical_pump.pipe_ready": "discharge connected",
+  "message.wayaround.mechanical_pump.pipe_missing": "no discharge pipe"
 }
