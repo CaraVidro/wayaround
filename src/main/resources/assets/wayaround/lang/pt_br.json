@@ -951,5 +951,15 @@
   "container.wayaround.electronics.component_draw": "Consumo de operação: %s",
   "container.wayaround.electronics.connection_armed": "Pad de conexão selecionado",
   "container.wayaround.electronics.connection_help": "Clique no pad de cobre de outro componente.",
-  "message.wayaround.circuit_workbench.trace_cost": "Foram usados %s de trilha de cobre nessa conexão."
+  "message.wayaround.circuit_workbench.trace_cost": "Foram usados %s de trilha de cobre nessa conexão.",
+  "advancements.wayaround.accessories.cardboard_hint.title": "Alguma Coisa Barata Cabe",
+  "advancements.wayaround.accessories.cardboard_hint.description": "Nem todo acessório de cabeça precisa de metal, couro ou dignidade.",
+  "advancements.wayaround.accessories.filter_hint.title": "Talvez Um Filtro",
+  "advancements.wayaround.accessories.filter_hint.description": "Algumas máscaras parecem úteis antes de você descobrir se realmente são.",
+  "advancements.wayaround.media.video_hint.title": "Uma Foto Pode Se Mexer",
+  "advancements.wayaround.media.video_hint.description": "Um quadro lembra um instante. O que vários quadros lembrariam?",
+  "advancements.wayaround.war.overkill_hint.title": "Aquilo Foi Só Um Tiro",
+  "advancements.wayaround.war.overkill_hint.description": "Algumas armas resolvem um alvo. Outras resolvem a arquitetura em volta.",
+  "advancements.wayaround.assembly_objects.four_lines_hint.title": "Uma Linha Não É Um Sistema",
+  "advancements.wayaround.assembly_objects.four_lines_hint.description": "Se uma linha girando funciona, várias linhas coordenadas talvez transmitam algo maior."
 }
