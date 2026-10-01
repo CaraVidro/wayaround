@@ -499,40 +499,34 @@ public final class EcologicalSuccession {
             return;
         }
 
-        BlockState plant;
+        String biome =
+                level.getBiome(
+                        above
+                )
+                        .unwrapKey()
+                        .map(
+                                key ->
+                                        key.location()
+                                                .getPath()
+                        )
+                        .orElse(
+                                ""
+                        );
 
-        float pick = random.nextFloat();
+        boolean nearWater =
+                nearWater(
+                        level,
+                        ground,
+                        3
+                );
 
-        if (wet && pick < 0.22F) {
-            plant =
-                    EcologyContent.DAMP_FERN.get()
-                            .defaultBlockState();
-        } else if (wet && pick < 0.40F) {
-            plant =
-                    EcologyContent.RIVER_SPRIG.get()
-                            .defaultBlockState();
-        } else if (wet && pick < 0.54F) {
-            plant =
-                    EcologyContent.CREEK_CLOVER.get()
-                            .defaultBlockState();
-        } else if (pick < 0.68F) {
-            plant =
-                    EcologyContent.WOODLAND_SORREL.get()
-                            .defaultBlockState();
-        } else if (pick < 0.80F) {
-            plant =
-                    EcologyContent.SHADE_NETTLE.get()
-                            .defaultBlockState();
-        } else if (pick < 0.91F) {
-            plant =
-                    EcologyContent.MEADOW_SEDGE.get()
-                            .defaultBlockState();
-        } else {
-            plant =
-                    random.nextBoolean()
-                            ? Blocks.FERN.defaultBlockState()
-                            : Blocks.SHORT_GRASS.defaultBlockState();
-        }
+        BlockState plant =
+                VegetationPalette.pick(
+                        biome,
+                        wet,
+                        nearWater,
+                        random
+                );
 
         if (plant.canSurvive(level, above)) {
             level.setBlockAndUpdate(
@@ -812,6 +806,42 @@ public final class EcologicalSuccession {
                     sapling
             );
         }
+    }
+
+    private static boolean nearWater(
+            ServerLevel level,
+            BlockPos pos,
+            int radius
+    ) {
+        for (Direction direction :
+                Direction.Plane.HORIZONTAL) {
+
+            for (int distance = 1;
+                 distance <= radius;
+                 distance++) {
+
+                BlockPos probe =
+                        pos.relative(
+                                direction,
+                                distance
+                        );
+
+                if (level.getFluidState(
+                        probe
+                ).is(
+                        FluidTags.WATER
+                )
+                        || level.getFluidState(
+                        probe.above()
+                ).is(
+                        FluidTags.WATER
+                )) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static boolean humid(
