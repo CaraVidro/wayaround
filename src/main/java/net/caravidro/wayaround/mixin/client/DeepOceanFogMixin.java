@@ -39,7 +39,7 @@ public abstract class DeepOceanFogMixin {
          * ocean light reaches literal black. The transition still starts gently
          * so descending does not look like crossing a shader wall.
          */
-        float t = Mth.clamp((float) ((depth - 18.0) / 72.0), 0.0F, 1.0F);
+        float t = Mth.clamp((float) ((depth - 12.0) / 36.0), 0.0F, 1.0F);
         t = t * t * (3.0F - 2.0F * t);
 
         float r = Mth.lerp(t, 0.030F, 0.0F);
@@ -73,5 +73,26 @@ public abstract class DeepOceanFogMixin {
 
         RenderSystem.setShaderFogStart(Math.max(0.0F, end * 0.12F));
         RenderSystem.setShaderFogEnd(end);
+
+        float black =
+                Mth.clamp(
+                        (float) ((depth - 12.0) / 36.0),
+                        0.0F,
+                        1.0F
+                );
+
+        black =
+                black
+                        * black
+                        * (3.0F - 2.0F * black);
+
+        if (black >= 0.995F) {
+            RenderSystem.setShaderFogColor(
+                    0.0F,
+                    0.0F,
+                    0.0F,
+                    1.0F
+            );
+        }
     }
 }
