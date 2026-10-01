@@ -3,8 +3,8 @@ package net.caravidro.wayaround.industrial.electronics;
 import javax.annotation.Nullable;
 
 import com.mojang.serialization.MapCodec;
-import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
@@ -71,31 +71,39 @@ public final class ElectronicsWorkbenchBlock
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        boolean relevant =
-                stack.is(
-                        ElectronicsContent.CIRCUIT_BOARD.get()
-                )
-                        || ElectronicsContent.isCircuitPart(
-                        stack
-                )
-                        || stack.is(
-                        PowerContent.ASSEMBLY_HAMMER.get()
+        if (player.isShiftKeyDown()
+                && workbench.hasCircuitBoard()) {
+            if (!level.isClientSide
+                    && player instanceof ServerPlayer serverPlayer) {
+                serverPlayer.openMenu(
+                        workbench
                 );
+            }
 
-        if (!relevant) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            return ItemInteractionResult.SUCCESS;
         }
 
-        if (!level.isClientSide
-                && !workbench.handleCircuitItem(
-                player,
-                stack,
-                hit
+        if (stack.is(
+                ElectronicsContent.CIRCUIT_BOARD.get()
         )) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            if (!level.isClientSide) {
+                if (!workbench.installCircuitBoard(
+                        player,
+                        stack
+                )) {
+                    player.displayClientMessage(
+                            net.minecraft.network.chat.Component.translatable(
+                                    "message.wayaround.circuit_workbench.board_present"
+                            ),
+                            true
+                    );
+                }
+            }
+
+            return ItemInteractionResult.SUCCESS;
         }
 
-        return ItemInteractionResult.SUCCESS;
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
     @Override
@@ -113,12 +121,22 @@ public final class ElectronicsWorkbenchBlock
         }
 
         if (!level.isClientSide) {
-            if (player.isShiftKeyDown()) {
-                workbench.removeCircuitBoard(
-                        player
+            if (!workbench.hasCircuitBoard()) {
+                player.displayClientMessage(
+                        net.minecraft.network.chat.Component.translatable(
+                                "message.wayaround.circuit_workbench.no_board"
+                        ),
+                        true
                 );
+
+            } else if (player.isShiftKeyDown()
+                    && player instanceof ServerPlayer serverPlayer) {
+                serverPlayer.openMenu(
+                        workbench
+                );
+
             } else {
-                workbench.describeCircuit(
+                workbench.removeCircuitBoard(
                         player
                 );
             }
