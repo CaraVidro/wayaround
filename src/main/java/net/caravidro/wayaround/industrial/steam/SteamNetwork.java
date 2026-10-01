@@ -132,6 +132,17 @@ public final class SteamNetwork {
                 continue;
             }
 
+            BlockEntity currentEntity =
+                    level.getBlockEntity(
+                            current
+                    );
+
+            if (currentEntity instanceof PipeBlockEntity pipeEntity
+                    && pipeEntity.hasValve()
+                    && !pipeEntity.open()) {
+                continue;
+            }
+
             PipeSpec spec =
                     pipe.spec();
 
