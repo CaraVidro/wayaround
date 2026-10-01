@@ -196,8 +196,12 @@ public final class DomainIntroClient {
                         .getGuiScaledHeight();
 
         if (style
-                == DomainIntroManager.VOID) {
-            renderVoidPresentation(
+                == DomainIntroManager.VOID
+                && VoidDomainPresentation.byId(
+                variant
+        )
+                == VoidDomainPresentation.INNATE) {
+            renderVoidInnateAttempt(
                     event,
                     minecraft,
                     width,
@@ -291,7 +295,8 @@ public final class DomainIntroClient {
                     centerX,
                     top,
                     bottom,
-                    open
+                    open,
+                    progress
             );
 
             if (profile.shadowParticles()) {
@@ -314,204 +319,96 @@ public final class DomainIntroClient {
         }
 
         // Borders are deliberately last: the model stays behind both lines.
-        event.getGuiGraphics()
-                .fill(
-                        centerX - halfLine,
-                        top,
-                        centerX + halfLine,
-                        top + 2,
-                        profile.line()
-                );
-
-        if (bandHeight > 4) {
+        if (style
+                == DomainIntroManager.VOID) {
+            renderVoidRotatingBars(
+                    event,
+                    profile,
+                    centerX,
+                    top,
+                    bottom,
+                    halfLine,
+                    progress,
+                    bandHeight > 4
+            );
+        } else {
             event.getGuiGraphics()
                     .fill(
-                            0,
-                            bottom - 2,
-                            width,
-                            bottom,
+                            centerX - halfLine,
+                            top,
+                            centerX + halfLine,
+                            top + 2,
                             profile.line()
                     );
+
+            if (bandHeight > 4) {
+                event.getGuiGraphics()
+                        .fill(
+                                0,
+                                bottom - 2,
+                                width,
+                                bottom,
+                                profile.line()
+                        );
+            }
         }
     }
 
-    private static void renderVoidPresentation(
+    private static void renderVoidInnateAttempt(
             RenderGuiEvent.Post event,
             Minecraft minecraft,
             int width,
             int height,
             float progress
     ) {
-        VoidDomainPresentation presentation =
-                VoidDomainPresentation.byId(
-                        variant
-                );
+        /*
+         * INNATE is the "there is a domain inside you, but no Expansion has
+         * been achieved" state. An attempted cast acknowledges the technique
+         * name, hesitates, then explicitly fails. No bars, player model, image,
+         * whiteout or pocket-space transition are rendered.
+         */
+        boolean failed =
+                progress
+                        >= 0.56F;
 
-        if (presentation
-                == VoidDomainPresentation.INNATE) {
-            /*
-             * Innate domain is deliberately invisible: it is not an Expansion.
-             */
-            startedAtMillis =
-                    0L;
-            return;
-        }
+        float phaseProgress =
+                failed
+                        ? (progress - 0.56F)
+                                / 0.44F
+                        : progress
+                                / 0.56F;
 
         float visibility =
-                envelope(
-                        progress
-                );
-
-        if (presentation
-                == VoidDomainPresentation.ABSOLUTE
-                && minecraft.getResourceManager()
-                        .getResource(
-                                VOID_ABSOLUTE_IMAGE
+                failed
+                        ? 1.0F
+                                - smooth(
+                                Math.max(
+                                        0.0F,
+                                        (phaseProgress - 0.68F)
+                                                / 0.32F
+                                )
                         )
-                        .isPresent()) {
-
-            renderVoidAbsoluteImage(
-                    event,
-                    width,
-                    height
-            );
-
-            /*
-             * Fade from/to black around the supplied art instead of stretching
-             * or replacing it with procedural GUI clutter.
-             */
-            int blackout =
-                    Mth.clamp(
-                            Math.round(
-                                    255.0F
-                                            * (
-                                            1.0F
-                                                    - visibility
-                                    )
-                            ),
-                            0,
-                            255
-                    );
-
-            if (blackout > 0) {
-                event.getGuiGraphics()
-                        .fill(
-                                0,
-                                0,
-                                width,
-                                height,
-                                blackout << 24
+                        : smooth(
+                                Math.min(
+                                        1.0F,
+                                        phaseProgress
+                                                / 0.30F
+                                )
                         );
-            }
 
-            drawVoidExpansionTitle(
-                    event,
-                    minecraft,
-                    width,
-                    height,
-                    visibility,
-                    true
-            );
+        String text =
+                failed
+                        ? "NADA OCORREU."
+                        : "DOMÍNIO DE EXPANSÃO";
 
-            return;
-        }
-
-        /*
-         * SIMPLE is intentionally stripped down: no bars, player model,
-         * repeated lettering, vortex prelude or background art. Just the name
-         * of the technique, exactly as the new presentation contract asks.
-         */
-        drawVoidExpansionTitle(
-                event,
-                minecraft,
-                width,
-                height,
-                visibility,
-                false
-        );
-    }
-
-    private static void renderVoidAbsoluteImage(
-            RenderGuiEvent.Post event,
-            int width,
-            int height
-    ) {
-        float scale =
-                Math.max(
-                        width
-                                / (float) VOID_ABSOLUTE_IMAGE_WIDTH,
-                        height
-                                / (float) VOID_ABSOLUTE_IMAGE_HEIGHT
-                );
-
-        float drawWidth =
-                VOID_ABSOLUTE_IMAGE_WIDTH
-                        * scale;
-
-        float drawHeight =
-                VOID_ABSOLUTE_IMAGE_HEIGHT
-                        * scale;
-
-        float drawX =
-                (
-                        width
-                                - drawWidth
-                )
-                        * 0.5F;
-
-        float drawY =
-                (
-                        height
-                                - drawHeight
-                )
-                        * 0.5F;
-
-        PoseStack pose =
-                event.getGuiGraphics()
-                        .pose();
-
-        pose.pushPose();
-
-        pose.translate(
-                drawX,
-                drawY,
-                0.0F
-        );
-
-        pose.scale(
-                scale,
-                scale,
-                1.0F
-        );
-
-        event.getGuiGraphics()
-                .blit(
-                        VOID_ABSOLUTE_IMAGE,
-                        0,
-                        0,
-                        0,
-                        0,
-                        VOID_ABSOLUTE_IMAGE_WIDTH,
-                        VOID_ABSOLUTE_IMAGE_HEIGHT,
-                        VOID_ABSOLUTE_IMAGE_WIDTH,
-                        VOID_ABSOLUTE_IMAGE_HEIGHT
-                );
-
-        pose.popPose();
-    }
-
-    private static void drawVoidExpansionTitle(
-            RenderGuiEvent.Post event,
-            Minecraft minecraft,
-            int width,
-            int height,
-            float visibility,
-            boolean absolute
-    ) {
         int alpha =
                 Mth.clamp(
                         Math.round(
-                                235.0F
+                                (
+                                        failed
+                                                ? 190.0F
+                                                : 235.0F
+                                )
                                         * visibility
                         ),
                         0,
@@ -522,15 +419,10 @@ public final class DomainIntroClient {
             return;
         }
 
-        String text =
-                absolute
-                        ? "DOMÍNIO DE EXPANSÃO ABSOLUTO"
-                        : "DOMÍNIO DE EXPANSÃO";
-
         float scale =
-                absolute
-                        ? 1.28F
-                        : 1.72F;
+                failed
+                        ? 1.20F
+                        : 1.62F;
 
         PoseStack pose =
                 event.getGuiGraphics()
@@ -556,25 +448,121 @@ public final class DomainIntroClient {
                                 / scale
                 );
 
-        int y =
-                absolute
-                        ? Math.round(
-                                scaledHeight
-                                        * 0.76F
-                        )
-                        : scaledHeight
-                                / 2
-                                - minecraft.font.lineHeight
-                                        / 2;
-
         event.getGuiGraphics()
                 .drawCenteredString(
                         minecraft.font,
                         text,
                         scaledWidth / 2,
-                        y,
+                        scaledHeight / 2
+                                - minecraft.font.lineHeight
+                                        / 2,
                         alpha << 24
-                                | 0x00FFFFFF
+                                | (
+                                failed
+                                        ? 0x00BFC4CC
+                                        : 0x00FFFFFF
+                        )
+                );
+
+        pose.popPose();
+    }
+
+    private static void renderVoidRotatingBars(
+            RenderGuiEvent.Post event,
+            DomainIntroProfile profile,
+            int centerX,
+            int top,
+            int bottom,
+            int halfLine,
+            float progress,
+            boolean renderBottom
+    ) {
+        /*
+         * Entry: two diagonals rotate into a clean horizontal lock.
+         * Exit: they rotate away in opposite directions. The actor swaps pose
+         * at this exact same threshold (0.72), so the UI and character motion
+         * feel like one animation rather than unrelated layers.
+         */
+        float angle;
+
+        if (progress < 0.18F) {
+            angle =
+                    42.0F
+                            * (
+                            1.0F
+                                    - smooth(
+                                    progress
+                                            / 0.18F
+                            )
+                    );
+
+        } else if (progress < 0.72F) {
+            angle =
+                    0.0F;
+
+        } else {
+            angle =
+                    -58.0F
+                            * smooth(
+                            (progress - 0.72F)
+                                    / 0.28F
+                    );
+        }
+
+        PoseStack pose =
+                event.getGuiGraphics()
+                        .pose();
+
+        pose.pushPose();
+
+        pose.translate(
+                centerX,
+                top + 1.0F,
+                0.0F
+        );
+
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        angle
+                )
+        );
+
+        event.getGuiGraphics()
+                .fill(
+                        -halfLine,
+                        -1,
+                        halfLine,
+                        1,
+                        profile.line()
+                );
+
+        pose.popPose();
+
+        if (!renderBottom) {
+            return;
+        }
+
+        pose.pushPose();
+
+        pose.translate(
+                centerX,
+                bottom - 1.0F,
+                0.0F
+        );
+
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        -angle
+                )
+        );
+
+        event.getGuiGraphics()
+                .fill(
+                        -halfLine,
+                        -1,
+                        halfLine,
+                        1,
+                        profile.line()
                 );
 
         pose.popPose();
@@ -1139,7 +1127,8 @@ public final class DomainIntroClient {
             int centerX,
             int top,
             int bottom,
-            float open
+            float open,
+            float progress
     ) {
         Minecraft minecraft =
                 Minecraft.getInstance();
@@ -1188,9 +1177,16 @@ public final class DomainIntroClient {
                     0.0F
             );
 
+            byte activePose =
+                    style
+                            == DomainIntroManager.VOID
+                            && progress >= 0.72F
+                            ? DomainIntroProfile.POSE_VOID_EXIT
+                            : profile.pose();
+
             applyPose(
                     model,
-                    profile.pose()
+                    activePose
             );
 
             PoseStack pose =
@@ -1314,6 +1310,33 @@ public final class DomainIntroClient {
 
                 model.head.xRot =
                         -0.10F;
+            }
+
+            case DomainIntroProfile.POSE_VOID_EXIT -> {
+                /*
+                 * Exit stance: the hands break away from the casting seal as
+                 * the two GUI bars rotate out. It is intentionally distinct
+                 * from both SIMPLE and ABSOLUTE hold poses.
+                 */
+                model.rightArm.xRot =
+                        -0.76F;
+                model.rightArm.yRot =
+                        -1.02F;
+                model.rightArm.zRot =
+                        0.86F;
+
+                model.leftArm.xRot =
+                        -0.76F;
+                model.leftArm.yRot =
+                        1.02F;
+                model.leftArm.zRot =
+                        -0.86F;
+
+                model.head.xRot =
+                        0.18F;
+
+                model.head.yRot =
+                        0.18F;
             }
 
             case DomainIntroProfile.POSE_TUKUNA_APEX -> {
