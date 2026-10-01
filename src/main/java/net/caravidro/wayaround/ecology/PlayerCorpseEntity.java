@@ -14,6 +14,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
@@ -122,7 +123,25 @@ public final class PlayerCorpseEntity extends Entity {
         Vec3 motion =
                 getDeltaMovement();
 
-        if (!onGround()) {
+        if (isInWater()) {
+            /*
+             * A body containing the player's entire inventory must not quietly
+             * disappear into a trench. It rises slowly and drifts instead of
+             * noclipping/sinking forever.
+             */
+            motion =
+                    motion.multiply(
+                            0.84,
+                            0.72,
+                            0.84
+                    )
+                            .add(
+                                    0.0,
+                                    0.018,
+                                    0.0
+                            );
+
+        } else if (!onGround()) {
             motion =
                     motion.add(
                             0.0,
@@ -144,7 +163,7 @@ public final class PlayerCorpseEntity extends Entity {
                             motion.z * 0.28
                     );
 
-        } else {
+        } else if (!isInWater()) {
             motion =
                     motion.multiply(
                             0.91,
@@ -366,6 +385,19 @@ public final class PlayerCorpseEntity extends Entity {
                                 + "'s corpse"
                 )
         );
+    }
+
+    @Override
+    public boolean hurt(
+            DamageSource source,
+            float amount
+    ) {
+        /*
+         * The corpse is the anti-item-loss container. Fire, explosions and
+         * incidental combat may move the scene around, but cannot delete the
+         * storage entity itself.
+         */
+        return false;
     }
 
     @Override
