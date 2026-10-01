@@ -267,6 +267,70 @@ public final class AntarcticField {
      * Antártida assume o controle
      */
 
+    /**
+     * Continuous environmental polar influence.
+     *
+     * Unlike isAntarctic(), this intentionally starts in the Southern Ocean.
+     * It is used by ambience (cold, light, sky, wind and precipitation) so
+     * crossing the ocean feels like approaching Antarctica instead of
+     * flipping a biome switch at the coastline.
+     */
+    public static double polarInfluence(
+            int blockX,
+            int blockZ
+    ) {
+        double z =
+                geographicZ(
+                        blockX,
+                        blockZ
+                );
+
+        double oceanApproach =
+                smoothstep(
+                        clamp(
+                                (
+                                        z
+                                                - SOUTHERN_OCEAN_START_Z
+                                )
+                                        / (
+                                        ANTARCTIC_START_Z
+                                                - SOUTHERN_OCEAN_START_Z
+                                ),
+                                0.0,
+                                1.0
+                        )
+                )
+                        * 0.55;
+
+        double continent =
+                smoothstep(
+                        clamp(
+                                (
+                                        z
+                                                - ANTARCTIC_START_Z
+                                )
+                                        / (
+                                        ANTARCTIC_FULL_Z
+                                                - ANTARCTIC_START_Z
+                                ),
+                                0.0,
+                                1.0
+                        )
+                );
+
+        return clamp(
+                oceanApproach
+                        + (
+                        1.0
+                                - oceanApproach
+                )
+                        * continent,
+                0.0,
+                1.0
+        );
+    }
+
+
     public static double southernOceanStrength(
             int blockX,
             int blockZ
