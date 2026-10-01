@@ -961,5 +961,7 @@
   "advancements.wayaround.war.overkill_hint.title": "That Was Only One Shot",
   "advancements.wayaround.war.overkill_hint.description": "Some weapons solve a target. Others solve the surrounding architecture.",
   "advancements.wayaround.assembly_objects.four_lines_hint.title": "One Line Is Not A System",
-  "advancements.wayaround.assembly_objects.four_lines_hint.description": "If one rotating line works, several coordinated lines may transmit something larger."
+  "advancements.wayaround.assembly_objects.four_lines_hint.description": "If one rotating line works, several coordinated lines may transmit something larger.",
+  "screen.wayaround.update_log.pcb_editor": "The Electronics Workbench now builds a physical PCB: drag inventory parts, route copper by distance, and watch the finished layout remain on the table.",
+  "screen.wayaround.update_log.emblem_tree": "Emblems now behave more like a discovery tree: only entry nodes appear early, branches stay secret, and temporary hints turn into real discoveries."
 }
