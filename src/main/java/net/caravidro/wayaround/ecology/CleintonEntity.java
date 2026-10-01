@@ -94,8 +94,14 @@ public final class CleintonEntity
     }
 
     @Override
-    public boolean canBreatheUnderwater() {
-        return true;
+    public void aiStep() {
+        super.aiStep();
+
+        if (isInWaterOrBubble()) {
+            setAirSupply(
+                    getMaxAirSupply()
+            );
+        }
     }
 
     @Override
