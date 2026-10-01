@@ -33,8 +33,11 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
             if(crusher.size()==CrusherSize.LARGE)for(double x:new double[]{-1,1})box(pose,buffer,light,overlay,metal,x,.18,0,.12,.10,2.2);
         }
         var parts=crusher.parts();
-        if(parts.has(MachinePartSpec.Role.BEARING)){
-            var bearing=parts.spec(MachinePartSpec.Role.BEARING).heavy()?metal:Blocks.COPPER_BLOCK.defaultBlockState();
+        if(parts.has(MachinePartSpec.Role.BEARING) || parts.integratedCrusherDrive()){
+            boolean heavyBearing = parts.has(MachinePartSpec.Role.BEARING)
+                    ? parts.spec(MachinePartSpec.Role.BEARING).heavy()
+                    : parts.spec(MachinePartSpec.Role.DRIVE).heavy();
+            var bearing=heavyBearing?metal:Blocks.COPPER_BLOCK.defaultBlockState();
             for(double x:new double[]{-.35,.35})box(pose,buffer,light,overlay,bearing,x,.36,0,.16,.22,.24);
         }
         if(parts.has(MachinePartSpec.Role.DRIVE)){
