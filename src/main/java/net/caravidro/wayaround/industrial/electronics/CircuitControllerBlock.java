@@ -23,6 +23,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.phys.BlockHitResult;
@@ -41,6 +42,16 @@ public final class CircuitControllerBlock
     public static final IntegerProperty POWER =
             BlockStateProperties.POWER;
 
+    public static final BooleanProperty HAS_BOARD =
+            BooleanProperty.create(
+                    "has_board"
+            );
+
+    public static final BooleanProperty LED_ACTIVE =
+            BooleanProperty.create(
+                    "led_active"
+            );
+
     public CircuitControllerBlock(
             Properties properties
     ) {
@@ -57,6 +68,14 @@ public final class CircuitControllerBlock
                         .setValue(
                                 POWER,
                                 0
+                        )
+                        .setValue(
+                                HAS_BOARD,
+                                false
+                        )
+                        .setValue(
+                                LED_ACTIVE,
+                                false
                         )
         );
     }
@@ -140,6 +159,10 @@ public final class CircuitControllerBlock
                 );
             }
 
+            return ItemInteractionResult.SUCCESS;
+        }
+
+        if (controller.hasBoard()) {
             return ItemInteractionResult.SUCCESS;
         }
 
@@ -234,7 +257,9 @@ public final class CircuitControllerBlock
     ) {
         builder.add(
                 FACING,
-                POWER
+                POWER,
+                HAS_BOARD,
+                LED_ACTIVE
         );
     }
 }
