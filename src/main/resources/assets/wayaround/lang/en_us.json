@@ -908,5 +908,11 @@
   "message.wayaround.steam_engine.motion_slow": "turning slowly",
   "message.wayaround.steam_engine.motion_working": "working",
   "message.wayaround.steam_engine.motion_fast": "running fast",
-  "message.wayaround.steam_engine.measurement": "Gauge: steam %s/%s | pressure %s bar | %s °C | %s RPM | torque %s | mechanical power %s"
+  "message.wayaround.steam_engine.measurement": "Gauge: steam %s/%s | pressure %s bar | %s °C | %s RPM | torque %s | mechanical power %s",
+  "advancements.wayaround.vista.antarctica_hint.title": "The Horizon Is Getting Whiter",
+  "advancements.wayaround.vista.antarctica_hint.description": "The cold ocean keeps going south. Something much larger may be beyond the ice.",
+  "advancements.wayaround.vista.sunfish_basking_hint.title": "It Keeps Looking Up",
+  "advancements.wayaround.vista.sunfish_basking_hint.description": "A sunfish does not always stay deep. Watch what one does near a calm surface.",
+  "advancements.wayaround.vista.puffer_carrot_hint.title": "It Looks Hungry",
+  "advancements.wayaround.vista.puffer_carrot_hint.description": "You have seen a pufferfish. Surely marine biology has never been harmed by questionable snacks."
 }
