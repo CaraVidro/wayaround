@@ -3,6 +3,7 @@ package net.caravidro.wayaround.mixin;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.terrain.AntarcticDensityFunction;
 import net.caravidro.wayaround.worldgen.terrain.VolcanicDensityFunction;
+import net.caravidro.wayaround.worldgen.terrain.GreatRiftDensityFunction;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
@@ -75,8 +76,14 @@ public abstract class NoiseRouterMixin {
                         WorldFeature.VOLCANIC_REGIONS
                 );
 
+        boolean riftEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.GREAT_RIFTS
+                );
+
         if (!antarcticaEnabled
-                && !volcanicEnabled) {
+                && !volcanicEnabled
+                && !riftEnabled) {
             return;
         }
 
@@ -106,8 +113,18 @@ public abstract class NoiseRouterMixin {
                                 instanceof VolcanicDensityFunction
                 );
 
+        boolean alreadyRift =
+                !riftEnabled
+                        || (
+                        vanilla.finalDensity()
+                                instanceof GreatRiftDensityFunction
+                                && vanilla.initialDensityWithoutJaggedness()
+                                instanceof GreatRiftDensityFunction
+                );
+
         if (alreadyAntarctic
-                && alreadyVolcanic) {
+                && alreadyVolcanic
+                && alreadyRift) {
             return;
         }
 
@@ -163,6 +180,24 @@ public abstract class NoiseRouterMixin {
                 instanceof VolcanicDensityFunction)) {
             finalDensity =
                     new VolcanicDensityFunction(
+                            finalDensity
+                    );
+        }
+
+        if (riftEnabled
+                && !(initialDensity
+                instanceof GreatRiftDensityFunction)) {
+            initialDensity =
+                    new GreatRiftDensityFunction(
+                            initialDensity
+                    );
+        }
+
+        if (riftEnabled
+                && !(finalDensity
+                instanceof GreatRiftDensityFunction)) {
+            finalDensity =
+                    new GreatRiftDensityFunction(
                             finalDensity
                     );
         }
@@ -267,9 +302,10 @@ public abstract class NoiseRouterMixin {
 
 
             WayAround.LOGGER.info(
-                    "WayAround instalou terrain wrappers: Antarctica={} Volcanic={}",
+                    "WayAround instalou terrain wrappers: Antarctica={} Volcanic={} GreatRift={}",
                     antarcticaEnabled,
-                    volcanicEnabled
+                    volcanicEnabled,
+                    riftEnabled
             );
         }
     }
