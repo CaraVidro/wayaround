@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    " L ",
+    " L "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "L": {
+      "item": "minecraft:spruce_log"
+    }
+  },
+  "result": {
+    "id": "wayaround:utility_pole",
+    "count": 2
+  }
+}

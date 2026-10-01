@@ -32,6 +32,34 @@ public final class TitleScreenUpdateLogEvents {
                         .getWindow()
                         .getGuiScaledWidth();
 
+        int height =
+                Minecraft.getInstance()
+                        .getWindow()
+                        .getGuiScaledHeight();
+
+        int buttonWidth =
+                Math.min(
+                        110,
+                        Math.max(
+                                84,
+                                width - 16
+                        )
+                );
+
+        /*
+         * Keep the development log out of the vanilla center stack.
+         * The anchor follows the bottom edge, so minimizing the window does
+         * not push it back over Play / Multiplayer / Options.
+         */
+        int buttonX =
+                8;
+
+        int buttonY =
+                Math.max(
+                        8,
+                        height - 52
+                );
+
         event.addListener(
                 Button.builder(
                                 Component.translatable(
@@ -45,9 +73,9 @@ public final class TitleScreenUpdateLogEvents {
                                         )
                         )
                         .bounds(
-                                width / 2 - 55,
-                                128,
-                                110,
+                                buttonX,
+                                buttonY,
+                                buttonWidth,
                                 18
                         )
                         .build()

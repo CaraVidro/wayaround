@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "wayaround:block/electric_motor",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y": {
+      "model": "wayaround:block/electric_motor"
+    },
+    "axis=z": {
+      "model": "wayaround:block/electric_motor",
+      "x": 90
+    }
+  }
+}

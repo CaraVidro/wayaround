@@ -1,0 +1,23 @@
+{
+  "parent": "wayaround:vista/southern_ocean",
+  "display": {
+    "icon": {
+      "id": "minecraft:compass"
+    },
+    "title": {
+      "translate": "advancements.wayaround.vista.antarctica_hint.title"
+    },
+    "description": {
+      "translate": "advancements.wayaround.vista.antarctica_hint.description"
+    },
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": true
+  },
+  "criteria": {
+    "hint": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

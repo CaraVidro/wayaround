@@ -43,6 +43,71 @@ public final class WayAroundAdvancements {
                 );
     }
 
+    public static void revoke(
+            ServerPlayer player,
+            String path,
+            String criterion
+    ) {
+        AdvancementHolder advancement =
+                player.server
+                        .getAdvancements()
+                        .get(
+                                ResourceLocation.fromNamespaceAndPath(
+                                        WayAround.MODID,
+                                        path
+                                )
+                        );
+
+        if (advancement == null) {
+            return;
+        }
+
+        player.getAdvancements()
+                .revoke(
+                        advancement,
+                        criterion
+                );
+    }
+
+    public static boolean completed(
+            ServerPlayer player,
+            String path
+    ) {
+        AdvancementHolder advancement =
+                player.server
+                        .getAdvancements()
+                        .get(
+                                ResourceLocation.fromNamespaceAndPath(
+                                        WayAround.MODID,
+                                        path
+                                )
+                        );
+
+        return advancement != null
+                && player.getAdvancements()
+                        .getOrStartProgress(
+                                advancement
+                        )
+                        .isDone();
+    }
+
+    private static void hintUnlessCompleted(
+            ServerPlayer player,
+            String target,
+            String hint
+    ) {
+        if (!completed(
+                player,
+                target
+        )) {
+            award(
+                    player,
+                    hint,
+                    "hint"
+            );
+        }
+    }
+
     public static void jujutsuAwakened(
             ServerPlayer player
     ) {
@@ -156,8 +221,18 @@ public final class WayAroundAdvancements {
     public static void vistaAntarctica(
             ServerPlayer player
     ) {
-        vistaRoot(
+        /*
+         * Preserve the visual route even for teleport/command entry:
+         * Southern Ocean is the direct parent of Antarctica.
+         */
+        vistaSouthernOcean(
                 player
+        );
+
+        revoke(
+                player,
+                "vista/antarctica_hint",
+                "hint"
         );
         award(
                 player,
@@ -203,6 +278,11 @@ public final class WayAroundAdvancements {
                 "vista/sunfish",
                 "seen"
         );
+        hintUnlessCompleted(
+                player,
+                "vista/sunfish_basking",
+                "vista/sunfish_basking_hint"
+        );
     }
 
     public static void vistaSunfishBasking(
@@ -210,6 +290,11 @@ public final class WayAroundAdvancements {
     ) {
         vistaRoot(
                 player
+        );
+        revoke(
+                player,
+                "vista/sunfish_basking_hint",
+                "hint"
         );
         award(
                 player,
@@ -223,6 +308,11 @@ public final class WayAroundAdvancements {
     ) {
         vistaRoot(
                 player
+        );
+        revoke(
+                player,
+                "vista/puffer_carrot_hint",
+                "hint"
         );
         award(
                 player,
@@ -241,6 +331,24 @@ public final class WayAroundAdvancements {
                 player,
                 "vista/southern_ocean",
                 "seen"
+        );
+        hintUnlessCompleted(
+                player,
+                "vista/antarctica",
+                "vista/antarctica_hint"
+        );
+    }
+
+    public static void vistaPufferHint(
+            ServerPlayer player
+    ) {
+        vistaRoot(
+                player
+        );
+        hintUnlessCompleted(
+                player,
+                "vista/puffer_carrot",
+                "vista/puffer_carrot_hint"
         );
     }
 

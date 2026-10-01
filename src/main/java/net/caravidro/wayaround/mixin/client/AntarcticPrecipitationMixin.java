@@ -1,7 +1,7 @@
 package net.caravidro.wayaround.mixin.client;
 
+import net.caravidro.wayaround.client.AntarcticClientLighting;
 import net.caravidro.wayaround.client.ClientBlizzardState;
-import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
@@ -18,15 +18,11 @@ public abstract class AntarcticPrecipitationMixin {
         Minecraft minecraft = Minecraft.getInstance();
         if ((Object) this != minecraft.level || minecraft.level == null || minecraft.getCameraEntity() == null
                 || !minecraft.level.dimension().equals(Level.OVERWORLD)) return;
-        if (minecraft.level.getBiome(minecraft.getCameraEntity().blockPosition()).is(WayAroundBiomes.ANTARCTIC_ICE_SHEET)) {
-            callback.setReturnValue(
-                    Math.max(
-                            callback.getReturnValue(),
-                            0.35F + 0.65F * ClientBlizzardState.getIntensity()
-                    )
-            );
-            return;
-        }
+        float polar =
+                AntarcticClientLighting.polarInfluence(
+                        minecraft.level,
+                        minecraft.getCameraEntity().blockPosition()
+                );
 
         LocalWeatherField.Sample weather =
                 LocalWeatherField.sample(
@@ -36,9 +32,31 @@ public abstract class AntarcticPrecipitationMixin {
                 );
 
         /*
-         * Normal Overworld rain is now spatial: two players far apart can
-         * stand under different cloud cells and see different weather.
+         * Normal Overworld rain is spatial. As the player moves south, the
+         * local rain field is gradually replaced by persistent polar
+         * precipitation instead of snapping at the Antarctic biome border.
          */
-        callback.setReturnValue(weather.rain());
+        float ordinary =
+                weather.rain()
+                        * (
+                        1.0F
+                                - polar * 0.65F
+                );
+
+        float polarSnow =
+                polar
+                        * (
+                        0.10F
+                                + polar * 0.25F
+                                + ClientBlizzardState.getIntensity()
+                                        * 0.65F
+                );
+
+        callback.setReturnValue(
+                Math.max(
+                        ordinary,
+                        polarSnow
+                )
+        );
     }
 }

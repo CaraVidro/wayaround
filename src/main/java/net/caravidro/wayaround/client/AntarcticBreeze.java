@@ -16,8 +16,16 @@ public final class AntarcticBreeze {
     private static int waitTicks = 200;
     private static BreezeSound sound;
 
+    private static float polar(Minecraft mc) {
+        return AntarcticClientLighting.polarInfluence(
+                mc
+        );
+    }
+
     private static boolean exposed(Minecraft mc) {
-        return AntarcticClientLighting.isAntarctic(mc)
+        return mc.level != null
+                && mc.player != null
+                && polar(mc) > 0.08F
                 && mc.level.canSeeSky(mc.player.blockPosition())
                 && ClientBlizzardState.getIntensity() < 0.02F
                 && ClientBlizzardState.getTargetIntensity() < 0.02F;
@@ -37,7 +45,25 @@ public final class AntarcticBreeze {
         if (--waitTicks <= 0) {
             sound = new BreezeSound();
             mc.getSoundManager().play(sound);
-            waitTicks = 300 + mc.level.random.nextInt(601);
+            float influence =
+                    polar(
+                            mc
+                    );
+
+            int base =
+                    Math.max(
+                            180,
+                            Math.round(
+                                    520
+                                            - influence * 260
+                            )
+                    );
+
+            waitTicks =
+                    base
+                            + mc.level.random.nextInt(
+                            420
+                    );
         }
     }
 
@@ -59,7 +85,19 @@ public final class AntarcticBreeze {
                 stop();
                 return;
             }
-            volume = 0.18F * (float) Math.sin(Math.PI * age / 160.0);
+            float influence =
+                    polar(
+                            Minecraft.getInstance()
+                    );
+
+            volume =
+                    (
+                            0.05F
+                                    + influence * 0.15F
+                    )
+                            * (float) Math.sin(
+                            Math.PI * age / 160.0
+                    );
         }
     }
 }

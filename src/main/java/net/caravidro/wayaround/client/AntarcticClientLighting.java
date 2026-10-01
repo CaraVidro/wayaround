@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.client;
 
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
+import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -30,14 +31,9 @@ public final class AntarcticClientLighting {
             return false;
         }
 
-        return minecraft.level
-                .getBiome(
-                        minecraft.player.blockPosition()
-                )
-                .is(
-                        WayAroundBiomes
-                                .ANTARCTIC_ICE_SHEET
-                );
+        return polarInfluence(
+                minecraft
+        ) >= 0.92F;
     }
 
     public static boolean isAntarctic(
@@ -45,13 +41,57 @@ public final class AntarcticClientLighting {
             BlockPos pos
     ) {
 
-        return level
-                .getBiome(pos)
-                .is(
-                        WayAroundBiomes
-                                .ANTARCTIC_ICE_SHEET
-                );
+        return polarInfluence(
+                level,
+                pos
+        ) >= 0.92F;
     }
+
+    public static float polarInfluence(
+            Minecraft minecraft
+    ) {
+        if (minecraft.level == null
+                || minecraft.player == null) {
+            return 0.0F;
+        }
+
+        return polarInfluence(
+                minecraft.level,
+                minecraft.player.blockPosition()
+        );
+    }
+
+    public static float polarInfluence(
+            ClientLevel level,
+            BlockPos pos
+    ) {
+        double field =
+                AntarcticField.polarInfluence(
+                        pos.getX(),
+                        pos.getZ()
+                );
+
+        if (level.getBiome(
+                pos
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        )) {
+            field =
+                    Math.max(
+                            field,
+                            1.0
+                    );
+        }
+
+        return (float) Math.max(
+                0.0,
+                Math.min(
+                        1.0,
+                        field
+                )
+        );
+    }
+
 
     /*
      * =========================================================

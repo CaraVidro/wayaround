@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.industrial.power;
 
 import com.mojang.serialization.MapCodec;
+import net.caravidro.wayaround.industrial.grid.FuseBoxBlock;
+import net.caravidro.wayaround.industrial.grid.TransformerBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -47,8 +49,19 @@ public final class EnergyCableBlock extends PipeBlock {
     private static boolean connects(LevelAccessor access, BlockPos pos, Direction side) {
         if (!access.hasChunkAt(pos)) return false;
         Block block = access.getBlockState(pos).getBlock();
-        if (block instanceof EnergyCableBlock || block instanceof SolarPanelBlock || block instanceof SteamEngineBlock) return true;
-        return access instanceof Level level && level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, side) != null;
+        if (block instanceof EnergyCableBlock
+                || block instanceof SolarPanelBlock
+                || block instanceof TransformerBlock
+                || block instanceof FuseBoxBlock) {
+            return true;
+        }
+
+        return access instanceof Level level
+                && level.getCapability(
+                Capabilities.EnergyStorage.BLOCK,
+                pos,
+                side
+        ) != null;
     }
 
     @Override

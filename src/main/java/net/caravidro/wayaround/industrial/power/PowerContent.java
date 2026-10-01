@@ -3,11 +3,19 @@ package net.caravidro.wayaround.industrial.power;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalCapabilities;
+import net.caravidro.wayaround.industrial.grid.ElectricMotorBlock;
+import net.caravidro.wayaround.industrial.grid.ElectricMotorBlockEntity;
+import net.caravidro.wayaround.industrial.grid.FuseBoxBlock;
+import net.caravidro.wayaround.industrial.grid.FuseBoxBlockEntity;
+import net.caravidro.wayaround.industrial.grid.HighVoltageCableBlock;
+import net.caravidro.wayaround.industrial.grid.TransformerBlock;
+import net.caravidro.wayaround.industrial.grid.TransformerBlockEntity;
 import net.caravidro.wayaround.industrial.steam.SteamBoilerBlock;
 import net.caravidro.wayaround.industrial.steam.SteamBoilerBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -36,6 +44,96 @@ public final class PowerContent {
         () -> new BlockItem(SOLAR_PANEL.get(), new Item.Properties()));
     public static final DeferredItem<BlockItem> ENERGY_CABLE_ITEM = ITEMS.register("energy_cable",
         () -> new BlockItem(ENERGY_CABLE.get(), new Item.Properties()));
+
+    public static final DeferredBlock<HighVoltageCableBlock> HIGH_VOLTAGE_LINE =
+        BLOCKS.register("high_voltage_line",
+            () -> new HighVoltageCableBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_GRAY)
+                    .strength(1.2F, 3.0F)
+                    .sound(SoundType.COPPER)
+                    .noOcclusion()
+            ));
+
+    public static final DeferredItem<BlockItem> HIGH_VOLTAGE_LINE_ITEM =
+        ITEMS.register("high_voltage_line",
+            () -> new BlockItem(HIGH_VOLTAGE_LINE.get(), new Item.Properties()));
+
+    public static final DeferredBlock<Block> UTILITY_POLE =
+        BLOCKS.register("utility_pole",
+            () -> new Block(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.WOOD)
+                    .strength(2.5F, 4.0F)
+                    .sound(SoundType.WOOD)
+            ));
+
+    public static final DeferredItem<BlockItem> UTILITY_POLE_ITEM =
+        ITEMS.register("utility_pole",
+            () -> new BlockItem(UTILITY_POLE.get(), new Item.Properties()));
+
+    public static final DeferredBlock<TransformerBlock> TRANSFORMER =
+        BLOCKS.register("transformer",
+            () -> new TransformerBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.6F, 7.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+            ));
+
+    public static final DeferredItem<BlockItem> TRANSFORMER_ITEM =
+        ITEMS.register("transformer",
+            () -> new BlockItem(TRANSFORMER.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TransformerBlockEntity>> TRANSFORMER_ENTITY =
+        BLOCK_ENTITIES.register("transformer",
+            () -> BlockEntityType.Builder.of(
+                TransformerBlockEntity::new,
+                TRANSFORMER.get()
+            ).build(null));
+
+    public static final DeferredBlock<FuseBoxBlock> FUSE_BOX =
+        BLOCKS.register("fuse_box",
+            () -> new FuseBoxBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(2.6F, 5.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+            ));
+
+    public static final DeferredItem<BlockItem> FUSE_BOX_ITEM =
+        ITEMS.register("fuse_box",
+            () -> new BlockItem(FUSE_BOX.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<FuseBoxBlockEntity>> FUSE_BOX_ENTITY =
+        BLOCK_ENTITIES.register("fuse_box",
+            () -> BlockEntityType.Builder.of(
+                FuseBoxBlockEntity::new,
+                FUSE_BOX.get()
+            ).build(null));
+
+    public static final DeferredBlock<ElectricMotorBlock> ELECTRIC_MOTOR =
+        BLOCKS.register("electric_motor",
+            () -> new ElectricMotorBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.0F, 6.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+            ));
+
+    public static final DeferredItem<BlockItem> ELECTRIC_MOTOR_ITEM =
+        ITEMS.register("electric_motor",
+            () -> new BlockItem(ELECTRIC_MOTOR.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ElectricMotorBlockEntity>> ELECTRIC_MOTOR_ENTITY =
+        BLOCK_ENTITIES.register("electric_motor",
+            () -> BlockEntityType.Builder.of(
+                ElectricMotorBlockEntity::new,
+                ELECTRIC_MOTOR.get()
+            ).build(null));
 
     public static final DeferredBlock<WaterWheelHubBlock> WATER_WHEEL_HUB = BLOCKS.register("water_wheel_hub",
         () -> new WaterWheelHubBlock(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)
@@ -299,6 +397,24 @@ public final class PowerContent {
             (generator, side) -> generator.energyOutput());
 
         event.registerBlockEntity(
+            Capabilities.EnergyStorage.BLOCK,
+            TRANSFORMER_ENTITY.get(),
+            (transformer, side) -> transformer.lowInput(side)
+        );
+
+        event.registerBlockEntity(
+            Capabilities.EnergyStorage.BLOCK,
+            FUSE_BOX_ENTITY.get(),
+            (fuse, side) -> fuse.input(side)
+        );
+
+        event.registerBlockEntity(
+            Capabilities.EnergyStorage.BLOCK,
+            ELECTRIC_MOTOR_ENTITY.get(),
+            (motor, side) -> motor.energyInput()
+        );
+
+        event.registerBlockEntity(
             MechanicalCapabilities.ROTATION,
             WATER_WHEEL_HUB_ENTITY.get(),
             (hub, side) -> hub.rotationOutput(side)
@@ -320,6 +436,12 @@ public final class PowerContent {
             MechanicalCapabilities.ROTATION,
             STEAM_ENGINE_ENTITY.get(),
             (engine, side) -> engine.rotationOutput(side)
+        );
+
+        event.registerBlockEntity(
+            MechanicalCapabilities.ROTATION,
+            ELECTRIC_MOTOR_ENTITY.get(),
+            (motor, side) -> motor.rotationOutput(side)
         );
     }
 }

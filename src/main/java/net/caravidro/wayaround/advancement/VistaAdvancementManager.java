@@ -8,6 +8,7 @@ import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.WhaleEntity;
 import net.caravidro.wayaround.ecology.ai.LivingFaunaManager;
 import net.minecraft.world.entity.animal.AbstractFish;
+import net.minecraft.world.entity.animal.Pufferfish;
 import net.caravidro.wayaround.ecology.SunfishEntity;
 import net.caravidro.wayaround.ecology.WhaleCarcassEntity;
 import net.caravidro.wayaround.oldfriend.HerobrineEntity;
@@ -135,6 +136,19 @@ public final class VistaAdvancementManager {
                                     )
                     )) {
                 WayAroundAdvancements.vistaWildfireSmoke(
+                        player
+                );
+            }
+
+            if (seenNearby(
+                    level,
+                    player,
+                    Pufferfish.class,
+                    14.0,
+                    0.62,
+                    puffer -> true
+            )) {
+                WayAroundAdvancements.vistaPufferHint(
                         player
                 );
             }

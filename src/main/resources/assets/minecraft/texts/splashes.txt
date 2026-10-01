@@ -1,116 +1,147 @@
-Cuidado com o seu velho amigo. §8§o- Civil Anônimo
-A roda lembra de quem a montou torta.
-Se ela parou de girar, escute antes de tocar.
-Uma manivela é um motor se você estiver desesperado o bastante.
-Não existe excesso de shafts. Existe falta de planejamento.
-Quatro linhas seguram melhor que uma. Normalmente.
-A serraria aceita troncos. Dedos não contam.
-Dez tábuas por tronco. Não pergunte sobre a matemática.
-A água parada não trabalha de graça. §3§o- Moleiro
-A roda d'água também pega fogo. Descobrimos empiricamente.
-Não apague a roda entrando nela. §8§o- Civil Anônimo
-A fumaça no horizonte não é uma nuvem.
-Se a floresta virou uma linha preta no céu, talvez seja tarde.
-O vento sempre escolhe para onde a fumaça vai antes de você.
-Você consegue ver o incêndio antes de ouvir o incêndio.
-Algumas fogueiras crescem. Algumas florestas ajudam.
-Quando dois fogos se encontram, nenhum dos dois pede licença.
-Não confie numa floresta silenciosa com fumaça acima dela.
-O norte continua ficando mais frio.
-Se o vento parar de repente, olhe para o chapéu.
-A cartola não está torta. O mundo que inclinou.
-Aquele relógio marca a hora. No Nether, marca outra coisa.
-Segure R antes que o vento escolha por você.
-Não persiga sua cartola durante uma tempestade.
-O bolso só tem espaço para uma péssima decisão.
-A calça lembra o que você colocou nela. §6§o- Alfaiate
-Formal não significa seguro. §8§o- Civil Anônimo
-A máscara de gás é inútil. Pelo menos combina.
-A caixa de papelão tem excelente aerodinâmica emocional.
-O olho não está olhando para a câmera. Está olhando para você.
-Não encare o Olho Observador por muito tempo. Ele ganha.
-Ele piscou? §5§o- Testemunha Não Confirmada
-Você colocou uma caixa na cabeça por escolha própria.
-Alguns acessórios são cosméticos. Alguns têm opiniões.
-A Workshop não julga seu sombrero. Eu julgo.
-Mais lã não resolve tudo. Resolve o sombrero.
-Uma cartola azul enorme ainda é uma cartola. Tecnicamente.
-A técnica imaginária não precisa combinar com a roupa.
-Azul não gosta de paredes. §9§o- Operador Desconhecido
-Vermelho gosta ainda menos. §c§o- Operador Desconhecido
-Roxo é uma opinião arquitetônica.
-Não fique entre Azul e Vermelho. §8§o- Civil Anônimo
-Se a música ficou mais alta, corra. §5§o- Sobrevivente
-A infinidade parece vazia até alguma coisa parar nela.
-Projéteis também aprendem a ter paciência.
-A roda aprende. Continue batendo nela e descubra quanto.
-Setenta e cinco por cento ainda dói. §c§o- Lutador Anônimo
-Nem todo Spectrum quer ser descoberto cedo.
-Algumas habilidades preferem ser chamadas pelo nome.
-Eu ouvi você dizer Azul. Você quis dizer Azul?
-Para precisão, use o chat. Para drama, use sua voz.
-O microfone é opcional. As consequências não.
-Expansão de domínio é uma frase muito grande para dizer correndo.
-Um domínio ainda é uma sala. Só que pior.
-O tribunal lembra mais do que você gostaria.
-Mentir é permitido. Convencer é outra coisa.
-O senso de justiça não tem botão de desfazer.
-Não alimente estranhos com dedos misteriosos.
-Mais um dedo. §c§o- Receptáculo
-Vinte não é só um número. §c§o- Arquivista
-O velho amigo ainda gira. §6§o- Civil Anônimo
-Não pergunte à roda quantas vezes ela já se adaptou.
-Seu shadow chegou primeiro. §8§o- Civil Anônimo
-A escuridão nem sempre está vazia. §8§o- Vigia Noturno
-Tem coisas atrás da render distance. §8§o- Cartógrafo
-O oceano se move quando você não está olhando.
-A água nunca está completamente parada. §3§o- Moleiro
-Puxe a linha devagar. O peixe também tem opinião.
-Se o peixe for do tamanho de você, a pesca mudou de categoria.
-O sunfish não pediu para estar aqui. §e§o- Biólogo
-A neve lembra passos. §f§o- Rastreador
-Algumas pegadas permanecem até o chão desaparecer.
-O Ártico não liga para sua armadura bonita.
-O vento na Antártica não precisa de apresentação.
-Se você consegue ouvir a tempestade, ela já consegue te encontrar.
-A nuvem não está seguindo você. Provavelmente.
-Algumas nuvens são maiores por motivos pessoais.
-O céu tem peso aqui. §7§o- Observador
-Se a capa se mexeu, talvez você também devesse.
-Tempestades são ferramentas para o objeto certo.
-Se está apontando para você, confira seu inventário.
-Alguém deixou uma cratera aqui. §8§o- Cartógrafo
-Guerra sem motivo ainda consome munição. §c§o- Intendente
-A torreta é para debug. Isso não torna a bala menos real.
-Você sempre pode construir outra gearbox.
-Você nem sempre pode construir outra mão.
-O eixo está vibrando. Isso é uma informação, não uma sugestão.
-Pregos de madeira eram uma ideia. §6§o- Carpinteiro
-Qualidade de montagem também é uma estatística.
-Se parece improvisado e ainda gira, é protótipo.
-Se parece improvisado e pegou fogo, é versão anterior.
-V0 pode ir para o funeral. §8§o- Civil Anônimo
-Bem-vindo à V1. §a§o- Oficina Way Around
-O caminho mais seguro raramente é o Way Around.
-Há provavelmente um caminho mais seguro ao redor.
-A máquina ouviu isso. §6§o- Operador
-A máquina definitivamente não deveria ter ouvido isso.
-Não toque na parte móvel para descobrir se ela está móvel.
-Seu primeiro motor pode ser seu braço.
-Todo sistema complexo começou com alguém girando uma manivela.
-Se a fumaça está indo para sua casa, o vento já decidiu.
-O incêndio não precisa renderizar para continuar chegando.
-Você viu a fumaça. Esse era o aviso. §7§o- Vigia da Torre
-Não confunda fumaça voxel com previsão do tempo.
-O fogo pequeno quer espaço. O grande já tomou.
-A floresta era maior ontem. §2§o- Cartógrafo
-A chuva ajuda. Não negocia. §9§o- Bombeiro
-O som de madeira quebrando ao longe é uma coordenada.
-O mapa pode ter o norte errado. §8§o- Civil Anônimo
-Ir para o norte continua sendo uma opção terrível.
-Fique parado. Talvez ele note. §5§o- Observador
-Alguma coisa nas nuvens está se movendo.
-Um receptáculo quieto não é um receptáculo vazio.
-Algumas armaduras acordam depois do pôr do sol.
-Nada aqui foi testado perto o bastante.
-Way Around: porque reto seria fácil demais.
+"Cuidado com o seu velho amigo." §8§o- Civil Anônimo
+"Não olhe nas árvores. Ele talvez esteja lá." §8§o- Convidado Anônimo
+"Eu olhei nas árvores." §2§o- Lenhador
+"E?" §8§o- Convidado Anônimo
+"Agora eu não gosto mais de árvores." §2§o- Lenhador
+"A roda lembra de quem a montou torta." §6§o- Engenheiro
+"Se ela parou de girar, escute antes de tocar." §7§o- Operador
+"Uma manivela é um motor se você estiver desesperado o bastante." §6§o- Mecânico
+"Não existe excesso de shafts. Existe falta de planejamento." §8§o- Engenheiro
+"Quatro linhas seguram melhor que uma. Normalmente." §7§o- Montador
+"A serraria aceita troncos. Dedos não contam." §6§o- Carpinteiro
+"Dez tábuas por tronco. Não pergunte sobre a matemática." §8§o- Contador da Serraria
+"A água parada não trabalha de graça." §3§o- Moleiro
+"A roda d'água também pega fogo. Descobrimos empiricamente." §6§o- Moleiro
+"Não apague a roda entrando nela." §8§o- Civil Anônimo
+"A fumaça no horizonte não é uma nuvem." §7§o- Vigia da Torre
+"Se a floresta virou uma linha preta no céu, talvez seja tarde." §2§o- Cartógrafo
+"O vento sempre escolhe para onde a fumaça vai antes de você." §7§o- Bombeiro
+"Você consegue ver o incêndio antes de ouvir o incêndio." §7§o- Vigia da Torre
+"Algumas fogueiras crescem. Algumas florestas ajudam." §2§o- Bombeiro
+"Quando dois fogos se encontram, nenhum dos dois pede licença." §c§o- Guarda-Florestal
+"Não confie numa floresta silenciosa com fumaça acima dela." §8§o- Civil Anônimo
+"O norte continua ficando mais frio." §f§o- Cartógrafo
+"Se o vento parar de repente, olhe para o chapéu." §6§o- Chapeleiro
+"A cartola não está torta. O mundo que inclinou." §6§o- Cavalheiro
+"Aquele relógio marca a hora. No Nether, marca outra coisa." §6§o- Relojoeiro
+"Segure R antes que o vento escolha por você." §7§o- Chapeleiro
+"Não persiga sua cartola durante uma tempestade." §8§o- Civil Anônimo
+"O bolso só tem espaço para uma péssima decisão." §6§o- Alfaiate
+"A calça lembra o que você colocou nela." §6§o- Alfaiate
+"Formal não significa seguro." §8§o- Civil Anônimo
+"A máscara de gás é inútil. Pelo menos combina." §7§o- Alfaiate
+"A caixa de papelão tem excelente aerodinâmica emocional." §8§o- Civil Anônimo
+"O olho não está olhando para a câmera. Está olhando para você." §5§o- Fotógrafo
+"Não encare o Olho Observador por muito tempo. Ele ganha." §5§o- Testemunha Não Confirmada
+"Ele piscou?" §5§o- Testemunha Não Confirmada
+"Você colocou uma caixa na cabeça por escolha própria." §8§o- Alfaiate
+"Alguns acessórios são cosméticos. Alguns têm opiniões." §6§o- Alfaiate
+"A Workshop não julga seu sombrero. Eu julgo." §6§o- Operador
+"Mais lã não resolve tudo. Resolve o sombrero." §6§o- Alfaiate
+"Uma cartola azul enorme ainda é uma cartola. Tecnicamente." §9§o- Chapeleiro
+"A técnica imaginária não precisa combinar com a roupa." §5§o- Feiticeiro
+"Azul não gosta de paredes." §9§o- Operador Desconhecido
+"Vermelho gosta ainda menos." §c§o- Operador Desconhecido
+"Roxo é uma opinião arquitetônica." §5§o- Engenheiro de Obras
+"Não fique entre Azul e Vermelho." §8§o- Civil Anônimo
+"Se a música ficou mais alta, corra." §5§o- Sobrevivente
+"A infinidade parece vazia até alguma coisa parar nela." §9§o- Feiticeiro
+"Projéteis também aprendem a ter paciência." §7§o- Armeiro
+"A roda aprende. Continue batendo nela e descubra quanto." §6§o- Lutador Anônimo
+"Setenta e cinco por cento ainda dói." §c§o- Lutador Anônimo
+"Nem todo Spectrum quer ser descoberto cedo." §5§o- Arquivista
+"Algumas habilidades preferem ser chamadas pelo nome." §5§o- Arquivista
+"Eu ouvi você dizer Azul. Você quis dizer Azul?" §9§o- Tobias
+"Para precisão, use o chat. Para drama, use sua voz." §b§o- Tobias
+"O microfone é opcional. As consequências não." §b§o- Tobias
+"Expansão de domínio é uma frase muito grande para dizer correndo." §8§o- Civil Anônimo
+"Um domínio ainda é uma sala. Só que pior." §7§o- Arquiteto
+"O tribunal lembra mais do que você gostaria." §6§o- Advogado
+"Mentir é permitido. Convencer é outra coisa." §6§o- Advogado
+"O senso de justiça não tem botão de desfazer." §8§o- Réu
+"Não alimente estranhos com dedos misteriosos." §8§o- Médico
+"Mais um dedo." §c§o- Receptáculo
+"Vinte não é só um número." §c§o- Arquivista
+"Tokušna é um monstro." §6§o- Feiticeiro Mestre
+"Você fala isso como se eu fosse me ofender." §c§o- Tokušna
+"Ele não é seu amigo." §6§o- Feiticeiro Mestre
+"Mas ele conhece meu nome." §8§o- Receptáculo
+"Isso é pior." §6§o- Feiticeiro Mestre
+"Porta." §c§o- Tokušna
+"Não diga isso como se fosse uma palavra normal." §8§o- Receptáculo
+"O velho amigo ainda gira." §6§o- Civil Anônimo
+"Não pergunte à roda quantas vezes ela já se adaptou." §6§o- Lutador Anônimo
+"Seu shadow chegou primeiro." §8§o- Civil Anônimo
+"A escuridão nem sempre está vazia." §8§o- Vigia Noturno
+"Tem coisas atrás da render distance." §8§o- Cartógrafo
+"O oceano se move quando você não está olhando." §3§o- Marinheiro
+"A água nunca está completamente parada." §3§o- Moleiro
+"Puxe a linha devagar. O peixe também tem opinião." §3§o- Pescador
+"Se o peixe for do tamanho de você, a pesca mudou de categoria." §3§o- Pescador
+"O sunfish não pediu para estar aqui." §e§o- Biólogo
+"Ele está olhando pro sol de novo." §e§o- Biólogo
+"Deixa ele." §8§o- Pescador
+"Você deu uma cenoura pro baiacu?" §e§o- Biólogo
+"Ele parecia com fome." §8§o- Pescador
+"Isso não é ciência." §e§o- Biólogo
+"A neve lembra passos." §f§o- Rastreador
+"Algumas pegadas permanecem até o chão desaparecer." §f§o- Rastreador
+"O oceano gelado continua ao sul." §f§o- Cartógrafo
+"Quanto mais branco o horizonte, menos eu gosto do mapa." §8§o- Marinheiro
+"O vento na Antártica não precisa de apresentação." §f§o- Explorador Polar
+"Se você consegue ouvir a tempestade, ela já consegue te encontrar." §f§o- Explorador Polar
+"A nuvem não está seguindo você. Provavelmente." §7§o- Meteorologista
+"Algumas nuvens são maiores por motivos pessoais." §7§o- Meteorologista
+"O céu tem peso aqui." §7§o- Observador
+"Se a capa se mexeu, talvez você também devesse." §7§o- Observador
+"Tempestades são ferramentas para o objeto certo." §7§o- Engenheiro
+"Se está apontando para você, confira seu inventário." §8§o- Civil Anônimo
+"Alguém deixou uma cratera aqui." §8§o- Cartógrafo
+"Guerra sem motivo ainda consome munição." §c§o- Intendente
+"A torreta é para debug. Isso não torna a bala menos real." §c§o- Armeiro
+"Você sempre pode construir outra gearbox." §6§o- Mecânico
+"Você nem sempre pode construir outra mão." §8§o- Médico
+"O eixo está vibrando. Isso é uma informação, não uma sugestão." §6§o- Mecânico
+"Pregos de madeira eram uma ideia." §6§o- Carpinteiro
+"Qualidade de montagem também é uma estatística." §6§o- Engenheiro
+"Se parece improvisado e ainda gira, é protótipo." §6§o- Engenheiro
+"Se parece improvisado e pegou fogo, é versão anterior." §8§o- Operador
+"V0 pode ir para o funeral." §8§o- Civil Anônimo
+"Bem-vindo à V1." §a§o- Oficina Way Around
+"O caminho mais seguro raramente é o Way Around." §7§o- Engenheiro
+"Há provavelmente um caminho mais seguro ao redor." §8§o- Civil Anônimo
+"A máquina ouviu isso." §6§o- Operador
+"A máquina definitivamente não deveria ter ouvido isso." §8§o- Civil Anônimo
+"Não toque na parte móvel para descobrir se ela está móvel." §6§o- Mecânico
+"Seu primeiro motor pode ser seu braço." §6§o- Mecânico
+"Todo sistema complexo começou com alguém girando uma manivela." §6§o- Historiador Industrial
+"Se a fumaça está indo para sua casa, o vento já decidiu." §7§o- Bombeiro
+"O incêndio não precisa renderizar para continuar chegando." §7§o- Vigia da Torre
+"Você viu a fumaça. Esse era o aviso." §7§o- Vigia da Torre
+"Não confunda fumaça voxel com previsão do tempo." §7§o- Meteorologista
+"O fogo pequeno quer espaço. O grande já tomou." §c§o- Bombeiro
+"A floresta era maior ontem." §2§o- Cartógrafo
+"A chuva ajuda. Não negocia." §9§o- Bombeiro
+"O som de madeira quebrando ao longe é uma coordenada." §2§o- Lenhador
+"O mapa pode ter o norte errado." §8§o- Civil Anônimo
+"Ir para o norte continua sendo uma opção terrível." §8§o- Cartógrafo
+"Fique parado. Talvez ele note." §5§o- Observador
+"Alguma coisa nas nuvens está se movendo." §7§o- Meteorologista
+"Um receptáculo quieto não é um receptáculo vazio." §c§o- Feiticeiro Mestre
+"Algumas armaduras acordam depois do pôr do sol." §8§o- Ferreiro
+"Nada aqui foi testado perto o bastante." §8§o- Engenheiro
+"Tem tensão nessa linha?" §6§o- Eletricista
+"Tem." §e§o- Aprendiz
+"Quanto?" §6§o- Eletricista
+"O suficiente." §e§o- Aprendiz
+"Desligou o quadro?" §6§o- Eletricista
+"Eu achei que você tinha desligado." §e§o- Aprendiz
+"É por isso que existe fusível." §6§o- Eletricista
+"É por isso que existe eletricista." §e§o- Aprendiz
+"Alta tensão não significa energia grátis." §6§o- Engenheiro de Rede
+"O transformador está zumbindo." §6§o- Eletricista
+"Então ainda está fazendo o trabalho dele." §7§o- Operador
+"Por que o motor elétrico está girando a bomba que alimenta a caldeira?" §6§o- Engenheiro
+"Porque conseguimos." §8§o- Operador
+"Isso não responde a pergunta." §6§o- Engenheiro
+"Way Around: porque reto seria fácil demais." §a§o- Oficina Way Around

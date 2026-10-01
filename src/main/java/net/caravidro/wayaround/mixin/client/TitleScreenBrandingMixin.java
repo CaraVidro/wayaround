@@ -27,48 +27,120 @@ public abstract class TitleScreenBrandingMixin {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        int center =
+        int width =
                 minecraft.getWindow()
-                        .getGuiScaledWidth()
-                        / 2;
+                        .getGuiScaledWidth();
 
-        graphics.drawCenteredString(
-                minecraft.font,
+        int height =
+                minecraft.getWindow()
+                        .getGuiScaledHeight();
+
+        /*
+         * Keep the WayAround identity in the same lower UI band as the
+         * Update Log, but on the opposite side. The vanilla splash lives
+         * around the logo/top-right area, so this removes that collision.
+         */
+        Component brand =
                 Component.literal(
                         "WAYAROUND"
-                ),
-                center,
-                82,
-                0xFFB8B8B8
-        );
+                );
 
-        graphics.drawCenteredString(
-                minecraft.font,
+        Component release =
                 Component.literal(
                         WayAroundReleaseInfo.menuTitle()
-                ),
-                center,
-                94,
-                0xFF8C6E46
-        );
+                );
 
-        graphics.drawCenteredString(
-                minecraft.font,
+        Component version =
                 Component.literal(
                         WayAroundReleaseInfo.menuVersion()
-                ),
-                center,
-                106,
-                0xFF4B4B4B
+                );
+
+        Component preview =
+                WayAroundReleaseInfo.previewLine();
+
+        int railWidth =
+                Math.max(
+                        minecraft.font.width(
+                                brand
+                        ),
+                        Math.max(
+                                minecraft.font.width(
+                                        release
+                                ),
+                                Math.max(
+                                        minecraft.font.width(
+                                                version
+                                        ),
+                                        !WayAroundReleaseInfo.RELEASED_NEXT
+                                                ? minecraft.font.width(
+                                                preview
+                                        )
+                                                : 0
+                                )
+                        )
+                );
+
+        boolean narrow =
+                width
+                        < railWidth
+                                + 126;
+
+        int y =
+                Math.max(
+                        8,
+                        height
+                                - (
+                                narrow
+                                        ? 112
+                                        : 64
+                        )
+                );
+
+        int x =
+                Math.max(
+                        8,
+                        width - railWidth - 8
+                );
+
+        /*
+         * Branding belongs to the lower-right rail, never to the center
+         * menu stack or the splash-text region.
+         */
+        graphics.drawString(
+                minecraft.font,
+                brand,
+                x,
+                y,
+                0xFFB8B8B8,
+                false
+        );
+
+        graphics.drawString(
+                minecraft.font,
+                release,
+                x,
+                y + 12,
+                0xFF8C6E46,
+                false
+        );
+
+        graphics.drawString(
+                minecraft.font,
+                version,
+                x,
+                y + 24,
+                0xFF4B4B4B,
+                false
         );
 
         if (!WayAroundReleaseInfo.RELEASED_NEXT) {
-            graphics.drawCenteredString(
+            graphics.drawString(
                     minecraft.font,
-                    WayAroundReleaseInfo.previewLine(),
-                    center,
-                    117,
-                    0xFF74664F
+                    preview,
+                    x,
+                    y + 36,
+                    0xFF74664F,
+                    false
             );
         }
     }
