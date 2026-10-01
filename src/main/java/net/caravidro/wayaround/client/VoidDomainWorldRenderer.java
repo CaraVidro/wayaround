@@ -123,12 +123,83 @@ public final class VoidDomainWorldRenderer {
             Vector3f look,
             VoidDomainClientEffects.VisualDomain domain
     ) {
+        /*
+         * IMPORTANT:
+         *
+         * Tesselator owns one shared backing ByteBuffer. Starting an opaque
+         * BufferBuilder and then starting a second glow BufferBuilder before
+         * the first one is built can make both builders write into the same
+         * storage. The domain is one of the first effects large enough to turn
+         * that corruption into a hard client/GPU stall instead of a harmless
+         * visual glitch.
+         *
+         * Build + upload each pass completely before beginning the next pass.
+         */
+        long seed =
+                domain.owner()
+                        .getMostSignificantBits()
+                        ^ domain.owner()
+                        .getLeastSignificantBits();
+
+        double time =
+                minecraft.level == null
+                        ? 0.0
+                        : minecraft.level.getGameTime()
+                                * 0.0125;
+
         BufferBuilder opaque =
                 Tesselator.getInstance()
                         .begin(
                                 VertexFormat.Mode.TRIANGLES,
                                 DefaultVertexFormat.POSITION_COLOR
                         );
+
+        pose.pushPose();
+
+        pose.translate(
+                domain.center().x - camera.x,
+                domain.center().y - camera.y,
+                domain.center().z - camera.z
+        );
+
+        Matrix4f opaqueMatrix =
+                pose.last()
+                        .pose();
+
+        renderShell(
+                opaque,
+                opaqueMatrix,
+                domain,
+                camera,
+                look
+        );
+
+        renderStars(
+                opaque,
+                opaqueMatrix,
+                domain,
+                camera,
+                look,
+                seed
+        );
+
+        renderSingularityOpaque(
+                opaque,
+                opaqueMatrix
+        );
+
+        renderDarkDebris(
+                opaque,
+                opaqueMatrix,
+                seed,
+                time
+        );
+
+        pose.popPose();
+
+        drawOpaque(
+                opaque
+        );
 
         BufferBuilder glow =
                 Tesselator.getInstance()
@@ -145,71 +216,30 @@ public final class VoidDomainWorldRenderer {
                 domain.center().z - camera.z
         );
 
-        Matrix4f matrix =
+        Matrix4f glowMatrix =
                 pose.last()
                         .pose();
 
-        renderShell(
-                opaque,
-                matrix,
-                domain,
-                camera,
-                look
-        );
-
-        long seed =
-                domain.owner()
-                        .getMostSignificantBits()
-                        ^ domain.owner()
-                        .getLeastSignificantBits();
-
-        renderStars(
-                opaque,
-                matrix,
-                domain,
-                camera,
-                look,
-                seed
-        );
-
-        double time =
-                minecraft.level == null
-                        ? 0.0
-                        : minecraft.level.getGameTime()
-                                * 0.0125;
-
-        renderSingularity(
-                opaque,
+        renderSingularityGlow(
                 glow,
-                matrix
+                glowMatrix
         );
 
         renderAccretion(
                 glow,
-                matrix,
-                seed,
-                time
-        );
-
-        renderDarkDebris(
-                opaque,
-                matrix,
+                glowMatrix,
                 seed,
                 time
         );
 
         renderPaleFragments(
                 glow,
-                matrix,
+                glowMatrix,
                 seed,
                 time
         );
 
         pose.popPose();
-
-        drawOpaque(
-                opaque
-        );
 
         drawGlow(
                 glow
@@ -423,9 +453,8 @@ public final class VoidDomainWorldRenderer {
         }
     }
 
-    private static void renderSingularity(
+    private static void renderSingularityOpaque(
             BufferBuilder opaque,
-            BufferBuilder glow,
             Matrix4f matrix
     ) {
         /*
@@ -444,7 +473,12 @@ public final class VoidDomainWorldRenderer {
                 0,
                 255
         );
+    }
 
+    private static void renderSingularityGlow(
+            BufferBuilder glow,
+            Matrix4f matrix
+    ) {
         boxEdges(
                 glow,
                 matrix,
