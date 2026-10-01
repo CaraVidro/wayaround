@@ -35,7 +35,10 @@ public final class CircuitBoardData {
         CAPACITOR(2),
         DIODE(1),
         TRANSISTOR(3),
-        RELAY(4);
+        RELAY(4),
+        LED(1),
+        BUZZER(2),
+        DISTANCE_DETECTOR(3);
 
         private final int energyCost;
 
@@ -429,19 +432,29 @@ public final class CircuitBoardData {
         );
     }
 
-    public boolean hasSignalPath() {
-        Set<Integer> inputs =
+    public boolean connected(
+            ComponentType source,
+            ComponentType target
+    ) {
+        if (source == null
+                || target == null
+                || source == ComponentType.EMPTY
+                || target == ComponentType.EMPTY) {
+            return false;
+        }
+
+        Set<Integer> sources =
                 cellsOf(
-                        ComponentType.INPUT_TERMINAL
+                        source
                 );
 
-        Set<Integer> outputs =
+        Set<Integer> targets =
                 cellsOf(
-                        ComponentType.OUTPUT_TERMINAL
+                        target
                 );
 
-        if (inputs.isEmpty()
-                || outputs.isEmpty()) {
+        if (sources.isEmpty()
+                || targets.isEmpty()) {
             return false;
         }
 
@@ -451,12 +464,12 @@ public final class CircuitBoardData {
         ArrayDeque<Integer> pending =
                 new ArrayDeque<>();
 
-        for (int input : inputs) {
-            visited[input] =
+        for (int sourceCell : sources) {
+            visited[sourceCell] =
                     true;
 
             pending.addLast(
-                    input
+                    sourceCell
             );
         }
 
@@ -464,7 +477,7 @@ public final class CircuitBoardData {
             int current =
                     pending.removeFirst();
 
-            if (outputs.contains(
+            if (targets.contains(
                     current
             )) {
                 return true;
@@ -497,6 +510,13 @@ public final class CircuitBoardData {
         }
 
         return false;
+    }
+
+    public boolean hasSignalPath() {
+        return connected(
+                ComponentType.INPUT_TERMINAL,
+                ComponentType.OUTPUT_TERMINAL
+        );
     }
 
     public float complexity() {
