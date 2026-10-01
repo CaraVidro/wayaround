@@ -81,7 +81,7 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         angle = (angle + rpm * .3F) % 360;
         vibration = recipe == null ? 0 : Mth.clamp(load * (1-parts.condition(MachinePartSpec.Role.BEARING))
             + Math.abs(rpm)/100 * (1-parts.condition(MachinePartSpec.Role.DRIVE))
-            + (demand.torqueStarved() ? .32F : 0)
+            + (source != null && source.active() && demand.torqueStarved() ? .32F : 0)
             + demand.overspeed() * .18F,0,1);
         heat = Math.max(0,heat-.0015F) + (recipe != null && granted > 0
             ? .00035F * load * parts.driveCost() * (1 + Math.min(1.5F,demand.overspeed()))
