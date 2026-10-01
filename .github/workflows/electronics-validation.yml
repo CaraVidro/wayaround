@@ -26,6 +26,9 @@ on:
       - 'src/main/resources/assets/wayaround/models/item/relay.json'
       - 'src/main/resources/assets/wayaround/models/item/input_terminal.json'
       - 'src/main/resources/assets/wayaround/models/item/output_terminal.json'
+      - 'src/main/resources/assets/wayaround/models/item/led.json'
+      - 'src/main/resources/assets/wayaround/models/item/buzzer.json'
+      - 'src/main/resources/assets/wayaround/models/item/distance_detector.json'
       - 'src/main/resources/assets/wayaround/blockstates/circuit_controller.json'
       - 'src/main/resources/data/wayaround/recipe/circuit_*'
       - 'src/main/resources/data/wayaround/recipe/copper_trace.json'
@@ -34,6 +37,9 @@ on:
       - 'src/main/resources/data/wayaround/recipe/diode.json'
       - 'src/main/resources/data/wayaround/recipe/transistor.json'
       - 'src/main/resources/data/wayaround/recipe/relay.json'
+      - 'src/main/resources/data/wayaround/recipe/led.json'
+      - 'src/main/resources/data/wayaround/recipe/buzzer.json'
+      - 'src/main/resources/data/wayaround/recipe/distance_detector.json'
       - '.github/workflows/electronics-validation.yml'
 
 jobs:
@@ -97,7 +103,7 @@ jobs:
           electronics = re.compile(
               r'wayaround:(?:models/(?:block|item)/)?'
               r'(?:electronics_workbench|circuit_controller|circuit_board|copper_trace|resistor|capacitor|'
-              r'diode|transistor|relay|input_terminal|output_terminal)'
+              r'diode|transistor|relay|led|buzzer|distance_detector|input_terminal|output_terminal)'
           )
 
           errors = [
