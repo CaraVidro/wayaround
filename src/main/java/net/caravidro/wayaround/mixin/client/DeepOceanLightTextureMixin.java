@@ -57,7 +57,7 @@ public abstract class DeepOceanLightTextureMixin {
 
         float abyss =
                 net.minecraft.util.Mth.clamp(
-                        (float) ((depth - 18.0) / 72.0),
+                        (float) ((depth - 10.0) / 42.0),
                         0.0F,
                         1.0F
                 );
