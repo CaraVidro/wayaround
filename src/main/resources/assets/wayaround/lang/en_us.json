@@ -935,5 +935,6 @@
   "message.wayaround.electric_motor.turning": "turning under electrical power",
   "screen.wayaround.update_log.milestone16": "Milestone 1.6: The Grid / generation → transmission → protection → loads.",
   "screen.wayaround.update_log.grid": "High-voltage lines, transformers, fuse boxes and electric motors now connect the electrical world.",
-  "screen.wayaround.update_log.polar_fix": "Polar ambience now begins gradually in the Southern Ocean; secret VISTA hints disappear when their real discovery is earned."
+  "screen.wayaround.update_log.polar_fix": "Polar ambience now begins gradually in the Southern Ocean; secret VISTA hints disappear when their real discovery is earned.",
+  "screen.wayaround.update_log.dialogue_splashes": "Authored dialogue splashes are back: witnesses, sorcerers, fishers, electricians and other characters now sign their own stories."
 }
