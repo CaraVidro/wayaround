@@ -27,48 +27,67 @@ public abstract class TitleScreenBrandingMixin {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        int center =
+        int height =
                 minecraft.getWindow()
-                        .getGuiScaledWidth()
-                        / 2;
+                        .getGuiScaledHeight();
 
-        graphics.drawCenteredString(
+        int x =
+                8;
+
+        int y =
+                Math.max(
+                        8,
+                        Math.min(
+                                70,
+                                height - 112
+                        )
+                );
+
+        /*
+         * Branding belongs to the side rail, never to the center menu stack.
+         * This remains stable even when the window is aggressively minimized.
+         */
+        graphics.drawString(
                 minecraft.font,
                 Component.literal(
                         "WAYAROUND"
                 ),
-                center,
-                82,
-                0xFFB8B8B8
+                x,
+                y,
+                0xFFB8B8B8,
+                false
         );
 
-        graphics.drawCenteredString(
+        graphics.drawString(
                 minecraft.font,
                 Component.literal(
                         WayAroundReleaseInfo.menuTitle()
                 ),
-                center,
-                94,
-                0xFF8C6E46
+                x,
+                y + 12,
+                0xFF8C6E46,
+                false
         );
 
-        graphics.drawCenteredString(
+        graphics.drawString(
                 minecraft.font,
                 Component.literal(
                         WayAroundReleaseInfo.menuVersion()
                 ),
-                center,
-                106,
-                0xFF4B4B4B
+                x,
+                y + 24,
+                0xFF4B4B4B,
+                false
         );
 
         if (!WayAroundReleaseInfo.RELEASED_NEXT) {
-            graphics.drawCenteredString(
+            graphics.drawString(
                     minecraft.font,
                     WayAroundReleaseInfo.previewLine(),
-                    center,
-                    117,
-                    0xFF74664F
+                    x,
+                    y + 36,
+                    0xFF74664F,
+                    false
             );
         }
     }
