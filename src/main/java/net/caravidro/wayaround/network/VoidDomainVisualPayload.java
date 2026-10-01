@@ -25,6 +25,7 @@ public record VoidDomainVisualPayload(
     public static final byte OPEN = 1;
     public static final byte ENTER = 2;
     public static final byte CLOSE = 3;
+    public static final byte PREPARE = 4;
 
     public static final Type<VoidDomainVisualPayload> TYPE =
             new Type<>(
@@ -98,6 +99,23 @@ public record VoidDomainVisualPayload(
                 radius,
                 durationTicks,
                 false
+        );
+    }
+
+    public static VoidDomainVisualPayload prepare(
+            UUID owner,
+            int formationTicks,
+            boolean trapped
+    ) {
+        return new VoidDomainVisualPayload(
+                owner,
+                PREPARE,
+                0.0,
+                0.0,
+                0.0,
+                0.0F,
+                formationTicks,
+                trapped
         );
     }
 
