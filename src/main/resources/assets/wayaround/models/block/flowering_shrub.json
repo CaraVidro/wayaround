@@ -1,0 +1,7 @@
+{
+  "parent": "wayaround:block/shrub_base",
+  "textures": {
+    "leaves": "minecraft:block/flowering_azalea_leaves",
+    "bark": "minecraft:block/oak_log"
+  }
+}
