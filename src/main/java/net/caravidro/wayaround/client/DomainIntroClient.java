@@ -613,10 +613,55 @@ public final class DomainIntroClient {
             return;
         }
 
-        int imageHeight =
+        int availableWidth =
+                Math.max(
+                        1,
+                        width
+                );
+
+        int availableHeight =
                 Math.max(
                         1,
                         bottom - top
+                );
+
+        /*
+         * Preserve the original art aspect ratio. The old implementation
+         * independently stretched X/Y to fill the band, which turned every
+         * Domain background into rubber. Uniform cover-scaling plus scissoring
+         * keeps the composition intact and crops only the excess edges.
+         */
+        float scale =
+                Math.max(
+                        availableWidth
+                                / (float) profile.imageWidth(),
+                        availableHeight
+                                / (float) profile.imageHeight()
+                );
+
+        float drawWidth =
+                profile.imageWidth()
+                        * scale;
+
+        float drawHeight =
+                profile.imageHeight()
+                        * scale;
+
+        float drawX =
+                (availableWidth - drawWidth)
+                        * 0.5F;
+
+        float drawY =
+                top
+                        + (availableHeight - drawHeight)
+                                * 0.5F;
+
+        event.getGuiGraphics()
+                .enableScissor(
+                        0,
+                        top,
+                        width,
+                        bottom
                 );
 
         PoseStack pose =
@@ -624,17 +669,16 @@ public final class DomainIntroClient {
                         .pose();
 
         pose.pushPose();
+
         pose.translate(
-                0.0F,
-                top,
+                drawX,
+                drawY,
                 0.0F
         );
 
         pose.scale(
-                width
-                        / (float) profile.imageWidth(),
-                imageHeight
-                        / (float) profile.imageHeight(),
+                scale,
+                scale,
                 1.0F
         );
 
@@ -652,6 +696,9 @@ public final class DomainIntroClient {
                 );
 
         pose.popPose();
+
+        event.getGuiGraphics()
+                .disableScissor();
     }
 
     private static void renderRepeatedText(
@@ -697,11 +744,20 @@ public final class DomainIntroClient {
             int color =
                     switch (row % 3) {
                         case 1 ->
-                                profile.secondaryText();
+                                withAlpha(
+                                        profile.secondaryText(),
+                                        68
+                                );
                         case 2 ->
-                                profile.tertiaryText();
+                                withAlpha(
+                                        profile.tertiaryText(),
+                                        50
+                                );
                         default ->
-                                profile.primaryText();
+                                withAlpha(
+                                        profile.primaryText(),
+                                        84
+                                );
                     };
 
             for (int x = offset;
@@ -723,6 +779,19 @@ public final class DomainIntroClient {
 
         event.getGuiGraphics()
                 .disableScissor();
+    }
+
+    private static int withAlpha(
+            int color,
+            int alpha
+    ) {
+        return Mth.clamp(
+                alpha,
+                0,
+                255
+        ) << 24
+                | color
+                        & 0x00FFFFFF;
     }
 
     private static float envelope(
