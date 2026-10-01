@@ -35,6 +35,22 @@ Implemented in the development branch:
 - GameTest coverage for power vs torque vs speed;
 - title-screen Update Log.
 
+## Milestone 1.4 — Materials Have Memory + Electronics Seed
+
+Implemented in the development branch:
+
+- persistent material memory for load cycles, thermal cycles, heat damage, corrosion and deformation;
+- common material conductivity, heat tolerance, corrosion resistance and ductility traits;
+- material history integrated into shafts, gearboxes, pump impellers, crushers, mills and sawmills;
+- user-built 6×4 circuit boards with physical component cells and explicit copper traces;
+- input/output terminals, resistors, capacitors, diodes, transistors and relays as installed parts;
+- circuit assembly on the existing Engineering Workbench instead of a duplicate electronics bench;
+- powered Circuit Controller using the existing WayAround Energy Network / energy cables;
+- circuit power draw and material aging while energized;
+- regression tests for circuit persistence and material-history persistence.
+
+This milestone deliberately stops before a prebuilt computer. It creates the graph, material history and electrical contract that future sensors, automation, memory, logic and computers can reuse.
+
 ## Minecraft title menu
 
 The title screen keeps showing the active release:
@@ -70,6 +86,8 @@ Machines are starting to stop behaving like isolated blocks.
 
 Mechanical systems now share real concepts of load, power, torque, speed and stress. A machine can spin fast and still be too weak to do the work. Shafts and gearboxes remember what passes through them. Belts have limits. Pumps can fight pressure. Crushers can stall. Existing sawmill failures now use the same mechanical language.
 
-This is the foundation for the next stages of WayAround: steam, generators, heavy industry, logistics and large infrastructure.
+Material history now survives with the parts themselves, and electronics no longer need a future second power system. Players can physically build circuit boards and power them from the same grid that already serves industrial machines.
+
+This is the foundation for the next stages of WayAround: steam, generators, heavy industry, sensors, automation, logistics, computers and large infrastructure.
 
 The world is beginning to connect.

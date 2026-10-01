@@ -494,9 +494,14 @@ public final class MechanicalPumpBlockEntity
                 );
 
         return profile == null
-                ? 1.0F
+                ? AssemblyItemData.materialCondition(
+                        impeller
+                )
                 : profile.durabilityScore()
-                        * profile.performanceFactor();
+                        * profile.performanceFactor()
+                        * AssemblyItemData.materialCondition(
+                        impeller
+                );
     }
 
     private void wearImpeller(float amount) {
@@ -525,6 +530,23 @@ public final class MechanicalPumpBlockEntity
                 impeller,
                 profile
         );
+
+        if (level != null) {
+            AssemblyItemData.observeMaterialUse(
+                    impeller,
+                    profile.material(),
+                    level.getGameTime(),
+                    Math.max(
+                            0.25F,
+                            load
+                    ),
+                    vibration,
+                    Math.min(
+                            2.0F,
+                            pressureBar / 8.0F
+                    )
+            );
+        }
     }
 
     private void mergeBuffer(

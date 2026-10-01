@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.assembly;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.material.MaterialMemory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -89,6 +90,33 @@ public final class AssemblyPartTooltipEvents {
                                         ChatFormatting.DARK_GRAY
                                 )
                 );
+
+        MaterialMemory memory =
+                AssemblyItemData.readMaterialMemory(
+                        event.getItemStack()
+                );
+
+        if (memory != null) {
+            event.getToolTip()
+                    .add(
+                            Component.translatable(
+                                    "tooltip.wayaround.material_memory",
+                                    memory.loadCycles(),
+                                    memory.thermalCycles(),
+                                    Math.round(
+                                            memory.corrosion()
+                                                    * 100.0F
+                                    ),
+                                    Math.round(
+                                            memory.deformation()
+                                                    * 100.0F
+                                    )
+                            )
+                                    .withStyle(
+                                            ChatFormatting.DARK_GRAY
+                                    )
+                    );
+        }
 
         CompoundTag process =
                 AssemblyItemData.readProcessStamp(

@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.assembly;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.industrial.material.MaterialMemory;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -36,6 +37,9 @@ public final class AssemblyItemData {
 
     private static final String PROCESS_KEY =
             "WayAroundManufacturingProcess";
+
+    private static final String MATERIAL_MEMORY_KEY =
+            "WayAroundMaterialMemory";
 
     private AssemblyItemData() {
     }
@@ -442,6 +446,185 @@ public final class AssemblyItemData {
                         PROCESS_KEY
                 )
                 : new CompoundTag();
+    }
+
+    public static MaterialMemory readMaterialMemory(
+            ItemStack stack
+    ) {
+        CompoundTag tag =
+                customData(
+                        stack
+                );
+
+        if (!tag.contains(
+                MATERIAL_MEMORY_KEY,
+                net.minecraft.nbt.Tag.TAG_COMPOUND
+        )) {
+            return null;
+        }
+
+        return MaterialMemory.load(
+                tag.getCompound(
+                        MATERIAL_MEMORY_KEY
+                )
+        );
+    }
+
+    public static MaterialMemory materialMemoryOrCreate(
+            ItemStack stack,
+            long gameTime
+    ) {
+        MaterialMemory memory =
+                readMaterialMemory(
+                        stack
+                );
+
+        if (memory == null) {
+            memory =
+                    MaterialMemory.fresh(
+                            gameTime
+                    );
+
+            writeMaterialMemory(
+                    stack,
+                    memory
+            );
+        }
+
+        return memory;
+    }
+
+    public static void writeMaterialMemory(
+            ItemStack stack,
+            MaterialMemory memory
+    ) {
+        if (stack == null
+                || stack.isEmpty()
+                || memory == null) {
+            return;
+        }
+
+        CustomData.update(
+                DataComponents.CUSTOM_DATA,
+                stack,
+                tag -> tag.put(
+                        MATERIAL_MEMORY_KEY,
+                        memory.save()
+                )
+        );
+    }
+
+    public static void observeMaterialUse(
+            ItemStack stack,
+            AssemblyPartProfile.Material material,
+            long gameTime,
+            float loadRatio,
+            float vibration,
+            float heat
+    ) {
+        if (stack == null
+                || stack.isEmpty()) {
+            return;
+        }
+
+        MaterialMemory memory =
+                materialMemoryOrCreate(
+                        stack,
+                        gameTime
+                );
+
+        memory.observeMechanicalUse(
+                material,
+                loadRatio,
+                vibration,
+                heat
+        );
+
+        writeMaterialMemory(
+                stack,
+                memory
+        );
+    }
+
+    public static void exposeMaterialWet(
+            ItemStack stack,
+            AssemblyPartProfile.Material material,
+            long gameTime,
+            float wetness,
+            boolean salty
+    ) {
+        if (stack == null
+                || stack.isEmpty()) {
+            return;
+        }
+
+        MaterialMemory memory =
+                materialMemoryOrCreate(
+                        stack,
+                        gameTime
+                );
+
+        memory.exposeWet(
+                material,
+                wetness,
+                salty
+        );
+
+        writeMaterialMemory(
+                stack,
+                memory
+        );
+    }
+
+    public static void serviceMaterialMemory(
+            ItemStack stack,
+            long gameTime,
+            float effectiveness
+    ) {
+        MaterialMemory memory =
+                readMaterialMemory(
+                        stack
+                );
+
+        if (memory == null) {
+            return;
+        }
+
+        memory.service(
+                gameTime,
+                effectiveness
+        );
+
+        writeMaterialMemory(
+                stack,
+                memory
+        );
+    }
+
+    public static float materialCondition(
+            ItemStack stack
+    ) {
+        MaterialMemory memory =
+                readMaterialMemory(
+                        stack
+                );
+
+        return memory == null
+                ? 1.0F
+                : memory.conditionFactor();
+    }
+
+    public static float materialConductivity(
+            ItemStack stack
+    ) {
+        MaterialMemory memory =
+                readMaterialMemory(
+                        stack
+                );
+
+        return memory == null
+                ? 1.0F
+                : memory.conductivityFactor();
     }
 
     public static void writeAssembly(

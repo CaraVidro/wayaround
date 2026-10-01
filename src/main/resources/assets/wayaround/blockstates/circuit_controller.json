@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "wayaround:block/circuit_controller"
+      }
+    }
+  ]
+}

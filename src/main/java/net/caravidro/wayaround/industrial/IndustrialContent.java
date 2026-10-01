@@ -2,6 +2,7 @@ package net.caravidro.wayaround.industrial;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.content.WayAroundContent;
+import net.caravidro.wayaround.industrial.electronics.ElectronicsContent;
 import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.caravidro.wayaround.nexus.NexusContent;
 import net.caravidro.wayaround.industrial.power.SawmillMenu;
@@ -148,6 +149,9 @@ public final class IndustrialContent {
                                         output.accept(
                                                 PowerContent.MECHANICAL_GEARBOX_ITEM.get()
                                         );
+                                        ElectronicsContent.fillTab(
+                                                output
+                                        );
                                         output.accept(
                                                 ExperimentalShipContent.SHIP_BODY.get()
                                         );
@@ -225,6 +229,7 @@ public final class IndustrialContent {
         TABS.register(bus);
         bus.addListener(IndustrialContent::capabilities);
         PowerContent.register(bus);
+        ElectronicsContent.register(bus);
         net.caravidro.wayaround.industrial.crushing.CrusherContent.register(bus);
         PipeworkContent.register(bus);
         CoalShipContent.register(bus);

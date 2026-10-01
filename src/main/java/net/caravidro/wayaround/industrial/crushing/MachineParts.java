@@ -73,6 +73,10 @@ public final class MachineParts {
         var profile = AssemblyItemData.profileOrCreate(parts[slot], kind(item.spec().role()),
             item.spec().heavy() ? AssemblyPartProfile.Material.IRON : material(item.spec()), 0, player.getRandom());
         AssemblyItemData.writePart(parts[slot], profile);
+        AssemblyItemData.materialMemoryOrCreate(
+            parts[slot],
+            player.level().getGameTime()
+        );
         if (!player.getAbilities().instabuild) held.shrink(1);
         return true;
     }
@@ -116,7 +120,10 @@ public final class MachineParts {
                 return 0;
             }
             var profile = AssemblyItemData.readPart(stack(role));
-            value *= spec.speed() * (profile == null ? 1 : .65F + profile.assemblyScore() * .35F);
+            float memory = AssemblyItemData.materialCondition(stack(role));
+            value *= spec.speed()
+                * (profile == null ? 1 : .65F + profile.assemblyScore() * .35F)
+                * (.88F + memory * .12F);
         }
         return value;
     }
@@ -128,8 +135,11 @@ public final class MachineParts {
             return condition(MachinePartSpec.Role.DRIVE) * .94F;
         }
         if (spec == null) return 0;
-        var profile = AssemblyItemData.readPart(stack(role));
-        return spec.strength() * (profile == null ? 1 : (1 - profile.wear()) * (1 - profile.fatigue() * .4F));
+        ItemStack installed = stack(role);
+        var profile = AssemblyItemData.readPart(installed);
+        return spec.strength()
+            * (profile == null ? 1 : (1 - profile.wear()) * (1 - profile.fatigue() * .4F))
+            * AssemblyItemData.materialCondition(installed);
     }
     public int feedMultiplier() { var feed = spec(MachinePartSpec.Role.FEED); return feed == null ? 0 : feed.feedMultiplier(); }
     public void wear(float work, float load) {
@@ -141,6 +151,50 @@ public final class MachineParts {
             AssemblyItemData.writePart(stack, profile);
         }
     }
+    public void observeMaterialUse(
+            long gameTime,
+            float load,
+            float vibration,
+            float heat
+    ) {
+        for (var role : MachinePartSpec.Role.values()) {
+            ItemStack stack =
+                    stack(role);
+
+            if (stack.isEmpty()) {
+                continue;
+            }
+
+            AssemblyPartProfile profile =
+                    AssemblyItemData.readPart(
+                            stack
+                    );
+
+            if (profile == null) {
+                continue;
+            }
+
+            float roleLoad =
+                    load
+                            * (
+                            role == MachinePartSpec.Role.TOOL
+                                    ? 1.15F
+                                    : role == MachinePartSpec.Role.FEED
+                                            ? 0.45F
+                                            : 0.85F
+                    );
+
+            AssemblyItemData.observeMaterialUse(
+                    stack,
+                    profile.material(),
+                    gameTime,
+                    roleLoad,
+                    vibration,
+                    heat
+            );
+        }
+    }
+
     public Collection<AssemblyPartNode> nodes(boolean supported) {
         var result = new ArrayList<AssemblyPartNode>();
         for (var role : MachinePartSpec.Role.values()) {
