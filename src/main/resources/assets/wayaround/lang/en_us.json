@@ -999,5 +999,11 @@
   "block.wayaround.forest_shrub": "Forest Shrub",
   "block.wayaround.flowering_shrub": "Flowering Shrub",
   "block.wayaround.mushroom_patch": "Mushroom Patch",
-  "block.wayaround.dry_shrub": "Dry Shrub"
+  "block.wayaround.dry_shrub": "Dry Shrub",
+  "block.wayaround.marsh_cattails": "Marsh Cattails",
+  "block.wayaround.broadleaf_fern": "Broadleaf Fern",
+  "block.wayaround.moss_tuft": "Moss Tuft",
+  "block.wayaround.thorn_bush": "Thorn Bush",
+  "block.wayaround.wildflower_cluster": "Wildflower Cluster",
+  "block.wayaround.marsh_grass_clump": "Marsh Grass Clump"
 }
