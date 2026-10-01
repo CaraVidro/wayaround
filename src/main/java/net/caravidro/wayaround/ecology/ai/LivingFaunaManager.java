@@ -3,10 +3,11 @@ package net.caravidro.wayaround.ecology.ai;
 import net.caravidro.wayaround.ecology.DeepOceanManager;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Map;
+
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyRules;
@@ -457,15 +458,31 @@ public final class LivingFaunaManager {
         }
     }
 
-    private static void tickAnimals(ServerLevel level) {
-        Set<UUID> touched =
-                new HashSet<>();
+    private static void tickAnimals(
+            ServerLevel level
+    ) {
+        /*
+         * Lithium-style hot-path rule: use primitive IDs and streamless
+         * filtering. UUID HashSet + candidates.stream().toList() used to
+         * allocate heavily every ecology pass, especially around farms.
+         */
+        IntOpenHashSet touched =
+                new IntOpenHashSet(
+                        MAX_ANIMALS_PER_LEVEL * 2
+                );
 
         List<Animal> candidates =
-                new ArrayList<>();
+                new ArrayList<>(
+                        MAX_ANIMALS_PER_LEVEL
+                );
+
+        Map<EntityType<?>, List<Animal>> byType =
+                new IdentityHashMap<>();
 
         outer:
-        for (var player : level.players()) {
+        for (var player :
+                level.players()) {
+
             AABB area =
                     player.getBoundingBox()
                             .inflate(
@@ -479,13 +496,22 @@ public final class LivingFaunaManager {
                             Animal.class,
                             area
                     )) {
+
                 if (!touched.add(
-                        animal.getUUID()
+                        animal.getId()
                 )) {
                     continue;
                 }
 
                 candidates.add(
+                        animal
+                );
+
+                byType.computeIfAbsent(
+                        animal.getType(),
+                        ignored ->
+                                new ArrayList<>()
+                ).add(
                         animal
                 );
 
@@ -496,26 +522,41 @@ public final class LivingFaunaManager {
             }
         }
 
+        ArrayList<Animal> group =
+                new ArrayList<>(
+                        24
+                );
+
         for (Animal animal :
                 candidates) {
+
             if (animal
                     instanceof TamableAnimal tame
                     && tame.isTame()) {
                 continue;
             }
 
-            List<Animal> group =
-                    candidates.stream()
-                            .filter(
-                                    other ->
-                                            other.isAlive()
-                                                    && other.getType()
-                                                    == animal.getType()
-                                                    && other.distanceToSqr(
-                                                    animal
-                                            ) <= 28.0 * 28.0
-                            )
-                            .toList();
+            group.clear();
+
+            List<Animal> sameType =
+                    byType.get(
+                            animal.getType()
+                    );
+
+            if (sameType != null) {
+                for (Animal other :
+                        sameType) {
+
+                    if (other.isAlive()
+                            && other.distanceToSqr(
+                            animal
+                    ) <= 28.0 * 28.0) {
+                        group.add(
+                                other
+                        );
+                    }
+                }
+            }
 
             ensureAnimalHome(
                     animal
@@ -621,27 +662,40 @@ public final class LivingFaunaManager {
             Animal animal
     ) {
         ItemEntity food =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (ItemEntity candidate :
                 level.getEntitiesOfClass(
-                                ItemEntity.class,
-                                animal.getBoundingBox()
-                                        .inflate(
-                                                6.0,
-                                                3.0,
-                                                6.0
-                                        ),
-                                item ->
-                                        item.isAlive()
-                                                && animal.isFood(
-                                                item.getItem()
-                                        )
-                        )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        animal::distanceToSqr
+                        ItemEntity.class,
+                        animal.getBoundingBox()
+                                .inflate(
+                                        6.0,
+                                        3.0,
+                                        6.0
+                                ),
+                        item ->
+                                item.isAlive()
+                                        && animal.isFood(
+                                        item.getItem()
                                 )
-                        )
-                        .orElse(null);
+                )) {
+
+            double distance =
+                    animal.distanceToSqr(
+                            candidate
+                    );
+
+            if (distance < bestDistance) {
+                bestDistance =
+                        distance;
+
+                food =
+                        candidate;
+            }
+        }
 
         if (food == null) {
             return false;
@@ -730,21 +784,28 @@ public final class LivingFaunaManager {
         }
 
         Animal mate =
-                group.stream()
-                        .filter(
-                                other ->
-                                        other != animal
-                                                && !other.isBaby()
-                                                && !other.isInLove()
-                                                && other.getAge() == 0
-                                                && !(
-                                                other
-                                                        instanceof TamableAnimal tame
-                                                        && tame.isTame()
-                                        )
-                        )
-                        .findFirst()
-                        .orElse(null);
+                null;
+
+        for (Animal other :
+                group) {
+
+            if (other == animal
+                    || other.isBaby()
+                    || other.isInLove()
+                    || other.getAge() != 0
+                    || (
+                    other
+                            instanceof TamableAnimal tame
+                            && tame.isTame()
+            )) {
+                continue;
+            }
+
+            mate =
+                    other;
+
+            break;
+        }
 
         if (mate == null) {
             data.putLong(
@@ -789,9 +850,13 @@ public final class LivingFaunaManager {
                 );
     }
 
-    private static void tickFish(ServerLevel level) {
-        Set<UUID> touched =
-                new HashSet<>();
+    private static void tickFish(
+            ServerLevel level
+    ) {
+        IntOpenHashSet touched =
+                new IntOpenHashSet(
+                        MAX_FISH_PER_LEVEL * 2
+                );
 
         int processed =
                 0;
@@ -812,7 +877,7 @@ public final class LivingFaunaManager {
                             area
                     )) {
                 if (!touched.add(
-                        fish.getUUID()
+                        fish.getId()
                 )) {
                     continue;
                 }
