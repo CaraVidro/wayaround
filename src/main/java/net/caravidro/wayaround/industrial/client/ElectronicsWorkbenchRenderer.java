@@ -33,12 +33,21 @@ public final class ElectronicsWorkbenchRenderer
             float partialTick,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
-            int packedLight,
+            int renderLight,
             int packedOverlay
     ) {
         if (!workbench.hasCircuitBoard()) {
             return;
         }
+
+        int renderLight =
+                workbench.getLevel() == null
+                        ? renderLight
+                        : IndustrialRenderUtil.exteriorLight(
+                        workbench.getLevel(),
+                        workbench.getBlockPos(),
+                        renderLight
+                );
 
         poseStack.pushPose();
 
@@ -52,7 +61,7 @@ public final class ElectronicsWorkbenchRenderer
                 blockRenderer,
                 poseStack,
                 bufferSource,
-                packedLight,
+                renderLight,
                 packedOverlay,
                 Blocks.GREEN_CONCRETE.defaultBlockState(),
                 0.0,
@@ -71,7 +80,7 @@ public final class ElectronicsWorkbenchRenderer
             renderTrace(
                     poseStack,
                     bufferSource,
-                    packedLight,
+                    renderLight,
                     packedOverlay,
                     trace
             );
@@ -93,7 +102,7 @@ public final class ElectronicsWorkbenchRenderer
             renderComponent(
                     poseStack,
                     bufferSource,
-                    packedLight,
+                    renderLight,
                     packedOverlay,
                     cell,
                     type
@@ -425,6 +434,124 @@ public final class ElectronicsWorkbenchRenderer
                         0.072,
                         0.012,
                         0.050
+                );
+            }
+
+            case LED -> {
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.COPPER_BLOCK.defaultBlockState(),
+                        x,
+                        y,
+                        z,
+                        0.060,
+                        0.012,
+                        0.030
+                );
+
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.AMETHYST_BLOCK.defaultBlockState(),
+                        x,
+                        y + 0.035,
+                        z,
+                        0.040,
+                        0.060,
+                        0.040
+                );
+
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.GLASS.defaultBlockState(),
+                        x,
+                        y + 0.038,
+                        z,
+                        0.057,
+                        0.066,
+                        0.057
+                );
+            }
+
+            case BUZZER -> {
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.IRON_BLOCK.defaultBlockState(),
+                        x,
+                        y + 0.025,
+                        z,
+                        0.100,
+                        0.050,
+                        0.085
+                );
+
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.NOTE_BLOCK.defaultBlockState(),
+                        x,
+                        y + 0.055,
+                        z,
+                        0.072,
+                        0.035,
+                        0.060
+                );
+            }
+
+            case DISTANCE_DETECTOR -> {
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.IRON_BLOCK.defaultBlockState(),
+                        x,
+                        y + 0.026,
+                        z,
+                        0.095,
+                        0.052,
+                        0.075
+                );
+
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.AMETHYST_BLOCK.defaultBlockState(),
+                        x,
+                        y + 0.055,
+                        z - 0.028,
+                        0.036,
+                        0.036,
+                        0.030
+                );
+
+                part(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.GLASS.defaultBlockState(),
+                        x,
+                        y + 0.055,
+                        z - 0.046,
+                        0.050,
+                        0.050,
+                        0.018
                 );
             }
 
