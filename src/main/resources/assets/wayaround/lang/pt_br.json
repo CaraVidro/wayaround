@@ -993,5 +993,11 @@
   "message.wayaround.circuit_workbench.upgraded": "PCB expandida para %sx%s (nível %s).",
   "entity.wayaround.deep_sea_submarine": "Submarino Abissal",
   "item.wayaround.deep_sea_submarine": "Submarino Abissal",
-  "entity.wayaround.player_corpse": "Corpo do Jogador"
+  "entity.wayaround.player_corpse": "Corpo do Jogador",
+  "block.wayaround.bracken_fern": "Samambaia Brava",
+  "block.wayaround.wild_reeds": "Juncos Silvestres",
+  "block.wayaround.forest_shrub": "Arbusto de Floresta",
+  "block.wayaround.flowering_shrub": "Arbusto Florido",
+  "block.wayaround.mushroom_patch": "Colônia de Cogumelos",
+  "block.wayaround.dry_shrub": "Arbusto Seco"
 }
