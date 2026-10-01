@@ -1344,44 +1344,52 @@ public final class LivingFaunaManager {
                         : 7.5;
 
         FishCarcassEntity carcass =
+                null;
+
+        double bestCarcassScore =
+                Double.MAX_VALUE;
+
+        for (FishCarcassEntity candidate :
                 level.getEntitiesOfClass(
-                                FishCarcassEntity.class,
-                                fish.getBoundingBox()
-                                        .inflate(
-                                                radius,
-                                                5.0,
-                                                radius
-                                        ),
-                                candidate ->
-                                        candidate.isAlive()
-                                                && !candidate.isSkeleton()
-                                                && (
-                                                ownProfile == null
-                                                        || candidate.profile()
-                                                        != ownProfile
-                                        )
-                                                && carcassAttractiveEnough(
-                                                candidate,
-                                                fish,
-                                                predator
-                                        )
-                        )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        candidate ->
-                                                fish.distanceToSqr(
-                                                        candidate
-                                                )
-                                                        / Math.max(
-                                                        0.20,
-                                                        candidate.attractiveness()
-                                                )
+                        FishCarcassEntity.class,
+                        fish.getBoundingBox()
+                                .inflate(
+                                        radius,
+                                        5.0,
+                                        radius
+                                ),
+                        candidate ->
+                                candidate.isAlive()
+                                        && !candidate.isSkeleton()
+                                        && (
+                                        ownProfile == null
+                                                || candidate.profile()
+                                                != ownProfile
                                 )
-                        )
-                        .orElse(
-                                null
-                        );
+                                        && carcassAttractiveEnough(
+                                        candidate,
+                                        fish,
+                                        predator
+                                )
+                )) {
+
+            double score =
+                    fish.distanceToSqr(
+                            candidate
+                    )
+                            / Math.max(
+                            0.20,
+                            candidate.attractiveness()
+                    );
+
+            if (score < bestCarcassScore) {
+                bestCarcassScore =
+                        score;
+
+                carcass =
+                        candidate;
+            }
+        }
 
         if (carcass == null) {
             data.putLong(
@@ -1823,54 +1831,64 @@ public final class LivingFaunaManager {
             AquaticPredator predator
     ) {
         AbstractFish prey =
+                null;
+
+        double bestPreyScore =
+                Double.MAX_VALUE;
+
+        for (AbstractFish candidate :
                 level.getEntitiesOfClass(
-                                AbstractFish.class,
-                                hunter.getBoundingBox()
-                                        .inflate(
-                                                predator.huntRadius(),
-                                                predator.huntVerticalRadius(),
-                                                predator.huntRadius()
-                                        ),
-                                candidate ->
-                                        candidate.isAlive()
-                                                && candidate != hunter
-                                                && !(candidate instanceof AquaticPredator)
-                                                && !(candidate instanceof WhaleEntity)
-                                                && predatorAcceptsPrey(
-                                                hunter,
-                                                candidate
-                                        )
-                                                && (
-                                                !(candidate instanceof SunfishEntity)
-                                                        || (
-                                                        hunter instanceof ReefSharkEntity
-                                                                && fishSize(
-                                                                candidate
-                                                        ) < fishSize(
-                                                                hunter
-                                                        ) * 1.15F
-                                                )
-                                                        || fishSize(
+                        AbstractFish.class,
+                        hunter.getBoundingBox()
+                                .inflate(
+                                        predator.huntRadius(),
+                                        predator.huntVerticalRadius(),
+                                        predator.huntRadius()
+                                ),
+                        candidate ->
+                                candidate.isAlive()
+                                        && candidate != hunter
+                                        && !(candidate instanceof AquaticPredator)
+                                        && !(candidate instanceof WhaleEntity)
+                                        && predatorAcceptsPrey(
+                                        hunter,
+                                        candidate
+                                )
+                                        && (
+                                        !(candidate instanceof SunfishEntity)
+                                                || (
+                                                hunter instanceof ReefSharkEntity
+                                                        && fishSize(
                                                         candidate
                                                 ) < fishSize(
                                                         hunter
-                                                ) * 0.75F
+                                                ) * 1.15F
                                         )
-                        )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        candidate ->
-                                                hunter.distanceToSqr(
-                                                        candidate
-                                                )
-                                                        / preyPreference(
-                                                        hunter,
-                                                        candidate
-                                                )
+                                                || fishSize(
+                                                candidate
+                                        ) < fishSize(
+                                                hunter
+                                        ) * 0.75F
                                 )
-                        )
-                        .orElse(null);
+                )) {
+
+            double score =
+                    hunter.distanceToSqr(
+                            candidate
+                    )
+                            / preyPreference(
+                            hunter,
+                            candidate
+                    );
+
+            if (score < bestPreyScore) {
+                bestPreyScore =
+                        score;
+
+                prey =
+                        candidate;
+            }
+        }
 
         if (prey == null) {
             return false;
