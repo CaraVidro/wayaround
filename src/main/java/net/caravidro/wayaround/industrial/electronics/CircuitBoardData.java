@@ -2,7 +2,9 @@ package net.caravidro.wayaround.industrial.electronics;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.minecraft.core.component.DataComponents;
@@ -12,6 +14,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
 public final class CircuitBoardData {
+
+    public record Trace(
+            int a,
+            int b
+    ) {}
 
     public static final int WIDTH = 6;
     public static final int HEIGHT = 4;
@@ -231,6 +238,113 @@ public final class CircuitBoardData {
         );
 
         return previous;
+    }
+
+    public boolean hasTrace(
+            int a,
+            int b
+    ) {
+        return validCell(a)
+                && validCell(b)
+                && a != b
+                && traces.contains(
+                encode(
+                        a,
+                        b
+                )
+        );
+    }
+
+    public boolean removeTrace(
+            int a,
+            int b
+    ) {
+        return validCell(a)
+                && validCell(b)
+                && a != b
+                && traces.remove(
+                encode(
+                        a,
+                        b
+                )
+        );
+    }
+
+    public List<Trace> traceEdges() {
+        List<Trace> result =
+                new ArrayList<>();
+
+        traces.stream()
+                .sorted()
+                .forEach(
+                        encoded -> result.add(
+                                new Trace(
+                                        encoded / CELL_COUNT,
+                                        encoded % CELL_COUNT
+                                )
+                        )
+                );
+
+        return List.copyOf(
+                result
+        );
+    }
+
+    public static int traceCopperCost(
+            int a,
+            int b
+    ) {
+        if (!validCell(a)
+                || !validCell(b)
+                || a == b) {
+            return 0;
+        }
+
+        int dx =
+                cellX(a)
+                        - cellX(b);
+
+        int dy =
+                cellY(a)
+                        - cellY(b);
+
+        double distance =
+                Math.sqrt(
+                        dx * dx
+                                + dy * dy
+                );
+
+        /*
+         * One copper trace item represents about half a board-cell of routed
+         * conductor. Long diagonal runs therefore cost noticeably more than
+         * neighboring pads instead of every connection costing one item.
+         */
+        return Math.max(
+                1,
+                (int) Math.ceil(
+                        distance * 2.0
+                )
+        );
+    }
+
+    public int copperCostAt(
+            int cell
+    ) {
+        int total =
+                0;
+
+        for (Trace trace : traceEdges()) {
+            if (trace.a() == cell
+                    || trace.b() == cell) {
+                total +=
+                        traceCopperCost(
+                                trace.a(),
+                                trace.b()
+                        );
+            }
+        }
+
+        return total;
     }
 
     public boolean addTrace(
