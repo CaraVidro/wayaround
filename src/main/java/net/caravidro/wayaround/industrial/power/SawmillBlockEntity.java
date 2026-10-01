@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -257,14 +258,10 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                 granted;
 
         lastPowerRatio =
-                requestedPower <= 0.001F
-                        ? 0.0F
-                        : Mth.clamp(
-                                granted
-                                        / requestedPower,
-                                0.0F,
-                                1.0F
-                        );
+                MechanicalLoad.fulfillment(
+                        requestedPower,
+                        granted
+                );
 
         boolean spinning =
                 !jammed
@@ -331,15 +328,9 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                 );
 
         float overSpeed =
-                Math.max(
-                        0.0F,
-                        (
-                                Math.abs(
-                                        rpm
-                                )
-                                        - SAFE_RPM
-                        )
-                                / SAFE_RPM
+                MechanicalLoad.overspeed(
+                        rpm,
+                        SAFE_RPM
                 );
 
         float shaftAlignment =
