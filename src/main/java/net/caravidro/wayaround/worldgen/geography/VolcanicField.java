@@ -66,6 +66,23 @@ public final class VolcanicField {
         }
     }
 
+    private record Neighborhood(
+            int cellX,
+            int cellZ,
+            Volcano[] volcanoes
+    ) {
+    }
+
+    private static final ThreadLocal<Neighborhood> NEIGHBORHOOD_CACHE =
+            ThreadLocal.withInitial(
+                    () ->
+                            new Neighborhood(
+                                    Integer.MIN_VALUE,
+                                    Integer.MIN_VALUE,
+                                    new Volcano[0]
+                            )
+            );
+
     public static Volcano nearest(
             int blockX,
             int blockZ
@@ -94,218 +111,270 @@ public final class VolcanicField {
                         CELL
                 );
 
+        Neighborhood neighborhood =
+                NEIGHBORHOOD_CACHE.get();
+
+        if (neighborhood.cellX()
+                != cellX
+                || neighborhood.cellZ()
+                != cellZ) {
+
+            Volcano[] volcanoes =
+                    new Volcano[9];
+
+            int count =
+                    0;
+
+            for (int ox = -1;
+                 ox <= 1;
+                 ox++) {
+                for (int oz = -1;
+                     oz <= 1;
+                     oz++) {
+
+                    Volcano candidate =
+                            candidate(
+                                    cellX + ox,
+                                    cellZ + oz
+                            );
+
+                    if (candidate != null) {
+                        volcanoes[count++] =
+                                candidate;
+                    }
+                }
+            }
+
+            if (count
+                    != volcanoes.length) {
+                Volcano[] compact =
+                        new Volcano[count];
+
+                System.arraycopy(
+                        volcanoes,
+                        0,
+                        compact,
+                        0,
+                        count
+                );
+
+                volcanoes =
+                        compact;
+            }
+
+            neighborhood =
+                    new Neighborhood(
+                            cellX,
+                            cellZ,
+                            volcanoes
+                    );
+
+            NEIGHBORHOOD_CACHE.set(
+                    neighborhood
+            );
+        }
+
         Volcano best =
                 null;
 
         double bestNormalized =
                 Double.POSITIVE_INFINITY;
 
-        for (int ox = -1;
-             ox <= 1;
-             ox++) {
-            for (int oz = -1;
-                 oz <= 1;
-                 oz++) {
+        for (Volcano volcano :
+                neighborhood.volcanoes()) {
 
-                int regionX =
-                        cellX + ox;
+            double normalized =
+                    volcano.distanceTo(
+                            blockX,
+                            blockZ
+                    )
+                            / volcano.radius();
 
-                int regionZ =
-                        cellZ + oz;
+            if (normalized
+                    < bestNormalized) {
+                bestNormalized =
+                        normalized;
 
-                long base =
-                        mix(
-                                SEED_PRESENT
-                                        ^ (long) regionX
-                                        * 341873128712L
-                                        ^ (long) regionZ
-                                        * 132897987541L
-                        );
-
-                double present =
-                        unit(
-                                base
-                        );
-
-                if (present
-                        < SPAWN_THRESHOLD) {
-                    continue;
-                }
-
-                double jitterX =
-                        signed(
-                                mix(
-                                        base
-                                                ^ SEED_X
-                                )
-                        )
-                                * CELL
-                                * 0.30;
-
-                double jitterZ =
-                        signed(
-                                mix(
-                                        base
-                                                ^ SEED_Z
-                                )
-                        )
-                                * CELL
-                                * 0.30;
-
-                int centerX =
-                        (int) Math.round(
-                                regionX
-                                        * (double) CELL
-                                        + CELL * 0.5
-                                        + jitterX
-                        );
-
-                int centerZ =
-                        (int) Math.round(
-                                regionZ
-                                        * (double) CELL
-                                        + CELL * 0.5
-                                        + jitterZ
-                        );
-
-                double heightRoll =
-                        unit(
-                                mix(
-                                        base
-                                                ^ SEED_HEIGHT
-                                )
-                        );
-
-                boolean ceilingPeak =
-                        heightRoll
-                                > 0.985;
-
-                double radiusRoll =
-                        unit(
-                                mix(
-                                        base
-                                                ^ SEED_RADIUS
-                                )
-                        );
-
-                double radius =
-                        440.0
-                                + radiusRoll
-                                * 410.0;
-
-                double summitY;
-
-                if (ceilingPeak) {
-                    /*
-                     * The rim is allowed to brush the ceiling. Keeping two
-                     * blocks of breathing room avoids impossible surface writes.
-                     */
-                    summitY =
-                            318.0;
-
-                    radius =
-                            Math.max(
-                                    radius,
-                                    900.0
-                            );
-
-                } else if (heightRoll
-                        > 0.90) {
-
-                    summitY =
-                            278.0
-                                    + unit(
-                                    mix(
-                                            base
-                                                    ^ 0xA24BAED4963EE407L
-                                    )
-                            )
-                                    * 34.0;
-
-                    radius =
-                            Math.max(
-                                    radius,
-                                    720.0
-                            );
-
-                } else {
-                    summitY =
-                            188.0
-                                    + heightRoll
-                                    / 0.90
-                                    * 86.0;
-                }
-
-                double craterRadius =
-                        radius
-                                * (
-                                0.09
-                                        + unit(
-                                        mix(
-                                                base
-                                                        ^ 0x9FB21C651E98DF25L
-                                        )
-                                )
-                                        * 0.065
-                        );
-
-                double craterDepth =
-                        26.0
-                                + unit(
-                                mix(
-                                        base
-                                                ^ 0xC13FA9A902A6328FL
-                                )
-                        )
-                                * 44.0;
-
-                int lavaLevel =
-                        (int) Math.round(
-                                summitY
-                                        - craterDepth
-                                        - 9.0
-                        );
-
-                double activity =
-                        unit(
-                                mix(
-                                        base
-                                                ^ 0x91E10DA5C79E7B1DL
-                                )
-                        );
-
-                Volcano volcano =
-                        new Volcano(
-                                centerX,
-                                centerZ,
-                                radius,
-                                summitY,
-                                craterRadius,
-                                craterDepth,
-                                lavaLevel,
-                                activity,
-                                ceilingPeak
-                        );
-
-                double normalized =
-                        volcano.distanceTo(
-                                blockX,
-                                blockZ
-                        )
-                                / volcano.radius();
-
-                if (normalized
-                        < bestNormalized) {
-                    bestNormalized =
-                            normalized;
-
-                    best =
-                            volcano;
-                }
+                best =
+                        volcano;
             }
         }
 
         return best;
+    }
+
+    private static Volcano candidate(
+            int regionX,
+            int regionZ
+    ) {
+        long base =
+                mix(
+                        SEED_PRESENT
+                                ^ (long) regionX
+                                * 341873128712L
+                                ^ (long) regionZ
+                                * 132897987541L
+                );
+
+        double present =
+                unit(
+                        base
+                );
+
+        if (present
+                < SPAWN_THRESHOLD) {
+            return null;
+        }
+
+        double jitterX =
+                signed(
+                        mix(
+                                base
+                                        ^ SEED_X
+                        )
+                )
+                        * CELL
+                        * 0.30;
+
+        double jitterZ =
+                signed(
+                        mix(
+                                base
+                                        ^ SEED_Z
+                        )
+                )
+                        * CELL
+                        * 0.30;
+
+        int centerX =
+                (int) Math.round(
+                        regionX
+                                * (double) CELL
+                                + CELL * 0.5
+                                + jitterX
+                );
+
+        int centerZ =
+                (int) Math.round(
+                        regionZ
+                                * (double) CELL
+                                + CELL * 0.5
+                                + jitterZ
+                );
+
+        double heightRoll =
+                unit(
+                        mix(
+                                base
+                                        ^ SEED_HEIGHT
+                        )
+                );
+
+        boolean ceilingPeak =
+                heightRoll
+                        > 0.985;
+
+        double radiusRoll =
+                unit(
+                        mix(
+                                base
+                                        ^ SEED_RADIUS
+                        )
+                );
+
+        double radius =
+                440.0
+                        + radiusRoll
+                        * 410.0;
+
+        double summitY;
+
+        if (ceilingPeak) {
+            summitY =
+                    318.0;
+
+            radius =
+                    Math.max(
+                            radius,
+                            900.0
+                    );
+
+        } else if (heightRoll
+                > 0.90) {
+
+            summitY =
+                    278.0
+                            + unit(
+                            mix(
+                                    base
+                                            ^ 0xA24BAED4963EE407L
+                            )
+                    )
+                            * 34.0;
+
+            radius =
+                    Math.max(
+                            radius,
+                            720.0
+                    );
+
+        } else {
+            summitY =
+                    188.0
+                            + heightRoll
+                            / 0.90
+                            * 86.0;
+        }
+
+        double craterRadius =
+                radius
+                        * (
+                        0.09
+                                + unit(
+                                mix(
+                                        base
+                                                ^ 0x9FB21C651E98DF25L
+                                )
+                        )
+                                * 0.065
+                );
+
+        double craterDepth =
+                26.0
+                        + unit(
+                        mix(
+                                base
+                                        ^ 0xC13FA9A902A6328FL
+                        )
+                )
+                        * 44.0;
+
+        int lavaLevel =
+                (int) Math.round(
+                        summitY
+                                - craterDepth
+                                - 9.0
+                );
+
+        double activity =
+                unit(
+                        mix(
+                                base
+                                        ^ 0x91E10DA5C79E7B1DL
+                        )
+                );
+
+        return new Volcano(
+                centerX,
+                centerZ,
+                radius,
+                summitY,
+                craterRadius,
+                craterDepth,
+                lavaLevel,
+                activity,
+                ceilingPeak
+        );
     }
 
     /**
