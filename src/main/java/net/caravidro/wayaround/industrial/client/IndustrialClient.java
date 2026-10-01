@@ -2,6 +2,7 @@ package net.caravidro.wayaround.industrial.client;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.IndustrialContent;
+import net.caravidro.wayaround.industrial.electronics.ElectronicsContent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -18,6 +19,10 @@ public final class IndustrialClient {
         event.register(
                 IndustrialContent.ENGINEERING_WORKBENCH_MENU.get(),
                 EngineeringWorkbenchScreen::new
+        );
+        event.register(
+                ElectronicsContent.ELECTRONICS_WORKBENCH_MENU.get(),
+                ElectronicsWorkbenchScreen::new
         );
     }
 
@@ -70,6 +75,10 @@ public final class IndustrialClient {
         event.registerBlockEntityRenderer(
                 net.caravidro.wayaround.industrial.pipework.PipeworkContent.MECHANICAL_PUMP_ENTITY.get(),
                 MechanicalPumpRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                ElectronicsContent.ELECTRONICS_WORKBENCH_ENTITY.get(),
+                ElectronicsWorkbenchRenderer::new
         );
         event.registerBlockEntityRenderer(
                 IndustrialContent.BLASTER_ENTITY.get(),
