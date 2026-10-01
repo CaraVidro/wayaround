@@ -100,6 +100,21 @@ Mechanical load consumes its available power and increases steam use.
 
 The output shaft currently uses the X axis, so normal shafts/gearboxes can carry its work into the existing mechanical network.
 
+## Instruments instead of free telemetry
+
+Normal interaction with the boiler/engine gives qualitative feedback such as:
+
+- water low / adequate / high;
+- pressure building / working / near relief;
+- cold / warming / boiling;
+- engine stopped / slow / working / fast.
+
+Exact values are intentionally hidden behind a physical **Steam Pressure Gauge**.
+
+Using the gauge on a Boiler or Steam Engine reveals pressure, temperature and the machine-specific exact measurements.
+
+This keeps engineering knowledge something the player measures rather than a permanent debug HUD.
+
 ## Electricity remains downstream
 
 Steam does not bypass the electrical system.
