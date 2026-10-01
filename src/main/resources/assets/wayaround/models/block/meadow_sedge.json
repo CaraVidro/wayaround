@@ -1,7 +1,318 @@
 {
-  "parent": "minecraft:block/tinted_cross",
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "render_type": "cutout",
   "textures": {
-    "cross": "minecraft:block/short_grass"
+    "blade": "minecraft:block/short_grass",
+    "seed": "minecraft:block/hay_block",
+    "particle": "minecraft:block/short_grass"
   },
-  "render_type": "cutout"
+  "elements": [
+    {
+      "from": [
+        2.4,
+        0,
+        4
+      ],
+      "to": [
+        3.5,
+        11.5,
+        5.1
+      ],
+      "faces": {
+        "down": {
+          "texture": "#blade"
+        },
+        "up": {
+          "texture": "#blade"
+        },
+        "north": {
+          "texture": "#blade"
+        },
+        "south": {
+          "texture": "#blade"
+        },
+        "west": {
+          "texture": "#blade"
+        },
+        "east": {
+          "texture": "#blade"
+        }
+      },
+      "rotation": {
+        "origin": [
+          3,
+          1,
+          4.5
+        ],
+        "axis": "z",
+        "angle": -22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        5,
+        0,
+        2.8
+      ],
+      "to": [
+        6.1,
+        13,
+        3.9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#blade"
+        },
+        "up": {
+          "texture": "#blade"
+        },
+        "north": {
+          "texture": "#blade"
+        },
+        "south": {
+          "texture": "#blade"
+        },
+        "west": {
+          "texture": "#blade"
+        },
+        "east": {
+          "texture": "#blade"
+        }
+      },
+      "rotation": {
+        "origin": [
+          5.5,
+          1,
+          3.3
+        ],
+        "axis": "x",
+        "angle": 22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        7.4,
+        0,
+        7.2
+      ],
+      "to": [
+        8.6,
+        15,
+        8.4
+      ],
+      "faces": {
+        "down": {
+          "texture": "#blade"
+        },
+        "up": {
+          "texture": "#blade"
+        },
+        "north": {
+          "texture": "#blade"
+        },
+        "south": {
+          "texture": "#blade"
+        },
+        "west": {
+          "texture": "#blade"
+        },
+        "east": {
+          "texture": "#blade"
+        }
+      }
+    },
+    {
+      "from": [
+        10.6,
+        0,
+        3.8
+      ],
+      "to": [
+        11.7,
+        12.2,
+        4.9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#blade"
+        },
+        "up": {
+          "texture": "#blade"
+        },
+        "north": {
+          "texture": "#blade"
+        },
+        "south": {
+          "texture": "#blade"
+        },
+        "west": {
+          "texture": "#blade"
+        },
+        "east": {
+          "texture": "#blade"
+        }
+      },
+      "rotation": {
+        "origin": [
+          11.1,
+          1,
+          4.4
+        ],
+        "axis": "z",
+        "angle": 22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        12.2,
+        0,
+        9.8
+      ],
+      "to": [
+        13.3,
+        10.2,
+        10.9
+      ],
+      "faces": {
+        "down": {
+          "texture": "#blade"
+        },
+        "up": {
+          "texture": "#blade"
+        },
+        "north": {
+          "texture": "#blade"
+        },
+        "south": {
+          "texture": "#blade"
+        },
+        "west": {
+          "texture": "#blade"
+        },
+        "east": {
+          "texture": "#blade"
+        }
+      },
+      "rotation": {
+        "origin": [
+          12.7,
+          1,
+          10.4
+        ],
+        "axis": "x",
+        "angle": -22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        4.2,
+        0,
+        11.5
+      ],
+      "to": [
+        5.3,
+        9.4,
+        12.6
+      ],
+      "faces": {
+        "down": {
+          "texture": "#blade"
+        },
+        "up": {
+          "texture": "#blade"
+        },
+        "north": {
+          "texture": "#blade"
+        },
+        "south": {
+          "texture": "#blade"
+        },
+        "west": {
+          "texture": "#blade"
+        },
+        "east": {
+          "texture": "#blade"
+        }
+      },
+      "rotation": {
+        "origin": [
+          4.7,
+          1,
+          12
+        ],
+        "axis": "z",
+        "angle": -22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        7,
+        14,
+        6.8
+      ],
+      "to": [
+        9,
+        16.2,
+        8.8
+      ],
+      "faces": {
+        "down": {
+          "texture": "#seed"
+        },
+        "up": {
+          "texture": "#seed"
+        },
+        "north": {
+          "texture": "#seed"
+        },
+        "south": {
+          "texture": "#seed"
+        },
+        "west": {
+          "texture": "#seed"
+        },
+        "east": {
+          "texture": "#seed"
+        }
+      }
+    },
+    {
+      "from": [
+        10.2,
+        11.3,
+        3.5
+      ],
+      "to": [
+        12.1,
+        13.1,
+        5.4
+      ],
+      "faces": {
+        "down": {
+          "texture": "#seed"
+        },
+        "up": {
+          "texture": "#seed"
+        },
+        "north": {
+          "texture": "#seed"
+        },
+        "south": {
+          "texture": "#seed"
+        },
+        "west": {
+          "texture": "#seed"
+        },
+        "east": {
+          "texture": "#seed"
+        }
+      }
+    }
+  ]
 }
