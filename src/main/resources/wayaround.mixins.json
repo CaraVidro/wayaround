@@ -41,6 +41,7 @@
     "client.DeepSeaCapsuleCameraMixin",
     "client.DeepOceanFogMixin",
     "client.DeepOceanLightTextureMixin",
+    "client.SplashRendererAccessor",
     "client.TitleScreenBrandingMixin"
   ],
   "injectors": {

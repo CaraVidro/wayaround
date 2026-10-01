@@ -1,0 +1,76 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "amethyst": "minecraft:block/amethyst_block",
+    "glass": "minecraft:block/glass",
+    "particle": "minecraft:block/amethyst_block"
+  },
+  "elements": [
+    {
+      "from": [
+        6.5,
+        16.58,
+        6.5
+      ],
+      "to": [
+        9.5,
+        18.1,
+        9.5
+      ],
+      "shade": false,
+      "faces": {
+        "down": {
+          "texture": "#amethyst"
+        },
+        "up": {
+          "texture": "#amethyst"
+        },
+        "north": {
+          "texture": "#amethyst"
+        },
+        "south": {
+          "texture": "#amethyst"
+        },
+        "west": {
+          "texture": "#amethyst"
+        },
+        "east": {
+          "texture": "#amethyst"
+        }
+      }
+    },
+    {
+      "from": [
+        6.1,
+        16.55,
+        6.1
+      ],
+      "to": [
+        9.9,
+        18.35,
+        9.9
+      ],
+      "shade": false,
+      "faces": {
+        "down": {
+          "texture": "#glass"
+        },
+        "up": {
+          "texture": "#glass"
+        },
+        "north": {
+          "texture": "#glass"
+        },
+        "south": {
+          "texture": "#glass"
+        },
+        "west": {
+          "texture": "#glass"
+        },
+        "east": {
+          "texture": "#glass"
+        }
+      }
+    }
+  ]
+}

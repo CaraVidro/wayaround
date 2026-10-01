@@ -4,6 +4,8 @@ import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.WayAround;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -35,6 +37,12 @@ public final class ElectronicsContent {
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
             DeferredRegister.create(
                     Registries.BLOCK_ENTITY_TYPE,
+                    WayAround.MODID
+            );
+
+    private static final DeferredRegister<MenuType<?>> MENUS =
+            DeferredRegister.create(
+                    Registries.MENU,
                     WayAround.MODID
             );
 
@@ -79,6 +87,21 @@ public final class ElectronicsContent {
                     "relay"
             );
 
+    public static final DeferredItem<Item> LED =
+            component(
+                    "led"
+            );
+
+    public static final DeferredItem<Item> BUZZER =
+            component(
+                    "buzzer"
+            );
+
+    public static final DeferredItem<Item> DISTANCE_DETECTOR =
+            component(
+                    "distance_detector"
+            );
+
     public static final DeferredItem<Item> INPUT_TERMINAL =
             component(
                     "input_terminal"
@@ -101,6 +124,7 @@ public final class ElectronicsContent {
                                             2.8F,
                                             4.5F
                                     )
+                                    .noOcclusion()
                                     .sound(
                                             SoundType.WOOD
                                     )
@@ -131,6 +155,18 @@ public final class ElectronicsContent {
                             )
             );
 
+    public static final DeferredHolder<
+            MenuType<?>,
+            MenuType<ElectronicsWorkbenchMenu>
+            > ELECTRONICS_WORKBENCH_MENU =
+            MENUS.register(
+                    "electronics_workbench",
+                    () -> new MenuType<>(
+                            ElectronicsWorkbenchMenu::new,
+                            FeatureFlags.VANILLA_SET
+                    )
+            );
+
     public static final DeferredBlock<CircuitControllerBlock> CIRCUIT_CONTROLLER =
             BLOCKS.register(
                     "circuit_controller",
@@ -145,6 +181,13 @@ public final class ElectronicsContent {
                                     )
                                     .sound(
                                             SoundType.COPPER
+                                    )
+                                    .lightLevel(
+                                            state -> state.getValue(
+                                                    CircuitControllerBlock.LED_ACTIVE
+                                            )
+                                                    ? 8
+                                                    : 0
                                     )
                     )
             );
@@ -205,6 +248,10 @@ public final class ElectronicsContent {
                 bus
         );
 
+        MENUS.register(
+                bus
+        );
+
         bus.addListener(
                 ElectronicsContent::capabilities
         );
@@ -261,6 +308,18 @@ public final class ElectronicsContent {
 
         output.accept(
                 RELAY.get()
+        );
+
+        output.accept(
+                LED.get()
+        );
+
+        output.accept(
+                BUZZER.get()
+        );
+
+        output.accept(
+                DISTANCE_DETECTOR.get()
         );
 
         output.accept(
@@ -325,6 +384,24 @@ public final class ElectronicsContent {
             return CircuitBoardData.ComponentType.RELAY;
         }
 
+        if (stack.is(
+                LED.get()
+        )) {
+            return CircuitBoardData.ComponentType.LED;
+        }
+
+        if (stack.is(
+                BUZZER.get()
+        )) {
+            return CircuitBoardData.ComponentType.BUZZER;
+        }
+
+        if (stack.is(
+                DISTANCE_DETECTOR.get()
+        )) {
+            return CircuitBoardData.ComponentType.DISTANCE_DETECTOR;
+        }
+
         return null;
     }
 
@@ -339,6 +416,9 @@ public final class ElectronicsContent {
             case DIODE -> DIODE.get();
             case TRANSISTOR -> TRANSISTOR.get();
             case RELAY -> RELAY.get();
+            case LED -> LED.get();
+            case BUZZER -> BUZZER.get();
+            case DISTANCE_DETECTOR -> DISTANCE_DETECTOR.get();
             case EMPTY -> net.minecraft.world.item.Items.AIR;
         };
     }

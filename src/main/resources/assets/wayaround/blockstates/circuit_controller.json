@@ -4,6 +4,22 @@
       "apply": {
         "model": "wayaround:block/circuit_controller"
       }
+    },
+    {
+      "when": {
+        "has_board": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/circuit_controller_board"
+      }
+    },
+    {
+      "when": {
+        "led_active": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/circuit_controller_led"
+      }
     }
   ]
 }

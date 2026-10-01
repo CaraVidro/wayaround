@@ -2,21 +2,21 @@
   "parent": "wayaround:accessories/first_fit",
   "display": {
     "icon": {
-      "id": "wayaround:gas_mask"
+      "id": "minecraft:charcoal"
     },
     "title": {
-      "translate": "advancements.wayaround.accessories.useless_filter.title"
+      "translate": "advancements.wayaround.accessories.filter_hint.title"
     },
     "description": {
-      "translate": "advancements.wayaround.accessories.useless_filter.description"
+      "translate": "advancements.wayaround.accessories.filter_hint.description"
     },
     "frame": "task",
-    "show_toast": true,
+    "show_toast": false,
     "announce_to_chat": false,
     "hidden": true
   },
   "criteria": {
-    "mask": {
+    "hint": {
       "trigger": "minecraft:impossible"
     }
   }

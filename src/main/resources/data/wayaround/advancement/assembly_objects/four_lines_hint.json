@@ -5,18 +5,18 @@
       "id": "minecraft:string"
     },
     "title": {
-      "translate": "advancements.wayaround.assembly_objects.four_lines.title"
+      "translate": "advancements.wayaround.assembly_objects.four_lines_hint.title"
     },
     "description": {
-      "translate": "advancements.wayaround.assembly_objects.four_lines.description"
+      "translate": "advancements.wayaround.assembly_objects.four_lines_hint.description"
     },
-    "frame": "goal",
-    "show_toast": true,
+    "frame": "task",
+    "show_toast": false,
     "announce_to_chat": false,
     "hidden": true
   },
   "criteria": {
-    "four": {
+    "hint": {
       "trigger": "minecraft:impossible"
     }
   }

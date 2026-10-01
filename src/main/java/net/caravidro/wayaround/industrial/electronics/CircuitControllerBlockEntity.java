@@ -13,13 +13,18 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 
 public final class CircuitControllerBlockEntity
@@ -37,8 +42,11 @@ public final class CircuitControllerBlockEntity
             ItemStack.EMPTY;
 
     private int inputSignal;
+    private int detectorSignal;
     private int outputSignal;
     private int lastDraw;
+    private boolean ledActive;
+    private boolean buzzerActive;
 
     private final IEnergyStorage energyInput =
             new IEnergyStorage() {
@@ -117,6 +125,18 @@ public final class CircuitControllerBlockEntity
         return energyInput;
     }
 
+    public boolean hasBoard() {
+        return !board.isEmpty();
+    }
+
+    public boolean ledActive() {
+        return ledActive;
+    }
+
+    public int detectorSignal() {
+        return detectorSignal;
+    }
+
     public static void serverTick(
             Level level,
             BlockPos pos,
@@ -138,6 +158,9 @@ public final class CircuitControllerBlockEntity
         int oldOutput =
                 outputSignal;
 
+        boolean oldLed =
+                ledActive;
+
         if (!WorldFeatureRuntime.enabled(
                 level,
                 WorldFeature.POWER_NETWORKS
@@ -145,10 +168,15 @@ public final class CircuitControllerBlockEntity
                 || board.isEmpty()) {
 
             inputSignal = 0;
+            detectorSignal = 0;
             outputSignal = 0;
             lastDraw = 0;
-            updateOutput(
-                    oldOutput
+            ledActive = false;
+            buzzerActive = false;
+
+            updateRuntimeState(
+                    oldOutput,
+                    oldLed
             );
             return;
         }
@@ -181,6 +209,16 @@ public final class CircuitControllerBlockEntity
                         0,
                         15
                 );
+
+        detectorSignal =
+                circuit.hasComponent(
+                        CircuitBoardData.ComponentType.DISTANCE_DETECTOR
+                )
+                        ? distanceSignal(
+                        level,
+                        facing
+                )
+                        : 0;
 
         int wanted =
                 circuit.powerDraw();
@@ -238,65 +276,305 @@ public final class CircuitControllerBlockEntity
                                 memory
                         );
 
+        int rawOutput =
+                Math.max(
+                        routedSignal(
+                                circuit,
+                                CircuitBoardData.ComponentType.INPUT_TERMINAL,
+                                CircuitBoardData.ComponentType.OUTPUT_TERMINAL,
+                                inputSignal
+                        ),
+                        routedSignal(
+                                circuit,
+                                CircuitBoardData.ComponentType.DISTANCE_DETECTOR,
+                                CircuitBoardData.ComponentType.OUTPUT_TERMINAL,
+                                detectorSignal
+                        )
+                );
+
+        int rawLed =
+                Math.max(
+                        routedSignal(
+                                circuit,
+                                CircuitBoardData.ComponentType.INPUT_TERMINAL,
+                                CircuitBoardData.ComponentType.LED,
+                                inputSignal
+                        ),
+                        routedSignal(
+                                circuit,
+                                CircuitBoardData.ComponentType.DISTANCE_DETECTOR,
+                                CircuitBoardData.ComponentType.LED,
+                                detectorSignal
+                        )
+                );
+
+        int rawBuzzer =
+                Math.max(
+                        routedSignal(
+                                circuit,
+                                CircuitBoardData.ComponentType.INPUT_TERMINAL,
+                                CircuitBoardData.ComponentType.BUZZER,
+                                inputSignal
+                        ),
+                        routedSignal(
+                                circuit,
+                                CircuitBoardData.ComponentType.DISTANCE_DETECTOR,
+                                CircuitBoardData.ComponentType.BUZZER,
+                                detectorSignal
+                        )
+                );
+
         outputSignal =
                 powered
-                        && circuit.hasSignalPath()
-                        ? Mth.clamp(
-                        Math.round(
-                                inputSignal
-                                        * conductivity
-                        ),
-                        0,
-                        15
+                        ? attenuatedSignal(
+                        rawOutput,
+                        conductivity
                 )
                         : 0;
 
-        updateOutput(
-                oldOutput
+        ledActive =
+                powered
+                        && attenuatedSignal(
+                        rawLed,
+                        conductivity
+                ) > 0;
+
+        buzzerActive =
+                powered
+                        && attenuatedSignal(
+                        rawBuzzer,
+                        conductivity
+                ) > 0;
+
+        if (buzzerActive
+                && Math.floorMod(
+                level.getGameTime()
+                        + worldPosition.asLong(),
+                12
+        ) == 0) {
+
+            int buzzerSignal =
+                    Math.max(
+                            rawBuzzer,
+                            1
+                    );
+
+            float pitch =
+                    0.72F
+                            + buzzerSignal
+                            / 15.0F
+                            * 0.58F;
+
+            level.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.NOTE_BLOCK_BELL.value(),
+                    SoundSource.BLOCKS,
+                    0.62F,
+                    pitch
+            );
+        }
+
+        updateRuntimeState(
+                oldOutput,
+                oldLed
         );
 
         setChanged();
     }
 
-    private void updateOutput(
-            int oldOutput
+    private static int routedSignal(
+            CircuitBoardData circuit,
+            CircuitBoardData.ComponentType source,
+            CircuitBoardData.ComponentType target,
+            int strength
     ) {
-        if (level == null
-                || oldOutput == outputSignal) {
+        return strength > 0
+                && circuit.connected(
+                source,
+                target
+        )
+                ? strength
+                : 0;
+    }
+
+    private static int attenuatedSignal(
+            int signal,
+            float conductivity
+    ) {
+        return Mth.clamp(
+                Math.round(
+                        signal
+                                * conductivity
+                ),
+                0,
+                15
+        );
+    }
+
+    private int distanceSignal(
+            ServerLevel level,
+            Direction facing
+    ) {
+        final double range =
+                16.0;
+
+        Vec3 origin =
+                Vec3.atCenterOf(
+                        worldPosition
+                );
+
+        Vec3 forward =
+                new Vec3(
+                        facing.getStepX(),
+                        0.0,
+                        facing.getStepZ()
+                ).normalize();
+
+        AABB scan =
+                new AABB(
+                        worldPosition
+                ).inflate(
+                        range
+                );
+
+        double nearest =
+                range + 1.0;
+
+        for (LivingEntity entity :
+                level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        scan,
+                        LivingEntity::isAlive
+                )) {
+
+            Vec3 delta =
+                    entity.getBoundingBox()
+                            .getCenter()
+                            .subtract(
+                                    origin
+                            );
+
+            double distance =
+                    delta.length();
+
+            if (distance < 0.25
+                    || distance > range) {
+                continue;
+            }
+
+            double facingDot =
+                    delta.normalize()
+                            .dot(
+                                    forward
+                            );
+
+            if (facingDot < 0.30) {
+                continue;
+            }
+
+            nearest =
+                    Math.min(
+                            nearest,
+                            distance
+                    );
+        }
+
+        if (nearest > range) {
+            return 0;
+        }
+
+        return Mth.clamp(
+                15
+                        - (int) Math.floor(
+                        nearest
+                                / range
+                                * 14.0
+                ),
+                1,
+                15
+        );
+    }
+
+    private void updateRuntimeState(
+            int oldOutput,
+            boolean oldLed
+    ) {
+        if (level == null) {
             return;
         }
 
         BlockState state =
                 getBlockState();
 
-        if (state.hasProperty(
-                CircuitControllerBlock.POWER
-        )
-                && state.getValue(
+        BlockState updated =
+                state;
+
+        if (state.getValue(
                 CircuitControllerBlock.POWER
         ) != outputSignal) {
-
-            level.setBlock(
-                    worldPosition,
-                    state.setValue(
+            updated =
+                    updated.setValue(
                             CircuitControllerBlock.POWER,
                             outputSignal
-                    ),
+                    );
+        }
+
+        if (state.getValue(
+                CircuitControllerBlock.LED_ACTIVE
+        ) != ledActive) {
+            updated =
+                    updated.setValue(
+                            CircuitControllerBlock.LED_ACTIVE,
+                            ledActive
+                    );
+        }
+
+        boolean hasBoard =
+                !board.isEmpty();
+
+        if (state.getValue(
+                CircuitControllerBlock.HAS_BOARD
+        ) != hasBoard) {
+            updated =
+                    updated.setValue(
+                            CircuitControllerBlock.HAS_BOARD,
+                            hasBoard
+                    );
+        }
+
+        if (!updated.equals(
+                state
+        )) {
+            level.setBlock(
+                    worldPosition,
+                    updated,
                     3
             );
         }
 
-        Direction facing =
-                state.getValue(
-                        CircuitControllerBlock.FACING
-                );
+        if (oldOutput != outputSignal) {
+            Direction facing =
+                    updated.getValue(
+                            CircuitControllerBlock.FACING
+                    );
 
-        level.updateNeighborsAt(
-                worldPosition.relative(
-                        facing
-                ),
-                state.getBlock()
-        );
+            level.updateNeighborsAt(
+                    worldPosition.relative(
+                            facing
+                    ),
+                    updated.getBlock()
+            );
+        }
+
+        if (oldLed != ledActive) {
+            level.sendBlockUpdated(
+                    worldPosition,
+                    updated,
+                    updated,
+                    3
+            );
+        }
     }
 
     public void installBoard(
@@ -349,6 +627,24 @@ public final class CircuitControllerBlockEntity
                 true
         );
 
+        if (level != null) {
+            BlockState state =
+                    getBlockState();
+
+            if (!state.getValue(
+                    CircuitControllerBlock.HAS_BOARD
+            )) {
+                level.setBlock(
+                        worldPosition,
+                        state.setValue(
+                                CircuitControllerBlock.HAS_BOARD,
+                                true
+                        ),
+                        3
+                );
+            }
+        }
+
         setChanged();
     }
 
@@ -365,7 +661,11 @@ public final class CircuitControllerBlockEntity
         board =
                 ItemStack.EMPTY;
 
+        inputSignal = 0;
+        detectorSignal = 0;
         outputSignal = 0;
+        ledActive = false;
+        buzzerActive = false;
 
         if (!player.getInventory()
                 .add(
@@ -383,6 +683,26 @@ public final class CircuitControllerBlockEntity
                 ),
                 true
         );
+
+        if (level != null) {
+            BlockState state =
+                    getBlockState();
+
+            level.setBlock(
+                    worldPosition,
+                    state.setValue(
+                            CircuitControllerBlock.HAS_BOARD,
+                            false
+                    ).setValue(
+                            CircuitControllerBlock.LED_ACTIVE,
+                            false
+                    ).setValue(
+                            CircuitControllerBlock.POWER,
+                            0
+                    ),
+                    3
+            );
+        }
 
         setChanged();
     }
@@ -409,11 +729,19 @@ public final class CircuitControllerBlockEntity
                         CAPACITY,
                         lastDraw,
                         inputSignal,
+                        detectorSignal,
                         outputSignal,
                         circuit.componentCount(),
                         circuit.traceCount()
                 ),
                 true
+        );
+
+        player.displayClientMessage(
+                Component.translatable(
+                        "message.wayaround.circuit_controller.flow"
+                ),
+                false
         );
     }
 
@@ -454,8 +782,18 @@ public final class CircuitControllerBlockEntity
         );
 
         tag.putInt(
+                "DetectorSignal",
+                detectorSignal
+        );
+
+        tag.putInt(
                 "OutputSignal",
                 outputSignal
+        );
+
+        tag.putBoolean(
+                "LedActive",
+                ledActive
         );
 
         tag.putInt(
@@ -498,6 +836,15 @@ public final class CircuitControllerBlockEntity
                         15
                 );
 
+        detectorSignal =
+                Mth.clamp(
+                        tag.getInt(
+                                "DetectorSignal"
+                        ),
+                        0,
+                        15
+                );
+
         outputSignal =
                 Mth.clamp(
                         tag.getInt(
@@ -505,6 +852,11 @@ public final class CircuitControllerBlockEntity
                         ),
                         0,
                         15
+                );
+
+        ledActive =
+                tag.getBoolean(
+                        "LedActive"
                 );
 
         lastDraw =

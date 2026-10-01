@@ -94,6 +94,28 @@ And the reverse conversion is now possible:
 
 `electrical grid → electric motor → shaft/gears → mechanical machine`
 
+### Physical electronics editor
+
+- the Electronics Workbench now seats exactly one real Circuit Board at a time;
+- normal click seats/removes the PCB and Shift + click opens the editor;
+- the PCB editor supports zoom/pan and uses only electronic components actually present in the player's inventory;
+- components are dragged onto the board's finite 6×4 layout;
+- copper connections are created pad-to-pad and consume Copper Trace according to route distance;
+- the Circuit Board is now a green 3D model;
+- installed components and copper traces are rendered physically on the workbench after the GUI closes;
+- open workbench geometry no longer culls the top face of blocks underneath it;
+- PCB rendering uses exterior lighting and reduced model shading to avoid black boards on the table;
+- finished boards can be removed from the workbench and installed visibly in the Circuit Controller;
+- controller rear redstone and FE now provide the board's runtime inputs;
+- LED, reinforced Buzzer and Distance Detector components add visual, audio and proximity behavior to the same copper graph.
+
+### Emblem discovery tree
+
+- only the root/entry emblem of each WayAround emblem tab is intended to be visible from the start;
+- most downstream emblems are hidden until discovered;
+- more branches use temporary hint emblems that disappear when the real discovery is earned;
+- new hint progressions include accessories, moving images, warfare escalation and multi-line mechanical transmission.
+
 ### Connected-world polish
 
 - WAYAROUND title branding no longer overlaps the vanilla Play stack at small window sizes;

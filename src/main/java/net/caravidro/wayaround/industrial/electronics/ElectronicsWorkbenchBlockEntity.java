@@ -1,31 +1,58 @@
 package net.caravidro.wayaround.industrial.electronics;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import javax.annotation.Nullable;
 
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
-import net.caravidro.wayaround.industrial.power.PowerContent;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
 
 public final class ElectronicsWorkbenchBlockEntity
-        extends BlockEntity {
-
-    private final Map<UUID, Integer> traceStarts =
-            new HashMap<>();
+        extends BlockEntity
+        implements MenuProvider {
 
     private ItemStack circuitBoard =
             ItemStack.EMPTY;
+
+    private final ContainerData menuData =
+            new ContainerData() {
+                @Override
+                public int get(
+                        int index
+                ) {
+                    return switch (index) {
+                        case 0 -> worldPosition.getX();
+                        case 1 -> worldPosition.getY();
+                        case 2 -> worldPosition.getZ();
+                        default -> 0;
+                    };
+                }
+
+                @Override
+                public void set(
+                        int index,
+                        int value
+                ) {
+                }
+
+                @Override
+                public int getCount() {
+                    return 3;
+                }
+            };
 
     public ElectronicsWorkbenchBlockEntity(
             BlockPos pos,
@@ -42,82 +69,25 @@ public final class ElectronicsWorkbenchBlockEntity
         return !circuitBoard.isEmpty();
     }
 
-    public boolean handleCircuitItem(
-            Player player,
-            ItemStack held,
-            BlockHitResult hit
-    ) {
-        if (held.is(
-                ElectronicsContent.CIRCUIT_BOARD.get()
-        )) {
-            return installCircuitBoard(
-                    player,
-                    held
-            );
-        }
-
-        if (!hasCircuitBoard()
-                || hit.getDirection() != Direction.UP) {
-            return false;
-        }
-
-        int cell =
-                cellFromHit(
-                        hit
-                );
-
-        if (cell < 0) {
-            return false;
-        }
-
-        if (held.is(
-                ElectronicsContent.COPPER_TRACE.get()
-        )) {
-            return routeTrace(
-                    player,
-                    held,
-                    cell
-            );
-        }
-
-        CircuitBoardData.ComponentType component =
-                ElectronicsContent.componentType(
-                        held
-                );
-
-        if (component != null) {
-            return installComponent(
-                    player,
-                    held,
-                    cell,
-                    component
-            );
-        }
-
-        if (held.is(
-                PowerContent.ASSEMBLY_HAMMER.get()
-        )) {
-            return removeAt(
-                    player,
-                    cell
-            );
-        }
-
-        return false;
+    public ItemStack circuitBoardCopy() {
+        return circuitBoard.copy();
     }
 
-    private boolean installCircuitBoard(
+    public CircuitBoardData boardData() {
+        return CircuitBoardData.read(
+                circuitBoard
+        );
+    }
+
+    public boolean installCircuitBoard(
             Player player,
             ItemStack held
     ) {
-        if (hasCircuitBoard()) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.circuit_workbench.board_present"
-                    ),
-                    true
-            );
-            return true;
+        if (hasCircuitBoard()
+                || !held.is(
+                ElectronicsContent.CIRCUIT_BOARD.get()
+        )) {
+            return false;
         }
 
         circuitBoard =
@@ -139,7 +109,9 @@ public final class ElectronicsWorkbenchBlockEntity
         );
 
         if (!player.getAbilities().instabuild) {
-            held.shrink(1);
+            held.shrink(
+                    1
+            );
         }
 
         player.displayClientMessage(
@@ -149,202 +121,7 @@ public final class ElectronicsWorkbenchBlockEntity
                 true
         );
 
-        setChanged();
-        return true;
-    }
-
-    private boolean installComponent(
-            Player player,
-            ItemStack held,
-            int cell,
-            CircuitBoardData.ComponentType component
-    ) {
-        CircuitBoardData board =
-                CircuitBoardData.read(
-                        circuitBoard
-                );
-
-        if (!board.place(
-                cell,
-                component
-        )) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.circuit_workbench.cell_busy",
-                            CircuitBoardData.cellX(cell) + 1,
-                            CircuitBoardData.cellY(cell) + 1
-                    ),
-                    true
-            );
-            return true;
-        }
-
-        board.write(
-                circuitBoard
-        );
-
-        if (!player.getAbilities().instabuild) {
-            held.shrink(1);
-        }
-
-        player.displayClientMessage(
-                Component.translatable(
-                        "message.wayaround.circuit_workbench.component_installed",
-                        component.name(),
-                        CircuitBoardData.cellX(cell) + 1,
-                        CircuitBoardData.cellY(cell) + 1
-                ),
-                true
-        );
-
-        setChanged();
-        return true;
-    }
-
-    private boolean routeTrace(
-            Player player,
-            ItemStack held,
-            int cell
-    ) {
-        UUID id =
-                player.getUUID();
-
-        Integer start =
-                traceStarts.remove(
-                        id
-                );
-
-        if (start == null) {
-            traceStarts.put(
-                    id,
-                    cell
-            );
-
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.circuit_workbench.trace_start",
-                            CircuitBoardData.cellX(cell) + 1,
-                            CircuitBoardData.cellY(cell) + 1
-                    ),
-                    true
-            );
-            return true;
-        }
-
-        CircuitBoardData board =
-                CircuitBoardData.read(
-                        circuitBoard
-                );
-
-        if (!board.addTrace(
-                start,
-                cell
-        )) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.circuit_workbench.trace_failed"
-                    ),
-                    true
-            );
-            return true;
-        }
-
-        board.write(
-                circuitBoard
-        );
-
-        if (!player.getAbilities().instabuild) {
-            held.shrink(1);
-        }
-
-        player.displayClientMessage(
-                Component.translatable(
-                        "message.wayaround.circuit_workbench.trace_added",
-                        CircuitBoardData.cellX(start) + 1,
-                        CircuitBoardData.cellY(start) + 1,
-                        CircuitBoardData.cellX(cell) + 1,
-                        CircuitBoardData.cellY(cell) + 1
-                ),
-                true
-        );
-
-        setChanged();
-        return true;
-    }
-
-    private boolean removeAt(
-            Player player,
-            int cell
-    ) {
-        CircuitBoardData board =
-                CircuitBoardData.read(
-                        circuitBoard
-                );
-
-        CircuitBoardData.ComponentType removed =
-                board.component(
-                        cell
-                );
-
-        int traces =
-                board.removeTracesAt(
-                        cell
-                );
-
-        if (removed != CircuitBoardData.ComponentType.EMPTY) {
-            board.remove(
-                    cell
-            );
-
-            ItemStack recovered =
-                    new ItemStack(
-                            ElectronicsContent.itemFor(
-                                    removed
-                            )
-                    );
-
-            if (!player.getInventory().add(recovered)) {
-                player.drop(recovered, false);
-            }
-        }
-
-        if (traces > 0) {
-            ItemStack wire =
-                    new ItemStack(
-                            ElectronicsContent.COPPER_TRACE.get(),
-                            traces
-                    );
-
-            if (!player.getInventory().add(wire)) {
-                player.drop(wire, false);
-            }
-        }
-
-        if (removed == CircuitBoardData.ComponentType.EMPTY
-                && traces == 0) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.circuit_workbench.nothing_here"
-                    ),
-                    true
-            );
-            return true;
-        }
-
-        board.write(
-                circuitBoard
-        );
-
-        player.displayClientMessage(
-                Component.translatable(
-                        "message.wayaround.circuit_workbench.removed",
-                        CircuitBoardData.cellX(cell) + 1,
-                        CircuitBoardData.cellY(cell) + 1
-                ),
-                true
-        );
-
-        setChanged();
+        sync();
         return true;
     }
 
@@ -361,11 +138,10 @@ public final class ElectronicsWorkbenchBlockEntity
         circuitBoard =
                 ItemStack.EMPTY;
 
-        traceStarts.clear();
-
-        if (!player.getInventory().add(removed)) {
-            player.drop(removed, false);
-        }
+        give(
+                player,
+                removed
+        );
 
         player.displayClientMessage(
                 Component.translatable(
@@ -374,44 +150,191 @@ public final class ElectronicsWorkbenchBlockEntity
                 true
         );
 
-        setChanged();
+        sync();
     }
 
-    public void describeCircuit(
-            Player player
+    public boolean placeComponent(
+            ServerPlayer player,
+            CircuitBoardData.ComponentType type,
+            int cell
     ) {
-        if (!hasCircuitBoard()) {
-            player.displayClientMessage(
-                    Component.translatable(
-                            "message.wayaround.circuit_workbench.no_board"
-                    ),
-                    true
-            );
-            return;
+        if (!hasCircuitBoard()
+                || type == null
+                || type == CircuitBoardData.ComponentType.EMPTY) {
+            return false;
         }
 
         CircuitBoardData board =
-                CircuitBoardData.read(
-                        circuitBoard
+                boardData();
+
+        if (board.component(
+                cell
+        ) != CircuitBoardData.ComponentType.EMPTY) {
+            return false;
+        }
+
+        Item item =
+                ElectronicsContent.itemFor(
+                        type
                 );
+
+        if (!consume(
+                player,
+                item,
+                1
+        )) {
+            return false;
+        }
+
+        if (!board.place(
+                cell,
+                type
+        )) {
+            give(
+                    player,
+                    new ItemStack(
+                            item
+                    )
+            );
+            return false;
+        }
+
+        board.write(
+                circuitBoard
+        );
+
+        sync();
+        return true;
+    }
+
+    public boolean connect(
+            ServerPlayer player,
+            int a,
+            int b
+    ) {
+        if (!hasCircuitBoard()
+                || a == b) {
+            return false;
+        }
+
+        CircuitBoardData board =
+                boardData();
+
+        if (board.component(
+                a
+        ) == CircuitBoardData.ComponentType.EMPTY
+                || board.component(
+                b
+        ) == CircuitBoardData.ComponentType.EMPTY
+                || board.hasTrace(
+                a,
+                b
+        )) {
+            return false;
+        }
+
+        int copperCost =
+                CircuitBoardData.traceCopperCost(
+                        a,
+                        b
+                );
+
+        if (copperCost <= 0
+                || !consume(
+                player,
+                ElectronicsContent.COPPER_TRACE.get(),
+                copperCost
+        )) {
+            return false;
+        }
+
+        if (!board.addTrace(
+                a,
+                b
+        )) {
+            give(
+                    player,
+                    new ItemStack(
+                            ElectronicsContent.COPPER_TRACE.get(),
+                            copperCost
+                    )
+            );
+            return false;
+        }
+
+        board.write(
+                circuitBoard
+        );
 
         player.displayClientMessage(
                 Component.translatable(
-                        "message.wayaround.circuit_workbench.status",
-                        board.componentCount(),
-                        CircuitBoardData.CELL_COUNT,
-                        board.traceCount(),
-                        board.powerDraw(),
-                        board.hasSignalPath()
-                                ? Component.translatable(
-                                "message.wayaround.circuit_workbench.closed_path"
-                        )
-                                : Component.translatable(
-                                "message.wayaround.circuit_workbench.open_path"
-                        )
+                        "message.wayaround.circuit_workbench.trace_cost",
+                        copperCost
                 ),
                 true
         );
+
+        sync();
+        return true;
+    }
+
+    public boolean removeCell(
+            ServerPlayer player,
+            int cell
+    ) {
+        if (!hasCircuitBoard()) {
+            return false;
+        }
+
+        CircuitBoardData board =
+                boardData();
+
+        CircuitBoardData.ComponentType type =
+                board.component(
+                        cell
+                );
+
+        int copper =
+                board.copperCostAt(
+                        cell
+                );
+
+        if (type == CircuitBoardData.ComponentType.EMPTY
+                && copper <= 0) {
+            return false;
+        }
+
+        if (type != CircuitBoardData.ComponentType.EMPTY) {
+            give(
+                    player,
+                    new ItemStack(
+                            ElectronicsContent.itemFor(
+                                    type
+                            )
+                    )
+            );
+        }
+
+        if (copper > 0) {
+            give(
+                    player,
+                    new ItemStack(
+                            ElectronicsContent.COPPER_TRACE.get(),
+                            copper
+                    )
+            );
+        }
+
+        board.remove(
+                cell
+        );
+
+        board.write(
+                circuitBoard
+        );
+
+        sync();
+        return true;
     }
 
     public void dropCircuitBoard() {
@@ -429,41 +352,142 @@ public final class ElectronicsWorkbenchBlockEntity
         circuitBoard =
                 ItemStack.EMPTY;
 
-        traceStarts.clear();
+        sync();
     }
 
-    private int cellFromHit(
-            BlockHitResult hit
+    private static boolean consume(
+            ServerPlayer player,
+            Item item,
+            int count
     ) {
-        double localX =
-                hit.getLocation().x
-                        - worldPosition.getX();
+        if (count <= 0
+                || player.getAbilities().instabuild) {
+            return true;
+        }
 
-        double localZ =
-                hit.getLocation().z
-                        - worldPosition.getZ();
+        int available =
+                0;
 
-        int x =
-                Math.clamp(
-                        (int) Math.floor(
-                                localX * CircuitBoardData.WIDTH
-                        ),
-                        0,
-                        CircuitBoardData.WIDTH - 1
-                );
+        for (ItemStack stack :
+                player.getInventory().items) {
+            if (stack.is(
+                    item
+            )) {
+                available +=
+                        stack.getCount();
 
-        int y =
-                Math.clamp(
-                        (int) Math.floor(
-                                localZ * CircuitBoardData.HEIGHT
-                        ),
-                        0,
-                        CircuitBoardData.HEIGHT - 1
-                );
+                if (available >= count) {
+                    break;
+                }
+            }
+        }
 
-        return CircuitBoardData.cell(
-                x,
-                y
+        if (available < count) {
+            return false;
+        }
+
+        int remaining =
+                count;
+
+        for (ItemStack stack :
+                player.getInventory().items) {
+            if (!stack.is(
+                    item
+            )) {
+                continue;
+            }
+
+            int taken =
+                    Math.min(
+                            remaining,
+                            stack.getCount()
+                    );
+
+            stack.shrink(
+                    taken
+            );
+
+            remaining -=
+                    taken;
+
+            if (remaining <= 0) {
+                break;
+            }
+        }
+
+        player.getInventory()
+                .setChanged();
+
+        return true;
+    }
+
+    private static void give(
+            Player player,
+            ItemStack stack
+    ) {
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        if (!player.getInventory()
+                .add(
+                        stack
+                )) {
+            player.drop(
+                    stack,
+                    false
+            );
+        }
+    }
+
+    private void sync() {
+        setChanged();
+
+        if (level != null) {
+            level.sendBlockUpdated(
+                    worldPosition,
+                    getBlockState(),
+                    getBlockState(),
+                    3
+            );
+        }
+    }
+
+    @Override
+    public Component getDisplayName() {
+        return Component.translatable(
+                "container.wayaround.electronics_workbench"
+        );
+    }
+
+    @Nullable
+    @Override
+    public AbstractContainerMenu createMenu(
+            int id,
+            Inventory inventory,
+            Player player
+    ) {
+        return new ElectronicsWorkbenchMenu(
+                id,
+                inventory,
+                this,
+                menuData
+        );
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(
+            HolderLookup.Provider registries
+    ) {
+        return saveWithoutMetadata(
+                registries
+        );
+    }
+
+    @Override
+    public ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(
+                this
         );
     }
 
@@ -516,7 +540,5 @@ public final class ElectronicsWorkbenchBlockEntity
             circuitBoard =
                     ItemStack.EMPTY;
         }
-
-        traceStarts.clear();
     }
 }

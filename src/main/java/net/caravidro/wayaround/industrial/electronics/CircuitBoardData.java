@@ -2,7 +2,9 @@ package net.caravidro.wayaround.industrial.electronics;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import net.minecraft.core.component.DataComponents;
@@ -12,6 +14,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
 public final class CircuitBoardData {
+
+    public record Trace(
+            int a,
+            int b
+    ) {}
 
     public static final int WIDTH = 6;
     public static final int HEIGHT = 4;
@@ -28,7 +35,10 @@ public final class CircuitBoardData {
         CAPACITOR(2),
         DIODE(1),
         TRANSISTOR(3),
-        RELAY(4);
+        RELAY(4),
+        LED(1),
+        BUZZER(2),
+        DISTANCE_DETECTOR(3);
 
         private final int energyCost;
 
@@ -233,6 +243,113 @@ public final class CircuitBoardData {
         return previous;
     }
 
+    public boolean hasTrace(
+            int a,
+            int b
+    ) {
+        return validCell(a)
+                && validCell(b)
+                && a != b
+                && traces.contains(
+                encode(
+                        a,
+                        b
+                )
+        );
+    }
+
+    public boolean removeTrace(
+            int a,
+            int b
+    ) {
+        return validCell(a)
+                && validCell(b)
+                && a != b
+                && traces.remove(
+                encode(
+                        a,
+                        b
+                )
+        );
+    }
+
+    public List<Trace> traceEdges() {
+        List<Trace> result =
+                new ArrayList<>();
+
+        traces.stream()
+                .sorted()
+                .forEach(
+                        encoded -> result.add(
+                                new Trace(
+                                        encoded / CELL_COUNT,
+                                        encoded % CELL_COUNT
+                                )
+                        )
+                );
+
+        return List.copyOf(
+                result
+        );
+    }
+
+    public static int traceCopperCost(
+            int a,
+            int b
+    ) {
+        if (!validCell(a)
+                || !validCell(b)
+                || a == b) {
+            return 0;
+        }
+
+        int dx =
+                cellX(a)
+                        - cellX(b);
+
+        int dy =
+                cellY(a)
+                        - cellY(b);
+
+        double distance =
+                Math.sqrt(
+                        dx * dx
+                                + dy * dy
+                );
+
+        /*
+         * One copper trace item represents about half a board-cell of routed
+         * conductor. Long diagonal runs therefore cost noticeably more than
+         * neighboring pads instead of every connection costing one item.
+         */
+        return Math.max(
+                1,
+                (int) Math.ceil(
+                        distance * 2.0
+                )
+        );
+    }
+
+    public int copperCostAt(
+            int cell
+    ) {
+        int total =
+                0;
+
+        for (Trace trace : traceEdges()) {
+            if (trace.a() == cell
+                    || trace.b() == cell) {
+                total +=
+                        traceCopperCost(
+                                trace.a(),
+                                trace.b()
+                        );
+            }
+        }
+
+        return total;
+    }
+
     public boolean addTrace(
             int a,
             int b
@@ -279,6 +396,23 @@ public final class CircuitBoardData {
                 - traces.size();
     }
 
+    public boolean hasComponent(
+            ComponentType type
+    ) {
+        if (type == null
+                || type == ComponentType.EMPTY) {
+            return false;
+        }
+
+        for (ComponentType component : components) {
+            if (component == type) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public int componentCount() {
         int count = 0;
 
@@ -315,19 +449,29 @@ public final class CircuitBoardData {
         );
     }
 
-    public boolean hasSignalPath() {
-        Set<Integer> inputs =
+    public boolean connected(
+            ComponentType source,
+            ComponentType target
+    ) {
+        if (source == null
+                || target == null
+                || source == ComponentType.EMPTY
+                || target == ComponentType.EMPTY) {
+            return false;
+        }
+
+        Set<Integer> sources =
                 cellsOf(
-                        ComponentType.INPUT_TERMINAL
+                        source
                 );
 
-        Set<Integer> outputs =
+        Set<Integer> targets =
                 cellsOf(
-                        ComponentType.OUTPUT_TERMINAL
+                        target
                 );
 
-        if (inputs.isEmpty()
-                || outputs.isEmpty()) {
+        if (sources.isEmpty()
+                || targets.isEmpty()) {
             return false;
         }
 
@@ -337,12 +481,12 @@ public final class CircuitBoardData {
         ArrayDeque<Integer> pending =
                 new ArrayDeque<>();
 
-        for (int input : inputs) {
-            visited[input] =
+        for (int sourceCell : sources) {
+            visited[sourceCell] =
                     true;
 
             pending.addLast(
-                    input
+                    sourceCell
             );
         }
 
@@ -350,7 +494,7 @@ public final class CircuitBoardData {
             int current =
                     pending.removeFirst();
 
-            if (outputs.contains(
+            if (targets.contains(
                     current
             )) {
                 return true;
@@ -383,6 +527,21 @@ public final class CircuitBoardData {
         }
 
         return false;
+    }
+
+    public boolean hasSignalPath() {
+        return connected(
+                ComponentType.INPUT_TERMINAL,
+                ComponentType.OUTPUT_TERMINAL
+        );
+    }
+
+    public boolean hasRuntimeOutputPath() {
+        return hasSignalPath()
+                || connected(
+                ComponentType.DISTANCE_DETECTOR,
+                ComponentType.OUTPUT_TERMINAL
+        );
     }
 
     public float complexity() {

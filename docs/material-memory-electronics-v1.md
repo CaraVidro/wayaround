@@ -81,13 +81,21 @@ The board is carried as one ItemStack, so the exact layout survives removal, tra
 
 ## Building circuits
 
-Electronics uses a dedicated **Electronics Workbench**.
+Electronics uses a dedicated **Electronics Workbench** with a physical PCB editor.
 
-1. place a Circuit Board on the Electronics Workbench;
-2. right-click a top-face cell with an electronic component to install it;
-3. use Copper Trace on one cell and then another to route a trace;
-4. use the Assembly Hammer on a cell to recover installed parts/traces;
-5. Shift + empty-hand use removes the board with its topology intact.
+1. right-click the bench with a Circuit Board to seat exactly one board on the table;
+2. right-click the bench again with an empty hand to remove that same board, preserving its exact layout;
+3. Shift + right-click while a board is seated to open the PCB editor;
+4. the component list is generated from electronic parts that actually exist in the player's inventory;
+5. drag a component from that list into one of the board's limited 6×4 physical positions;
+6. each placed component exposes a copper connection pad in the editor;
+7. click one pad and then another to route a copper trace;
+8. longer traces consume more Copper Trace items than short neighboring connections;
+9. right-click a populated board position in the editor to recover that component and the copper attached to it.
+
+The editor supports zoom and panning, similar to the Engineering Workbench, but it is not a block catalogue. Its left panel is inventory-driven and its right panel describes the selected electronic component and board state.
+
+The Circuit Board item itself is a simple green 3D PCB. When it is seated on the Electronics Workbench, the board is rendered on the tabletop. Installed resistors, capacitors, diodes, transistors, relays, terminals and copper routes remain visibly present in-world even after the GUI is closed.
 
 This separation is intentional. The Engineering Workbench remains focused on calculation, blueprints and engineering design; the Electronics Workbench becomes the physical workspace for the electronics profession-like role.
 
@@ -99,15 +107,20 @@ Existing WayAround generators and `EnergyNetwork` can therefore power it through
 
 There is no separate "electronics energy".
 
-The controller:
+The controller is now the physical runtime socket for a finished board:
 
-- accepts a player-built circuit board;
-- consumes FE according to circuit complexity;
-- reads an electrical/redstone input from its rear;
-- requires a real conductive path from INPUT_TERMINAL to OUTPUT_TERMINAL;
-- emits the resulting signal from its facing side;
-- ages the copper board while operating;
-- can suffer conductivity loss as corrosion/heat history grows.
+- remove the PCB from the Electronics Workbench after editing;
+- right-click the Circuit Controller with the board to install it visibly on the controller;
+- Shift + empty-hand use removes that same board again with its exact layout intact;
+- FE from the existing WayAround electrical network powers the board;
+- redstone entering the **rear** becomes the INPUT_TERMINAL source;
+- an OUTPUT_TERMINAL routed through copper emits redstone from the controller's **front**;
+- Distance Detector components are independent signal sources: they scan living entities up to 16 blocks in front of the controller and create a stronger 1–15 signal for nearer targets;
+- LED components are visual sinks and make the controller glow when a routed source is active;
+- Buzzer components are audio sinks and emit reinforced note-like pulses whose pitch follows signal strength;
+- all of those active parts use the same explicit physical copper graph as ordinary input/output routing;
+- the controller consumes FE according to circuit complexity;
+- the board still ages while operating and conductivity can fall as corrosion/heat history grows.
 
 ## Why this is a seed instead of a computer update
 
