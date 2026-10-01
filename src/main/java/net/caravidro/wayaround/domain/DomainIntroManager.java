@@ -62,13 +62,15 @@ public final class DomainIntroManager {
     public static boolean requestVoid(
             ServerPlayer player
     ) {
+        /*
+         * Even INNATE is allowed to reach the intro. Its whole point is to
+         * answer an attempted Expansion with text and then... nothing.
+         * SIMPLE/ABSOLUTE continue on to the actual cast.
+         */
         return SpectrumAccess.has(
                 player,
                 SpectrumType.VOID
         )
-                && VoidDomainPresentation.get(
-                player
-        ).canExpand()
                 && request(
                 player,
                 VOID
@@ -296,10 +298,7 @@ public final class DomainIntroManager {
                     SpectrumAccess.has(
                             player,
                             SpectrumType.VOID
-                    )
-                            && VoidDomainPresentation.get(
-                                    player
-                            ).canExpand();
+                    );
 
             case TUKUNA ->
                     SpectrumAccess.has(
@@ -391,10 +390,15 @@ public final class DomainIntroManager {
             byte style
     ) {
         switch (style) {
-            case VOID ->
+            case VOID -> {
+                if (VoidDomainPresentation.get(
+                        player
+                ).canExpand()) {
                     VoidDomainManager.expand(
                             player
                     );
+                }
+            }
 
             case TUKUNA ->
                     TukunaDomainPreview.start(
