@@ -27,20 +27,57 @@ public abstract class TitleScreenBrandingMixin {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        int height =
+        int width =
                 minecraft.getWindow()
-                        .getGuiScaledHeight();
-
-        int x =
-                8;
+                        .getGuiScaledWidth();
 
         int y =
+                8;
+
+        Component brand =
+                Component.literal(
+                        "WAYAROUND"
+                );
+
+        Component release =
+                Component.literal(
+                        WayAroundReleaseInfo.menuTitle()
+                );
+
+        Component version =
+                Component.literal(
+                        WayAroundReleaseInfo.menuVersion()
+                );
+
+        Component preview =
+                WayAroundReleaseInfo.previewLine();
+
+        int railWidth =
+                Math.max(
+                        minecraft.font.width(
+                                brand
+                        ),
+                        Math.max(
+                                minecraft.font.width(
+                                        release
+                                ),
+                                Math.max(
+                                        minecraft.font.width(
+                                                version
+                                        ),
+                                        !WayAroundReleaseInfo.RELEASED_NEXT
+                                                ? minecraft.font.width(
+                                                preview
+                                        )
+                                                : 0
+                                )
+                        )
+                );
+
+        int x =
                 Math.max(
                         8,
-                        Math.min(
-                                70,
-                                height - 112
-                        )
+                        width - railWidth - 8
                 );
 
         /*
@@ -49,9 +86,7 @@ public abstract class TitleScreenBrandingMixin {
          */
         graphics.drawString(
                 minecraft.font,
-                Component.literal(
-                        "WAYAROUND"
-                ),
+                brand,
                 x,
                 y,
                 0xFFB8B8B8,
@@ -60,9 +95,7 @@ public abstract class TitleScreenBrandingMixin {
 
         graphics.drawString(
                 minecraft.font,
-                Component.literal(
-                        WayAroundReleaseInfo.menuTitle()
-                ),
+                release,
                 x,
                 y + 12,
                 0xFF8C6E46,
@@ -71,9 +104,7 @@ public abstract class TitleScreenBrandingMixin {
 
         graphics.drawString(
                 minecraft.font,
-                Component.literal(
-                        WayAroundReleaseInfo.menuVersion()
-                ),
+                version,
                 x,
                 y + 24,
                 0xFF4B4B4B,
@@ -83,7 +114,7 @@ public abstract class TitleScreenBrandingMixin {
         if (!WayAroundReleaseInfo.RELEASED_NEXT) {
             graphics.drawString(
                     minecraft.font,
-                    WayAroundReleaseInfo.previewLine(),
+                    preview,
                     x,
                     y + 36,
                     0xFF74664F,
