@@ -50,11 +50,7 @@ public final class WayAroundReleaseInfo {
         return List.of(
                 Component.translatable("screen.wayaround.update_log.dev"),
                 Component.translatable("screen.wayaround.update_log.milestone"),
-                Component.translatable("screen.wayaround.update_log.load"),
-                Component.translatable("screen.wayaround.update_log.torque"),
-                Component.translatable("screen.wayaround.update_log.transmission"),
                 Component.translatable("screen.wayaround.update_log.failure"),
-                Component.translatable("screen.wayaround.update_log.machines"),
                 Component.translatable("screen.wayaround.update_log.milestone14"),
                 Component.translatable("screen.wayaround.update_log.material_memory"),
                 Component.translatable("screen.wayaround.update_log.electronics"),
