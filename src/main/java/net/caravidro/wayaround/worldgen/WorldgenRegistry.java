@@ -6,6 +6,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.feature.AntarcticIcebergFeature;
 import net.caravidro.wayaround.worldgen.terrain.AntarcticDensityFunction;
 import net.caravidro.wayaround.worldgen.terrain.VolcanicDensityFunction;
+import net.caravidro.wayaround.worldgen.terrain.GreatRiftDensityFunction;
 
 import net.minecraft.core.registries.Registries;
 
@@ -55,6 +56,14 @@ public final class WorldgenRegistry {
             DENSITY_FUNCTION_TYPES.register(
                     "volcanic_density",
                     () -> VolcanicDensityFunction.DATA_CODEC
+            );
+
+    public static final Supplier<
+            MapCodec<? extends DensityFunction>
+    > GREAT_RIFT_DENSITY =
+            DENSITY_FUNCTION_TYPES.register(
+                    "great_rift_density",
+                    () -> GreatRiftDensityFunction.DATA_CODEC
             );
 
 
