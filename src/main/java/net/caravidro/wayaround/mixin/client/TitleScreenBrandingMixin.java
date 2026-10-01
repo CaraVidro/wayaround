@@ -40,12 +40,6 @@ public abstract class TitleScreenBrandingMixin {
          * Update Log, but on the opposite side. The vanilla splash lives
          * around the logo/top-right area, so this removes that collision.
          */
-        int y =
-                Math.max(
-                        8,
-                        height - 64
-                );
-
         Component brand =
                 Component.literal(
                         "WAYAROUND"
@@ -83,6 +77,22 @@ public abstract class TitleScreenBrandingMixin {
                                         )
                                                 : 0
                                 )
+                        )
+                );
+
+        boolean narrow =
+                width
+                        < railWidth
+                                + 126;
+
+        int y =
+                Math.max(
+                        8,
+                        height
+                                - (
+                                narrow
+                                        ? 112
+                                        : 64
                         )
                 );
 
