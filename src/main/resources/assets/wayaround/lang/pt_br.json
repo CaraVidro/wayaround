@@ -873,5 +873,16 @@
   "message.wayaround.circuit_controller.board_removed": "Placa eletrônica removida do controlador.",
   "message.wayaround.circuit_controller.no_board": "sem placa",
   "message.wayaround.circuit_controller.has_board": "placa instalada",
-  "message.wayaround.circuit_controller.status": "Controlador: %s | %s/%s FE | consumo %s FE/t | entrada %s | saída %s | %s componentes | %s trilhas"
+  "message.wayaround.circuit_controller.status": "Controlador: %s | %s/%s FE | consumo %s FE/t | entrada %s | saída %s | %s componentes | %s trilhas",
+  "block.wayaround.electronics_workbench": "Bancada de Eletrônica",
+  "block.wayaround.steam_boiler": "Caldeira a Vapor",
+  "item.wayaround.boiler_pressure_vessel": "Vaso de Pressão da Caldeira",
+  "item.wayaround.boiler_safety_valve": "Válvula de Segurança da Caldeira",
+  "message.wayaround.steam_boiler.status": "Caldeira: %s | Água %s/%s mB | Vapor %s/%s | Pressão %s bar | %s °C | Calor %s%% | Carvão %s",
+  "message.wayaround.steam_boiler.complete": "montada",
+  "message.wayaround.steam_boiler.incomplete": "faltando vaso de pressão / válvula de segurança",
+  "message.wayaround.steam_engine.status_v2": "Vapor %s/%s | Pressão %s bar | %s °C | RPM %s | Torque %s | Potência mecânica %s",
+  "screen.wayaround.update_log.milestone15": "Marco 1.5: Steam Age / calor → vapor → pressão → rotação → eletricidade.",
+  "screen.wayaround.update_log.steam_chain": "Caldeiras, tubos para vapor e motores de pistão agora são etapas físicas separadas.",
+  "screen.wayaround.update_log.professions": "A eletrônica foi para sua Bancada de Eletrônica; a Engenharia volta a focar projeto e cálculo."
 }
