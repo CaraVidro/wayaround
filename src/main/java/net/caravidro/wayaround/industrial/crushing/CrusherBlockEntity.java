@@ -86,6 +86,15 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         heat = Math.max(0,heat-.0015F) + (recipe != null && granted > 0
             ? .00035F * load * parts.driveCost() * (1 + Math.min(1.5F,demand.overspeed()))
             : 0);
+        if (Math.floorMod(level.getGameTime() + worldPosition.asLong(),20)==0
+                && parts.complete()) {
+            parts.observeMaterialUse(
+                level.getGameTime(),
+                load,
+                vibration,
+                heat
+            );
+        }
         if (working() && recipe != null && granted > .01F) {
             int batch = size().boundedBatch(input.get(0).getCount(), MAX_OUTPUT-outputCount(), recipe.count(), parts.feedMultiplier());
             if (canOutput(recipe,batch)) {
