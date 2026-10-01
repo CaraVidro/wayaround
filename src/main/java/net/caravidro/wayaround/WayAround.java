@@ -29,6 +29,7 @@ import net.caravidro.wayaround.justice.JusticeSenseManager;
 import net.caravidro.wayaround.jujutsu.JujutsuCommands;
 import net.caravidro.wayaround.particle.WayAroundParticles;
 import net.caravidro.wayaround.sounds.WayAroundSounds;
+import net.caravidro.wayaround.spectrum.SpectrumCommands;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.caravidro.wayaround.worldgen.WayAroundFeatures;
 import net.caravidro.wayaround.worldgen.WorldgenRegistry;
@@ -109,6 +110,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(BlizzardCommand::register);
         NeoForge.EVENT_BUS.addListener(WindTestCommand::register);
         NeoForge.EVENT_BUS.addListener(DomainCommands::register);
+        NeoForge.EVENT_BUS.addListener(SpectrumCommands::register);
         NeoForge.EVENT_BUS.addListener(TukunaDebugCommands::register);
         NeoForge.EVENT_BUS.addListener(JujutsuCommands::register);
         NeoForge.EVENT_BUS.addListener(EcologyTimeCommand::register);
