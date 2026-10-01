@@ -102,7 +102,12 @@ And the reverse conversion is now possible:
 - components are dragged onto the board's finite 6×4 layout;
 - copper connections are created pad-to-pad and consume Copper Trace according to route distance;
 - the Circuit Board is now a green 3D model;
-- installed components and copper traces are rendered physically on the workbench after the GUI closes.
+- installed components and copper traces are rendered physically on the workbench after the GUI closes;
+- open workbench geometry no longer culls the top face of blocks underneath it;
+- PCB rendering uses exterior lighting and reduced model shading to avoid black boards on the table;
+- finished boards can be removed from the workbench and installed visibly in the Circuit Controller;
+- controller rear redstone and FE now provide the board's runtime inputs;
+- LED, reinforced Buzzer and Distance Detector components add visual, audio and proximity behavior to the same copper graph.
 
 ### Emblem discovery tree
 
