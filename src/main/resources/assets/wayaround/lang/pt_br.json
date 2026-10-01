@@ -982,5 +982,13 @@
   "container.wayaround.electronics.property.buzzer": "Saída sonora. Emite pulsos tipo note block quando uma fonte conectada está ativa.",
   "container.wayaround.electronics.property.distance_detector": "Sensor-fonte. Detecta seres vivos até 16 blocos à frente; quanto mais perto, mais forte o sinal.",
   "screen.wayaround.update_log.splash_readability": "Os splashes dialogados agora quebram em linhas próprias em vez de encolher até virar formiga.",
-  "screen.wayaround.update_log.active_electronics": "Eletrônica ativa: PCB iluminada corretamente, Controller com entrada traseira/saída frontal, LED, Buzzer e Detector de Distância."
+  "screen.wayaround.update_log.active_electronics": "Eletrônica ativa: PCB iluminada corretamente, Controller com entrada traseira/saída frontal, LED, Buzzer e Detector de Distância.",
+  "tooltip.wayaround.circuit_board.size": "Tamanho da PCB: %sx%s • expansão %s/%s",
+  "container.wayaround.electronics.board_size": "PCB %sx%s • expansão %s",
+  "container.wayaround.electronics.board_max": "TAMANHO MÁXIMO DA PCB",
+  "container.wayaround.electronics.expand_to": "Expandir para %sx%s",
+  "container.wayaround.electronics.upgrade_compact": "%sx %s • %sx %s • %sx %s",
+  "container.wayaround.electronics.expand_shift": "SHIFT + CLIQUE: EXPANDIR PCB",
+  "message.wayaround.circuit_workbench.upgrade_missing": "Expansão cancelada: todos os materiais precisam existir antes de qualquer item ser consumido.",
+  "message.wayaround.circuit_workbench.upgraded": "PCB expandida para %sx%s (nível %s)."
 }
