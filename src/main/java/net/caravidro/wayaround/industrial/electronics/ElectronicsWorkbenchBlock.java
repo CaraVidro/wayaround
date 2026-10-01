@@ -103,6 +103,15 @@ public final class ElectronicsWorkbenchBlock
             return ItemInteractionResult.SUCCESS;
         }
 
+        /*
+         * With a PCB already seated, held items must not fall through into
+         * useWithoutItem(), otherwise an ordinary component click could eject
+         * the board. Empty-hand click remains the explicit removal gesture.
+         */
+        if (workbench.hasCircuitBoard()) {
+            return ItemInteractionResult.SUCCESS;
+        }
+
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
 
