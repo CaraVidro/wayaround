@@ -33,7 +33,7 @@ public final class ElectronicsWorkbenchRenderer
             float partialTick,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
-            int renderLight,
+            int packedLight,
             int packedOverlay
     ) {
         if (!workbench.hasCircuitBoard()) {
@@ -42,11 +42,11 @@ public final class ElectronicsWorkbenchRenderer
 
         int renderLight =
                 workbench.getLevel() == null
-                        ? renderLight
+                        ? packedLight
                         : IndustrialRenderUtil.exteriorLight(
                         workbench.getLevel(),
                         workbench.getBlockPos(),
-                        renderLight
+                        packedLight
                 );
 
         poseStack.pushPose();
