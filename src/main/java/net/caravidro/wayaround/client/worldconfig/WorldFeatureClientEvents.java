@@ -19,6 +19,8 @@ public final class WorldFeatureClientEvents {
     public static void logout(
             ClientPlayerNetworkEvent.LoggingOut event
     ) {
+        net.caravidro.wayaround.client.water.WaterSurfaceRenderer.clearCache();
+        net.caravidro.wayaround.client.water.WaterEffectsClient.clearCache();
         WorldFeatureRuntime.resetClient();
         WorldFeatureCreationFlow.clearApproval();
     }

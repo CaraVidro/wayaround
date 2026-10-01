@@ -593,3 +593,50 @@ tasks.register('fishHabitatRegressionTest', JavaExec) {
     mainClass = 'net.caravidro.wayaround.ecology.FishHabitatTest'
 }
 tasks.named('check') { dependsOn tasks.named('fishHabitatRegressionTest') }
+
+// Keep local audio backups out of shipped resources (the canonical OGG is retained).
+sourceSets.main.resources.exclude('**/*.local.ogg')
+
+sourceSets {
+    packagingTools { java.srcDir 'tools/packaging' }
+    storageTest {
+        java.srcDir 'src/main/java'
+        java.include 'net/caravidro/wayaround/storage/**'
+    }
+}
+
+tasks.register('storageRegressionTest', JavaExec) {
+    dependsOn tasks.named('storageTestClasses')
+    classpath = sourceSets.storageTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.storage.StorageRegressionTest'
+}
+tasks.named('check') { dependsOn tasks.named('storageRegressionTest') }
+
+// Applied at build time only. Preserve standard JAR resource paths and registry stability.
+// Assemble waits for verified compaction; a failed jar task never runs the optimizer.
+def compactJar = tasks.register('compactJar', JavaExec) {
+    dependsOn tasks.named('jar'), tasks.named('packagingToolsClasses')
+    classpath = sourceSets.packagingTools.runtimeClasspath
+    mainClass = 'CompactArchive'
+    args tasks.named('jar').get().archiveFile.get().asFile.absolutePath
+}
+tasks.named('assemble') { dependsOn compactJar }
+
+// Optional portable archive of the raw project; leaves the working checkout editable.
+tasks.register('compactSources', Zip) {
+    archiveClassifier = 'source-project'
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from('.') {
+        include 'src/**', 'docs/**', 'tools/**', 'gradle/**', '.github/**'
+        include '*.gradle', 'gradle.properties', 'gradlew', 'gradlew.bat', 'README.md', 'AGENTS.md', 'LICENSE*'
+        exclude '**/*.local.ogg', '**/.cache/**', '**/__pycache__/**'
+    }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+tasks.register('compactSourceArchive', JavaExec) {
+    dependsOn tasks.named('compactSources'), tasks.named('packagingToolsClasses')
+    classpath = sourceSets.packagingTools.runtimeClasspath
+    mainClass = 'CompactArchive'
+    args tasks.named('compactSources').get().archiveFile.get().asFile.absolutePath
+}

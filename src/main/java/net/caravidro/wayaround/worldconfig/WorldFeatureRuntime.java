@@ -10,11 +10,22 @@ public final class WorldFeatureRuntime {
 
     private WorldFeatureRuntime() {}
 
-    private static volatile WorldFeatureSettings SERVER =
-            WorldFeatureSettings.allEnabled();
+    private record Snapshot(WorldFeatureSettings settings, long effectiveMask) {
+        static Snapshot of(WorldFeatureSettings settings) {
+            WorldFeatureSettings copy = new WorldFeatureSettings(settings);
+            long mask = 0;
+            for (WorldFeature feature : WorldFeature.values()) {
+                if (copy.enabled(feature)) mask |= 1L << feature.ordinal();
+            }
+            return new Snapshot(copy, mask);
+        }
+        boolean enabled(WorldFeature feature) {
+            return (effectiveMask & (1L << feature.ordinal())) != 0;
+        }
+    }
 
-    private static volatile WorldFeatureSettings CLIENT =
-            WorldFeatureSettings.allEnabled();
+    private static volatile Snapshot SERVER = Snapshot.of(WorldFeatureSettings.allEnabled());
+    private static volatile Snapshot CLIENT = Snapshot.of(WorldFeatureSettings.allEnabled());
 
     public static boolean serverEnabled(
             WorldFeature feature
@@ -50,13 +61,13 @@ public final class WorldFeatureRuntime {
 
     public static WorldFeatureSettings serverCopy() {
         return new WorldFeatureSettings(
-                SERVER
+                SERVER.settings()
         );
     }
 
     public static WorldFeatureSettings clientCopy() {
         return new WorldFeatureSettings(
-                CLIENT
+                CLIENT.settings()
         );
     }
 
@@ -64,27 +75,23 @@ public final class WorldFeatureRuntime {
             WorldFeatureSettings settings
     ) {
         SERVER =
-                new WorldFeatureSettings(
-                        settings
-                );
+                Snapshot.of(settings);
     }
 
     public static void applyClient(
             WorldFeatureSettings settings
     ) {
         CLIENT =
-                new WorldFeatureSettings(
-                        settings
-                );
+                Snapshot.of(settings);
     }
 
     public static void resetServer() {
         SERVER =
-                WorldFeatureSettings.allEnabled();
+                Snapshot.of(WorldFeatureSettings.allEnabled());
     }
 
     public static void resetClient() {
         CLIENT =
-                WorldFeatureSettings.allEnabled();
+                Snapshot.of(WorldFeatureSettings.allEnabled());
     }
 }

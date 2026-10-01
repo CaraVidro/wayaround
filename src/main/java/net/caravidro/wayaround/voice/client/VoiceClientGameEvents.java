@@ -24,6 +24,8 @@ public final class VoiceClientGameEvents {
     private VoiceClientGameEvents() {
     }
 
+    private static int storageTicks;
+    private static boolean lastRecognitionRequired;
     private static boolean lastConnected;
     private static boolean lastEnabled;
     private static VoiceConfig.ActivationMode lastMode;
@@ -53,13 +55,27 @@ public final class VoiceClientGameEvents {
         VoiceIntentClient.tick();
 
         boolean enabled =
-                VoiceConfig.isEnabled();
+                VoiceConfig.isEnabled()
+                        && net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.clientEnabled(
+                        net.caravidro.wayaround.worldconfig.WorldFeature.VOICE_CHAT);
 
         boolean connected =
                 enabled
                         && minecraft.player != null
                         && minecraft.getConnection()
                         != null;
+
+        boolean recognitionRequired = connected && (VoiceConfig.isDebugSpeechEnabled()
+                || VoiceIntentClient.shouldRecognizeLocalPlayer());
+        if (recognitionRequired != lastRecognitionRequired) {
+            if (recognitionRequired) VoskSpeechRecognizer.warmUpAsync();
+            else VoiceSpeechDebug.cancelRealtime();
+            lastRecognitionRequired = recognitionRequired;
+        }
+        if (recognitionRequired || ++storageTicks >= 1200) {
+            VoskSpeechRecognizer.maintainStorageAsync(recognitionRequired);
+            storageTicks = 0;
+        }
 
         VoiceConfig.ActivationMode mode =
                 VoiceConfig.getActivationMode();
@@ -88,18 +104,7 @@ public final class VoiceClientGameEvents {
             lastMode =
                     mode;
 
-            if (connected
-                    && (
-                    VoiceConfig.isDebugSpeechEnabled()
-                            || VoiceIntentClient.shouldRecognizeLocalPlayer()
-            )) {
-                /*
-                 * Do not load Vosk's native library merely because proximity
-                 * voice is enabled. Only spoken Spectrum/debug users need STT.
-                 */
-                VoskSpeechRecognizer
-                        .warmUpAsync();
-            }
+
         }
 
         if (connected && VoiceIntentClient.wantsContinuousRecognition()
