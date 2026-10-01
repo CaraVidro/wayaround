@@ -278,6 +278,98 @@ public final class ElectronicsWorkbenchBlockEntity
         return true;
     }
 
+    public boolean upgradeBoard(
+            ServerPlayer player
+    ) {
+        if (!hasCircuitBoard()) {
+            return false;
+        }
+
+        CircuitBoardData board =
+                boardData();
+
+        if (!board.canExpand()) {
+            return false;
+        }
+
+        CircuitBoardData.UpgradeCost cost =
+                board.nextUpgradeCost();
+
+        if (cost == null) {
+            return false;
+        }
+
+        boolean creative =
+                player.getAbilities()
+                        .instabuild;
+
+        if (!creative
+                && (
+                available(
+                        player,
+                        cost.copper()
+                ) < cost.copperCount()
+                        || available(
+                        player,
+                        cost.redstone()
+                ) < cost.redstoneCount()
+                        || available(
+                        player,
+                        cost.diamond()
+                ) < cost.diamondCount()
+        )) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.circuit_workbench.upgrade_missing"
+                    ),
+                    true
+            );
+
+            return false;
+        }
+
+        if (!creative) {
+            consume(
+                    player,
+                    cost.copper(),
+                    cost.copperCount()
+            );
+
+            consume(
+                    player,
+                    cost.redstone(),
+                    cost.redstoneCount()
+            );
+
+            consume(
+                    player,
+                    cost.diamond(),
+                    cost.diamondCount()
+            );
+        }
+
+        if (!board.expand()) {
+            return false;
+        }
+
+        board.write(
+                circuitBoard
+        );
+
+        player.displayClientMessage(
+                Component.translatable(
+                        "message.wayaround.circuit_workbench.upgraded",
+                        CircuitBoardData.WIDTH,
+                        board.activeHeight(),
+                        board.expansionLevel()
+                ),
+                true
+        );
+
+        sync();
+        return true;
+    }
+
     public boolean removeCell(
             ServerPlayer player,
             int cell
@@ -353,6 +445,31 @@ public final class ElectronicsWorkbenchBlockEntity
                 ItemStack.EMPTY;
 
         sync();
+    }
+
+    private static int available(
+            ServerPlayer player,
+            Item item
+    ) {
+        if (player.getAbilities()
+                .instabuild) {
+            return Integer.MAX_VALUE;
+        }
+
+        int total =
+                0;
+
+        for (ItemStack stack :
+                player.getInventory().items) {
+            if (stack.is(
+                    item
+            )) {
+                total +=
+                        stack.getCount();
+            }
+        }
+
+        return total;
     }
 
     private static boolean consume(
