@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -7,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.caravidro.wayaround.industrial.power.WaterWheelHubBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -15,6 +17,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -41,6 +44,14 @@ public final class WaterWheelHubRenderer
             SmoothObjectAnimation.Rotation
     > VISUAL_STATES =
             new WeakHashMap<>();
+
+    private static final double[] PLATE_SIDES = {
+            -1.0,
+            1.0
+    };
+
+    private static final Map<Item, BlockState> NAIL_MATERIAL_CACHE =
+            new IdentityHashMap<>();
 
     private final BlockRenderDispatcher blockRenderer;
 
@@ -76,11 +87,19 @@ public final class WaterWheelHubRenderer
                 hub.getLevel().getGameTime()
                 + partialTick;
 
+        DistanceLod.Tier lod =
+                DistanceLod.forBlock(
+                        hub.getBlockPos()
+                );
+
         float rotation =
-                visual.update(
-                        renderTime,
-                        hub.rpm(),
-                        hub.rotationDegrees()
+                DistanceLod.quantizeDegrees(
+                        visual.update(
+                                renderTime,
+                                hub.rpm(),
+                                hub.rotationDegrees()
+                        ),
+                        lod
                 );
 
         poseStack.pushPose();
@@ -113,7 +132,8 @@ public final class WaterWheelHubRenderer
                     packedLight,
                     packedOverlay,
                     -0.62,
-                    hub.frameWearRatio()
+                    hub.frameWearRatio(),
+                    lod.detailedGeometry()
             );
 
             renderBody(
@@ -122,7 +142,8 @@ public final class WaterWheelHubRenderer
                     packedLight,
                     packedOverlay,
                     0.62,
-                    hub.frameWearRatio()
+                    hub.frameWearRatio(),
+                    lod.detailedGeometry()
             );
         } else {
             renderBody(
@@ -131,7 +152,8 @@ public final class WaterWheelHubRenderer
                     packedLight,
                     packedOverlay,
                     0.0,
-                    hub.frameWearRatio()
+                    hub.frameWearRatio(),
+                    lod.detailedGeometry()
             );
         }
 
@@ -152,7 +174,8 @@ public final class WaterWheelHubRenderer
                     poseStack,
                     bufferSource,
                     packedLight,
-                    packedOverlay
+                    packedOverlay,
+                    lod.detailedGeometry()
             );
         }
 
@@ -165,7 +188,8 @@ public final class WaterWheelHubRenderer
             int packedLight,
             int packedOverlay,
             double z,
-            float wear
+            float wear,
+            boolean details
     ) {
         renderHexFrame(
                 poseStack,
@@ -187,7 +211,7 @@ public final class WaterWheelHubRenderer
          * Old assemblies visibly crack first around structural spokes and the
          * rim joints. These are deliberately simple Minecraft-y overlays.
          */
-        if (wear >= 0.35F) {
+        if (details && wear >= 0.35F) {
             renderCrack(
                     poseStack,
                     bufferSource,
@@ -201,7 +225,7 @@ public final class WaterWheelHubRenderer
             );
         }
 
-        if (wear >= 0.62F) {
+        if (details && wear >= 0.62F) {
             renderCrack(
                     poseStack,
                     bufferSource,
@@ -215,7 +239,7 @@ public final class WaterWheelHubRenderer
             );
         }
 
-        if (wear >= 0.84F) {
+        if (details && wear >= 0.84F) {
             renderCrack(
                     poseStack,
                     bufferSource,
@@ -383,7 +407,8 @@ public final class WaterWheelHubRenderer
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int packedLight,
-            int packedOverlay
+            int packedOverlay,
+            boolean details
     ) {
         double angle =
                 hub.plateBaseAngle(
@@ -451,7 +476,7 @@ public final class WaterWheelHubRenderer
          * Mounting hole / nail head. The board already has the hole; the nail
          * merely locks its current transform.
          */
-        if (hub.plateNailed(index)) {
+        if (details && hub.plateNailed(index)) {
             BlockState nail =
                     nailMaterial(
                             hub.plateNail(
@@ -459,7 +484,8 @@ public final class WaterWheelHubRenderer
                             )
                     );
 
-            for (double side : new double[]{-1.0, 1.0}) {
+            for (double side :
+                    PLATE_SIDES) {
                 renderCuboid(
                         poseStack,
                         bufferSource,
@@ -475,8 +501,9 @@ public final class WaterWheelHubRenderer
                         plateRotation
                 );
             }
-        } else {
-            for (double side : new double[]{-1.0, 1.0}) {
+        } else if (details) {
+            for (double side :
+                    PLATE_SIDES) {
                 renderCuboid(
                         poseStack,
                         bufferSource,
@@ -499,7 +526,7 @@ public final class WaterWheelHubRenderer
                         index
                 );
 
-        if (wear >= 0.30F) {
+        if (details && wear >= 0.30F) {
             renderPlateCrack(
                     poseStack,
                     bufferSource,
@@ -513,7 +540,7 @@ public final class WaterWheelHubRenderer
             );
         }
 
-        if (wear >= 0.58F) {
+        if (details && wear >= 0.58F) {
             renderPlateCrack(
                     poseStack,
                     bufferSource,
@@ -527,7 +554,7 @@ public final class WaterWheelHubRenderer
             );
         }
 
-        if (wear >= 0.82F) {
+        if (details && wear >= 0.82F) {
             renderPlateCrack(
                     poseStack,
                     bufferSource,
@@ -549,9 +576,21 @@ public final class WaterWheelHubRenderer
             return Blocks.IRON_BLOCK.defaultBlockState();
         }
 
+        Item item =
+                nail.getItem();
+
+        BlockState cached =
+                NAIL_MATERIAL_CACHE.get(
+                        item
+                );
+
+        if (cached != null) {
+            return cached;
+        }
+
         ResourceLocation id =
                 BuiltInRegistries.ITEM.getKey(
-                        nail.getItem()
+                        item
                 );
 
         String path =
@@ -559,28 +598,52 @@ public final class WaterWheelHubRenderer
                         ? ""
                         : id.getPath();
 
-        if (path.contains("netherite")) {
-            return Blocks.NETHERITE_BLOCK.defaultBlockState();
+        BlockState material;
+
+        if (path.contains(
+                "netherite"
+        )) {
+            material =
+                    Blocks.NETHERITE_BLOCK.defaultBlockState();
+
+        } else if (path.contains(
+                "diamond"
+        )) {
+            material =
+                    Blocks.DIAMOND_BLOCK.defaultBlockState();
+
+        } else if (path.contains(
+                "gold"
+        )) {
+            material =
+                    Blocks.GOLD_BLOCK.defaultBlockState();
+
+        } else if (path.contains(
+                "copper"
+        )) {
+            material =
+                    Blocks.COPPER_BLOCK.defaultBlockState();
+
+        } else if (path.contains(
+                "wood"
+        )
+                || path.contains(
+                "oak"
+        )) {
+            material =
+                    Blocks.OAK_PLANKS.defaultBlockState();
+
+        } else {
+            material =
+                    Blocks.IRON_BLOCK.defaultBlockState();
         }
 
-        if (path.contains("diamond")) {
-            return Blocks.DIAMOND_BLOCK.defaultBlockState();
-        }
+        NAIL_MATERIAL_CACHE.put(
+                item,
+                material
+        );
 
-        if (path.contains("gold")) {
-            return Blocks.GOLD_BLOCK.defaultBlockState();
-        }
-
-        if (path.contains("copper")) {
-            return Blocks.COPPER_BLOCK.defaultBlockState();
-        }
-
-        if (path.contains("wood")
-                || path.contains("oak")) {
-            return Blocks.OAK_PLANKS.defaultBlockState();
-        }
-
-        return Blocks.IRON_BLOCK.defaultBlockState();
+        return material;
     }
 
     private void renderPlateCrack(
