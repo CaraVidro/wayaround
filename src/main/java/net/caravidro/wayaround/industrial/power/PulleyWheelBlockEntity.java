@@ -7,6 +7,7 @@ import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -89,12 +90,39 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
             float efficiency = driveEfficiency();
             if (efficiency <= 0.01F) return 0.0F;
 
-            float requestedFromDriver = Math.max(0.0F, requestedPower) / efficiency;
+            float downstreamRequest = Math.max(0.0F, requestedPower);
+
+            float transmissible =
+                    Math.min(
+                            downstreamRequest,
+                            Math.max(
+                                    0.0F,
+                                    mechanicalPower
+                            )
+                    );
+
+            float slip =
+                    downstreamRequest <= 0.001F
+                            ? 0.0F
+                            : Mth.clamp(
+                            1.0F
+                                    - transmissible
+                                            / downstreamRequest,
+                            0.0F,
+                            1.0F
+                    );
+
+            float requestedFromDriver = transmissible / efficiency;
             float taken = driver.consumePower(requestedFromDriver);
-            float delivered = Math.min(Math.max(0.0F, requestedPower), taken * efficiency);
+            float delivered = Math.min(transmissible, taken * efficiency);
 
             applyDriveWear(
-                    taken,
+                    taken
+                            * (
+                            1.0F
+                                    + slip
+                                            * 1.8F
+                    ),
                     driver.rpm()
             );
 
@@ -160,7 +188,15 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
         if (driver != null && driver != rotationOutput) {
             targetRpm = driver.rpm();
-            targetPower = Math.max(0.0F, driver.power()) * driveEfficiency();
+            targetPower =
+                    Math.min(
+                            Math.max(
+                                    0.0F,
+                                    driver.power()
+                            )
+                                    * driveEfficiency(),
+                            driveCapacity()
+                    );
         }
 
         rpm += (targetRpm - rpm) * 0.32F;
@@ -222,6 +258,32 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                 * beltGeometry
                 * beltCondition
                 * lineFactor;
+    }
+
+    private float driveCapacity() {
+        if (localSource != null) {
+            return Float.MAX_VALUE;
+        }
+
+        if (linkedPos == null) {
+            return 0.0F;
+        }
+
+        return 2.75F
+                * Math.max(
+                1,
+                beltLines
+        )
+                * (
+                0.55F
+                        + beltConditionFactor()
+                                * 0.45F
+        )
+                * (
+                0.82F
+                        + shapeEfficiency()
+                                * 0.18F
+        );
     }
 
     public float shapeEfficiency() {
@@ -299,18 +361,17 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                     0.00013F
                             * (
                             0.30F
-                                    + Math.min(
-                                    2.0F,
-                                    transferredPower / 4.0F
+                                    + MechanicalLoad.normalized(
+                                    transferredPower,
+                                    4.0F
                             )
                     )
                             * (
                             1.0F
-                                    + Math.max(
-                                    0.0F,
-                                    Math.abs(sourceRpm) - 55.0F
+                                    + MechanicalLoad.overspeed(
+                                    sourceRpm,
+                                    55.0F
                             )
-                                    / 70.0F
                     )
             );
 
@@ -370,9 +431,9 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                 )
                         * (
                         0.30F
-                                + Math.min(
-                                2.4F,
-                                transferredPower / 3.5F
+                                + MechanicalLoad.normalized(
+                                transferredPower,
+                                3.5F
                         )
                 )
                         * (

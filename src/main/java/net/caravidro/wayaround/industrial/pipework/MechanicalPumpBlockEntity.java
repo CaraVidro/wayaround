@@ -11,6 +11,7 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -166,6 +167,24 @@ public final class MechanicalPumpBlockEntity
                                 / 1800.0F
                                 * 1.1F;
 
+        float requiredTorque =
+                discharge == null
+                        ? 0.0F
+                        : 0.35F
+                                + hydraulic.pressureBar()
+                                        * 0.11F
+                                + hydraulic.flowPerTick()
+                                        / (float) MAX_MACHINE_FLOW
+                                        * 0.75F;
+
+        MechanicalLoad.Demand demand =
+                MechanicalLoad.sample(
+                        source,
+                        requested,
+                        requiredTorque,
+                        72.0F
+                );
+
         float granted = 0.0F;
         float targetRpm = 0.0F;
 
@@ -173,7 +192,9 @@ public final class MechanicalPumpBlockEntity
                 !hasImpeller()
                         || condition < 0.12F
                         || discharge == null
-                        || hydraulic.flowPerTick() <= 0;
+                        || hydraulic.flowPerTick() <= 0
+                        || (source != null
+                        && demand.torqueStarved());
 
         if (source != null
                 && source.active()
@@ -185,10 +206,9 @@ public final class MechanicalPumpBlockEntity
                     );
 
             load =
-                    granted
-                            / Math.max(
-                            0.01F,
-                            requested
+                    MechanicalLoad.fulfillment(
+                            requested,
+                            granted
                     );
 
             if (!stalled
@@ -242,7 +262,14 @@ public final class MechanicalPumpBlockEntity
                                 / 12.0F
                                 + (1.0F - condition)
                                         * load
-                                        * 0.55F,
+                                        * 0.55F
+                                + (source != null
+                                        && source.active()
+                                        && demand.torqueStarved()
+                                        ? 0.35F
+                                        : 0.0F)
+                                + demand.overspeed()
+                                        * 0.18F,
                         0.0F,
                         1.0F
                 );

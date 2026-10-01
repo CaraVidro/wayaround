@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.mixin.client;
 
+import net.caravidro.wayaround.client.WayAroundReleaseInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -11,18 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(TitleScreen.class)
 public abstract class TitleScreenBrandingMixin {
-
-    /*
-     * RELEASE BRANDING:
-     * Change these two constants whenever Way Around gets a major named update.
-     * Future release chats should update both the semantic version and the
-     * subtitle together so the title screen always advertises the current era.
-     */
-    private static final String WAYAROUND_VERSION =
-            "v1.2.0";
-
-    private static final String WAYAROUND_RELEASE_TITLE =
-            "Grande Novo Mundo";
 
     @Inject(
             method = "render",
@@ -56,7 +45,7 @@ public abstract class TitleScreenBrandingMixin {
         graphics.drawCenteredString(
                 minecraft.font,
                 Component.literal(
-                        WAYAROUND_RELEASE_TITLE
+                        WayAroundReleaseInfo.menuTitle()
                 ),
                 center,
                 94,
@@ -66,11 +55,21 @@ public abstract class TitleScreenBrandingMixin {
         graphics.drawCenteredString(
                 minecraft.font,
                 Component.literal(
-                        WAYAROUND_VERSION
+                        WayAroundReleaseInfo.menuVersion()
                 ),
                 center,
                 106,
                 0xFF4B4B4B
         );
+
+        if (!WayAroundReleaseInfo.RELEASED_NEXT) {
+            graphics.drawCenteredString(
+                    minecraft.font,
+                    WayAroundReleaseInfo.previewLine(),
+                    center,
+                    117,
+                    0xFF74664F
+            );
+        }
     }
 }
