@@ -44,11 +44,9 @@ public final class FuseBoxBlockEntity
                     }
 
                     float stress =
-                            Math.max(
-                                    0.0F,
-                                    amount
-                                            / (float) SAFE_PULSE
-                                            - 1.0F
+                            GridPhysics.overloadRatio(
+                                    amount,
+                                    SAFE_PULSE
                             );
 
                     if (!simulate
