@@ -65,6 +65,20 @@ public final class AntarcticClientLighting {
             ClientLevel level,
             BlockPos pos
     ) {
+        /*
+         * Void pocket-space is implemented at remote Overworld coordinates.
+         * Those technical coordinates must never leak Antarctic ambience into
+         * the Domain (snow, polar sky/light, wind, etc.).
+         */
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft.level == level
+                && VoidDomainClientEffects.localInterior()
+                        != null) {
+            return 0.0F;
+        }
+
         double field =
                 AntarcticField.polarInfluence(
                         pos.getX(),
