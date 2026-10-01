@@ -40,6 +40,7 @@
     "client.NexusFogMixin",
     "client.DeepSeaCapsuleCameraMixin",
     "client.DeepOceanFogMixin",
+    "client.DeepOceanLightTextureMixin",
     "client.TitleScreenBrandingMixin"
   ],
   "injectors": {
