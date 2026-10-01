@@ -9,6 +9,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Tiny pressure capsule for abyss exploration.
@@ -59,6 +60,17 @@ public final class DeepSeaCapsuleEntity extends Entity {
             move(MoverType.SELF, getDeltaMovement());
             setDeltaMovement(0.0, 0.0, 0.0);
         }
+    }
+
+    @Override
+    public Vec3 getPassengerRidingPosition(Entity passenger) {
+        /*
+         * 1.21.1 does not expose the newer EntityType.Builder passenger
+         * attachment helper. Move the rider down from the vanilla top-of-hitbox
+         * mount point into the pressure hull here instead.
+         */
+        return super.getPassengerRidingPosition(passenger)
+                .add(0.0, -1.02, 0.0);
     }
 
     @Override
