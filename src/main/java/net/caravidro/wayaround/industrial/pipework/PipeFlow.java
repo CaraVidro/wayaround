@@ -31,22 +31,29 @@ public final class PipeFlow {
 
     private static final int MAX_NODES = 128;
 
+    private static final Direction[] DIRECTIONS =
+            Direction.values();
+
+    /*
+     * Linked traversal nodes replace List.copyOf(path) at every BFS branch.
+     * A 100-pipe network previously copied an ever-growing list for each
+     * queued node. These tiny parent links keep routing O(n) in allocations.
+     */
     private record Step(
             PipeBlockEntity pipe,
             Direction arrival,
-            List<PipeBlockEntity> path
+            Step previous
     ) {}
 
     private record SuctionStep(
             PipeBlockEntity pipe,
-            BlockPos previous,
-            List<PipeBlockEntity> path
+            SuctionStep previous
     ) {}
 
     private record Outlet(
             PipeBlockEntity pipe,
             Direction direction,
-            List<PipeBlockEntity> path
+            Step terminal
     ) {}
 
     private PipeFlow() {
@@ -174,7 +181,7 @@ public final class PipeFlow {
                 new Step(
                         root,
                         rootFlow,
-                        List.of(root)
+                        null
                 )
         );
 
@@ -254,18 +261,11 @@ public final class PipeFlow {
                     continue;
                 }
 
-                ArrayList<PipeBlockEntity> path =
-                        new ArrayList<>(
-                                step.path()
-                        );
-
-                path.add(next);
-
                 queue.addLast(
                         new Step(
                                 next,
                                 direction,
-                                List.copyOf(path)
+                                step
                         )
                 );
             }
@@ -275,7 +275,7 @@ public final class PipeFlow {
                         new Outlet(
                                 pipe,
                                 step.arrival(),
-                                step.path()
+                                step
                         )
                 );
             }
@@ -423,8 +423,7 @@ public final class PipeFlow {
         queue.add(
                 new SuctionStep(
                         root,
-                        null,
-                        List.of(root)
+                        null
                 )
         );
 
@@ -475,29 +474,13 @@ public final class PipeFlow {
                         continue;
                     }
 
-                    if (step.previous() != null
-                            && next.getBlockPos()
-                            .equals(
-                                    step.previous()
-                            )) {
-                        continue;
-                    }
-
                     if (!seen.contains(
                             next.getBlockPos()
                     )) {
-                        ArrayList<PipeBlockEntity> path =
-                                new ArrayList<>(
-                                        step.path()
-                                );
-
-                        path.add(next);
-
                         queue.addLast(
                                 new SuctionStep(
                                         next,
-                                        pipe.getBlockPos(),
-                                        List.copyOf(path)
+                                        step
                                 )
                         );
                     }
@@ -523,7 +506,7 @@ public final class PipeFlow {
 
                 if (!drained.isEmpty()) {
                     markSuctionPath(
-                            step.path(),
+                            step,
                             drained
                     );
 
@@ -735,8 +718,14 @@ public final class PipeFlow {
                         fluid.getAmount()
                 );
 
-        for (PipeBlockEntity part :
-                outlet.path()) {
+        for (Step cursor =
+                     outlet.terminal();
+             cursor != null;
+             cursor =
+                     cursor.previous()) {
+
+            PipeBlockEntity part =
+                    cursor.pipe();
 
             if (part.getBlockState().getBlock()
                     instanceof IndustrialPipeBlock pipe) {
@@ -974,38 +963,38 @@ public final class PipeFlow {
                             1
                     );
 
-            for (int index = 0;
-                 index < outlet.path().size();
-                 index++) {
+            Step child =
+                    null;
+
+            for (Step cursor =
+                         outlet.terminal();
+                 cursor != null;
+                 child = cursor,
+                         cursor = cursor.previous()) {
 
                 PipeBlockEntity pipe =
-                        outlet.path()
-                                .get(index);
+                        cursor.pipe();
 
                 Direction direction =
-                        index + 1
-                                < outlet.path().size()
-                                ? Direction.getNearest(
-                                outlet.path()
-                                        .get(index + 1)
+                        child == null
+                                ? outlet.direction()
+                                : Direction.getNearest(
+                                child.pipe()
                                         .getBlockPos()
                                         .getX()
                                         - pipe.getBlockPos()
                                         .getX(),
-                                outlet.path()
-                                        .get(index + 1)
+                                child.pipe()
                                         .getBlockPos()
                                         .getY()
                                         - pipe.getBlockPos()
                                         .getY(),
-                                outlet.path()
-                                        .get(index + 1)
+                                child.pipe()
                                         .getBlockPos()
                                         .getZ()
                                         - pipe.getBlockPos()
                                         .getZ()
-                        )
-                                : outlet.direction();
+                        );
 
                 pipe.markFlow(
                         marking,
@@ -1018,7 +1007,7 @@ public final class PipeFlow {
     }
 
     private static void markSuctionPath(
-            List<PipeBlockEntity> path,
+            SuctionStep terminal,
             FluidStack fluid
     ) {
         FluidStack marking =
@@ -1026,27 +1015,32 @@ public final class PipeFlow {
                         1
                 );
 
-        for (int index = path.size() - 1;
-             index >= 0;
-             index--) {
+        for (SuctionStep cursor =
+                     terminal;
+             cursor != null;
+             cursor =
+                     cursor.previous()) {
 
             PipeBlockEntity pipe =
-                    path.get(index);
+                    cursor.pipe();
+
+            SuctionStep previous =
+                    cursor.previous();
 
             Direction direction =
-                    index > 0
+                    previous != null
                             ? Direction.getNearest(
-                            path.get(index - 1)
+                            previous.pipe()
                                     .getBlockPos()
                                     .getX()
                                     - pipe.getBlockPos()
                                     .getX(),
-                            path.get(index - 1)
+                            previous.pipe()
                                     .getBlockPos()
                                     .getY()
                                     - pipe.getBlockPos()
                                     .getY(),
-                            path.get(index - 1)
+                            previous.pipe()
                                     .getBlockPos()
                                     .getZ()
                                     - pipe.getBlockPos()
