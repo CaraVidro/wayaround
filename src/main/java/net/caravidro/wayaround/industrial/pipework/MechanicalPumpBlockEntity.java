@@ -263,7 +263,9 @@ public final class MechanicalPumpBlockEntity
                                 + (1.0F - condition)
                                         * load
                                         * 0.55F
-                                + (demand.torqueStarved()
+                                + (source != null
+                                        && source.active()
+                                        && demand.torqueStarved()
                                         ? 0.35F
                                         : 0.0F)
                                 + demand.overspeed()
