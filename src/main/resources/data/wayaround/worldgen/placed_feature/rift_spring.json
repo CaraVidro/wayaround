@@ -1,0 +1,8 @@
+{
+  "feature": "wayaround:rift_spring",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}
