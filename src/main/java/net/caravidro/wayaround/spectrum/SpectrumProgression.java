@@ -47,10 +47,13 @@ public final class SpectrumProgression {
                             player
                     );
 
+            /*
+             * Void Domain progression is temporarily stage-driven through
+             * /spectrum domain set ... . INNATE must remain selectable too so
+             * attempting the action can visibly fail instead of being hidden.
+             */
             case VOID_DOMAIN ->
-                    voidDomainUnlocked(
-                            player
-                    );
+                    true;
 
             default ->
                     true;
@@ -130,11 +133,12 @@ public final class SpectrumProgression {
             Player player,
             SpectrumAction action
     ) {
-        if (action == SpectrumAction.VOID_DOMAIN
-                && voidApex(
-                player
-        )) {
-            return "Expansão de domínio absoluto";
+        if (action == SpectrumAction.VOID_DOMAIN) {
+            /*
+             * The server-selected stage decides SIMPLE vs ABSOLUTE at cast
+             * time. Do not leak the old XP-based "apex" label into the menu.
+             */
+            return "Expansão de domínio";
         }
 
         if (action == SpectrumAction.TUKUNA_DOMAIN
