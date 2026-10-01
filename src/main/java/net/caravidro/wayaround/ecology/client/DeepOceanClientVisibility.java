@@ -48,10 +48,15 @@ public final class DeepOceanClientVisibility {
     }
 
     public static float fogEnd(double depth, boolean capsule) {
-        double t = Math.max(0.0, Math.min(1.0, (depth - 22.0) / 92.0));
+        double t = Math.max(0.0, Math.min(1.0, (depth - 18.0) / 72.0));
+        t = t * t * (3.0 - 2.0 * t);
+
         if (capsule) {
-            return (float) (34.0 - t * 8.0);
+            // The lamp gives the pilot a narrow usable tunnel through the black.
+            return (float) (36.0 - t * 8.0);
         }
-        return (float) (42.0 - t * 36.0);
+
+        // Free-diving in the true abyss should become almost sightless.
+        return (float) (42.0 - t * 38.0);
     }
 }
