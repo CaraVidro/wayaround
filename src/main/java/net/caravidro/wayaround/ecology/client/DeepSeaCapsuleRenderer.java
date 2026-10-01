@@ -14,14 +14,20 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
-/** Small iron pressure bell with a forward-only visible headlamp shaft. */
+/**
+ * One-person atmospheric diving capsule.
+ *
+ * The silhouette borrows from old bathyspheres and observation bells:
+ * a squat pressure hull, external ribs, thick front viewport, top lifting eye,
+ * ballast underneath and a separately articulated headlamp.
+ */
 public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleEntity> {
     private final BlockRenderDispatcher blocks;
 
     public DeepSeaCapsuleRenderer(EntityRendererProvider.Context context) {
         super(context);
         blocks = context.getBlockRenderDispatcher();
-        shadowRadius = 0.65F;
+        shadowRadius = 0.78F;
     }
 
     @Override
@@ -38,33 +44,637 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
             MultiBufferSource buffers,
             int light
     ) {
-        float visualYaw = Mth.rotLerp(partialTick, capsule.yRotO, capsule.getYRot());
-        float visualPitch = Mth.lerp(partialTick, capsule.xRotO, capsule.getXRot());
+        float visualYaw =
+                Mth.rotLerp(
+                        partialTick,
+                        capsule.yRotO,
+                        capsule.getYRot()
+                );
+
+        float lampPitch =
+                Mth.clamp(
+                        Mth.lerp(
+                                partialTick,
+                                capsule.xRotO,
+                                capsule.getXRot()
+                        ),
+                        -58.0F,
+                        42.0F
+                );
 
         pose.pushPose();
-        pose.translate(0.0, 0.78, 0.0);
-        pose.mulPose(Axis.YP.rotationDegrees(-visualYaw));
-        pose.mulPose(Axis.XP.rotationDegrees(visualPitch));
+        pose.translate(0.0, 0.83, 0.0);
+        pose.mulPose(
+                Axis.YP.rotationDegrees(
+                        -visualYaw
+                )
+        );
 
-        // Pressure shell: deliberately compact and chunky.
-        cuboid(pose, buffers, light, Blocks.IRON_BLOCK.defaultBlockState(), 0, 0, 0, 1.10, 1.28, 0.92);
-        cuboid(pose, buffers, light, Blocks.COPPER_BLOCK.defaultBlockState(), 0, 0.45, 0, 0.92, 0.12, 1.02);
-        cuboid(pose, buffers, light, Blocks.COPPER_BLOCK.defaultBlockState(), 0, -0.45, 0, 0.92, 0.12, 1.02);
+        renderPressureHull(
+                pose,
+                buffers,
+                light
+        );
 
-        // Front porthole and lamp point toward local -Z.
-        cuboid(pose, buffers, LightTexture.FULL_BRIGHT, Blocks.BLUE_STAINED_GLASS.defaultBlockState(),
-                0, 0.08, -0.49, 0.52, 0.52, 0.055);
-        cuboid(pose, buffers, LightTexture.FULL_BRIGHT, Blocks.SEA_LANTERN.defaultBlockState(),
-                0, -0.30, -0.53, 0.20, 0.16, 0.10);
+        renderExternalFrame(
+                pose,
+                buffers,
+                light
+        );
 
-        // Very cheap visible light shaft. The actual visibility budget is also
-        // directional, so fauna behind the capsule is aggressively culled.
-        for (int i = 0; i < 4; i++) {
-            double length = 0.85 + i * 0.28;
-            double z = -0.78 - i * 0.78;
-            double width = 0.12 + i * 0.055;
-            cuboid(pose, buffers, LightTexture.FULL_BRIGHT, Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
-                    0, -0.30, z, width, width, length);
+        renderViewport(
+                pose,
+                buffers,
+                light
+        );
+
+        renderTopAssembly(
+                pose,
+                buffers,
+                light
+        );
+
+        renderBallast(
+                pose,
+                buffers,
+                light
+        );
+
+        renderLamp(
+                pose,
+                buffers,
+                light,
+                lampPitch
+        );
+
+        pose.popPose();
+    }
+
+    private void renderPressureHull(
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        BlockState iron =
+                Blocks.IRON_BLOCK
+                        .defaultBlockState();
+
+        BlockState dark =
+                Blocks.POLISHED_DEEPSLATE
+                        .defaultBlockState();
+
+        /*
+         * Stacked progressively smaller shells give a rounded pressure-vessel
+         * silhouette without requiring a texture/model asset pipeline.
+         */
+        cuboid(
+                pose,
+                buffers,
+                light,
+                iron,
+                0.0,
+                0.02,
+                0.0,
+                1.18,
+                0.96,
+                1.04
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                iron,
+                0.0,
+                0.42,
+                0.0,
+                1.02,
+                0.38,
+                0.92
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                iron,
+                0.0,
+                -0.43,
+                0.0,
+                1.00,
+                0.34,
+                0.90
+        );
+
+        // Dark rear machinery block / counterweight.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                dark,
+                0.0,
+                -0.02,
+                0.50,
+                0.68,
+                0.58,
+                0.16
+        );
+
+        // Side shoulders make it feel wider than a plain cube.
+        rotatedCuboid(
+                pose,
+                buffers,
+                light,
+                iron,
+                -0.57,
+                0.03,
+                0.0,
+                0.20,
+                0.74,
+                0.86,
+                0.0F,
+                0.0F,
+                -8.0F
+        );
+
+        rotatedCuboid(
+                pose,
+                buffers,
+                light,
+                iron,
+                0.57,
+                0.03,
+                0.0,
+                0.20,
+                0.74,
+                0.86,
+                0.0F,
+                0.0F,
+                8.0F
+        );
+    }
+
+    private void renderExternalFrame(
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        BlockState copper =
+                Blocks.EXPOSED_COPPER
+                        .defaultBlockState();
+
+        BlockState darkCopper =
+                Blocks.WEATHERED_COPPER
+                        .defaultBlockState();
+
+        // Main compression ribs.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                -0.47,
+                0.02,
+                0.0,
+                0.075,
+                1.22,
+                1.10
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                0.47,
+                0.02,
+                0.0,
+                0.075,
+                1.22,
+                1.10
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                0.0,
+                0.49,
+                0.0,
+                1.02,
+                0.075,
+                1.12
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                darkCopper,
+                0.0,
+                -0.49,
+                0.0,
+                1.02,
+                0.085,
+                1.12
+        );
+
+        // Front diagonal guards around the glass.
+        rotatedCuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                -0.36,
+                0.28,
+                -0.555,
+                0.055,
+                0.52,
+                0.055,
+                0.0F,
+                0.0F,
+                -36.0F
+        );
+
+        rotatedCuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                0.36,
+                0.28,
+                -0.555,
+                0.055,
+                0.52,
+                0.055,
+                0.0F,
+                0.0F,
+                36.0F
+        );
+
+        rotatedCuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                -0.36,
+                -0.27,
+                -0.555,
+                0.055,
+                0.52,
+                0.055,
+                0.0F,
+                0.0F,
+                36.0F
+        );
+
+        rotatedCuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                0.36,
+                -0.27,
+                -0.555,
+                0.055,
+                0.52,
+                0.055,
+                0.0F,
+                0.0F,
+                -36.0F
+        );
+    }
+
+    private void renderViewport(
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        // Thick dark pressure flange.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.POLISHED_BLACKSTONE
+                        .defaultBlockState(),
+                0.0,
+                0.07,
+                -0.548,
+                0.66,
+                0.66,
+                0.09
+        );
+
+        // Glass inset slightly forward so it does not z-fight with the flange.
+        cuboid(
+                pose,
+                buffers,
+                LightTexture.FULL_BRIGHT,
+                Blocks.BLUE_STAINED_GLASS
+                        .defaultBlockState(),
+                0.0,
+                0.07,
+                -0.603,
+                0.53,
+                0.53,
+                0.045
+        );
+
+        // Tiny central reflection/highlight.
+        cuboid(
+                pose,
+                buffers,
+                LightTexture.FULL_BRIGHT,
+                Blocks.LIGHT_BLUE_STAINED_GLASS
+                        .defaultBlockState(),
+                -0.12,
+                0.20,
+                -0.630,
+                0.12,
+                0.16,
+                0.020
+        );
+    }
+
+    private void renderTopAssembly(
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        BlockState copper =
+                Blocks.COPPER_BLOCK
+                        .defaultBlockState();
+
+        // Hatch collar.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.POLISHED_DEEPSLATE
+                        .defaultBlockState(),
+                0.0,
+                0.67,
+                0.0,
+                0.54,
+                0.12,
+                0.54
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                copper,
+                0.0,
+                0.77,
+                0.0,
+                0.43,
+                0.12,
+                0.43
+        );
+
+        // Short neck / cable fairlead.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.IRON_BLOCK
+                        .defaultBlockState(),
+                0.0,
+                0.91,
+                0.0,
+                0.14,
+                0.25,
+                0.14
+        );
+
+        // Lifting eye made from four tiny bars.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.CHAIN
+                        .defaultBlockState(),
+                -0.11,
+                1.07,
+                0.0,
+                0.055,
+                0.28,
+                0.055
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.CHAIN
+                        .defaultBlockState(),
+                0.11,
+                1.07,
+                0.0,
+                0.055,
+                0.28,
+                0.055
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.CHAIN
+                        .defaultBlockState(),
+                0.0,
+                1.19,
+                0.0,
+                0.26,
+                0.055,
+                0.055
+        );
+    }
+
+    private void renderBallast(
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        BlockState ballast =
+                Blocks.DEEPSLATE_TILES
+                        .defaultBlockState();
+
+        // Heavy keel / expendable-looking ballast.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                ballast,
+                0.0,
+                -0.72,
+                0.04,
+                0.74,
+                0.22,
+                0.72
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.IRON_BLOCK
+                        .defaultBlockState(),
+                -0.37,
+                -0.61,
+                0.08,
+                0.16,
+                0.34,
+                0.62
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.IRON_BLOCK
+                        .defaultBlockState(),
+                0.37,
+                -0.61,
+                0.08,
+                0.16,
+                0.34,
+                0.62
+        );
+
+        // Two tiny skid feet.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.POLISHED_DEEPSLATE
+                        .defaultBlockState(),
+                -0.34,
+                -0.88,
+                0.08,
+                0.26,
+                0.10,
+                0.68
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.POLISHED_DEEPSLATE
+                        .defaultBlockState(),
+                0.34,
+                -0.88,
+                0.08,
+                0.26,
+                0.10,
+                0.68
+        );
+    }
+
+    private void renderLamp(
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light,
+            float lampPitch
+    ) {
+        pose.pushPose();
+
+        // Gimbal pivot on the capsule's lower-right front corner.
+        pose.translate(
+                0.39,
+                -0.27,
+                -0.54
+        );
+
+        pose.mulPose(
+                Axis.XP.rotationDegrees(
+                        lampPitch
+                )
+        );
+
+        // Copper mounting fork.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.COPPER_BLOCK
+                        .defaultBlockState(),
+                0.0,
+                0.0,
+                -0.06,
+                0.30,
+                0.22,
+                0.16
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                Blocks.POLISHED_DEEPSLATE
+                        .defaultBlockState(),
+                0.0,
+                0.0,
+                -0.19,
+                0.23,
+                0.20,
+                0.22
+        );
+
+        // Actual lamp lens.
+        cuboid(
+                pose,
+                buffers,
+                LightTexture.FULL_BRIGHT,
+                Blocks.SEA_LANTERN
+                        .defaultBlockState(),
+                0.0,
+                0.0,
+                -0.335,
+                0.17,
+                0.15,
+                0.12
+        );
+
+        /*
+         * Cheap visible cone. Four nested translucent pieces read as a beam
+         * without creating dynamic block-light updates every frame.
+         */
+        for (int i = 0;
+             i < 4;
+             i++) {
+
+            double length =
+                    0.82
+                            + i
+                            * 0.34;
+
+            double z =
+                    -0.66
+                            - i
+                            * 0.80;
+
+            double width =
+                    0.10
+                            + i
+                            * 0.050;
+
+            cuboid(
+                    pose,
+                    buffers,
+                    LightTexture.FULL_BRIGHT,
+                    Blocks.LIGHT_BLUE_STAINED_GLASS
+                            .defaultBlockState(),
+                    0.0,
+                    0.0,
+                    z,
+                    width,
+                    width,
+                    length
+            );
         }
 
         pose.popPose();
@@ -82,11 +692,89 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
             double sy,
             double sz
     ) {
+        rotatedCuboid(
+                pose,
+                buffers,
+                light,
+                state,
+                x,
+                y,
+                z,
+                sx,
+                sy,
+                sz,
+                0.0F,
+                0.0F,
+                0.0F
+        );
+    }
+
+    private void rotatedCuboid(
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light,
+            BlockState state,
+            double x,
+            double y,
+            double z,
+            double sx,
+            double sy,
+            double sz,
+            float yaw,
+            float pitch,
+            float roll
+    ) {
         pose.pushPose();
-        pose.translate(x, y, z);
-        pose.scale((float) sx, (float) sy, (float) sz);
-        pose.translate(-0.5, -0.5, -0.5);
-        blocks.renderSingleBlock(state, pose, buffers, light, OverlayTexture.NO_OVERLAY);
+        pose.translate(
+                x,
+                y,
+                z
+        );
+
+        if (yaw != 0.0F) {
+            pose.mulPose(
+                    Axis.YP.rotationDegrees(
+                            yaw
+                    )
+            );
+        }
+
+        if (pitch != 0.0F) {
+            pose.mulPose(
+                    Axis.XP.rotationDegrees(
+                            pitch
+                    )
+            );
+        }
+
+        if (roll != 0.0F) {
+            pose.mulPose(
+                    Axis.ZP.rotationDegrees(
+                            roll
+                    )
+            );
+        }
+
+        pose.scale(
+                (float) sx,
+                (float) sy,
+                (float) sz
+        );
+
+        pose.translate(
+                -0.5,
+                -0.5,
+                -0.5
+        );
+
+        blocks.renderSingleBlock(
+                state,
+                pose,
+                buffers,
+                light,
+                OverlayTexture.NO_OVERLAY
+        );
+
         pose.popPose();
     }
 }
