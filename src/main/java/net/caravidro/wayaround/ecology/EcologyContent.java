@@ -93,8 +93,8 @@ public final class EcologyContent {
                                     MobCategory.MISC
                             )
                             .sized(
-                                    0.82F,
-                                    0.30F
+                                    1.08F,
+                                    0.46F
                             )
                             .clientTrackingRange(
                                     20
