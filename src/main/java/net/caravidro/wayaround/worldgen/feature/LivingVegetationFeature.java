@@ -517,12 +517,7 @@ public final class LivingVegetationFeature
             )
                     || !level.getBlockState(
                     above
-            ).isAir()
-                    || !validGround(
-                    level.getBlockState(
-                            ground
-                    )
-            )) {
+            ).isAir()) {
                 continue;
             }
 
@@ -558,7 +553,12 @@ public final class LivingVegetationFeature
                             random
                     );
 
-            if (!plant.canSurvive(
+            if (!validGroundFor(
+                    plant,
+                    groundState,
+                    nearWater
+            )
+                    || !plant.canSurvive(
                     level,
                     above
             )) {
@@ -630,16 +630,12 @@ public final class LivingVegetationFeature
                             || !level.getBlockState(
                             neighbor
                     ).isAir()
-                            || !validGround(
+                            || !validGroundFor(
+                            plant,
                             level.getBlockState(
                                     neighborGround
-                            )
-                    )
-                            || (
-                            VegetationPalette.requiresWaterEdge(
-                                    plant
-                            )
-                                    && !nearWater(
+                            ),
+                            nearWater(
                                     level,
                                     neighborGround,
                                     2
@@ -700,6 +696,38 @@ public final class LivingVegetationFeature
         }
 
         return false;
+    }
+
+    private static boolean validGroundFor(
+            BlockState plant,
+            BlockState ground,
+            boolean nearWater
+    ) {
+        if (validGround(
+                ground
+        )) {
+            return true;
+        }
+
+        if (!nearWater
+                || !VegetationPalette.requiresWaterEdge(
+                plant
+        )) {
+            return false;
+        }
+
+        return ground.is(
+                Blocks.SAND
+        )
+                || ground.is(
+                Blocks.RED_SAND
+        )
+                || ground.is(
+                Blocks.GRAVEL
+        )
+                || ground.is(
+                Blocks.CLAY
+        );
     }
 
     private static boolean validGround(
