@@ -1,8 +1,8 @@
 package net.caravidro.wayaround.industrial.electronics;
 
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,7 +10,9 @@ import java.util.Set;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
 
 public final class CircuitBoardData {
@@ -20,11 +22,26 @@ public final class CircuitBoardData {
             int b
     ) {}
 
-    public static final int WIDTH = 6;
-    public static final int HEIGHT = 4;
-    public static final int CELL_COUNT = WIDTH * HEIGHT;
-    public static final int MAX_TRACES = 72;
+    public record UpgradeCost(
+            Item copper,
+            int copperCount,
+            Item redstone,
+            int redstoneCount,
+            Item diamond,
+            int diamondCount
+    ) {}
 
+    public static final int WIDTH = 6;
+    public static final int BASE_HEIGHT = 4;
+    public static final int MAX_HEIGHT = 8;
+    public static final int HEIGHT = MAX_HEIGHT;
+    public static final int CELL_COUNT = WIDTH * MAX_HEIGHT;
+    public static final int MAX_EXPANSION_LEVEL =
+            MAX_HEIGHT - BASE_HEIGHT;
+    public static final int MAX_TRACES = 160;
+
+    private static final int FORMAT_VERSION = 2;
+    private static final int LEGACY_CELL_COUNT = WIDTH * BASE_HEIGHT;
     private static final String KEY = "WayAroundCircuitBoard";
 
     public enum ComponentType {
@@ -42,8 +59,11 @@ public final class CircuitBoardData {
 
         private final int energyCost;
 
-        ComponentType(int energyCost) {
-            this.energyCost = energyCost;
+        ComponentType(
+                int energyCost
+        ) {
+            this.energyCost =
+                    energyCost;
         }
 
         public int energyCost() {
@@ -56,6 +76,8 @@ public final class CircuitBoardData {
 
     private final Set<Integer> traces =
             new HashSet<>();
+
+    private int expansionLevel;
 
     private CircuitBoardData() {
         Arrays.fill(
@@ -97,6 +119,20 @@ public final class CircuitBoardData {
                         KEY
                 );
 
+        int format =
+                tag.getInt(
+                        "Format"
+                );
+
+        board.expansionLevel =
+                Mth.clamp(
+                        tag.getInt(
+                                "ExpansionLevel"
+                        ),
+                        0,
+                        MAX_EXPANSION_LEVEL
+                );
+
         int[] savedComponents =
                 tag.getIntArray(
                         "Components"
@@ -124,20 +160,27 @@ public final class CircuitBoardData {
                         "Traces"
                 );
 
+        int encodedCellCount =
+                format >= FORMAT_VERSION
+                        ? CELL_COUNT
+                        : LEGACY_CELL_COUNT;
+
         for (int encoded : savedTraces) {
             if (board.traces.size() >= MAX_TRACES) {
                 break;
             }
 
             int a =
-                    encoded / CELL_COUNT;
+                    encoded / encodedCellCount;
 
             int b =
-                    encoded % CELL_COUNT;
+                    encoded % encodedCellCount;
 
             if (validCell(a)
                     && validCell(b)
-                    && a != b) {
+                    && a != b
+                    && board.isCellAvailable(a)
+                    && board.isCellAvailable(b)) {
                 board.traces.add(
                         encode(
                                 a,
@@ -161,6 +204,16 @@ public final class CircuitBoardData {
         CompoundTag board =
                 new CompoundTag();
 
+        board.putInt(
+                "Format",
+                FORMAT_VERSION
+        );
+
+        board.putInt(
+                "ExpansionLevel",
+                expansionLevel
+        );
+
         int[] savedComponents =
                 new int[CELL_COUNT];
 
@@ -179,8 +232,12 @@ public final class CircuitBoardData {
         int[] savedTraces =
                 traces.stream()
                         .sorted()
-                        .limit(MAX_TRACES)
-                        .mapToInt(Integer::intValue)
+                        .limit(
+                                MAX_TRACES
+                        )
+                        .mapToInt(
+                                Integer::intValue
+                        )
                         .toArray();
 
         board.putIntArray(
@@ -198,10 +255,107 @@ public final class CircuitBoardData {
         );
     }
 
+    public int expansionLevel() {
+        return expansionLevel;
+    }
+
+    public int activeHeight() {
+        return BASE_HEIGHT
+                + expansionLevel;
+    }
+
+    public int activeCellCount() {
+        return WIDTH
+                * activeHeight();
+    }
+
+    public boolean isCellAvailable(
+            int cell
+    ) {
+        return validCell(
+                cell
+        )
+                && cellY(
+                cell
+        ) < activeHeight();
+    }
+
+    public boolean canExpand() {
+        return expansionLevel
+                < MAX_EXPANSION_LEVEL;
+    }
+
+    public int nextHeight() {
+        return canExpand()
+                ? activeHeight() + 1
+                : activeHeight();
+    }
+
+    public UpgradeCost nextUpgradeCost() {
+        return upgradeCostForLevel(
+                expansionLevel
+        );
+    }
+
+    public boolean expand() {
+        if (!canExpand()) {
+            return false;
+        }
+
+        expansionLevel++;
+        return true;
+    }
+
+    public static UpgradeCost upgradeCostForLevel(
+            int currentLevel
+    ) {
+        return switch (currentLevel) {
+            case 0 -> new UpgradeCost(
+                    Items.COPPER_INGOT,
+                    16,
+                    Items.REDSTONE,
+                    16,
+                    Items.DIAMOND,
+                    2
+            );
+
+            case 1 -> new UpgradeCost(
+                    Items.COPPER_BLOCK,
+                    8,
+                    Items.REDSTONE_BLOCK,
+                    8,
+                    Items.DIAMOND,
+                    4
+            );
+
+            case 2 -> new UpgradeCost(
+                    Items.COPPER_BLOCK,
+                    24,
+                    Items.REDSTONE_BLOCK,
+                    24,
+                    Items.DIAMOND_BLOCK,
+                    16
+            );
+
+            case 3 -> new UpgradeCost(
+                    Items.COPPER_BLOCK,
+                    64,
+                    Items.REDSTONE_BLOCK,
+                    64,
+                    Items.DIAMOND_BLOCK,
+                    64
+            );
+
+            default -> null;
+        };
+    }
+
     public ComponentType component(
             int cell
     ) {
-        return validCell(cell)
+        return isCellAvailable(
+                cell
+        )
                 ? components[cell]
                 : ComponentType.EMPTY;
     }
@@ -210,7 +364,9 @@ public final class CircuitBoardData {
             int cell,
             ComponentType type
     ) {
-        if (!validCell(cell)
+        if (!isCellAvailable(
+                cell
+        )
                 || type == null
                 || type == ComponentType.EMPTY
                 || components[cell] != ComponentType.EMPTY) {
@@ -226,7 +382,9 @@ public final class CircuitBoardData {
     public ComponentType remove(
             int cell
     ) {
-        if (!validCell(cell)) {
+        if (!isCellAvailable(
+                cell
+        )) {
             return ComponentType.EMPTY;
         }
 
@@ -247,8 +405,8 @@ public final class CircuitBoardData {
             int a,
             int b
     ) {
-        return validCell(a)
-                && validCell(b)
+        return isCellAvailable(a)
+                && isCellAvailable(b)
                 && a != b
                 && traces.contains(
                 encode(
@@ -262,8 +420,8 @@ public final class CircuitBoardData {
             int a,
             int b
     ) {
-        return validCell(a)
-                && validCell(b)
+        return isCellAvailable(a)
+                && isCellAvailable(b)
                 && a != b
                 && traces.remove(
                 encode(
@@ -317,11 +475,6 @@ public final class CircuitBoardData {
                                 + dy * dy
                 );
 
-        /*
-         * One copper trace item represents about half a board-cell of routed
-         * conductor. Long diagonal runs therefore cost noticeably more than
-         * neighboring pads instead of every connection costing one item.
-         */
         return Math.max(
                 1,
                 (int) Math.ceil(
@@ -336,7 +489,8 @@ public final class CircuitBoardData {
         int total =
                 0;
 
-        for (Trace trace : traceEdges()) {
+        for (Trace trace :
+                traceEdges()) {
             if (trace.a() == cell
                     || trace.b() == cell) {
                 total +=
@@ -354,8 +508,8 @@ public final class CircuitBoardData {
             int a,
             int b
     ) {
-        if (!validCell(a)
-                || !validCell(b)
+        if (!isCellAvailable(a)
+                || !isCellAvailable(b)
                 || a == b
                 || traces.size() >= MAX_TRACES) {
             return false;
@@ -372,7 +526,9 @@ public final class CircuitBoardData {
     public int removeTracesAt(
             int cell
     ) {
-        if (!validCell(cell)) {
+        if (!isCellAvailable(
+                cell
+        )) {
             return 0;
         }
 
@@ -404,8 +560,10 @@ public final class CircuitBoardData {
             return false;
         }
 
-        for (ComponentType component : components) {
-            if (component == type) {
+        for (int cell = 0;
+             cell < activeCellCount();
+             cell++) {
+            if (components[cell] == type) {
                 return true;
             }
         }
@@ -414,10 +572,14 @@ public final class CircuitBoardData {
     }
 
     public int componentCount() {
-        int count = 0;
+        int count =
+                0;
 
-        for (ComponentType component : components) {
-            if (component != ComponentType.EMPTY) {
+        for (int cell = 0;
+             cell < activeCellCount();
+             cell++) {
+            if (components[cell]
+                    != ComponentType.EMPTY) {
                 count++;
             }
         }
@@ -434,18 +596,22 @@ public final class CircuitBoardData {
                 1
                         + Math.max(
                         0,
-                        traceCount() / 8
+                        traceCount()
+                                / 8
                 );
 
-        for (ComponentType component : components) {
+        for (int cell = 0;
+             cell < activeCellCount();
+             cell++) {
             draw +=
-                    component.energyCost();
+                    components[cell]
+                            .energyCost();
         }
 
         return Math.clamp(
                 draw,
                 1,
-                64
+                96
         );
     }
 
@@ -481,7 +647,8 @@ public final class CircuitBoardData {
         ArrayDeque<Integer> pending =
                 new ArrayDeque<>();
 
-        for (int sourceCell : sources) {
+        for (int sourceCell :
+                sources) {
             visited[sourceCell] =
                     true;
 
@@ -500,12 +667,15 @@ public final class CircuitBoardData {
                 return true;
             }
 
-            for (int encoded : traces) {
+            for (int encoded :
+                    traces) {
                 int a =
-                        encoded / CELL_COUNT;
+                        encoded
+                                / CELL_COUNT;
 
                 int b =
-                        encoded % CELL_COUNT;
+                        encoded
+                                % CELL_COUNT;
 
                 int next =
                         a == current
@@ -547,11 +717,11 @@ public final class CircuitBoardData {
     public float complexity() {
         return Mth.clamp(
                 componentCount()
-                        / 12.0F
+                        / 18.0F
                         + traceCount()
-                                / 36.0F,
+                                / 56.0F,
                 0.0F,
-                2.0F
+                2.5F
         );
     }
 
@@ -562,9 +732,10 @@ public final class CircuitBoardData {
                 new HashSet<>();
 
         for (int index = 0;
-             index < CELL_COUNT;
+             index < activeCellCount();
              index++) {
-            if (components[index] == type) {
+            if (components[index]
+                    == type) {
                 result.add(
                         index
                 );
@@ -581,7 +752,7 @@ public final class CircuitBoardData {
         if (x < 0
                 || x >= WIDTH
                 || y < 0
-                || y >= HEIGHT) {
+                || y >= MAX_HEIGHT) {
             return -1;
         }
 
@@ -592,16 +763,22 @@ public final class CircuitBoardData {
     public static int cellX(
             int cell
     ) {
-        return validCell(cell)
-                ? cell % WIDTH
+        return validCell(
+                cell
+        )
+                ? cell
+                % WIDTH
                 : -1;
     }
 
     public static int cellY(
             int cell
     ) {
-        return validCell(cell)
-                ? cell / WIDTH
+        return validCell(
+                cell
+        )
+                ? cell
+                / WIDTH
                 : -1;
     }
 
@@ -628,7 +805,8 @@ public final class CircuitBoardData {
                         b
                 );
 
-        return first * CELL_COUNT
+        return first
+                * CELL_COUNT
                 + second;
     }
 }
