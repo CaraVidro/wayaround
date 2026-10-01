@@ -5,6 +5,7 @@ import java.util.WeakHashMap;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.caravidro.wayaround.industrial.crushing.*;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -15,11 +16,18 @@ import net.minecraft.world.level.block.state.BlockState;
 /** Each assembly stage renders only the real installed component. */
 public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEntity> {
     private static final Map<CrusherBlockEntity,SmoothObjectAnimation.Rotation> ROTATIONS=new WeakHashMap<>();
+    private static final double[] SIGNS={-1.0,1.0};
+    private static final double[] TOOTH_Z={-0.22,0.0,0.22};
     private final BlockRenderDispatcher blocks;
     public CrusherRenderer(BlockEntityRendererProvider.Context context){blocks=context.getBlockRenderDispatcher();}
     @Override public void render(CrusherBlockEntity crusher,float partialTick,PoseStack pose,MultiBufferSource buffer,int light,int overlay){
         double time=crusher.getLevel()==null?0:crusher.getLevel().getGameTime()+partialTick;
-        float angle=ROTATIONS.computeIfAbsent(crusher,key->new SmoothObjectAnimation.Rotation(crusher.angle())).update(time,crusher.rpm(),crusher.angle());
+        DistanceLod.Tier lod=DistanceLod.forBlock(crusher.getBlockPos());
+        float angle=DistanceLod.quantizeDegrees(
+                ROTATIONS.computeIfAbsent(crusher,key->new SmoothObjectAnimation.Rotation(crusher.angle()))
+                        .update(time,crusher.rpm(),crusher.angle()),
+                lod
+        );
         pose.pushPose();pose.translate(.5,0,.5);pose.mulPose(Axis.YP.rotationDegrees(-crusher.getBlockState().getValue(CrusherBlock.FACING).toYRot()));
         if(crusher.working())pose.translate(Math.sin(time*2.4)*crusher.vibration()*.008,0,Math.cos(time*2.1)*crusher.vibration()*.008);
         var metal=Blocks.IRON_BLOCK.defaultBlockState();var wood=Blocks.STRIPPED_SPRUCE_LOG.defaultBlockState();
@@ -44,7 +52,8 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
             boolean heavy=parts.spec(MachinePartSpec.Role.DRIVE).heavy();
             box(pose,buffer,light,overlay,metal,0,.38,0,.94,heavy?.13:.065,heavy?.13:.065);
             pose.pushPose();pose.translate(.43,.38,0);pose.mulPose(Axis.XP.rotationDegrees(angle));
-            for(int i=0;i<8;i++){pose.pushPose();pose.mulPose(Axis.XP.rotationDegrees(i*45));
+            int flywheelSegments=lod.detailedGeometry()?8:4;
+            for(int i=0;i<flywheelSegments;i++){pose.pushPose();pose.mulPose(Axis.XP.rotationDegrees(i*360F/flywheelSegments));
                 box(pose,buffer,light,overlay,Blocks.COPPER_BLOCK.defaultBlockState(),0,.22,0,.055,.16,.09);pose.popPose();}
             box(pose,buffer,light,overlay,metal,0,0,0,.065,.47,.065);pose.popPose();
         }
@@ -59,8 +68,15 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
                     if(reinforced)for(int i=-2;i<=2;i++)box(pose,buffer,light,overlay,Blocks.DEEPSLATE.defaultBlockState(),i*.075,.12,-.075,.035,.25,.035);
                     pose.popPose();
                 }
-                case MEDIUM->{roller(pose,buffer,light,overlay,tool,-.2,angle,reinforced,8,.16);roller(pose,buffer,light,overlay,tool,.2,-angle,reinforced,8,.16);}
-                case LARGE->{roller(pose,buffer,light,overlay,tool,-.24,angle,true,reinforced?12:8,.22);roller(pose,buffer,light,overlay,tool,.24,-angle,true,reinforced?12:8,.22);
+                case MEDIUM->{
+                    int segments=lod.detailedGeometry()?8:4;
+                    roller(pose,buffer,light,overlay,tool,-.2,angle,reinforced&&lod.detailedGeometry(),segments,.16);
+                    roller(pose,buffer,light,overlay,tool,.2,-angle,reinforced&&lod.detailedGeometry(),segments,.16);
+                }
+                case LARGE->{
+                    int segments=lod.detailedGeometry()?(reinforced?12:8):4;
+                    roller(pose,buffer,light,overlay,tool,-.24,angle,lod.detailedGeometry(),segments,.22);
+                    roller(pose,buffer,light,overlay,tool,.24,-angle,lod.detailedGeometry(),segments,.22);
                     box(pose,buffer,light,overlay,metal,0,.13,0,.85,.08,.75);}
             }
         }
@@ -69,7 +85,7 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
             var material=wide?metal:Blocks.OAK_PLANKS.defaultBlockState();
             for(double x:new double[]{-radius,radius})box(pose,buffer,light,overlay,material,x,.85,0,.06,.28,radius*2);
             for(double z:new double[]{-radius,radius})box(pose,buffer,light,overlay,material,0,.85,z,radius*2,.28,.06);
-            if(wide)for(double x:new double[]{-.40,.40})box(pose,buffer,light,overlay,metal,x,.83,-.46,.04,.26,.04);
+            if(wide&&lod.detailedGeometry())for(double x:SIGNS)box(pose,buffer,light,overlay,metal,x*.40,.83,-.46,.04,.26,.04);
         }
         if(crusher.inputCount()>0)box(pose,buffer,light,overlay,Blocks.IRON_ORE.defaultBlockState(),0,.8,0,.22,.12,.2);
         if(crusher.outputCount()>0)box(pose,buffer,light,overlay,Blocks.GRAVEL.defaultBlockState(),0,.16,-.35,.32,.07,.2);
@@ -79,13 +95,13 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
         pose.pushPose();pose.translate(x,.5,0);pose.mulPose(Axis.ZP.rotationDegrees(angle));
         for(int i=0;i<count;i++){pose.pushPose();pose.mulPose(Axis.ZP.rotationDegrees(i*360F/count));
             box(pose,buffer,light,overlay,material,0,radius*.65,0,radius*1.5,radius*.8,.63);
-            if(teeth)for(double z:new double[]{-.22,0,.22})box(pose,buffer,light,overlay,Blocks.DEEPSLATE.defaultBlockState(),0,radius, z,.065,.08,.065);
+            if(teeth)for(double z:TOOTH_Z)box(pose,buffer,light,overlay,Blocks.DEEPSLATE.defaultBlockState(),0,radius,z,.065,.08,.065);
             pose.popPose();}pose.popPose();
     }
     private void box(PoseStack pose,MultiBufferSource buffer,int light,int overlay,BlockState material,double x,double y,double z,double sx,double sy,double sz){
         pose.pushPose();pose.translate(x-sx/2,y-sy/2,z-sz/2);pose.scale((float)sx,(float)sy,(float)sz);
         blocks.renderSingleBlock(material,pose,buffer,light,overlay);pose.popPose();
     }
-    @Override public boolean shouldRenderOffScreen(CrusherBlockEntity crusher){return true;}
+    @Override public boolean shouldRenderOffScreen(CrusherBlockEntity crusher){return false;}
     @Override public int getViewDistance(){return 96;}
 }
