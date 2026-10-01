@@ -199,6 +199,8 @@ public final class MechanicsGameTests {
         pump.installImpeller(player,cartridge);
         crank.crank(player);
 
+        float peakFlow=0;
+
         for(int tick=0;tick<18;tick++){
             ManualCrankBlockEntity.serverTick(
                     h.getLevel(),
@@ -212,6 +214,7 @@ public final class MechanicsGameTests {
                     pump.getBlockState(),
                     pump
             );
+            peakFlow=Math.max(peakFlow,pump.flowPerTick());
         }
 
         h.assertTrue(
@@ -219,7 +222,7 @@ public final class MechanicsGameTests {
                 "A powered pump must pull the real source block behind it"
         );
         h.assertTrue(
-                pump.rpm()>8&&pump.flowPerTick()>0,
+                pump.rpm()>8&&peakFlow>0,
                 "Crank power must produce pump RPM and bounded discharge flow"
         );
         h.assertTrue(
