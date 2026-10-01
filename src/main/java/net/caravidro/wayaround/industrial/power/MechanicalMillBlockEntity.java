@@ -267,6 +267,20 @@ public final class MechanicalMillBlockEntity
 
                 mill.wheatInput--;
                 mill.parts.wear(.0009F, Math.max(1, mill.lastPower / POWER_DRAW));
+                mill.parts.observeMaterialUse(
+                        level.getGameTime(),
+                        Math.max(
+                                0.25F,
+                                mill.lastPower / POWER_DRAW
+                        ),
+                        0.0F,
+                        Math.min(
+                                1.0F,
+                                Math.abs(
+                                        mill.rpm
+                                ) / 90.0F
+                        )
+                );
 
                 mill.flourOutput =
                         Math.min(
