@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "wayaround:copper_trace"
+    },
+    {
+      "item": "minecraft:paper"
+    },
+    {
+      "item": "minecraft:quartz"
+    }
+  ],
+  "result": {
+    "id": "wayaround:capacitor",
+    "count": 2
+  }
+}
