@@ -44,12 +44,33 @@ Implemented in the development branch:
 - material history integrated into shafts, gearboxes, pump impellers, crushers, mills and sawmills;
 - user-built 6×4 circuit boards with physical component cells and explicit copper traces;
 - input/output terminals, resistors, capacitors, diodes, transistors and relays as installed parts;
-- circuit assembly on the existing Engineering Workbench instead of a duplicate electronics bench;
+- circuit assembly on a dedicated Electronics Workbench, keeping Engineering focused on design/calculation;
 - powered Circuit Controller using the existing WayAround Energy Network / energy cables;
 - circuit power draw and material aging while energized;
 - regression tests for circuit persistence and material-history persistence.
 
 This milestone deliberately stops before a prebuilt computer. It creates the graph, material history and electrical contract that future sensors, automation, memory, logic and computers can reuse.
+
+## Milestone 1.5 — Steam Age
+
+Implemented in the development branch:
+
+- dedicated Electronics Workbench for the electronics profession workflow;
+- Engineering Workbench restored to engineering-only use;
+- separate Steam Boiler with Pressure Vessel and Safety Valve assembly parts;
+- boiler water input by bucket or the existing Pipework fluid network;
+- shared steam state with amount, pressure and temperature;
+- bounded SteamNetwork routing through existing steam-rated Pipework;
+- pipe pressure/temperature ratings affect steam transmission and structural damage;
+- Steam Engine no longer burns coal/water internally and no longer creates FE directly;
+- Steam Engine now consumes piped steam and exposes RPM, torque and mechanical power;
+- normal steam-machine feedback is qualitative, while exact pressure/RPM/temperature readings require a Steam Pressure Gauge;
+- steam-generated electricity now requires a downstream mechanical generator;
+- dedicated Steam Age GameTests.
+
+The new physical chain is:
+
+`fuel + water → boiler → steam/pressure → steam pipe → piston engine → shaft/gears → generator → electrical grid`
 
 ## Minecraft title menu
 
@@ -88,6 +109,8 @@ Mechanical systems now share real concepts of load, power, torque, speed and str
 
 Material history now survives with the parts themselves, and electronics no longer need a future second power system. Players can physically build circuit boards and power them from the same grid that already serves industrial machines.
 
-This is the foundation for the next stages of WayAround: steam, generators, heavy industry, sensors, automation, logistics, computers and large infrastructure.
+Steam is now part of that same connected world: boilers create physical steam, pipe ratings matter, piston engines create mechanical work, and electricity remains downstream of a generator.
+
+This is the foundation for the next stages of WayAround: heavy industry, sensors, automation, logistics, computers, trains, steam ships and large infrastructure.
 
 The world is beginning to connect.

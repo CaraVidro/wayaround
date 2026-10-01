@@ -1,0 +1,112 @@
+name: Steam Age validation
+
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/net/caravidro/wayaround/industrial/steam/**'
+      - 'src/main/java/net/caravidro/wayaround/industrial/power/SteamEngine*'
+      - 'src/main/java/net/caravidro/wayaround/industrial/client/SteamEngineRenderer.java'
+      - 'src/main/java/net/caravidro/wayaround/industrial/power/PowerContent.java'
+      - 'src/main/java/net/caravidro/wayaround/industrial/pipework/PipeCatalog.java'
+      - 'src/main/java/net/caravidro/wayaround/industrial/electronics/ElectronicsWorkbench*'
+      - 'src/main/resources/assets/wayaround/models/block/steam_*'
+      - 'src/main/resources/assets/wayaround/models/item/steam_*'
+      - 'src/main/resources/assets/wayaround/models/item/boiler_*'
+      - 'src/main/resources/assets/wayaround/models/block/electronics_workbench.json'
+      - 'src/main/resources/assets/wayaround/models/item/electronics_workbench.json'
+      - 'src/main/resources/assets/wayaround/blockstates/steam_boiler.json'
+      - 'src/main/resources/assets/wayaround/blockstates/electronics_workbench.json'
+      - 'src/main/resources/data/wayaround/recipe/steam_*'
+      - 'src/main/resources/data/wayaround/recipe/boiler_*'
+      - 'src/main/resources/data/wayaround/recipe/electronics_workbench.json'
+      - '.github/workflows/steam-validation.yml'
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Steam and connected-system GameTests
+        run: bash gradlew runCrushingGameTestServer --console=plain
+
+      - name: Steam Age client/resource smoke
+        env:
+          ALSOFT_DRIVERS: "null"
+        shell: bash
+        run: |
+          python - <<'PYCLIENT'
+          import os, re, signal, subprocess, time
+          from pathlib import Path
+
+          path = Path('steam-client-smoke.log')
+          ready = False
+
+          with path.open('w') as log:
+              process = subprocess.Popen(
+                  ['xvfb-run', '-a', 'bash', 'gradlew', 'runClient', '--console=plain'],
+                  stdout=log,
+                  stderr=subprocess.STDOUT,
+                  start_new_session=True,
+              )
+              try:
+                  deadline = time.monotonic() + 180
+                  while process.poll() is None and time.monotonic() < deadline:
+                      text = path.read_text(errors='replace')
+                      audio = 'OpenAL initialized' in text or 'Sound engine started' in text
+                      if audio and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                          ready = True
+                          break
+                      time.sleep(1)
+              finally:
+                  if process.poll() is None:
+                      os.killpg(process.pid, signal.SIGTERM)
+                  try:
+                      process.wait(timeout=15)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(process.pid, signal.SIGKILL)
+                      process.wait()
+
+          text = path.read_text(errors='replace')
+
+          if not ready or re.search(r'Exception in thread|ReportedException|ModLoadingException', text):
+              print('\n'.join(text.splitlines()[-140:]))
+              raise SystemExit(1)
+
+          current = re.compile(
+              r'wayaround:(?:models/(?:block|item)/)?'
+              r'(?:steam_boiler|steam_engine|steam_pressure_gauge|boiler_pressure_vessel|boiler_safety_valve|'
+              r'electronics_workbench|insulated_steam_pipe|steel_pressure_pipe)'
+          )
+
+          errors = [
+              line for line in text.splitlines()
+              if re.search(
+                  r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',
+                  line,
+              )
+          ]
+
+          relevant = [line for line in errors if current.search(line)]
+
+          if relevant:
+              print('\n'.join(relevant))
+              raise SystemExit(1)
+
+          print('Steam Age GameTests and client resource smoke reached a clean initialized state')
+          PYCLIENT
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: steam-age-validation
+          path: |
+            steam-client-smoke.log
+            run/logs/latest.log
+            build/reports/**

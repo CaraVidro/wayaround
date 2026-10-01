@@ -7,7 +7,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
-import net.caravidro.wayaround.industrial.power.SteamEngineBlock;
 import net.caravidro.wayaround.industrial.power.SteamEngineBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -16,8 +15,8 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.world.level.block.Blocks;
 
 /**
- * Procedural steam-engine renderer with a continuously smoothed flywheel and
- * mechanically linked piston/valve motion.
+ * Separate piston engine: steam arrives from an external boiler/network and
+ * leaves as rotational work through the flywheel/shaft.
  */
 public final class SteamEngineRenderer
         implements BlockEntityRenderer<SteamEngineBlockEntity> {
@@ -47,13 +46,12 @@ public final class SteamEngineRenderer
             return;
         }
 
-        packedLight = IndustrialRenderUtil.exteriorLight(engine.getLevel(), engine.getBlockPos(), packedLight);
-
-        boolean lit =
-                engine.getBlockState()
-                        .getValue(
-                                SteamEngineBlock.LIT
-                        );
+        packedLight =
+                IndustrialRenderUtil.exteriorLight(
+                        engine.getLevel(),
+                        engine.getBlockPos(),
+                        packedLight
+                );
 
         double renderTime =
                 engine.getLevel().getGameTime()
@@ -73,9 +71,9 @@ public final class SteamEngineRenderer
         float wheelAngle =
                 rotation.update(
                         renderTime,
-                        engine.boiling()
-                                ? 44.0F
-                                : 0.0F
+                        Math.abs(
+                                engine.rpm()
+                        )
                 );
 
         double radians =
@@ -87,7 +85,7 @@ public final class SteamEngineRenderer
                 Math.sin(
                         radians
                 )
-                        * 0.105;
+                        * 0.13;
 
         double valveTravel =
                 Math.cos(
@@ -102,73 +100,98 @@ public final class SteamEngineRenderer
                 0.5
         );
 
-        // Exposed sight glass shows the remaining water without a numerical status message.
-        IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                Blocks.IRON_BLOCK.defaultBlockState(), -.40, -.03, -.34, .10, .44, .10);
-        if(engine.waterFill()>0) IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), -.40, -.24+engine.waterFill()*.20, -.40,
-                .06, Math.max(.01,engine.waterFill()*.40), .05);
-
-        // Base skid and boiler body.
+        // Heavy skid/base.
         IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
                 Blocks.SMOOTH_STONE.defaultBlockState(),
-                0.0, -0.42, 0.0,
-                0.92, 0.14, 0.86
+                0.0,
+                -0.41,
+                0.0,
+                0.92,
+                0.16,
+                0.82
         );
 
+        // Steam cylinder.
         IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
                 Blocks.IRON_BLOCK.defaultBlockState(),
-                -0.12, 0.02, 0.0,
-                0.54, 0.58, 0.62
+                -0.12,
+                0.14,
+                -0.02,
+                0.46,
+                0.34,
+                0.42
         );
 
-        // Copper boiler bands make the machine readable from a distance.
-        for (double z :
+        // Cylinder bands.
+        for (double x :
                 new double[] {
-                        -0.23,
-                        0.0,
-                        0.23
+                        -0.30,
+                        -0.05,
+                        0.16
                 }) {
             IndustrialRenderUtil.cuboid(
-                    blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                    blockRenderer,
+                    poseStack,
+                    bufferSource,
+                    packedLight,
+                    packedOverlay,
                     Blocks.COPPER_BLOCK.defaultBlockState(),
-                    -0.12, 0.02, z,
-                    0.59, 0.07, 0.08
+                    x,
+                    0.14,
+                    -0.02,
+                    0.055,
+                    0.38,
+                    0.46
             );
         }
 
-        // Firebox / burner.
+        // Steam chest and inlet manifold. This is deliberately separate from
+        // a boiler: the player must pipe steam into the machine.
         IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                lit
-                        ? Blocks.REDSTONE_BLOCK.defaultBlockState()
-                        : Blocks.STONE_BRICKS.defaultBlockState(),
-                -0.12, -0.24, -0.31,
-                0.43, 0.22, 0.12
-        );
-
-        // Chimney stack.
-        IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                Blocks.IRON_BLOCK.defaultBlockState(),
-                -0.21, 0.42, 0.16,
-                0.16, 0.38, 0.16
-        );
-
-        IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
                 Blocks.COPPER_BLOCK.defaultBlockState(),
-                -0.21, 0.62, 0.16,
-                0.23, 0.08, 0.23
+                -0.24,
+                0.39,
+                0.0,
+                0.30,
+                0.17,
+                0.32
         );
 
-        // Flywheel on the right side.
+        IndustrialRenderUtil.cuboid(
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.IRON_BLOCK.defaultBlockState(),
+                -0.40,
+                0.39,
+                0.0,
+                0.20,
+                0.12,
+                0.12
+        );
+
+        // Flywheel on the output side.
         poseStack.pushPose();
         poseStack.translate(
-                0.39,
-                -0.03,
+                0.34,
+                -0.02,
                 0.0
         );
         poseStack.mulPose(
@@ -186,34 +209,40 @@ public final class SteamEngineRenderer
                 Blocks.COPPER_BLOCK.defaultBlockState(),
                 Blocks.IRON_BLOCK.defaultBlockState(),
                 12,
-                0.31,
-                0.10
+                0.34,
+                0.095
         );
         poseStack.popPose();
 
-        // Piston body and reciprocating rod.
+        // Piston rod and crosshead.
         IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
                 Blocks.IRON_BLOCK.defaultBlockState(),
-                0.16, 0.22, -0.18,
-                0.26, 0.24, 0.26
+                0.08 + pistonTravel,
+                0.14,
+                -0.02,
+                0.30,
+                0.075,
+                0.075
         );
 
         IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                Blocks.IRON_BLOCK.defaultBlockState(),
-                0.16 + pistonTravel, 0.22, -0.18,
-                0.28, 0.08, 0.08
-        );
-
-        // Connecting rod visibly follows the wheel phase.
-        IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
                 Blocks.COPPER_BLOCK.defaultBlockState(),
-                0.29 + pistonTravel * 0.45,
-                0.10 + Math.cos(radians) * 0.055,
-                -0.18,
-                0.24, 0.055, 0.055,
+                0.23 + pistonTravel * 0.45,
+                0.06 + Math.cos(radians) * 0.06,
+                -0.02,
+                0.28,
+                0.055,
+                0.055,
                 0.0F,
                 0.0F,
                 (float) (
@@ -224,19 +253,36 @@ public final class SteamEngineRenderer
                 )
         );
 
-        // Valve gear gives the upper section a second, faster rhythm.
+        // Valve gear.
         IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
                 Blocks.COPPER_BLOCK.defaultBlockState(),
-                0.05, 0.36 + valveTravel, 0.23,
-                0.08, 0.18, 0.08
+                -0.04,
+                0.36 + valveTravel,
+                0.25,
+                0.07,
+                0.18,
+                0.07
         );
 
+        // Output shaft stub makes the mechanical connection readable.
         IndustrialRenderUtil.cuboid(
-                blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                blockRenderer,
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
                 Blocks.IRON_BLOCK.defaultBlockState(),
-                0.05, 0.48 + valveTravel, 0.23,
-                0.16, 0.06, 0.16
+                0.48,
+                -0.02,
+                0.0,
+                0.22,
+                0.075,
+                0.075
         );
 
         poseStack.popPose();

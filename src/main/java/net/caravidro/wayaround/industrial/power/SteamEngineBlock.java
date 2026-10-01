@@ -7,8 +7,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.ItemUtils;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
@@ -22,51 +20,129 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
-public final class SteamEngineBlock extends BaseEntityBlock {
-    public static final MapCodec<SteamEngineBlock> CODEC = simpleCodec(SteamEngineBlock::new);
-    public static final BooleanProperty LIT = BlockStateProperties.LIT;
-    public SteamEngineBlock(Properties properties) {
+public final class SteamEngineBlock
+        extends BaseEntityBlock {
+
+    public static final MapCodec<SteamEngineBlock> CODEC =
+            simpleCodec(
+                    SteamEngineBlock::new
+            );
+
+    public static final BooleanProperty LIT =
+            BlockStateProperties.LIT;
+
+    public SteamEngineBlock(
+            Properties properties
+    ) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(LIT, false));
+
+        registerDefaultState(
+                stateDefinition.any()
+                        .setValue(
+                                LIT,
+                                false
+                        )
+        );
     }
-    @Override protected MapCodec<SteamEngineBlock> codec() { return CODEC; }
-    @Override protected RenderShape getRenderShape(BlockState state) { return RenderShape.INVISIBLE; }
-    @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(LIT);
+
+    @Override
+    protected MapCodec<SteamEngineBlock> codec() {
+        return CODEC;
     }
-    @Override public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new SteamEngineBlockEntity(pos, state);
+
+    @Override
+    protected RenderShape getRenderShape(
+            BlockState state
+    ) {
+        return RenderShape.INVISIBLE;
     }
-    @Override public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide ? null : createTickerHelper(type, PowerContent.STEAM_ENGINE_ENTITY.get(), SteamEngineBlockEntity::serverTick);
+
+    @Override
+    protected void createBlockStateDefinition(
+            StateDefinition.Builder<Block, BlockState> builder
+    ) {
+        builder.add(
+                LIT
+        );
     }
-    @Override protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level,
-            BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!stack.is(Items.WATER_BUCKET) && !stack.is(Items.COAL)) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-        }
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof SteamEngineBlockEntity engine) {
-            if (stack.is(Items.WATER_BUCKET)) {
-                if (engine.addWater()) player.setItemInHand(hand,
-                        ItemUtils.createFilledResult(stack, player, new ItemStack(Items.BUCKET)));
-            } else if (engine.addCoal()) {
-                stack.consume(1, player);
+
+    @Override
+    public BlockEntity newBlockEntity(
+            BlockPos pos,
+            BlockState state
+    ) {
+        return new SteamEngineBlockEntity(
+                pos,
+                state
+        );
+    }
+
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+            Level level,
+            BlockState state,
+            BlockEntityType<T> type
+    ) {
+        return level.isClientSide
+                ? null
+                : createTickerHelper(
+                        type,
+                        PowerContent.STEAM_ENGINE_ENTITY.get(),
+                        SteamEngineBlockEntity::serverTick
+                );
+    }
+
+    @Override
+    protected ItemInteractionResult useItemOn(
+            ItemStack stack,
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            InteractionHand hand,
+            BlockHitResult hit
+    ) {
+        if (stack.is(
+                PowerContent.STEAM_PRESSURE_GAUGE.get()
+        )
+                && level.getBlockEntity(
+                pos
+        ) instanceof SteamEngineBlockEntity engine) {
+
+            if (!level.isClientSide) {
+                player.displayClientMessage(
+                        engine.measurement(),
+                        true
+                );
             }
 
+            return ItemInteractionResult.SUCCESS;
         }
-        return ItemInteractionResult.sidedSuccess(level.isClientSide);
-    }
-    @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof SteamEngineBlockEntity engine) {
 
-        }
-        return InteractionResult.sidedSuccess(level.isClientSide);
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
-    @Override protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moving) {
-        if (!state.is(replacement.getBlock()) && !level.isClientSide
-                && level.getBlockEntity(pos) instanceof SteamEngineBlockEntity engine && engine.storedCoal() > 0) {
-            popResource(level, pos, new ItemStack(Items.COAL, engine.storedCoal()));
+
+    @Override
+    protected InteractionResult useWithoutItem(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            BlockHitResult hit
+    ) {
+        if (!level.isClientSide
+                && level.getBlockEntity(
+                pos
+        ) instanceof SteamEngineBlockEntity engine) {
+
+            player.displayClientMessage(
+                    engine.status(),
+                    true
+            );
         }
-        super.onRemove(state, level, pos, replacement, moving);
+
+        return InteractionResult.sidedSuccess(
+                level.isClientSide
+        );
     }
 }

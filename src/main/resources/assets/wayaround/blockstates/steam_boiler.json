@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "wayaround:block/steam_boiler"
+    },
+    "lit=true": {
+      "model": "wayaround:block/steam_boiler_on"
+    }
+  }
+}

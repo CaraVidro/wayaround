@@ -89,6 +89,48 @@ public final class ElectronicsContent {
                     "output_terminal"
             );
 
+    public static final DeferredBlock<ElectronicsWorkbenchBlock> ELECTRONICS_WORKBENCH =
+            BLOCKS.register(
+                    "electronics_workbench",
+                    () -> new ElectronicsWorkbenchBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(
+                                            MapColor.WOOD
+                                    )
+                                    .strength(
+                                            2.8F,
+                                            4.5F
+                                    )
+                                    .sound(
+                                            SoundType.WOOD
+                                    )
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> ELECTRONICS_WORKBENCH_ITEM =
+            ITEMS.register(
+                    "electronics_workbench",
+                    () -> new BlockItem(
+                            ELECTRONICS_WORKBENCH.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredHolder<
+            BlockEntityType<?>,
+            BlockEntityType<ElectronicsWorkbenchBlockEntity>
+            > ELECTRONICS_WORKBENCH_ENTITY =
+            BLOCK_ENTITIES.register(
+                    "electronics_workbench",
+                    () -> BlockEntityType.Builder.of(
+                                    ElectronicsWorkbenchBlockEntity::new,
+                                    ELECTRONICS_WORKBENCH.get()
+                            )
+                            .build(
+                                    null
+                            )
+            );
+
     public static final DeferredBlock<CircuitControllerBlock> CIRCUIT_CONTROLLER =
             BLOCKS.register(
                     "circuit_controller",
@@ -181,6 +223,10 @@ public final class ElectronicsContent {
     public static void fillTab(
             CreativeModeTab.Output output
     ) {
+        output.accept(
+                ELECTRONICS_WORKBENCH_ITEM.get()
+        );
+
         output.accept(
                 CIRCUIT_BOARD.get()
         );

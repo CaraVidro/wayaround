@@ -2,29 +2,23 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "IPI",
-    "CSC",
-    "IRI"
+    "ICI",
+    "IFI",
+    "III"
   ],
   "key": {
     "I": {
       "item": "minecraft:iron_ingot"
     },
-    "P": {
-      "item": "minecraft:piston"
-    },
     "C": {
       "item": "minecraft:copper_ingot"
     },
-    "S": {
-      "item": "wayaround:mechanical_shaft"
-    },
-    "R": {
-      "item": "minecraft:redstone"
+    "F": {
+      "item": "minecraft:furnace"
     }
   },
   "result": {
-    "id": "wayaround:steam_engine",
+    "id": "wayaround:steam_boiler",
     "count": 1
   }
 }

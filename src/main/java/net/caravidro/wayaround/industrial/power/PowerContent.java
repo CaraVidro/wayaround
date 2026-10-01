@@ -3,6 +3,8 @@ package net.caravidro.wayaround.industrial.power;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalCapabilities;
+import net.caravidro.wayaround.industrial.steam.SteamBoilerBlock;
+import net.caravidro.wayaround.industrial.steam.SteamBoilerBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -235,6 +237,40 @@ public final class PowerContent {
 
     private PowerContent() {}
 
+    public static final DeferredItem<Item> BOILER_PRESSURE_VESSEL =
+        ITEMS.register("boiler_pressure_vessel",
+            () -> new Item(new Item.Properties().stacksTo(4)));
+
+    public static final DeferredItem<Item> BOILER_SAFETY_VALVE =
+        ITEMS.register("boiler_safety_valve",
+            () -> new Item(new Item.Properties().stacksTo(16)));
+
+    public static final DeferredItem<Item> STEAM_PRESSURE_GAUGE =
+        ITEMS.register("steam_pressure_gauge",
+            () -> new Item(new Item.Properties().stacksTo(1).durability(256)));
+
+    public static final DeferredBlock<SteamBoilerBlock> STEAM_BOILER =
+        BLOCKS.register("steam_boiler",
+            () -> new SteamBoilerBlock(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.8F, 7.0F)
+                    .sound(SoundType.METAL)
+                    .requiresCorrectToolForDrops()
+                    .lightLevel(state -> state.getValue(SteamBoilerBlock.LIT) ? 9 : 0)
+            ));
+
+    public static final DeferredItem<BlockItem> STEAM_BOILER_ITEM =
+        ITEMS.register("steam_boiler",
+            () -> new BlockItem(STEAM_BOILER.get(), new Item.Properties()));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<SteamBoilerBlockEntity>> STEAM_BOILER_ENTITY =
+        BLOCK_ENTITIES.register("steam_boiler",
+            () -> BlockEntityType.Builder.of(
+                SteamBoilerBlockEntity::new,
+                STEAM_BOILER.get()
+            ).build(null));
+
     public static final DeferredBlock<SteamEngineBlock> STEAM_ENGINE = BLOCKS.register("steam_engine",
         () -> new SteamEngineBlock(BlockBehaviour.Properties.of().noOcclusion().mapColor(MapColor.METAL)
             .strength(3.5F, 6.0F).sound(SoundType.METAL).requiresCorrectToolForDrops()
@@ -254,8 +290,9 @@ public final class PowerContent {
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
-        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, STEAM_ENGINE_ENTITY.get(),
-            (engine, side) -> engine.energyOutput());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, STEAM_BOILER_ENTITY.get(),
+            (boiler, side) -> boiler.fluidInput());
+
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, SOLAR_PANEL_ENTITY.get(),
             (panel, side) -> panel.energyOutput());
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, WATER_GENERATOR_ENTITY.get(),
@@ -277,6 +314,12 @@ public final class PowerContent {
             MechanicalCapabilities.ROTATION,
             MANUAL_CRANK_ENTITY.get(),
             (crank, side) -> crank.rotationOutput(side)
+        );
+
+        event.registerBlockEntity(
+            MechanicalCapabilities.ROTATION,
+            STEAM_ENGINE_ENTITY.get(),
+            (engine, side) -> engine.rotationOutput(side)
         );
     }
 }
