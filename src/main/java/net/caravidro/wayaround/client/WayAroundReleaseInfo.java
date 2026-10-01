@@ -62,6 +62,8 @@ public final class WayAroundReleaseInfo {
                 Component.translatable("screen.wayaround.update_log.grid"),
                 Component.translatable("screen.wayaround.update_log.polar_fix"),
                 Component.translatable("screen.wayaround.update_log.dialogue_splashes"),
+                Component.translatable("screen.wayaround.update_log.pcb_editor"),
+                Component.translatable("screen.wayaround.update_log.emblem_tree"),
                 Component.translatable("screen.wayaround.update_log.future")
         );
     }
