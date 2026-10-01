@@ -81,15 +81,15 @@ The board is carried as one ItemStack, so the exact layout survives removal, tra
 
 ## Building circuits
 
-The existing Engineering Workbench is reused.
+Electronics uses a dedicated **Electronics Workbench**.
 
-1. place a Circuit Board on the Engineering Workbench;
+1. place a Circuit Board on the Electronics Workbench;
 2. right-click a top-face cell with an electronic component to install it;
 3. use Copper Trace on one cell and then another to route a trace;
 4. use the Assembly Hammer on a cell to recover installed parts/traces;
 5. Shift + empty-hand use removes the board with its topology intact.
 
-This deliberately avoids a second "electronics crafting machine".
+This separation is intentional. The Engineering Workbench remains focused on calculation, blueprints and engineering design; the Electronics Workbench becomes the physical workspace for the electronics profession-like role.
 
 ## Electricity
 
