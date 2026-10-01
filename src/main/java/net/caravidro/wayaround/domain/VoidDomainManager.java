@@ -574,6 +574,51 @@ public final class VoidDomainManager {
                 );
     }
 
+    /**
+     * True for both the Void owner and captured players while they physically
+     * occupy the temporary pocket-space. This is intentionally broader than
+     * isTrapped(): systems such as Vista/ecology must treat the whole pocket
+     * as "not the overworld geography", including for the caster.
+     */
+    public static boolean isInsideDomain(
+            ServerPlayer player
+    ) {
+        return player != null
+                && PARTICIPANT_TO_OWNER.containsKey(
+                        player.getUUID()
+                );
+    }
+
+    /**
+     * Position-level pocket check used by world systems that do not have a
+     * player reference. The pocket lives far away inside the Overworld, so
+     * coordinate-only geography checks would otherwise mistake it for polar
+     * terrain and allow ecology to leak into the Domain.
+     */
+    public static boolean isInsidePocket(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        if (level == null
+                || pos == null) {
+            return false;
+        }
+
+        for (ActiveVoidDomain domain :
+                ACTIVE.values()) {
+            if (domain.dimension.equals(
+                    level.dimension()
+            )
+                    && domain.isInsidePocket(
+                    pos
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static void clearAll() {
         ACTIVE.clear();
         PARTICIPANT_TO_OWNER.clear();
