@@ -2,6 +2,7 @@ package net.caravidro.wayaround.mixin;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldgen.terrain.AntarcticDensityFunction;
+import net.caravidro.wayaround.worldgen.terrain.VolcanicDensityFunction;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 
@@ -63,9 +64,18 @@ public abstract class NoiseRouterMixin {
     private void wayaround$modifyNoiseRouter(
             CallbackInfoReturnable<NoiseRouter> cir
     ) {
-        if (!WorldFeatureRuntime.serverEnabled(
-                WorldFeature.ANTARCTICA
-        )) {
+        boolean antarcticaEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.ANTARCTICA
+                );
+
+        boolean volcanicEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.VOLCANIC_REGIONS
+                );
+
+        if (!antarcticaEnabled
+                && !volcanicEnabled) {
             return;
         }
 
@@ -74,21 +84,29 @@ public abstract class NoiseRouterMixin {
 
 
         /*
-         * =====================================================
-         * EVITAR WRAP DUPLO
-         * =====================================================
+         * Avoid repeatedly wrapping the same router when another system asks
+         * NoiseGeneratorSettings for it again.
          */
+        boolean alreadyAntarctic =
+                !antarcticaEnabled
+                        || (
+                        vanilla.finalDensity()
+                                instanceof AntarcticDensityFunction
+                                && vanilla.initialDensityWithoutJaggedness()
+                                instanceof AntarcticDensityFunction
+                );
 
-        if (
-                vanilla.finalDensity()
-                        instanceof AntarcticDensityFunction
+        boolean alreadyVolcanic =
+                !volcanicEnabled
+                        || (
+                        vanilla.finalDensity()
+                                instanceof VolcanicDensityFunction
+                                && vanilla.initialDensityWithoutJaggedness()
+                                instanceof VolcanicDensityFunction
+                );
 
-                &&
-
-                vanilla.initialDensityWithoutJaggedness()
-                        instanceof AntarcticDensityFunction
-        ) {
-
+        if (alreadyAntarctic
+                && alreadyVolcanic) {
             return;
         }
 
@@ -101,24 +119,52 @@ public abstract class NoiseRouterMixin {
          * Essa é a peça que estava faltando.
          */
 
-        AntarcticDensityFunction antarcticInitialDensity =
-                new AntarcticDensityFunction(
-                        vanilla.initialDensityWithoutJaggedness()
-                );
+        DensityFunction initialDensity =
+                vanilla.initialDensityWithoutJaggedness();
 
+        DensityFunction finalDensity =
+                vanilla.finalDensity();
+
+        if (antarcticaEnabled
+                && !(initialDensity
+                instanceof AntarcticDensityFunction)) {
+            initialDensity =
+                    new AntarcticDensityFunction(
+                            initialDensity
+                    );
+        }
+
+        if (antarcticaEnabled
+                && !(finalDensity
+                instanceof AntarcticDensityFunction)) {
+            finalDensity =
+                    new AntarcticDensityFunction(
+                            finalDensity
+                    );
+        }
 
         /*
-         * =====================================================
-         * FINAL DENSITY
-         * =====================================================
-         *
-         * Essa você já tinha.
+         * Volcanoes wrap the already-polar-aware density. The two regions are
+         * geographically exclusive, but this order lets both systems coexist
+         * without either one discarding the other's terrain changes.
          */
+        if (volcanicEnabled
+                && !(initialDensity
+                instanceof VolcanicDensityFunction)) {
+            initialDensity =
+                    new VolcanicDensityFunction(
+                            initialDensity
+                    );
+        }
 
-        AntarcticDensityFunction antarcticFinalDensity =
-                new AntarcticDensityFunction(
-                        vanilla.finalDensity()
-                );
+        if (volcanicEnabled
+                && !(finalDensity
+                instanceof VolcanicDensityFunction)) {
+            finalDensity =
+                    new VolcanicDensityFunction(
+                            finalDensity
+                    );
+        }
 
 
         /*
@@ -177,7 +223,7 @@ public abstract class NoiseRouterMixin {
                          * WayAround também controla.
                          */
 
-                        antarcticInitialDensity,
+                        initialDensity,
 
 
                         /*
@@ -186,7 +232,7 @@ public abstract class NoiseRouterMixin {
                          * =================================================
                          */
 
-                        antarcticFinalDensity,
+                        finalDensity,
 
 
                         /*
@@ -220,7 +266,9 @@ public abstract class NoiseRouterMixin {
 
 
             WayAround.LOGGER.info(
-                    "WayAround substituiu initialDensityWithoutJaggedness + finalDensity!"
+                    "WayAround instalou terrain wrappers: Antarctica={} Volcanic={}",
+                    antarcticaEnabled,
+                    volcanicEnabled
             );
         }
     }
