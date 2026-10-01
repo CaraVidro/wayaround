@@ -40,7 +40,10 @@ public final class DeepSeaSubmarineEntity extends Entity {
      * deliberately server-owned: blocks, mobs, fish and terrain receive actual
      * block-light values instead of a client-only fullbright illusion.
      */
-    private final Set<BlockPos> headlightBlocks =
+    private Set<BlockPos> headlightBlocks =
+            new HashSet<>();
+
+    private Set<BlockPos> nextHeadlightBlocks =
             new HashSet<>();
 
     private static final int HEADLIGHT_REFRESH_TICKS =
@@ -48,6 +51,43 @@ public final class DeepSeaSubmarineEntity extends Entity {
 
     private static final double HEADLIGHT_MAX_DISTANCE =
             42.0;
+
+    private static final double[] HEADLIGHT_SIDES = {
+            -0.48,
+            0.48
+    };
+
+    private static final double[] HEADLIGHT_DISTANCES = {
+            0.5,
+            4.0,
+            8.0,
+            12.0,
+            17.0,
+            22.0,
+            28.0,
+            35.0,
+            41.0
+    };
+
+    private static final double[] HEADLIGHT_WINGS = {
+            -1.0,
+            1.0
+    };
+
+    private double lastHeadlightX =
+            Double.NaN;
+
+    private double lastHeadlightY =
+            Double.NaN;
+
+    private double lastHeadlightZ =
+            Double.NaN;
+
+    private float lastHeadlightYaw =
+            Float.NaN;
+
+    private float lastHeadlightVertical =
+            Float.NaN;
 
     public DeepSeaSubmarineEntity(
             EntityType<? extends DeepSeaSubmarineEntity> type,
@@ -245,6 +285,66 @@ public final class DeepSeaSubmarineEntity extends Entity {
             return;
         }
 
+        double dx =
+                getX()
+                        - lastHeadlightX;
+
+        double dy =
+                getY()
+                        - lastHeadlightY;
+
+        double dz =
+                getZ()
+                        - lastHeadlightZ;
+
+        float yawDelta =
+                Float.isFinite(
+                        lastHeadlightYaw
+                )
+                        ? Math.abs(
+                        net.minecraft.util.Mth.wrapDegrees(
+                                getYRot()
+                                        - lastHeadlightYaw
+                        )
+                )
+                        : Float.POSITIVE_INFINITY;
+
+        /*
+         * A stationary submarine used to rewrite ~20-50 LIGHT blocks every
+         * three ticks, forcing repeated light-engine updates even though the
+         * beam had not moved. Preserve the real light nodes until position,
+         * yaw or pitch control actually changes enough to matter.
+         */
+        if (Double.isFinite(
+                lastHeadlightX
+        )
+                && dx * dx
+                        + dy * dy
+                        + dz * dz
+                        < 0.12 * 0.12
+                && yawDelta < 1.4F
+                && Math.abs(
+                vertical
+                        - lastHeadlightVertical
+        ) < 0.08F) {
+            return;
+        }
+
+        lastHeadlightX =
+                getX();
+
+        lastHeadlightY =
+                getY();
+
+        lastHeadlightZ =
+                getZ();
+
+        lastHeadlightYaw =
+                getYRot();
+
+        lastHeadlightVertical =
+                vertical;
+
         Vec3 forward =
                 Vec3.directionFromRotation(
                         0.0F,
@@ -274,10 +374,12 @@ public final class DeepSeaSubmarineEntity extends Entity {
                         .normalize();
 
         Set<BlockPos> next =
-                new HashSet<>();
+                nextHeadlightBlocks;
+
+        next.clear();
 
         for (double side :
-                new double[]{-0.48, 0.48}) {
+                HEADLIGHT_SIDES) {
 
             Vec3 origin =
                     position()
@@ -307,24 +409,12 @@ public final class DeepSeaSubmarineEntity extends Entity {
              * Spacing stays below vanilla's 15-block falloff radius, so the
              * nodes merge into one continuous shaft of real illumination.
              */
-            double[] distances = {
-                    0.5,
-                    4.0,
-                    8.0,
-                    12.0,
-                    17.0,
-                    22.0,
-                    28.0,
-                    35.0,
-                    41.0
-            };
-
             for (int index = 0;
-                 index < distances.length;
+                 index < HEADLIGHT_DISTANCES.length;
                  index++) {
 
                 double distance =
-                        distances[index];
+                        HEADLIGHT_DISTANCES[index];
 
                 if (distance
                         > clearDistance) {
@@ -374,14 +464,15 @@ public final class DeepSeaSubmarineEntity extends Entity {
                                             * 0.055
                             );
 
-                    for (double wing :
-                            new double[]{-spread, spread}) {
+                    for (double wingSign :
+                            HEADLIGHT_WINGS) {
 
                         BlockPos wingPos =
                                 BlockPos.containing(
                                         point.add(
                                                 right.scale(
-                                                        wing
+                                                        wingSign
+                                                                * spread
                                                 )
                                         )
                                 );
@@ -403,9 +494,7 @@ public final class DeepSeaSubmarineEntity extends Entity {
         }
 
         for (BlockPos old :
-                Set.copyOf(
-                        headlightBlocks
-                )) {
+                headlightBlocks) {
 
             if (!next.contains(
                     old
@@ -416,11 +505,18 @@ public final class DeepSeaSubmarineEntity extends Entity {
             }
         }
 
-        headlightBlocks.clear();
+        /*
+         * Swap the two reusable sets. No per-refresh HashSet, no Set.copyOf,
+         * and no second addAll pass.
+         */
+        Set<BlockPos> previous =
+                headlightBlocks;
 
-        headlightBlocks.addAll(
-                next
-        );
+        headlightBlocks =
+                next;
+
+        nextHeadlightBlocks =
+                previous;
     }
 
     private double clearBeamDistance(
@@ -541,15 +637,30 @@ public final class DeepSeaSubmarineEntity extends Entity {
         }
 
         for (BlockPos pos :
-                Set.copyOf(
-                        headlightBlocks
-                )) {
+                headlightBlocks) {
             removeHeadlightBlock(
                     pos
             );
         }
 
         headlightBlocks.clear();
+
+        nextHeadlightBlocks.clear();
+
+        lastHeadlightX =
+                Double.NaN;
+
+        lastHeadlightY =
+                Double.NaN;
+
+        lastHeadlightZ =
+                Double.NaN;
+
+        lastHeadlightYaw =
+                Float.NaN;
+
+        lastHeadlightVertical =
+                Float.NaN;
     }
 
     private void removeHeadlightBlock(
