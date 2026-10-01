@@ -54,15 +54,21 @@ public final class VoidDomainWorldRenderer {
     private static final int DARK_DEBRIS_COUNT = 82;
     private static final int PALE_FRAGMENT_COUNT = 58;
 
-    private static final double INTERIOR_SHELL_RADIUS = 96.0;
-    private static final double STAR_MIN_RADIUS = 54.0;
-    private static final double STAR_MAX_RADIUS = 91.0;
+    /*
+     * The interior is deliberately much larger than the physical pocket.
+     * Keeping the visual geometry far away reduces near-field parallax, so a
+     * few player steps no longer make the singularity appear to "follow" the
+     * camera. Vertex counts stay fixed; only world-space scale changes.
+     */
+    private static final double INTERIOR_SHELL_RADIUS = 220.0;
+    private static final double STAR_MIN_RADIUS = 132.0;
+    private static final double STAR_MAX_RADIUS = 210.0;
     private static final double NEAR_GUARD = 0.35;
 
     private static final Vec3 SINGULARITY =
             new Vec3(
                     0.0,
-                    24.0,
+                    112.0,
                     0.0
             );
 
@@ -465,9 +471,9 @@ public final class VoidDomainWorldRenderer {
                 opaque,
                 matrix,
                 SINGULARITY,
-                9.2,
-                12.2,
-                8.4,
+                30.0,
+                40.0,
+                27.0,
                 0,
                 0,
                 0,
@@ -483,10 +489,10 @@ public final class VoidDomainWorldRenderer {
                 glow,
                 matrix,
                 SINGULARITY,
-                9.45,
-                12.45,
-                8.65,
-                0.19,
+                30.65,
+                40.65,
+                27.65,
+                0.42,
                 255,
                 238,
                 155,
@@ -497,10 +503,10 @@ public final class VoidDomainWorldRenderer {
                 glow,
                 matrix,
                 SINGULARITY,
-                9.72,
-                12.72,
-                8.92,
-                0.10,
+                31.20,
+                41.20,
+                28.20,
+                0.22,
                 255,
                 250,
                 205,
@@ -515,13 +521,13 @@ public final class VoidDomainWorldRenderer {
             double time
     ) {
         double[] radii = {
-                7.5,
-                10.4,
-                13.6,
-                17.2,
-                21.5,
-                26.0,
-                31.0
+                27.0,
+                35.0,
+                46.0,
+                58.0,
+                71.0,
+                86.0,
+                102.0
         };
 
         for (int ring = 0;
@@ -533,17 +539,17 @@ public final class VoidDomainWorldRenderer {
 
             double width =
                     ring < 2
-                            ? 2.3
-                            : 1.4
-                            + (ring % 3) * 0.55;
+                            ? 5.2
+                            : 3.2
+                            + (ring % 3) * 1.15;
 
             int segments =
                     84;
 
             double phase =
                     time
-                            * (0.45
-                            + ring * 0.07)
+                            * (0.14
+                            + ring * 0.018)
                             + ring * 0.71;
 
             for (int segment = 0;
@@ -698,10 +704,10 @@ public final class VoidDomainWorldRenderer {
                     );
 
             double radius =
-                    11.0
+                    34.0
                             + ((h >>> 12) & 0xFFFFL)
                             / 65535.0
-                            * 37.0;
+                            * 86.0;
 
             double angle =
                     ((h2 >>> 10) & 0xFFFFL)
@@ -709,8 +715,8 @@ public final class VoidDomainWorldRenderer {
                             * Math.PI
                             * 2.0
                             + time
-                            * (0.08
-                            + (index % 7) * 0.006);
+                            * (0.026
+                            + (index % 7) * 0.002);
 
             Vec3 planar =
                     accretionPoint(
@@ -722,7 +728,7 @@ public final class VoidDomainWorldRenderer {
                     (((h >>> 38) & 0x3FFL)
                             / 1023.0
                             - 0.5)
-                            * 17.0;
+                            * 34.0;
 
             Vec3 center =
                     planar.add(
@@ -732,10 +738,10 @@ public final class VoidDomainWorldRenderer {
                     );
 
             double size =
-                    0.45
+                    0.85
                             + ((h2 >>> 34) & 0xFFL)
                             / 255.0
-                            * 2.35;
+                            * 4.40;
 
             int shade =
                     1
@@ -780,17 +786,17 @@ public final class VoidDomainWorldRenderer {
                     );
 
             double radius =
-                    30.0
+                    78.0
                             + ((h >>> 13) & 0xFFFFL)
                             / 65535.0
-                            * 29.0;
+                            * 87.0;
 
             double angle =
                     ((h >>> 32) & 0xFFFFL)
                             / 65535.0
                             * Math.PI
                             * 2.0
-                            - time * 0.028;
+                            - time * 0.009;
 
             Vec3 planar =
                     accretionPoint(
@@ -802,7 +808,7 @@ public final class VoidDomainWorldRenderer {
                     (((h >>> 49) & 0x1FFL)
                             / 511.0
                             - 0.5)
-                            * 30.0;
+                            * 62.0;
 
             Vec3 center =
                     planar.add(
@@ -812,10 +818,10 @@ public final class VoidDomainWorldRenderer {
                     );
 
             double size =
-                    0.8
+                    1.6
                             + ((h >>> 7) & 0xFFL)
                             / 255.0
-                            * 3.8;
+                            * 7.2;
 
             int warm =
                     205
