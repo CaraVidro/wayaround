@@ -99,8 +99,10 @@ Adding the utility alone does not automatically hibernate another system.
 - Local tests use the actual Java implementation, without Minecraft or stubs.
 - Full Gradle compilation was attempted but this environment cannot reach
   `services.gradle.org` to fetch the configured Gradle 9.7.1 wrapper. Java 21 and
-  Minecraft dependencies are not installed locally. Client/FPS/native Vosk
-  integration still require a real game run; no performance gain in FPS is claimed.
+  Minecraft dependencies are not installed locally. GitHub Actions build
+  36910091424 subsequently passed the full build and checks with Java 21.
+  Client/FPS/native Vosk integration still require a real game run; no performance
+  gain in FPS is claimed.
 
 Manual runtime scenarios: move/teleport/dive with water on, change dimensions,
 reconnect with water off then on; compare visual continuity and frame-time spikes.

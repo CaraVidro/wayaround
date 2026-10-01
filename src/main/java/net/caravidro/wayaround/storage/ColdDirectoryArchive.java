@@ -40,10 +40,9 @@ public final class ColdDirectoryArchive {
         Path cold = archive(root);
         Path temporary = root.resolveSibling(root.getFileName() + ".packing");
         Path retired = root.resolveSibling(root.getFileName() + ".retiring");
-        // A prior interrupted deletion is disposable only when a committed copy exists.
-        if (Files.exists(retired)) {
-            throw new IOException("Pending cache recovery: " + retired);
-        }
+        // This warm owned cache is authoritative; retirement leftovers are disposable.
+        // This also recovers a crash after a previous thaw committed its warm copy.
+        deleteTree(retired);
         long total = 0;
         try {
             try (var paths = Files.walk(root);
@@ -87,6 +86,9 @@ public final class ColdDirectoryArchive {
         Path cold = archive(root);
         if (Files.exists(root)) {
             if (!validator.test(root)) throw new IOException("Invalid existing cache: " + root);
+            // A crash may have happened after the verified warm copy was committed.
+            Files.deleteIfExists(cold);
+            deleteTree(root.resolveSibling(root.getFileName() + ".retiring"));
             return;
         }
         Path staging = root.resolveSibling(root.getFileName() + ".restoring");
