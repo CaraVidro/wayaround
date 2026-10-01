@@ -54,12 +54,13 @@ public abstract class AntarcticLightTextureMixin {
             return;
         }
 
-        if (
-                !AntarcticClientLighting
-                        .isAntarctic(
+        float polar =
+                AntarcticClientLighting
+                        .polarInfluence(
                                 minecraft
-                        )
-        ) {
+                        );
+
+        if (polar <= 0.001F) {
             return;
         }
 
@@ -67,7 +68,8 @@ public abstract class AntarcticLightTextureMixin {
                 AntarcticClientLighting
                         .getPolarDarkness(
                                 minecraft.level
-                        );
+                        )
+                        * polar;
 
         /*
          * Durante o dia ainda damos
@@ -214,9 +216,11 @@ public abstract class AntarcticLightTextureMixin {
                  */
 
                 float dayColdness =
-                        1.0F
-                        -
-                        night;
+                        (
+                                1.0F
+                                        - night
+                        )
+                                * polar;
 
                 float redFactor =
                         1.0F
