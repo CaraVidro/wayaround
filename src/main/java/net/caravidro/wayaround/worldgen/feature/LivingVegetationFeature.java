@@ -635,6 +635,16 @@ public final class LivingVegetationFeature
                                     neighborGround
                             )
                     )
+                            || (
+                            VegetationPalette.requiresWaterEdge(
+                                    plant
+                            )
+                                    && !nearWater(
+                                    level,
+                                    neighborGround,
+                                    2
+                            )
+                    )
                             || !plant.canSurvive(
                             level,
                             neighbor
