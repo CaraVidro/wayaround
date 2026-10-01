@@ -11,6 +11,7 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.interaction.StructuralDamage;
 import net.caravidro.wayaround.interaction.StructuralReceiver;
 import net.caravidro.wayaround.interaction.WorldForce;
@@ -153,21 +154,15 @@ public final class MechanicalTransmissionBlockEntity
                 );
 
         float rpmFactor =
-                Mth.clamp(
-                        Math.abs(
-                                rpm
-                        )
-                                / 52.0F,
-                        0.0F,
-                        2.0F
+                MechanicalLoad.normalized(
+                        rpm,
+                        52.0F
                 );
 
         float loadFactor =
-                Mth.clamp(
-                        load
-                                / 4.5F,
-                        0.0F,
-                        2.0F
+                MechanicalLoad.normalized(
+                        load,
+                        4.5F
                 );
 
         float targetHeat =
@@ -186,6 +181,18 @@ public final class MechanicalTransmissionBlockEntity
                                 - heat
                 )
                         * 0.035F;
+
+        float stress =
+                MechanicalLoad.failureStress(
+                        loadFactor,
+                        Math.max(
+                                0.0F,
+                                rpmFactor - 1.0F
+                        ),
+                        0.0F,
+                        heat,
+                        profile.durabilityScore()
+                );
 
         long time =
                 server.getGameTime();
@@ -217,6 +224,11 @@ public final class MechanicalTransmissionBlockEntity
                             1.0F
                                     + heat
                                             * 0.7F
+                                    + Math.max(
+                                    0.0F,
+                                    stress - 0.85F
+                            )
+                                            * 0.85F
                     )
             );
 
@@ -228,7 +240,11 @@ public final class MechanicalTransmissionBlockEntity
             if (profile.durabilityScore()
                     < 0.035F
                     && server.random.nextFloat()
-                    < 0.035F) {
+                    < 0.02F
+                            + Math.min(
+                            0.055F,
+                            stress * 0.022F
+                    )) {
 
                 fail(
                         server
@@ -237,8 +253,9 @@ public final class MechanicalTransmissionBlockEntity
                 return;
             }
 
-            if (profile.durabilityScore()
+            if ((profile.durabilityScore()
                     < 0.18F
+                    || stress > 0.95F)
                     && Math.floorMod(
                     time
                             + worldPosition.asLong(),
