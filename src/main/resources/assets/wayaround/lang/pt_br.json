@@ -908,5 +908,11 @@
   "message.wayaround.steam_engine.motion_slow": "girando devagar",
   "message.wayaround.steam_engine.motion_working": "trabalhando",
   "message.wayaround.steam_engine.motion_fast": "girando rápido",
-  "message.wayaround.steam_engine.measurement": "Manômetro: vapor %s/%s | pressão %s bar | %s °C | %s RPM | torque %s | potência mecânica %s"
+  "message.wayaround.steam_engine.measurement": "Manômetro: vapor %s/%s | pressão %s bar | %s °C | %s RPM | torque %s | potência mecânica %s",
+  "advancements.wayaround.vista.antarctica_hint.title": "O Horizonte Está Mais Branco",
+  "advancements.wayaround.vista.antarctica_hint.description": "O oceano gelado continua ao sul. Talvez exista algo bem maior depois do gelo.",
+  "advancements.wayaround.vista.sunfish_basking_hint.title": "Ele Continua Olhando Pra Cima",
+  "advancements.wayaround.vista.sunfish_basking_hint.description": "Um sunfish nem sempre fica no fundo. Observe o que um deles faz perto de uma superfície calma.",
+  "advancements.wayaround.vista.puffer_carrot_hint.title": "Ele Parece Com Fome",
+  "advancements.wayaround.vista.puffer_carrot_hint.description": "Você viu um baiacu. Certamente a biologia marinha nunca sofreu com lanches questionáveis."
 }
