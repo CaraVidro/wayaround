@@ -106,6 +106,32 @@ public final class EcologyContent {
 
     public static final DeferredHolder<
             EntityType<?>,
+            EntityType<PlayerCorpseEntity>
+            > PLAYER_CORPSE =
+            ENTITIES.register(
+                    "player_corpse",
+                    () -> EntityType.Builder
+                            .of(
+                                    PlayerCorpseEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    0.95F,
+                                    0.36F
+                            )
+                            .clientTrackingRange(
+                                    32
+                            )
+                            .updateInterval(
+                                    2
+                            )
+                            .build(
+                                    "wayaround:player_corpse"
+                            )
+            );
+
+    public static final DeferredHolder<
+            EntityType<?>,
             EntityType<ReefSharkEntity>
             > REEF_SHARK =
             ENTITIES.register(
