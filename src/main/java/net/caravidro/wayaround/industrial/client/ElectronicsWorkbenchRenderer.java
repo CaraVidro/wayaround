@@ -15,7 +15,8 @@ public final class ElectronicsWorkbenchRenderer
         implements BlockEntityRenderer<ElectronicsWorkbenchBlockEntity> {
 
     private static final double BOARD_WIDTH = 0.70;
-    private static final double BOARD_DEPTH = 0.48;
+    private static final double BASE_BOARD_DEPTH = 0.48;
+    private static final double ROW_DEPTH = 0.075;
     private static final double BOARD_Y = 0.780;
 
     private final BlockRenderDispatcher blockRenderer;
@@ -57,6 +58,14 @@ public final class ElectronicsWorkbenchRenderer
                 0.5
         );
 
+        CircuitBoardData board =
+                workbench.boardData();
+
+        double boardDepth =
+                boardDepth(
+                        board
+                );
+
         IndustrialRenderUtil.cuboid(
                 blockRenderer,
                 poseStack,
@@ -69,11 +78,8 @@ public final class ElectronicsWorkbenchRenderer
                 0.0,
                 BOARD_WIDTH,
                 0.025,
-                BOARD_DEPTH
+                boardDepth
         );
-
-        CircuitBoardData board =
-                workbench.boardData();
 
         for (CircuitBoardData.Trace trace :
                 board.traceEdges()) {
@@ -82,12 +88,13 @@ public final class ElectronicsWorkbenchRenderer
                     bufferSource,
                     renderLight,
                     packedOverlay,
+                    board,
                     trace
             );
         }
 
         for (int cell = 0;
-             cell < CircuitBoardData.CELL_COUNT;
+             cell < board.activeCellCount();
              cell++) {
 
             CircuitBoardData.ComponentType type =
@@ -104,6 +111,7 @@ public final class ElectronicsWorkbenchRenderer
                     bufferSource,
                     renderLight,
                     packedOverlay,
+                    board,
                     cell,
                     type
             );
@@ -117,6 +125,7 @@ public final class ElectronicsWorkbenchRenderer
             MultiBufferSource bufferSource,
             int packedLight,
             int packedOverlay,
+            CircuitBoardData board,
             CircuitBoardData.Trace trace
     ) {
         double ax =
@@ -126,6 +135,7 @@ public final class ElectronicsWorkbenchRenderer
 
         double az =
                 cellZ(
+                        board,
                         trace.a()
                 );
 
@@ -136,6 +146,7 @@ public final class ElectronicsWorkbenchRenderer
 
         double bz =
                 cellZ(
+                        board,
                         trace.b()
                 );
 
@@ -183,6 +194,7 @@ public final class ElectronicsWorkbenchRenderer
             MultiBufferSource bufferSource,
             int packedLight,
             int packedOverlay,
+            CircuitBoardData board,
             int cell,
             CircuitBoardData.ComponentType type
     ) {
@@ -193,6 +205,7 @@ public final class ElectronicsWorkbenchRenderer
 
         double z =
                 cellZ(
+                        board,
                         cell
                 );
 
@@ -644,10 +657,26 @@ public final class ElectronicsWorkbenchRenderer
         );
     }
 
+    private static double boardDepth(
+            CircuitBoardData board
+    ) {
+        return BASE_BOARD_DEPTH
+                + (
+                board.activeHeight()
+                        - CircuitBoardData.BASE_HEIGHT
+        ) * ROW_DEPTH;
+    }
+
     private static double cellZ(
+            CircuitBoardData board,
             int cell
     ) {
-        return -BOARD_DEPTH * 0.5
+        double depth =
+                boardDepth(
+                        board
+                );
+
+        return -depth * 0.5
                 + (
                 CircuitBoardData.cellY(
                         cell
@@ -655,8 +684,8 @@ public final class ElectronicsWorkbenchRenderer
                         + 0.5
         )
                 * (
-                BOARD_DEPTH
-                        / CircuitBoardData.HEIGHT
+                depth
+                        / board.activeHeight()
         );
     }
 
