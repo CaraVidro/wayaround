@@ -40,6 +40,11 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.DEEP_SEA_SUBMARINE.get(),
+                DeepSeaSubmarineRenderer::new
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.SUNFISH.get(),
                 SunfishRenderer::new
         );
