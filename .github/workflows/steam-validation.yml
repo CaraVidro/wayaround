@@ -81,7 +81,7 @@ jobs:
 
           current = re.compile(
               r'wayaround:(?:models/(?:block|item)/)?'
-              r'(?:steam_boiler|steam_engine|boiler_pressure_vessel|boiler_safety_valve|'
+              r'(?:steam_boiler|steam_engine|steam_pressure_gauge|boiler_pressure_vessel|boiler_safety_valve|'
               r'electronics_workbench|insulated_steam_pipe|steel_pressure_pipe)'
           )
 
