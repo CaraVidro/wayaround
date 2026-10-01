@@ -961,5 +961,7 @@
   "advancements.wayaround.war.overkill_hint.title": "Aquilo Foi Só Um Tiro",
   "advancements.wayaround.war.overkill_hint.description": "Algumas armas resolvem um alvo. Outras resolvem a arquitetura em volta.",
   "advancements.wayaround.assembly_objects.four_lines_hint.title": "Uma Linha Não É Um Sistema",
-  "advancements.wayaround.assembly_objects.four_lines_hint.description": "Se uma linha girando funciona, várias linhas coordenadas talvez transmitam algo maior."
+  "advancements.wayaround.assembly_objects.four_lines_hint.description": "Se uma linha girando funciona, várias linhas coordenadas talvez transmitam algo maior.",
+  "screen.wayaround.update_log.pcb_editor": "A Bancada de Eletrônica agora monta uma PCB física: arraste peças do inventário, roteie cobre por distância e veja tudo permanecer sobre a mesa.",
+  "screen.wayaround.update_log.emblem_tree": "Os emblemas agora se comportam mais como uma árvore de descoberta: só entradas aparecem cedo, ramos ficam secretos e dicas temporárias viram conquistas reais."
 }
