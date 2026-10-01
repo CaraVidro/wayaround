@@ -100,6 +100,65 @@ public final class ElectronicsGameTests {
             batch = "electronics",
             timeoutTicks = 80
     )
+    public static void routedCopperCostDependsOnPhysicalDistance(
+            GameTestHelper helper
+    ) {
+        int adjacent =
+                CircuitBoardData.traceCopperCost(
+                        CircuitBoardData.cell(0, 0),
+                        CircuitBoardData.cell(1, 0)
+                );
+
+        int longRun =
+                CircuitBoardData.traceCopperCost(
+                        CircuitBoardData.cell(0, 0),
+                        CircuitBoardData.cell(5, 3)
+                );
+
+        helper.assertTrue(
+                adjacent > 0,
+                "A real copper connection must consume at least one trace item"
+        );
+
+        helper.assertTrue(
+                longRun > adjacent,
+                "Longer PCB routing must consume more copper than neighboring pads"
+        );
+
+        CircuitBoardData board =
+                CircuitBoardData.empty();
+
+        board.place(
+                CircuitBoardData.cell(0, 0),
+                CircuitBoardData.ComponentType.INPUT_TERMINAL
+        );
+
+        board.place(
+                CircuitBoardData.cell(5, 3),
+                CircuitBoardData.ComponentType.OUTPUT_TERMINAL
+        );
+
+        board.addTrace(
+                CircuitBoardData.cell(0, 0),
+                CircuitBoardData.cell(5, 3)
+        );
+
+        helper.assertTrue(
+                board.traceEdges().size() == 1
+                        && board.copperCostAt(
+                        CircuitBoardData.cell(0, 0)
+                ) == longRun,
+                "The visible physical trace graph must expose the same routed copper cost used by the editor"
+        );
+
+        helper.succeed();
+    }
+
+    @GameTest(
+            template = "assembly_test",
+            batch = "electronics",
+            timeoutTicks = 80
+    )
     public static void materialHistorySurvivesBeyondOrdinaryWear(
             GameTestHelper helper
     ) {
