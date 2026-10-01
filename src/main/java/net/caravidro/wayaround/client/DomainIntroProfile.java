@@ -110,8 +110,7 @@ public record DomainIntroProfile(
                                     "wayaround",
                                     "textures/gui/domain/void_apex.png"
                             ),
-                            variant
-                                    == DomainIntroManager.APEX,
+                            false,
                             1024,
                             256,
                             variant
