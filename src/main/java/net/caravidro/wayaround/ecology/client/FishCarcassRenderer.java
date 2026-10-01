@@ -50,8 +50,18 @@ public final class FishCarcassRenderer
     ) {
         pose.pushPose();
 
-        float scale = carcass.getScale();
-        pose.scale(scale, scale, scale);
+        /*
+         * Collision has a minimum size for interaction, but the corpse keeps
+         * the fish's real visual body size.
+         */
+        float scale =
+                carcass.bodyScale();
+
+        pose.scale(
+                scale,
+                scale,
+                scale
+        );
 
         pose.mulPose(
                 Axis.YP.rotationDegrees(
