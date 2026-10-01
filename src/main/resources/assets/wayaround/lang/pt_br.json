@@ -823,5 +823,18 @@
   "message.wayaround.mechanical_pump.impeller_ready": "impulsor instalado",
   "message.wayaround.mechanical_pump.impeller_missing": "falta o cartucho do impulsor",
   "message.wayaround.mechanical_pump.pipe_ready": "descarga conectada",
-  "message.wayaround.mechanical_pump.pipe_missing": "sem cano de descarga"
+  "message.wayaround.mechanical_pump.pipe_missing": "sem cano de descarga",
+  "screen.wayaround.update_log.button": "UPDATE LOG",
+  "screen.wayaround.update_log.preview": "PRÓXIMO // %s — %s",
+  "screen.wayaround.update_log.title": "%s — %s",
+  "screen.wayaround.update_log.subtitle": "THE WORLD CONNECTS // diário de desenvolvimento",
+  "screen.wayaround.update_log.dev": "Preview de desenvolvimento — esta atualização nomeada ainda não foi lançada.",
+  "screen.wayaround.update_log.milestone": "Marco 1.3: Physical Industry / regras compartilhadas de carga mecânica.",
+  "screen.wayaround.update_log.load": "Consumidores mecânicos agora falam a mesma língua: demanda, potência e carga.",
+  "screen.wayaround.update_log.torque": "Falta de torque pode travar trabalho pesado em vez de fabricar velocidade grátis.",
+  "screen.wayaround.update_log.transmission": "Eixos, engrenagens e transmissões carregam carga real, calor e desgaste.",
+  "screen.wayaround.update_log.failure": "Estresse pode virar vibração, superaquecimento, escorregamento, travas e falha de peças.",
+  "screen.wayaround.update_log.machines": "Bomba, crusher e serraria estão sendo conectados ao mesmo framework físico.",
+  "screen.wayaround.update_log.future": "Fundação preparada para vapor, geradores, indústria pesada e infraestrutura gigante.",
+  "screen.wayaround.update_log.release_note": "A v1.2.1 só vira a versão ativa quando THE WORLD CONNECTS estiver concluído."
 }
