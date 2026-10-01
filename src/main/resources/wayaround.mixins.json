@@ -10,6 +10,7 @@
     "AntarcticPossibleBiomesMixin",
     "NoiseRouterMixin",
     "AntarcticSurfaceMixin",
+    "VolcanicSurfaceMixin",
     "AntarcticWaterFreezingMixin",
     "TukunaMobPickupMixin",
     "InfinityPushMixin",

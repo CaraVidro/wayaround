@@ -1,0 +1,35 @@
+{
+  "has_precipitation": false,
+  "temperature": 1.35,
+  "downfall": 0.0,
+  "effects": {
+    "fog_color": 3945002,
+    "sky_color": 6842472,
+    "water_color": 3224376,
+    "water_fog_color": 1775632
+  },
+  "carvers": {
+    "air": [
+      "minecraft:cave",
+      "minecraft:cave_extra_underground",
+      "minecraft:canyon"
+    ]
+  },
+  "features": [
+    [],
+    [],
+    [
+      "wayaround:volcanic_crater"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+  ],
+  "spawners": {},
+  "spawn_costs": {}
+}
