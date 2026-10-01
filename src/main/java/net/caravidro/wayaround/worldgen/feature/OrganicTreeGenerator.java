@@ -344,9 +344,13 @@ public final class OrganicTreeGenerator {
                                 z
                         );
 
-                if (Math.abs(
-                        surfaceY - previousY
-                ) > 1) {
+                /*
+                 * First pass roots only continue while they can remain fully
+                 * face-connected. A future elbow segment can make them crawl
+                 * one-block slopes without creating a visual gap.
+                 */
+                if (surfaceY
+                        != previousY) {
                     break;
                 }
 
