@@ -226,6 +226,16 @@ public final class DomainIntroClient {
                             profile.background()
                     );
 
+            if (style == DomainIntroManager.VOID) {
+                renderVoidCosmicPrelude(
+                        event,
+                        width,
+                        top + 2,
+                        bottom,
+                        progress
+                );
+            }
+
             renderFutureImage(
                     event,
                     profile,
@@ -286,6 +296,295 @@ public final class DomainIntroClient {
                             profile.line()
                     );
         }
+    }
+
+    private static void renderVoidCosmicPrelude(
+            RenderGuiEvent.Post event,
+            int width,
+            int top,
+            int bottom,
+            float progress
+    ) {
+        if (bottom <= top) {
+            return;
+        }
+
+        int centerX =
+                width / 2;
+
+        int centerY =
+                top
+                        + (bottom - top) / 2;
+
+        long time =
+                System.currentTimeMillis();
+
+        event.getGuiGraphics()
+                .enableScissor(
+                        0,
+                        top,
+                        width,
+                        bottom
+                );
+
+        /*
+         * Tiny deterministic stars. They are intentionally square so the GUI
+         * already speaks the same blocky visual language as the 3D domain.
+         */
+        for (int index = 0;
+             index < 72;
+             index++) {
+
+            long h =
+                    mixPrelude(
+                            index
+                                    * 0x9E3779B97F4A7C15L
+                    );
+
+            int x =
+                    Math.floorMod(
+                            (int) (h >>> 13),
+                            Math.max(
+                                    1,
+                                    width
+                            )
+                    );
+
+            int y =
+                    top
+                            + Math.floorMod(
+                            (int) (h >>> 37),
+                            Math.max(
+                                    1,
+                                    bottom - top
+                            )
+                    );
+
+            int size =
+                    (h & 31L) == 0L
+                            ? 2
+                            : 1;
+
+            int alpha =
+                    120
+                            + (int) (h & 95L);
+
+            event.getGuiGraphics()
+                    .fill(
+                            x,
+                            y,
+                            x + size,
+                            y + size,
+                            alpha << 24
+                                    | 0xDDE8FF
+                    );
+        }
+
+        /*
+         * Broken orbiting matter around the central black aperture.
+         */
+        for (int index = 0;
+             index < 82;
+             index++) {
+
+            long h =
+                    mixPrelude(
+                            0xD1B54A32D192ED03L
+                                    + index
+                                    * 0x94D049BB133111EBL
+                    );
+
+            double orbit =
+                    22.0
+                            + (h & 0xFFL)
+                            / 255.0
+                            * Math.min(
+                            width * 0.30,
+                            116.0
+                    );
+
+            double angle =
+                    index
+                            * 2.399963229728653
+                            + time
+                            / 1700.0
+                            * (
+                            (index & 1) == 0
+                                    ? 1.0
+                                    : -0.55
+                    );
+
+            double flatten =
+                    0.24
+                            + ((h >>> 11) & 31L)
+                            / 31.0
+                            * 0.16;
+
+            int x =
+                    centerX
+                            + (int) Math.round(
+                            Math.cos(
+                                    angle
+                            )
+                                    * orbit
+                    );
+
+            int y =
+                    centerY
+                            + (int) Math.round(
+                            Math.sin(
+                                    angle
+                            )
+                                    * orbit
+                                    * flatten
+                    );
+
+            int size =
+                    1
+                            + (int) ((h >>> 20) & 3L);
+
+            boolean dark =
+                    (h & 7L) == 0L;
+
+            int color =
+                    dark
+                            ? 0xE9000006
+                            : (
+                            (h & 15L) == 1L
+                                    ? 0xD0FFF0A8
+                                    : 0xBFDCE8FF
+                    );
+
+            event.getGuiGraphics()
+                    .fill(
+                            x,
+                            y,
+                            x + size,
+                            y + size,
+                            color
+                    );
+        }
+
+        int apertureW =
+                Math.max(
+                        18,
+                        Math.round(
+                                width
+                                        * 0.055F
+                        )
+                );
+
+        int apertureH =
+                Math.max(
+                        24,
+                        Math.round(
+                                (bottom - top)
+                                        * 0.58F
+                        )
+                );
+
+        int left =
+                centerX
+                        - apertureW / 2;
+
+        int right =
+                centerX
+                        + apertureW / 2;
+
+        int apertureTop =
+                centerY
+                        - apertureH / 2;
+
+        int apertureBottom =
+                centerY
+                        + apertureH / 2;
+
+        /*
+         * Warm double outline around the literal black rectangular void.
+         */
+        event.getGuiGraphics()
+                .fill(
+                        left - 3,
+                        apertureTop - 3,
+                        right + 3,
+                        apertureBottom + 3,
+                        0x66FFF2A2
+                );
+
+        event.getGuiGraphics()
+                .fill(
+                        left - 1,
+                        apertureTop - 1,
+                        right + 1,
+                        apertureBottom + 1,
+                        0xFFFFE79A
+                );
+
+        event.getGuiGraphics()
+                .fill(
+                        left,
+                        apertureTop,
+                        right,
+                        apertureBottom,
+                        0xFF000000
+                );
+
+        /*
+         * Small pulse as the two UI bars reach their open position.
+         */
+        if (progress > 0.16F
+                && progress < 0.84F) {
+
+            int pulse =
+                    18
+                            + (int) (
+                            8.0
+                                    * Math.sin(
+                                    time
+                                            / 115.0
+                            )
+                    );
+
+            event.getGuiGraphics()
+                    .fill(
+                            left - pulse,
+                            centerY - 1,
+                            left - 4,
+                            centerY + 1,
+                            0x55DDE8FF
+                    );
+
+            event.getGuiGraphics()
+                    .fill(
+                            right + 4,
+                            centerY - 1,
+                            right + pulse,
+                            centerY + 1,
+                            0x55DDE8FF
+                    );
+        }
+
+        event.getGuiGraphics()
+                .disableScissor();
+    }
+
+    private static long mixPrelude(
+            long value
+    ) {
+        value ^=
+                value >>> 30;
+
+        value *=
+                0xBF58476D1CE4E5B9L;
+
+        value ^=
+                value >>> 27;
+
+        value *=
+                0x94D049BB133111EBL;
+
+        return value
+                ^ value >>> 31;
     }
 
     private static void renderFutureImage(
