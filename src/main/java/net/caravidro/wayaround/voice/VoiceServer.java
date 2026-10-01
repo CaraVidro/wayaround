@@ -141,6 +141,7 @@ public final class VoiceServer {
                         .players()) {
 
             if (receiver.getUUID().equals(ghost.getUUID())) continue;
+            if (!receiver.isAlive()) continue;
             if (receiver.distanceToSqr(
                     host
             ) > maxDistanceSqr) {
@@ -169,6 +170,10 @@ public final class VoiceServer {
                 anchor.serverLevel()
                         .players()) {
 
+            if (!receiver.isAlive()) {
+                continue;
+            }
+
             if (!echoSender
                     && receiver == sender) {
                 continue;
@@ -194,7 +199,8 @@ public final class VoiceServer {
             byte[] pcm,
             Set<UUID> sent
     ) {
-        if (!sent.add(
+        if (!receiver.isAlive()
+                || !sent.add(
                 receiver.getUUID()
         )) {
             return;
