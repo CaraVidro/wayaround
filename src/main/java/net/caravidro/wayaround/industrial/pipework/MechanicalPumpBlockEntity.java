@@ -275,6 +275,21 @@ public final class MechanicalPumpBlockEntity
             if (limit > 0
                     && buffer.getAmount() < BUFFER_CAPACITY) {
 
+                int room =
+                        BUFFER_CAPACITY
+                                - buffer.getAmount();
+
+                int intakeLimit =
+                        Math.min(
+                                room,
+                                room >= 1000
+                                        ? Math.max(
+                                        1000,
+                                        limit
+                                )
+                                        : limit
+                        );
+
                 FluidStack pulled =
                         PipeFlow.pullForMachine(
                                 level,
@@ -282,11 +297,7 @@ public final class MechanicalPumpBlockEntity
                                         facing.getOpposite()
                                 ),
                                 facing,
-                                Math.min(
-                                        limit,
-                                        BUFFER_CAPACITY
-                                                - buffer.getAmount()
-                                ),
+                                intakeLimit,
                                 buffer
                         );
 
