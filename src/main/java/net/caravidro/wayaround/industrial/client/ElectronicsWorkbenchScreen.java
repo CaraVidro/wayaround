@@ -40,6 +40,7 @@ public final class ElectronicsWorkbenchScreen
 
     private ComponentType draggingType;
     private int selectedCell = -1;
+    private int hoveredCell = -1;
     private int pendingConnection = -1;
     private boolean panning;
     private double lastPanX;
@@ -377,6 +378,12 @@ public final class ElectronicsWorkbenchScreen
         CircuitBoardData board =
                 board();
 
+        hoveredCell =
+                cellAt(
+                        mouseX,
+                        mouseY
+                );
+
         for (CircuitBoardData.Trace trace :
                 board.traceEdges()) {
             drawTrace(
@@ -384,6 +391,24 @@ public final class ElectronicsWorkbenchScreen
                     trace.a(),
                     trace.b(),
                     0xFFD17B38
+            );
+        }
+
+        if (pendingConnection >= 0
+                && hoveredCell >= 0
+                && hoveredCell != pendingConnection
+                && board.component(
+                hoveredCell
+        ) != ComponentType.EMPTY
+                && !board.hasTrace(
+                pendingConnection,
+                hoveredCell
+        )) {
+            drawTrace(
+                    graphics,
+                    pendingConnection,
+                    hoveredCell,
+                    0x99FFD27A
             );
         }
 
@@ -741,6 +766,41 @@ public final class ElectronicsWorkbenchScreen
                     0xFFA8A8A8,
                     false
             );
+
+            CircuitBoardData current =
+                    board();
+
+            if (hoveredCell >= 0
+                    && hoveredCell != pendingConnection
+                    && current.component(
+                    hoveredCell
+            ) != ComponentType.EMPTY) {
+                line +=
+                        16;
+
+                int cost =
+                        CircuitBoardData.traceCopperCost(
+                                pendingConnection,
+                                hoveredCell
+                        );
+
+                graphics.drawString(
+                        font,
+                        Component.translatable(
+                                "container.wayaround.electronics.connection_cost",
+                                cost
+                        ),
+                        x + 8,
+                        line,
+                        inventoryCount(
+                                ElectronicsContent.COPPER_TRACE.get()
+                        ) >= cost
+                                || creative()
+                                ? 0xFFC98A52
+                                : 0xFFE06060,
+                        false
+                );
+            }
         }
     }
 
