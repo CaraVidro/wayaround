@@ -46,13 +46,6 @@ public final class WayAroundUpdateLogScreen extends Screen {
             int mouseY,
             float partialTick
     ) {
-        renderBackground(
-                graphics,
-                mouseX,
-                mouseY,
-                partialTick
-        );
-
         super.render(
                 graphics,
                 mouseX,
