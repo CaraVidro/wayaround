@@ -94,18 +94,48 @@ public final class WayAroundUpdateLogScreen extends Screen {
         );
 
         int y = top + 14;
+        int textWidth =
+                Math.max(
+                        40,
+                        boxRight
+                                - boxLeft
+                                - 28
+                );
 
         for (Component line : WayAroundReleaseInfo.updateLogLines()) {
-            graphics.drawString(
-                    font,
-                    line,
-                    boxLeft + 14,
-                    y,
-                    0xFFD6D6D6,
-                    false
-            );
+            Component bullet =
+                    Component.literal(
+                            "• "
+                    )
+                            .append(
+                                    line
+                            );
 
-            y += 16;
+            for (var row : font.split(
+                    bullet,
+                    textWidth
+            )) {
+                if (y > height - 72) {
+                    break;
+                }
+
+                graphics.drawString(
+                        font,
+                        row,
+                        boxLeft + 14,
+                        y,
+                        0xFFD6D6D6,
+                        false
+                );
+
+                y += 11;
+            }
+
+            y += 5;
+
+            if (y > height - 72) {
+                break;
+            }
         }
 
         graphics.drawCenteredString(
