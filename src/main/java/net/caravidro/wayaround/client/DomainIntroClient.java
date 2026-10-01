@@ -5,6 +5,7 @@ import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.domain.DomainIntroManager;
+import net.caravidro.wayaround.domain.VoidDomainPresentation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -24,6 +26,18 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
         value = Dist.CLIENT
 )
 public final class DomainIntroClient {
+
+    private static final ResourceLocation VOID_ABSOLUTE_IMAGE =
+            ResourceLocation.fromNamespaceAndPath(
+                    WayAround.MODID,
+                    "textures/gui/domain/void_absolute.png"
+            );
+
+    private static final int VOID_ABSOLUTE_IMAGE_WIDTH =
+            768;
+
+    private static final int VOID_ABSOLUTE_IMAGE_HEIGHT =
+            432;
 
     private static byte style;
     private static byte variant;
@@ -42,6 +56,17 @@ public final class DomainIntroClient {
             byte newVariant,
             int ticks
     ) {
+        /*
+         * Void has a server-owned three-stage presentation state. A local
+         * speculative intro cannot know whether the player is INNATE, SIMPLE
+         * or ABSOLUTE, so do not flash the wrong UI before the authoritative
+         * S2C payload arrives.
+         */
+        if (newStyle
+                == DomainIntroManager.VOID) {
+            return;
+        }
+
         startInternal(
                 newStyle,
                 newVariant,
@@ -170,6 +195,18 @@ public final class DomainIntroClient {
                 minecraft.getWindow()
                         .getGuiScaledHeight();
 
+        if (style
+                == DomainIntroManager.VOID) {
+            renderVoidPresentation(
+                    event,
+                    minecraft,
+                    width,
+                    height,
+                    progress
+            );
+            return;
+        }
+
         int centerX =
                 width / 2;
 
@@ -296,6 +333,251 @@ public final class DomainIntroClient {
                             profile.line()
                     );
         }
+    }
+
+    private static void renderVoidPresentation(
+            RenderGuiEvent.Post event,
+            Minecraft minecraft,
+            int width,
+            int height,
+            float progress
+    ) {
+        VoidDomainPresentation presentation =
+                VoidDomainPresentation.byId(
+                        variant
+                );
+
+        if (presentation
+                == VoidDomainPresentation.INNATE) {
+            /*
+             * Innate domain is deliberately invisible: it is not an Expansion.
+             */
+            startedAtMillis =
+                    0L;
+            return;
+        }
+
+        float visibility =
+                envelope(
+                        progress
+                );
+
+        if (presentation
+                == VoidDomainPresentation.ABSOLUTE
+                && minecraft.getResourceManager()
+                        .getResource(
+                                VOID_ABSOLUTE_IMAGE
+                        )
+                        .isPresent()) {
+
+            renderVoidAbsoluteImage(
+                    event,
+                    width,
+                    height
+            );
+
+            /*
+             * Fade from/to black around the supplied art instead of stretching
+             * or replacing it with procedural GUI clutter.
+             */
+            int blackout =
+                    Mth.clamp(
+                            Math.round(
+                                    255.0F
+                                            * (
+                                            1.0F
+                                                    - visibility
+                                    )
+                            ),
+                            0,
+                            255
+                    );
+
+            if (blackout > 0) {
+                event.getGuiGraphics()
+                        .fill(
+                                0,
+                                0,
+                                width,
+                                height,
+                                blackout << 24
+                        );
+            }
+
+            drawVoidExpansionTitle(
+                    event,
+                    minecraft,
+                    width,
+                    height,
+                    visibility,
+                    true
+            );
+
+            return;
+        }
+
+        /*
+         * SIMPLE is intentionally stripped down: no bars, player model,
+         * repeated lettering, vortex prelude or background art. Just the name
+         * of the technique, exactly as the new presentation contract asks.
+         */
+        drawVoidExpansionTitle(
+                event,
+                minecraft,
+                width,
+                height,
+                visibility,
+                false
+        );
+    }
+
+    private static void renderVoidAbsoluteImage(
+            RenderGuiEvent.Post event,
+            int width,
+            int height
+    ) {
+        float scale =
+                Math.max(
+                        width
+                                / (float) VOID_ABSOLUTE_IMAGE_WIDTH,
+                        height
+                                / (float) VOID_ABSOLUTE_IMAGE_HEIGHT
+                );
+
+        float drawWidth =
+                VOID_ABSOLUTE_IMAGE_WIDTH
+                        * scale;
+
+        float drawHeight =
+                VOID_ABSOLUTE_IMAGE_HEIGHT
+                        * scale;
+
+        float drawX =
+                (
+                        width
+                                - drawWidth
+                )
+                        * 0.5F;
+
+        float drawY =
+                (
+                        height
+                                - drawHeight
+                )
+                        * 0.5F;
+
+        PoseStack pose =
+                event.getGuiGraphics()
+                        .pose();
+
+        pose.pushPose();
+
+        pose.translate(
+                drawX,
+                drawY,
+                0.0F
+        );
+
+        pose.scale(
+                scale,
+                scale,
+                1.0F
+        );
+
+        event.getGuiGraphics()
+                .blit(
+                        VOID_ABSOLUTE_IMAGE,
+                        0,
+                        0,
+                        0,
+                        0,
+                        VOID_ABSOLUTE_IMAGE_WIDTH,
+                        VOID_ABSOLUTE_IMAGE_HEIGHT,
+                        VOID_ABSOLUTE_IMAGE_WIDTH,
+                        VOID_ABSOLUTE_IMAGE_HEIGHT
+                );
+
+        pose.popPose();
+    }
+
+    private static void drawVoidExpansionTitle(
+            RenderGuiEvent.Post event,
+            Minecraft minecraft,
+            int width,
+            int height,
+            float visibility,
+            boolean absolute
+    ) {
+        int alpha =
+                Mth.clamp(
+                        Math.round(
+                                235.0F
+                                        * visibility
+                        ),
+                        0,
+                        235
+                );
+
+        if (alpha <= 0) {
+            return;
+        }
+
+        String text =
+                absolute
+                        ? "DOMÍNIO DE EXPANSÃO ABSOLUTO"
+                        : "DOMÍNIO DE EXPANSÃO";
+
+        float scale =
+                absolute
+                        ? 1.28F
+                        : 1.72F;
+
+        PoseStack pose =
+                event.getGuiGraphics()
+                        .pose();
+
+        pose.pushPose();
+
+        pose.scale(
+                scale,
+                scale,
+                1.0F
+        );
+
+        int scaledWidth =
+                Math.round(
+                        width
+                                / scale
+                );
+
+        int scaledHeight =
+                Math.round(
+                        height
+                                / scale
+                );
+
+        int y =
+                absolute
+                        ? Math.round(
+                                scaledHeight
+                                        * 0.76F
+                        )
+                        : scaledHeight
+                                / 2
+                                - minecraft.font.lineHeight
+                                        / 2;
+
+        event.getGuiGraphics()
+                .drawCenteredString(
+                        minecraft.font,
+                        text,
+                        scaledWidth / 2,
+                        y,
+                        alpha << 24
+                                | 0x00FFFFFF
+                );
+
+        pose.popPose();
     }
 
     private static void renderVoidCosmicPrelude(
