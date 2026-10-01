@@ -18,8 +18,9 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  * Rebuilds vanilla deep-ocean terrain as a broad abyssal basin.
  *
  * The old implementation dropped each deep-ocean chunk to roughly the same
- * absolute Y, which could leave a biome-border wall. This version samples the
- * surrounding biome field and eases into the abyss over ~16 blocks.
+ * absolute Y, which could leave a biome-border wall. This version derives the
+ * abyss blend from the vanilla depth of each local column, so the transition is
+ * smooth without ever reading a neighbouring chunk that may not exist yet.
  */
 public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfiguration> {
     public DeepOceanTrenchFeature(Codec<NoneFeatureConfiguration> codec) {
@@ -58,7 +59,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
                     continue;
                 }
 
-                double interior = interiorFactor(level, x, z, seaLevel);
+                double interior = interiorFactor(oldFloor, seaLevel, x, z);
                 chunkInterior = Math.max(chunkInterior, interior);
 
                 double waveA = Math.sin(x * 0.021 + z * 0.013);
@@ -142,29 +143,56 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
     }
 
     private static double interiorFactor(
-            WorldGenLevel level,
+            int oldFloor,
+            int seaLevel,
             int x,
-            int z,
-            int seaLevel
+            int z
     ) {
-        int[] radii = {4, 8, 12, 16};
+        /*
+         * Worldgen features are not allowed to assume neighbouring chunks are
+         * available. The previous implementation sampled biomes up to 16 blocks
+         * away and could crash with "Requested chunk unavailable during world
+         * generation".
+         *
+         * Vanilla ocean depth already contains a very useful border signal:
+         * coast/edge columns are shallower while true deep-ocean interiors are
+         * much lower. Convert that local depth into a smooth 0..1 abyss blend.
+         */
+        double vanillaDepth =
+                Math.max(
+                        0.0,
+                        seaLevel - oldFloor
+                );
 
-        for (int index = 0; index < radii.length; index++) {
-            int r = radii[index];
-            boolean surrounded =
-                    isDeepOcean(level, x + r, z, seaLevel - 8)
-                            && isDeepOcean(level, x - r, z, seaLevel - 8)
-                            && isDeepOcean(level, x, z + r, seaLevel - 8)
-                            && isDeepOcean(level, x, z - r, seaLevel - 8)
-                            && isDeepOcean(level, x + r, z + r, seaLevel - 8)
-                            && isDeepOcean(level, x - r, z - r, seaLevel - 8);
+        double depthBlend =
+                Mth.clamp(
+                        (vanillaDepth - 10.0) / 30.0,
+                        0.0,
+                        1.0
+                );
 
-            if (!surrounded) {
-                return 0.12 + index * 0.22;
-            }
-        }
+        /*
+         * A tiny continuous low-frequency variation prevents the transition
+         * from looking mathematically flat while remaining deterministic across
+         * chunk borders. No chunk/biome lookup is involved here.
+         */
+        double variation =
+                Math.sin(
+                        x * 0.031
+                                + z * 0.017
+                ) * 0.055
+                        + Math.sin(
+                        x * 0.011
+                                - z * 0.027
+                ) * 0.035;
 
-        return 1.0;
+        return Mth.clamp(
+                0.08
+                        + depthBlend * 0.92
+                        + variation,
+                0.06,
+                1.0
+        );
     }
 
     private static boolean isDeepOcean(
