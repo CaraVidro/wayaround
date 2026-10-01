@@ -396,6 +396,23 @@ public final class CircuitBoardData {
                 - traces.size();
     }
 
+    public boolean hasComponent(
+            ComponentType type
+    ) {
+        if (type == null
+                || type == ComponentType.EMPTY) {
+            return false;
+        }
+
+        for (ComponentType component : components) {
+            if (component == type) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public int componentCount() {
         int count = 0;
 
