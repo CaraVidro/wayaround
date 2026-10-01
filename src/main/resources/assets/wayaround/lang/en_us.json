@@ -936,5 +936,20 @@
   "screen.wayaround.update_log.milestone16": "Milestone 1.6: The Grid / generation → transmission → protection → loads.",
   "screen.wayaround.update_log.grid": "High-voltage lines, transformers, fuse boxes and electric motors now connect the electrical world.",
   "screen.wayaround.update_log.polar_fix": "Polar ambience now begins gradually in the Southern Ocean; secret VISTA hints disappear when their real discovery is earned.",
-  "screen.wayaround.update_log.dialogue_splashes": "Authored dialogue splashes are back: witnesses, sorcerers, fishers, electricians and other characters now sign their own stories."
+  "screen.wayaround.update_log.dialogue_splashes": "Authored dialogue splashes are back: witnesses, sorcerers, fishers, electricians and other characters now sign their own stories.",
+  "container.wayaround.electronics_workbench": "Electronics Workbench — PCB Layout",
+  "container.wayaround.electronics.inventory_parts": "Inventory components",
+  "container.wayaround.electronics.copper_available": "Copper trace: %s",
+  "container.wayaround.electronics.zoom_hint": "Wheel: zoom • Middle drag: move • Right-click: remove",
+  "container.wayaround.electronics.properties": "Properties",
+  "container.wayaround.electronics.board_usage": "Board space: %s / %s",
+  "container.wayaround.electronics.trace_count": "Copper connections: %s",
+  "container.wayaround.electronics.signal_closed": "Input → output path: connected",
+  "container.wayaround.electronics.signal_open": "Input → output path: open",
+  "container.wayaround.electronics.selected": "Position %s",
+  "container.wayaround.electronics.empty_pad": "Empty position",
+  "container.wayaround.electronics.component_draw": "Operating draw: %s",
+  "container.wayaround.electronics.connection_armed": "Connection pad selected",
+  "container.wayaround.electronics.connection_help": "Click another component's copper pad.",
+  "message.wayaround.circuit_workbench.trace_cost": "Used %s copper trace for this connection."
 }
