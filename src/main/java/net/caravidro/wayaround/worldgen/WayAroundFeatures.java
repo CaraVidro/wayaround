@@ -6,6 +6,7 @@ import net.caravidro.wayaround.worldgen.feature.PrioriteCraterFeature;
 import net.caravidro.wayaround.worldgen.feature.LivingVegetationFeature;
 import net.caravidro.wayaround.worldgen.feature.DeepOceanTrenchFeature;
 import net.caravidro.wayaround.worldgen.feature.VolcanicCraterFeature;
+import net.caravidro.wayaround.worldgen.feature.RiftSpringFeature;
 
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
@@ -104,6 +105,12 @@ public final class WayAroundFeatures {
             FEATURES.register(
                     "volcanic_crater",
                     () -> new VolcanicCraterFeature(NoneFeatureConfiguration.CODEC)
+            );
+
+    public static final DeferredHolder<Feature<?>, RiftSpringFeature> RIFT_SPRING =
+            FEATURES.register(
+                    "rift_spring",
+                    () -> new RiftSpringFeature(NoneFeatureConfiguration.CODEC)
             );
 
     private WayAroundFeatures() {
