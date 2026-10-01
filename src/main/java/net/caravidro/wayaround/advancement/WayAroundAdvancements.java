@@ -126,11 +126,29 @@ public final class WayAroundAdvancements {
                 "accessories/first_fit",
                 "equipped"
         );
+
+        hintUnlessCompleted(
+                player,
+                "accessories/cardboard_head",
+                "accessories/cardboard_hint"
+        );
+
+        hintUnlessCompleted(
+                player,
+                "accessories/useless_filter",
+                "accessories/filter_hint"
+        );
     }
 
     public static void cardboardHead(
             ServerPlayer player
     ) {
+        revoke(
+                player,
+                "accessories/cardboard_hint",
+                "hint"
+        );
+
         award(
                 player,
                 "accessories/cardboard_head",
@@ -141,6 +159,12 @@ public final class WayAroundAdvancements {
     public static void uselessGasMask(
             ServerPlayer player
     ) {
+        revoke(
+                player,
+                "accessories/filter_hint",
+                "hint"
+        );
+
         award(
                 player,
                 "accessories/useless_filter",
@@ -156,11 +180,23 @@ public final class WayAroundAdvancements {
                 "media/photo",
                 "photo"
         );
+
+        hintUnlessCompleted(
+                player,
+                "media/video",
+                "media/video_hint"
+        );
     }
 
     public static void mediaVideo(
             ServerPlayer player
     ) {
+        revoke(
+                player,
+                "media/video_hint",
+                "hint"
+        );
+
         award(
                 player,
                 "media/video",
@@ -176,11 +212,23 @@ public final class WayAroundAdvancements {
                 "war/first_shot",
                 "shot"
         );
+
+        hintUnlessCompleted(
+                player,
+                "war/overkill",
+                "war/overkill_hint"
+        );
     }
 
     public static void warRocket(
             ServerPlayer player
     ) {
+        revoke(
+                player,
+                "war/overkill_hint",
+                "hint"
+        );
+
         award(
                 player,
                 "war/overkill",
@@ -196,11 +244,23 @@ public final class WayAroundAdvancements {
                 "assembly_objects/manual_crank",
                 "crank"
         );
+
+        hintUnlessCompleted(
+                player,
+                "assembly_objects/four_lines",
+                "assembly_objects/four_lines_hint"
+        );
     }
 
     public static void reinforcedPulley(
             ServerPlayer player
     ) {
+        revoke(
+                player,
+                "assembly_objects/four_lines_hint",
+                "hint"
+        );
+
         award(
                 player,
                 "assembly_objects/four_lines",
