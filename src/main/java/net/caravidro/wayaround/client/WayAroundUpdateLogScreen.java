@@ -81,8 +81,7 @@ public final class WayAroundUpdateLogScreen extends Screen {
                 0xFFF0E2C0
         );
 
-        if (!compact
-                && doneTop - 17 > titleY + 18) {
+        if (!compact) {
             graphics.drawCenteredString(
                     font,
                     Component.translatable(
@@ -162,7 +161,7 @@ public final class WayAroundUpdateLogScreen extends Screen {
                 );
 
         if (bodyVisible) {
-        for (Component line : WayAroundReleaseInfo.updateLogLines()) {
+            for (Component line : WayAroundReleaseInfo.updateLogLines()) {
             Component bullet =
                     Component.literal(
                             "• "
@@ -196,11 +195,11 @@ public final class WayAroundUpdateLogScreen extends Screen {
             if (y > bodyBottom - 12) {
                 break;
             }
+            }
         }
 
-        }
-
-        if (!compact) {
+        if (!compact
+                && doneTop - 17 > titleY + 18) {
             graphics.drawCenteredString(
                     font,
                     Component.translatable(
