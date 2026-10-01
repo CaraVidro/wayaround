@@ -452,16 +452,21 @@ public final class VoidDomainClientEffects {
             float strength
     ) {
         int lines =
-                18;
+                14;
 
+        /*
+         * The overload should feel intrusive without becoming an opaque wall
+         * over the scene. Keep the text ghost-like so the player can still see
+         * the singularity and distant geometry behind it.
+         */
         int alpha =
                 Mth.clamp(
                         Math.round(
-                                215.0F
+                                92.0F
                                         * strength
                         ),
                         0,
-                        215
+                        92
                 );
 
         for (int index = 0;
