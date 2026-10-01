@@ -34,11 +34,17 @@ public abstract class DeepOceanFogMixin {
         }
 
         double depth = level.getSeaLevel() - camera.getPosition().y;
-        float t = Mth.clamp((float) ((depth - 20.0) / 94.0), 0.0F, 1.0F);
+        /*
+         * At true abyss depth there is no blue-grey safety floor: the ambient
+         * ocean light reaches literal black. The transition still starts gently
+         * so descending does not look like crossing a shader wall.
+         */
+        float t = Mth.clamp((float) ((depth - 18.0) / 72.0), 0.0F, 1.0F);
+        t = t * t * (3.0F - 2.0F * t);
 
-        float r = Mth.lerp(t, 0.035F, 0.001F);
-        float g = Mth.lerp(t, 0.070F, 0.001F);
-        float b = Mth.lerp(t, 0.090F, 0.002F);
+        float r = Mth.lerp(t, 0.030F, 0.0F);
+        float g = Mth.lerp(t, 0.060F, 0.0F);
+        float b = Mth.lerp(t, 0.080F, 0.0F);
         RenderSystem.setShaderFogColor(r, g, b, 1.0F);
     }
 
