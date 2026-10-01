@@ -47,7 +47,7 @@ public final class EnergyCableBlock extends PipeBlock {
     private static boolean connects(LevelAccessor access, BlockPos pos, Direction side) {
         if (!access.hasChunkAt(pos)) return false;
         Block block = access.getBlockState(pos).getBlock();
-        if (block instanceof EnergyCableBlock || block instanceof SolarPanelBlock || block instanceof SteamEngineBlock) return true;
+        if (block instanceof EnergyCableBlock || block instanceof SolarPanelBlock) return true;
         return access instanceof Level level && level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, side) != null;
     }
 
