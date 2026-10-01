@@ -51,9 +51,18 @@ public abstract class AntarcticPossibleBiomesMixin {
     private void wayaround$includePolarBiomes(
             CallbackInfoReturnable<Set<Holder<Biome>>> cir
     ) {
-        if (!WorldFeatureRuntime.serverEnabled(
-                WorldFeature.ANTARCTICA
-        )) {
+        boolean antarcticaEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.ANTARCTICA
+                );
+
+        boolean volcanicEnabled =
+                WorldFeatureRuntime.serverEnabled(
+                        WorldFeature.VOLCANIC_REGIONS
+                );
+
+        if (!antarcticaEnabled
+                && !volcanicEnabled) {
             return;
         }
 
@@ -91,13 +100,24 @@ public abstract class AntarcticPossibleBiomesMixin {
          */
 
         Holder<Biome> antarctic =
-                WayAroundBiomes
-                        .getAntarcticIceSheet();
+                antarcticaEnabled
+                        ? WayAroundBiomes
+                        .getAntarcticIceSheet()
+                        : null;
 
 
         Holder<Biome> southernOcean =
-                WayAroundBiomes
-                        .getSouthernOcean();
+                antarcticaEnabled
+                        ? WayAroundBiomes
+                        .getSouthernOcean()
+                        : null;
+
+
+        Holder<Biome> volcanicHighlands =
+                volcanicEnabled
+                        ? WayAroundBiomes
+                        .getVolcanicHighlands()
+                        : null;
 
 
         /*
@@ -127,13 +147,23 @@ public abstract class AntarcticPossibleBiomesMixin {
          * manualmente.
          */
 
-        expanded.add(
-                antarctic
-        );
+        if (antarctic != null) {
+            expanded.add(
+                    antarctic
+            );
+        }
 
-        expanded.add(
-                southernOcean
-        );
+        if (southernOcean != null) {
+            expanded.add(
+                    southernOcean
+            );
+        }
+
+        if (volcanicHighlands != null) {
+            expanded.add(
+                    volcanicHighlands
+            );
+        }
 
 
         /*
