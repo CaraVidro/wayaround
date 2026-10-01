@@ -1,0 +1,84 @@
+{
+  "variants": {
+    "axis=x,root=false,thickness=1": {
+      "model": "wayaround:block/tree_segment/jungle_branch_1"
+    },
+    "axis=z,root=false,thickness=1": {
+      "model": "wayaround:block/tree_segment/jungle_branch_1",
+      "y": 90
+    },
+    "axis=y,root=false,thickness=1": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_1"
+    },
+    "axis=x,root=true,thickness=1": {
+      "model": "wayaround:block/tree_segment/jungle_root_1"
+    },
+    "axis=z,root=true,thickness=1": {
+      "model": "wayaround:block/tree_segment/jungle_root_1",
+      "y": 90
+    },
+    "axis=y,root=true,thickness=1": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_1"
+    },
+    "axis=x,root=false,thickness=2": {
+      "model": "wayaround:block/tree_segment/jungle_branch_2"
+    },
+    "axis=z,root=false,thickness=2": {
+      "model": "wayaround:block/tree_segment/jungle_branch_2",
+      "y": 90
+    },
+    "axis=y,root=false,thickness=2": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_2"
+    },
+    "axis=x,root=true,thickness=2": {
+      "model": "wayaround:block/tree_segment/jungle_root_2"
+    },
+    "axis=z,root=true,thickness=2": {
+      "model": "wayaround:block/tree_segment/jungle_root_2",
+      "y": 90
+    },
+    "axis=y,root=true,thickness=2": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_2"
+    },
+    "axis=x,root=false,thickness=3": {
+      "model": "wayaround:block/tree_segment/jungle_branch_3"
+    },
+    "axis=z,root=false,thickness=3": {
+      "model": "wayaround:block/tree_segment/jungle_branch_3",
+      "y": 90
+    },
+    "axis=y,root=false,thickness=3": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_3"
+    },
+    "axis=x,root=true,thickness=3": {
+      "model": "wayaround:block/tree_segment/jungle_root_3"
+    },
+    "axis=z,root=true,thickness=3": {
+      "model": "wayaround:block/tree_segment/jungle_root_3",
+      "y": 90
+    },
+    "axis=y,root=true,thickness=3": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_3"
+    },
+    "axis=x,root=false,thickness=4": {
+      "model": "wayaround:block/tree_segment/jungle_branch_4"
+    },
+    "axis=z,root=false,thickness=4": {
+      "model": "wayaround:block/tree_segment/jungle_branch_4",
+      "y": 90
+    },
+    "axis=y,root=false,thickness=4": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_4"
+    },
+    "axis=x,root=true,thickness=4": {
+      "model": "wayaround:block/tree_segment/jungle_root_4"
+    },
+    "axis=z,root=true,thickness=4": {
+      "model": "wayaround:block/tree_segment/jungle_root_4",
+      "y": 90
+    },
+    "axis=y,root=true,thickness=4": {
+      "model": "wayaround:block/tree_segment/jungle_vertical_4"
+    }
+  }
+}

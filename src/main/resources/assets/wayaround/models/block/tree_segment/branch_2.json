@@ -1,0 +1,40 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "#side"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        5,
+        5
+      ],
+      "to": [
+        16,
+        11,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#side"
+        },
+        "up": {
+          "texture": "#side"
+        },
+        "north": {
+          "texture": "#side"
+        },
+        "south": {
+          "texture": "#side"
+        },
+        "west": {
+          "texture": "#end"
+        },
+        "east": {
+          "texture": "#end"
+        }
+      }
+    }
+  ]
+}
