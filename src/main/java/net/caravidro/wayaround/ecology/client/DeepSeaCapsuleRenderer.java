@@ -3,6 +3,7 @@ package net.caravidro.wayaround.ecology.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.caravidro.wayaround.ecology.DeepSeaCapsuleEntity;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
@@ -82,10 +83,23 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 light
         );
 
+        boolean firstPersonOccupant =
+                Minecraft.getInstance()
+                        .player != null
+                        && Minecraft.getInstance()
+                                .player
+                                .getVehicle()
+                                == capsule
+                        && Minecraft.getInstance()
+                                .options
+                                .getCameraType()
+                                .isFirstPerson();
+
         renderViewport(
                 pose,
                 buffers,
-                light
+                light,
+                !firstPersonOccupant
         );
 
         renderTopAssembly(
@@ -124,8 +138,13 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                         .defaultBlockState();
 
         /*
-         * Stacked progressively smaller shells give a rounded pressure-vessel
-         * silhouette without requiring a texture/model asset pipeline.
+         * Hollow pressure hull.
+         *
+         * The old capsule used one large solid iron cuboid as its body. That
+         * looks fine from outside, but the first-person camera is physically
+         * inside it, so the cuboid's front face became an iron wall covering
+         * the entire viewport. Build the vessel from roof/floor/side/rear
+         * panels instead, leaving a genuine open observation tunnel.
          */
         cuboid(
                 pose,
@@ -133,11 +152,37 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 light,
                 iron,
                 0.0,
+                0.39,
+                -0.02,
+                1.14,
+                0.22,
+                1.00
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                iron,
+                0.0,
+                -0.36,
+                -0.02,
+                1.10,
+                0.24,
+                0.98
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                iron,
+                -0.49,
                 0.02,
-                0.0,
-                1.18,
-                0.96,
-                1.04
+                -0.03,
+                0.18,
+                0.68,
+                0.96
         );
 
         cuboid(
@@ -145,28 +190,28 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 buffers,
                 light,
                 iron,
-                0.0,
-                0.42,
-                0.0,
-                1.02,
-                0.38,
-                0.92
+                0.49,
+                0.02,
+                -0.03,
+                0.18,
+                0.68,
+                0.96
         );
 
+        // Rear pressure plate and machinery stay opaque behind the pilot.
         cuboid(
                 pose,
                 buffers,
                 light,
                 iron,
                 0.0,
-                -0.43,
-                0.0,
-                1.00,
-                0.34,
-                0.90
+                0.02,
+                -0.46,
+                0.94,
+                0.70,
+                0.14
         );
 
-        // Dark rear machinery block / counterweight.
         cuboid(
                 pose,
                 buffers,
@@ -174,13 +219,13 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 dark,
                 0.0,
                 -0.02,
-                -0.50,
+                -0.54,
                 0.68,
                 0.58,
                 0.16
         );
 
-        // Side shoulders make it feel wider than a plain cube.
+        // Side shoulders keep the bathysphere-like exterior silhouette.
         rotatedCuboid(
                 pose,
                 buffers,
@@ -188,10 +233,10 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 iron,
                 -0.57,
                 0.03,
-                0.0,
+                -0.02,
                 0.20,
                 0.74,
-                0.86,
+                0.82,
                 0.0F,
                 0.0F,
                 -8.0F
@@ -204,10 +249,10 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 iron,
                 0.57,
                 0.03,
-                0.0,
+                -0.02,
                 0.20,
                 0.74,
-                0.86,
+                0.82,
                 0.0F,
                 0.0F,
                 8.0F
@@ -349,24 +394,78 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
     private void renderViewport(
             PoseStack pose,
             MultiBufferSource buffers,
-            int light
+            int light,
+            boolean renderGlass
     ) {
-        // Thick dark pressure flange.
+        BlockState flange =
+                Blocks.POLISHED_BLACKSTONE
+                        .defaultBlockState();
+
+        /*
+         * Real ring instead of one solid blackstone slab. The previous flange
+         * was literally a block in front of the pilot's eyes.
+         */
         cuboid(
                 pose,
                 buffers,
                 light,
-                Blocks.POLISHED_BLACKSTONE
-                        .defaultBlockState(),
-                0.0,
+                flange,
+                -0.325,
                 0.07,
                 0.548,
-                0.66,
-                0.66,
+                0.07,
+                0.72,
                 0.09
         );
 
-        // Glass inset slightly forward so it does not z-fight with the flange.
+        cuboid(
+                pose,
+                buffers,
+                light,
+                flange,
+                0.325,
+                0.07,
+                0.548,
+                0.07,
+                0.72,
+                0.09
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                flange,
+                0.0,
+                0.395,
+                0.548,
+                0.58,
+                0.07,
+                0.09
+        );
+
+        cuboid(
+                pose,
+                buffers,
+                light,
+                flange,
+                0.0,
+                -0.255,
+                0.548,
+                0.58,
+                0.07,
+                0.09
+        );
+
+        /*
+         * Third person still gets the thick blue observation glass. In first
+         * person the camera is already "behind" that pane, so not drawing the
+         * textured glass avoids a giant blue checkerboard over the whole view.
+         */
+        if (!renderGlass) {
+            return;
+        }
+
         cuboid(
                 pose,
                 buffers,
@@ -381,7 +480,6 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 0.045
         );
 
-        // Tiny central reflection/highlight.
         cuboid(
                 pose,
                 buffers,
