@@ -78,6 +78,7 @@ public final class IndustrialContent {
                                         output.accept(PowerContent.STEAM_BOILER_ITEM.get());
                                         output.accept(PowerContent.BOILER_PRESSURE_VESSEL.get());
                                         output.accept(PowerContent.BOILER_SAFETY_VALVE.get());
+                                        output.accept(PowerContent.STEAM_PRESSURE_GAUGE.get());
                                         output.accept(PowerContent.STEAM_ENGINE_ITEM.get());
                                         output.accept(PowerContent.ENERGY_CABLE_ITEM.get());
                                         output.accept(PowerContent.WATER_GENERATOR_ITEM.get());
