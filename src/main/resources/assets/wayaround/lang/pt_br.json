@@ -935,5 +935,6 @@
   "message.wayaround.electric_motor.turning": "girando com energia elétrica",
   "screen.wayaround.update_log.milestone16": "Marco 1.6: The Grid / geração → transmissão → proteção → cargas.",
   "screen.wayaround.update_log.grid": "Linhas de alta tensão, transformadores, quadros de fusível e motores elétricos agora conectam o mundo elétrico.",
-  "screen.wayaround.update_log.polar_fix": "A ambientação polar agora começa gradualmente no Oceano do Sul; pistas VISTA secretas somem quando a descoberta real é conquistada."
+  "screen.wayaround.update_log.polar_fix": "A ambientação polar agora começa gradualmente no Oceano do Sul; pistas VISTA secretas somem quando a descoberta real é conquistada.",
+  "screen.wayaround.update_log.dialogue_splashes": "Os splashes dialogados voltaram: testemunhas, feiticeiros, pescadores, eletricistas e outros personagens agora assinam suas próprias histórias."
 }
