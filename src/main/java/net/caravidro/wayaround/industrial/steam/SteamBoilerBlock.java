@@ -1,0 +1,232 @@
+package net.caravidro.wayaround.industrial.steam;
+
+import com.mojang.serialization.MapCodec;
+import net.caravidro.wayaround.industrial.power.PowerContent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.phys.BlockHitResult;
+
+public final class SteamBoilerBlock
+        extends BaseEntityBlock {
+
+    public static final MapCodec<SteamBoilerBlock> CODEC =
+            simpleCodec(
+                    SteamBoilerBlock::new
+            );
+
+    public static final BooleanProperty LIT =
+            BlockStateProperties.LIT;
+
+    public SteamBoilerBlock(
+            Properties properties
+    ) {
+        super(properties);
+
+        registerDefaultState(
+                stateDefinition.any()
+                        .setValue(
+                                LIT,
+                                false
+                        )
+        );
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
+    }
+
+    @Override
+    protected RenderShape getRenderShape(
+            BlockState state
+    ) {
+        return RenderShape.MODEL;
+    }
+
+    @Override
+    public BlockEntity newBlockEntity(
+            BlockPos pos,
+            BlockState state
+    ) {
+        return new SteamBoilerBlockEntity(
+                pos,
+                state
+        );
+    }
+
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
+            Level level,
+            BlockState state,
+            BlockEntityType<T> type
+    ) {
+        return level.isClientSide
+                ? null
+                : createTickerHelper(
+                        type,
+                        PowerContent.STEAM_BOILER_ENTITY.get(),
+                        SteamBoilerBlockEntity::serverTick
+                );
+    }
+
+    @Override
+    protected ItemInteractionResult useItemOn(
+            ItemStack stack,
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            InteractionHand hand,
+            BlockHitResult hit
+    ) {
+        if (!(level.getBlockEntity(
+                pos
+        ) instanceof SteamBoilerBlockEntity boiler)) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
+        if (stack.is(
+                PowerContent.BOILER_PRESSURE_VESSEL.get()
+        )) {
+            if (!level.isClientSide) {
+                boiler.installPressureVessel(
+                        player,
+                        stack
+                );
+            }
+            return ItemInteractionResult.SUCCESS;
+        }
+
+        if (stack.is(
+                PowerContent.BOILER_SAFETY_VALVE.get()
+        )) {
+            if (!level.isClientSide) {
+                boiler.installSafetyValve(
+                        player,
+                        stack
+                );
+            }
+            return ItemInteractionResult.SUCCESS;
+        }
+
+        if (stack.is(
+                Items.WATER_BUCKET
+        )) {
+            if (!level.isClientSide
+                    && boiler.addWater(
+                    1_000
+            )) {
+                player.setItemInHand(
+                        hand,
+                        ItemUtils.createFilledResult(
+                                stack,
+                                player,
+                                new ItemStack(
+                                        Items.BUCKET
+                                )
+                        )
+                );
+            }
+            return ItemInteractionResult.SUCCESS;
+        }
+
+        if (stack.is(
+                Items.COAL
+        )) {
+            if (!level.isClientSide) {
+                boiler.addCoal(
+                        player,
+                        stack
+                );
+            }
+            return ItemInteractionResult.SUCCESS;
+        }
+
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            BlockHitResult hit
+    ) {
+        if (!(level.getBlockEntity(
+                pos
+        ) instanceof SteamBoilerBlockEntity boiler)) {
+            return InteractionResult.PASS;
+        }
+
+        if (!level.isClientSide) {
+            if (player.isShiftKeyDown()) {
+                boiler.removeLastPart(
+                        player
+                );
+            } else {
+                player.displayClientMessage(
+                        boiler.status(),
+                        true
+                );
+            }
+        }
+
+        return InteractionResult.sidedSuccess(
+                level.isClientSide
+        );
+    }
+
+    @Override
+    protected void onRemove(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            BlockState replacement,
+            boolean moving
+    ) {
+        if (!state.is(
+                replacement.getBlock()
+        )
+                && !level.isClientSide
+                && level.getBlockEntity(
+                pos
+        ) instanceof SteamBoilerBlockEntity boiler) {
+            boiler.dropContents();
+        }
+
+        super.onRemove(
+                state,
+                level,
+                pos,
+                replacement,
+                moving
+        );
+    }
+
+    @Override
+    protected void createBlockStateDefinition(
+            StateDefinition.Builder<Block, BlockState> builder
+    ) {
+        builder.add(
+                LIT
+        );
+    }
+}
