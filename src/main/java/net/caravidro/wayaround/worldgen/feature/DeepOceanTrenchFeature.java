@@ -40,7 +40,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
         int baseX = origin.getX() & ~15;
         int baseZ = origin.getZ() & ~15;
         int seaLevel = level.getSeaLevel();
-        int minFloor = Math.max(level.getMinBuildHeight() + 8, -56);
+        int minFloor = level.getMinBuildHeight() + 4;
         int changed = 0;
         double chunkInterior = 0.0;
 
@@ -67,14 +67,14 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
                 double waveC = Math.sin((x + z) * 0.0047);
 
                 int abyssFloor = Mth.clamp(
-                        -52
+                        -58
                                 + (int) Math.round(
                                 waveA * 2.8
                                         + waveB * 2.4
                                         + waveC * 1.8
                         ),
                         minFloor,
-                        -44
+                        -50
                 );
 
                 // Smoothstep removes the infamous vertical biome-border wall.
