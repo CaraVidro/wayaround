@@ -680,8 +680,13 @@ public final class BroadcastManager {
     ) {
         Vec3 center = Vec3.atCenterOf(television);
 
+        /*
+         * Receiving a TV picture is a property of the television, not of the
+         * viewer's inventory. Every player close enough to render/use the TV
+         * receives the same frame whether they own a camera or not.
+         */
         for (ServerPlayer player : level.players()) {
-            if (player.position().distanceToSqr(center) > 48.0 * 48.0) continue;
+            if (player.position().distanceToSqr(center) > 96.0 * 96.0) continue;
             if (!allowRealtimePacket(
                     level,
                     player,

@@ -990,5 +990,20 @@
   "container.wayaround.electronics.upgrade_compact": "%sx %s • %sx %s • %sx %s",
   "container.wayaround.electronics.expand_shift": "SHIFT + CLICK: EXPAND PCB",
   "message.wayaround.circuit_workbench.upgrade_missing": "PCB expansion aborted: all upgrade materials must be present before anything is consumed.",
-  "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s)."
+  "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s).",
+  "entity.wayaround.deep_sea_submarine": "Abyss Submarine",
+  "item.wayaround.deep_sea_submarine": "Abyss Submarine",
+  "entity.wayaround.player_corpse": "Player Corpse",
+  "block.wayaround.bracken_fern": "Bracken Fern",
+  "block.wayaround.wild_reeds": "Wild Reeds",
+  "block.wayaround.forest_shrub": "Forest Shrub",
+  "block.wayaround.flowering_shrub": "Flowering Shrub",
+  "block.wayaround.mushroom_patch": "Mushroom Patch",
+  "block.wayaround.dry_shrub": "Dry Shrub",
+  "block.wayaround.marsh_cattails": "Marsh Cattails",
+  "block.wayaround.broadleaf_fern": "Broadleaf Fern",
+  "block.wayaround.moss_tuft": "Moss Tuft",
+  "block.wayaround.thorn_bush": "Thorn Bush",
+  "block.wayaround.wildflower_cluster": "Wildflower Cluster",
+  "block.wayaround.marsh_grass_clump": "Marsh Grass Clump"
 }

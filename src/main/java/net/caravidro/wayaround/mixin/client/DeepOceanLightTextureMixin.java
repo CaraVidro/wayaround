@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.mixin.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import net.caravidro.wayaround.ecology.DeepSeaSubmarineEntity;
 import net.caravidro.wayaround.ecology.client.DeepOceanClientVisibility;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -71,6 +72,11 @@ public abstract class DeepOceanLightTextureMixin {
             return;
         }
 
+        float lamp =
+                DeepOceanClientVisibility.vehicleLampStrength(
+                        minecraft.player
+                );
+
         for (int skyLight = 0; skyLight < 16; skyLight++) {
             for (int blockLight = 0; blockLight < 16; blockLight++) {
                 int color =
@@ -98,11 +104,33 @@ public abstract class DeepOceanLightTextureMixin {
 
                 artificial *= artificial;
 
+                /*
+                 * The submarine no longer gets a global fake brightness
+                 * floor. Its moving vanilla LIGHT blocks now feed the real
+                 * blockLight channel below. Keep the old soft floor only for
+                 * the descent capsule until it receives the same treatment.
+                 */
+                boolean realSubmarineLight =
+                        minecraft.player.getVehicle()
+                                instanceof DeepSeaSubmarineEntity;
+
+                float lampFloor =
+                        realSubmarineLight
+                                ? 0.0F
+                                : lamp
+                                * 0.34F;
+
+                float visibleLight =
+                        Math.max(
+                                lampFloor,
+                                artificial * 0.96F
+                        );
+
                 float abyssFactor =
                         net.minecraft.util.Mth.lerp(
                                 abyss,
                                 1.0F,
-                                artificial * 0.96F
+                                visibleLight
                         );
 
                 red = clamp255(red * abyssFactor);

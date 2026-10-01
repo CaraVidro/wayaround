@@ -1,7 +1,296 @@
 {
-  "parent": "minecraft:block/tinted_cross",
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "render_type": "cutout_mipped",
   "textures": {
-    "cross": "minecraft:block/fern"
+    "leaf": "minecraft:block/fern",
+    "core": "minecraft:block/moss_block",
+    "particle": "minecraft:block/fern"
   },
-  "render_type": "cutout"
+  "elements": [
+    {
+      "from": [
+        6.5,
+        0,
+        6.5
+      ],
+      "to": [
+        9.5,
+        2.5,
+        9.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "#core"
+        },
+        "up": {
+          "texture": "#core"
+        },
+        "north": {
+          "texture": "#core"
+        },
+        "south": {
+          "texture": "#core"
+        },
+        "west": {
+          "texture": "#core"
+        },
+        "east": {
+          "texture": "#core"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        1.4,
+        6.2
+      ],
+      "to": [
+        8,
+        3.5,
+        9.8
+      ],
+      "faces": {
+        "down": {
+          "texture": "#leaf"
+        },
+        "up": {
+          "texture": "#leaf"
+        },
+        "north": {
+          "texture": "#leaf"
+        },
+        "south": {
+          "texture": "#leaf"
+        },
+        "west": {
+          "texture": "#leaf"
+        },
+        "east": {
+          "texture": "#leaf"
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          2,
+          8
+        ],
+        "axis": "z",
+        "angle": -22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        8,
+        1.4,
+        6.2
+      ],
+      "to": [
+        14,
+        3.5,
+        9.8
+      ],
+      "faces": {
+        "down": {
+          "texture": "#leaf"
+        },
+        "up": {
+          "texture": "#leaf"
+        },
+        "north": {
+          "texture": "#leaf"
+        },
+        "south": {
+          "texture": "#leaf"
+        },
+        "west": {
+          "texture": "#leaf"
+        },
+        "east": {
+          "texture": "#leaf"
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          2,
+          8
+        ],
+        "axis": "z",
+        "angle": 22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        6.2,
+        1.4,
+        2
+      ],
+      "to": [
+        9.8,
+        3.5,
+        8
+      ],
+      "faces": {
+        "down": {
+          "texture": "#leaf"
+        },
+        "up": {
+          "texture": "#leaf"
+        },
+        "north": {
+          "texture": "#leaf"
+        },
+        "south": {
+          "texture": "#leaf"
+        },
+        "west": {
+          "texture": "#leaf"
+        },
+        "east": {
+          "texture": "#leaf"
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          2,
+          8
+        ],
+        "axis": "x",
+        "angle": 22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        6.2,
+        1.4,
+        8
+      ],
+      "to": [
+        9.8,
+        3.5,
+        14
+      ],
+      "faces": {
+        "down": {
+          "texture": "#leaf"
+        },
+        "up": {
+          "texture": "#leaf"
+        },
+        "north": {
+          "texture": "#leaf"
+        },
+        "south": {
+          "texture": "#leaf"
+        },
+        "west": {
+          "texture": "#leaf"
+        },
+        "east": {
+          "texture": "#leaf"
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          2,
+          8
+        ],
+        "axis": "x",
+        "angle": -22.5,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        3,
+        2.2,
+        3
+      ],
+      "to": [
+        7.1,
+        4.1,
+        7.1
+      ],
+      "faces": {
+        "down": {
+          "texture": "#leaf"
+        },
+        "up": {
+          "texture": "#leaf"
+        },
+        "north": {
+          "texture": "#leaf"
+        },
+        "south": {
+          "texture": "#leaf"
+        },
+        "west": {
+          "texture": "#leaf"
+        },
+        "east": {
+          "texture": "#leaf"
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          2,
+          8
+        ],
+        "axis": "y",
+        "angle": 45,
+        "rescale": true
+      }
+    },
+    {
+      "from": [
+        8.9,
+        2.2,
+        8.9
+      ],
+      "to": [
+        13,
+        4.1,
+        13
+      ],
+      "faces": {
+        "down": {
+          "texture": "#leaf"
+        },
+        "up": {
+          "texture": "#leaf"
+        },
+        "north": {
+          "texture": "#leaf"
+        },
+        "south": {
+          "texture": "#leaf"
+        },
+        "west": {
+          "texture": "#leaf"
+        },
+        "east": {
+          "texture": "#leaf"
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          2,
+          8
+        ],
+        "axis": "y",
+        "angle": 45,
+        "rescale": true
+      }
+    }
+  ]
 }

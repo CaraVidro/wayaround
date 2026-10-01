@@ -4,9 +4,11 @@ import com.mojang.serialization.Codec;
 
 import net.caravidro.wayaround.ecology.AquaticFloorLifeBlock;
 import net.caravidro.wayaround.ecology.EcologyContent;
+import net.caravidro.wayaround.ecology.VegetationPalette;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
@@ -62,13 +64,22 @@ public final class LivingVegetationFeature
             );
         }
 
-        int attempts = densityFor(biome);
+        int attempts =
+                densityFor(
+                        biome
+                );
+
+        int placed =
+                placeGroundVegetation(
+                        level,
+                        origin,
+                        biome,
+                        random
+                );
 
         if (attempts <= 0) {
-            return false;
+            return placed > 0;
         }
-
-        int placed = 0;
 
         for (int i = 0; i < attempts; i++) {
             int x =
@@ -377,6 +388,7 @@ public final class LivingVegetationFeature
         placeUnderstory(
                 level,
                 base,
+                biome,
                 result.nearWater(),
                 random
         );
@@ -387,6 +399,7 @@ public final class LivingVegetationFeature
     private static void placeUnderstory(
             WorldGenLevel level,
             BlockPos base,
+            String biome,
             boolean nearRiver,
             RandomSource random
     ) {
@@ -421,48 +434,22 @@ public final class LivingVegetationFeature
                 continue;
             }
 
-            BlockState plant;
-            float pick =
-                    random.nextFloat();
+            boolean wet =
+                    nearRiver
+                            || ground.is(
+                            Blocks.MUD
+                    )
+                            || ground.is(
+                            Blocks.MOSS_BLOCK
+                    );
 
-            if (nearRiver
-                    && pick < 0.22F) {
-                plant =
-                        EcologyContent.RIVER_SPRIG.get()
-                                .defaultBlockState();
-
-            } else if (nearRiver
-                    && pick < 0.36F) {
-                plant =
-                        EcologyContent.CREEK_CLOVER.get()
-                                .defaultBlockState();
-
-            } else if (pick < 0.52F) {
-                plant =
-                        EcologyContent.DAMP_FERN.get()
-                                .defaultBlockState();
-
-            } else if (pick < 0.66F) {
-                plant =
-                        EcologyContent.WOODLAND_SORREL.get()
-                                .defaultBlockState();
-
-            } else if (pick < 0.78F) {
-                plant =
-                        EcologyContent.SHADE_NETTLE.get()
-                                .defaultBlockState();
-
-            } else if (pick < 0.90F) {
-                plant =
-                        EcologyContent.MEADOW_SEDGE.get()
-                                .defaultBlockState();
-
-            } else {
-                plant =
-                        random.nextBoolean()
-                                ? Blocks.FERN.defaultBlockState()
-                                : Blocks.SHORT_GRASS.defaultBlockState();
-            }
+            BlockState plant =
+                    VegetationPalette.pick(
+                            biome,
+                            wet,
+                            nearRiver,
+                            random
+                    );
 
             if (plant.canSurvive(level, above)) {
                 level.setBlock(
@@ -472,6 +459,275 @@ public final class LivingVegetationFeature
                 );
             }
         }
+    }
+
+    private static int placeGroundVegetation(
+            WorldGenLevel level,
+            BlockPos origin,
+            String biome,
+            RandomSource random
+    ) {
+        int attempts =
+                VegetationPalette.groundAttempts(
+                        biome
+                );
+
+        if (attempts <= 0) {
+            return 0;
+        }
+
+        int placed =
+                0;
+
+        for (int i = 0;
+             i < attempts;
+             i++) {
+
+            int x =
+                    origin.getX()
+                            + random.nextInt(
+                            16
+                    );
+
+            int z =
+                    origin.getZ()
+                            + random.nextInt(
+                            16
+                    );
+
+            int y =
+                    level.getHeight(
+                            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                            x,
+                            z
+                    );
+
+            BlockPos above =
+                    new BlockPos(
+                            x,
+                            y,
+                            z
+                    );
+
+            BlockPos ground =
+                    above.below();
+
+            if (!level.ensureCanWrite(
+                    above
+            )
+                    || !level.getBlockState(
+                    above
+            ).isAir()) {
+                continue;
+            }
+
+            boolean nearWater =
+                    nearWater(
+                            level,
+                            ground,
+                            2
+                    );
+
+            BlockState groundState =
+                    level.getBlockState(
+                            ground
+                    );
+
+            boolean wet =
+                    nearWater
+                            || groundState.is(
+                            Blocks.MUD
+                    )
+                            || groundState.is(
+                            Blocks.MOSS_BLOCK
+                    )
+                            || groundState.is(
+                            Blocks.ROOTED_DIRT
+                    );
+
+            BlockState plant =
+                    VegetationPalette.pick(
+                            biome,
+                            wet,
+                            nearWater,
+                            random
+                    );
+
+            if (!validGroundFor(
+                    plant,
+                    groundState,
+                    nearWater
+            )
+                    || !plant.canSurvive(
+                    level,
+                    above
+            )) {
+                continue;
+            }
+
+            level.setBlock(
+                    above,
+                    plant,
+                    2
+            );
+
+            placed++;
+
+            /*
+             * Ferns, reeds, clover and mushroom patches look substantially
+             * better as irregular colonies than isolated single blocks.
+             */
+            if (VegetationPalette.clumps(
+                    plant
+            )
+                    && random.nextFloat()
+                    < 0.42F) {
+
+                int satellites =
+                        1
+                                + random.nextInt(
+                                3
+                        );
+
+                for (int n = 0;
+                     n < satellites;
+                     n++) {
+
+                    int ox =
+                            x
+                                    + random.nextInt(
+                                    5
+                            )
+                                    - 2;
+
+                    int oz =
+                            z
+                                    + random.nextInt(
+                                    5
+                            )
+                                    - 2;
+
+                    int oy =
+                            level.getHeight(
+                                    Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                    ox,
+                                    oz
+                            );
+
+                    BlockPos neighbor =
+                            new BlockPos(
+                                    ox,
+                                    oy,
+                                    oz
+                            );
+
+                    BlockPos neighborGround =
+                            neighbor.below();
+
+                    if (!level.ensureCanWrite(
+                            neighbor
+                    )
+                            || !level.getBlockState(
+                            neighbor
+                    ).isAir()
+                            || !validGroundFor(
+                            plant,
+                            level.getBlockState(
+                                    neighborGround
+                            ),
+                            nearWater(
+                                    level,
+                                    neighborGround,
+                                    2
+                            )
+                    )
+                            || !plant.canSurvive(
+                            level,
+                            neighbor
+                    )) {
+                        continue;
+                    }
+
+                    level.setBlock(
+                            neighbor,
+                            plant,
+                            2
+                    );
+
+                    placed++;
+                }
+            }
+        }
+
+        return placed;
+    }
+
+    private static boolean nearWater(
+            WorldGenLevel level,
+            BlockPos ground,
+            int radius
+    ) {
+        for (Direction direction :
+                Direction.Plane.HORIZONTAL) {
+
+            for (int distance = 1;
+                 distance <= radius;
+                 distance++) {
+
+                BlockPos probe =
+                        ground.relative(
+                                direction,
+                                distance
+                        );
+
+                if (level.getFluidState(
+                        probe
+                ).is(
+                        FluidTags.WATER
+                )
+                        || level.getFluidState(
+                        probe.above()
+                ).is(
+                        FluidTags.WATER
+                )) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean validGroundFor(
+            BlockState plant,
+            BlockState ground,
+            boolean nearWater
+    ) {
+        if (validGround(
+                ground
+        )) {
+            return true;
+        }
+
+        if (!nearWater
+                || !VegetationPalette.requiresWaterEdge(
+                plant
+        )) {
+            return false;
+        }
+
+        return ground.is(
+                Blocks.SAND
+        )
+                || ground.is(
+                Blocks.RED_SAND
+        )
+                || ground.is(
+                Blocks.GRAVEL
+        )
+                || ground.is(
+                Blocks.CLAY
+        );
     }
 
     private static boolean validGround(

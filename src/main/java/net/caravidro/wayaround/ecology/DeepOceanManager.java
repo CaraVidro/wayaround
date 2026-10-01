@@ -98,18 +98,20 @@ public final class DeepOceanManager {
              * Darkness is now rendered as one smooth client fog curve.
              * The diving suit is pressure equipment, not magical night vision.
              */
-            boolean capsule =
+            boolean pressureVehicle =
                     player.getVehicle()
-                            instanceof DeepSeaCapsuleEntity;
+                            instanceof DeepSeaCapsuleEntity
+                            || player.getVehicle()
+                            instanceof DeepSeaSubmarineEntity;
 
-            if (capsule) {
+            if (pressureVehicle) {
                 player.setAirSupply(
                         player.getMaxAirSupply()
                 );
             }
 
             double safeDepth =
-                    capsule
+                    pressureVehicle
                             ? Double.MAX_VALUE
                             : divin
                             ? 58.0

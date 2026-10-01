@@ -678,104 +678,109 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
             int light,
             float lampPitch
     ) {
-        pose.pushPose();
-
-        // Gimbal pivot on the capsule's lower-right front corner.
-        pose.translate(
-                0.39,
-                -0.27,
-                0.54
-        );
-
-        pose.mulPose(
-                Axis.XP.rotationDegrees(
-                        lampPitch
-                )
-        );
-
-        // Copper mounting fork.
-        cuboid(
-                pose,
-                buffers,
-                light,
-                Blocks.COPPER_BLOCK
-                        .defaultBlockState(),
-                0.0,
-                0.0,
-                0.06,
-                0.30,
-                0.22,
-                0.16
-        );
-
-        cuboid(
-                pose,
-                buffers,
-                light,
-                Blocks.POLISHED_DEEPSLATE
-                        .defaultBlockState(),
-                0.0,
-                0.0,
-                0.19,
-                0.23,
-                0.20,
-                0.22
-        );
-
-        // Actual lamp lens.
-        cuboid(
-                pose,
-                buffers,
-                LightTexture.FULL_BRIGHT,
-                Blocks.SEA_LANTERN
-                        .defaultBlockState(),
-                0.0,
-                0.0,
-                0.335,
-                0.17,
-                0.15,
-                0.12
-        );
-
         /*
-         * Cheap visible cone. Four nested translucent pieces read as a beam
-         * without creating dynamic block-light updates every frame.
+         * Reworked as a twin floodlight bar. The previous single pin-light had
+         * a pretty beam but almost no visual authority in a pitch-black abyss.
+         * Both lamps share the pilot's vertical look angle; the fog/lightmap
+         * mixins provide the actual usable illuminated range.
          */
-        for (int i = 0;
-             i < 4;
-             i++) {
+        for (double x :
+                new double[]{-0.30, 0.30}) {
 
-            double length =
-                    0.82
-                            + i
-                            * 0.34;
+            pose.pushPose();
 
-            double z =
-                    0.66
-                            + i
-                            * 0.80;
+            pose.translate(
+                    x,
+                    -0.24,
+                    0.52
+            );
 
-            double width =
-                    0.10
-                            + i
-                            * 0.050;
+            pose.mulPose(
+                    Axis.XP.rotationDegrees(
+                            lampPitch
+                    )
+            );
+
+            cuboid(
+                    pose,
+                    buffers,
+                    light,
+                    Blocks.COPPER_BLOCK
+                            .defaultBlockState(),
+                    0.0,
+                    0.0,
+                    0.07,
+                    0.27,
+                    0.22,
+                    0.18
+            );
+
+            cuboid(
+                    pose,
+                    buffers,
+                    light,
+                    Blocks.POLISHED_DEEPSLATE
+                            .defaultBlockState(),
+                    0.0,
+                    0.0,
+                    0.22,
+                    0.22,
+                    0.19,
+                    0.24
+            );
 
             cuboid(
                     pose,
                     buffers,
                     LightTexture.FULL_BRIGHT,
-                    Blocks.LIGHT_BLUE_STAINED_GLASS
+                    Blocks.SEA_LANTERN
                             .defaultBlockState(),
                     0.0,
                     0.0,
-                    z,
-                    width,
-                    width,
-                    length
+                    0.38,
+                    0.18,
+                    0.15,
+                    0.13
             );
-        }
 
-        pose.popPose();
+            /*
+             * Six short overlapping volumes make a wider, less laser-like
+             * flood cone. This remains cheap decorative geometry; visibility
+             * itself no longer depends on seeing these glass pieces.
+             */
+            for (int step = 0;
+                 step < 6;
+                 step++) {
+
+                double width =
+                        0.12
+                                + step
+                                * 0.050;
+
+                double height =
+                        0.10
+                                + step
+                                * 0.034;
+
+                cuboid(
+                        pose,
+                        buffers,
+                        LightTexture.FULL_BRIGHT,
+                        Blocks.LIGHT_BLUE_STAINED_GLASS
+                                .defaultBlockState(),
+                        0.0,
+                        0.0,
+                        0.78
+                                + step
+                                * 0.72,
+                        width,
+                        height,
+                        0.82
+                );
+            }
+
+            pose.popPose();
+        }
     }
 
     private void cuboid(

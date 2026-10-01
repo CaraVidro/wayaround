@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.mixin.client;
 
 import net.caravidro.wayaround.ecology.DeepSeaCapsuleEntity;
+import net.caravidro.wayaround.ecology.DeepSeaSubmarineEntity;
 import net.minecraft.client.Camera;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
@@ -29,39 +30,76 @@ public abstract class DeepSeaCapsuleCameraMixin {
             float partialTick,
             CallbackInfo ci
     ) {
-        if (detached
-                || !(entity.getVehicle() instanceof DeepSeaCapsuleEntity capsule)) {
+        if (detached) {
+            return;
+        }
+
+        Entity vehicle =
+                entity.getVehicle();
+
+        boolean capsule =
+                vehicle
+                        instanceof DeepSeaCapsuleEntity;
+
+        boolean submarine =
+                vehicle
+                        instanceof DeepSeaSubmarineEntity;
+
+        if (!capsule
+                && !submarine) {
             return;
         }
 
         double x = net.minecraft.util.Mth.lerp(
                 partialTick,
-                capsule.xo,
-                capsule.getX()
-        );
-        double y = net.minecraft.util.Mth.lerp(
-                partialTick,
-                capsule.yo,
-                capsule.getY()
-        );
-        double z = net.minecraft.util.Mth.lerp(
-                partialTick,
-                capsule.zo,
-                capsule.getZ()
+                vehicle.xo,
+                vehicle.getX()
         );
 
-        /*
-         * Eye point sits inside the vessel, slightly forward toward the
-         * observation glass. Rotation stays controlled by the player's head.
-         */
-        float yaw = capsule.getYRot() * ((float) Math.PI / 180.0F);
-        double forwardX = -Math.sin(yaw) * 0.10;
-        double forwardZ =  Math.cos(yaw) * 0.10;
+        double y = net.minecraft.util.Mth.lerp(
+                partialTick,
+                vehicle.yo,
+                vehicle.getY()
+        );
+
+        double z = net.minecraft.util.Mth.lerp(
+                partialTick,
+                vehicle.zo,
+                vehicle.getZ()
+        );
+
+        float yaw =
+                vehicle.getYRot()
+                        * (
+                        (float) Math.PI
+                                / 180.0F
+                );
+
+        double forward =
+                submarine
+                        ? 0.48
+                        : 0.10;
+
+        double forwardX =
+                -Math.sin(
+                        yaw
+                )
+                        * forward;
+
+        double forwardZ =
+                Math.cos(
+                        yaw
+                )
+                        * forward;
 
         setPosition(
                 new Vec3(
                         x + forwardX,
-                        y + 0.91,
+                        y + (
+                                submarine
+                                        ? 0.88
+                                        : 0.91
+                        ),
                         z + forwardZ
                 )
         );

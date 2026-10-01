@@ -93,14 +93,41 @@ public final class EcologyContent {
                                     MobCategory.MISC
                             )
                             .sized(
-                                    0.82F,
-                                    0.30F
+                                    1.08F,
+                                    0.46F
                             )
                             .clientTrackingRange(
                                     20
                             )
                             .build(
                                     "wayaround:fish_carcass"
+                            )
+            );
+
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<PlayerCorpseEntity>
+            > PLAYER_CORPSE =
+            ENTITIES.register(
+                    "player_corpse",
+                    () -> EntityType.Builder
+                            .of(
+                                    PlayerCorpseEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    0.95F,
+                                    0.36F
+                            )
+                            .clientTrackingRange(
+                                    32
+                            )
+                            .updateInterval(
+                                    2
+                            )
+                            .fireImmune()
+                            .build(
+                                    "wayaround:player_corpse"
                             )
             );
 
@@ -169,6 +196,29 @@ public final class EcologyContent {
                             .clientTrackingRange(16)
                             .updateInterval(1)
                             .build("wayaround:deep_sea_capsule")
+            );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<DeepSeaSubmarineEntity>> DEEP_SEA_SUBMARINE =
+            ENTITIES.register(
+                    "deep_sea_submarine",
+                    () -> EntityType.Builder
+                            .of(
+                                    DeepSeaSubmarineEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    2.60F,
+                                    1.55F
+                            )
+                            .clientTrackingRange(
+                                    24
+                            )
+                            .updateInterval(
+                                    1
+                            )
+                            .build(
+                                    "wayaround:deep_sea_submarine"
+                            )
             );
 
     public static final DeferredHolder<EntityType<?>, EntityType<OarfishEntity>> OARFISH =
@@ -574,6 +624,17 @@ public final class EcologyContent {
                     )
             );
 
+    public static final DeferredItem<DeepSeaSubmarineItem> DEEP_SEA_SUBMARINE_ITEM =
+            ITEMS.register(
+                    "deep_sea_submarine",
+                    () -> new DeepSeaSubmarineItem(
+                            new Item.Properties()
+                                    .stacksTo(
+                                            1
+                                    )
+                    )
+            );
+
     public static final DeferredItem<FishingRodItem> MAGIC_FISHING_ROD =
             ITEMS.register(
                     "magic_fishing_rod",
@@ -711,6 +772,278 @@ public final class EcologyContent {
                     "shade_nettle",
                     () -> new BlockItem(
                             SHADE_NETTLE.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> BRACKEN_FERN =
+            BLOCKS.register(
+                    "bracken_fern",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> BRACKEN_FERN_ITEM =
+            ITEMS.register(
+                    "bracken_fern",
+                    () -> new BlockItem(
+                            BRACKEN_FERN.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> WILD_REEDS =
+            BLOCKS.register(
+                    "wild_reeds",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> WILD_REEDS_ITEM =
+            ITEMS.register(
+                    "wild_reeds",
+                    () -> new BlockItem(
+                            WILD_REEDS.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> FOREST_SHRUB =
+            BLOCKS.register(
+                    "forest_shrub",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .strength(0.18F)
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> FOREST_SHRUB_ITEM =
+            ITEMS.register(
+                    "forest_shrub",
+                    () -> new BlockItem(
+                            FOREST_SHRUB.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> FLOWERING_SHRUB =
+            BLOCKS.register(
+                    "flowering_shrub",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .strength(0.18F)
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> FLOWERING_SHRUB_ITEM =
+            ITEMS.register(
+                    "flowering_shrub",
+                    () -> new BlockItem(
+                            FLOWERING_SHRUB.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> MUSHROOM_PATCH =
+            BLOCKS.register(
+                    "mushroom_patch",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MUSHROOM_PATCH_ITEM =
+            ITEMS.register(
+                    "mushroom_patch",
+                    () -> new BlockItem(
+                            MUSHROOM_PATCH.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> DRY_SHRUB =
+            BLOCKS.register(
+                    "dry_shrub",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.WOOD)
+                                    .noCollission()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> DRY_SHRUB_ITEM =
+            ITEMS.register(
+                    "dry_shrub",
+                    () -> new BlockItem(
+                            DRY_SHRUB.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> MARSH_CATTAILS =
+            BLOCKS.register(
+                    "marsh_cattails",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MARSH_CATTAILS_ITEM =
+            ITEMS.register(
+                    "marsh_cattails",
+                    () -> new BlockItem(
+                            MARSH_CATTAILS.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> BROADLEAF_FERN =
+            BLOCKS.register(
+                    "broadleaf_fern",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> BROADLEAF_FERN_ITEM =
+            ITEMS.register(
+                    "broadleaf_fern",
+                    () -> new BlockItem(
+                            BROADLEAF_FERN.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> MOSS_TUFT =
+            BLOCKS.register(
+                    "moss_tuft",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.MOSS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MOSS_TUFT_ITEM =
+            ITEMS.register(
+                    "moss_tuft",
+                    () -> new BlockItem(
+                            MOSS_TUFT.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> THORN_BUSH =
+            BLOCKS.register(
+                    "thorn_bush",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.WOOD)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .strength(
+                                            0.16F
+                                    )
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> THORN_BUSH_ITEM =
+            ITEMS.register(
+                    "thorn_bush",
+                    () -> new BlockItem(
+                            THORN_BUSH.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> WILDFLOWER_CLUSTER =
+            BLOCKS.register(
+                    "wildflower_cluster",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> WILDFLOWER_CLUSTER_ITEM =
+            ITEMS.register(
+                    "wildflower_cluster",
+                    () -> new BlockItem(
+                            WILDFLOWER_CLUSTER.get(),
+                            new Item.Properties()
+                    )
+            );
+
+    public static final DeferredBlock<EcologyPlantBlock> MARSH_GRASS_CLUMP =
+            BLOCKS.register(
+                    "marsh_grass_clump",
+                    () -> new EcologyPlantBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.PLANT)
+                                    .noCollission()
+                                    .noOcclusion()
+                                    .instabreak()
+                                    .sound(SoundType.GRASS)
+                                    .offsetType(BlockBehaviour.OffsetType.XZ)
+                    )
+            );
+
+    public static final DeferredItem<BlockItem> MARSH_GRASS_CLUMP_ITEM =
+            ITEMS.register(
+                    "marsh_grass_clump",
+                    () -> new BlockItem(
+                            MARSH_GRASS_CLUMP.get(),
                             new Item.Properties()
                     )
             );
@@ -1123,7 +1456,28 @@ public final class EcologyContent {
                                                 DEEP_SEA_CAPSULE_ITEM.get()
                                         );
                                         output.accept(
+                                                DEEP_SEA_SUBMARINE_ITEM.get()
+                                        );
+                                        output.accept(
                                                 MAGIC_FISHING_ROD.get()
+                                        );
+                                        output.accept(
+                                                RIVER_SPRIG_ITEM.get()
+                                        );
+                                        output.accept(
+                                                WOODLAND_SORREL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                DAMP_FERN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MEADOW_SEDGE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                CREEK_CLOVER_ITEM.get()
+                                        );
+                                        output.accept(
+                                                SHADE_NETTLE_ITEM.get()
                                         );
                                         output.accept(
                                                 RAW_SARDINE_MEAT.get()
@@ -1181,6 +1535,42 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 SEAGRASS_TUFT_ITEM.get()
+                                        );
+                                        output.accept(
+                                                BRACKEN_FERN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                WILD_REEDS_ITEM.get()
+                                        );
+                                        output.accept(
+                                                FOREST_SHRUB_ITEM.get()
+                                        );
+                                        output.accept(
+                                                FLOWERING_SHRUB_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MUSHROOM_PATCH_ITEM.get()
+                                        );
+                                        output.accept(
+                                                DRY_SHRUB_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MARSH_CATTAILS_ITEM.get()
+                                        );
+                                        output.accept(
+                                                BROADLEAF_FERN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MOSS_TUFT_ITEM.get()
+                                        );
+                                        output.accept(
+                                                THORN_BUSH_ITEM.get()
+                                        );
+                                        output.accept(
+                                                WILDFLOWER_CLUSTER_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MARSH_GRASS_CLUMP_ITEM.get()
                                         );
                                     }
                             )

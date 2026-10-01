@@ -40,6 +40,11 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.DEEP_SEA_SUBMARINE.get(),
+                DeepSeaSubmarineRenderer::new
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.SUNFISH.get(),
                 SunfishRenderer::new
         );
@@ -52,6 +57,11 @@ public final class EcologyClientModEvents {
         event.registerEntityRenderer(
                 EcologyContent.FISH_CARCASS.get(),
                 FishCarcassRenderer::new
+        );
+
+        event.registerEntityRenderer(
+                EcologyContent.PLAYER_CORPSE.get(),
+                PlayerCorpseRenderer::new
         );
 
         event.registerEntityRenderer(

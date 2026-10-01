@@ -452,39 +452,46 @@ public final class WaterWheelHubRenderer
          * merely locks its current transform.
          */
         if (hub.plateNailed(index)) {
-            renderCuboid(
-                    poseStack,
-                    bufferSource,
-                    packedLight,
-                    packedOverlay,
+            BlockState nail =
                     nailMaterial(
                             hub.plateNail(
                                     index
                             )
-                    ),
-                    x,
-                    y,
-                    depth * 0.5 + 0.025,
-                    0.14,
-                    0.14,
-                    0.07,
-                    plateRotation
-            );
+                    );
+
+            for (double side : new double[]{-1.0, 1.0}) {
+                renderCuboid(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        nail,
+                        x,
+                        y,
+                        side * (depth * 0.5 + 0.025),
+                        0.14,
+                        0.14,
+                        0.07,
+                        plateRotation
+                );
+            }
         } else {
-            renderCuboid(
-                    poseStack,
-                    bufferSource,
-                    packedLight,
-                    packedOverlay,
-                    Blocks.BLACKSTONE.defaultBlockState(),
-                    x,
-                    y,
-                    depth * 0.5 + 0.022,
-                    0.095,
-                    0.095,
-                    0.035,
-                    plateRotation
-            );
+            for (double side : new double[]{-1.0, 1.0}) {
+                renderCuboid(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        Blocks.BLACKSTONE.defaultBlockState(),
+                        x,
+                        y,
+                        side * (depth * 0.5 + 0.022),
+                        0.095,
+                        0.095,
+                        0.035,
+                        plateRotation
+                );
+            }
         }
 
         float wear =

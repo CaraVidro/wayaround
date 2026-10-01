@@ -18,7 +18,7 @@
       "y": 90
     },
     "axis=y,root=true,thickness=1": {
-      "model": "wayaround:block/tree_segment/dark_oak_vertical_1"
+      "model": "wayaround:block/tree_segment/dark_oak_root_drop_1"
     },
     "axis=x,root=false,thickness=2": {
       "model": "wayaround:block/tree_segment/dark_oak_branch_2"
@@ -38,7 +38,7 @@
       "y": 90
     },
     "axis=y,root=true,thickness=2": {
-      "model": "wayaround:block/tree_segment/dark_oak_vertical_2"
+      "model": "wayaround:block/tree_segment/dark_oak_root_drop_2"
     },
     "axis=x,root=false,thickness=3": {
       "model": "wayaround:block/tree_segment/dark_oak_branch_3"
@@ -58,7 +58,7 @@
       "y": 90
     },
     "axis=y,root=true,thickness=3": {
-      "model": "wayaround:block/tree_segment/dark_oak_vertical_3"
+      "model": "wayaround:block/tree_segment/dark_oak_root_drop_3"
     },
     "axis=x,root=false,thickness=4": {
       "model": "wayaround:block/tree_segment/dark_oak_branch_4"
@@ -78,7 +78,7 @@
       "y": 90
     },
     "axis=y,root=true,thickness=4": {
-      "model": "wayaround:block/tree_segment/dark_oak_vertical_4"
+      "model": "wayaround:block/tree_segment/dark_oak_root_drop_4"
     }
   }
 }

@@ -62,6 +62,7 @@ public final class VoiceClientGameEvents {
         boolean connected =
                 enabled
                         && minecraft.player != null
+                        && minecraft.player.isAlive()
                         && minecraft.getConnection()
                         != null;
 

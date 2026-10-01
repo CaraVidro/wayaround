@@ -990,5 +990,20 @@
   "container.wayaround.electronics.upgrade_compact": "%sx %s • %sx %s • %sx %s",
   "container.wayaround.electronics.expand_shift": "SHIFT + CLIQUE: EXPANDIR PCB",
   "message.wayaround.circuit_workbench.upgrade_missing": "Expansão cancelada: todos os materiais precisam existir antes de qualquer item ser consumido.",
-  "message.wayaround.circuit_workbench.upgraded": "PCB expandida para %sx%s (nível %s)."
+  "message.wayaround.circuit_workbench.upgraded": "PCB expandida para %sx%s (nível %s).",
+  "entity.wayaround.deep_sea_submarine": "Submarino Abissal",
+  "item.wayaround.deep_sea_submarine": "Submarino Abissal",
+  "entity.wayaround.player_corpse": "Corpo do Jogador",
+  "block.wayaround.bracken_fern": "Samambaia Brava",
+  "block.wayaround.wild_reeds": "Juncos Silvestres",
+  "block.wayaround.forest_shrub": "Arbusto de Floresta",
+  "block.wayaround.flowering_shrub": "Arbusto Florido",
+  "block.wayaround.mushroom_patch": "Colônia de Cogumelos",
+  "block.wayaround.dry_shrub": "Arbusto Seco",
+  "block.wayaround.marsh_cattails": "Taboas do Brejo",
+  "block.wayaround.broadleaf_fern": "Samambaia de Folha Larga",
+  "block.wayaround.moss_tuft": "Tufo de Musgo",
+  "block.wayaround.thorn_bush": "Arbusto Espinhoso",
+  "block.wayaround.wildflower_cluster": "Moita de Flores Silvestres",
+  "block.wayaround.marsh_grass_clump": "Tufo de Capim do Brejo"
 }

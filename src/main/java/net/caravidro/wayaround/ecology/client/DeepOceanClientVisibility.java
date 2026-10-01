@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.ecology.client;
 
 import net.caravidro.wayaround.ecology.DeepSeaCapsuleEntity;
+import net.caravidro.wayaround.ecology.DeepSeaSubmarineEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -36,10 +37,43 @@ public final class DeepOceanClientVisibility {
         Vec3 toTarget = target.position().subtract(minecraft.player.getEyePosition());
         double distance = toTarget.length();
 
-        if (minecraft.player.getVehicle() instanceof DeepSeaCapsuleEntity) {
-            Vec3 look = minecraft.player.getLookAngle().normalize();
-            double alignment = distance < 0.001 ? 1.0 : look.dot(toTarget.scale(1.0 / distance));
-            double range = alignment > 0.72 ? 46.0 : 9.0;
+        Entity vehicle =
+                minecraft.player.getVehicle();
+
+        if (vehicle instanceof DeepSeaCapsuleEntity
+                || vehicle instanceof DeepSeaSubmarineEntity) {
+
+            Vec3 look =
+                    minecraft.player
+                            .getLookAngle()
+                            .normalize();
+
+            double alignment =
+                    distance < 0.001
+                            ? 1.0
+                            : look.dot(
+                                    toTarget.scale(
+                                            1.0 / distance
+                                    )
+                            );
+
+            boolean submarine =
+                    vehicle
+                            instanceof DeepSeaSubmarineEntity;
+
+            double range =
+                    alignment > 0.70
+                            ? (
+                            submarine
+                                    ? 108.0
+                                    : 74.0
+                    )
+                            : (
+                            submarine
+                                    ? 18.0
+                                    : 13.0
+                    );
+
             return distance <= range;
         }
 
@@ -47,13 +81,55 @@ public final class DeepOceanClientVisibility {
         return distance <= range;
     }
 
-    public static float fogEnd(double depth, boolean capsule) {
+    public static float vehicleLampStrength(
+            Entity rider
+    ) {
+        if (rider == null) {
+            return 0.0F;
+        }
+
+        Entity vehicle =
+                rider.getVehicle();
+
+        if (vehicle
+                instanceof DeepSeaSubmarineEntity) {
+            return 1.0F;
+        }
+
+        if (vehicle
+                instanceof DeepSeaCapsuleEntity) {
+            return 0.72F;
+        }
+
+        return 0.0F;
+    }
+
+    public static float fogEnd(
+            double depth,
+            Entity rider
+    ) {
         double t = Math.max(0.0, Math.min(1.0, (depth - 18.0) / 72.0));
         t = t * t * (3.0 - 2.0 * t);
 
-        if (capsule) {
-            // The lamp gives the pilot a narrow usable tunnel through the black.
-            return (float) (36.0 - t * 8.0);
+        Entity vehicle =
+                rider == null
+                        ? null
+                        : rider.getVehicle();
+
+        if (vehicle
+                instanceof DeepSeaSubmarineEntity) {
+            return (float) (
+                    104.0
+                            - t * 12.0
+            );
+        }
+
+        if (vehicle
+                instanceof DeepSeaCapsuleEntity) {
+            return (float) (
+                    70.0
+                            - t * 9.0
+            );
         }
 
         // Free-diving in the true abyss should become almost sightless.

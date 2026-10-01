@@ -35,6 +35,13 @@ public final class VoiceServer {
             return;
         }
 
+        if (!sender.isAlive()) {
+            RATE_LIMIT.remove(
+                    sender.getUUID()
+            );
+            return;
+        }
+
         if (pcm == null
                 || pcm.length == 0
                 || pcm.length > VoiceConstants.MAX_PACKET_BYTES) {
@@ -134,6 +141,7 @@ public final class VoiceServer {
                         .players()) {
 
             if (receiver.getUUID().equals(ghost.getUUID())) continue;
+            if (!receiver.isAlive()) continue;
             if (receiver.distanceToSqr(
                     host
             ) > maxDistanceSqr) {
@@ -162,6 +170,10 @@ public final class VoiceServer {
                 anchor.serverLevel()
                         .players()) {
 
+            if (!receiver.isAlive()) {
+                continue;
+            }
+
             if (!echoSender
                     && receiver == sender) {
                 continue;
@@ -187,7 +199,8 @@ public final class VoiceServer {
             byte[] pcm,
             Set<UUID> sent
     ) {
-        if (!sent.add(
+        if (!receiver.isAlive()
+                || !sent.add(
                 receiver.getUUID()
         )) {
             return;

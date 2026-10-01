@@ -114,7 +114,22 @@ public final class FishCarcassEntity extends PathfinderMob {
                 getAttribute(Attributes.SCALE);
 
         if (scale != null) {
-            scale.setBaseValue(safeScale);
+            /*
+             * Tiny fish used their visual body scale as the physical entity
+             * scale too, producing a frustrating needle-sized click target.
+             * Keep visual scale in BODY_SCALE, but give carcasses a sensible
+             * minimum physical footprint.
+             */
+            float collisionScale =
+                    Math.max(
+                            0.62F,
+                            safeScale
+                    );
+
+            scale.setBaseValue(
+                    collisionScale
+            );
+
             refreshDimensions();
         }
 

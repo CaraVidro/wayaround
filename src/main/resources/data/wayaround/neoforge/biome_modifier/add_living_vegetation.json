@@ -29,7 +29,11 @@
     "minecraft:deep_frozen_ocean",
     "minecraft:lukewarm_ocean",
     "minecraft:deep_lukewarm_ocean",
-    "minecraft:warm_ocean"
+    "minecraft:warm_ocean",
+    "minecraft:swamp",
+    "minecraft:mangrove_swamp",
+    "minecraft:cherry_grove",
+    "minecraft:windswept_savanna"
   ],
   "features": [
     "wayaround:living_vegetation"

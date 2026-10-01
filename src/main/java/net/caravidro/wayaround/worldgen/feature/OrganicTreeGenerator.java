@@ -34,6 +34,18 @@ public final class OrganicTreeGenerator {
             {1, -1}
     };
 
+    /*
+     * Roots use face-connected cardinal runs. Diagonal stair-stepping with
+     * alternating X/Z segments looked detached because a horizontal segment
+     * only reaches the two faces along its own axis.
+     */
+    private static final int[][] ROOT_DIRECTIONS = {
+            {1, 0},
+            {0, 1},
+            {-1, 0},
+            {0, -1}
+    };
+
     private OrganicTreeGenerator() {
     }
 
@@ -264,39 +276,36 @@ public final class OrganicTreeGenerator {
             TreePalette palette,
             RandomSource random
     ) {
-        int count =
-                palette.wideCanopy()
-                        ? 6
-                                + random.nextInt(
-                                3
-                        )
-                        : 4
-                                + random.nextInt(
-                                3
-                        );
-
+        /*
+         * Every tree gets four primary roots. The old random 4-8 selection
+         * could spend several roots on diagonal paths that immediately broke
+         * on a one-block height change, which is why some trees looked like
+         * they had no roots at all.
+         */
         int start =
                 random.nextInt(
-                        DIRECTIONS.length
+                        ROOT_DIRECTIONS.length
                 );
 
         for (int rootIndex = 0;
-             rootIndex < count;
+             rootIndex < ROOT_DIRECTIONS.length;
              rootIndex++) {
 
             int[] direction =
-                    DIRECTIONS[
+                    ROOT_DIRECTIONS[
                             (
                                     start
                                             + rootIndex
                             )
-                                    % DIRECTIONS.length
+                                    % ROOT_DIRECTIONS.length
                             ];
 
             int length =
-                    3
+                    4
                             + random.nextInt(
-                            3
+                            palette.wideCanopy()
+                                    ? 4
+                                    : 3
                     )
                             + Math.max(
                             0,
@@ -313,29 +322,20 @@ public final class OrganicTreeGenerator {
             int previousY =
                     base.getY();
 
+            Direction.Axis axis =
+                    direction[0] != 0
+                            ? Direction.Axis.X
+                            : Direction.Axis.Z;
+
             for (int step = 0;
                  step < length;
                  step++) {
 
-                boolean moveX =
-                        direction[0] != 0
-                                && (
-                                direction[1] == 0
-                                        || (
-                                        step
-                                                & 1
-                                )
-                                        == 0
-                        );
+                x +=
+                        direction[0];
 
-                if (moveX) {
-                    x +=
-                            direction[0];
-
-                } else {
-                    z +=
-                            direction[1];
-                }
+                z +=
+                        direction[1];
 
                 int surfaceY =
                         level.getHeight(
@@ -344,13 +344,100 @@ public final class OrganicTreeGenerator {
                                 z
                         );
 
+                int thickness =
+                        taper(
+                                step,
+                                length
+                        );
+
                 /*
-                 * First pass roots only continue while they can remain fully
-                 * face-connected. A future elbow segment can make them crawl
-                 * one-block slopes without creating a visual gap.
+                 * Roots hug downward terrain instead of ending at the first
+                 * slope. A short exposed knuckle is placed at the old height,
+                 * then connected vertical segments descend to the new surface.
+                 *
+                 * We intentionally do not climb here: pushing a surface root
+                 * through an uphill dirt block looks worse than ending it.
                  */
                 if (surfaceY
-                        != previousY) {
+                        < previousY) {
+
+                    int drop =
+                            previousY
+                                    - surfaceY;
+
+                    if (drop > 3) {
+                        break;
+                    }
+
+                    BlockPos elbow =
+                            new BlockPos(
+                                    x,
+                                    previousY,
+                                    z
+                            );
+
+                    if (!setSegmentIfFree(
+                            level,
+                            elbow,
+                            palette.segment(),
+                            Direction.Axis.Y,
+                            thickness,
+                            true,
+                            palette.leaves()
+                    )) {
+                        break;
+                    }
+
+                    boolean connected =
+                            true;
+
+                    for (int y = previousY - 1;
+                         y >= surfaceY;
+                         y--) {
+
+                        int verticalThickness =
+                                Math.max(
+                                        1,
+                                        thickness
+                                                - (
+                                                previousY
+                                                        - y
+                                        )
+                                                / 2
+                                );
+
+                        if (!setSegmentIfFree(
+                                level,
+                                new BlockPos(
+                                        x,
+                                        y,
+                                        z
+                                ),
+                                palette.segment(),
+                                Direction.Axis.Y,
+                                verticalThickness,
+                                true,
+                                palette.leaves()
+                        )) {
+                            connected =
+                                    false;
+
+                            break;
+                        }
+                    }
+
+                    if (!connected) {
+                        break;
+                    }
+
+                    previousY =
+                            surfaceY;
+
+                    continue;
+                }
+
+                if (surfaceY
+                        > previousY) {
                     break;
                 }
 
@@ -383,17 +470,6 @@ public final class OrganicTreeGenerator {
                 )) {
                     break;
                 }
-
-                Direction.Axis axis =
-                        moveX
-                                ? Direction.Axis.X
-                                : Direction.Axis.Z;
-
-                int thickness =
-                        taper(
-                                step,
-                                length
-                        );
 
                 if (!setSegmentIfFree(
                         level,

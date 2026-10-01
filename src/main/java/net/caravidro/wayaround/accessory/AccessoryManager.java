@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.accessory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -680,6 +682,56 @@ public final class AccessoryManager {
 
         return stack;
     }
+
+    /**
+     * Transfers the complete equipped loadout into another world-owned
+     * container (currently the player corpse) without creating loose item
+     * entities. Wear, glass damage, custom colors and trouser-pocket contents
+     * are preserved in the returned ItemStacks.
+     */
+    public static List<ItemStack> takeAllEquipped(
+            ServerPlayer player
+    ) {
+        migrateLegacySlots(
+                player
+        );
+
+        List<ItemStack> result =
+                new ArrayList<>();
+
+        for (AccessorySlot slot :
+                AccessorySlot.values()) {
+
+            ItemStack stack =
+                    equippedStack(
+                            player,
+                            slot
+                    );
+
+            if (!stack.isEmpty()) {
+                result.add(
+                        stack
+                );
+            }
+
+            setEquipped(
+                    player,
+                    slot,
+                    null,
+                    0,
+                    0
+            );
+        }
+
+        sync(
+                player
+        );
+
+        return List.copyOf(
+                result
+        );
+    }
+
 
     /**
      * Removes an equipped accessory without putting it into the inventory.

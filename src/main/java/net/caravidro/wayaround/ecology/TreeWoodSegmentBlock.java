@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
@@ -124,6 +125,53 @@ public final class TreeWoodSegmentBlock extends Block {
                         AXIS
                 );
 
+        boolean root =
+                state.getValue(
+                        ROOT
+                );
+
+        if (root
+                && axis
+                == Direction.Axis.Y) {
+
+            /*
+             * A vertical root segment is a real terrain-following knuckle:
+             * a central descending stem plus low X/Z feet. The feet make the
+             * piece touch the previous/next horizontal root instead of looking
+             * like an isolated stick when the terrain drops.
+             */
+            double rootHeight =
+                    2.0
+                            + thickness;
+
+            return Shapes.or(
+                    box(
+                            min,
+                            0.0,
+                            min,
+                            max,
+                            16.0,
+                            max
+                    ),
+                    box(
+                            0.0,
+                            0.0,
+                            min,
+                            16.0,
+                            rootHeight,
+                            max
+                    ),
+                    box(
+                            min,
+                            0.0,
+                            0.0,
+                            max,
+                            rootHeight,
+                            16.0
+                    )
+            );
+        }
+
         if (axis
                 == Direction.Axis.Y) {
             return box(
@@ -136,9 +184,7 @@ public final class TreeWoodSegmentBlock extends Block {
             );
         }
 
-        if (state.getValue(
-                ROOT
-        )) {
+        if (root) {
             double rootHeight =
                     2.0
                             + thickness;

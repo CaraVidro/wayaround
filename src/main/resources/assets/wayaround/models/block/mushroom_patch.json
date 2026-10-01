@@ -1,0 +1,202 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "minecraft:block/brown_mushroom_block"
+  },
+  "render_type": "cutout",
+  "elements": [
+    {
+      "from": [
+        3,
+        0,
+        3
+      ],
+      "to": [
+        4,
+        4,
+        4
+      ],
+      "faces": {
+        "down": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "up": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "north": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "south": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "west": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "east": {
+          "texture": "minecraft:block/mushroom_stem"
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        3,
+        1.5
+      ],
+      "to": [
+        5.5,
+        5,
+        5.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "up": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "north": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "south": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "west": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "east": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        }
+      }
+    },
+    {
+      "from": [
+        9,
+        0,
+        9
+      ],
+      "to": [
+        10,
+        6,
+        10
+      ],
+      "faces": {
+        "down": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "up": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "north": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "south": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "west": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "east": {
+          "texture": "minecraft:block/mushroom_stem"
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        5,
+        7.5
+      ],
+      "to": [
+        11.5,
+        7.5,
+        11.5
+      ],
+      "faces": {
+        "down": {
+          "texture": "minecraft:block/red_mushroom_block"
+        },
+        "up": {
+          "texture": "minecraft:block/red_mushroom_block"
+        },
+        "north": {
+          "texture": "minecraft:block/red_mushroom_block"
+        },
+        "south": {
+          "texture": "minecraft:block/red_mushroom_block"
+        },
+        "west": {
+          "texture": "minecraft:block/red_mushroom_block"
+        },
+        "east": {
+          "texture": "minecraft:block/red_mushroom_block"
+        }
+      }
+    },
+    {
+      "from": [
+        12,
+        0,
+        3
+      ],
+      "to": [
+        13,
+        3,
+        4
+      ],
+      "faces": {
+        "down": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "up": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "north": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "south": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "west": {
+          "texture": "minecraft:block/mushroom_stem"
+        },
+        "east": {
+          "texture": "minecraft:block/mushroom_stem"
+        }
+      }
+    },
+    {
+      "from": [
+        10.8,
+        2.5,
+        1.8
+      ],
+      "to": [
+        14.2,
+        4.5,
+        5.2
+      ],
+      "faces": {
+        "down": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "up": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "north": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "south": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "west": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        },
+        "east": {
+          "texture": "minecraft:block/brown_mushroom_block"
+        }
+      }
+    }
+  ]
+}
