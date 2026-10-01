@@ -3,6 +3,7 @@ package net.caravidro.wayaround.mixin.client;
 import net.caravidro.wayaround.client.WayAroundReleaseInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.SplashRenderer;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,10 +17,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class TitleScreenBrandingMixin {
 
     @Shadow
-    private String splash;
+    private SplashRenderer splash;
 
     @Unique
     private String wayaround$dialogueSplash;
+
+    @Unique
+    private SplashRenderer wayaround$dialogueSplashRenderer;
 
     @Inject(
             method = "render",
@@ -39,14 +43,22 @@ public abstract class TitleScreenBrandingMixin {
          * from the vanilla pass and redraw them below as a compact multiline
          * quote.
          */
-        if (splash != null
-                && splash.contains("§")
-                && splash.contains("- ")) {
-            wayaround$dialogueSplash =
-                    splash;
+        if (splash != null) {
+            String text =
+                    ((SplashRendererAccessor) (Object) splash)
+                            .wayaround$getSplash();
 
-            splash =
-                    null;
+            if (text.contains("§")
+                    && text.contains("- ")) {
+                wayaround$dialogueSplash =
+                        text;
+
+                wayaround$dialogueSplashRenderer =
+                        splash;
+
+                splash =
+                        null;
+            }
         }
     }
 
@@ -205,11 +217,14 @@ public abstract class TitleScreenBrandingMixin {
                 null;
 
         /*
-         * Restore the field immediately so the TitleScreen keeps the same
-         * splash between frames.
+         * Restore the exact renderer immediately so the TitleScreen keeps the
+         * same splash between frames.
          */
         splash =
-                text;
+                wayaround$dialogueSplashRenderer;
+
+        wayaround$dialogueSplashRenderer =
+                null;
 
         int authorIndex =
                 text.indexOf(
