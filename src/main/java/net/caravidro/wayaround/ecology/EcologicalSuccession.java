@@ -102,7 +102,18 @@ public final class EcologicalSuccession {
                 continue;
             }
 
-            seedLoadedPlayerArea(level);
+            /*
+             * Seeding is chunk-entry work, not per-tick work. The old path
+             * re-walked 9 chunks around every player 20 times/second even
+             * after every one had already been marked seeded. Poll at 1 Hz;
+             * EcologyWorldData still guarantees each chunk is initialized
+             * exactly once.
+             */
+            if (tick % 20 == 0) {
+                seedLoadedPlayerArea(
+                        level
+                );
+            }
 
             if (tick % RUNTIME_INTERVAL == 0) {
                 mutateAroundPlayers(level);
@@ -170,32 +181,56 @@ public final class EcologicalSuccession {
         return steps;
     }
 
-    private static void seedLoadedPlayerArea(ServerLevel level) {
-        for (ServerPlayer player : level.players()) {
-            int centerX = player.blockPosition().getX() >> 4;
-            int centerZ = player.blockPosition().getZ() >> 4;
+    private static void seedLoadedPlayerArea(
+            ServerLevel level
+    ) {
+        EcologyWorldData data =
+                EcologyWorldData.get(
+                        level
+                );
 
-            for (int cx = centerX - 1; cx <= centerX + 1; cx++) {
-                for (int cz = centerZ - 1; cz <= centerZ + 1; cz++) {
-                    BlockPos probe = new BlockPos(
-                            (cx << 4) + 8,
-                            player.blockPosition().getY(),
-                            (cz << 4) + 8
+        for (ServerPlayer player :
+                level.players()) {
+
+            int centerX =
+                    player.getBlockX()
+                            >> 4;
+
+            int centerZ =
+                    player.getBlockZ()
+                            >> 4;
+
+            for (int cx = centerX - 1;
+                 cx <= centerX + 1;
+                 cx++) {
+
+                for (int cz = centerZ - 1;
+                     cz <= centerZ + 1;
+                     cz++) {
+
+                    /*
+                     * Avoid allocating a probe BlockPos just to ask whether
+                     * the chunk is loaded.
+                     */
+                    if (!level.hasChunk(
+                            cx,
+                            cz
+                    )) {
+                        continue;
+                    }
+
+                    if (!data.markSeeded(
+                            cx,
+                            cz
+                    )) {
+                        continue;
+                    }
+
+                    seedChunk(
+                            level,
+                            cx,
+                            cz
                     );
-
-                    if (!level.hasChunkAt(probe)) {
-                        continue;
-                    }
-
-                    if (!EcologyWorldData.get(level)
-                            .markSeeded(
-                                    cx,
-                                    cz
-                            )) {
-                        continue;
-                    }
-
-                    seedChunk(level, cx, cz);
                 }
             }
         }
