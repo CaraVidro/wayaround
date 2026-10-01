@@ -55,6 +55,9 @@ public final class WayAroundReleaseInfo {
                 Component.translatable("screen.wayaround.update_log.material_memory"),
                 Component.translatable("screen.wayaround.update_log.electronics"),
                 Component.translatable("screen.wayaround.update_log.circuit_building"),
+                Component.translatable("screen.wayaround.update_log.professions"),
+                Component.translatable("screen.wayaround.update_log.milestone15"),
+                Component.translatable("screen.wayaround.update_log.steam_chain"),
                 Component.translatable("screen.wayaround.update_log.future")
         );
     }
