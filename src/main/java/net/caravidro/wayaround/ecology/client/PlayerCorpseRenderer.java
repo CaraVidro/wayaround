@@ -80,7 +80,7 @@ public final class PlayerCorpseRenderer
                 ) == 0
                         ? Blocks.BLUE_CONCRETE
                         .defaultBlockState()
-                        : Blocks.DARK_GREEN_CONCRETE
+                        : Blocks.GREEN_CONCRETE
                         .defaultBlockState();
 
         BlockState trousers =
