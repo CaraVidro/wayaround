@@ -19,6 +19,32 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class WaterDynamics {
 
+    private static final Direction[] ALL_DIRECTIONS = {
+            Direction.DOWN,
+            Direction.UP,
+            Direction.NORTH,
+            Direction.SOUTH,
+            Direction.WEST,
+            Direction.EAST
+    };
+
+    private static final Direction[] HORIZONTAL_DIRECTIONS = {
+            Direction.NORTH,
+            Direction.SOUTH,
+            Direction.WEST,
+            Direction.EAST
+    };
+
+    private static final int[][] MECHANICAL_SAMPLE_OFFSETS = {
+            {0, 0, 0},
+            {0, 0, -1},
+            {0, 0, 1},
+            {1, 0, 0},
+            {-1, 0, 0},
+            {0, 1, 0},
+            {0, -1, 0}
+    };
+
     private WaterDynamics() {
     }
 
@@ -112,16 +138,26 @@ public final class WaterDynamics {
                         ? 1
                         : 0;
 
+        BlockPos.MutableBlockPos neighbor =
+                new BlockPos.MutableBlockPos();
+
         for (Direction direction :
-                Direction.values()) {
+                ALL_DIRECTIONS) {
 
-            BlockPos neighbor =
-                    center.relative(
-                            direction
-                    );
+            neighbor.set(
+                    center.getX()
+                            + direction.getStepX(),
+                    center.getY()
+                            + direction.getStepY(),
+                    center.getZ()
+                            + direction.getStepZ()
+            );
 
-            if (!level.getFluidState(neighbor)
-                    .is(FluidTags.WATER)) {
+            if (!level.getFluidState(
+                    neighbor
+            ).is(
+                    FluidTags.WATER
+            )) {
                 continue;
             }
 
@@ -171,22 +207,25 @@ public final class WaterDynamics {
         int movingSamples =
                 0;
 
-        BlockPos[] samples =
-                new BlockPos[] {
-                        center,
-                        center.north(),
-                        center.south(),
-                        center.east(),
-                        center.west(),
-                        center.above(),
-                        center.below()
-                };
+        BlockPos.MutableBlockPos sample =
+                new BlockPos.MutableBlockPos();
 
-        for (BlockPos sample :
-                samples) {
+        for (int[] offset :
+                MECHANICAL_SAMPLE_OFFSETS) {
+
+            sample.set(
+                    center.getX()
+                            + offset[0],
+                    center.getY()
+                            + offset[1],
+                    center.getZ()
+                            + offset[2]
+            );
 
             FluidState state =
-                    level.getFluidState(sample);
+                    level.getFluidState(
+                            sample
+                    );
 
             if (!state.is(FluidTags.WATER)) {
                 continue;
@@ -390,18 +429,30 @@ public final class WaterDynamics {
         int count =
                 0;
 
+        BlockPos.MutableBlockPos pos =
+                new BlockPos.MutableBlockPos();
+
         for (int distance = 1;
-                distance <= maxDistance;
-                distance++) {
+             distance <= maxDistance;
+             distance++) {
 
-            BlockPos pos =
-                    center.relative(
-                            direction,
-                            distance
-                    );
+            pos.set(
+                    center.getX()
+                            + direction.getStepX()
+                                    * distance,
+                    center.getY()
+                            + direction.getStepY()
+                                    * distance,
+                    center.getZ()
+                            + direction.getStepZ()
+                                    * distance
+            );
 
-            if (!level.getFluidState(pos)
-                    .is(FluidTags.WATER)) {
+            if (!level.getFluidState(
+                    pos
+            ).is(
+                    FluidTags.WATER
+            )) {
                 break;
             }
 
@@ -453,16 +504,25 @@ public final class WaterDynamics {
         double bend =
                 0.0;
 
+        BlockPos.MutableBlockPos neighbor =
+                new BlockPos.MutableBlockPos();
+
         for (Direction direction :
-                Direction.Plane.HORIZONTAL) {
+                HORIZONTAL_DIRECTIONS) {
 
-            BlockPos neighbor =
-                    pos.relative(
-                            direction
-                    );
+            neighbor.set(
+                    pos.getX()
+                            + direction.getStepX(),
+                    pos.getY(),
+                    pos.getZ()
+                            + direction.getStepZ()
+            );
 
-            if (!level.getFluidState(neighbor)
-                    .is(FluidTags.WATER)) {
+            if (!level.getFluidState(
+                    neighbor
+            ).is(
+                    FluidTags.WATER
+            )) {
                 continue;
             }
 
