@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/fuse_box"
+    },
+    "facing=east": {
+      "model": "wayaround:block/fuse_box",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/fuse_box",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/fuse_box",
+      "y": 270
+    }
+  }
+}
