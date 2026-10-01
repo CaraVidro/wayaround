@@ -81,6 +81,12 @@ public enum WorldFeature {
             "Giant volcanic provinces, basalt highlands, crater lava and geothermal heat."
     ),
 
+    GREAT_RIFTS(
+            WorldFeatureCategory.WORLD,
+            "Great Rifts",
+            "Kilometer-scale rift valleys, towering canyon walls, dry basins and rare abyssal trenches."
+    ),
+
     INDUSTRIAL_MACHINES(
             WorldFeatureCategory.INDUSTRY,
             "Industrial Machines",
