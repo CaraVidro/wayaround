@@ -258,6 +258,16 @@ public final class SteamBoilerBlockEntity
     public void removeLastPart(
             Player player
     ) {
+        if (pressureBar > 0.5F) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.wayaround.steam_boiler.depressurize_first"
+                    ),
+                    true
+            );
+            return;
+        }
+
         ItemStack removed =
                 !safetyValve.isEmpty()
                         ? safetyValve
@@ -600,8 +610,48 @@ public final class SteamBoilerBlockEntity
     }
 
     public Component status() {
+        float safe =
+                Math.max(
+                        0.1F,
+                        SteamThermodynamics.safePressureBar(
+                                vesselCondition(),
+                                valveCondition()
+                        )
+                );
+
+        Component waterState =
+                Component.translatable(
+                        water <= 0
+                                ? "message.wayaround.steam_boiler.water_empty"
+                                : water < SteamThermodynamics.WATER_CAPACITY * 0.25F
+                                        ? "message.wayaround.steam_boiler.water_low"
+                                        : water < SteamThermodynamics.WATER_CAPACITY * 0.75F
+                                                ? "message.wayaround.steam_boiler.water_medium"
+                                                : "message.wayaround.steam_boiler.water_high"
+                );
+
+        Component pressureState =
+                Component.translatable(
+                        pressureBar < 0.5F
+                                ? "message.wayaround.steam_boiler.pressure_none"
+                                : pressureBar < safe * 0.45F
+                                        ? "message.wayaround.steam_boiler.pressure_low"
+                                        : pressureBar < safe * 0.82F
+                                                ? "message.wayaround.steam_boiler.pressure_working"
+                                                : "message.wayaround.steam_boiler.pressure_high"
+                );
+
+        Component heatState =
+                Component.translatable(
+                        heat < 25
+                                ? "message.wayaround.steam_boiler.heat_cold"
+                                : heat < 58
+                                        ? "message.wayaround.steam_boiler.heat_warming"
+                                        : "message.wayaround.steam_boiler.heat_hot"
+                );
+
         return Component.translatable(
-                "message.wayaround.steam_boiler.status",
+                "message.wayaround.steam_boiler.status_v2",
                 complete()
                         ? Component.translatable(
                         "message.wayaround.steam_boiler.complete"
@@ -609,18 +659,33 @@ public final class SteamBoilerBlockEntity
                         : Component.translatable(
                         "message.wayaround.steam_boiler.incomplete"
                 ),
+                waterState,
+                pressureState,
+                heatState
+        );
+    }
+
+    public Component measurement() {
+        return Component.translatable(
+                "message.wayaround.steam_boiler.measurement",
                 water,
                 SteamThermodynamics.WATER_CAPACITY,
                 steam,
                 SteamThermodynamics.STEAM_CAPACITY,
                 String.format(
                         java.util.Locale.ROOT,
-                        "%.1f",
+                        "%.2f",
                         pressureBar
                 ),
-                temperatureC,
-                heat,
-                coal
+                String.format(
+                        java.util.Locale.ROOT,
+                        "%.2f",
+                        SteamThermodynamics.safePressureBar(
+                                vesselCondition(),
+                                valveCondition()
+                        )
+                ),
+                temperatureC
         );
     }
 
