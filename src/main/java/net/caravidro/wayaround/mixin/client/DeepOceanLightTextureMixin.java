@@ -38,12 +38,16 @@ public abstract class DeepOceanLightTextureMixin {
     ) {
         if (minecraft.level == null
                 || minecraft.player == null
-                || !(minecraft.level instanceof ClientLevel level)
-                || !minecraft.player.isUnderWater()
-                || !DeepOceanClientVisibility.isDeepOcean(
-                        level,
-                        minecraft.player.blockPosition()
-                )) {
+                || !minecraft.player.isUnderWater()) {
+            return;
+        }
+
+        ClientLevel level = minecraft.level;
+
+        if (!DeepOceanClientVisibility.isDeepOcean(
+                level,
+                minecraft.player.blockPosition()
+        )) {
             return;
         }
 
