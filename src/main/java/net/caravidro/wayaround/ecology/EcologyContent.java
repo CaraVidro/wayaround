@@ -197,6 +197,29 @@ public final class EcologyContent {
                             .build("wayaround:deep_sea_capsule")
             );
 
+    public static final DeferredHolder<EntityType<?>, EntityType<DeepSeaSubmarineEntity>> DEEP_SEA_SUBMARINE =
+            ENTITIES.register(
+                    "deep_sea_submarine",
+                    () -> EntityType.Builder
+                            .of(
+                                    DeepSeaSubmarineEntity::new,
+                                    MobCategory.MISC
+                            )
+                            .sized(
+                                    2.60F,
+                                    1.55F
+                            )
+                            .clientTrackingRange(
+                                    24
+                            )
+                            .updateInterval(
+                                    1
+                            )
+                            .build(
+                                    "wayaround:deep_sea_submarine"
+                            )
+            );
+
     public static final DeferredHolder<EntityType<?>, EntityType<OarfishEntity>> OARFISH =
             ENTITIES.register(
                     "oarfish",
@@ -597,6 +620,17 @@ public final class EcologyContent {
                     () -> new DeepSeaCapsuleItem(
                             new Item.Properties()
                                     .stacksTo(1)
+                    )
+            );
+
+    public static final DeferredItem<DeepSeaSubmarineItem> DEEP_SEA_SUBMARINE_ITEM =
+            ITEMS.register(
+                    "deep_sea_submarine",
+                    () -> new DeepSeaSubmarineItem(
+                            new Item.Properties()
+                                    .stacksTo(
+                                            1
+                                    )
                     )
             );
 
@@ -1147,6 +1181,9 @@ public final class EcologyContent {
                                         );
                                         output.accept(
                                                 DEEP_SEA_CAPSULE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                DEEP_SEA_SUBMARINE_ITEM.get()
                                         );
                                         output.accept(
                                                 MAGIC_FISHING_ROD.get()
