@@ -31,8 +31,20 @@ public abstract class TitleScreenBrandingMixin {
                 minecraft.getWindow()
                         .getGuiScaledWidth();
 
+        int height =
+                minecraft.getWindow()
+                        .getGuiScaledHeight();
+
+        /*
+         * Keep the WayAround identity in the same lower UI band as the
+         * Update Log, but on the opposite side. The vanilla splash lives
+         * around the logo/top-right area, so this removes that collision.
+         */
         int y =
-                8;
+                Math.max(
+                        8,
+                        height - 64
+                );
 
         Component brand =
                 Component.literal(
@@ -81,8 +93,8 @@ public abstract class TitleScreenBrandingMixin {
                 );
 
         /*
-         * Branding belongs to the side rail, never to the center menu stack.
-         * This remains stable even when the window is aggressively minimized.
+         * Branding belongs to the lower-right rail, never to the center
+         * menu stack or the splash-text region.
          */
         graphics.drawString(
                 minecraft.font,
