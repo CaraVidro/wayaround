@@ -25,19 +25,20 @@ public abstract class AguaWorldFishEntity extends AbstractFish {
         super(type, level);
 
         /*
-         * Natural water mobs normally use vanilla distance despawning. Agua
-         * World creatures are world inhabitants: unloaded chunks may stop
-         * ticking them, but returning to that chunk must bring back the same
-         * individual with the same size/meals/history.
+         * Natural fish must participate in the normal population lifecycle.
+         * Older builds forced every fish to persist forever, so spending time
+         * in one deep-ocean region could only increase entity count.
+         *
+         * Bucketed/named/player-persisted fish still use vanilla custom
+         * persistence; naturally spawned wildlife is allowed to despawn.
          */
-        this.setPersistenceRequired();
     }
 
     @Override
     public boolean removeWhenFarAway(
             double distanceToClosestPlayer
     ) {
-        return false;
+        return true;
     }
 
     @Override
