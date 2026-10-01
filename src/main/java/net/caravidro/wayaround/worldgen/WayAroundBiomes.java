@@ -39,6 +39,16 @@ public final class WayAroundBiomes {
             );
 
 
+    public static final ResourceKey<Biome> VOLCANIC_HIGHLANDS =
+            ResourceKey.create(
+                    Registries.BIOME,
+                    ResourceLocation.fromNamespaceAndPath(
+                            WayAround.MODID,
+                            "volcanic_highlands"
+                    )
+            );
+
+
     /*
      * =========================================================
      * HOLDERS
@@ -51,6 +61,8 @@ public final class WayAroundBiomes {
     private static Holder<Biome> antarcticIceSheet;
 
     private static Holder<Biome> southernOcean;
+
+    private static Holder<Biome> volcanicHighlands;
 
 
     /*
@@ -105,6 +117,12 @@ public final class WayAroundBiomes {
                 );
 
 
+        volcanicHighlands =
+                biomeRegistry.getHolderOrThrow(
+                        VOLCANIC_HIGHLANDS
+                );
+
+
         WayAround.LOGGER.info(
                 "WayAround biomes capturados no registry REAL do servidor!"
         );
@@ -115,6 +133,10 @@ public final class WayAroundBiomes {
 
         WayAround.LOGGER.info(
                 " - Southern Ocean: OK"
+        );
+
+        WayAround.LOGGER.info(
+                " - Volcanic Highlands: OK"
         );
     }
 
@@ -176,6 +198,21 @@ public final class WayAroundBiomes {
     }
 
 
+    public static Holder<Biome> getVolcanicHighlands() {
+
+        if (
+                volcanicHighlands == null
+        ) {
+
+            throw new IllegalStateException(
+                    "Volcanic Highlands biome holder ainda não foi inicializado."
+            );
+        }
+
+        return volcanicHighlands;
+    }
+
+
     /*
      * =========================================================
      * READY
@@ -186,7 +223,9 @@ public final class WayAroundBiomes {
 
         return antarcticIceSheet != null
                 &&
-                southernOcean != null;
+                southernOcean != null
+                &&
+                volcanicHighlands != null;
     }
 
 
@@ -201,5 +240,7 @@ public final class WayAroundBiomes {
         antarcticIceSheet = null;
 
         southernOcean = null;
+
+        volcanicHighlands = null;
     }
 }
