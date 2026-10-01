@@ -66,9 +66,9 @@ public final class DomainIntroManager {
                 player,
                 SpectrumType.VOID
         )
-                && SpectrumProgression.voidDomainUnlocked(
+                && VoidDomainPresentation.get(
                 player
-        )
+        ).canExpand()
                 && request(
                 player,
                 VOID
@@ -132,7 +132,7 @@ public final class DomainIntroManager {
                         .getTickCount();
 
         byte variant =
-                SpectrumProgression.domainVariant(
+                variantFor(
                         player,
                         style
                 );
@@ -209,7 +209,7 @@ public final class DomainIntroManager {
                         .getTickCount();
 
         byte variant =
-                SpectrumProgression.domainVariant(
+                variantFor(
                         player,
                         style
                 );
@@ -270,6 +270,23 @@ public final class DomainIntroManager {
         return true;
     }
 
+    private static byte variantFor(
+            ServerPlayer player,
+            byte style
+    ) {
+        if (style
+                == VOID) {
+            return VoidDomainPresentation.get(
+                    player
+            ).networkId();
+        }
+
+        return SpectrumProgression.domainVariant(
+                player,
+                style
+        );
+    }
+
     private static boolean canUseStyle(
             ServerPlayer player,
             byte style
@@ -280,10 +297,9 @@ public final class DomainIntroManager {
                             player,
                             SpectrumType.VOID
                     )
-                            && SpectrumProgression
-                            .voidDomainUnlocked(
+                            && VoidDomainPresentation.get(
                                     player
-                            );
+                            ).canExpand();
 
             case TUKUNA ->
                     SpectrumAccess.has(
