@@ -103,7 +103,10 @@ public final class VoidDomainManager {
             ServerPlayer owner
     ) {
         if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)
-                || !hasVoidSpectrum(owner)) {
+                || !hasVoidSpectrum(owner)
+                || !VoidDomainPresentation.get(
+                owner
+        ).canExpand()) {
             return false;
         }
 
