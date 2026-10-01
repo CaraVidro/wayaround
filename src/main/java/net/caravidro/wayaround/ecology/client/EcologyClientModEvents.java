@@ -55,6 +55,11 @@ public final class EcologyClientModEvents {
         );
 
         event.registerEntityRenderer(
+                EcologyContent.PLAYER_CORPSE.get(),
+                PlayerCorpseRenderer::new
+        );
+
+        event.registerEntityRenderer(
                 EcologyContent.REEF_SHARK.get(),
                 ReefSharkRenderer::new
         );
