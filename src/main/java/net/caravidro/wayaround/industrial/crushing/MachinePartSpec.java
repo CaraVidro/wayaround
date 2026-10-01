@@ -5,7 +5,17 @@ public record MachinePartSpec(String id, Role role, String family, boolean heavy
         float strength, float driveCost, float speed, float abrasion, int feedMultiplier) {
     public enum Role { DRIVE, BEARING, TOOL, FEED }
     public boolean fits(String machineFamily) {
-        return family.equals("shared") || family.equals(machineFamily);
+        if (family.equals("shared")) return true;
+        if (family.equals("crusher")) {
+            return machineFamily.equals("small")
+                    || machineFamily.equals("medium")
+                    || machineFamily.equals("large");
+        }
+        return family.equals(machineFamily);
+    }
+
+    public boolean integratedBearing() {
+        return id.contains("crusher_drive_cartridge");
     }
     public static final MachinePartSpec LIGHT_SHAFT = new MachinePartSpec(
         "light_machine_shaft", Role.DRIVE, "shared", false, .58F, .8F, 1.15F, 1.35F, 1);
@@ -15,6 +25,10 @@ public record MachinePartSpec(String id, Role role, String family, boolean heavy
         "plain_machine_bearing", Role.BEARING, "shared", true, .96F, 1.18F, .9F, .8F, 1);
     public static final MachinePartSpec COPPER_BEARING = new MachinePartSpec(
         "copper_machine_bearing", Role.BEARING, "shared", false, .62F, .82F, 1.08F, 1.35F, 1);
+    public static final MachinePartSpec CRUSHER_DRIVE = new MachinePartSpec(
+        "crusher_drive_cartridge", Role.DRIVE, "crusher", false, .82F, .92F, 1.05F, .85F, 1);
+    public static final MachinePartSpec REINFORCED_CRUSHER_DRIVE = new MachinePartSpec(
+        "reinforced_crusher_drive_cartridge", Role.DRIVE, "crusher", true, .98F, 1.18F, .90F, .58F, 1);
     public static final MachinePartSpec NARROW_FEED = new MachinePartSpec(
         "narrow_machine_hopper", Role.FEED, "shared", false, .78F, .92F, 1.0F, .8F, 1);
     public static final MachinePartSpec WIDE_FEED = new MachinePartSpec(

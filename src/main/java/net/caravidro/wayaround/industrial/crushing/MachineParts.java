@@ -20,7 +20,43 @@ public final class MachineParts {
     public MachineParts(String family) { this.family = family; }
     public ItemStack stack(MachinePartSpec.Role role) { return parts[role.ordinal()]; }
     public boolean has(MachinePartSpec.Role role) { return !stack(role).isEmpty(); }
-    public boolean complete() { for (var role : MachinePartSpec.Role.values()) if (!has(role)) return false; return true; }
+    public boolean complete() {
+        if (crusherFamily()) {
+            return has(MachinePartSpec.Role.DRIVE)
+                    && has(MachinePartSpec.Role.TOOL)
+                    && has(MachinePartSpec.Role.FEED)
+                    && (has(MachinePartSpec.Role.BEARING)
+                    || integratedCrusherDrive());
+        }
+        for (var role : MachinePartSpec.Role.values()) if (!has(role)) return false;
+        return true;
+    }
+
+    public int requiredCount() {
+        return crusherFamily() ? 3 : MachinePartSpec.Role.values().length;
+    }
+
+    public int installedRequiredCount() {
+        if (!crusherFamily()) {
+            int count = 0;
+            for (var role : MachinePartSpec.Role.values()) if (has(role)) count++;
+            return count;
+        }
+        int count = 0;
+        if (has(MachinePartSpec.Role.DRIVE)) count++;
+        if (has(MachinePartSpec.Role.TOOL)) count++;
+        if (has(MachinePartSpec.Role.FEED)) count++;
+        return count;
+    }
+
+    public boolean integratedCrusherDrive() {
+        var drive = spec(MachinePartSpec.Role.DRIVE);
+        return drive != null && drive.integratedBearing();
+    }
+
+    private boolean crusherFamily() {
+        return family.equals("small") || family.equals("medium") || family.equals("large");
+    }
     public boolean operable() {
         return complete() && condition(MachinePartSpec.Role.DRIVE) > .12F
             && condition(MachinePartSpec.Role.BEARING) > .12F && condition(MachinePartSpec.Role.TOOL) > .12F;
@@ -53,19 +89,45 @@ public final class MachineParts {
         return stack(role).getItem() instanceof MachinePartItem item ? item.spec() : null;
     }
     public float driveCost() {
-        float value = 1; for (var role : MachinePartSpec.Role.values()) {
-            var spec = spec(role); if (spec != null) value *= spec.driveCost();
-        } return value;
+        float value = 1;
+        for (var role : MachinePartSpec.Role.values()) {
+            var spec = spec(role);
+            if (spec == null) {
+                if (role == MachinePartSpec.Role.BEARING && integratedCrusherDrive()) {
+                    // Bearing losses are already represented by the cartridge.
+                    continue;
+                }
+                continue;
+            }
+            value *= spec.driveCost();
+        }
+        return value;
     }
+
     public float speed() {
         if (!complete()) return 0;
-        float value = 1; for (var role : MachinePartSpec.Role.values()) {
+        float value = 1;
+        for (var role : MachinePartSpec.Role.values()) {
+            var spec = spec(role);
+            if (spec == null) {
+                if (role == MachinePartSpec.Role.BEARING && integratedCrusherDrive()) {
+                    continue;
+                }
+                return 0;
+            }
             var profile = AssemblyItemData.readPart(stack(role));
-            value *= spec(role).speed() * (profile == null ? 1 : .65F + profile.assemblyScore() * .35F);
-        } return value;
+            value *= spec.speed() * (profile == null ? 1 : .65F + profile.assemblyScore() * .35F);
+        }
+        return value;
     }
     public float condition(MachinePartSpec.Role role) {
-        var spec = spec(role); if (spec == null) return 0;
+        var spec = spec(role);
+        if (spec == null
+                && role == MachinePartSpec.Role.BEARING
+                && integratedCrusherDrive()) {
+            return condition(MachinePartSpec.Role.DRIVE) * .94F;
+        }
+        if (spec == null) return 0;
         var profile = AssemblyItemData.readPart(stack(role));
         return spec.strength() * (profile == null ? 1 : (1 - profile.wear()) * (1 - profile.fatigue() * .4F));
     }
@@ -95,6 +157,9 @@ public final class MachineParts {
             "frame", role.name().toLowerCase(java.util.Locale.ROOT), role == MachinePartSpec.Role.BEARING
                 ? AssemblyConnection.Type.BEARING : role == MachinePartSpec.Role.DRIVE
                 ? AssemblyConnection.Type.SHAFT : AssemblyConnection.Type.FASTENED, condition(role), 0));
+        if (integratedCrusherDrive()) result.add(new AssemblyConnection(
+            "frame", "drive", AssemblyConnection.Type.BEARING,
+            condition(MachinePartSpec.Role.BEARING), 0));
         if (has(MachinePartSpec.Role.DRIVE) && has(MachinePartSpec.Role.TOOL)) result.add(new AssemblyConnection(
             "drive", "tool", AssemblyConnection.Type.SHAFT, Math.min(condition(MachinePartSpec.Role.DRIVE), condition(MachinePartSpec.Role.TOOL)), 0));
         return result;

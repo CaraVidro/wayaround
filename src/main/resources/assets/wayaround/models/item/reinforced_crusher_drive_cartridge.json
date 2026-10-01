@@ -1,0 +1,4 @@
+{
+  "parent":"wayaround:item/crusher_drive_cartridge",
+  "textures":{"iron":"minecraft:block/iron_block","copper":"minecraft:block/cut_copper","particle":"minecraft:block/iron_block"}
+}

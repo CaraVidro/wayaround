@@ -37,6 +37,38 @@ public final class PipeworkContent {
 
     private static final DeferredRegister<net.minecraft.world.level.block.entity.BlockEntityType<?>> ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, WayAround.MODID);
     public static final DeferredItem<Item> VALVE = ITEMS.register("pipe_valve", () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<Item> PUMP_IMPELLER = ITEMS.register(
+            "pump_impeller_cartridge",
+            () -> new Item(new Item.Properties().stacksTo(16))
+    );
+
+    public static final DeferredBlock<MechanicalPumpBlock> MECHANICAL_PUMP = BLOCKS.register(
+            "mechanical_pump",
+            () -> new MechanicalPumpBlock(
+                    BlockBehaviour.Properties.of()
+                            .mapColor(MapColor.METAL)
+                            .strength(3.4F, 6.5F)
+                            .sound(SoundType.METAL)
+                            .noOcclusion()
+                            .requiresCorrectToolForDrops()
+            )
+    );
+
+    public static final DeferredItem<BlockItem> MECHANICAL_PUMP_ITEM = ITEMS.register(
+            "mechanical_pump",
+            () -> new BlockItem(MECHANICAL_PUMP.get(), new Item.Properties())
+    );
+
+    public static final DeferredHolder<net.minecraft.world.level.block.entity.BlockEntityType<?>,
+            net.minecraft.world.level.block.entity.BlockEntityType<MechanicalPumpBlockEntity>> MECHANICAL_PUMP_ENTITY =
+            ENTITIES.register(
+                    "mechanical_pump",
+                    () -> net.minecraft.world.level.block.entity.BlockEntityType.Builder.of(
+                            MechanicalPumpBlockEntity::new,
+                            MECHANICAL_PUMP.get()
+                    ).build(null)
+            );
     public static final DeferredBlock<LargePipeBlock> GIANT = BLOCKS.register("giant_water_pipe", () -> new LargePipeBlock(false, BlockBehaviour.Properties.of().strength(4).sound(SoundType.METAL).noOcclusion().noLootTable()));
     public static final DeferredBlock<LargePipeBlock> COLOSSAL = BLOCKS.register("colossal_pipe", () -> new LargePipeBlock(true, BlockBehaviour.Properties.of().strength(5).sound(SoundType.METAL).noOcclusion().noLootTable()));
     public static final DeferredItem<BlockItem> GIANT_ITEM = ITEMS.register("giant_water_pipe", () -> new LargePipeItem(GIANT.get(), new Item.Properties()));
@@ -154,6 +186,8 @@ public final class PipeworkContent {
                             .displayItems(
                                     (parameters, output) -> {
                                         output.accept(VALVE.get());
+                                        output.accept(MECHANICAL_PUMP_ITEM.get());
+                                        output.accept(PUMP_IMPELLER.get());
                                         output.accept(GIANT_ITEM.get());
                                         output.accept(COLOSSAL_ITEM.get());
                                         output.accept(

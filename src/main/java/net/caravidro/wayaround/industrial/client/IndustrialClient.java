@@ -68,6 +68,10 @@ public final class IndustrialClient {
         );
         event.registerBlockEntityRenderer(net.caravidro.wayaround.industrial.pipework.PipeworkContent.PIPE_ENTITY.get(), PipeRenderer::new);
         event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.pipework.PipeworkContent.MECHANICAL_PUMP_ENTITY.get(),
+                MechanicalPumpRenderer::new
+        );
+        event.registerBlockEntityRenderer(
                 IndustrialContent.BLASTER_ENTITY.get(),
                 ReforcedBlasterRenderer::new
         );

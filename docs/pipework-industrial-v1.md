@@ -87,23 +87,17 @@ actual bottleneck.
 
 ## Next machines
 
-### 1. Mechanical Pump
+### 1. Mechanical Pump — implemented
 
-The immediate next machine should be a Mechanical Pump rather than another
-isolated processing block.
+The first active Pipework machine is now implemented.
 
-It should:
+It consumes rotational power, pulls real liquid through a direct intake or
+bounded suction network, buffers up to 2000 mB and pushes through the existing
+PipeFlow network. The discharge is limited by pump RPM/power and the actual
+pipe bottleneck.
 
-- consume rotational power;
-- pull water/liquid from a source or reservoir;
-- choose a target pressure/flow operating point;
-- query PipeNetwork for LIQUID capacity;
-- be limited by the network bottleneck;
-- visibly animate an impeller/piston;
-- create pressure noise/vibration;
-- eventually leak if assembly quality or pipe pressure is bad.
-
-This makes Pipework useful as infrastructure rather than decorative tubing.
+Assembly is intentionally light: pump housing + one impeller cartridge. The
+visible rotor only exists after installation.
 
 ### 2. Modular Reservoir / Water Tank
 
@@ -210,3 +204,11 @@ the mill from virtual components to installed ItemStacks. See
 `docs/assembly-crushers-v1.md` for scale, component tradeoffs, save compatibility
 and the explicit boundary between current dropped-item input and future
 connected-block transport.
+
+
+### Assembly complexity rule
+
+Fundamental machines should not be exploded into arbitrary sub-parts merely
+because Assembly exists. A simple mechanism should normally use a housing plus
+one or two meaningful installed modules. More complicated staged assembly is
+reserved for machines whose actual mechanism benefits from those distinctions.

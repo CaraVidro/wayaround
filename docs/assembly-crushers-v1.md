@@ -111,3 +111,31 @@ base para migrá-los um a um, preservando seus saves e sistemas próprios.
 V1 tem catálogos de peças e encaixes conhecidos. Montagem livre arbitrária,
 colisões entre conjuntos móveis, transporte de aglomerados e falhas estruturais
 com detritos continuam etapas futuras; esta versão não finge simulá-las.
+
+
+## Simplified early-machine assembly
+
+The original crusher revision required four separately installed roles: shaft,
+bearing, tool and hopper. That proved too granular for an early, fundamental
+machine.
+
+New crushers use:
+
+1. placed crusher frame / housing;
+2. one hopper;
+3. one **Crusher Drive Cartridge** (shaft + bearings as a manufactured module);
+4. one scale-appropriate crushing tool.
+
+The reinforced drive cartridge is the heavier alternative.
+
+Old saves containing separate shafts and bearings remain valid and operable.
+New installation rejects loose shaft/bearing parts for crushers and points the
+player toward the cartridge instead.
+
+This establishes the assembly-complexity rule for future machinery:
+
+- simple/fundamental machines should expose only a few meaningful modules;
+- complex machines may use more staged parts when their real mechanism justifies
+  the extra assembly;
+- complexity must come from interaction between systems, not from arbitrary
+  click count.

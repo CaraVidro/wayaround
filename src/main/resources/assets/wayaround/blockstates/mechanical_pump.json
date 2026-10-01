@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": {"model":"wayaround:block/mechanical_pump"},
+    "facing=east": {"model":"wayaround:block/mechanical_pump","y":90},
+    "facing=south": {"model":"wayaround:block/mechanical_pump","y":180},
+    "facing=west": {"model":"wayaround:block/mechanical_pump","y":270}
+  }
+}

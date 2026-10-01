@@ -811,5 +811,17 @@
   "item.wayaround.raw_anglerfish_meat": "Carne de Peixe-pescador abissal crua",
   "item.wayaround.cooked_anglerfish_meat": "Carne de Peixe-pescador abissal assada",
   "entity.wayaround.deep_sea_capsule": "Cápsula Abissal",
-  "item.wayaround.deep_sea_capsule": "Cápsula Abissal"
+  "item.wayaround.deep_sea_capsule": "Cápsula Abissal",
+  "block.wayaround.mechanical_pump": "Carcaça da Bomba Mecânica",
+  "item.wayaround.pump_impeller_cartridge": "Cartucho de Impulsor da Bomba",
+  "item.wayaround.crusher_drive_cartridge": "Cartucho de Transmissão do Britador",
+  "item.wayaround.reinforced_crusher_drive_cartridge": "Cartucho Reforçado do Britador",
+  "tooltip.wayaround.machine_part.crusher_drive_cartridge": "Eixo e mancais integrados para britadores comuns; um único módulo instalado.",
+  "tooltip.wayaround.machine_part.reinforced_crusher_drive_cartridge": "Eixo e mancais pesados integrados; suporta mais impacto e exige mais transmissão.",
+  "message.wayaround.crusher.use_drive_cartridge": "Britadores agora usam um cartucho de transmissão: eixo e mancais formam um único módulo.",
+  "message.wayaround.mechanical_pump.status": "Bomba: %s | %s RPM | %s u/t | %s bar | buffer %s mB | %s",
+  "message.wayaround.mechanical_pump.impeller_ready": "impulsor instalado",
+  "message.wayaround.mechanical_pump.impeller_missing": "falta o cartucho do impulsor",
+  "message.wayaround.mechanical_pump.pipe_ready": "descarga conectada",
+  "message.wayaround.mechanical_pump.pipe_missing": "sem cano de descarga"
 }

@@ -1,0 +1,11 @@
+{
+  "ambientocclusion": false,
+  "gui_light": "front",
+  "textures": {"iron":"minecraft:block/iron_block","copper":"minecraft:block/copper_block","particle":"minecraft:block/iron_block"},
+  "elements": [
+    {"from":[1,7,7],"to":[15,9,9],"shade":false,"faces":{"down":{"texture":"#iron"},"up":{"texture":"#iron"},"north":{"texture":"#iron"},"south":{"texture":"#iron"},"west":{"texture":"#iron"},"east":{"texture":"#iron"}}},
+    {"from":[3,5,5],"to":[6,11,11],"shade":false,"faces":{"down":{"texture":"#copper"},"up":{"texture":"#copper"},"north":{"texture":"#copper"},"south":{"texture":"#copper"},"west":{"texture":"#copper"},"east":{"texture":"#copper"}}},
+    {"from":[10,5,5],"to":[13,11,11],"shade":false,"faces":{"down":{"texture":"#copper"},"up":{"texture":"#copper"},"north":{"texture":"#copper"},"south":{"texture":"#copper"},"west":{"texture":"#copper"},"east":{"texture":"#copper"}}}
+  ],
+  "display":{"gui":{"rotation":[25,225,0],"scale":[0.78,0.78,0.78]}}
+}

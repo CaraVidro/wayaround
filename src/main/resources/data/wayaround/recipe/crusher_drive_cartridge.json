@@ -1,0 +1,7 @@
+{
+  "type":"minecraft:crafting_shaped",
+  "category":"misc",
+  "pattern":[" C ","ISI"," C "],
+  "key":{"C":{"item":"minecraft:copper_ingot"},"I":{"item":"minecraft:iron_ingot"},"S":{"item":"wayaround:mechanical_shaft"}},
+  "result":{"id":"wayaround:crusher_drive_cartridge","count":1}
+}

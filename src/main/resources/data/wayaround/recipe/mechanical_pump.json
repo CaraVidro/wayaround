@@ -1,0 +1,7 @@
+{
+  "type":"minecraft:crafting_shaped",
+  "category":"misc",
+  "pattern":["ICI","I I","III"],
+  "key":{"I":{"item":"minecraft:iron_ingot"},"C":{"item":"minecraft:copper_ingot"}},
+  "result":{"id":"wayaround:mechanical_pump","count":1}
+}

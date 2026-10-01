@@ -1,0 +1,7 @@
+{
+  "type":"minecraft:crafting_shaped",
+  "category":"misc",
+  "pattern":["ICI","ISI","ICI"],
+  "key":{"C":{"item":"minecraft:copper_ingot"},"I":{"item":"minecraft:iron_ingot"},"S":{"item":"wayaround:mechanical_shaft"}},
+  "result":{"id":"wayaround:reinforced_crusher_drive_cartridge","count":1}
+}

@@ -27,7 +27,9 @@ public final class CrusherContent {
             FRAME_ITEMS.put(size,ITEMS.register(size.id()+"_crusher_frame",()->new BlockItem(frame.get(),new Item.Properties())));
         }
         for(var spec:new MachinePartSpec[]{MachinePartSpec.LIGHT_SHAFT,MachinePartSpec.REINFORCED_SHAFT,
-                MachinePartSpec.PLAIN_BEARING,MachinePartSpec.COPPER_BEARING,MachinePartSpec.NARROW_FEED,MachinePartSpec.WIDE_FEED,
+                MachinePartSpec.PLAIN_BEARING,MachinePartSpec.COPPER_BEARING,
+                MachinePartSpec.CRUSHER_DRIVE,MachinePartSpec.REINFORCED_CRUSHER_DRIVE,
+                MachinePartSpec.NARROW_FEED,MachinePartSpec.WIDE_FEED,
                 MachinePartSpec.STONE_MILL,MachinePartSpec.IRON_MILL})registerPart(spec);
         for(var size:CrusherSize.values()){registerPart(MachinePartSpec.tool(size,false));registerPart(MachinePartSpec.tool(size,true));}
     }
