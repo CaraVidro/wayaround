@@ -817,7 +817,7 @@ public final class LivingCloudRenderer {
                     continue;
                 }
 
-                CloudColor shade =
+                int shade =
                         cloudColor(
                                 cell,
                                 voxel,
@@ -836,10 +836,7 @@ public final class LivingCloudRenderer {
                         cell,
                         voxel,
                         face,
-                        shade.red,
-                        shade.green,
-                        shade.blue,
-                        shade.alpha,
+                        shade,
                         builtVoxel
                 );
 
@@ -1465,7 +1462,7 @@ public final class LivingCloudRenderer {
         return forward > CAMERA_NEAR_GUARD;
     }
 
-    private static CloudColor cloudColor(
+    private static int cloudColor(
             LocalWeatherField.CloudCell cell,
             Voxel voxel,
             Face face,
@@ -1634,12 +1631,10 @@ public final class LivingCloudRenderer {
                         236
                 );
 
-        return new CloudColor(
-                red,
-                green,
-                blue,
-                alpha
-        );
+        return red
+                | green << 8
+                | blue << 16
+                | alpha << 24;
     }
 
     private static double signedColorBias(
@@ -1658,12 +1653,24 @@ public final class LivingCloudRenderer {
             LocalWeatherField.CloudCell cell,
             Voxel voxel,
             Face face,
-            int red,
-            int green,
-            int blue,
-            int alpha,
+            int packedColor,
             double voxelSize
     ) {
+        int red =
+                packedColor
+                        & 255;
+
+        int green =
+                packedColor >>> 8
+                        & 255;
+
+        int blue =
+                packedColor >>> 16
+                        & 255;
+
+        int alpha =
+                packedColor >>> 24
+                        & 255;
         double cx =
                 cell.x()
                 + voxel.x * voxelSize;
@@ -1848,14 +1855,6 @@ public final class LivingCloudRenderer {
         value *= 0x94d049bb133111ebL;
         value ^= value >>> 31;
         return value;
-    }
-
-    private record CloudColor(
-            int red,
-            int green,
-            int blue,
-            int alpha
-    ) {
     }
 
     private record CloudHole(
