@@ -46,6 +46,7 @@ import net.caravidro.wayaround.worldgen.weather.fire.EnhancedFireVisuals;
 import net.caravidro.wayaround.worldgen.weather.fire.FireContent;
 import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
 import net.caravidro.wayaround.worldgen.volcanic.VolcanicThermalEnvironment;
+import net.caravidro.wayaround.worldgen.volcanic.VolcanicCommands;
 import net.caravidro.wayaround.war.WarBallistics;
 import net.caravidro.wayaround.war.WarContent;
 import net.neoforged.bus.api.IEventBus;
@@ -122,6 +123,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(EcologyTimeCommand::register);
         NeoForge.EVENT_BUS.addListener(KrakenCommands::register);
         NeoForge.EVENT_BUS.addListener(NexusCommands::register);
+        NeoForge.EVENT_BUS.addListener(VolcanicCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);
