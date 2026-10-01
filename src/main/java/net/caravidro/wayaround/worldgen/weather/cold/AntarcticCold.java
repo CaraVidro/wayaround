@@ -42,18 +42,25 @@ public final class AntarcticCold {
             return current;
         }
 
-        boolean antarctic =
-                AntarcticField.isAntarctic(
+        double polar =
+                AntarcticField.polarInfluence(
                         pos.getX(),
                         pos.getZ()
-                )
-                        || level.getBiome(
-                        pos
-                ).is(
-                        WayAroundBiomes.ANTARCTIC_ICE_SHEET
                 );
 
-        if (!antarctic) {
+        if (level.getBiome(
+                pos
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        )) {
+            polar =
+                    Math.max(
+                            polar,
+                            1.0
+                    );
+        }
+
+        if (polar <= 0.001) {
             return current;
         }
 
@@ -77,12 +84,23 @@ public final class AntarcticCold {
                 )
                         * 0.025;
 
-        return Math.min(
-                current,
+        double target =
                 -28.0
                         - night * 16.0
                         - storm * 28.0
-                        - altitude
+                        - altitude;
+
+        double blended =
+                current
+                        + (
+                        target
+                                - current
+                )
+                        * polar;
+
+        return Math.min(
+                current,
+                blended
         );
     }
 
@@ -106,11 +124,30 @@ public final class AntarcticCold {
 
         ServerLevel level = player.serverLevel();
         BlockPos head = BlockPos.containing(player.getEyePosition());
-        boolean antarctic = level.dimension().equals(Level.OVERWORLD)
-                && (AntarcticField.isAntarctic(head.getX(), head.getZ())
-                    || level.getBiome(head).is(WayAroundBiomes.ANTARCTIC_ICE_SHEET));
+        double polar =
+                level.dimension().equals(
+                        Level.OVERWORLD
+                )
+                        ? AntarcticField.polarInfluence(
+                        head.getX(),
+                        head.getZ()
+                )
+                        : 0.0;
+
+        if (level.getBiome(
+                head
+        ).is(
+                WayAroundBiomes.ANTARCTIC_ICE_SHEET
+        )) {
+            polar =
+                    Math.max(
+                            polar,
+                            1.0
+                    );
+        }
+
         // WORLD_SURFACE also blocks glass roofs; skylight alone does not.
-        boolean exposed = antarctic && !player.isSleeping() && level.canSeeSky(head)
+        boolean exposed = polar > 0.045 && !player.isSleeping() && level.canSeeSky(head)
                 && level.getHeight(Heightmap.Types.WORLD_SURFACE, head.getX(), head.getZ()) <= head.getY();
         CompoundTag saved = player.getPersistentData().getCompound(DATA_KEY);
         ColdExposure.State previous = new ColdExposure.State(saved.getDouble("cold"), saved.getDouble("tremor"));
