@@ -166,7 +166,6 @@ public final class EcologyContent {
                     () -> EntityType.Builder
                             .of(DeepSeaCapsuleEntity::new, MobCategory.MISC)
                             .sized(1.35F, 1.65F)
-                            .passengerAttachment(0.38F)
                             .clientTrackingRange(16)
                             .updateInterval(1)
                             .build("wayaround:deep_sea_capsule")
