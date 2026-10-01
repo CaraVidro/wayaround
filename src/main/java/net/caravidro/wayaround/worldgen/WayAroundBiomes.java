@@ -49,6 +49,16 @@ public final class WayAroundBiomes {
             );
 
 
+    public static final ResourceKey<Biome> GREAT_RIFT =
+            ResourceKey.create(
+                    Registries.BIOME,
+                    ResourceLocation.fromNamespaceAndPath(
+                            WayAround.MODID,
+                            "great_rift"
+                    )
+            );
+
+
     /*
      * =========================================================
      * HOLDERS
@@ -63,6 +73,8 @@ public final class WayAroundBiomes {
     private static Holder<Biome> southernOcean;
 
     private static Holder<Biome> volcanicHighlands;
+
+    private static Holder<Biome> greatRift;
 
 
     /*
@@ -123,6 +135,12 @@ public final class WayAroundBiomes {
                 );
 
 
+        greatRift =
+                biomeRegistry.getHolderOrThrow(
+                        GREAT_RIFT
+                );
+
+
         WayAround.LOGGER.info(
                 "WayAround biomes capturados no registry REAL do servidor!"
         );
@@ -137,6 +155,10 @@ public final class WayAroundBiomes {
 
         WayAround.LOGGER.info(
                 " - Volcanic Highlands: OK"
+        );
+
+        WayAround.LOGGER.info(
+                " - Great Rift: OK"
         );
     }
 
@@ -213,6 +235,21 @@ public final class WayAroundBiomes {
     }
 
 
+    public static Holder<Biome> getGreatRift() {
+
+        if (
+                greatRift == null
+        ) {
+
+            throw new IllegalStateException(
+                    "Great Rift biome holder ainda não foi inicializado."
+            );
+        }
+
+        return greatRift;
+    }
+
+
     /*
      * =========================================================
      * READY
@@ -225,7 +262,9 @@ public final class WayAroundBiomes {
                 &&
                 southernOcean != null
                 &&
-                volcanicHighlands != null;
+                volcanicHighlands != null
+                &&
+                greatRift != null;
     }
 
 
@@ -242,5 +281,7 @@ public final class WayAroundBiomes {
         southernOcean = null;
 
         volcanicHighlands = null;
+
+        greatRift = null;
     }
 }
