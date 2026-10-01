@@ -103,6 +103,18 @@ public final class SteamBoilerBlock
         }
 
         if (stack.is(
+                PowerContent.STEAM_PRESSURE_GAUGE.get()
+        )) {
+            if (!level.isClientSide) {
+                player.displayClientMessage(
+                        boiler.measurement(),
+                        true
+                );
+            }
+            return ItemInteractionResult.SUCCESS;
+        }
+
+        if (stack.is(
                 PowerContent.BOILER_PRESSURE_VESSEL.get()
         )) {
             if (!level.isClientSide) {
