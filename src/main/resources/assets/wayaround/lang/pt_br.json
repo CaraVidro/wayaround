@@ -1005,5 +1005,18 @@
   "block.wayaround.moss_tuft": "Tufo de Musgo",
   "block.wayaround.thorn_bush": "Arbusto Espinhoso",
   "block.wayaround.wildflower_cluster": "Moita de Flores Silvestres",
-  "block.wayaround.marsh_grass_clump": "Tufo de Capim do Brejo"
+  "block.wayaround.marsh_grass_clump": "Tufo de Capim do Brejo",
+  "block.wayaround.ore_washer": "Lavador de Minério",
+  "item.wayaround.ore_washer": "Lavador de Minério",
+  "item.wayaround.washer_drum": "Tambor do Lavador",
+  "item.wayaround.washer_screen": "Peneira do Lavador",
+  "item.wayaround.washed_iron_concentrate": "Concentrado de Ferro Lavado",
+  "item.wayaround.washed_copper_concentrate": "Concentrado de Cobre Lavado",
+  "item.wayaround.washed_gold_concentrate": "Concentrado de Ouro Lavado",
+  "item.wayaround.mineral_tailings": "Rejeito Mineral",
+  "message.wayaround.ore_washer.status": "Lavador — tambor: %s, peneira: %s, água: %s mB, carga: %s, rpm: %s",
+  "message.wayaround.ore_washer.drum_ready": "instalado",
+  "message.wayaround.ore_washer.drum_missing": "faltando",
+  "message.wayaround.ore_washer.screen_ready": "instalada",
+  "message.wayaround.ore_washer.screen_missing": "faltando"
 }

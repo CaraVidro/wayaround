@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -809,21 +810,162 @@ public final class PipeFlow {
                 }
             }
 
-        } else if (level.getBlockState(end)
-                .isAir()) {
-            consumed =
-                    Math.min(
-                            limit,
-                            fluid.getAmount()
+        } else {
+            BlockState endState =
+                    level.getBlockState(
+                            end
                     );
 
-            jet(
-                    level,
-                    end,
-                    outlet.direction(),
-                    fluid,
-                    8
-            );
+            /*
+             * Open pipe outlets used to "consume" sub-bucket flow into
+             * particles only. At common mechanical-pump RPMs the per-tick
+             * budget is below 1000 mB, so water visually travelled through the
+             * pipe but could never become water at the far end.
+             *
+             * The terminal pipe now acts as a tiny hydraulic accumulator:
+             * partial flow is stored there until one real bucket is available,
+             * then a real fluid source is placed at the outlet. Nothing is
+             * deleted just because the current tick carries 300-900 mB.
+             */
+            if (endState.canBeReplaced()
+                    && level.getFluidState(
+                    end
+            ).isEmpty()) {
+
+                PipeBlockEntity terminal =
+                        outlet.pipe();
+
+                /*
+                 * A one-pipe legacy valve owns the exact FluidStack passed to
+                 * deliver(). Do not "receive" that same stack back into itself
+                 * or the amount doubles before the caller removes it.
+                 */
+                boolean sourceIsTerminal =
+                        terminal.stored()
+                        == fluid;
+
+                if (sourceIsTerminal) {
+                    if (terminal.amount() >= 1000
+                            && limit >= 1000) {
+
+                        int released =
+                                spill(
+                                        level,
+                                        end,
+                                        terminal.stored(),
+                                        true
+                                );
+
+                        /*
+                         * The valve caller removes this returned amount from
+                         * its own tank, so do not terminal.used() here.
+                         */
+                        consumed =
+                                released;
+
+                    } else if (!fluid.isEmpty()) {
+                        jet(
+                                level,
+                                end,
+                                outlet.direction(),
+                                fluid,
+                                3
+                        );
+                    }
+
+                } else {
+                    FluidStack stored =
+                            terminal.stored();
+
+                    boolean compatible =
+                            stored.isEmpty()
+                                    || FluidStack.isSameFluidSameComponents(
+                                    stored,
+                                    fluid
+                            );
+
+                    if (compatible) {
+                        int room =
+                                Math.max(
+                                        0,
+                                        terminal.capacity()
+                                                - terminal.amount()
+                                );
+
+                        int accepted =
+                                Math.min(
+                                        limit,
+                                        room
+                                );
+
+                        if (accepted > 0) {
+                            terminal.receive(
+                                    fluid.copyWithAmount(
+                                            accepted
+                                    )
+                            );
+
+                            consumed =
+                                    accepted;
+                        }
+
+                        if (terminal.amount() >= 1000) {
+                            int released =
+                                    spill(
+                                            level,
+                                            end,
+                                            terminal.stored(),
+                                            true
+                                    );
+
+                            if (released > 0) {
+                                terminal.used(
+                                        released
+                                );
+                            }
+
+                        } else if (accepted > 0) {
+                            jet(
+                                    level,
+                                    end,
+                                    outlet.direction(),
+                                    fluid,
+                                    3
+                            );
+                        }
+                    }
+                }
+
+            } else {
+                var endFluid =
+                        level.getFluidState(
+                                end
+                        );
+
+                if (!endFluid.isEmpty()
+                        && endFluid.getType()
+                        == fluid.getFluid()) {
+
+                    /*
+                     * Discharging into an existing body of the same liquid is
+                     * a valid sink. The water is not expected to create a
+                     * second block on top of an occupied water cell.
+                     */
+                    consumed =
+                            Math.min(
+                                    limit,
+                                    fluid.getAmount()
+                            );
+
+                    jet(
+                            level,
+                            end,
+                            outlet.direction(),
+                            fluid,
+                            5
+                    );
+                }
+            }
         }
 
         if (consumed > 0) {

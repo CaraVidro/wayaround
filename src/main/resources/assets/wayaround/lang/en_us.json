@@ -1005,5 +1005,18 @@
   "block.wayaround.moss_tuft": "Moss Tuft",
   "block.wayaround.thorn_bush": "Thorn Bush",
   "block.wayaround.wildflower_cluster": "Wildflower Cluster",
-  "block.wayaround.marsh_grass_clump": "Marsh Grass Clump"
+  "block.wayaround.marsh_grass_clump": "Marsh Grass Clump",
+  "block.wayaround.ore_washer": "Ore Washer",
+  "item.wayaround.ore_washer": "Ore Washer",
+  "item.wayaround.washer_drum": "Washer Drum",
+  "item.wayaround.washer_screen": "Washer Screen",
+  "item.wayaround.washed_iron_concentrate": "Washed Iron Concentrate",
+  "item.wayaround.washed_copper_concentrate": "Washed Copper Concentrate",
+  "item.wayaround.washed_gold_concentrate": "Washed Gold Concentrate",
+  "item.wayaround.mineral_tailings": "Mineral Tailings",
+  "message.wayaround.ore_washer.status": "Ore Washer — drum: %s, screen: %s, water: %s mB, feed: %s, rpm: %s",
+  "message.wayaround.ore_washer.drum_ready": "ready",
+  "message.wayaround.ore_washer.drum_missing": "missing",
+  "message.wayaround.ore_washer.screen_ready": "ready",
+  "message.wayaround.ore_washer.screen_missing": "missing"
 }

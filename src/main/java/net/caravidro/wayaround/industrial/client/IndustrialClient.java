@@ -77,6 +77,10 @@ public final class IndustrialClient {
                 MechanicalPumpRenderer::new
         );
         event.registerBlockEntityRenderer(
+                net.caravidro.wayaround.industrial.washing.OreWashingContent.ORE_WASHER_ENTITY.get(),
+                OreWasherRenderer::new
+        );
+        event.registerBlockEntityRenderer(
                 ElectronicsContent.ELECTRONICS_WORKBENCH_ENTITY.get(),
                 ElectronicsWorkbenchRenderer::new
         );
