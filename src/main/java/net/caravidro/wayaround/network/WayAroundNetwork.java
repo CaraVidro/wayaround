@@ -13,7 +13,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "20";
+            "21";
 
     private WayAroundNetwork() {
     }
@@ -42,6 +42,12 @@ public final class WayAroundNetwork {
                 DeepSeaCapsuleControlC2SPayload.TYPE,
                 DeepSeaCapsuleControlC2SPayload.STREAM_CODEC,
                 DeepSeaCapsuleControlC2SPayload::handle
+        );
+
+        registrar.playToServer(
+                DeepSeaSubmarineControlC2SPayload.TYPE,
+                DeepSeaSubmarineControlC2SPayload.STREAM_CODEC,
+                DeepSeaSubmarineControlC2SPayload::handle
         );
 
 
