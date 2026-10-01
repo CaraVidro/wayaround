@@ -175,14 +175,29 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
     }
     public void install(Player player,ItemStack stack) {
         if (level == null || level.isClientSide || !WorldFeatureRuntime.enabled(level, WorldFeature.ASSEMBLY)) return;
+        if (!(stack.getItem() instanceof MachinePartItem item)) {
+            describe(player);
+            return;
+        }
+        if (item.spec().role() == MachinePartSpec.Role.BEARING
+                || (item.spec().role() == MachinePartSpec.Role.DRIVE
+                && !item.spec().integratedBearing())) {
+            player.displayClientMessage(
+                    Component.translatable("message.wayaround.crusher.use_drive_cartridge"),
+                    true
+            );
+            return;
+        }
         if(Math.abs(rpm)>.5F||!parts.install(player,stack)){describe(player);return;} sync();
     }
     public void removePart(Player player,BlockHitResult hit) {
         if (level == null || level.isClientSide) return;
         if(Math.abs(rpm)>.5F){player.displayClientMessage(Component.translatable("message.wayaround.machine.stop_first"),true);return;}
         double y=hit.getLocation().y-worldPosition.getY();
-        var role=y>.78?MachinePartSpec.Role.FEED:y>.45?MachinePartSpec.Role.TOOL:y>.22?MachinePartSpec.Role.DRIVE:MachinePartSpec.Role.BEARING;
-        ItemStack removed=parts.remove(role); if(removed.isEmpty())removed=parts.removeLast();
+        var role=y>.72?MachinePartSpec.Role.FEED:y>.38?MachinePartSpec.Role.TOOL:MachinePartSpec.Role.DRIVE;
+        ItemStack removed=parts.remove(role);
+        if(removed.isEmpty() && role == MachinePartSpec.Role.DRIVE) removed=parts.remove(MachinePartSpec.Role.BEARING);
+        if(removed.isEmpty())removed=parts.removeLast();
         if(!removed.isEmpty()){if(!player.getInventory().add(removed))player.drop(removed,false);sync();}
     }
     public boolean collectOutput(Player player) {
@@ -191,7 +206,7 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         output.clear();sync();return true;
     }
     public void describe(Player player) {
-        player.displayClientMessage(Component.translatable("message.wayaround.crusher.status",parts.nodes(true).size(),4,
+        player.displayClientMessage(Component.translatable("message.wayaround.crusher.status",parts.installedRequiredCount(),parts.requiredCount(),
             inputCount(),inputCapacity(),Math.round(rpm),supported?Component.translatable("message.wayaround.crusher.supported"):
             Component.translatable("message.wayaround.crusher.support_missing"),stalled?Component.translatable("message.wayaround.crusher.stalled"):
             Component.translatable("message.wayaround.crusher.ready")),true);
