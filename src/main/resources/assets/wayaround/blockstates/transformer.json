@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/transformer"
+    },
+    "facing=east": {
+      "model": "wayaround:block/transformer",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/transformer",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/transformer",
+      "y": 270
+    }
+  }
+}
