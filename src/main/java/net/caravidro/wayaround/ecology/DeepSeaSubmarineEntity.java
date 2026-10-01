@@ -1,6 +1,10 @@
 package net.caravidro.wayaround.ecology;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import net.caravidro.wayaround.worldgen.water.WaterDynamics;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.tags.FluidTags;
@@ -10,7 +14,13 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LightBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -24,6 +34,20 @@ public final class DeepSeaSubmarineEntity extends Entity {
     private float steering;
     private float vertical;
     private long lastInputTick;
+
+    /*
+     * These are real vanilla LIGHT blocks, moved with the submarine. This is
+     * deliberately server-owned: blocks, mobs, fish and terrain receive actual
+     * block-light values instead of a client-only fullbright illusion.
+     */
+    private final Set<BlockPos> headlightBlocks =
+            new HashSet<>();
+
+    private static final int HEADLIGHT_REFRESH_TICKS =
+            3;
+
+    private static final double HEADLIGHT_MAX_DISTANCE =
+            42.0;
 
     public DeepSeaSubmarineEntity(
             EntityType<? extends DeepSeaSubmarineEntity> type,
@@ -112,6 +136,8 @@ public final class DeepSeaSubmarineEntity extends Entity {
                         );
 
         if (!water) {
+            clearHeadlights();
+
             Vec3 motion =
                     getDeltaMovement()
                             .add(
@@ -200,6 +226,379 @@ public final class DeepSeaSubmarineEntity extends Entity {
                 motion.scale(
                         0.94
                 )
+        );
+
+        if (tickCount
+                % HEADLIGHT_REFRESH_TICKS
+                == 0) {
+            updateHeadlights();
+        }
+    }
+
+    /**
+     * Places a sparse chain of invisible vanilla light blocks through the
+     * water in front of both physical lamps. Because every node is an actual
+     * light source, Minecraft's light engine illuminates blocks/entities too.
+     */
+    private void updateHeadlights() {
+        if (level().isClientSide) {
+            return;
+        }
+
+        Vec3 forward =
+                Vec3.directionFromRotation(
+                        0.0F,
+                        getYRot()
+                )
+                        .normalize();
+
+        Vec3 right =
+                new Vec3(
+                        forward.z,
+                        0.0,
+                        -forward.x
+                )
+                        .normalize();
+
+        /*
+         * Descending nudges the beams downward; rising lifts them slightly.
+         * The hull itself does not visually pitch yet, so keep this subtle.
+         */
+        Vec3 beam =
+                new Vec3(
+                        forward.x,
+                        vertical * 0.12
+                                - 0.025,
+                        forward.z
+                )
+                        .normalize();
+
+        Set<BlockPos> next =
+                new HashSet<>();
+
+        for (double side :
+                new double[]{-0.48, 0.48}) {
+
+            Vec3 origin =
+                    position()
+                            .add(
+                                    0.0,
+                                    1.10,
+                                    0.0
+                            )
+                            .add(
+                                    forward.scale(
+                                            1.35
+                                    )
+                            )
+                            .add(
+                                    right.scale(
+                                            side
+                                    )
+                            );
+
+            double clearDistance =
+                    clearBeamDistance(
+                            origin,
+                            beam
+                    );
+
+            /*
+             * Spacing stays below vanilla's 15-block falloff radius, so the
+             * nodes merge into one continuous shaft of real illumination.
+             */
+            double[] distances = {
+                    0.5,
+                    4.0,
+                    8.0,
+                    12.0,
+                    17.0,
+                    22.0,
+                    28.0,
+                    35.0,
+                    41.0
+            };
+
+            for (int index = 0;
+                 index < distances.length;
+                 index++) {
+
+                double distance =
+                        distances[index];
+
+                if (distance
+                        > clearDistance) {
+                    break;
+                }
+
+                Vec3 point =
+                        origin.add(
+                                beam.scale(
+                                        distance
+                                )
+                        );
+
+                BlockPos pos =
+                        BlockPos.containing(
+                                point
+                        );
+
+                int lightLevel =
+                        Math.max(
+                                10,
+                                15
+                                        - index
+                                        / 2
+                        );
+
+                if (placeHeadlightBlock(
+                        pos,
+                        lightLevel
+                )) {
+                    next.add(
+                            pos.immutable()
+                    );
+                }
+
+                /*
+                 * Widen the far part of the beam into a modest cone rather
+                 * than a single laser line.
+                 */
+                if (distance >= 17.0) {
+                    double spread =
+                            Math.min(
+                                    1.75,
+                                    (
+                                            distance - 12.0
+                                    )
+                                            * 0.055
+                            );
+
+                    for (double wing :
+                            new double[]{-spread, spread}) {
+
+                        BlockPos wingPos =
+                                BlockPos.containing(
+                                        point.add(
+                                                right.scale(
+                                                        wing
+                                                )
+                                        )
+                                );
+
+                        if (placeHeadlightBlock(
+                                wingPos,
+                                Math.max(
+                                        9,
+                                        lightLevel - 1
+                                )
+                        )) {
+                            next.add(
+                                    wingPos.immutable()
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        for (BlockPos old :
+                Set.copyOf(
+                        headlightBlocks
+                )) {
+
+            if (!next.contains(
+                    old
+            )) {
+                removeHeadlightBlock(
+                        old
+                );
+            }
+        }
+
+        headlightBlocks.clear();
+
+        headlightBlocks.addAll(
+                next
+        );
+    }
+
+    private double clearBeamDistance(
+            Vec3 origin,
+            Vec3 beam
+    ) {
+        Vec3 end =
+                origin.add(
+                        beam.scale(
+                                HEADLIGHT_MAX_DISTANCE
+                        )
+                );
+
+        BlockHitResult hit =
+                level().clip(
+                        new ClipContext(
+                                origin,
+                                end,
+                                ClipContext.Block.COLLIDER,
+                                ClipContext.Fluid.NONE,
+                                this
+                        )
+                );
+
+        if (hit.getType()
+                == HitResult.Type.MISS) {
+            return HEADLIGHT_MAX_DISTANCE;
+        }
+
+        return Math.max(
+                0.0,
+                origin.distanceTo(
+                        hit.getLocation()
+                )
+                        - 0.75
+        );
+    }
+
+    private boolean placeHeadlightBlock(
+            BlockPos pos,
+            int lightLevel
+    ) {
+        if (!level().isLoaded(
+                pos
+        )) {
+            return false;
+        }
+
+        BlockState current =
+                level().getBlockState(
+                        pos
+                );
+
+        boolean existingLight =
+                current.is(
+                        Blocks.LIGHT
+                );
+
+        boolean water =
+                current.is(
+                        Blocks.WATER
+                )
+                        || (
+                        existingLight
+                                && current.hasProperty(
+                                LightBlock.WATERLOGGED
+                        )
+                                && current.getValue(
+                                LightBlock.WATERLOGGED
+                        )
+                );
+
+        if (!existingLight
+                && !current.isAir()
+                && !water) {
+            return false;
+        }
+
+        BlockState light =
+                Blocks.LIGHT
+                        .defaultBlockState()
+                        .setValue(
+                                LightBlock.LEVEL,
+                                Math.max(
+                                        0,
+                                        Math.min(
+                                                15,
+                                                lightLevel
+                                        )
+                                )
+                        );
+
+        if (light.hasProperty(
+                LightBlock.WATERLOGGED
+        )) {
+            light =
+                    light.setValue(
+                            LightBlock.WATERLOGGED,
+                            water
+                    );
+        }
+
+        if (current == light) {
+            return true;
+        }
+
+        return level().setBlock(
+                pos,
+                light,
+                3
+        );
+    }
+
+    private void clearHeadlights() {
+        if (level().isClientSide
+                || headlightBlocks.isEmpty()) {
+            return;
+        }
+
+        for (BlockPos pos :
+                Set.copyOf(
+                        headlightBlocks
+                )) {
+            removeHeadlightBlock(
+                    pos
+            );
+        }
+
+        headlightBlocks.clear();
+    }
+
+    private void removeHeadlightBlock(
+            BlockPos pos
+    ) {
+        if (!level().isLoaded(
+                pos
+        )) {
+            return;
+        }
+
+        BlockState state =
+                level().getBlockState(
+                        pos
+                );
+
+        if (!state.is(
+                Blocks.LIGHT
+        )) {
+            return;
+        }
+
+        boolean waterlogged =
+                state.hasProperty(
+                        LightBlock.WATERLOGGED
+                )
+                        && state.getValue(
+                        LightBlock.WATERLOGGED
+                );
+
+        level().setBlock(
+                pos,
+                waterlogged
+                        ? Blocks.WATER
+                        .defaultBlockState()
+                        : Blocks.AIR
+                        .defaultBlockState(),
+                3
+        );
+    }
+
+    @Override
+    public void remove(
+            RemovalReason reason
+    ) {
+        clearHeadlights();
+
+        super.remove(
+                reason
         );
     }
 
