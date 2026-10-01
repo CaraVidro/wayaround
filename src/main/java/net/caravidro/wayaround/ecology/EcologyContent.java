@@ -475,6 +475,47 @@ public final class EcologyContent {
             );
 
 
+    public static final DeferredBlock<TreeWoodSegmentBlock> OAK_TREE_SEGMENT =
+            treeSegment(
+                    "oak_tree_segment"
+            );
+
+    public static final DeferredBlock<TreeWoodSegmentBlock> BIRCH_TREE_SEGMENT =
+            treeSegment(
+                    "birch_tree_segment"
+            );
+
+    public static final DeferredBlock<TreeWoodSegmentBlock> SPRUCE_TREE_SEGMENT =
+            treeSegment(
+                    "spruce_tree_segment"
+            );
+
+    public static final DeferredBlock<TreeWoodSegmentBlock> JUNGLE_TREE_SEGMENT =
+            treeSegment(
+                    "jungle_tree_segment"
+            );
+
+    public static final DeferredBlock<TreeWoodSegmentBlock> ACACIA_TREE_SEGMENT =
+            treeSegment(
+                    "acacia_tree_segment"
+            );
+
+    public static final DeferredBlock<TreeWoodSegmentBlock> DARK_OAK_TREE_SEGMENT =
+            treeSegment(
+                    "dark_oak_tree_segment"
+            );
+
+    public static final DeferredBlock<TreeWoodSegmentBlock> CHERRY_TREE_SEGMENT =
+            treeSegment(
+                    "cherry_tree_segment"
+            );
+
+    public static final DeferredBlock<TreeWoodSegmentBlock> MANGROVE_TREE_SEGMENT =
+            treeSegment(
+                    "mangrove_tree_segment"
+            );
+
+
     public static final DeferredBlock<RottingLogBlock> ROTTING_LOG =
             BLOCKS.register(
                     "rotting_log",
@@ -1145,6 +1186,27 @@ public final class EcologyContent {
                             )
                             .build()
             );
+
+    private static DeferredBlock<TreeWoodSegmentBlock> treeSegment(
+            String name
+    ) {
+        return BLOCKS.register(
+                name,
+                () -> new TreeWoodSegmentBlock(
+                        BlockBehaviour.Properties.of()
+                                .mapColor(
+                                        MapColor.WOOD
+                                )
+                                .strength(
+                                        0.65F
+                                )
+                                .sound(
+                                        SoundType.WOOD
+                                )
+                                .noOcclusion()
+                )
+        );
+    }
 
     private EcologyContent() {}
 
