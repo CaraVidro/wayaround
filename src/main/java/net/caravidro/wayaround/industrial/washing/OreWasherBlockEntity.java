@@ -761,12 +761,18 @@ public final class OreWasherBlockEntity
                             1
                     );
 
-            AssemblyItemData.profileOrCreate(
+            AssemblyPartProfile drumProfile =
+                    AssemblyItemData.profileOrCreate(
+                            drum,
+                            AssemblyPartProfile.Kind.GENERAL,
+                            AssemblyPartProfile.Material.IRON,
+                            0,
+                            player.getRandom()
+                    );
+
+            AssemblyItemData.writePart(
                     drum,
-                    AssemblyPartProfile.Kind.GENERAL,
-                    AssemblyPartProfile.Material.IRON,
-                    0,
-                    player.getRandom()
+                    drumProfile
             );
 
         } else if (held.is(
@@ -779,12 +785,18 @@ public final class OreWasherBlockEntity
                             1
                     );
 
-            AssemblyItemData.profileOrCreate(
+            AssemblyPartProfile screenProfile =
+                    AssemblyItemData.profileOrCreate(
+                            screen,
+                            AssemblyPartProfile.Kind.GENERAL,
+                            AssemblyPartProfile.Material.IRON,
+                            0,
+                            player.getRandom()
+                    );
+
+            AssemblyItemData.writePart(
                     screen,
-                    AssemblyPartProfile.Kind.GENERAL,
-                    AssemblyPartProfile.Material.IRON,
-                    0,
-                    player.getRandom()
+                    screenProfile
             );
 
         } else {
