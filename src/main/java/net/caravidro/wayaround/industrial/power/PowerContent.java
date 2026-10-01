@@ -245,6 +245,10 @@ public final class PowerContent {
         ITEMS.register("boiler_safety_valve",
             () -> new Item(new Item.Properties().stacksTo(16)));
 
+    public static final DeferredItem<Item> STEAM_PRESSURE_GAUGE =
+        ITEMS.register("steam_pressure_gauge",
+            () -> new Item(new Item.Properties().stacksTo(1).durability(256)));
+
     public static final DeferredBlock<SteamBoilerBlock> STEAM_BOILER =
         BLOCKS.register("steam_boiler",
             () -> new SteamBoilerBlock(
