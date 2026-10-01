@@ -44,6 +44,12 @@ public final class VegetationPalette {
         }
 
         if (biome.contains(
+                "cherry"
+        )) {
+            return 20;
+        }
+
+        if (biome.contains(
                 "forest"
         )
                 || biome.contains(
@@ -63,9 +69,6 @@ public final class VegetationPalette {
 
         if (biome.contains(
                 "meadow"
-        )
-                || biome.contains(
-                "cherry"
         )) {
             return 20;
         }
@@ -187,6 +190,43 @@ public final class VegetationPalette {
         }
 
         if (biome.contains(
+                "cherry"
+        )) {
+            if (pick < 0.20F) {
+                return EcologyContent.FLOWERING_SHRUB.get()
+                        .defaultBlockState();
+            }
+
+            if (pick < 0.42F) {
+                return EcologyContent.MEADOW_SEDGE.get()
+                        .defaultBlockState();
+            }
+
+            if (pick < 0.58F) {
+                return EcologyContent.CREEK_CLOVER.get()
+                        .defaultBlockState();
+            }
+
+            if (pick < 0.72F) {
+                return Blocks.PINK_PETALS
+                        .defaultBlockState();
+            }
+
+            if (pick < 0.84F) {
+                return Blocks.AZURE_BLUET
+                        .defaultBlockState();
+            }
+
+            if (pick < 0.93F) {
+                return EcologyContent.WOODLAND_SORREL.get()
+                        .defaultBlockState();
+            }
+
+            return Blocks.SHORT_GRASS
+                    .defaultBlockState();
+        }
+
+        if (biome.contains(
                 "dark_forest"
         )
                 || biome.contains(
@@ -239,9 +279,6 @@ public final class VegetationPalette {
 
         if (biome.contains(
                 "meadow"
-        )
-                || biome.contains(
-                "cherry"
         )) {
             if (pick < 0.16F) {
                 return EcologyContent.FLOWERING_SHRUB.get()
