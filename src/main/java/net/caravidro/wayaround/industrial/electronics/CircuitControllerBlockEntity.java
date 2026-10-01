@@ -736,6 +736,13 @@ public final class CircuitControllerBlockEntity
                 ),
                 true
         );
+
+        player.displayClientMessage(
+                Component.translatable(
+                        "message.wayaround.circuit_controller.flow"
+                ),
+                false
+        );
     }
 
     public void dropBoard() {
