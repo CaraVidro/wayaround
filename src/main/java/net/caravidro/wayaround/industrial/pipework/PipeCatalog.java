@@ -68,7 +68,8 @@ public final class PipeCatalog {
                     450,
                     PipeSpec.media(
                             PipeMedium.LIQUID,
-                            PipeMedium.GAS
+                            PipeMedium.GAS,
+                            PipeMedium.STEAM
                     )
             );
 
