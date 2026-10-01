@@ -190,6 +190,25 @@ public final class ElectronicsWorkbenchRenderer
         double y =
                 BOARD_Y + 0.045;
 
+        /*
+         * Every installed part sits on a visible copper pad. The GUI's
+         * connection square therefore represents a real solder/contact point
+         * rather than an abstract graph handle.
+         */
+        part(
+                poseStack,
+                bufferSource,
+                packedLight,
+                packedOverlay,
+                Blocks.COPPER_BLOCK.defaultBlockState(),
+                x,
+                BOARD_Y + 0.024,
+                z,
+                0.042,
+                0.009,
+                0.042
+        );
+
         switch (type) {
             case INPUT_TERMINAL -> renderTerminal(
                     poseStack,
