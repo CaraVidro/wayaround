@@ -368,51 +368,6 @@ public final class VoidDomainClientEffects {
             formationWhiteTicks--;
         }
 
-        if (formationWhiteTicks > 0
-                && formationWhiteTotal > 0) {
-
-            float elapsed =
-                    1.0F
-                            - formationWhiteTicks
-                                    / (float) formationWhiteTotal;
-
-            float fade =
-                    Mth.clamp(
-                            (elapsed - 0.62F)
-                                    / 0.38F,
-                            0.0F,
-                            1.0F
-                    );
-
-            fade =
-                    fade * fade
-                            * (
-                            3.0F
-                                    - 2.0F * fade
-                    );
-
-            int alpha =
-                    Mth.clamp(
-                            Math.round(
-                                    255.0F
-                                            * fade
-                            ),
-                            0,
-                            255
-                    );
-
-            if (alpha > 0) {
-                graphics.fill(
-                        0,
-                        0,
-                        width,
-                        height,
-                        alpha << 24
-                                | 0xFFFFFF
-                );
-            }
-        }
-
         if (whiteFlashTicks > 0) {
             whiteFlashTicks--;
         }
@@ -492,6 +447,55 @@ public final class VoidDomainClientEffects {
         int height =
                 minecraft.getWindow()
                         .getGuiScaledHeight();
+
+        /*
+         * PREPARE whiteout belongs in the GUI pass, not the client tick.
+         * The tick owns only timing/state; this pass owns actual drawing.
+         */
+        if (formationWhiteTicks > 0
+                && formationWhiteTotal > 0) {
+
+            float elapsed =
+                    1.0F
+                            - formationWhiteTicks
+                                    / (float) formationWhiteTotal;
+
+            float fade =
+                    Mth.clamp(
+                            (elapsed - 0.62F)
+                                    / 0.38F,
+                            0.0F,
+                            1.0F
+                    );
+
+            fade =
+                    fade * fade
+                            * (
+                            3.0F
+                                    - 2.0F * fade
+                    );
+
+            int alpha =
+                    Mth.clamp(
+                            Math.round(
+                                    255.0F
+                                            * fade
+                            ),
+                            0,
+                            255
+                    );
+
+            if (alpha > 0) {
+                graphics.fill(
+                        0,
+                        0,
+                        width,
+                        height,
+                        alpha << 24
+                                | 0xFFFFFF
+                );
+            }
+        }
 
         if (whiteFlashTicks > 0) {
             float progress =
