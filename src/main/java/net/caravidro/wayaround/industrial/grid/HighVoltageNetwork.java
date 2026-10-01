@@ -161,7 +161,7 @@ public final class HighVoltageNetwork {
                     0,
                     nextReceiver,
                     cables.size(),
-                    lineEfficiency(
+                    GridPhysics.highVoltageEfficiency(
                             cables.size(),
                             sourceEfficiency
                     )
@@ -169,7 +169,7 @@ public final class HighVoltageNetwork {
         }
 
         float efficiency =
-                lineEfficiency(
+                GridPhysics.highVoltageEfficiency(
                         cables.size(),
                         sourceEfficiency
                 );
@@ -303,23 +303,4 @@ public final class HighVoltageNetwork {
         }
     }
 
-    private static float lineEfficiency(
-            int cables,
-            float sourceEfficiency
-    ) {
-        float line =
-                Math.max(
-                        0.82F,
-                        1.0F
-                                - cables
-                                        * 0.0015F
-                );
-
-        return Math.clamp(
-                line
-                        * sourceEfficiency,
-                0.50F,
-                1.0F
-        );
-    }
 }
