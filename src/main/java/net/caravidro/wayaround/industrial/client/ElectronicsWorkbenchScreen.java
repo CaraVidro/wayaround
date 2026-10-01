@@ -39,6 +39,7 @@ public final class ElectronicsWorkbenchScreen
     private static final double MAX_ZOOM = 2.35;
 
     private ComponentType draggingType;
+    private int catalogScroll;
     private int selectedCell = -1;
     private int hoveredCell = -1;
     private int pendingConnection = -1;
@@ -224,8 +225,36 @@ public final class ElectronicsWorkbenchScreen
         int rowY =
                 y + 27;
 
-        for (ComponentType type :
-                visibleComponents()) {
+        List<ComponentType> components =
+                visibleComponents();
+
+        int maxScroll =
+                Math.max(
+                        0,
+                        components.size() - 9
+                );
+
+        catalogScroll =
+                Math.clamp(
+                        catalogScroll,
+                        0,
+                        maxScroll
+                );
+
+        int end =
+                Math.min(
+                        components.size(),
+                        catalogScroll + 9
+                );
+
+        for (int index = catalogScroll;
+             index < end;
+             index++) {
+
+            ComponentType type =
+                    components.get(
+                            index
+                    );
 
             int count =
                     inventoryCount(
@@ -735,6 +764,42 @@ public final class ElectronicsWorkbenchScreen
                         0xFF9DA8A0,
                         false
                 );
+
+                line +=
+                        14;
+
+                java.util.List<net.minecraft.util.FormattedCharSequence> propertyLines =
+                        font.split(
+                                Component.translatable(
+                                        "container.wayaround.electronics.property."
+                                                + type.name()
+                                                .toLowerCase(
+                                                        Locale.ROOT
+                                                )
+                                ),
+                                PROPERTY_WIDTH - 18
+                        );
+
+                for (int index = 0;
+                     index < Math.min(
+                             4,
+                             propertyLines.size()
+                     );
+                     index++) {
+                    graphics.drawString(
+                            font,
+                            propertyLines.get(
+                                    index
+                            ),
+                            x + 8,
+                            line,
+                            0xFF87958D,
+                            false
+                    );
+
+                    line +=
+                            10;
+                }
             }
         }
 
@@ -1020,6 +1085,35 @@ public final class ElectronicsWorkbenchScreen
             double scrollX,
             double scrollY
     ) {
+        if (inside(
+                mouseX,
+                mouseY,
+                leftPos + 5,
+                topPos + TOP,
+                CATALOG_WIDTH - 5,
+                imageHeight - TOP - 5
+        )
+                && scrollY != 0.0) {
+
+            int maxScroll =
+                    Math.max(
+                            0,
+                            visibleComponents().size() - 9
+                    );
+
+            catalogScroll =
+                    Math.clamp(
+                            catalogScroll
+                                    - (int) Math.signum(
+                                    scrollY
+                            ),
+                            0,
+                            maxScroll
+                    );
+
+            return true;
+        }
+
         if (!insideCanvas(
                 mouseX,
                 mouseY
@@ -1149,8 +1243,24 @@ public final class ElectronicsWorkbenchScreen
         int y =
                 topPos + TOP + 27;
 
-        for (ComponentType type :
-                visibleComponents()) {
+        List<ComponentType> components =
+                visibleComponents();
+
+        int end =
+                Math.min(
+                        components.size(),
+                        catalogScroll + 9
+                );
+
+        for (int index = catalogScroll;
+             index < end;
+             index++) {
+
+            ComponentType type =
+                    components.get(
+                            index
+                    );
+
             if (inside(
                     mouseX,
                     mouseY,
