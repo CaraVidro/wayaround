@@ -34,10 +34,10 @@ public final class DomainIntroClient {
             );
 
     private static final int VOID_ABSOLUTE_IMAGE_WIDTH =
-            768;
+            320;
 
     private static final int VOID_ABSOLUTE_IMAGE_HEIGHT =
-            432;
+            180;
 
     private static byte style;
     private static byte variant;
