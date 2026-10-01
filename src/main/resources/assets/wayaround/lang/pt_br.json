@@ -980,5 +980,7 @@
   "container.wayaround.electronics.property.relay": "Chave eletromecânica preparada para lógica mais profunda.",
   "container.wayaround.electronics.property.led": "Saída visual. Acende quando uma fonte conectada tem sinal em um controlador energizado.",
   "container.wayaround.electronics.property.buzzer": "Saída sonora. Emite pulsos tipo note block quando uma fonte conectada está ativa.",
-  "container.wayaround.electronics.property.distance_detector": "Sensor-fonte. Detecta seres vivos até 16 blocos à frente; quanto mais perto, mais forte o sinal."
+  "container.wayaround.electronics.property.distance_detector": "Sensor-fonte. Detecta seres vivos até 16 blocos à frente; quanto mais perto, mais forte o sinal.",
+  "screen.wayaround.update_log.splash_readability": "Os splashes dialogados agora quebram em linhas próprias em vez de encolher até virar formiga.",
+  "screen.wayaround.update_log.active_electronics": "Eletrônica ativa: PCB iluminada corretamente, Controller com entrada traseira/saída frontal, LED, Buzzer e Detector de Distância."
 }
