@@ -72,6 +72,38 @@ The new physical chain is:
 
 `fuel + water → boiler → steam/pressure → steam pipe → piston engine → shaft/gears → generator → electrical grid`
 
+## Milestone 1.6 — The Grid
+
+Implemented in the development branch:
+
+- existing Energy Cable remains the ordinary low-voltage machine network;
+- one-way low-voltage distribution lets transformers/protection devices isolate input from output;
+- High Voltage Line is a separate transmission topology and does not expose generic FE to ordinary machines;
+- transmission distance creates bounded electrical loss;
+- Grid Transformer supports low→high and high→low operation with conversion loss;
+- Distribution Fuse Box accumulates overload stress, trips and requires a manual reset;
+- Electric Motor converts low-voltage electrical energy back into the shared `IRotationalPower` mechanical language;
+- Utility Poles provide physical support for visible transmission routes;
+- dedicated Grid GameTests cover line loss, transformer conservation, fuse ratings and motor mechanical output.
+
+Connected chain:
+
+`mechanical source → generator → low voltage → transformer → high-voltage line → transformer → fuse box → loads`
+
+And the reverse conversion is now possible:
+
+`electrical grid → electric motor → shaft/gears → mechanical machine`
+
+### Connected-world polish
+
+- WAYAROUND title branding no longer overlaps the vanilla Play stack at small window sizes;
+- UPDATE LOG is anchored to a responsive lower-side position;
+- the Update Log screen switches to a compact layout when the game window is minimized;
+- Antarctica is connected directly after the Southern Ocean in the VISTA tree;
+- Antarctica, sunfish basking and puffer-carrot discoveries are secret;
+- temporary hidden VISTA hints can appear before those secrets and are revoked when the real discovery is earned;
+- Antarctic cold, sky, lightmap, precipitation and wind ambience now begin gradually in the Southern Ocean instead of snapping at the continental biome boundary.
+
 ## Minecraft title menu
 
 The title screen keeps showing the active release:
@@ -111,6 +143,8 @@ Material history now survives with the parts themselves, and electronics no long
 
 Steam is now part of that same connected world: boilers create physical steam, pipe ratings matter, piston engines create mechanical work, and electricity remains downstream of a generator.
 
-This is the foundation for the next stages of WayAround: heavy industry, sensors, automation, logistics, computers, trains, steam ships and large infrastructure.
+The Grid continues the chain: electricity has transmission, transformation, protection and motors. Power can travel long distances, step down into local distribution, trip protection under abuse, and return to the mechanical network through electric motors.
+
+This is the foundation for the next stages of WayAround: heavy industry, sensors, automation, logistics, computers, trains, electrification, steam ships and large infrastructure.
 
 The world is beginning to connect.
