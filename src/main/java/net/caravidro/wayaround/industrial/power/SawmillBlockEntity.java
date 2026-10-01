@@ -754,6 +754,15 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                     blade,
                     bladeProfile
             );
+
+            AssemblyItemData.observeMaterialUse(
+                    blade,
+                    bladeProfile.material(),
+                    server.getGameTime(),
+                    load,
+                    vibration,
+                    heat
+            );
         }
 
         if (shaftProfile != null) {
@@ -774,6 +783,15 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                     driveShaft,
                     shaftProfile
             );
+
+            AssemblyItemData.observeMaterialUse(
+                    driveShaft,
+                    shaftProfile.material(),
+                    server.getGameTime(),
+                    load,
+                    vibration,
+                    heat
+            );
         }
 
         if (bodyProfile != null) {
@@ -789,6 +807,15 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
             AssemblyItemData.writePart(
                     body,
                     bodyProfile
+            );
+
+            AssemblyItemData.observeMaterialUse(
+                    body,
+                    bodyProfile.material(),
+                    server.getGameTime(),
+                    load * 0.45F,
+                    vibration,
+                    heat * 0.55F
             );
         }
 
@@ -989,6 +1016,10 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                     0,
                     server.random
             );
+            AssemblyItemData.materialMemoryOrCreate(
+                    blade,
+                    server.getGameTime()
+            );
         }
 
         if (!player.getAbilities()
@@ -1052,6 +1083,10 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                     AssemblyPartProfile.Kind.SHAFT,
                     0,
                     server.random
+            );
+            AssemblyItemData.materialMemoryOrCreate(
+                    driveShaft,
+                    server.getGameTime()
             );
         }
 
@@ -1566,14 +1601,17 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
     private float machineCondition() {
         return Mth.clamp(
                 partCondition(
+                        blade,
                         bladeProfile()
                 )
                         * 0.46F
                         + partCondition(
+                        driveShaft,
                         shaftProfile()
                 )
                                 * 0.26F
                         + partCondition(
+                        body,
                         bodyProfile()
                 )
                                 * 0.18F
@@ -1588,11 +1626,15 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
     }
 
     private static float partCondition(
+            ItemStack stack,
             @Nullable AssemblyPartProfile profile
     ) {
         return profile == null
                 ? 0.0F
-                : profile.durabilityScore();
+                : profile.durabilityScore()
+                        * AssemblyItemData.materialCondition(
+                        stack
+                );
     }
 
     private void ensureProfiles(
@@ -1610,6 +1652,10 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                 AssemblyPartProfile.Kind.FRAME,
                 0,
                 server.random
+        );
+        AssemblyItemData.materialMemoryOrCreate(
+                body,
+                server.getGameTime()
         );
 
         if (!blade.isEmpty()) {
