@@ -1,0 +1,8 @@
+{
+  "feature": "wayaround:volcanic_crater",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}
