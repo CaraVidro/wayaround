@@ -125,6 +125,7 @@ public final class EcologyContent {
                             .updateInterval(
                                     2
                             )
+                            .fireImmune()
                             .build(
                                     "wayaround:player_corpse"
                             )
