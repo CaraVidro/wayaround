@@ -124,6 +124,7 @@ public final class ElectronicsContent {
                                             2.8F,
                                             4.5F
                                     )
+                                    .noOcclusion()
                                     .sound(
                                             SoundType.WOOD
                                     )
