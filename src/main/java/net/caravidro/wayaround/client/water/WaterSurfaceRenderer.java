@@ -214,6 +214,13 @@ public final class WaterSurfaceRenderer {
         double fadeStartSquared =
                 fadeStart * fadeStart;
 
+        var matrix =
+                stack.last()
+                        .pose();
+
+        double waveTime =
+                time * 0.10;
+
         for (WaterSurface surface :
                 SURFACES) {
 
@@ -260,6 +267,22 @@ public final class WaterSurfaceRenderer {
 
             double base =
                     surface.baseY;
+
+            /*
+             * Cheap center-point half-space test before eight sine calls.
+             * The precise four-corner near-plane guard remains below, but
+             * water comfortably behind the camera never reaches wave math.
+             */
+            double centerForward =
+                    dx * lookX
+                            + (
+                            base - camera.y
+                    ) * lookY
+                            + dz * lookZ;
+
+            if (centerForward < -1.25) {
+                continue;
+            }
 
             double y00 =
                     base
@@ -437,9 +460,6 @@ public final class WaterSurfaceRenderer {
             if (alpha <= 0) {
                 continue;
             }
-
-            var matrix =
-                    stack.last().pose();
 
             buffer.addVertex(
                             matrix,
@@ -743,11 +763,26 @@ public final class WaterSurfaceRenderer {
                 continue;
             }
 
-            BlockPos above =
-                    mutable.above();
+            mutable.set(
+                    x,
+                    y + 1,
+                    z
+            );
 
-            if (!level.getFluidState(above)
-                    .is(FluidTags.WATER)) {
+            boolean aboveWater =
+                    level.getFluidState(
+                            mutable
+                    ).is(
+                            FluidTags.WATER
+                    );
+
+            mutable.set(
+                    x,
+                    y,
+                    z
+            );
+
+            if (!aboveWater) {
                 return mutable.immutable();
             }
 
@@ -760,12 +795,9 @@ public final class WaterSurfaceRenderer {
     private static double wave(
             int x,
             int z,
-            long time,
+            double t,
             double amplitude
     ) {
-        double t =
-                time * 0.10;
-
         return Mth.sin(
                         (float) (
                                 x * 0.38
@@ -793,10 +825,12 @@ public final class WaterSurfaceRenderer {
     }
 
     public static void clearCache() {
+        /*
+         * Keep backing arrays. Toggling dimensions/features used to trim both
+         * lists to zero, forcing a large reallocation on the next scan.
+         */
         SURFACES.clear();
-        SURFACES.trimToSize();
         pendingSurfaces.clear();
-        pendingSurfaces.trimToSize();
         scan = null;
         cachedLevel = null;
         lastScanTick = Long.MIN_VALUE;
