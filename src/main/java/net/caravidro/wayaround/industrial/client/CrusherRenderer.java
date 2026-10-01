@@ -29,16 +29,16 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
                 lod
         );
         pose.pushPose();pose.translate(.5,0,.5);pose.mulPose(Axis.YP.rotationDegrees(-crusher.getBlockState().getValue(CrusherBlock.FACING).toYRot()));
-        if(crusher.working())pose.translate(Math.sin(time*2.4)*crusher.vibration()*.008,0,Math.cos(time*2.1)*crusher.vibration()*.008);
+        if(crusher.working()&&lod.detailedGeometry())pose.translate(Math.sin(time*2.4)*crusher.vibration()*.008,0,Math.cos(time*2.1)*crusher.vibration()*.008);
         var metal=Blocks.IRON_BLOCK.defaultBlockState();var wood=Blocks.STRIPPED_SPRUCE_LOG.defaultBlockState();
         double width=crusher.size()==CrusherSize.SMALL?.65:.96;
         box(pose,buffer,light,overlay,wood,0,.08,0,width,.16,width);
-        for(double x:new double[]{-width*.4,width*.4})for(double z:new double[]{-width*.4,width*.4})
-            box(pose,buffer,light,overlay,metal,x,.35,z,.07,crusher.size()==CrusherSize.SMALL?.5:.7,.07);
+        for(double sx:SIGNS)for(double sz:SIGNS)
+            box(pose,buffer,light,overlay,metal,sx*width*.4,.35,sz*width*.4,.07,crusher.size()==CrusherSize.SMALL?.5:.7,.07);
         if(crusher.size()!=CrusherSize.SMALL){
             // Beams visibly reach the separately placed supports; all geometry remains within the 3x3 footprint.
             box(pose,buffer,light,overlay,metal,0,.18,0,2.7,.10,.12);
-            if(crusher.size()==CrusherSize.LARGE)for(double x:new double[]{-1,1})box(pose,buffer,light,overlay,metal,x,.18,0,.12,.10,2.2);
+            if(crusher.size()==CrusherSize.LARGE)for(double x:SIGNS)box(pose,buffer,light,overlay,metal,x,.18,0,.12,.10,2.2);
         }
         var parts=crusher.parts();
         if(parts.has(MachinePartSpec.Role.BEARING) || parts.integratedCrusherDrive()){
@@ -46,7 +46,7 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
                     ? parts.spec(MachinePartSpec.Role.BEARING).heavy()
                     : parts.spec(MachinePartSpec.Role.DRIVE).heavy();
             var bearing=heavyBearing?metal:Blocks.COPPER_BLOCK.defaultBlockState();
-            for(double x:new double[]{-.35,.35})box(pose,buffer,light,overlay,bearing,x,.36,0,.16,.22,.24);
+            for(double x:SIGNS)box(pose,buffer,light,overlay,bearing,x*.35,.36,0,.16,.22,.24);
         }
         if(parts.has(MachinePartSpec.Role.DRIVE)){
             boolean heavy=parts.spec(MachinePartSpec.Role.DRIVE).heavy();
@@ -83,8 +83,8 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
         if(parts.has(MachinePartSpec.Role.FEED)){
             boolean wide=parts.spec(MachinePartSpec.Role.FEED).heavy();double radius=wide?.45:.31;
             var material=wide?metal:Blocks.OAK_PLANKS.defaultBlockState();
-            for(double x:new double[]{-radius,radius})box(pose,buffer,light,overlay,material,x,.85,0,.06,.28,radius*2);
-            for(double z:new double[]{-radius,radius})box(pose,buffer,light,overlay,material,0,.85,z,radius*2,.28,.06);
+            for(double x:SIGNS)box(pose,buffer,light,overlay,material,x*radius,.85,0,.06,.28,radius*2);
+            for(double z:SIGNS)box(pose,buffer,light,overlay,material,0,.85,z*radius,radius*2,.28,.06);
             if(wide&&lod.detailedGeometry())for(double x:SIGNS)box(pose,buffer,light,overlay,metal,x*.40,.83,-.46,.04,.26,.04);
         }
         if(crusher.inputCount()>0)box(pose,buffer,light,overlay,Blocks.IRON_ORE.defaultBlockState(),0,.8,0,.22,.12,.2);
