@@ -1322,6 +1322,24 @@ public final class EcologyContent {
                                                 MAGIC_FISHING_ROD.get()
                                         );
                                         output.accept(
+                                                RIVER_SPRIG_ITEM.get()
+                                        );
+                                        output.accept(
+                                                WOODLAND_SORREL_ITEM.get()
+                                        );
+                                        output.accept(
+                                                DAMP_FERN_ITEM.get()
+                                        );
+                                        output.accept(
+                                                MEADOW_SEDGE_ITEM.get()
+                                        );
+                                        output.accept(
+                                                CREEK_CLOVER_ITEM.get()
+                                        );
+                                        output.accept(
+                                                SHADE_NETTLE_ITEM.get()
+                                        );
+                                        output.accept(
                                                 RAW_SARDINE_MEAT.get()
                                         );
                                         output.accept(
