@@ -83,15 +83,22 @@ public final class MechanicalTransmissionBlockEntity
         AssemblyPartProfile profile =
                 partProfile();
 
+        float memoryCondition =
+                AssemblyItemData.materialCondition(
+                        part
+                );
+
         float condition =
                 profile == null
                         ? 0.82F
+                                * memoryCondition
                         : profile.performanceFactor()
                                 * (
                                 0.70F
                                         + profile.durabilityScore()
                                                 * 0.30F
-                        );
+                        )
+                                * memoryCondition;
 
         float base =
                 getBlockState()
@@ -235,6 +242,18 @@ public final class MechanicalTransmissionBlockEntity
             AssemblyItemData.writePart(
                     part,
                     profile
+            );
+
+            AssemblyItemData.observeMaterialUse(
+                    part,
+                    profile.material(),
+                    time,
+                    loadFactor,
+                    Math.max(
+                            0.0F,
+                            stress - 0.65F
+                    ),
+                    heat
             );
 
             if (profile.durabilityScore()
