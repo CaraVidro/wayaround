@@ -38,6 +38,7 @@
     "client.CreateWorldScreenFeatureMixin",
     "client.NexusSkyMixin",
     "client.NexusFogMixin",
+    "client.DeepSeaCapsuleCameraMixin",
     "client.DeepOceanFogMixin",
     "client.TitleScreenBrandingMixin"
   ],
