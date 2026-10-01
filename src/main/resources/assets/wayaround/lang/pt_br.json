@@ -936,5 +936,20 @@
   "screen.wayaround.update_log.milestone16": "Marco 1.6: The Grid / geração → transmissão → proteção → cargas.",
   "screen.wayaround.update_log.grid": "Linhas de alta tensão, transformadores, quadros de fusível e motores elétricos agora conectam o mundo elétrico.",
   "screen.wayaround.update_log.polar_fix": "A ambientação polar agora começa gradualmente no Oceano do Sul; pistas VISTA secretas somem quando a descoberta real é conquistada.",
-  "screen.wayaround.update_log.dialogue_splashes": "Os splashes dialogados voltaram: testemunhas, feiticeiros, pescadores, eletricistas e outros personagens agora assinam suas próprias histórias."
+  "screen.wayaround.update_log.dialogue_splashes": "Os splashes dialogados voltaram: testemunhas, feiticeiros, pescadores, eletricistas e outros personagens agora assinam suas próprias histórias.",
+  "container.wayaround.electronics_workbench": "Bancada de Eletrônica — Layout da Placa",
+  "container.wayaround.electronics.inventory_parts": "Componentes no inventário",
+  "container.wayaround.electronics.copper_available": "Trilha de cobre: %s",
+  "container.wayaround.electronics.zoom_hint": "Roda: zoom • Meio + arrastar: mover • Direito: remover",
+  "container.wayaround.electronics.properties": "Propriedades",
+  "container.wayaround.electronics.board_usage": "Espaço da placa: %s / %s",
+  "container.wayaround.electronics.trace_count": "Conexões de cobre: %s",
+  "container.wayaround.electronics.signal_closed": "Caminho entrada → saída: conectado",
+  "container.wayaround.electronics.signal_open": "Caminho entrada → saída: aberto",
+  "container.wayaround.electronics.selected": "Posição %s",
+  "container.wayaround.electronics.empty_pad": "Posição vazia",
+  "container.wayaround.electronics.component_draw": "Consumo de operação: %s",
+  "container.wayaround.electronics.connection_armed": "Pad de conexão selecionado",
+  "container.wayaround.electronics.connection_help": "Clique no pad de cobre de outro componente.",
+  "message.wayaround.circuit_workbench.trace_cost": "Foram usados %s de trilha de cobre nessa conexão."
 }
