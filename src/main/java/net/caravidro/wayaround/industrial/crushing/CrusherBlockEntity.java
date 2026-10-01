@@ -66,21 +66,26 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         float target = 0, granted = 0;
         float request = size().power * parts.driveCost() * (recipe == null ? .15F : 1);
         IRotationalPower source = bestSource();
+        MechanicalLoad.Demand demand = MechanicalLoad.sample(source,request,requiredTorque,90F);
         stalled = !parts.complete() || !supported || strength < .12F
             || parts.condition(MachinePartSpec.Role.DRIVE) < .12F || parts.condition(MachinePartSpec.Role.BEARING) < .12F
             || heat > 1 || (recipe != null && recipe.hardness() > size().hardness * strength * 2.6F);
         if (source != null && source.active() && parts.complete() && supported) {
             granted = source.consumePower(request);
-            load = granted / Math.max(.01F,size().power);
-            if (recipe != null && (Math.abs(source.torque()) < requiredTorque || granted > supportCapacity())) stalled = true;
+            load = MechanicalLoad.normalized(granted,size().power);
+            if (recipe != null && (demand.torqueStarved() || granted > supportCapacity())) stalled = true;
             if (!stalled) target = source.rpm() * Mth.clamp(granted / request,0,1);
         } else load = 0;
         rpm += (target-rpm) * (parts.has(MachinePartSpec.Role.DRIVE) && parts.spec(MachinePartSpec.Role.DRIVE).heavy() ? .06F : .18F);
         if (Math.abs(rpm)<.01F) rpm=0;
         angle = (angle + rpm * .3F) % 360;
         vibration = recipe == null ? 0 : Mth.clamp(load * (1-parts.condition(MachinePartSpec.Role.BEARING))
-            + Math.abs(rpm)/100 * (1-parts.condition(MachinePartSpec.Role.DRIVE)),0,1);
-        heat = Math.max(0,heat-.0015F) + (recipe != null && granted > 0 ? .00035F * load * parts.driveCost() : 0);
+            + Math.abs(rpm)/100 * (1-parts.condition(MachinePartSpec.Role.DRIVE))
+            + (demand.torqueStarved() ? .32F : 0)
+            + demand.overspeed() * .18F,0,1);
+        heat = Math.max(0,heat-.0015F) + (recipe != null && granted > 0
+            ? .00035F * load * parts.driveCost() * (1 + Math.min(1.5F,demand.overspeed()))
+            : 0);
         if (working() && recipe != null && granted > .01F) {
             int batch = size().boundedBatch(input.get(0).getCount(), MAX_OUTPUT-outputCount(), recipe.count(), parts.feedMultiplier());
             if (canOutput(recipe,batch)) {
