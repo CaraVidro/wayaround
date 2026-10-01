@@ -62,6 +62,13 @@ public final class VoidDomainManager {
     private static final int DURATION_TICKS =
             12 * 20;
 
+    /*
+     * Give the exterior shell time to physically assemble around the cast
+     * point before anybody is moved into pocket-space.
+     */
+    private static final int FORMATION_TICKS =
+            32;
+
     private static final int COOLDOWN_TICKS =
             30 * 20;
 
@@ -96,7 +103,10 @@ public final class VoidDomainManager {
             ServerPlayer owner
     ) {
         if (!WorldFeatureRuntime.serverEnabled(WorldFeature.DOMAINS)
-                || !hasVoidSpectrum(owner)) {
+                || !hasVoidSpectrum(owner)
+                || !VoidDomainPresentation.get(
+                owner
+        ).canExpand()) {
             return false;
         }
 
@@ -243,6 +253,9 @@ public final class VoidDomainManager {
                         ownerState,
                         trapped,
                         tick
+                                + FORMATION_TICKS,
+                        tick
+                                + FORMATION_TICKS
                                 + DURATION_TICKS
                 );
 
@@ -250,20 +263,6 @@ public final class VoidDomainManager {
                 ownerId,
                 domain
         );
-
-        PARTICIPANT_TO_OWNER.put(
-                ownerId,
-                ownerId
-        );
-
-        for (UUID targetId :
-                trapped.keySet()) {
-
-            PARTICIPANT_TO_OWNER.put(
-                    targetId,
-                    ownerId
-            );
-        }
 
         COOLDOWN.put(
                 ownerId,
@@ -290,27 +289,21 @@ public final class VoidDomainManager {
                         ownerId,
                         exteriorCenter,
                         (float) CAPTURE_RADIUS,
-                        DURATION_TICKS
+                        FORMATION_TICKS
+                                + DURATION_TICKS
                 )
         );
 
         /*
-         * Participants physically enter the pocket. The ENTER payload carries
-         * the POCKET center, so the client builds its 3D star-space there.
+         * Participants remain in the real world while the white shell builds
+         * around them. PREPARE drives only the local whiteout timing; ENTER is
+         * deliberately delayed until the formation is complete.
          */
-        teleportToPocket(
-                owner,
-                level,
-                pocketCenter
-        );
-
         PacketDistributor.sendToPlayer(
                 owner,
-                VoidDomainVisualPayload.enter(
+                VoidDomainVisualPayload.prepare(
                         ownerId,
-                        pocketCenter,
-                        POCKET_HALF_SIZE,
-                        DURATION_TICKS,
+                        FORMATION_TICKS,
                         false
                 )
         );
@@ -329,20 +322,11 @@ public final class VoidDomainManager {
                 continue;
             }
 
-            teleportToPocket(
-                    target,
-                    level,
-                    entry.getValue()
-                            .pocketPosition
-            );
-
             PacketDistributor.sendToPlayer(
                     target,
-                    VoidDomainVisualPayload.enter(
+                    VoidDomainVisualPayload.prepare(
                             ownerId,
-                            pocketCenter,
-                            POCKET_HALF_SIZE,
-                            DURATION_TICKS,
+                            FORMATION_TICKS,
                             true
                     )
             );
@@ -357,18 +341,6 @@ public final class VoidDomainManager {
                 SoundSource.PLAYERS,
                 2.0F,
                 0.44F
-        );
-
-        level.sendParticles(
-                ParticleTypes.FLASH,
-                exteriorCenter.x,
-                exteriorCenter.y + 1.0,
-                exteriorCenter.z,
-                7,
-                3.8,
-                2.0,
-                3.8,
-                0.0
         );
 
         level.sendParticles(
@@ -391,15 +363,128 @@ public final class VoidDomainManager {
         );
 
         WayAround.LOGGER.info(
-                "[VoidDomain] owner={} trapped={} pocket={} duration={}t",
+                "[VoidDomain] owner={} trapped={} pocket={} formation={}t duration={}t",
                 owner.getGameProfile()
                         .getName(),
                 trapped.size(),
                 pocketCenter,
+                FORMATION_TICKS,
                 DURATION_TICKS
         );
 
         return true;
+    }
+
+    private static void activateDomain(
+            MinecraftServer server,
+            ServerLevel level,
+            ActiveVoidDomain domain
+    ) {
+        if (domain.activated) {
+            return;
+        }
+
+        ServerPlayer owner =
+                server.getPlayerList()
+                        .getPlayer(
+                                domain.owner
+                        );
+
+        if (owner == null) {
+            return;
+        }
+
+        domain.activated =
+                true;
+
+        PARTICIPANT_TO_OWNER.put(
+                domain.owner,
+                domain.owner
+        );
+
+        teleportToPocket(
+                owner,
+                level,
+                domain.pocketCenter
+        );
+
+        PacketDistributor.sendToPlayer(
+                owner,
+                VoidDomainVisualPayload.enter(
+                        domain.owner,
+                        domain.pocketCenter,
+                        POCKET_HALF_SIZE,
+                        DURATION_TICKS,
+                        false
+                )
+        );
+
+        for (Map.Entry<UUID, ParticipantState> entry :
+                domain.trapped.entrySet()) {
+
+            ServerPlayer target =
+                    server.getPlayerList()
+                            .getPlayer(
+                                    entry.getKey()
+                            );
+
+            if (target == null
+                    || target.serverLevel()
+                            != level) {
+                continue;
+            }
+
+            PARTICIPANT_TO_OWNER.put(
+                    target.getUUID(),
+                    domain.owner
+            );
+
+            teleportToPocket(
+                    target,
+                    level,
+                    entry.getValue()
+                            .pocketPosition
+            );
+
+            PacketDistributor.sendToPlayer(
+                    target,
+                    VoidDomainVisualPayload.enter(
+                            domain.owner,
+                            domain.pocketCenter,
+                            POCKET_HALF_SIZE,
+                            DURATION_TICKS,
+                            true
+                    )
+            );
+        }
+
+        /*
+         * At the exact handoff frame the exterior has finished becoming a
+         * sphere and participant clients are already at full white. The flash
+         * carries through the teleport, then fades into the interior Void.
+         */
+        level.playSound(
+                null,
+                BlockPos.containing(
+                        domain.exteriorCenter
+                ),
+                SoundEvents.ENDERMAN_TELEPORT,
+                SoundSource.PLAYERS,
+                1.7F,
+                0.52F
+        );
+
+        level.sendParticles(
+                ParticleTypes.FLASH,
+                domain.exteriorCenter.x,
+                domain.exteriorCenter.y + 1.0,
+                domain.exteriorCenter.z,
+                5,
+                CAPTURE_RADIUS * 0.35,
+                2.0,
+                CAPTURE_RADIUS * 0.35,
+                0.0
+        );
     }
 
     public static void onServerTick(
@@ -447,6 +532,18 @@ public final class VoidDomainManager {
                 );
 
                 iterator.remove();
+                continue;
+            }
+
+            if (!domain.activated) {
+                if (tick >= domain.activatesAt) {
+                    activateDomain(
+                            server,
+                            level,
+                            domain
+                    );
+                }
+
                 continue;
             }
 
@@ -574,6 +671,51 @@ public final class VoidDomainManager {
                 );
     }
 
+    /**
+     * True for both the Void owner and captured players while they physically
+     * occupy the temporary pocket-space. This is intentionally broader than
+     * isTrapped(): systems such as Vista/ecology must treat the whole pocket
+     * as "not the overworld geography", including for the caster.
+     */
+    public static boolean isInsideDomain(
+            ServerPlayer player
+    ) {
+        return player != null
+                && PARTICIPANT_TO_OWNER.containsKey(
+                        player.getUUID()
+                );
+    }
+
+    /**
+     * Position-level pocket check used by world systems that do not have a
+     * player reference. The pocket lives far away inside the Overworld, so
+     * coordinate-only geography checks would otherwise mistake it for polar
+     * terrain and allow ecology to leak into the Domain.
+     */
+    public static boolean isInsidePocket(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        if (level == null
+                || pos == null) {
+            return false;
+        }
+
+        for (ActiveVoidDomain domain :
+                ACTIVE.values()) {
+            if (domain.dimension.equals(
+                    level.dimension()
+            )
+                    && domain.isInsidePocket(
+                    pos
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static void clearAll() {
         ACTIVE.clear();
         PARTICIPANT_TO_OWNER.clear();
@@ -615,10 +757,12 @@ public final class VoidDomainManager {
         if (owner != null
                 && level != null) {
 
-            domain.ownerReturn.restore(
-                    owner,
-                    level
-            );
+            if (domain.activated) {
+                domain.ownerReturn.restore(
+                        owner,
+                        level
+                );
+            }
 
             PacketDistributor.sendToPlayer(
                     owner,
@@ -642,11 +786,13 @@ public final class VoidDomainManager {
                 continue;
             }
 
-            entry.getValue()
-                    .restore(
-                            target,
-                            level
-                    );
+            if (domain.activated) {
+                entry.getValue()
+                        .restore(
+                                target,
+                                level
+                        );
+            }
 
             PacketDistributor.sendToPlayer(
                     target,
@@ -893,7 +1039,9 @@ public final class VoidDomainManager {
         private final Map<UUID, ParticipantState> trapped;
         private final Map<Long, Boolean> temporaryBlocks =
                 new HashMap<>();
+        private final long activatesAt;
         private final long endsAt;
+        private boolean activated;
 
         private ActiveVoidDomain(
                 UUID owner,
@@ -903,6 +1051,7 @@ public final class VoidDomainManager {
                 int pocketFloorY,
                 ParticipantState ownerReturn,
                 Map<UUID, ParticipantState> trapped,
+                long activatesAt,
                 long endsAt
         ) {
             this.owner =
@@ -925,6 +1074,9 @@ public final class VoidDomainManager {
 
             this.trapped =
                     trapped;
+
+            this.activatesAt =
+                    activatesAt;
 
             this.endsAt =
                     endsAt;

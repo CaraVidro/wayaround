@@ -5,6 +5,7 @@ import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.domain.DomainIntroManager;
+import net.caravidro.wayaround.domain.VoidDomainPresentation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -24,6 +26,18 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
         value = Dist.CLIENT
 )
 public final class DomainIntroClient {
+
+    private static final ResourceLocation VOID_ABSOLUTE_IMAGE =
+            ResourceLocation.fromNamespaceAndPath(
+                    WayAround.MODID,
+                    "textures/gui/domain/void_absolute.png"
+            );
+
+    private static final int VOID_ABSOLUTE_IMAGE_WIDTH =
+            320;
+
+    private static final int VOID_ABSOLUTE_IMAGE_HEIGHT =
+            180;
 
     private static byte style;
     private static byte variant;
@@ -42,6 +56,17 @@ public final class DomainIntroClient {
             byte newVariant,
             int ticks
     ) {
+        /*
+         * Void has a server-owned three-stage presentation state. A local
+         * speculative intro cannot know whether the player is INNATE, SIMPLE
+         * or ABSOLUTE, so do not flash the wrong UI before the authoritative
+         * S2C payload arrives.
+         */
+        if (newStyle
+                == DomainIntroManager.VOID) {
+            return;
+        }
+
         startInternal(
                 newStyle,
                 newVariant,
@@ -170,6 +195,22 @@ public final class DomainIntroClient {
                 minecraft.getWindow()
                         .getGuiScaledHeight();
 
+        if (style
+                == DomainIntroManager.VOID
+                && VoidDomainPresentation.byId(
+                variant
+        )
+                == VoidDomainPresentation.INNATE) {
+            renderVoidInnateAttempt(
+                    event,
+                    minecraft,
+                    width,
+                    height,
+                    progress
+            );
+            return;
+        }
+
         int centerX =
                 width / 2;
 
@@ -254,7 +295,8 @@ public final class DomainIntroClient {
                     centerX,
                     top,
                     bottom,
-                    open
+                    open,
+                    progress
             );
 
             if (profile.shadowParticles()) {
@@ -277,25 +319,253 @@ public final class DomainIntroClient {
         }
 
         // Borders are deliberately last: the model stays behind both lines.
+        if (style
+                == DomainIntroManager.VOID) {
+            renderVoidRotatingBars(
+                    event,
+                    profile,
+                    centerX,
+                    top,
+                    bottom,
+                    halfLine,
+                    progress,
+                    bandHeight > 4
+            );
+        } else {
+            event.getGuiGraphics()
+                    .fill(
+                            centerX - halfLine,
+                            top,
+                            centerX + halfLine,
+                            top + 2,
+                            profile.line()
+                    );
+
+            if (bandHeight > 4) {
+                event.getGuiGraphics()
+                        .fill(
+                                0,
+                                bottom - 2,
+                                width,
+                                bottom,
+                                profile.line()
+                        );
+            }
+        }
+    }
+
+    private static void renderVoidInnateAttempt(
+            RenderGuiEvent.Post event,
+            Minecraft minecraft,
+            int width,
+            int height,
+            float progress
+    ) {
+        /*
+         * INNATE is the "there is a domain inside you, but no Expansion has
+         * been achieved" state. An attempted cast acknowledges the technique
+         * name, hesitates, then explicitly fails. No bars, player model, image,
+         * whiteout or pocket-space transition are rendered.
+         */
+        boolean failed =
+                progress
+                        >= 0.56F;
+
+        float phaseProgress =
+                failed
+                        ? (progress - 0.56F)
+                                / 0.44F
+                        : progress
+                                / 0.56F;
+
+        float visibility =
+                failed
+                        ? 1.0F
+                                - smooth(
+                                Math.max(
+                                        0.0F,
+                                        (phaseProgress - 0.68F)
+                                                / 0.32F
+                                )
+                        )
+                        : smooth(
+                                Math.min(
+                                        1.0F,
+                                        phaseProgress
+                                                / 0.30F
+                                )
+                        );
+
+        String text =
+                failed
+                        ? "NADA OCORREU."
+                        : "DOMÍNIO DE EXPANSÃO";
+
+        int alpha =
+                Mth.clamp(
+                        Math.round(
+                                (
+                                        failed
+                                                ? 190.0F
+                                                : 235.0F
+                                )
+                                        * visibility
+                        ),
+                        0,
+                        235
+                );
+
+        if (alpha <= 0) {
+            return;
+        }
+
+        float scale =
+                failed
+                        ? 1.20F
+                        : 1.62F;
+
+        PoseStack pose =
+                event.getGuiGraphics()
+                        .pose();
+
+        pose.pushPose();
+
+        pose.scale(
+                scale,
+                scale,
+                1.0F
+        );
+
+        int scaledWidth =
+                Math.round(
+                        width
+                                / scale
+                );
+
+        int scaledHeight =
+                Math.round(
+                        height
+                                / scale
+                );
+
+        event.getGuiGraphics()
+                .drawCenteredString(
+                        minecraft.font,
+                        text,
+                        scaledWidth / 2,
+                        scaledHeight / 2
+                                - minecraft.font.lineHeight
+                                        / 2,
+                        alpha << 24
+                                | (
+                                failed
+                                        ? 0x00BFC4CC
+                                        : 0x00FFFFFF
+                        )
+                );
+
+        pose.popPose();
+    }
+
+    private static void renderVoidRotatingBars(
+            RenderGuiEvent.Post event,
+            DomainIntroProfile profile,
+            int centerX,
+            int top,
+            int bottom,
+            int halfLine,
+            float progress,
+            boolean renderBottom
+    ) {
+        /*
+         * Entry: two diagonals rotate into a clean horizontal lock.
+         * Exit: they rotate away in opposite directions. The actor swaps pose
+         * at this exact same threshold (0.72), so the UI and character motion
+         * feel like one animation rather than unrelated layers.
+         */
+        float angle;
+
+        if (progress < 0.18F) {
+            angle =
+                    42.0F
+                            * (
+                            1.0F
+                                    - smooth(
+                                    progress
+                                            / 0.18F
+                            )
+                    );
+
+        } else if (progress < 0.72F) {
+            angle =
+                    0.0F;
+
+        } else {
+            angle =
+                    -58.0F
+                            * smooth(
+                            (progress - 0.72F)
+                                    / 0.28F
+                    );
+        }
+
+        PoseStack pose =
+                event.getGuiGraphics()
+                        .pose();
+
+        pose.pushPose();
+
+        pose.translate(
+                centerX,
+                top + 1.0F,
+                0.0F
+        );
+
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        angle
+                )
+        );
+
         event.getGuiGraphics()
                 .fill(
-                        centerX - halfLine,
-                        top,
-                        centerX + halfLine,
-                        top + 2,
+                        -halfLine,
+                        -1,
+                        halfLine,
+                        1,
                         profile.line()
                 );
 
-        if (bandHeight > 4) {
-            event.getGuiGraphics()
-                    .fill(
-                            0,
-                            bottom - 2,
-                            width,
-                            bottom,
-                            profile.line()
-                    );
+        pose.popPose();
+
+        if (!renderBottom) {
+            return;
         }
+
+        pose.pushPose();
+
+        pose.translate(
+                centerX,
+                bottom - 1.0F,
+                0.0F
+        );
+
+        pose.mulPose(
+                Axis.ZP.rotationDegrees(
+                        -angle
+                )
+        );
+
+        event.getGuiGraphics()
+                .fill(
+                        -halfLine,
+                        -1,
+                        halfLine,
+                        1,
+                        profile.line()
+                );
+
+        pose.popPose();
     }
 
     private static void renderVoidCosmicPrelude(
@@ -613,10 +883,55 @@ public final class DomainIntroClient {
             return;
         }
 
-        int imageHeight =
+        int availableWidth =
+                Math.max(
+                        1,
+                        width
+                );
+
+        int availableHeight =
                 Math.max(
                         1,
                         bottom - top
+                );
+
+        /*
+         * Preserve the original art aspect ratio. The old implementation
+         * independently stretched X/Y to fill the band, which turned every
+         * Domain background into rubber. Uniform cover-scaling plus scissoring
+         * keeps the composition intact and crops only the excess edges.
+         */
+        float scale =
+                Math.max(
+                        availableWidth
+                                / (float) profile.imageWidth(),
+                        availableHeight
+                                / (float) profile.imageHeight()
+                );
+
+        float drawWidth =
+                profile.imageWidth()
+                        * scale;
+
+        float drawHeight =
+                profile.imageHeight()
+                        * scale;
+
+        float drawX =
+                (availableWidth - drawWidth)
+                        * 0.5F;
+
+        float drawY =
+                top
+                        + (availableHeight - drawHeight)
+                                * 0.5F;
+
+        event.getGuiGraphics()
+                .enableScissor(
+                        0,
+                        top,
+                        width,
+                        bottom
                 );
 
         PoseStack pose =
@@ -624,17 +939,16 @@ public final class DomainIntroClient {
                         .pose();
 
         pose.pushPose();
+
         pose.translate(
-                0.0F,
-                top,
+                drawX,
+                drawY,
                 0.0F
         );
 
         pose.scale(
-                width
-                        / (float) profile.imageWidth(),
-                imageHeight
-                        / (float) profile.imageHeight(),
+                scale,
+                scale,
                 1.0F
         );
 
@@ -652,6 +966,9 @@ public final class DomainIntroClient {
                 );
 
         pose.popPose();
+
+        event.getGuiGraphics()
+                .disableScissor();
     }
 
     private static void renderRepeatedText(
@@ -697,11 +1014,20 @@ public final class DomainIntroClient {
             int color =
                     switch (row % 3) {
                         case 1 ->
-                                profile.secondaryText();
+                                withAlpha(
+                                        profile.secondaryText(),
+                                        68
+                                );
                         case 2 ->
-                                profile.tertiaryText();
+                                withAlpha(
+                                        profile.tertiaryText(),
+                                        50
+                                );
                         default ->
-                                profile.primaryText();
+                                withAlpha(
+                                        profile.primaryText(),
+                                        84
+                                );
                     };
 
             for (int x = offset;
@@ -723,6 +1049,19 @@ public final class DomainIntroClient {
 
         event.getGuiGraphics()
                 .disableScissor();
+    }
+
+    private static int withAlpha(
+            int color,
+            int alpha
+    ) {
+        return Mth.clamp(
+                alpha,
+                0,
+                255
+        ) << 24
+                | color
+                        & 0x00FFFFFF;
     }
 
     private static float envelope(
@@ -788,7 +1127,8 @@ public final class DomainIntroClient {
             int centerX,
             int top,
             int bottom,
-            float open
+            float open,
+            float progress
     ) {
         Minecraft minecraft =
                 Minecraft.getInstance();
@@ -837,9 +1177,16 @@ public final class DomainIntroClient {
                     0.0F
             );
 
+            byte activePose =
+                    style
+                            == DomainIntroManager.VOID
+                            && progress >= 0.72F
+                            ? DomainIntroProfile.POSE_VOID_EXIT
+                            : profile.pose();
+
             applyPose(
                     model,
-                    profile.pose()
+                    activePose
             );
 
             PoseStack pose =
@@ -874,10 +1221,16 @@ public final class DomainIntroClient {
                     180.0F
             );
 
+            /*
+             * PlayerModel is already authored in model-space with Y pointing
+             * down from the head toward the feet. Mirroring GUI Y here flips
+             * the entire character upside-down. Keep Y positive and flip Z
+             * only, matching the usual inventory/entity GUI convention.
+             */
             pose.scale(
                     scale,
-                    -scale,
-                    scale
+                    scale,
+                    -scale
             );
 
             pose.mulPose(
@@ -957,6 +1310,33 @@ public final class DomainIntroClient {
 
                 model.head.xRot =
                         -0.10F;
+            }
+
+            case DomainIntroProfile.POSE_VOID_EXIT -> {
+                /*
+                 * Exit stance: the hands break away from the casting seal as
+                 * the two GUI bars rotate out. It is intentionally distinct
+                 * from both SIMPLE and ABSOLUTE hold poses.
+                 */
+                model.rightArm.xRot =
+                        -0.76F;
+                model.rightArm.yRot =
+                        -1.02F;
+                model.rightArm.zRot =
+                        0.86F;
+
+                model.leftArm.xRot =
+                        -0.76F;
+                model.leftArm.yRot =
+                        1.02F;
+                model.leftArm.zRot =
+                        -0.86F;
+
+                model.head.xRot =
+                        0.18F;
+
+                model.head.yRot =
+                        0.18F;
             }
 
             case DomainIntroProfile.POSE_TUKUNA_APEX -> {

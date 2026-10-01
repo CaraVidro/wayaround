@@ -3,6 +3,7 @@ package net.caravidro.wayaround.advancement;
 import java.util.function.Predicate;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.domain.VoidDomainManager;
 import net.caravidro.wayaround.ecology.JellyfishEntity;
 import net.caravidro.wayaround.ecology.OarfishEntity;
 import net.caravidro.wayaround.ecology.WhaleEntity;
@@ -56,10 +57,19 @@ public final class VistaAdvancementManager {
             ServerLevel level =
                     player.serverLevel();
 
+            /*
+             * Void pocket-space physically lives at remote Overworld
+             * coordinates. Never interpret those technical coordinates as
+             * real geography: otherwise entering a Domain can accidentally
+             * unlock Southern Ocean / Antarctica Vista emblems.
+             */
             if (level.dimension()
                     .equals(
                             Level.OVERWORLD
-                    )) {
+                    )
+                    && !VoidDomainManager.isInsideDomain(
+                    player
+            )) {
 
                 if (AntarcticField.isSouthernOcean(
                         player.getBlockX(),

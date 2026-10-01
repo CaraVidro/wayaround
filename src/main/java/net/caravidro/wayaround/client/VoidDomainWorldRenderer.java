@@ -54,15 +54,21 @@ public final class VoidDomainWorldRenderer {
     private static final int DARK_DEBRIS_COUNT = 82;
     private static final int PALE_FRAGMENT_COUNT = 58;
 
-    private static final double INTERIOR_SHELL_RADIUS = 96.0;
-    private static final double STAR_MIN_RADIUS = 54.0;
-    private static final double STAR_MAX_RADIUS = 91.0;
+    /*
+     * The interior is deliberately much larger than the physical pocket.
+     * Keeping the visual geometry far away reduces near-field parallax, so a
+     * few player steps no longer make the singularity appear to "follow" the
+     * camera. Vertex counts stay fixed; only world-space scale changes.
+     */
+    private static final double INTERIOR_SHELL_RADIUS = 220.0;
+    private static final double STAR_MIN_RADIUS = 132.0;
+    private static final double STAR_MAX_RADIUS = 210.0;
     private static final double NEAR_GUARD = 0.35;
 
     private static final Vec3 SINGULARITY =
             new Vec3(
                     0.0,
-                    24.0,
+                    112.0,
                     0.0
             );
 
@@ -465,9 +471,9 @@ public final class VoidDomainWorldRenderer {
                 opaque,
                 matrix,
                 SINGULARITY,
-                9.2,
-                12.2,
-                8.4,
+                30.0,
+                40.0,
+                27.0,
                 0,
                 0,
                 0,
@@ -483,10 +489,10 @@ public final class VoidDomainWorldRenderer {
                 glow,
                 matrix,
                 SINGULARITY,
-                9.45,
-                12.45,
-                8.65,
-                0.19,
+                30.65,
+                40.65,
+                27.65,
+                0.42,
                 255,
                 238,
                 155,
@@ -497,10 +503,10 @@ public final class VoidDomainWorldRenderer {
                 glow,
                 matrix,
                 SINGULARITY,
-                9.72,
-                12.72,
-                8.92,
-                0.10,
+                31.20,
+                41.20,
+                28.20,
+                0.22,
                 255,
                 250,
                 205,
@@ -514,37 +520,67 @@ public final class VoidDomainWorldRenderer {
             long seed,
             double time
     ) {
-        double[] radii = {
-                7.5,
-                10.4,
-                13.6,
-                17.2,
-                21.5,
-                26.0,
-                31.0
+        /*
+         * The reference is not a stack of clean rings. It reads like several
+         * thick turbulent streams being twisted into the singularity.
+         *
+         * Keep the geometry bounded, but make every band:
+         * - curl inward across its revolution;
+         * - breathe in width;
+         * - split into bright and dim sections;
+         * - transition cold blue -> white -> warm ivory/yellow;
+         * - lose alpha hard when it reaches the core, so the light appears to
+         *   be swallowed instead of painted over the black aperture.
+         */
+        double[] baseRadii = {
+                35.0,
+                43.0,
+                52.0,
+                63.0,
+                76.0,
+                91.0,
+                108.0,
+                127.0,
+                148.0
         };
 
-        for (int ring = 0;
-             ring < radii.length;
-             ring++) {
+        final int segments =
+                96;
 
-            double radius =
-                    radii[ring];
+        for (int band = 0;
+             band < baseRadii.length;
+             band++) {
 
-            double width =
-                    ring < 2
-                            ? 2.3
-                            : 1.4
-                            + (ring % 3) * 0.55;
+            double baseRadius =
+                    baseRadii[band];
 
-            int segments =
-                    84;
+            double baseWidth =
+                    4.4
+                            + (band % 3)
+                                    * 1.05;
 
             double phase =
-                    time
-                            * (0.45
-                            + ring * 0.07)
-                            + ring * 0.71;
+                    band * 0.78
+                            + time
+                                    * (
+                                    0.060
+                                            + band
+                                                    * 0.0035
+                            )
+                                    * (
+                                    (band & 1) == 0
+                                            ? 1.0
+                                            : -0.72
+                            );
+
+            /*
+             * Inner streams curl more aggressively. Outer streams remain
+             * broad and slow, which makes the whole thing feel enormous.
+             */
+            double curl =
+                    10.0
+                            + (baseRadii.length - 1 - band)
+                                    * 2.3;
 
             for (int segment = 0;
                  segment < segments;
@@ -553,110 +589,384 @@ public final class VoidDomainWorldRenderer {
                 long h =
                         mix(
                                 seed
-                                        + ring
-                                        * 0x632BE59BD9B4E019L
+                                        + band
+                                                * 0x632BE59BD9B4E019L
                                         + segment
-                                        * 0x9E3779B97F4A7C15L
+                                                * 0x9E3779B97F4A7C15L
                         );
 
                 /*
-                 * Broken, blocky bands. Missing sections keep the accretion
-                 * field from turning into a clean sci-fi torus.
+                 * Deliberate fractures. More common outside, rarer near the
+                 * bright inner streams, like chunks of the vortex vanish into
+                 * darkness and then reappear.
                  */
-                if ((h & 15L) == 0L
-                        || (h & 63L) == 1L) {
+                int gapMask =
+                        band < 3
+                                ? 31
+                                : 15;
+
+                if ((h & gapMask) == 0L
+                        || (
+                        band > 4
+                                && (h & 63L) == 1L
+                )) {
                     continue;
                 }
 
+                double t0 =
+                        segment
+                                / (double) segments;
+
+                double t1 =
+                        (segment + 1)
+                                / (double) segments;
+
                 double a0 =
                         phase
-                                + Math.PI * 2.0
-                                * segment
-                                / segments;
+                                + Math.PI
+                                        * 2.0
+                                        * t0;
 
                 double a1 =
                         phase
-                                + Math.PI * 2.0
-                                * (segment + 1)
-                                / segments;
+                                + Math.PI
+                                        * 2.0
+                                        * t1;
 
-                double pulse =
-                        0.78
-                                + 0.22
-                                * Math.sin(
-                                a0 * 5.0
-                                        + ring
-                                * 1.9
+                /*
+                 * Radius changes through the revolution instead of staying
+                 * constant: this is what turns "rings" into actual vortex arms.
+                 */
+                double spiral0 =
+                        baseRadius
+                                + (
+                                t0 - 0.5
+                        )
+                                * curl;
+
+                double spiral1 =
+                        baseRadius
+                                + (
+                                t1 - 0.5
+                        )
+                                * curl;
+
+                double turbulence0 =
+                        1.0
+                                + 0.085
+                                        * Math.sin(
+                                        a0 * 4.2
+                                                + band
+                                                        * 1.37
+                                                + time
+                                                        * 0.19
+                                )
+                                + 0.045
+                                        * Math.cos(
+                                        a0 * 8.7
+                                                - band
+                                                        * 0.61
+                                );
+
+                double turbulence1 =
+                        1.0
+                                + 0.085
+                                        * Math.sin(
+                                        a1 * 4.2
+                                                + band
+                                                        * 1.37
+                                                + time
+                                                        * 0.19
+                                )
+                                + 0.045
+                                        * Math.cos(
+                                        a1 * 8.7
+                                                - band
+                                                        * 0.61
+                                );
+
+                spiral0 *=
+                        turbulence0;
+
+                spiral1 *=
+                        turbulence1;
+
+                double widthNoise =
+                        0.72
+                                + 0.28
+                                        * Math.sin(
+                                        a0 * 3.3
+                                                + band
+                                                        * 1.91
+                                );
+
+                double width =
+                        baseWidth
+                                * (
+                                0.78
+                                        + Math.abs(
+                                        widthNoise
+                                )
+                                        * 0.58
                         );
 
-                double inner =
-                        radius
-                                - width
-                                * 0.5
-                                * pulse;
+                /*
+                 * Hotness is radial:
+                 *   far       -> deep cold blue
+                 *   mid       -> blue-white
+                 *   near core -> ivory/yellow
+                 *
+                 * Then a separate sink term kills the light at the very core.
+                 */
+                double sampleRadius =
+                        (
+                                spiral0
+                                        + spiral1
+                        )
+                                * 0.5;
 
-                double outer =
-                        radius
+                float coldToWhite =
+                        smooth01(
+                                (
+                                        145.0
+                                                - sampleRadius
+                                )
+                                        / 70.0
+                        );
+
+                float whiteToWarm =
+                        smooth01(
+                                (
+                                        78.0
+                                                - sampleRadius
+                                )
+                                        / 38.0
+                        );
+
+                float coreSink =
+                        smooth01(
+                                (
+                                        sampleRadius
+                                                - 27.0
+                                )
+                                        / 14.0
+                        );
+
+                /*
+                 * A moving brightness crest avoids one perfectly uniform band
+                 * and gives the "light sliding through the vortex" look.
+                 */
+                float crest =
+                        0.68F
+                                + 0.32F
+                                        * (float) (
+                                        0.5
+                                                + 0.5
+                                                        * Math.sin(
+                                                        a0
+                                                                * 2.15
+                                                                + band
+                                                                        * 1.17
+                                                                - time
+                                                                        * 0.24
+                                                )
+                                );
+
+                int coldR =
+                        130;
+                int coldG =
+                        180;
+                int coldB =
+                        255;
+
+                int whiteR =
+                        242;
+                int whiteG =
+                        249;
+                int whiteB =
+                        255;
+
+                int warmR =
+                        255;
+                int warmG =
+                        235;
+                int warmB =
+                        158;
+
+                int red =
+                        lerpChannel(
+                                lerpChannel(
+                                        coldR,
+                                        whiteR,
+                                        coldToWhite
+                                ),
+                                warmR,
+                                whiteToWarm
+                        );
+
+                int green =
+                        lerpChannel(
+                                lerpChannel(
+                                        coldG,
+                                        whiteG,
+                                        coldToWhite
+                                ),
+                                warmG,
+                                whiteToWarm
+                        );
+
+                int blue =
+                        lerpChannel(
+                                lerpChannel(
+                                        coldB,
+                                        whiteB,
+                                        coldToWhite
+                                ),
+                                warmB,
+                                whiteToWarm
+                        );
+
+                int baseAlpha =
+                        72
+                                + (int) (
+                                crest
+                                        * 132.0F
+                        );
+
+                /*
+                 * Outer streams are more ethereal. Very inner streams are
+                 * bright right before falling off the coreSink cliff.
+                 */
+                float outerFade =
+                        1.0F
+                                - 0.38F
+                                        * smooth01(
+                                        (
+                                                sampleRadius
+                                                        - 112.0
+                                        )
+                                                / 42.0
+                                );
+
+                int alpha =
+                        Math.max(
+                                0,
+                                Math.min(
+                                        235,
+                                        Math.round(
+                                                baseAlpha
+                                                        * outerFade
+                                                        * coreSink
+                                        )
+                                )
+                        );
+
+                if (alpha <= 2) {
+                    continue;
+                }
+
+                double inner0 =
+                        spiral0
+                                - width
+                                        * 0.5;
+
+                double outer0 =
+                        spiral0
                                 + width
-                                * 0.5
-                                * pulse;
+                                        * 0.5;
+
+                double inner1 =
+                        spiral1
+                                - width
+                                        * 0.5;
+
+                double outer1 =
+                        spiral1
+                                + width
+                                        * 0.5;
 
                 Vec3 p0 =
                         accretionPoint(
-                                inner,
+                                inner0,
                                 a0
                         );
 
                 Vec3 p1 =
                         accretionPoint(
-                                outer,
+                                outer0,
                                 a0
                         );
 
                 Vec3 p2 =
                         accretionPoint(
-                                outer,
+                                outer1,
                                 a1
                         );
 
                 Vec3 p3 =
                         accretionPoint(
-                                inner,
+                                inner1,
                                 a1
                         );
 
-                int brightness =
-                        ring <= 1
-                                ? 255
-                                : 205
-                                + (int) (h & 35L);
-
-                int red =
-                        ring <= 1
-                                ? 255
-                                : Math.min(
-                                255,
-                                brightness + 16
+                /*
+                 * Soft halo first. Same geometry budget class, only one extra
+                 * quad per visible segment, and it dramatically thickens the
+                 * vortex without spawning entities or particles.
+                 */
+                double halo =
+                        width
+                                * (
+                                0.80
+                                        + whiteToWarm
+                                                * 0.42
                         );
 
-                int green =
-                        ring <= 1
-                                ? 246
-                                : brightness;
-
-                int blue =
-                        ring <= 1
-                                ? 202
-                                : Math.min(
-                                255,
-                                brightness + 38
+                Vec3 h0 =
+                        accretionPoint(
+                                Math.max(
+                                        1.0,
+                                        spiral0 - halo
+                                ),
+                                a0
                         );
 
-                int alpha =
-                        ring <= 1
-                                ? 205
-                                : 85
-                                + (int) (h & 63L);
+                Vec3 h1 =
+                        accretionPoint(
+                                spiral0 + halo,
+                                a0
+                        );
+
+                Vec3 h2 =
+                        accretionPoint(
+                                spiral1 + halo,
+                                a1
+                        );
+
+                Vec3 h3 =
+                        accretionPoint(
+                                Math.max(
+                                        1.0,
+                                        spiral1 - halo
+                                ),
+                                a1
+                        );
+
+                quad(
+                        glow,
+                        matrix,
+                        h0,
+                        h1,
+                        h2,
+                        h3,
+                        red,
+                        green,
+                        blue,
+                        Math.max(
+                                5,
+                                alpha / 4
+                        )
+                );
 
                 quad(
                         glow,
@@ -670,8 +980,123 @@ public final class VoidDomainWorldRenderer {
                         blue,
                         alpha
                 );
+
+                /*
+                 * Hot inner streak: only where the stream is close enough to
+                 * the singularity. This gives the reference's white/yellow
+                 * "burning rim" immediately before the light disappears.
+                 */
+                if (whiteToWarm > 0.22F
+                        && (h & 3L) != 0L) {
+
+                    double streakWidth =
+                            width
+                                    * (
+                                    0.16
+                                            + whiteToWarm
+                                                    * 0.13
+                            );
+
+                    Vec3 s0 =
+                            accretionPoint(
+                                    spiral0
+                                            - streakWidth,
+                                    a0
+                            );
+
+                    Vec3 s1 =
+                            accretionPoint(
+                                    spiral0
+                                            + streakWidth,
+                                    a0
+                            );
+
+                    Vec3 s2 =
+                            accretionPoint(
+                                    spiral1
+                                            + streakWidth,
+                                    a1
+                            );
+
+                    Vec3 s3 =
+                            accretionPoint(
+                                    spiral1
+                                            - streakWidth,
+                                    a1
+                            );
+
+                    quad(
+                            glow,
+                            matrix,
+                            s0,
+                            s1,
+                            s2,
+                            s3,
+                            255,
+                            lerpChannel(
+                                    250,
+                                    231,
+                                    whiteToWarm
+                            ),
+                            lerpChannel(
+                                    230,
+                                    142,
+                                    whiteToWarm
+                            ),
+                            Math.min(
+                                    245,
+                                    alpha + 28
+                            )
+                    );
+                }
             }
         }
+    }
+
+    private static int lerpChannel(
+            int from,
+            int to,
+            float amount
+    ) {
+        float t =
+                smooth01(
+                        amount
+                );
+
+        return Math.max(
+                0,
+                Math.min(
+                        255,
+                        Math.round(
+                                from
+                                        + (
+                                        to - from
+                                )
+                                        * t
+                        )
+                )
+        );
+    }
+
+    private static float smooth01(
+            double value
+    ) {
+        float t =
+                (float) Math.max(
+                        0.0,
+                        Math.min(
+                                1.0,
+                                value
+                        )
+                );
+
+        return t
+                * t
+                * (
+                3.0F
+                        - 2.0F
+                                * t
+        );
     }
 
     private static void renderDarkDebris(
@@ -698,10 +1123,10 @@ public final class VoidDomainWorldRenderer {
                     );
 
             double radius =
-                    11.0
+                    34.0
                             + ((h >>> 12) & 0xFFFFL)
                             / 65535.0
-                            * 37.0;
+                            * 86.0;
 
             double angle =
                     ((h2 >>> 10) & 0xFFFFL)
@@ -709,8 +1134,8 @@ public final class VoidDomainWorldRenderer {
                             * Math.PI
                             * 2.0
                             + time
-                            * (0.08
-                            + (index % 7) * 0.006);
+                            * (0.026
+                            + (index % 7) * 0.002);
 
             Vec3 planar =
                     accretionPoint(
@@ -722,7 +1147,7 @@ public final class VoidDomainWorldRenderer {
                     (((h >>> 38) & 0x3FFL)
                             / 1023.0
                             - 0.5)
-                            * 17.0;
+                            * 34.0;
 
             Vec3 center =
                     planar.add(
@@ -732,10 +1157,10 @@ public final class VoidDomainWorldRenderer {
                     );
 
             double size =
-                    0.45
+                    0.85
                             + ((h2 >>> 34) & 0xFFL)
                             / 255.0
-                            * 2.35;
+                            * 4.40;
 
             int shade =
                     1
@@ -768,6 +1193,11 @@ public final class VoidDomainWorldRenderer {
             long seed,
             double time
     ) {
+        /*
+         * Pale matter is grouped around the vortex plane instead of behaving
+         * like evenly distributed glowing cubes. Near the inner bands it warms
+         * toward ivory; farther out it remains cold blue-white.
+         */
         for (int index = 0;
              index < PALE_FRAGMENT_COUNT;
              index++) {
@@ -776,21 +1206,35 @@ public final class VoidDomainWorldRenderer {
                     mix(
                             seed
                                     + index
-                                    * 0xA24BAED4963EE407L
+                                            * 0xA24BAED4963EE407L
                     );
 
             double radius =
-                    30.0
+                    72.0
                             + ((h >>> 13) & 0xFFFFL)
-                            / 65535.0
-                            * 29.0;
+                                    / 65535.0
+                                    * 104.0;
 
             double angle =
                     ((h >>> 32) & 0xFFFFL)
                             / 65535.0
                             * Math.PI
                             * 2.0
-                            - time * 0.028;
+                            - time
+                                    * (
+                                    0.006
+                                            + (index % 5)
+                                                    * 0.0006
+                            );
+
+            radius *=
+                    0.94
+                            + 0.08
+                                    * Math.sin(
+                                    angle * 3.0
+                                            + index
+                                                    * 0.37
+                            );
 
             Vec3 planar =
                     accretionPoint(
@@ -802,7 +1246,11 @@ public final class VoidDomainWorldRenderer {
                     (((h >>> 49) & 0x1FFL)
                             / 511.0
                             - 0.5)
-                            * 30.0;
+                            * (
+                            26.0
+                                    + radius
+                                            * 0.19
+                    );
 
             Vec3 center =
                     planar.add(
@@ -812,14 +1260,47 @@ public final class VoidDomainWorldRenderer {
                     );
 
             double size =
-                    0.8
+                    1.4
                             + ((h >>> 7) & 0xFFL)
-                            / 255.0
-                            * 3.8;
+                                    / 255.0
+                                    * 7.8;
 
-            int warm =
-                    205
-                            + (int) ((h >>> 23) & 42L);
+            float warmth =
+                    smooth01(
+                            (
+                                    92.0
+                                            - radius
+                            )
+                                    / 42.0
+                    );
+
+            int red =
+                    lerpChannel(
+                            205,
+                            255,
+                            warmth
+                    );
+
+            int green =
+                    lerpChannel(
+                            226,
+                            239,
+                            warmth
+                    );
+
+            int blue =
+                    lerpChannel(
+                            255,
+                            174,
+                            warmth
+                    );
+
+            int alpha =
+                    48
+                            + (int) (
+                            (h >>> 40)
+                                    & 79L
+                    );
 
             box(
                     glow,
@@ -827,25 +1308,51 @@ public final class VoidDomainWorldRenderer {
                     center,
                     size,
                     size
-                            * (0.45
-                            + ((h >>> 18) & 7L)
-                            * 0.08),
+                            * (
+                            0.45
+                                    + ((h >>> 18) & 7L)
+                                            * 0.08
+                    ),
                     size
-                            * (0.65
-                            + ((h >>> 28) & 7L)
-                            * 0.07),
-                    Math.min(
-                            255,
-                            warm + 18
+                            * (
+                            0.65
+                                    + ((h >>> 28) & 7L)
+                                            * 0.07
                     ),
-                    Math.min(
-                            255,
-                            warm + 22
-                    ),
-                    255,
-                    60
-                            + (int) ((h >>> 40) & 95L)
+                    red,
+                    green,
+                    blue,
+                    alpha
             );
+
+            /*
+             * Some fragments get a dim satellite cube, giving the large white
+             * clouds in the reference a chunkier Minecraft-like breakup.
+             */
+            if ((h & 7L) == 0L) {
+                Vec3 satellite =
+                        center.add(
+                                ((h >>> 3) & 3L) - 1.5,
+                                ((h >>> 5) & 3L) * 0.55 - 0.8,
+                                ((h >>> 9) & 3L) - 1.5
+                        );
+
+                box(
+                        glow,
+                        matrix,
+                        satellite,
+                        size * 0.42,
+                        size * 0.31,
+                        size * 0.48,
+                        red,
+                        green,
+                        blue,
+                        Math.max(
+                                24,
+                                alpha / 2
+                        )
+                );
+            }
         }
     }
 
@@ -945,8 +1452,37 @@ public final class VoidDomainWorldRenderer {
         for (VoidDomainClientEffects.VisualDomain domain :
                 domains) {
 
+            float formation =
+                    Math.max(
+                            0.0F,
+                            Math.min(
+                                    1.0F,
+                                    domain.formationProgress()
+                            )
+                    );
+
+            float eased =
+                    formation
+                            * formation
+                            * (
+                            3.0F
+                                    - 2.0F
+                                            * formation
+                    );
+
+            /*
+             * The shell is born close to the caster and expands into the full
+             * Domain radius while individual facets reveal at slightly
+             * different moments. It reads as "the sphere is assembling" rather
+             * than a finished bubble popping into existence in one frame.
+             */
             float radius =
-                    domain.radius();
+                    domain.radius()
+                            * (
+                            0.12F
+                                    + 0.88F
+                                            * eased
+                    );
 
             AABB bounds =
                     new AABB(
@@ -997,6 +1533,45 @@ public final class VoidDomainWorldRenderer {
                      lon < EXTERIOR_LONGITUDE_SEGMENTS;
                      lon++) {
 
+                    long tileHash =
+                            mix(
+                                    ((long) lat << 32)
+                                            ^ lon
+                                                    * 0x9E3779B97F4A7C15L
+                            );
+
+                    float threshold =
+                            (
+                                    (tileHash >>> 40)
+                                            & 0xFFFFL
+                            )
+                                    / 65535.0F
+                                    * 0.78F;
+
+                    if (formation
+                            < threshold) {
+                        continue;
+                    }
+
+                    float tileReveal =
+                            Math.max(
+                                    0.0F,
+                                    Math.min(
+                                            1.0F,
+                                            (formation - threshold)
+                                                    / 0.22F
+                                    )
+                            );
+
+                    tileReveal =
+                            tileReveal
+                                    * tileReveal
+                                    * (
+                                    3.0F
+                                            - 2.0F
+                                                    * tileReveal
+                            );
+
                     double theta0 =
                             Math.PI * 2.0
                                     * lon
@@ -1036,9 +1611,14 @@ public final class VoidDomainWorldRenderer {
                             );
 
                     int alpha =
-                            (lat + lon) % 2 == 0
-                                    ? 84
-                                    : 112;
+                            Math.round(
+                                    (
+                                            (lat + lon) % 2 == 0
+                                                    ? 176.0F
+                                                    : 220.0F
+                                    )
+                                            * tileReveal
+                            );
 
                     any |= solidTriangle(
                             buffer,

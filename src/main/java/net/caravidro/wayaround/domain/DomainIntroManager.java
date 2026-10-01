@@ -62,12 +62,14 @@ public final class DomainIntroManager {
     public static boolean requestVoid(
             ServerPlayer player
     ) {
+        /*
+         * Even INNATE is allowed to reach the intro. Its whole point is to
+         * answer an attempted Expansion with text and then... nothing.
+         * SIMPLE/ABSOLUTE continue on to the actual cast.
+         */
         return SpectrumAccess.has(
                 player,
                 SpectrumType.VOID
-        )
-                && SpectrumProgression.voidDomainUnlocked(
-                player
         )
                 && request(
                 player,
@@ -132,7 +134,7 @@ public final class DomainIntroManager {
                         .getTickCount();
 
         byte variant =
-                SpectrumProgression.domainVariant(
+                variantFor(
                         player,
                         style
                 );
@@ -209,7 +211,7 @@ public final class DomainIntroManager {
                         .getTickCount();
 
         byte variant =
-                SpectrumProgression.domainVariant(
+                variantFor(
                         player,
                         style
                 );
@@ -270,6 +272,23 @@ public final class DomainIntroManager {
         return true;
     }
 
+    private static byte variantFor(
+            ServerPlayer player,
+            byte style
+    ) {
+        if (style
+                == VOID) {
+            return VoidDomainPresentation.get(
+                    player
+            ).networkId();
+        }
+
+        return SpectrumProgression.domainVariant(
+                player,
+                style
+        );
+    }
+
     private static boolean canUseStyle(
             ServerPlayer player,
             byte style
@@ -279,11 +298,7 @@ public final class DomainIntroManager {
                     SpectrumAccess.has(
                             player,
                             SpectrumType.VOID
-                    )
-                            && SpectrumProgression
-                            .voidDomainUnlocked(
-                                    player
-                            );
+                    );
 
             case TUKUNA ->
                     SpectrumAccess.has(
@@ -375,10 +390,15 @@ public final class DomainIntroManager {
             byte style
     ) {
         switch (style) {
-            case VOID ->
+            case VOID -> {
+                if (VoidDomainPresentation.get(
+                        player
+                ).canExpand()) {
                     VoidDomainManager.expand(
                             player
                     );
+                }
+            }
 
             case TUKUNA ->
                     TukunaDomainPreview.start(

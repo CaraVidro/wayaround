@@ -2,6 +2,7 @@ package net.caravidro.wayaround.mixin.client;
 
 import net.caravidro.wayaround.client.AntarcticClientLighting;
 import net.caravidro.wayaround.client.ClientBlizzardState;
+import net.caravidro.wayaround.client.VoidDomainClientEffects;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.Level;
@@ -18,6 +19,20 @@ public abstract class AntarcticPrecipitationMixin {
         Minecraft minecraft = Minecraft.getInstance();
         if ((Object) this != minecraft.level || minecraft.level == null || minecraft.getCameraEntity() == null
                 || !minecraft.level.dimension().equals(Level.OVERWORLD)) return;
+
+        /*
+         * The Void pocket lives at technical Overworld coordinates. Weather
+         * must be completely suppressed there; otherwise the remote biome and
+         * local weather field can still feed snow through vanilla rendering.
+         */
+        if (VoidDomainClientEffects.localInterior()
+                != null) {
+            callback.setReturnValue(
+                    0.0F
+            );
+            return;
+        }
+
         float polar =
                 AntarcticClientLighting.polarInfluence(
                         minecraft.level,
