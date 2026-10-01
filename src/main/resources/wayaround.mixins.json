@@ -11,6 +11,7 @@
     "NoiseRouterMixin",
     "AntarcticSurfaceMixin",
     "VolcanicSurfaceMixin",
+    "GreatRiftSurfaceMixin",
     "AntarcticWaterFreezingMixin",
     "TukunaMobPickupMixin",
     "InfinityPushMixin",
