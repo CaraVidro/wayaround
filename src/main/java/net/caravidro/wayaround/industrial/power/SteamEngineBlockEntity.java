@@ -375,29 +375,57 @@ public final class SteamEngineBlockEntity
     }
 
     public Component status() {
+        Component steamState =
+                Component.translatable(
+                        steam <= 0
+                                ? "message.wayaround.steam_engine.steam_empty"
+                                : steam < STEAM_CAPACITY * 0.25F
+                                        ? "message.wayaround.steam_engine.steam_low"
+                                        : "message.wayaround.steam_engine.steam_ready"
+                );
+
+        Component motionState =
+                Component.translatable(
+                        rpm < 1.0F
+                                ? "message.wayaround.steam_engine.motion_stopped"
+                                : rpm < 35.0F
+                                        ? "message.wayaround.steam_engine.motion_slow"
+                                        : rpm < 85.0F
+                                                ? "message.wayaround.steam_engine.motion_working"
+                                                : "message.wayaround.steam_engine.motion_fast"
+                );
+
         return Component.translatable(
-                "message.wayaround.steam_engine.status_v2",
+                "message.wayaround.steam_engine.status_v3",
+                steamState,
+                motionState
+        );
+    }
+
+    public Component measurement() {
+        return Component.translatable(
+                "message.wayaround.steam_engine.measurement",
                 steam,
                 STEAM_CAPACITY,
                 String.format(
                         java.util.Locale.ROOT,
-                        "%.1f",
+                        "%.2f",
                         pressureBar
                 ),
                 temperatureC,
                 String.format(
                         java.util.Locale.ROOT,
-                        "%.1f",
+                        "%.2f",
                         rpm
                 ),
                 String.format(
                         java.util.Locale.ROOT,
-                        "%.2f",
+                        "%.3f",
                         torque
                 ),
                 String.format(
                         java.util.Locale.ROOT,
-                        "%.2f",
+                        "%.3f",
                         availablePower
                 )
         );
