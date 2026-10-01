@@ -75,6 +75,12 @@ public enum WorldFeature {
             "Antarctic terrain, freezing, blizzards, frost and glacial systems."
     ),
 
+    VOLCANIC_REGIONS(
+            WorldFeatureCategory.WORLD,
+            "Volcanic Regions",
+            "Giant volcanic provinces, basalt highlands, crater lava and geothermal heat."
+    ),
+
     INDUSTRIAL_MACHINES(
             WorldFeatureCategory.INDUSTRY,
             "Industrial Machines",
