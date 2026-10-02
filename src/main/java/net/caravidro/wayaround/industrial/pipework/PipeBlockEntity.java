@@ -31,14 +31,19 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     private boolean open,removing;
     private FluidStack tank=FluidStack.EMPTY;
     /*
-     * Open outlets need a distinct accumulator. Reusing tank here aliases the
-     * valve's intake budget on one-pipe networks and either duplicates water
-     * or prevents sub-bucket flow from ever reaching a real 1000 mB source.
+     * Keep discharge accumulation separate from the transport/source tank.
+     * This is the v1.5 Ore Washer/partial-output conservation fix.
      */
     private FluidStack outletBuffer=FluidStack.EMPTY;
     private FluidStack visible=FluidStack.EMPTY;
     private long wetUntil;
     private float integrity=1;
+    private float hydraulicPressureBar;
+    private float peakHydraulicPressureBar;
+    private float rotaryLiftRpm;
+    private float rotaryLiftAngle;
+    private float rotaryLiftLoad;
+    private boolean rotaryLiftTorqueStarved;
     private int outletCursor;
     public PipeBlockEntity(BlockPos pos,BlockState state){super(PipeworkContent.PIPE_ENTITY.get(),pos,state);}
     public void restoreBody(ItemStack stack){body=section(stack);sync();}
@@ -52,6 +57,36 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     public boolean complete(){return !(getBlockState().getBlock() instanceof LargePipeBlock b)||sections==b.required();}
     public int capacity(){return getBlockState().getBlock() instanceof LargePipeBlock b?(b.colossal()?64000:16000):2000;}
     public int amount(){return tank.getAmount();}
+    public float hydraulicPressureBar(){return hydraulicPressureBar;}
+    public float peakHydraulicPressureBar(){return peakHydraulicPressureBar;}
+    public float rotaryLiftRpm(){return rotaryLiftRpm;}
+    public float rotaryLiftAngle(){return rotaryLiftAngle;}
+    public float rotaryLiftLoad(){return rotaryLiftLoad;}
+    public boolean rotaryLiftTorqueStarved(){return rotaryLiftTorqueStarved;}
+    public float rotaryLiftVibration(){
+        return Math.clamp(
+                (rotaryLiftTorqueStarved?.42F:0F)
+                        +Math.max(0,rotaryLiftLoad-1F)*.28F
+                        +(1F-integrity)*.25F,
+                0F,1.5F);
+    }
+    public float rotaryLiftCondition(){
+        float bodyCondition=AssemblyItemData.materialMechanicalIntegrity(body);
+        var profile=AssemblyItemData.readPart(body);
+        if(profile!=null)bodyCondition*=profile.durabilityScore()*profile.performanceFactor();
+        return Math.clamp(bodyCondition*integrity,.08F,1F);
+    }
+    public void updateRotaryLift(float rpm,float load,boolean torqueStarved){
+        float previous=rotaryLiftRpm;
+        rotaryLiftRpm=finite(rpm,-180F,180F);
+        rotaryLiftLoad=finite(load,0F,4F);
+        rotaryLiftTorqueStarved=torqueStarved;
+        rotaryLiftAngle=(rotaryLiftAngle+rotaryLiftRpm*.30F)%360F;
+        setChanged();
+        if(level!=null&&!level.isClientSide
+                &&Math.floorMod(level.getGameTime()+worldPosition.asLong(),5)==0
+                &&(Math.abs(previous-rotaryLiftRpm)>.02F||Math.abs(rotaryLiftRpm)>.01F))sync();
+    }
     public PipeBlockEntity controller(){return owner==null?this:level!=null&&level.hasChunkAt(owner)&&level.getBlockEntity(owner) instanceof PipeBlockEntity pipe?pipe:null;}
     public static List<BlockPos> shellPositions(BlockPos center,BlockState state){
         if(!(state.getBlock() instanceof LargePipeBlock b))return List.of();
@@ -96,6 +131,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         }
     }
     public boolean installValve(ItemStack stack,Player player,Direction direction){
+        if(getBlockState().getBlock() instanceof RotaryLiftPipeBlock)return false;
         if(hasValve()||!complete()||owner!=null)return false;
         if(getBlockState().getBlock() instanceof LargePipeBlock&&direction.getAxis()!=getBlockState().getValue(LargePipeBlock.AXIS))return false;
         valve=stack.copyWithCount(1);if(level instanceof ServerLevel server)AssemblyItemData.ensurePart(valve,AssemblyPartProfile.Kind.GEARBOX,0,server.random);
@@ -132,7 +168,11 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         if(pipe.owner!=null||!pipe.complete()||!WorldFeatureRuntime.enabled(level,WorldFeature.POWER_NETWORKS))return;
         if(level.isClientSide)return;
         if(!(level instanceof ServerLevel server))return;
-        if(pipe.open&&pipe.hasValve()&&Math.floorMod(level.getGameTime()+pos.asLong(),10)==0)PipeFlow.pump(server,pipe);
+        if(state.getBlock() instanceof RotaryLiftPipeBlock lift)RotaryLiftPipeFlow.tick(server,pipe,lift);
+        if(pipe.open&&pipe.hasValve()&&!(state.getBlock() instanceof RotaryLiftPipeBlock)
+                &&Math.floorMod(level.getGameTime()+pos.asLong(),10)==0)PipeFlow.pump(server,pipe);
+        pipe.hydraulicPressureBar*=.94F;
+        if(pipe.hydraulicPressureBar<.01F)pipe.hydraulicPressureBar=0;
         if(pipe.wet()&&pipe.integrity<.65F&&Math.floorMod(level.getGameTime()+pos.asLong(),20)==0){
             FluidStack liquid=pipe.visualFluid();
             server.sendParticles(PipeFlow.drip(liquid),pos.getX()+.5,pos.getY()+.05,pos.getZ()+.5,1,.25,0,.25,0);
@@ -157,13 +197,62 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         int tolerance=getBlockState().getBlock() instanceof IndustrialPipeBlock pipe?pipe.spec().maxTemperatureC():800;
         if(temperature>tolerance)damage(Math.min(.025F,(temperature-tolerance)*.00001F));
         flow=hasValve()?flow:direction;visible=fluid.copyWithAmount(1);wetUntil=level.getGameTime()+30;sync();}
+
+    public void applyHydraulicPressure(float pressureBar){
+        if(owner!=null||!complete())return;
+
+        float actual=Float.isFinite(pressureBar)?Math.max(0,pressureBar):0;
+        hydraulicPressureBar=Math.max(hydraulicPressureBar,actual);
+        peakHydraulicPressureBar=Math.max(peakHydraulicPressureBar,actual);
+
+        float rating=pressureRatingBar();
+        float pressureDamage=HydraulicLoad.pressureDamage(actual,rating,integrity);
+
+        boolean wearTick=
+                level==null
+                        || Math.floorMod(
+                        level.getGameTime()+worldPosition.asLong(),
+                        20
+                )==0;
+
+        if(pressureDamage>0&&wearTick){
+            damage(Math.min(.08F,pressureDamage*4F));
+        }
+
+        float loadRatio=rating<=.001F?0:actual/rating;
+        if(!body.isEmpty()){
+            var profile=AssemblyItemData.readPart(body);
+            if(profile!=null)AssemblyItemData.observeMaterialUse(
+                    body,profile.material(),level==null?0:level.getGameTime(),
+                    Math.min(2.5F,loadRatio),Math.max(0,loadRatio-1F)*.35F,0);
+        }
+
+        if(pressureDamage>0&&level instanceof ServerLevel server&&Math.floorMod(server.getGameTime()+worldPosition.asLong(),20)==0){
+            server.playSound(null,worldPosition,SoundEvents.IRON_TRAPDOOR_CLOSE,SoundSource.BLOCKS,
+                    .18F+Math.min(.32F,pressureDamage*8F),.72F);
+            if(wet())server.sendParticles(ParticleTypes.SPLASH,
+                    worldPosition.getX()+.5,worldPosition.getY()+.5,worldPosition.getZ()+.5,
+                    2,.18,.18,.18,.02);
+        }
+
+        setChanged();
+    }
+
+    private float pressureRatingBar(){
+        BlockState state=getBlockState();
+        if(state.getBlock() instanceof IndustrialPipeBlock pipe)return pipe.spec().maxPressureBar();
+        if(state.getBlock() instanceof LargePipeBlock duct)return duct.colossal()?14F:8F;
+        return 4F;
+    }
     public void sync(){setChanged();if(level!=null&&!level.isClientSide)level.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),3);}
     @Override public CompoundTag getUpdateTag(HolderLookup.Provider registries){
         CompoundTag tag=new CompoundTag();if(owner!=null)tag.putLong("Owner",owner.asLong());tag.putInt("Sections",sections);
         if(!valve.isEmpty())tag.put("Valve",new ItemStack(valve.getItem()).save(registries));
         tag.putInt("Flow",flow.ordinal());tag.putBoolean("Open",open);
         FluidStack liquid=visualFluid();if(!liquid.isEmpty())tag.put("Visible",liquid.copyWithAmount(1).save(registries));
-        tag.putLong("WetUntil",wet()?Math.max(wetUntil,(level==null?0:level.getGameTime())+30):0);tag.putFloat("Integrity",integrity);
+        tag.putLong("WetUntil",wet()?Math.max(wetUntil,(level==null?0:level.getGameTime())+30):0);tag.putFloat("Integrity",integrity);tag.putFloat("HydraulicPressure",hydraulicPressureBar);
+        tag.putFloat("RotaryLiftRpm",rotaryLiftRpm);tag.putFloat("RotaryLiftAngle",rotaryLiftAngle);
+        tag.putFloat("RotaryLiftLoad",rotaryLiftLoad);tag.putBoolean("RotaryLiftTorqueStarved",rotaryLiftTorqueStarved);
         // Disk owns all real stacks and fluid volume. Rendering needs only the visible state.
         return tag;
     }
@@ -172,7 +261,10 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         super.saveAdditional(tag,registries);if(!body.isEmpty())tag.put("Body",body.save(registries));ListTag parts=new ListTag();for(ItemStack stack:installedSections)parts.add(stack.save(registries));tag.put("InstalledSections",parts);if(owner!=null)tag.putLong("Owner",owner.asLong());tag.putInt("Sections",sections);
         if(!valve.isEmpty())tag.put("Valve",valve.save(registries));tag.putInt("Flow",flow.ordinal());tag.putBoolean("Open",open);
         if(!tank.isEmpty())tag.put("Fluid",tank.save(registries));if(!outletBuffer.isEmpty())tag.put("OutletFluid",outletBuffer.save(registries));if(!visible.isEmpty())tag.put("Visible",visible.save(registries));
-        tag.putLong("WetUntil",wetUntil);tag.putFloat("Integrity",integrity);tag.putInt("OutletCursor",outletCursor);
+        tag.putLong("WetUntil",wetUntil);tag.putFloat("Integrity",integrity);tag.putFloat("HydraulicPressure",hydraulicPressureBar);tag.putFloat("PeakHydraulicPressure",peakHydraulicPressureBar);
+        tag.putFloat("RotaryLiftRpm",rotaryLiftRpm);tag.putFloat("RotaryLiftAngle",rotaryLiftAngle);
+        tag.putFloat("RotaryLiftLoad",rotaryLiftLoad);tag.putBoolean("RotaryLiftTorqueStarved",rotaryLiftTorqueStarved);
+        tag.putInt("OutletCursor",outletCursor);
     }
     @Override protected void loadAdditional(CompoundTag tag,HolderLookup.Provider registries){
         super.loadAdditional(tag,registries);owner=tag.contains("Owner")?BlockPos.of(tag.getLong("Owner")):null;
@@ -189,6 +281,12 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         tank=FluidStack.parseOptional(registries,tag.getCompound("Fluid"));if(tank.getAmount()>capacity())tank.setAmount(capacity());
         outletBuffer=FluidStack.parseOptional(registries,tag.getCompound("OutletFluid"));if(outletBuffer.getAmount()>1000)outletBuffer.setAmount(1000);
         visible=FluidStack.parseOptional(registries,tag.getCompound("Visible"));wetUntil=tag.getLong("WetUntil");float value=tag.getFloat("Integrity");integrity=Float.isFinite(value)?Math.clamp(value,0,1):0;
+        float pressure=tag.getFloat("HydraulicPressure");hydraulicPressureBar=Float.isFinite(pressure)?Math.max(0,pressure):0;
+        float peakPressure=tag.getFloat("PeakHydraulicPressure");peakHydraulicPressureBar=Float.isFinite(peakPressure)?Math.max(hydraulicPressureBar,peakPressure):hydraulicPressureBar;
+        rotaryLiftRpm=finite(tag.getFloat("RotaryLiftRpm"),-180F,180F);
+        rotaryLiftAngle=finite(tag.getFloat("RotaryLiftAngle"),-360F,360F);
+        rotaryLiftLoad=finite(tag.getFloat("RotaryLiftLoad"),0F,4F);
+        rotaryLiftTorqueStarved=tag.getBoolean("RotaryLiftTorqueStarved");
         outletCursor=tag.getInt("OutletCursor");
     }
     public int nextOutlet(int count){int chosen=Math.floorMod(outletCursor,count);outletCursor=chosen+1;return chosen;}
@@ -201,5 +299,8 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         var main=AssemblyItemData.readPart(body);if(main!=null){main.applyWear(amount);AssemblyItemData.writePart(body,main);}
         for(ItemStack piece:installedSections){var profile=AssemblyItemData.readPart(piece);if(profile!=null){profile.applyWear(amount);AssemblyItemData.writePart(piece,profile);}}
         sync();
+    }
+    private static float finite(float value,float min,float max){
+        return Float.isFinite(value)?Math.clamp(value,min,max):0;
     }
 }

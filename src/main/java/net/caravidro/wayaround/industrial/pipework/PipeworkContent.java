@@ -81,6 +81,47 @@ public final class PipeworkContent {
     public static final PipeSpec STEEL_PRESSURE_SPEC = PipeCatalog.STEEL_PRESSURE;
     public static final PipeSpec STEAM_SPEC = PipeCatalog.INSULATED_STEAM;
 
+    /*
+     * Rotary lift heads reuse the existing liquid-pipe families. Narrow heads
+     * are visual circulation devices; the Large Water Main head conserves real
+     * source blocks end-to-end.
+     */
+    public static final DeferredBlock<RotaryLiftPipeBlock> ROTARY_SMALL_COPPER_LIFT =
+            rotaryLift(
+                    "rotary_small_copper_lift_pipe",
+                    SMALL_COPPER_SPEC,
+                    MapColor.COLOR_ORANGE,
+                    SoundType.COPPER,
+                    1.8F
+            );
+
+    public static final DeferredBlock<RotaryLiftPipeBlock> ROTARY_IRON_WATER_LIFT =
+            rotaryLift(
+                    "rotary_iron_water_lift_pipe",
+                    IRON_WATER_SPEC,
+                    MapColor.METAL,
+                    SoundType.METAL,
+                    2.4F
+            );
+
+    public static final DeferredBlock<RotaryLiftPipeBlock> ROTARY_LARGE_WATER_LIFT =
+            rotaryLift(
+                    "rotary_large_water_lift_pipe",
+                    LARGE_WATER_MAIN_SPEC,
+                    MapColor.METAL,
+                    SoundType.METAL,
+                    3.5F
+            );
+
+    public static final DeferredBlock<RotaryLiftPipeBlock> ROTARY_STEEL_PRESSURE_LIFT =
+            rotaryLift(
+                    "rotary_steel_pressure_lift_pipe",
+                    STEEL_PRESSURE_SPEC,
+                    MapColor.METAL,
+                    SoundType.METAL,
+                    3.6F
+            );
+
     public static final DeferredBlock<IndustrialPipeBlock> SMALL_COPPER_PIPE =
             pipe(
                     SMALL_COPPER_SPEC,
@@ -129,6 +170,30 @@ public final class PipeworkContent {
                     3.0F
             );
 
+    public static final DeferredItem<BlockItem> ROTARY_SMALL_COPPER_LIFT_ITEM =
+            blockItem(
+                    "rotary_small_copper_lift_pipe",
+                    ROTARY_SMALL_COPPER_LIFT
+            );
+
+    public static final DeferredItem<BlockItem> ROTARY_IRON_WATER_LIFT_ITEM =
+            blockItem(
+                    "rotary_iron_water_lift_pipe",
+                    ROTARY_IRON_WATER_LIFT
+            );
+
+    public static final DeferredItem<BlockItem> ROTARY_LARGE_WATER_LIFT_ITEM =
+            blockItem(
+                    "rotary_large_water_lift_pipe",
+                    ROTARY_LARGE_WATER_LIFT
+            );
+
+    public static final DeferredItem<BlockItem> ROTARY_STEEL_PRESSURE_LIFT_ITEM =
+            blockItem(
+                    "rotary_steel_pressure_lift_pipe",
+                    ROTARY_STEEL_PRESSURE_LIFT
+            );
+
     public static final DeferredItem<BlockItem> SMALL_COPPER_PIPE_ITEM =
             blockItem(
                     "small_copper_pipe",
@@ -165,7 +230,24 @@ public final class PipeworkContent {
                     INSULATED_STEAM_PIPE
             );
 
-    public static final DeferredHolder<net.minecraft.world.level.block.entity.BlockEntityType<?>, net.minecraft.world.level.block.entity.BlockEntityType<PipeBlockEntity>> PIPE_ENTITY = ENTITIES.register("pipework", () -> net.minecraft.world.level.block.entity.BlockEntityType.Builder.of(PipeBlockEntity::new, SMALL_COPPER_PIPE.get(), IRON_WATER_PIPE.get(), LARGE_WATER_MAIN.get(), THIN_GAS_PIPE.get(), STEEL_PRESSURE_PIPE.get(), INSULATED_STEAM_PIPE.get(), GIANT.get(), COLOSSAL.get()).build(null));
+    public static final DeferredHolder<net.minecraft.world.level.block.entity.BlockEntityType<?>, net.minecraft.world.level.block.entity.BlockEntityType<PipeBlockEntity>> PIPE_ENTITY = ENTITIES.register(
+            "pipework",
+            () -> net.minecraft.world.level.block.entity.BlockEntityType.Builder.of(
+                    PipeBlockEntity::new,
+                    SMALL_COPPER_PIPE.get(),
+                    IRON_WATER_PIPE.get(),
+                    LARGE_WATER_MAIN.get(),
+                    THIN_GAS_PIPE.get(),
+                    STEEL_PRESSURE_PIPE.get(),
+                    INSULATED_STEAM_PIPE.get(),
+                    ROTARY_SMALL_COPPER_LIFT.get(),
+                    ROTARY_IRON_WATER_LIFT.get(),
+                    ROTARY_LARGE_WATER_LIFT.get(),
+                    ROTARY_STEEL_PRESSURE_LIFT.get(),
+                    GIANT.get(),
+                    COLOSSAL.get()
+            ).build(null)
+    );
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> PIPEWORK =
             TABS.register(
@@ -188,6 +270,10 @@ public final class PipeworkContent {
                                         output.accept(VALVE.get());
                                         output.accept(MECHANICAL_PUMP_ITEM.get());
                                         output.accept(PUMP_IMPELLER.get());
+                                        output.accept(ROTARY_SMALL_COPPER_LIFT_ITEM.get());
+                                        output.accept(ROTARY_IRON_WATER_LIFT_ITEM.get());
+                                        output.accept(ROTARY_LARGE_WATER_LIFT_ITEM.get());
+                                        output.accept(ROTARY_STEEL_PRESSURE_LIFT_ITEM.get());
                                         output.accept(GIANT_ITEM.get());
                                         output.accept(COLOSSAL_ITEM.get());
                                         output.accept(
@@ -238,9 +324,33 @@ public final class PipeworkContent {
         );
     }
 
+    private static DeferredBlock<RotaryLiftPipeBlock> rotaryLift(
+            String id,
+            PipeSpec spec,
+            MapColor color,
+            SoundType sound,
+            float strength
+    ) {
+        return BLOCKS.register(
+                id,
+                () -> new RotaryLiftPipeBlock(
+                        spec,
+                        BlockBehaviour.Properties.of()
+                                .mapColor(color)
+                                .strength(
+                                        strength,
+                                        strength * 1.8F
+                                )
+                                .sound(sound)
+                                .noOcclusion()
+                                .noLootTable()
+                )
+        );
+    }
+
     private static DeferredItem<BlockItem> blockItem(
             String id,
-            DeferredBlock<IndustrialPipeBlock> block
+            DeferredBlock<? extends IndustrialPipeBlock> block
     ) {
         return ITEMS.register(
                 id,

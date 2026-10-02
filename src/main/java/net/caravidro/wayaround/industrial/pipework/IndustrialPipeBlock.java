@@ -20,7 +20,7 @@ import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 
-public final class IndustrialPipeBlock extends PipeBlock implements net.minecraft.world.level.block.EntityBlock, SimpleWaterloggedBlock {
+public class IndustrialPipeBlock extends PipeBlock implements net.minecraft.world.level.block.EntityBlock, SimpleWaterloggedBlock {
 
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
 
