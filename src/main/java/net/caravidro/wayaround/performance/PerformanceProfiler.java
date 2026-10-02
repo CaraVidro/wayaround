@@ -36,6 +36,7 @@ public final class PerformanceProfiler {
         WATER_FLOW("Water flow sampling"),
         PIPE_ROUTING("Pipe routing"),
         WATER_WHEEL_SIM("Water-wheel simulation"),
+        SUBMARINE_LIGHTING("Submarine real lighting"),
         BLIZZARD("Blizzard simulation/effects"),
         VOICE("Voice relay"),
         LOCAL_WEATHER("Local weather sampling"),
