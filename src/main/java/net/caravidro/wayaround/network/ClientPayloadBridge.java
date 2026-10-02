@@ -77,6 +77,8 @@ public final class ClientPayloadBridge {
                 TopHatStateS2CPayload payload
         ) {}
 
+        default void krakenScene(KrakenSceneS2CPayload payload) {}
+
         default void krakenShake(
                 KrakenShakeS2CPayload payload
         ) {}
@@ -401,6 +403,10 @@ public final class ClientPayloadBridge {
                         payload
                 )
         );
+    }
+
+    public static void handleKrakenScene(KrakenSceneS2CPayload payload, IPayloadContext context) {
+        if (payload.isSane()) context.enqueueWork(() -> realtimeHandlers.krakenScene(payload));
     }
 
     public static void handleKrakenShake(

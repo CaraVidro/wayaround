@@ -271,122 +271,56 @@ public final class DeepOceanManager {
                 level.getSeaLevel()
                         - 1;
 
-        int bottom =
-                Math.max(
-                        level.getMinBuildHeight() + 1,
-                        -18
-                );
-
-        for (int dx = -12;
-             dx <= 12;
-             dx += 2) {
-            for (int dz = -12;
-                 dz <= 12;
-                 dz += 2) {
-
-                int x =
-                        center.getX()
-                                + dx;
-
-                int z =
-                        center.getZ()
-                                + dz;
-
-                BlockPos biomeProbe =
-                        new BlockPos(
-                                x,
-                                Math.min(
-                                        surface,
-                                        center.getY()
-                                ),
-                                z
-                        );
-
-                if (!isDeepOcean(
-                        level,
-                        biomeProbe
-                )) {
-                    continue;
-                }
-
-                BlockPos.MutableBlockPos cursor =
-                        new BlockPos.MutableBlockPos(
-                                x,
-                                surface,
-                                z
-                        );
-
-                for (int y = surface;
-                     y >= bottom;
-                     y--) {
-
-                    cursor.setY(
-                            y
-                    );
-
-                    var state =
-                            level.getBlockState(
-                                    cursor
-                            );
-
-                    if (state.is(
-                            Blocks.WATER
-                    )
-                            || state.isAir()) {
-                        continue;
+        // Inspect a staggered 9x9 patch. Never cut a supported kelp column:
+        // the old pass deleted even planted vegetation every twenty seconds.
+        int phase = (int)(level.getGameTime() / 400L) & 3;
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int edits = 0;
+        for (int dx = -8 + (phase & 1); dx <= 8; dx += 2) {
+            for (int dz = -8 + ((phase >> 1) & 1); dz <= 8; dz += 2) {
+                int x = center.getX() + dx, z = center.getZ() + dz;
+                if (!level.hasChunkAt(new BlockPos(x, surface, z))) continue;
+                if (!isDeepOcean(level, new BlockPos(x, surface, z))) continue;
+                int floor = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
+                int bottom = Math.max(level.getMinBuildHeight() + 1, floor + 1);
+                // Descend from the top so a removed orphan never drops an upper half.
+                for (int y = surface; y >= bottom; y--) {
+                    cursor.set(x,y,z);
+                    var state = level.getBlockState(cursor);
+                    boolean kelp = state.is(Blocks.KELP) || state.is(Blocks.KELP_PLANT);
+                    boolean grass = state.is(Blocks.SEAGRASS) || state.is(Blocks.TALL_SEAGRASS);
+                    if (!kelp && !grass) continue;
+                    if (kelp) {
+                        int top=y, root=y;
+                        while(root>level.getMinBuildHeight()+1) {
+                            var lower=level.getBlockState(new BlockPos(x,root-1,z));
+                            if (!lower.is(Blocks.KELP) && !lower.is(Blocks.KELP_PLANT)) break;
+                            root--;
+                        }
+                        BlockPos rootPos=new BlockPos(x,root,z);
+                        if (!level.getBlockState(rootPos).canSurvive(level,rootPos)) {
+                            for(int remove=top;remove>=root;remove--) {
+                                level.setBlock(new BlockPos(x,remove,z),Blocks.WATER.defaultBlockState(),
+                                        net.minecraft.world.level.block.Block.UPDATE_CLIENTS
+                                        | net.minecraft.world.level.block.Block.UPDATE_SUPPRESS_DROPS);
+                                edits++;
+                            }
+                        }
+                        y=root;
+                    } else if (!state.canSurvive(level,cursor)) {
+                        // Remove both halves in one pass, top first.
+                        if (state.is(Blocks.TALL_SEAGRASS)) {
+                            var lower=cursor.below();
+                            if(level.getBlockState(lower).is(Blocks.TALL_SEAGRASS)) {
+                                level.setBlock(cursor,Blocks.WATER.defaultBlockState(),18);
+                                level.setBlock(lower,Blocks.WATER.defaultBlockState(),18);
+                                edits+=2; y--;
+                            } else {
+                                level.setBlock(cursor,Blocks.WATER.defaultBlockState(),18);edits++;
+                            }
+                        } else {level.setBlock(cursor,Blocks.WATER.defaultBlockState(),18);edits++;}
                     }
-
-                    var id =
-                            BuiltInRegistries.BLOCK
-                                    .getKey(
-                                            state.getBlock()
-                                    );
-
-                    String path =
-                            id.getPath();
-
-                    boolean oceanDecor =
-                            path.contains(
-                                    "kelp"
-                            )
-                                    || path.contains(
-                                    "seagrass"
-                            )
-                                    || path.contains(
-                                    "coral"
-                            )
-                                    || path.equals(
-                                    "sea_pickle"
-                            )
-                                    || (
-                                    id.getNamespace()
-                                            .equals(
-                                                    WayAround.MODID
-                                            )
-                                            && (
-                                            path.equals(
-                                                    "sea_cucumber"
-                                            )
-                                                    || path.equals(
-                                                    "sea_sponge"
-                                            )
-                                                    || path.equals(
-                                                    "sea_lettuce"
-                                            )
-                                                    || path.equals(
-                                                    "seagrass_tuft"
-                                            )
-                                    )
-                            );
-
-                    if (oceanDecor) {
-                        level.setBlock(
-                                cursor,
-                                Blocks.WATER
-                                        .defaultBlockState(),
-                                2
-                        );
-                    }
+                    if (edits >= 48) return;
                 }
             }
         }
