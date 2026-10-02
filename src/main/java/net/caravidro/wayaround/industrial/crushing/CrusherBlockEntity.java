@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.crushing;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.*;
 import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.industrial.mechanical.*;
@@ -44,6 +45,12 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
     public int outputCount() { return output.stream().mapToInt(ItemStack::getCount).sum(); }
     public static void serverTick(Level level, BlockPos pos, BlockState state, CrusherBlockEntity crusher) { crusher.tick((ServerLevel)level); }
     private void tick(ServerLevel level) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_SIM
+                );
+
+        try {
         if (!WorldFeatureRuntime.enabled(level,WorldFeature.INDUSTRIAL_MACHINES)
                 || !WorldFeatureRuntime.enabled(level,WorldFeature.POWER_NETWORKS)
                 || !WorldFeatureRuntime.enabled(level,WorldFeature.ASSEMBLY)) { if (rpm != 0) { rpm = 0; load = 0; sync(); } return; }
@@ -114,6 +121,13 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         // Frame and bearing stress still exist when a powered tool stalls.
         if (stalled && granted > 0) parts.wear(.00003F,load);
         if (level.getGameTime()%5==0 && (Math.abs(oldRpm-rpm)>.02F || oldSupported!=supported || oldStalled!=stalled)) sync(); else setChanged();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_SIM,
+                    wayperfStartedAt
+            );
+        }
     }
     private IRotationalPower bestSource() {
         IRotationalPower best=null; float score=-1;
