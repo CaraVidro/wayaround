@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.ecology;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -281,6 +282,12 @@ public final class DeepSeaSubmarineEntity extends Entity {
      * light source, Minecraft's light engine illuminates blocks/entities too.
      */
     private void updateHeadlights() {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.SUBMARINE_LIGHTING
+                );
+
+        try {
         if (level().isClientSide) {
             return;
         }
@@ -517,6 +524,13 @@ public final class DeepSeaSubmarineEntity extends Entity {
 
         nextHeadlightBlocks =
                 previous;
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.SUBMARINE_LIGHTING,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private double clearBeamDistance(
