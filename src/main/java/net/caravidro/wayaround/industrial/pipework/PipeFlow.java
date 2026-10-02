@@ -737,6 +737,370 @@ public final class PipeFlow {
         }
     }
 
+    /**
+     * Pressure uses the exact bounded route graph already used for transfer.
+     * The current v1.5 linked traversal is preserved; no path-copy BFS rollback.
+     */
+    public static void applyPressurePulse(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromPump,
+            float pressureBar
+    ) {
+        if (root == null
+                || pressureBar <= 0.001F
+                || root.owner() != null
+                || !root.complete()) {
+            return;
+        }
+
+        root.applyHydraulicPressure(
+                pressureBar
+        );
+
+        List<Outlet> outputs =
+                outlets(
+                        level,
+                        root,
+                        awayFromPump
+                );
+
+        if (outputs.isEmpty()) {
+            return;
+        }
+
+        LongOpenHashSet stressed =
+                new LongOpenHashSet(
+                        MAX_NODES * 2
+                );
+
+        stressed.add(
+                root.getBlockPos()
+                        .asLong()
+        );
+
+        for (Outlet outlet :
+                outputs) {
+            List<PipeBlockEntity> path =
+                    forwardPath(
+                            outlet.terminal()
+                    );
+
+            for (int index = 0;
+                 index < path.size();
+                 index++) {
+
+                PipeBlockEntity pipe =
+                        path.get(index);
+
+                if (!stressed.add(
+                        pipe.getBlockPos()
+                                .asLong()
+                )) {
+                    continue;
+                }
+
+                float distanceLoss =
+                        path.size() <= 1
+                                ? 1.0F
+                                : 1.0F
+                                        - 0.12F
+                                                * index
+                                                / (float) (
+                                                path.size() - 1
+                                        );
+
+                pipe.applyHydraulicPressure(
+                        pressureBar
+                                * Math.max(
+                                0.78F,
+                                distanceLoss
+                        )
+                );
+            }
+        }
+    }
+
+    /**
+     * Narrow lift heads visually move water through the network without
+     * consuming a world source or inventing stored volume.
+     */
+    public static boolean visualFromMachine(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromMachine,
+            FluidStack fluid,
+            int visualStrength
+    ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
+            if (root == null
+                    || fluid.isEmpty()
+                    || root.owner() != null
+                    || !root.complete()) {
+                return false;
+            }
+
+            List<Outlet> outputs =
+                    outlets(
+                            level,
+                            root,
+                            awayFromMachine
+                    );
+
+            if (outputs.isEmpty()) {
+                return false;
+            }
+
+            Outlet outlet =
+                    outputs.get(
+                            root.nextOutlet(
+                                    outputs.size()
+                            )
+                    );
+
+            List<PipeBlockEntity> path =
+                    forwardPath(
+                            outlet.terminal()
+                    );
+
+            FluidStack marking =
+                    fluid.copyWithAmount(
+                            1
+                    );
+
+            for (int index = 0;
+                 index < path.size();
+                 index++) {
+
+                PipeBlockEntity pipe =
+                        path.get(index);
+
+                Direction direction =
+                        index + 1 < path.size()
+                                ? Direction.getNearest(
+                                path.get(index + 1)
+                                        .getBlockPos()
+                                        .getX()
+                                        - pipe.getBlockPos()
+                                                .getX(),
+                                path.get(index + 1)
+                                        .getBlockPos()
+                                        .getY()
+                                        - pipe.getBlockPos()
+                                                .getY(),
+                                path.get(index + 1)
+                                        .getBlockPos()
+                                        .getZ()
+                                        - pipe.getBlockPos()
+                                                .getZ()
+                        )
+                                : outlet.direction();
+
+                pipe.markFlow(
+                        marking,
+                        direction
+                );
+            }
+
+            BlockPos end =
+                    outlet.pipe()
+                            .getBlockPos()
+                            .relative(
+                                    outlet.direction(),
+                                    mouthDistance(
+                                            outlet.pipe()
+                                    )
+                            );
+
+            int particles =
+                    Math.clamp(
+                            3
+                                    + visualStrength / 120,
+                            3,
+                            14
+                    );
+
+            jet(
+                    level,
+                    end,
+                    outlet.direction(),
+                    fluid,
+                    particles
+            );
+
+            return true;
+
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
+    }
+
+    public static boolean hasPhysicalWaterOutlet(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromMachine
+    ) {
+        if (root == null
+                || root.owner() != null
+                || !root.complete()) {
+            return false;
+        }
+
+        for (Outlet outlet :
+                outlets(
+                        level,
+                        root,
+                        awayFromMachine
+                )) {
+
+            if (physicalWaterPath(
+                    outlet
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Real-volume mode. Every section must be a large-water conduit before a
+     * source bucket may be removed; thin/cosmetic routes can never swallow it.
+     */
+    public static int pushPhysicalWaterFromMachine(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromMachine,
+            FluidStack supplied,
+            int limit
+    ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
+            if (root == null
+                    || supplied.isEmpty()
+                    || limit < 1000
+                    || root.owner() != null
+                    || !root.complete()) {
+                return 0;
+            }
+
+            List<Outlet> physical =
+                    new ArrayList<>();
+
+            for (Outlet outlet :
+                    outlets(
+                            level,
+                            root,
+                            awayFromMachine
+                    )) {
+
+                if (physicalWaterPath(
+                        outlet
+                )) {
+                    physical.add(
+                            outlet
+                    );
+                }
+            }
+
+            if (physical.isEmpty()) {
+                return 0;
+            }
+
+            Outlet outlet =
+                    physical.get(
+                            root.nextOutlet(
+                                    physical.size()
+                            )
+                    );
+
+            return deliver(
+                    level,
+                    outlet,
+                    supplied,
+                    limit
+            );
+
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
+    }
+
+    private static boolean physicalWaterPath(
+            Outlet outlet
+    ) {
+        for (Step cursor =
+                     outlet.terminal();
+             cursor != null;
+             cursor =
+                     cursor.previous()) {
+
+            if (!isPhysicalWaterConduit(
+                    cursor.pipe()
+            )) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean isPhysicalWaterConduit(
+            PipeBlockEntity pipe
+    ) {
+        BlockState state =
+                pipe.getBlockState();
+
+        if (state.getBlock()
+                instanceof LargePipeBlock) {
+            return true;
+        }
+
+        return state.getBlock()
+                instanceof IndustrialPipeBlock industrial
+                && industrial.spec()
+                        == PipeCatalog.LARGE_WATER_MAIN;
+    }
+
+    private static List<PipeBlockEntity> forwardPath(
+            Step terminal
+    ) {
+        ArrayList<PipeBlockEntity> path =
+                new ArrayList<>();
+
+        for (Step cursor =
+                     terminal;
+             cursor != null;
+             cursor =
+                     cursor.previous()) {
+
+            path.add(
+                    cursor.pipe()
+            );
+        }
+
+        java.util.Collections.reverse(
+                path
+        );
+
+        return path;
+    }
+
     private static int deliver(
             ServerLevel level,
             Outlet outlet,
