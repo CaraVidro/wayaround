@@ -827,10 +827,10 @@ public final class DeferredMiningManager {
     }
 
     private static double horizontalDistance(
-            int x1,
-            int z1,
-            int x2,
-            int z2) {
+            double x1,
+            double z1,
+            double x2,
+            double z2) {
 
         double dx = x1 - x2;
         double dz = z1 - z2;
