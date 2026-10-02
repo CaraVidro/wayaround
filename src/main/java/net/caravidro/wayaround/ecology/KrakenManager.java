@@ -231,6 +231,13 @@ public final class KrakenManager {
         return true;
     }
 
+    public static boolean stop(ServerLevel level) {
+        KrakenEvent event = ACTIVE.remove(level);
+        if (event == null) return false;
+        event.restore();
+        return true;
+    }
+
     public static void clearAll() {
         for (KrakenEvent event :
                 ACTIVE.values()) {
@@ -907,7 +914,7 @@ public final class KrakenManager {
                 }
             }
             age++;
-            if (age == 24 || age == duration - 48) {
+            if (kind < 3 && (age == KrakenMotion.breachAge(kind) || age == KrakenMotion.impactAge(kind))) {
                 level.playSound(null, new BlockPos(site.x, site.surface, site.z),
                         SoundEvents.GENERIC_SPLASH, SoundSource.AMBIENT, 7.0F, 0.45F);
                 for (ServerPlayer watcher : level.players()) {

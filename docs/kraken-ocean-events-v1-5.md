@@ -45,12 +45,13 @@ performance foundations. No merge into main is required to try this branch.
 - `/kraken migrate` — tentacle moves across the water.
 - `/kraken bubbles` — rumble and large bubbles.
 - `/kraken passing` — moving silhouette and boat rocking; ride a boat to compare.
+- `/kraken stop` — cancel the current dimension’s event.
 - `/kraken rumble` / `/kraken status` — existing controls.
 
 ## Validation
 
 `KrakenMotionTest` checks every animation tick, finite geometry, taper, submerged
-start/end, height, throw and migration. Run without Minecraft:
+start/end, height, throw, migration and exact splash surface-crossing ticks. Run without Minecraft:
 
 ```sh
 javac -d /tmp/kraken-classes src/main/java/net/caravidro/wayaround/ecology/KrakenMotion.java tests/kraken/KrakenMotionTest.java

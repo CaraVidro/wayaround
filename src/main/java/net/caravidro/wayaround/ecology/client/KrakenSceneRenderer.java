@@ -62,13 +62,13 @@ public final class KrakenSceneRenderer {
         int duration = KrakenMotion.duration(scene.kind());
         if (age > duration + 20) { scene = null; return; }
         if (scene.kind() < 3) {
-            int riseAt = scene.kind() == 1 ? 48 : 24;
-            int fallAt = scene.kind() == 1 ? duration - 35 : 254;
+            int riseAt = KrakenMotion.breachAge(scene.kind());
+            int fallAt = KrakenMotion.impactAge(scene.kind());
             if (!emerged && lastAge < riseAt && age >= riseAt) {
                 splashes.add(new Splash(origin(), owner.getGameTime(), scene.kind()==1?36:22)); emerged = true;
             }
             if (!submerged && lastAge < fallAt && age >= fallAt) {
-                Vec3 end = scene.kind()==1 ? origin() : world(KrakenMotion.tentacle(.88,fallAt,scene.kind()));
+                Vec3 end = scene.kind()==1 ? origin() : world(KrakenMotion.tentacle(1,fallAt,scene.kind()));
                 splashes.add(new Splash(new Vec3(end.x,scene.surface()+.5,end.z), owner.getGameTime(), scene.kind()==1?42:48));
                 submerged = true;
             }

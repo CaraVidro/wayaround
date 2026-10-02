@@ -10,6 +10,20 @@ public final class KrakenMotion {
         int duration = duration(kind);
         return smooth(age / 100.0) * (1 - smooth((age - (duration - 90)) / 90.0));
     }
+    public static int breachAge(int kind) {
+        for (int age=1; age<duration(kind)/2; age++) {
+            double y=kind==1 ? -36+84*emergence(age,1) : tentacle(1,age,kind).y();
+            if (y>=0) return age;
+        }
+        return 24;
+    }
+    public static int impactAge(int kind) {
+        for (int age=duration(kind)/2; age<=duration(kind); age++) {
+            double y=kind==1 ? -36+84*emergence(age,1) : tentacle(1,age,kind).y();
+            if (y<=0) return age;
+        }
+        return duration(kind)-1;
+    }
     public static Point tentacle(double t, double age, int kind) {
         double rise = emergence(age, kind);
         double throwPhase = smooth((age - 170) / 100);
