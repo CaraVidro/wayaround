@@ -52,61 +52,245 @@ public final class LocalWeatherField {
         }
     }
 
-    public static Sample sample(double x, double z, long gameTime) {
-        float windX = windX(gameTime);
-        float windZ = windZ(gameTime);
-
-        float cloud = 0.0F;
-        float rain = 0.0F;
-        float warning = 0.0F;
-
-        for (CloudCell cell : nearbyCells(x, z, gameTime, MAX_RADIUS + 260.0)) {
-            float density = cell.densityAt(x, z);
-            float localRain = cell.rainAt(x, z);
-
-            cloud = Math.max(cloud, density);
-            rain = Math.max(rain, localRain);
-
-            double dx = x - cell.x;
-            double dz = z - cell.z;
-            double distance = Math.sqrt(dx * dx + dz * dz);
-            double warningRadius = cell.radius + 235.0;
-
-            if (distance < warningRadius && cell.storm > 0.48F) {
-                float proximity = (float) (1.0 - distance / warningRadius);
-                float stormWeight = Mth.clamp((cell.storm - 0.48F) / 0.52F, 0.0F, 1.0F);
-
-                /*
-                 * A storm is more threatening when it is upwind of the observer.
-                 * Positive approach means the cloud is behind the wind vector and
-                 * therefore drifting toward this point.
-                 */
-                double approach = -(dx * windX + dz * windZ);
-                float approachWeight = approach > -cell.radius * 0.25 ? 1.0F : 0.45F;
-
-                warning = Math.max(
-                        warning,
-                        smooth(proximity) * stormWeight * approachWeight
+    public static Sample sample(
+            double x,
+            double z,
+            long gameTime
+    ) {
+        /*
+         * Hot-path sampling used to call nearbyCells(), allocate a list, then
+         * calculate density twice (densityAt + rainAt) and distance again for
+         * storm warning. Water/cloud rendering asks for this every frame.
+         *
+         * Sample directly from the deterministic grid and reuse one sqrt per
+         * candidate cell.
+         */
+        float windX =
+                windX(
+                        gameTime
                 );
+
+        float windZ =
+                windZ(
+                        gameTime
+                );
+
+        double drift =
+                gameTime
+                        * DRIFT_SPEED;
+
+        double staticX =
+                x
+                        - windX
+                                * drift;
+
+        double staticZ =
+                z
+                        - windZ
+                                * drift;
+
+        int centerX =
+                floorCell(
+                        staticX
+                );
+
+        int centerZ =
+                floorCell(
+                        staticZ
+                );
+
+        double range =
+                MAX_RADIUS
+                        + 260.0;
+
+        int reach =
+                Math.max(
+                        2,
+                        (int) Math.ceil(
+                                (
+                                        range
+                                                + MAX_RADIUS
+                                )
+                                        / CELL_SPACING
+                        )
+                                + 1
+                );
+
+        float cloud =
+                0.0F;
+
+        float rain =
+                0.0F;
+
+        float warning =
+                0.0F;
+
+        for (int gx = centerX - reach;
+             gx <= centerX + reach;
+             gx++) {
+
+            for (int gz = centerZ - reach;
+                 gz <= centerZ + reach;
+                 gz++) {
+
+                CloudCell cell =
+                        cell(
+                                gx,
+                                gz,
+                                gameTime,
+                                windX,
+                                windZ,
+                                drift
+                        );
+
+                double dx =
+                        x
+                                - cell.x;
+
+                double dz =
+                        z
+                                - cell.z;
+
+                double distanceSquared =
+                        dx * dx
+                                + dz * dz;
+
+                double maxDistance =
+                        range
+                                + cell.radius;
+
+                if (distanceSquared
+                        > maxDistance
+                                * maxDistance) {
+                    continue;
+                }
+
+                double distance =
+                        Math.sqrt(
+                                distanceSquared
+                        );
+
+                float density =
+                        smooth(
+                                (float) Mth.clamp(
+                                        1.0
+                                                - distance
+                                                        / cell.radius,
+                                        0.0,
+                                        1.0
+                                )
+                        );
+
+                float raininess =
+                        Mth.clamp(
+                                (
+                                        cell.storm
+                                                - 0.56F
+                                )
+                                        / 0.44F,
+                                0.0F,
+                                1.0F
+                        );
+
+                float localRain =
+                        density
+                                * raininess;
+
+                cloud =
+                        Math.max(
+                                cloud,
+                                density
+                        );
+
+                rain =
+                        Math.max(
+                                rain,
+                                localRain
+                        );
+
+                double warningRadius =
+                        cell.radius
+                                + 235.0;
+
+                if (distance < warningRadius
+                        && cell.storm > 0.48F) {
+
+                    float proximity =
+                            (float) (
+                                    1.0
+                                            - distance
+                                                    / warningRadius
+                            );
+
+                    float stormWeight =
+                            Mth.clamp(
+                                    (
+                                            cell.storm
+                                                    - 0.48F
+                                    )
+                                            / 0.52F,
+                                    0.0F,
+                                    1.0F
+                            );
+
+                    double approach =
+                            -(
+                                    dx * windX
+                                            + dz * windZ
+                            );
+
+                    float approachWeight =
+                            approach
+                                    > -cell.radius
+                                            * 0.25
+                                    ? 1.0F
+                                    : 0.45F;
+
+                    warning =
+                            Math.max(
+                                    warning,
+                                    smooth(
+                                            proximity
+                                    )
+                                            * stormWeight
+                                            * approachWeight
+                            );
+                }
             }
         }
 
-        warning = Math.max(warning, rain);
+        warning =
+                Math.max(
+                        warning,
+                        rain
+                );
 
-        // Debug gusts raise wind intensity without changing cloud/rain state.
-        warning = Math.max(
-                warning,
-                WindTestManager.strengthAt(
-                        x,
-                        z,
-                        gameTime
-                )
-        );
+        warning =
+                Math.max(
+                        warning,
+                        WindTestManager.strengthAt(
+                                x,
+                                z,
+                                gameTime
+                        )
+                );
 
         return new Sample(
-                Mth.clamp(cloud, 0.0F, 1.0F),
-                Mth.clamp(rain, 0.0F, 1.0F),
-                Mth.clamp(warning, 0.0F, 1.0F),
+                Mth.clamp(
+                        cloud,
+                        0.0F,
+                        1.0F
+                ),
+                Mth.clamp(
+                        rain,
+                        0.0F,
+                        1.0F
+                ),
+                Mth.clamp(
+                        warning,
+                        0.0F,
+                        1.0F
+                ),
                 windX,
                 windZ
         );
