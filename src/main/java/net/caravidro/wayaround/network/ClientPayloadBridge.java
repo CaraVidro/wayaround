@@ -105,6 +105,10 @@ public final class ClientPayloadBridge {
                 FugaArrowPayload payload
         ) {}
 
+        default void structuralCollapse(
+                StructuralCollapseS2CPayload payload
+        ) {}
+
         default void blueVisual(
                 BlueVisualPayload payload
         ) {}
@@ -491,6 +495,22 @@ public final class ClientPayloadBridge {
             IPayloadContext context
     ) {
         context.enqueueWork(() -> realtimeHandlers.fugaArrow(payload));
+    }
+
+    public static void handleStructuralCollapse(
+            StructuralCollapseS2CPayload payload,
+            IPayloadContext context
+    ) {
+        if (payload == null
+                || !payload.isSane()) {
+            return;
+        }
+
+        context.enqueueWork(
+                () -> realtimeHandlers.structuralCollapse(
+                        payload
+                )
+        );
     }
 
     public static void handleBlueVisual(
