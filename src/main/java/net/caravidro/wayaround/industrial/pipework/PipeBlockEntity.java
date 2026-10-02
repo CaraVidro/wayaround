@@ -30,6 +30,12 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     private Direction flow=Direction.NORTH;
     private boolean open,removing;
     private FluidStack tank=FluidStack.EMPTY;
+    /*
+     * Open outlets need a distinct accumulator. Reusing tank here aliases the
+     * valve's intake budget on one-pipe networks and either duplicates water
+     * or prevents sub-bucket flow from ever reaching a real 1000 mB source.
+     */
+    private FluidStack outletBuffer=FluidStack.EMPTY;
     private FluidStack visible=FluidStack.EMPTY;
     private long wetUntil;
     private float integrity=1;
@@ -134,6 +140,16 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         }
     }
     public FluidStack stored(){return tank;}
+    public FluidStack outletStored(){return outletBuffer;}
+    public int outletAmount(){return outletBuffer.getAmount();}
+    public int outletRoom(){return Math.max(0,1000-outletBuffer.getAmount());}
+    public void receiveOutlet(FluidStack fluid){
+        if(fluid.isEmpty())return;
+        if(outletBuffer.isEmpty())outletBuffer=fluid.copy();
+        else if(FluidStack.isSameFluidSameComponents(outletBuffer,fluid))outletBuffer.grow(fluid.getAmount());
+        sync();
+    }
+    public void usedOutlet(int amount){outletBuffer.shrink(Math.max(0,amount));sync();}
     public void receive(FluidStack fluid){if(tank.isEmpty())tank=fluid.copy();else tank.grow(fluid.getAmount());sync();}
     public void used(int amount){tank.shrink(amount);sync();}
     public void markFlow(FluidStack fluid,Direction direction){
@@ -155,7 +171,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     @Override protected void saveAdditional(CompoundTag tag,HolderLookup.Provider registries){
         super.saveAdditional(tag,registries);if(!body.isEmpty())tag.put("Body",body.save(registries));ListTag parts=new ListTag();for(ItemStack stack:installedSections)parts.add(stack.save(registries));tag.put("InstalledSections",parts);if(owner!=null)tag.putLong("Owner",owner.asLong());tag.putInt("Sections",sections);
         if(!valve.isEmpty())tag.put("Valve",valve.save(registries));tag.putInt("Flow",flow.ordinal());tag.putBoolean("Open",open);
-        if(!tank.isEmpty())tag.put("Fluid",tank.save(registries));if(!visible.isEmpty())tag.put("Visible",visible.save(registries));
+        if(!tank.isEmpty())tag.put("Fluid",tank.save(registries));if(!outletBuffer.isEmpty())tag.put("OutletFluid",outletBuffer.save(registries));if(!visible.isEmpty())tag.put("Visible",visible.save(registries));
         tag.putLong("WetUntil",wetUntil);tag.putFloat("Integrity",integrity);tag.putInt("OutletCursor",outletCursor);
     }
     @Override protected void loadAdditional(CompoundTag tag,HolderLookup.Provider registries){
@@ -171,6 +187,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         }
         valve=ItemStack.parseOptional(registries,tag.getCompound("Valve"));flow=Direction.values()[Math.floorMod(tag.getInt("Flow"),6)];open=tag.getBoolean("Open");
         tank=FluidStack.parseOptional(registries,tag.getCompound("Fluid"));if(tank.getAmount()>capacity())tank.setAmount(capacity());
+        outletBuffer=FluidStack.parseOptional(registries,tag.getCompound("OutletFluid"));if(outletBuffer.getAmount()>1000)outletBuffer.setAmount(1000);
         visible=FluidStack.parseOptional(registries,tag.getCompound("Visible"));wetUntil=tag.getLong("WetUntil");float value=tag.getFloat("Integrity");integrity=Float.isFinite(value)?Math.clamp(value,0,1):0;
         outletCursor=tag.getInt("OutletCursor");
     }
