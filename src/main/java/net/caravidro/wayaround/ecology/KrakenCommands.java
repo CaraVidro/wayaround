@@ -18,6 +18,16 @@ public final class KrakenCommands {
         CommandDispatcher<CommandSourceStack> dispatcher =
                 event.getDispatcher();
 
+        String[] scenes = {"migrate", "bubbles", "passing"};
+        for (int i = 0; i < scenes.length; i++) {
+            final int kind = i + 2;
+            dispatcher.register(Commands.literal("kraken").requires(source -> source.hasPermission(2))
+                    .then(Commands.literal(scenes[i]).executes(context -> {
+                        boolean started = KrakenManager.forceScene(context.getSource().getPlayerOrException(), kind);
+                        if (!started) context.getSource().sendFailure(Component.literal("Precisa de mar aberto e nenhum evento ativo."));
+                        return started ? 1 : 0;
+                    })));
+        }
         dispatcher.register(
                 Commands.literal(
                                 "kraken"

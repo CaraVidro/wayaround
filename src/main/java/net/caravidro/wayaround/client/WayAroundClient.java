@@ -286,6 +286,11 @@ public final class WayAroundClient {
                     }
 
                     @Override
+                    public void krakenScene(net.caravidro.wayaround.network.KrakenSceneS2CPayload payload) {
+                        net.caravidro.wayaround.ecology.client.KrakenSceneRenderer.receive(payload);
+                    }
+
+                    @Override
                     public void krakenShake(
                             KrakenShakeS2CPayload payload
                     ) {

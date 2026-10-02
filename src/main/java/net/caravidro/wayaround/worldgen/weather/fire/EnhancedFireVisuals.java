@@ -45,6 +45,9 @@ public final class EnhancedFireVisuals {
             4;
 
     private static int spreadBudget;
+    private static final int MAX_TRACKED = 1024;
+    private static int rotation;
+
 
     private EnhancedFireVisuals() {
     }
@@ -63,6 +66,8 @@ public final class EnhancedFireVisuals {
                         level.dimension(),
                         pos.immutable()
                 );
+
+        if (ACTIVE.size() >= MAX_TRACKED && !ACTIVE.containsKey(key)) return;
 
         ACTIVE.computeIfAbsent(
                 key,
@@ -90,12 +95,9 @@ public final class EnhancedFireVisuals {
 
         spreadBudget =
                 Mth.clamp(
+                        8 + server.getPlayerList().getPlayerCount() * 4,
+                        8,
                         24
-                                + server.getPlayerList()
-                                .getPlayerCount()
-                                        * 32,
-                        32,
-                        128
                 );
 
         /*
@@ -103,10 +105,10 @@ public final class EnhancedFireVisuals {
          * blocks during this pass. Their onPlace mixin registers them in ACTIVE
          * immediately; they simply begin updating on the next STEP.
          */
-        for (Map.Entry<GlobalPos, FireState> entry :
-                new ArrayList<>(
-                        ACTIVE.entrySet()
-                )) {
+        var snapshot = new ArrayList<>(ACTIVE.entrySet());
+        int count = Math.min(256, snapshot.size());
+        for (int i = 0; i < count; i++) {
+            Map.Entry<GlobalPos, FireState> entry = snapshot.get((rotation + i) % snapshot.size());
 
             GlobalPos key =
                     entry.getKey();
@@ -145,12 +147,15 @@ public final class EnhancedFireVisuals {
                 continue;
             }
 
-            updateFire(
-                    level,
-                    pos,
-                    entry.getValue()
-            );
+            // Far-away fires keep vanilla simulation but spend no custom
+            // damage, smoke, neighbour-search or ember budget.
+            boolean nearby = false;
+            for (ServerPlayer player : level.players()) {
+                if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) < 96.0 * 96.0) { nearby = true; break; }
+            }
+            if (nearby) updateFire(level, pos, entry.getValue());
         }
+        rotation = snapshot.isEmpty() ? 0 : (rotation + count) % snapshot.size();
     }
 
     private static void updateFire(
@@ -382,6 +387,8 @@ public final class EnhancedFireVisuals {
             int neighbors,
             boolean raining
     ) {
+        if (!level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOFIRETICK)) return;
+        if (sourcePos.distSqr(source.origin) > 24.0 * 24.0) return;
         if (spreadBudget <= 0) {
             return;
         }
@@ -700,6 +707,8 @@ public final class EnhancedFireVisuals {
         if (child == null) {
             return;
         }
+
+        child.origin = parent.origin;
 
         child.ageTicks =
                 Math.max(
@@ -1445,6 +1454,7 @@ public final class EnhancedFireVisuals {
 
     public static void clearAll() {
         ACTIVE.clear();
+        rotation = 0;
         spreadBudget =
                 0;
     }
@@ -1455,6 +1465,7 @@ public final class EnhancedFireVisuals {
         private final double y;
         private final double z;
 
+        private BlockPos origin;
         private int ageTicks;
         private int damageCooldown;
         private int spreadCooldown =
@@ -1474,6 +1485,7 @@ public final class EnhancedFireVisuals {
                 double z,
                 long visualSeed
         ) {
+            this.origin = BlockPos.containing(x,y,z);
             this.x =
                     x;
             this.y =

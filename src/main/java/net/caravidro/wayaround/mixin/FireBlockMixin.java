@@ -42,7 +42,8 @@ public abstract class FireBlockMixin {
 
     @Inject(
             method = "tick",
-            at = @At("HEAD")
+            at = @At("HEAD"),
+            cancellable = true
     )
     private void wayaround$registerFireTick(
             BlockState state,
@@ -51,9 +52,24 @@ public abstract class FireBlockMixin {
             RandomSource random,
             CallbackInfo ci
     ) {
-        EnhancedFireVisuals.register(
-                level,
-                pos
-        );
+        int nearby = 0;
+        for (int x=-3; x<=3; x++) for (int z=-3; z<=3; z++) {
+            BlockPos column=pos.offset(x,0,z);
+            if (!level.hasChunkAt(column)) continue;
+            for (int y=-1; y<=1; y++) {
+                if (level.getBlockState(column.offset(0,y,0)).is(net.minecraft.world.level.block.Blocks.FIRE)
+                        && ++nearby >= 32) {
+                    // Keep netherrack/soul-soil fire permanent; thin crowded
+                    // fronts instead of letting hundreds of fire ticks multiply.
+                    var support=level.getBlockState(pos.below());
+                    if (!support.is(net.minecraft.tags.BlockTags.INFINIBURN_OVERWORLD)) {
+                        level.setBlock(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+                        ci.cancel();
+                        return;
+                    }
+                }
+            }
+        }
+        EnhancedFireVisuals.register(level,pos);
     }
 }

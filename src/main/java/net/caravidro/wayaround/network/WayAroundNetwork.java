@@ -70,6 +70,9 @@ public final class WayAroundNetwork {
                 AccessoryWorkshopApplyC2SPayload::handle
         );
 
+        registrar.playToClient(KrakenSceneS2CPayload.TYPE, KrakenSceneS2CPayload.STREAM_CODEC,
+                ClientPayloadBridge::handleKrakenScene);
+
         registrar.playToClient(
                 AccessoryStateS2CPayload.TYPE,
                 AccessoryStateS2CPayload.STREAM_CODEC,

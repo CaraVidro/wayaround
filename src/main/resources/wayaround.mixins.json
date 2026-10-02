@@ -44,7 +44,9 @@
     "client.DeepOceanFogMixin",
     "client.DeepOceanLightTextureMixin",
     "client.SplashRendererAccessor",
-    "client.TitleScreenBrandingMixin"
+    "client.TitleScreenBrandingMixin",
+    "client.KrakenBoatRendererMixin",
+    "client.SimpleDynamicLightMixin"
   ],
   "injectors": {
     "defaultRequire": 1
