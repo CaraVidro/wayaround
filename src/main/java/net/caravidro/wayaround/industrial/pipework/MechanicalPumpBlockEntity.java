@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.pipework;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -115,6 +116,12 @@ public final class MechanicalPumpBlockEntity
     }
 
     private void tick(ServerLevel level) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_SIM
+                );
+
+        try {
         if (!WorldFeatureRuntime.enabled(level, WorldFeature.INDUSTRIAL_MACHINES)
                 || !WorldFeatureRuntime.enabled(level, WorldFeature.POWER_NETWORKS)
                 || !WorldFeatureRuntime.enabled(level, WorldFeature.ASSEMBLY)) {
@@ -395,6 +402,13 @@ public final class MechanicalPumpBlockEntity
             sync();
         } else {
             setChanged();
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_SIM,
+                    wayperfStartedAt
+            );
         }
     }
 
