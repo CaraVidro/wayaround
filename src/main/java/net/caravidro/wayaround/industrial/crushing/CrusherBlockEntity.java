@@ -1,6 +1,6 @@
 package net.caravidro.wayaround.industrial.crushing;
-
 import net.caravidro.wayaround.performance.PerformanceProfiler;
+
 import java.util.*;
 import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.industrial.mechanical.*;
@@ -70,19 +70,28 @@ public final class CrusherBlockEntity extends BlockEntity implements AssemblyMac
         CrushingRecipe recipe = input.isEmpty() ? null : CrushingRecipe.find(input.get(0));
         float strength = parts.condition(MachinePartSpec.Role.TOOL);
         float requiredTorque = recipe == null ? 0 : size().power * recipe.hardness() * .35F;
-        float target = 0, granted = 0;
         float request = size().power * parts.driveCost() * (recipe == null ? .15F : 1);
         IRotationalPower source = bestSource();
-        MechanicalLoad.Demand demand = MechanicalLoad.sample(source,request,requiredTorque,90F);
+        IRotationalPower engagedSource = parts.complete() && supported ? source : null;
+        float condition = Math.min(
+            strength,
+            Math.min(
+                parts.condition(MachinePartSpec.Role.DRIVE),
+                parts.condition(MachinePartSpec.Role.BEARING)
+            )
+        );
+        MechanicalLoad.OperatingPoint operating = MechanicalLoad.operate(
+            engagedSource, request, requiredTorque, 90F, heat, vibration, condition
+        );
+        MechanicalLoad.Demand demand = operating.demand();
+        float granted = operating.grantedPower();
+        float target = 0;
         stalled = !parts.complete() || !supported || strength < .12F
             || parts.condition(MachinePartSpec.Role.DRIVE) < .12F || parts.condition(MachinePartSpec.Role.BEARING) < .12F
             || heat > 1 || (recipe != null && recipe.hardness() > size().hardness * strength * 2.6F);
-        if (source != null && source.active() && parts.complete() && supported) {
-            granted = source.consumePower(request);
-            load = MechanicalLoad.normalized(granted,size().power);
-            if (recipe != null && (demand.torqueStarved() || granted > supportCapacity())) stalled = true;
-            if (!stalled) target = source.rpm() * Mth.clamp(granted / request,0,1);
-        } else load = 0;
+        load = MechanicalLoad.normalized(granted,size().power);
+        if (recipe != null && (operating.torqueStarved() || granted > supportCapacity())) stalled = true;
+        if (!stalled) target = operating.targetRpm();
         rpm += (target-rpm) * (parts.has(MachinePartSpec.Role.DRIVE) && parts.spec(MachinePartSpec.Role.DRIVE).heavy() ? .06F : .18F);
         if (Math.abs(rpm)<.01F) rpm=0;
         angle = (angle + rpm * .3F) % 360;
