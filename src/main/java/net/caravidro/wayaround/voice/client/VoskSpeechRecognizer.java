@@ -885,10 +885,16 @@ public final class VoskSpeechRecognizer {
                         "download do modelo retornou arquivo vazio"
                 );
             }
-        } catch (Throwable failure) {
-            Files.deleteIfExists(
-                    download
-            );
+        } catch (Exception failure) {
+            try {
+                Files.deleteIfExists(
+                        download
+                );
+            } catch (Exception cleanupFailure) {
+                failure.addSuppressed(
+                        cleanupFailure
+                );
+            }
 
             throw failure;
         }
