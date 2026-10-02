@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.pipework;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -291,6 +292,12 @@ public final class PipeFlow {
             ServerLevel level,
             PipeBlockEntity valve
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
         List<Outlet> outputs =
                 outlets(
                         level,
@@ -362,6 +369,13 @@ public final class PipeFlow {
         if (consumed > 0) {
             valve.used(consumed);
         }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
     }
 
     /**
@@ -378,6 +392,12 @@ public final class PipeFlow {
             int limit,
             FluidStack preferred
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
         if (limit <= 0
                 || !level.hasChunkAt(
                 intakePos
@@ -408,6 +428,13 @@ public final class PipeFlow {
                 limit,
                 preferred
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static FluidStack pullFromNetwork(
@@ -654,6 +681,12 @@ public final class PipeFlow {
             FluidStack supplied,
             int limit
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
         if (root == null
                 || supplied.isEmpty()
                 || limit <= 0
@@ -695,6 +728,13 @@ public final class PipeFlow {
                 supplied,
                 limit
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static int deliver(
