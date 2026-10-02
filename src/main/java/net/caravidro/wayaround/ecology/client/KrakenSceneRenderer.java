@@ -146,6 +146,11 @@ public final class KrakenSceneRenderer {
                     count+=box(b,matrix,camera,c.add(d.scale(cup*.6)),cup*.52,cup*.4,cup*.52,24,37,33,255);
                 }
             }
+            // Opaque skin writes depth so rear faces/arms cannot overwrite the
+            // front of the mantle. Foam and shadows use a separate transparent pass.
+            if(count>0) draw(b,true); else b.build();
+            b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
+            count=0;
             // Broad moving silhouette on the water, softened with nested bands.
             double pass=scene.kind()==4?(a/200.0-.5)*140:0;
             Vec3 shadow=origin().add(d.scale(pass)).add(0,.04,0);
@@ -181,8 +186,11 @@ public final class KrakenSceneRenderer {
             }
         }
         if(count==0) { b.build(); return; }
+        draw(b,false);
+    }
+    private static void draw(BufferBuilder b,boolean opaque) {
         RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();
-        RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.depthMask(opaque);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
         try { BufferUploader.drawWithShader(b.buildOrThrow()); }
         finally { RenderSystem.enableCull();RenderSystem.depthMask(true);RenderSystem.disableBlend(); }
     }
