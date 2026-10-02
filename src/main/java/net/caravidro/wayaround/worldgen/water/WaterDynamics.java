@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.worldgen.water;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -183,6 +184,12 @@ public final class WaterDynamics {
             Level level,
             BlockPos center
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.WATER_FLOW
+                );
+
+        try {
         if (!WorldFeatureRuntime.enabled(
                 level,
                 WorldFeature.WATER_DYNAMICS
@@ -418,6 +425,13 @@ public final class WaterDynamics {
                 false,
                 waterSamples
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.WATER_FLOW,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static int waterRun(
