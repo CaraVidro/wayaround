@@ -590,7 +590,20 @@ public final class AssemblyItemData {
             return;
         }
 
+        AssemblyPartProfile profile =
+                readPart(
+                        stack
+                );
+
+        AssemblyPartProfile.Material material =
+                profile != null
+                        ? profile.material()
+                        : inferMaterial(
+                                stack
+                        );
+
         memory.service(
+                material,
                 gameTime,
                 effectiveness
         );
@@ -625,6 +638,32 @@ public final class AssemblyItemData {
         return memory == null
                 ? 1.0F
                 : memory.conductivityFactor();
+    }
+
+    public static float materialMechanicalIntegrity(
+            ItemStack stack
+    ) {
+        MaterialMemory memory =
+                readMaterialMemory(
+                        stack
+                );
+
+        return memory == null
+                ? 1.0F
+                : memory.mechanicalIntegrityFactor();
+    }
+
+    public static float materialFatigueDamage(
+            ItemStack stack
+    ) {
+        MaterialMemory memory =
+                readMaterialMemory(
+                        stack
+                );
+
+        return memory == null
+                ? 0.0F
+                : memory.fatigueDamage();
     }
 
     public static void writeAssembly(

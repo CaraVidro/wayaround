@@ -610,6 +610,14 @@ tasks.register('downloadConsentRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('downloadConsentRegressionTest') }
 
+// Persistent material-history and material-personality invariants.
+tasks.register('materialMemoryRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.material.MaterialMemoryTest'
+}
+tasks.named('check') { dependsOn tasks.named('materialMemoryRegressionTest') }
+
 // Keep local audio backups out of shipped resources (the canonical OGG is retained).
 sourceSets.main.resources.exclude('**/*.local.ogg')
 

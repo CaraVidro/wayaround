@@ -22,6 +22,7 @@ public final class MaterialMemory {
     private float heatDamage;
     private float corrosion;
     private float deformation;
+    private float fatigueDamage;
 
     private MaterialMemory() {
     }
@@ -104,6 +105,11 @@ public final class MaterialMemory {
                         tag.getFloat("Deformation")
                 );
 
+        memory.fatigueDamage =
+                clamp01(
+                        tag.getFloat("FatigueDamage")
+                );
+
         return memory;
     }
 
@@ -120,6 +126,7 @@ public final class MaterialMemory {
         tag.putFloat("HeatDamage", heatDamage);
         tag.putFloat("Corrosion", corrosion);
         tag.putFloat("Deformation", deformation);
+        tag.putFloat("FatigueDamage", fatigueDamage);
 
         return tag;
     }
@@ -187,19 +194,26 @@ public final class MaterialMemory {
         heatDamage =
                 clamp01(
                         heatDamage
-                                + thermalExcess
-                                        * 0.0018F
-                                + Math.max(
-                                0.0F,
-                                thermal - 1.0F
+                                + (
+                                thermalExcess * 0.0018F
+                                        + Math.max(
+                                        0.0F,
+                                        thermal - 1.0F
+                                ) * 0.0012F
                         )
-                                        * 0.0012F
+                                * (
+                                1.12F
+                                        - traits.thermalTolerance()
+                                                * 0.22F
+                        )
                 );
 
         float yield =
-                0.95F
+                0.70F
+                        + traits.mechanicalStrength()
+                                * 0.58F
                         + traits.ductility()
-                                * 0.42F;
+                                * 0.12F;
 
         deformation =
                 clamp01(
@@ -208,13 +222,58 @@ public final class MaterialMemory {
                                 0.0F,
                                 load - yield
                         )
-                                        * 0.0015F
+                                * 0.00125F
+                                * (
+                                0.78F
+                                        + traits.ductility()
+                                                * 0.62F
+                        )
                                 + shake
                                         * Math.max(
                                         0.0F,
                                         load - 0.65F
                                 )
-                                        * 0.00055F
+                                        * 0.00045F
+                                        * traits.vibrationFactor()
+                );
+
+        float enduranceThreshold =
+                0.56F
+                        + traits.fatigueEndurance()
+                                * 0.72F;
+
+        float fatigueInput =
+                Math.max(
+                        0.0F,
+                        load - enduranceThreshold
+                )
+                        + shake
+                                * (
+                                1.0F
+                                        - traits.vibrationDamping()
+                        )
+                                * 0.30F
+                                * Math.max(
+                                0.0F,
+                                load - 0.35F
+                        );
+
+        fatigueDamage =
+                clamp01(
+                        fatigueDamage
+                                + fatigueInput
+                                        * 0.00082F
+                                        * (
+                                        1.28F
+                                                - traits.fatigueEndurance()
+                                                        * 0.52F
+                                )
+                                + thermalExcess
+                                        * (
+                                        1.0F
+                                                - traits.fatigueEndurance()
+                                )
+                                        * 0.00028F
                 );
 
         lastHeat =
@@ -255,9 +314,10 @@ public final class MaterialMemory {
 
     /**
      * Service can clean corrosion and straighten small damage, but historical
-     * thermal damage and severe deformation are never magically erased.
+     * thermal/fatigue damage and severe deformation are never magically erased.
      */
     public void service(
+            AssemblyPartProfile.Material material,
             long gameTime,
             float effectiveness
     ) {
@@ -266,11 +326,31 @@ public final class MaterialMemory {
                         effectiveness
                 );
 
+        MaterialProperties.Traits traits =
+                MaterialProperties.of(
+                        material
+                );
+
+        float serviceability =
+                0.55F
+                        + traits.ductility()
+                                * 0.28F
+                        + (
+                        1.0F
+                                - traits.hardness()
+                )
+                                * 0.17F;
+
         corrosion =
                 clamp01(
                         corrosion
                                 - amount
                                         * 0.16F
+                                        * (
+                                        0.72F
+                                                + traits.corrosionResistance()
+                                                        * 0.28F
+                                )
                 );
 
         deformation =
@@ -278,7 +358,22 @@ public final class MaterialMemory {
                         deformation
                                 - amount
                                         * 0.055F
+                                        * serviceability
                 );
+
+        /*
+         * Proper service can remove a tiny part of incipient cyclic damage,
+         * but it cannot make an old heavily-fatigued part young again.
+         */
+        if (fatigueDamage < 0.38F) {
+            fatigueDamage =
+                    clamp01(
+                            fatigueDamage
+                                    - amount
+                                            * 0.010F
+                                            * serviceability
+                    );
+        }
 
         lastServiceAt =
                 Math.max(
@@ -291,12 +386,35 @@ public final class MaterialMemory {
         return Mth.clamp(
                 1.0F
                         - heatDamage
-                                * 0.28F
+                                * 0.25F
                         - corrosion
-                                * 0.38F
+                                * 0.32F
                         - deformation
-                                * 0.46F,
-                0.30F,
+                                * 0.40F
+                        - fatigueDamage
+                                * 0.34F,
+                0.24F,
+                1.0F
+        );
+    }
+
+    /**
+     * Mechanical history is deliberately harsher than cosmetic condition:
+     * fatigue and deformation can make an apparently intact part a poor
+     * structural choice long before it becomes visually ruined.
+     */
+    public float mechanicalIntegrityFactor() {
+        return Mth.clamp(
+                1.0F
+                        - heatDamage
+                                * 0.24F
+                        - corrosion
+                                * 0.20F
+                        - deformation
+                                * 0.46F
+                        - fatigueDamage
+                                * 0.48F,
+                0.16F,
                 1.0F
         );
     }
@@ -309,7 +427,9 @@ public final class MaterialMemory {
                         - heatDamage
                                 * 0.26F
                         - deformation
-                                * 0.10F,
+                                * 0.10F
+                        - fatigueDamage
+                                * 0.05F,
                 0.18F,
                 1.0F
         );
@@ -345,6 +465,10 @@ public final class MaterialMemory {
 
     public float deformation() {
         return deformation;
+    }
+
+    public float fatigueDamage() {
+        return fatigueDamage;
     }
 
     private static int saturatingIncrement(
