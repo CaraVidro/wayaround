@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.ecology;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.time.TimeAgingEngine;
 import net.caravidro.wayaround.time.TemporalState;
@@ -91,6 +92,12 @@ public final class EcologicalSuccession {
 
     @SubscribeEvent
     public static void tick(ServerTickEvent.Post event) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.ECOLOGY_SUCCESSION
+                );
+
+        try {
         if (!WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
             return;
         }
@@ -118,6 +125,13 @@ public final class EcologicalSuccession {
             if (tick % RUNTIME_INTERVAL == 0) {
                 mutateAroundPlayers(level);
             }
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.ECOLOGY_SUCCESSION,
+                    wayperfStartedAt
+            );
         }
     }
 
