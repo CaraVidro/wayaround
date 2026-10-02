@@ -134,6 +134,17 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                             1.0F
                     );
 
+            PulleyWheelBlockEntity linked =
+                    linkedPulley();
+
+            if (linked != null) {
+                linked.beltSlip =
+                        Math.max(
+                                linked.beltSlip,
+                                beltSlip * 0.96F
+                        );
+            }
+
             driveStress =
                     MechanicalLoad.failureStress(
                             MechanicalLoad.normalized(
@@ -147,6 +158,14 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                             0.0F,
                             beltConditionFactor()
                     );
+
+            if (linked != null) {
+                linked.driveStress =
+                        Math.max(
+                                linked.driveStress,
+                                driveStress * 0.96F
+                        );
+            }
 
             float transmissible =
                     Math.min(
