@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "P",
+    "S"
+  ],
+  "key": {
+    "P": {
+      "item": "wayaround:steel_pressure_pipe"
+    },
+    "S": {
+      "item": "wayaround:mechanical_shaft"
+    }
+  },
+  "result": {
+    "id": "wayaround:rotary_steel_pressure_lift_pipe",
+    "count": 1
+  }
+}
