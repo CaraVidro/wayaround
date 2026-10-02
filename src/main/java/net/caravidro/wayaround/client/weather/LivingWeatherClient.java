@@ -117,6 +117,7 @@ public final class LivingWeatherClient {
 
         LocalWeatherField.Sample weather =
                 LocalWeatherField.sample(
+                        level,
                         player.getX(),
                         player.getZ(),
                         level.getGameTime()

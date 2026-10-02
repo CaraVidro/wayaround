@@ -77,6 +77,8 @@ public final class ClientPayloadBridge {
                 TopHatStateS2CPayload payload
         ) {}
 
+        default void cloudStorm(CloudStormS2CPayload payload) {}
+
         default void krakenScene(KrakenSceneS2CPayload payload) {}
 
         default void krakenShake(
@@ -403,6 +405,10 @@ public final class ClientPayloadBridge {
                         payload
                 )
         );
+    }
+
+    public static void handleCloudStorm(CloudStormS2CPayload payload,IPayloadContext context){
+        if(payload.isSane())context.enqueueWork(()->realtimeHandlers.cloudStorm(payload));
     }
 
     public static void handleKrakenScene(KrakenSceneS2CPayload payload, IPayloadContext context) {

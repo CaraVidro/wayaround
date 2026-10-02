@@ -70,6 +70,8 @@ public final class WayAroundNetwork {
                 AccessoryWorkshopApplyC2SPayload::handle
         );
 
+        registrar.playToClient(CloudStormS2CPayload.TYPE,CloudStormS2CPayload.STREAM_CODEC,ClientPayloadBridge::handleCloudStorm);
+
         registrar.playToClient(KrakenSceneS2CPayload.TYPE, KrakenSceneS2CPayload.STREAM_CODEC,
                 ClientPayloadBridge::handleKrakenScene);
 

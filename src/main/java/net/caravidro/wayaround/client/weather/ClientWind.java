@@ -132,6 +132,7 @@ public final class ClientWind {
             } else {
                 LocalWeatherField.Sample weather =
                         LocalWeatherField.sample(
+                        minecraft.level,
                                 minecraft.player.getX(),
                                 minecraft.player.getZ(),
                                 minecraft.level.getGameTime()

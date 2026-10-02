@@ -50,14 +50,14 @@ import org.joml.Vector3f;
 public final class LivingCloudRenderer {
 
     private static final double RENDER_RANGE = 760.0;
-    private static final double BASE_VOXEL = 7.5;
+    private static final double BASE_VOXEL = 6.5;
     private static final double MAX_VISUAL_RADIUS = 278.0;
     private static final int MAX_HORIZONTAL_VOXELS = 25;
-    private static final int MAX_VERTICAL_VOXELS = 10;
-    private static final int REBUILD_INTERVAL_NEAR = 10;
-    private static final int REBUILD_INTERVAL_MID = 20;
-    private static final int REBUILD_INTERVAL_FAR = 40;
-    private static final int MAX_REBUILDS_PER_FRAME = 2;
+    private static final int MAX_VERTICAL_VOXELS = 16;
+    private static final int REBUILD_INTERVAL_NEAR = 80;
+    private static final int REBUILD_INTERVAL_MID = 160;
+    private static final int REBUILD_INTERVAL_FAR = 320;
+    private static final int MAX_REBUILDS_PER_FRAME = 1;
     private static final double CAMERA_FACE_CLEAR_RADIUS = 18.0;
     private static final double CAMERA_NEAR_GUARD = 0.35;
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
@@ -158,6 +158,7 @@ public final class LivingCloudRenderer {
 
         List<LocalWeatherField.CloudCell> cells =
                 LocalWeatherField.nearbyCells(
+                        minecraft.level,
                         camera.x,
                         camera.z,
                         time,
@@ -188,10 +189,7 @@ public final class LivingCloudRenderer {
                             cell
                     );
 
-            double verticalBounds =
-                    34.0
-                            + visualRadius
-                                    * 0.10;
+            double verticalBounds = verticalExtent(cell)+16;
 
             AABB bounds =
                     new AABB(
@@ -447,6 +445,7 @@ public final class LivingCloudRenderer {
 
         for (LocalWeatherField.CloudCell cell :
                 LocalWeatherField.nearbyCells(
+                        minecraft.level,
                         position.x,
                         position.z,
                         time,
@@ -676,8 +675,7 @@ public final class LivingCloudRenderer {
             int vertical =
                     Mth.clamp(
                             (int) Math.ceil(
-                                    (25.0 + radius * 0.105)
-                                            / voxel
+                                    verticalExtent(cell) / voxel
                             ),
                             2,
                             MAX_VERTICAL_VOXELS
@@ -716,7 +714,7 @@ public final class LivingCloudRenderer {
                                 wy,
                                 wz,
                                 voxel
-                        )
+                        ) && wy >= -18.0-cell.storm()*10
                                 && !cutByBlue(
                                         cell.x() + wx,
                                         cell.y() + wy,
@@ -1210,7 +1208,19 @@ public final class LivingCloudRenderer {
             );
         }
 
+        if(cell.storm()>.60F){
+            double development=(cell.storm()-.60)/.40;
+            for(int tower=0;tower<3;tower++) {
+                double offset=(tower-1)*radius*.22;
+                lobes.add(new Lobe(offset,20+development*35,offset*.30,radius*(.18+development*.09),28+development*36));
+            }
+            lobes.add(new Lobe(windX*radius*.28,38+development*40,windZ*radius*.28,radius*.62,12+development*8));
+        }
         return lobes;
+    }
+
+    private static double verticalExtent(LocalWeatherField.CloudCell cell){
+        return cell.storm()>.60?70+(cell.storm()-.60)/.40*58:30+cell.radius()*.08;
     }
 
     private static boolean occupiedByLobe(
@@ -1492,10 +1502,7 @@ public final class LivingCloudRenderer {
                         cell
                 );
 
-        double verticalExtent =
-                25.0
-                        + radius
-                                * 0.105;
+        double verticalExtent = verticalExtent(cell);
 
         double localY =
                 voxel.y
@@ -1523,7 +1530,7 @@ public final class LivingCloudRenderer {
         double faceShade =
                 switch (face) {
                     case DOWN ->
-                            0.74;
+                            0.68-cell.storm()*.12;
                     case UP ->
                             1.03;
                     default ->
@@ -1645,6 +1652,11 @@ public final class LivingCloudRenderer {
                         236
                 );
 
+        float flash=CloudStormClient.glow(cell.id(),cell.x()+voxel.x*voxelSize,
+                cell.y()+voxel.y*voxelSize,cell.z()+voxel.z*voxelSize,time);
+        red=Math.round(red+(225-red)*flash);
+        green=Math.round(green+(236-green)*flash);
+        blue=Math.round(blue+(255-blue)*flash);
         return red
                 | green << 8
                 | blue << 16

@@ -31,7 +31,11 @@ public final class CloudShadowRenderer {
     private static boolean enabled() {
         var mc=Minecraft.getInstance();
         return mc.level!=null && mc.player!=null && mc.level.dimensionType().hasSkyLight()
-                && !mc.player.isUnderWater() && WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER);
+                && mc.level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)
+                && !net.caravidro.wayaround.client.AntarcticClientLighting.isAntarctic(mc)
+                && net.caravidro.wayaround.client.VoidDomainClientEffects.localInterior()==null
+                && !mc.player.isUnderWater() && WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)
+                && WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER);
     }
     @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
         var mc=Minecraft.getInstance();
@@ -44,7 +48,7 @@ public final class CloudShadowRenderer {
         if(sun.y<.22)return;
         Vec3 camera=mc.gameRenderer.getMainCamera().getPosition();
         long time=mc.level.getGameTime();
-        var cells=LocalWeatherField.nearbyCells(camera.x,camera.z,time,760);
+        var cells=LocalWeatherField.nearbyCells(mc.level,camera.x,camera.z,time,760);
         int cx=BlockPos.containing(camera).getX(),cz=BlockPos.containing(camera).getZ();
         for(int dx=-20;dx<=20;dx+=4)for(int dz=-20;dz<=20;dz+=4){
             int x=Math.floorDiv(cx,4)*4+dx,z=Math.floorDiv(cz,4)*4+dz;
