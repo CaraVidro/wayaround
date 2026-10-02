@@ -21,10 +21,12 @@ public final class MechanicsGameTests {
         h.assertTrue(pipe.installValve(valve,player,Direction.NORTH)&&valve.getCount()==1,"Valve consumes one actual item");
         pipe.turn(player);PipeFlow.pump(h.getLevel(),pipe);
         h.assertTrue(h.getBlockState(new BlockPos(5,2,6)).isAir(),"Intake removes the actual source block");
-        h.assertTrue(pipe.amount()==760,"A 1000-unit bucket loses only the 240-unit outlet spray");
-        h.assertTrue(h.getBlockState(new BlockPos(5,2,4)).isAir(),"Small outlet sprays rather than spawning a source block");
+        h.assertTrue(pipe.amount()==760&&pipe.outletAmount()==240,"First 240 mB leaves the transport tank but remains conserved at the outlet");
+        h.assertTrue(h.getBlockState(new BlockPos(5,2,4)).isAir(),"A partial bucket does not spawn a source block yet");
         var saved=pipe.saveWithoutMetadata(h.getLevel().registryAccess());pipe.loadWithComponents(saved,h.getLevel().registryAccess());
-        h.assertTrue(pipe.amount()==760&&pipe.hasValve()&&pipe.open(),"Fluid budget, valve and orientation survive saves");
+        h.assertTrue(pipe.amount()==760&&pipe.outletAmount()==240&&pipe.hasValve()&&pipe.open(),"Transport and outlet buffers, valve and orientation survive saves");
+        for(int i=0;i<4;i++)PipeFlow.pump(h.getLevel(),pipe);
+        h.assertTrue(pipe.amount()==0&&pipe.outletAmount()==0&&h.getBlockState(new BlockPos(5,2,4)).is(Blocks.WATER),"Five 240 mB-bounded transfers conserve one full source without deleting partial flow");
         h.succeed();
     }
     @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)

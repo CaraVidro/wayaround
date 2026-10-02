@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.ecology;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -18,6 +19,12 @@ public final class RegionalFishSpawning {
     private RegionalFishSpawning() {}
     @SubscribeEvent
     public static void placement(MobSpawnEvent.SpawnPlacementCheck event) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.FISH_SPAWN_RULES
+                );
+
+        try {
         if (event.getSpawnType() != MobSpawnType.NATURAL && event.getSpawnType() != MobSpawnType.CHUNK_GENERATION) return;
         String fish = BuiltInRegistries.ENTITY_TYPE.getKey(event.getEntityType()).toString();
         if (!FishHabitat.managed(fish)) return;
@@ -35,6 +42,13 @@ public final class RegionalFishSpawning {
             event.setResult(MobSpawnEvent.SpawnPlacementCheck.Result.FAIL);
         }
         // Never force success: vanilla light, obstruction and spawn rules still apply.
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.FISH_SPAWN_RULES,
+                    wayperfStartedAt
+            );
+        }
     }
     public static FishHabitat habitatAt(ServerLevelAccessor level, BlockPos pos) {
         return level.getBiome(pos).unwrapKey().map(key -> FishHabitat.forBiome(key.location().toString())).orElse(null);

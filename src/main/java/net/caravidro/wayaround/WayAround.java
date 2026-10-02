@@ -28,6 +28,8 @@ import net.caravidro.wayaround.justice.JusticeRewardManager;
 import net.caravidro.wayaround.justice.JusticeSenseManager;
 import net.caravidro.wayaround.jujutsu.JujutsuCommands;
 import net.caravidro.wayaround.particle.WayAroundParticles;
+import net.caravidro.wayaround.performance.PerformanceCommands;
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.sounds.WayAroundSounds;
 import net.caravidro.wayaround.spectrum.SpectrumCommands;
 import net.caravidro.wayaround.worldgen.WayAroundBiomes;
@@ -113,6 +115,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(WarBallistics::onServerTick);
         NeoForge.EVENT_BUS.addListener(KrakenManager::tick);
+        NeoForge.EVENT_BUS.addListener(PerformanceProfiler::onServerTick);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
@@ -128,6 +131,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(VolcanicCommands::register);
         NeoForge.EVENT_BUS.addListener(GreatRiftCommands::register);
         NeoForge.EVENT_BUS.addListener(TreeArchitectureCommands::register);
+        NeoForge.EVENT_BUS.addListener(PerformanceCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);

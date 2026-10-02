@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -7,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.caravidro.wayaround.industrial.pipework.MechanicalPumpBlock;
 import net.caravidro.wayaround.industrial.pipework.MechanicalPumpBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -44,6 +46,12 @@ public final class MechanicalPumpRenderer
             int light,
             int overlay
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_RENDER
+                );
+
+        try {
         double time =
                 pump.getLevel() == null
                         ? 0.0
@@ -51,16 +59,24 @@ public final class MechanicalPumpRenderer
                                 .getGameTime()
                                 + partialTick;
 
+        DistanceLod.Tier lod =
+                DistanceLod.forBlock(
+                        pump.getBlockPos()
+                );
+
         float angle =
-                ROTATIONS.computeIfAbsent(
-                        pump,
-                        key -> new SmoothObjectAnimation.Rotation(
+                DistanceLod.quantizeDegrees(
+                        ROTATIONS.computeIfAbsent(
+                                pump,
+                                key -> new SmoothObjectAnimation.Rotation(
+                                        pump.angle()
+                                )
+                        ).update(
+                                time,
+                                pump.rpm(),
                                 pump.angle()
-                        )
-                ).update(
-                        time,
-                        pump.rpm(),
-                        pump.angle()
+                        ),
+                        lod
                 );
 
         pose.pushPose();
@@ -82,7 +98,8 @@ public final class MechanicalPumpRenderer
                 )
         );
 
-        if (pump.working()) {
+        if (pump.working()
+                && lod.detailedGeometry()) {
             pose.translate(
                     Math.sin(time * 1.6)
                             * pump.vibration()
@@ -191,15 +208,22 @@ public final class MechanicalPumpRenderer
                     0.13, 0.13, 0.76
             );
 
+            int blades =
+                    lod.detailedGeometry()
+                            ? 6
+                            : 3;
+
             for (int index = 0;
-                 index < 6;
+                 index < blades;
                  index++) {
 
                 pose.pushPose();
 
                 pose.mulPose(
                         Axis.XP.rotationDegrees(
-                                index * 60.0F
+                                index
+                                        * 360.0F
+                                        / blades
                         )
                 );
 
@@ -230,7 +254,8 @@ public final class MechanicalPumpRenderer
             }
         }
 
-        if (pump.bufferAmount() > 0) {
+        if (lod.detailedGeometry()
+                && pump.bufferAmount() > 0) {
             box(
                     pose, buffer, light, overlay,
                     Blocks.BLUE_STAINED_GLASS.defaultBlockState(),
@@ -240,6 +265,13 @@ public final class MechanicalPumpRenderer
         }
 
         pose.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private void box(

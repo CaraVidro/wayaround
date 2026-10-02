@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.power;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Collection;
 import java.util.ArrayList;
 import net.caravidro.wayaround.industrial.crushing.*;
@@ -99,6 +100,12 @@ public final class MechanicalMillBlockEntity
             BlockState state,
             MechanicalMillBlockEntity mill
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_SIM
+                );
+
+        try {
         if (!(level instanceof ServerLevel server)
                 || !WorldFeatureRuntime.enabled(
                 level,
@@ -333,6 +340,13 @@ public final class MechanicalMillBlockEntity
 
         } else {
             mill.setChanged();
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_SIM,
+                    wayperfStartedAt
+            );
         }
     }
 

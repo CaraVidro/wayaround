@@ -1,11 +1,11 @@
 package net.caravidro.wayaround.industrial.pipework;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -31,22 +31,29 @@ public final class PipeFlow {
 
     private static final int MAX_NODES = 128;
 
+    private static final Direction[] DIRECTIONS =
+            Direction.values();
+
+    /*
+     * Linked traversal nodes replace List.copyOf(path) at every BFS branch.
+     * A 100-pipe network previously copied an ever-growing list for each
+     * queued node. These tiny parent links keep routing O(n) in allocations.
+     */
     private record Step(
             PipeBlockEntity pipe,
             Direction arrival,
-            List<PipeBlockEntity> path
+            Step previous
     ) {}
 
     private record SuctionStep(
             PipeBlockEntity pipe,
-            BlockPos previous,
-            List<PipeBlockEntity> path
+            SuctionStep previous
     ) {}
 
     private record Outlet(
             PipeBlockEntity pipe,
             Direction direction,
-            List<PipeBlockEntity> path
+            Step terminal
     ) {}
 
     private PipeFlow() {
@@ -164,8 +171,10 @@ public final class PipeFlow {
         ArrayDeque<Step> queue =
                 new ArrayDeque<>();
 
-        Set<BlockPos> seen =
-                new HashSet<>();
+        LongOpenHashSet seen =
+                new LongOpenHashSet(
+                        MAX_NODES * 2
+                );
 
         ArrayList<Outlet> outputs =
                 new ArrayList<>();
@@ -174,7 +183,7 @@ public final class PipeFlow {
                 new Step(
                         root,
                         rootFlow,
-                        List.of(root)
+                        null
                 )
         );
 
@@ -193,6 +202,7 @@ public final class PipeFlow {
 
             if (!seen.add(
                     pipe.getBlockPos()
+                            .asLong()
             )) {
                 continue;
             }
@@ -211,7 +221,7 @@ public final class PipeFlow {
                     0;
 
             for (Direction direction :
-                    Direction.values()) {
+                    DIRECTIONS) {
 
                 if (!axisAllows(
                         pipe,
@@ -250,22 +260,16 @@ public final class PipeFlow {
 
                 if (seen.contains(
                         next.getBlockPos()
+                                .asLong()
                 )) {
                     continue;
                 }
-
-                ArrayList<PipeBlockEntity> path =
-                        new ArrayList<>(
-                                step.path()
-                        );
-
-                path.add(next);
 
                 queue.addLast(
                         new Step(
                                 next,
                                 direction,
-                                List.copyOf(path)
+                                step
                         )
                 );
             }
@@ -275,7 +279,7 @@ public final class PipeFlow {
                         new Outlet(
                                 pipe,
                                 step.arrival(),
-                                step.path()
+                                step
                         )
                 );
             }
@@ -288,6 +292,12 @@ public final class PipeFlow {
             ServerLevel level,
             PipeBlockEntity valve
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
         List<Outlet> outputs =
                 outlets(
                         level,
@@ -359,6 +369,13 @@ public final class PipeFlow {
         if (consumed > 0) {
             valve.used(consumed);
         }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
     }
 
     /**
@@ -375,6 +392,12 @@ public final class PipeFlow {
             int limit,
             FluidStack preferred
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
         if (limit <= 0
                 || !level.hasChunkAt(
                 intakePos
@@ -405,6 +428,13 @@ public final class PipeFlow {
                 limit,
                 preferred
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static FluidStack pullFromNetwork(
@@ -417,14 +447,15 @@ public final class PipeFlow {
         ArrayDeque<SuctionStep> queue =
                 new ArrayDeque<>();
 
-        Set<BlockPos> seen =
-                new HashSet<>();
+        LongOpenHashSet seen =
+                new LongOpenHashSet(
+                        MAX_NODES * 2
+                );
 
         queue.add(
                 new SuctionStep(
                         root,
-                        null,
-                        List.of(root)
+                        null
                 )
         );
 
@@ -439,6 +470,7 @@ public final class PipeFlow {
 
             if (!seen.add(
                     pipe.getBlockPos()
+                            .asLong()
             )) {
                 continue;
             }
@@ -449,7 +481,7 @@ public final class PipeFlow {
             }
 
             for (Direction direction :
-                    Direction.values()) {
+                    DIRECTIONS) {
 
                 if (!axisAllows(
                         pipe,
@@ -475,29 +507,14 @@ public final class PipeFlow {
                         continue;
                     }
 
-                    if (step.previous() != null
-                            && next.getBlockPos()
-                            .equals(
-                                    step.previous()
-                            )) {
-                        continue;
-                    }
-
                     if (!seen.contains(
                             next.getBlockPos()
+                                    .asLong()
                     )) {
-                        ArrayList<PipeBlockEntity> path =
-                                new ArrayList<>(
-                                        step.path()
-                                );
-
-                        path.add(next);
-
                         queue.addLast(
                                 new SuctionStep(
                                         next,
-                                        pipe.getBlockPos(),
-                                        List.copyOf(path)
+                                        step
                                 )
                         );
                     }
@@ -523,7 +540,7 @@ public final class PipeFlow {
 
                 if (!drained.isEmpty()) {
                     markSuctionPath(
-                            step.path(),
+                            step,
                             drained
                     );
 
@@ -664,6 +681,12 @@ public final class PipeFlow {
             FluidStack supplied,
             int limit
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.PIPE_ROUTING
+                );
+
+        try {
         if (root == null
                 || supplied.isEmpty()
                 || limit <= 0
@@ -705,6 +728,13 @@ public final class PipeFlow {
                 supplied,
                 limit
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.PIPE_ROUTING,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static int deliver(
@@ -735,8 +765,14 @@ public final class PipeFlow {
                         fluid.getAmount()
                 );
 
-        for (PipeBlockEntity part :
-                outlet.path()) {
+        for (Step cursor =
+                     outlet.terminal();
+             cursor != null;
+             cursor =
+                     cursor.previous()) {
+
+            PipeBlockEntity part =
+                    cursor.pipe();
 
             if (part.getBlockState().getBlock()
                     instanceof IndustrialPipeBlock pipe) {
@@ -835,35 +871,76 @@ public final class PipeFlow {
                 PipeBlockEntity terminal =
                         outlet.pipe();
 
-                /*
-                 * A one-pipe legacy valve owns the exact FluidStack passed to
-                 * deliver(). Do not "receive" that same stack back into itself
-                 * or the amount doubles before the caller removes it.
-                 */
-                boolean sourceIsTerminal =
-                        terminal.stored()
-                        == fluid;
+                FluidStack buffered =
+                        terminal.outletStored();
 
-                if (sourceIsTerminal) {
-                    if (terminal.amount() >= 1000
-                            && limit >= 1000) {
+                boolean compatible =
+                        buffered.isEmpty()
+                                || FluidStack.isSameFluidSameComponents(
+                                buffered,
+                                fluid
+                        );
 
+                if (compatible) {
+                    /*
+                     * Flush a bucket that was accumulated by earlier ticks.
+                     * This volume was already removed from the upstream source
+                     * when it entered outletBuffer, so it MUST NOT be counted
+                     * as newly consumed now.
+                     */
+                    if (terminal.outletAmount() >= 1000) {
                         int released =
                                 spill(
                                         level,
                                         end,
-                                        terminal.stored(),
+                                        terminal.outletStored(),
                                         true
                                 );
 
+                        if (released > 0) {
+                            terminal.usedOutlet(
+                                    released
+                            );
+                        }
+                    }
+
+                    int accepted =
+                            Math.min(
+                                    limit,
+                                    terminal.outletRoom()
+                            );
+
+                    if (accepted > 0) {
+                        terminal.receiveOutlet(
+                                fluid.copyWithAmount(
+                                        accepted
+                                )
+                        );
+
                         /*
-                         * The valve caller removes this returned amount from
-                         * its own tank, so do not terminal.used() here.
+                         * Only this fresh amount is charged to the pump/valve
+                         * source budget.
                          */
                         consumed =
-                                released;
+                                accepted;
+                    }
 
-                    } else if (!fluid.isEmpty()) {
+                    if (terminal.outletAmount() >= 1000) {
+                        int released =
+                                spill(
+                                        level,
+                                        end,
+                                        terminal.outletStored(),
+                                        true
+                                );
+
+                        if (released > 0) {
+                            terminal.usedOutlet(
+                                    released
+                            );
+                        }
+
+                    } else if (accepted > 0) {
                         jet(
                                 level,
                                 end,
@@ -871,68 +948,6 @@ public final class PipeFlow {
                                 fluid,
                                 3
                         );
-                    }
-
-                } else {
-                    FluidStack stored =
-                            terminal.stored();
-
-                    boolean compatible =
-                            stored.isEmpty()
-                                    || FluidStack.isSameFluidSameComponents(
-                                    stored,
-                                    fluid
-                            );
-
-                    if (compatible) {
-                        int room =
-                                Math.max(
-                                        0,
-                                        terminal.capacity()
-                                                - terminal.amount()
-                                );
-
-                        int accepted =
-                                Math.min(
-                                        limit,
-                                        room
-                                );
-
-                        if (accepted > 0) {
-                            terminal.receive(
-                                    fluid.copyWithAmount(
-                                            accepted
-                                    )
-                            );
-
-                            consumed =
-                                    accepted;
-                        }
-
-                        if (terminal.amount() >= 1000) {
-                            int released =
-                                    spill(
-                                            level,
-                                            end,
-                                            terminal.stored(),
-                                            true
-                                    );
-
-                            if (released > 0) {
-                                terminal.used(
-                                        released
-                                );
-                            }
-
-                        } else if (accepted > 0) {
-                            jet(
-                                    level,
-                                    end,
-                                    outlet.direction(),
-                                    fluid,
-                                    3
-                            );
-                        }
                     }
                 }
 
@@ -974,38 +989,38 @@ public final class PipeFlow {
                             1
                     );
 
-            for (int index = 0;
-                 index < outlet.path().size();
-                 index++) {
+            Step child =
+                    null;
+
+            for (Step cursor =
+                         outlet.terminal();
+                 cursor != null;
+                 child = cursor,
+                         cursor = cursor.previous()) {
 
                 PipeBlockEntity pipe =
-                        outlet.path()
-                                .get(index);
+                        cursor.pipe();
 
                 Direction direction =
-                        index + 1
-                                < outlet.path().size()
-                                ? Direction.getNearest(
-                                outlet.path()
-                                        .get(index + 1)
+                        child == null
+                                ? outlet.direction()
+                                : Direction.getNearest(
+                                child.pipe()
                                         .getBlockPos()
                                         .getX()
                                         - pipe.getBlockPos()
                                         .getX(),
-                                outlet.path()
-                                        .get(index + 1)
+                                child.pipe()
                                         .getBlockPos()
                                         .getY()
                                         - pipe.getBlockPos()
                                         .getY(),
-                                outlet.path()
-                                        .get(index + 1)
+                                child.pipe()
                                         .getBlockPos()
                                         .getZ()
                                         - pipe.getBlockPos()
                                         .getZ()
-                        )
-                                : outlet.direction();
+                        );
 
                 pipe.markFlow(
                         marking,
@@ -1018,7 +1033,7 @@ public final class PipeFlow {
     }
 
     private static void markSuctionPath(
-            List<PipeBlockEntity> path,
+            SuctionStep terminal,
             FluidStack fluid
     ) {
         FluidStack marking =
@@ -1026,27 +1041,32 @@ public final class PipeFlow {
                         1
                 );
 
-        for (int index = path.size() - 1;
-             index >= 0;
-             index--) {
+        for (SuctionStep cursor =
+                     terminal;
+             cursor != null;
+             cursor =
+                     cursor.previous()) {
 
             PipeBlockEntity pipe =
-                    path.get(index);
+                    cursor.pipe();
+
+            SuctionStep previous =
+                    cursor.previous();
 
             Direction direction =
-                    index > 0
+                    previous != null
                             ? Direction.getNearest(
-                            path.get(index - 1)
+                            previous.pipe()
                                     .getBlockPos()
                                     .getX()
                                     - pipe.getBlockPos()
                                     .getX(),
-                            path.get(index - 1)
+                            previous.pipe()
                                     .getBlockPos()
                                     .getY()
                                     - pipe.getBlockPos()
                                     .getY(),
-                            path.get(index - 1)
+                            previous.pipe()
                                     .getBlockPos()
                                     .getZ()
                                     - pipe.getBlockPos()

@@ -1,12 +1,14 @@
 package net.caravidro.wayaround.ecology.ai;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.ecology.DeepOceanManager;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Map;
+
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.EcologyRules;
@@ -457,15 +459,37 @@ public final class LivingFaunaManager {
         }
     }
 
-    private static void tickAnimals(ServerLevel level) {
-        Set<UUID> touched =
-                new HashSet<>();
+    private static void tickAnimals(
+            ServerLevel level
+    ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.FAUNA_AI
+                );
+
+        try {
+        /*
+         * Lithium-style hot-path rule: use primitive IDs and streamless
+         * filtering. UUID HashSet + candidates.stream().toList() used to
+         * allocate heavily every ecology pass, especially around farms.
+         */
+        IntOpenHashSet touched =
+                new IntOpenHashSet(
+                        MAX_ANIMALS_PER_LEVEL * 2
+                );
 
         List<Animal> candidates =
-                new ArrayList<>();
+                new ArrayList<>(
+                        MAX_ANIMALS_PER_LEVEL
+                );
+
+        Map<EntityType<?>, List<Animal>> byType =
+                new IdentityHashMap<>();
 
         outer:
-        for (var player : level.players()) {
+        for (var player :
+                level.players()) {
+
             AABB area =
                     player.getBoundingBox()
                             .inflate(
@@ -479,13 +503,22 @@ public final class LivingFaunaManager {
                             Animal.class,
                             area
                     )) {
+
                 if (!touched.add(
-                        animal.getUUID()
+                        animal.getId()
                 )) {
                     continue;
                 }
 
                 candidates.add(
+                        animal
+                );
+
+                byType.computeIfAbsent(
+                        animal.getType(),
+                        ignored ->
+                                new ArrayList<>()
+                ).add(
                         animal
                 );
 
@@ -496,26 +529,41 @@ public final class LivingFaunaManager {
             }
         }
 
+        ArrayList<Animal> group =
+                new ArrayList<>(
+                        24
+                );
+
         for (Animal animal :
                 candidates) {
+
             if (animal
                     instanceof TamableAnimal tame
                     && tame.isTame()) {
                 continue;
             }
 
-            List<Animal> group =
-                    candidates.stream()
-                            .filter(
-                                    other ->
-                                            other.isAlive()
-                                                    && other.getType()
-                                                    == animal.getType()
-                                                    && other.distanceToSqr(
-                                                    animal
-                                            ) <= 28.0 * 28.0
-                            )
-                            .toList();
+            group.clear();
+
+            List<Animal> sameType =
+                    byType.get(
+                            animal.getType()
+                    );
+
+            if (sameType != null) {
+                for (Animal other :
+                        sameType) {
+
+                    if (other.isAlive()
+                            && other.distanceToSqr(
+                            animal
+                    ) <= 28.0 * 28.0) {
+                        group.add(
+                                other
+                        );
+                    }
+                }
+            }
 
             ensureAnimalHome(
                     animal
@@ -597,6 +645,13 @@ public final class LivingFaunaManager {
                     group
             );
         }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.FAUNA_AI,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static void ensureAnimalHome(
@@ -621,27 +676,40 @@ public final class LivingFaunaManager {
             Animal animal
     ) {
         ItemEntity food =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (ItemEntity candidate :
                 level.getEntitiesOfClass(
-                                ItemEntity.class,
-                                animal.getBoundingBox()
-                                        .inflate(
-                                                6.0,
-                                                3.0,
-                                                6.0
-                                        ),
-                                item ->
-                                        item.isAlive()
-                                                && animal.isFood(
-                                                item.getItem()
-                                        )
-                        )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        animal::distanceToSqr
+                        ItemEntity.class,
+                        animal.getBoundingBox()
+                                .inflate(
+                                        6.0,
+                                        3.0,
+                                        6.0
+                                ),
+                        item ->
+                                item.isAlive()
+                                        && animal.isFood(
+                                        item.getItem()
                                 )
-                        )
-                        .orElse(null);
+                )) {
+
+            double distance =
+                    animal.distanceToSqr(
+                            candidate
+                    );
+
+            if (distance < bestDistance) {
+                bestDistance =
+                        distance;
+
+                food =
+                        candidate;
+            }
+        }
 
         if (food == null) {
             return false;
@@ -730,21 +798,28 @@ public final class LivingFaunaManager {
         }
 
         Animal mate =
-                group.stream()
-                        .filter(
-                                other ->
-                                        other != animal
-                                                && !other.isBaby()
-                                                && !other.isInLove()
-                                                && other.getAge() == 0
-                                                && !(
-                                                other
-                                                        instanceof TamableAnimal tame
-                                                        && tame.isTame()
-                                        )
-                        )
-                        .findFirst()
-                        .orElse(null);
+                null;
+
+        for (Animal other :
+                group) {
+
+            if (other == animal
+                    || other.isBaby()
+                    || other.isInLove()
+                    || other.getAge() != 0
+                    || (
+                    other
+                            instanceof TamableAnimal tame
+                            && tame.isTame()
+            )) {
+                continue;
+            }
+
+            mate =
+                    other;
+
+            break;
+        }
 
         if (mate == null) {
             data.putLong(
@@ -789,9 +864,19 @@ public final class LivingFaunaManager {
                 );
     }
 
-    private static void tickFish(ServerLevel level) {
-        Set<UUID> touched =
-                new HashSet<>();
+    private static void tickFish(
+            ServerLevel level
+    ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.FAUNA_AI
+                );
+
+        try {
+        IntOpenHashSet touched =
+                new IntOpenHashSet(
+                        MAX_FISH_PER_LEVEL * 2
+                );
 
         int processed =
                 0;
@@ -812,7 +897,7 @@ public final class LivingFaunaManager {
                             area
                     )) {
                 if (!touched.add(
-                        fish.getUUID()
+                        fish.getId()
                 )) {
                     continue;
                 }
@@ -974,6 +1059,13 @@ public final class LivingFaunaManager {
                 }
             }
         }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.FAUNA_AI,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static void ensureFishHome(
@@ -1031,6 +1123,36 @@ public final class LivingFaunaManager {
         );
     }
 
+    private static <T extends Entity> T nearestByDistance(
+            Entity origin,
+            List<T> candidates
+    ) {
+        T nearest =
+                null;
+
+        double best =
+                Double.MAX_VALUE;
+
+        for (T candidate :
+                candidates) {
+
+            double distance =
+                    origin.distanceToSqr(
+                            candidate
+                    );
+
+            if (distance < best) {
+                best =
+                        distance;
+
+                nearest =
+                        candidate;
+            }
+        }
+
+        return nearest;
+    }
+
     private static boolean feedFish(
             ServerLevel level,
             AbstractFish fish
@@ -1064,7 +1186,9 @@ public final class LivingFaunaManager {
         }
 
         ItemEntity food =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 ItemEntity.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -1086,13 +1210,7 @@ public final class LivingFaunaManager {
                                                 item.getItem()
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (food == null) {
             data.putLong(
@@ -1253,44 +1371,52 @@ public final class LivingFaunaManager {
                         : 7.5;
 
         FishCarcassEntity carcass =
+                null;
+
+        double bestCarcassScore =
+                Double.MAX_VALUE;
+
+        for (FishCarcassEntity candidate :
                 level.getEntitiesOfClass(
-                                FishCarcassEntity.class,
-                                fish.getBoundingBox()
-                                        .inflate(
-                                                radius,
-                                                5.0,
-                                                radius
-                                        ),
-                                candidate ->
-                                        candidate.isAlive()
-                                                && !candidate.isSkeleton()
-                                                && (
-                                                ownProfile == null
-                                                        || candidate.profile()
-                                                        != ownProfile
-                                        )
-                                                && carcassAttractiveEnough(
-                                                candidate,
-                                                fish,
-                                                predator
-                                        )
-                        )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        candidate ->
-                                                fish.distanceToSqr(
-                                                        candidate
-                                                )
-                                                        / Math.max(
-                                                        0.20,
-                                                        candidate.attractiveness()
-                                                )
+                        FishCarcassEntity.class,
+                        fish.getBoundingBox()
+                                .inflate(
+                                        radius,
+                                        5.0,
+                                        radius
+                                ),
+                        candidate ->
+                                candidate.isAlive()
+                                        && !candidate.isSkeleton()
+                                        && (
+                                        ownProfile == null
+                                                || candidate.profile()
+                                                != ownProfile
                                 )
-                        )
-                        .orElse(
-                                null
-                        );
+                                        && carcassAttractiveEnough(
+                                        candidate,
+                                        fish,
+                                        predator
+                                )
+                )) {
+
+            double score =
+                    fish.distanceToSqr(
+                            candidate
+                    )
+                            / Math.max(
+                            0.20,
+                            candidate.attractiveness()
+                    );
+
+            if (score < bestCarcassScore) {
+                bestCarcassScore =
+                        score;
+
+                carcass =
+                        candidate;
+            }
+        }
 
         if (carcass == null) {
             data.putLong(
@@ -1548,7 +1674,9 @@ public final class LivingFaunaManager {
         }
 
         ItemEntity meat =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        predator,
+                        level.getEntitiesOfClass(
                                 ItemEntity.class,
                                 predator.getBoundingBox()
                                         .inflate(
@@ -1562,13 +1690,7 @@ public final class LivingFaunaManager {
                                                 item.getItem()
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        predator::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (meat == null) {
             data.putLong(
@@ -1736,54 +1858,64 @@ public final class LivingFaunaManager {
             AquaticPredator predator
     ) {
         AbstractFish prey =
+                null;
+
+        double bestPreyScore =
+                Double.MAX_VALUE;
+
+        for (AbstractFish candidate :
                 level.getEntitiesOfClass(
-                                AbstractFish.class,
-                                hunter.getBoundingBox()
-                                        .inflate(
-                                                predator.huntRadius(),
-                                                predator.huntVerticalRadius(),
-                                                predator.huntRadius()
-                                        ),
-                                candidate ->
-                                        candidate.isAlive()
-                                                && candidate != hunter
-                                                && !(candidate instanceof AquaticPredator)
-                                                && !(candidate instanceof WhaleEntity)
-                                                && predatorAcceptsPrey(
-                                                hunter,
-                                                candidate
-                                        )
-                                                && (
-                                                !(candidate instanceof SunfishEntity)
-                                                        || (
-                                                        hunter instanceof ReefSharkEntity
-                                                                && fishSize(
-                                                                candidate
-                                                        ) < fishSize(
-                                                                hunter
-                                                        ) * 1.15F
-                                                )
-                                                        || fishSize(
+                        AbstractFish.class,
+                        hunter.getBoundingBox()
+                                .inflate(
+                                        predator.huntRadius(),
+                                        predator.huntVerticalRadius(),
+                                        predator.huntRadius()
+                                ),
+                        candidate ->
+                                candidate.isAlive()
+                                        && candidate != hunter
+                                        && !(candidate instanceof AquaticPredator)
+                                        && !(candidate instanceof WhaleEntity)
+                                        && predatorAcceptsPrey(
+                                        hunter,
+                                        candidate
+                                )
+                                        && (
+                                        !(candidate instanceof SunfishEntity)
+                                                || (
+                                                hunter instanceof ReefSharkEntity
+                                                        && fishSize(
                                                         candidate
                                                 ) < fishSize(
                                                         hunter
-                                                ) * 0.75F
+                                                ) * 1.15F
                                         )
-                        )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        candidate ->
-                                                hunter.distanceToSqr(
-                                                        candidate
-                                                )
-                                                        / preyPreference(
-                                                        hunter,
-                                                        candidate
-                                                )
+                                                || fishSize(
+                                                candidate
+                                        ) < fishSize(
+                                                hunter
+                                        ) * 0.75F
                                 )
-                        )
-                        .orElse(null);
+                )) {
+
+            double score =
+                    hunter.distanceToSqr(
+                            candidate
+                    )
+                            / preyPreference(
+                            hunter,
+                            candidate
+                    );
+
+            if (score < bestPreyScore) {
+                bestPreyScore =
+                        score;
+
+                prey =
+                        candidate;
+            }
+        }
 
         if (prey == null) {
             return false;
@@ -2058,7 +2190,9 @@ public final class LivingFaunaManager {
         }
 
         AbstractFish nearest =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        whale,
+                        level.getEntitiesOfClass(
                                 AbstractFish.class,
                                 whale.getBoundingBox()
                                         .inflate(
@@ -2088,13 +2222,7 @@ public final class LivingFaunaManager {
                                                         : 1.30F
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        whale::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (nearest == null) {
             data.putLong(
@@ -2258,7 +2386,9 @@ public final class LivingFaunaManager {
             AbstractFish fish
     ) {
         AbstractFish predator =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 AbstractFish.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2271,13 +2401,7 @@ public final class LivingFaunaManager {
                                                 && candidate != fish
                                                 && candidate instanceof AquaticPredator
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (predator == null) {
             return false;
@@ -2506,7 +2630,9 @@ public final class LivingFaunaManager {
             AquaticPredator predator
     ) {
         AbstractFish stronger =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 AbstractFish.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2542,13 +2668,7 @@ public final class LivingFaunaManager {
                                                 )
                                         )
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (stronger == null) {
             return false;
@@ -2720,7 +2840,9 @@ public final class LivingFaunaManager {
         }
 
         JellyfishEntity jelly =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 JellyfishEntity.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2731,13 +2853,7 @@ public final class LivingFaunaManager {
                                 other ->
                                         other.isAlive()
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (jelly == null) {
             return false;
@@ -2786,7 +2902,9 @@ public final class LivingFaunaManager {
         }
 
         MantaRayEntity manta =
-                level.getEntitiesOfClass(
+                nearestByDistance(
+                        fish,
+                        level.getEntitiesOfClass(
                                 MantaRayEntity.class,
                                 fish.getBoundingBox()
                                         .inflate(
@@ -2800,13 +2918,7 @@ public final class LivingFaunaManager {
                                                 other
                                         ) >= 0.75F
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        fish::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (manta == null) {
             return false;

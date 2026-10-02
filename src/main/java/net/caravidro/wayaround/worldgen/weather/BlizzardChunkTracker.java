@@ -28,7 +28,13 @@ import net.minecraft.world.phys.Vec3;
 
 import net.neoforged.neoforge.event.level.ChunkEvent;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 public final class BlizzardChunkTracker {
 
@@ -39,7 +45,7 @@ public final class BlizzardChunkTracker {
      */
     private static final Map<
             ResourceKey<Level>,
-            Set<Long>
+            LongOpenHashSet
     > KNOWN =
             new HashMap<>();
 
@@ -48,7 +54,7 @@ public final class BlizzardChunkTracker {
      */
     private static final Map<
             ResourceKey<Level>,
-            Set<Long>
+            LongArrayList
     > LOADED =
             new HashMap<>();
 
@@ -61,7 +67,7 @@ public final class BlizzardChunkTracker {
      */
     private static final Map<
             ResourceKey<Level>,
-            Set<Long>
+            LongOpenHashSet
     > PENDING =
             new HashMap<>();
 
@@ -71,7 +77,7 @@ public final class BlizzardChunkTracker {
      */
     private static final Map<
             UUID,
-            Set<Long>
+            LongOpenHashSet
     > PROCESSED_BY_STORM =
             new HashMap<>();
 
@@ -104,7 +110,7 @@ public final class BlizzardChunkTracker {
                 .computeIfAbsent(
                         level.dimension(),
                         key ->
-                                new HashSet<>()
+                                new LongOpenHashSet()
                 )
                 .add(packed);
     }
@@ -125,16 +131,18 @@ public final class BlizzardChunkTracker {
                         .getPos()
                         .toLong();
 
-        Set<Long> loaded =
+        LongArrayList loaded =
                 LOADED.get(
                         level.dimension()
                 );
 
         if (loaded != null) {
-            loaded.remove(packed);
+            loaded.rem(
+                    packed
+            );
         }
 
-        Set<Long> pending =
+        LongOpenHashSet pending =
                 PENDING.get(
                         level.dimension()
                 );
@@ -168,7 +176,7 @@ public final class BlizzardChunkTracker {
             ServerLevel level
     ) {
 
-        Set<Long> pending =
+        LongOpenHashSet pending =
                 PENDING.get(
                         level.dimension()
                 );
@@ -182,10 +190,31 @@ public final class BlizzardChunkTracker {
         }
 
         // Catch-up can trigger chunk events that modify PENDING on this same
-        // thread. Finish collecting the batch before making any world calls.
-        List<Long> batch = pending.stream().limit(16).toList();
+        // thread. Finish collecting a primitive batch before making world calls.
+        int batchSize =
+                Math.min(
+                        16,
+                        pending.size()
+                );
 
-        for (long packed : batch) {
+        long[] batch =
+                new long[
+                        batchSize
+                ];
+
+        LongIterator iterator =
+                pending.iterator();
+
+        for (int index = 0;
+             index < batchSize
+                     && iterator.hasNext();
+             index++) {
+            batch[index] =
+                    iterator.nextLong();
+        }
+
+        for (long packed :
+                batch) {
             // An earlier catch-up may have unloaded another chunk in the batch.
             if (!pending.contains(packed)) {
                 continue;
@@ -229,19 +258,26 @@ public final class BlizzardChunkTracker {
                 continue;
             }
 
-            LOADED
-                    .computeIfAbsent(
+            LongArrayList loaded =
+                    LOADED.computeIfAbsent(
                             level.dimension(),
                             key ->
-                                    new HashSet<>()
-                    )
-                    .add(packed);
+                                    new LongArrayList()
+                    );
+
+            if (!loaded.contains(
+                    packed
+            )) {
+                loaded.add(
+                        packed
+                );
+            }
 
             KNOWN
                     .computeIfAbsent(
                             level.dimension(),
                             key ->
-                                    new HashSet<>()
+                                    new LongOpenHashSet()
                     )
                     .add(packed);
 
@@ -268,7 +304,7 @@ public final class BlizzardChunkTracker {
             RandomSource random
     ) {
 
-        Set<Long> known =
+        LongOpenHashSet known =
                 KNOWN.get(
                         level.dimension()
                 );
@@ -335,7 +371,7 @@ public final class BlizzardChunkTracker {
             return;
         }
 
-        Set<Long> loaded =
+        LongArrayList loaded =
                 LOADED.get(
                         level.dimension()
                 );
@@ -371,15 +407,11 @@ public final class BlizzardChunkTracker {
                 i++
         ) {
 
-            Long packed =
+            long packed =
                     randomElement(
                             loaded,
                             random
                     );
-
-            if (packed == null) {
-                return;
-            }
 
             ChunkPos chunk =
                     new ChunkPos(packed);
@@ -437,7 +469,7 @@ public final class BlizzardChunkTracker {
                     .computeIfAbsent(
                             storm.id,
                             key ->
-                                    new HashSet<>()
+                                    new LongOpenHashSet()
                     )
 
                     .add(
@@ -502,13 +534,13 @@ public final class BlizzardChunkTracker {
             long elapsedTicks
     ) {
 
-        Set<Long> processed =
+        LongOpenHashSet processed =
                 PROCESSED_BY_STORM
 
                         .computeIfAbsent(
                                 storm.id,
                                 key ->
-                                        new HashSet<>()
+                                        new LongOpenHashSet()
                         );
 
         long packed =
@@ -747,32 +779,15 @@ public final class BlizzardChunkTracker {
         );
     }
 
-    private static Long randomElement(
-            Set<Long> set,
+    private static long randomElement(
+            LongArrayList values,
             RandomSource random
     ) {
-
-        if (set.isEmpty()) {
-            return null;
-        }
-
-        int index =
+        return values.getLong(
                 random.nextInt(
-                        set.size()
-                );
-
-        for (
-                Long value
-                :
-                set
-        ) {
-
-            if (index-- == 0) {
-                return value;
-            }
-        }
-
-        return null;
+                        values.size()
+                )
+        );
     }
 
     public static void clear() {

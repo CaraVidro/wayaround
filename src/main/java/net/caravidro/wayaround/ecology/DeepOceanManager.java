@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.ecology;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.accessory.AccessoryKind;
 import net.caravidro.wayaround.accessory.AccessoryManager;
@@ -34,6 +35,12 @@ public final class DeepOceanManager {
     public static void tick(
             ServerTickEvent.Post event
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.DEEP_OCEAN
+                );
+
+        try {
         long now =
                 event.getServer()
                         .getTickCount();
@@ -170,6 +177,13 @@ public final class DeepOceanManager {
                     );
                 }
             }
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.DEEP_OCEAN,
+                    wayperfStartedAt
+            );
         }
     }
 

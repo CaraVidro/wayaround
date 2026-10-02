@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.power;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -7,6 +8,8 @@ import java.util.List;
 import java.util.Locale;
 
 import javax.annotation.Nullable;
+
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.industrial.assembly.AssemblyAdvancements;
@@ -97,6 +100,15 @@ public final class WaterWheelHubBlockEntity
 
     private final List<Plate> plates =
             new ArrayList<>();
+
+    /*
+     * Many paddles land in the same one-block water sample. mechanicalFlow()
+     * is intentionally conservative and scans nearby water geometry, so doing
+     * it once per paddle was redundant. Reuse results for this simulation
+     * pass, keyed by packed BlockPos.
+     */
+    private final Long2ObjectOpenHashMap<WaterDynamics.MechanicalFlow> flowCache =
+            new Long2ObjectOpenHashMap<>();
 
     private final IRotationalPower rotationOutput =
             new IRotationalPower() {
@@ -950,10 +962,48 @@ public final class WaterWheelHubBlockEntity
         return burnIntensity;
     }
 
+    private WaterDynamics.MechanicalFlow flowAt(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        long key =
+                pos.asLong();
+
+        WaterDynamics.MechanicalFlow cached =
+                flowCache.get(
+                        key
+                );
+
+        if (cached != null) {
+            return cached;
+        }
+
+        WaterDynamics.MechanicalFlow sampled =
+                WaterDynamics.mechanicalFlow(
+                        level,
+                        pos
+                );
+
+        flowCache.put(
+                key,
+                sampled
+        );
+
+        return sampled;
+    }
+
     private void simulate(
             ServerLevel level,
             BlockState state
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.WATER_WHEEL_SIM
+                );
+
+        try {
+        flowCache.clear();
+
         float appliedMechanicalLoad =
                 pendingMechanicalLoad;
 
@@ -1521,6 +1571,13 @@ public final class WaterWheelHubBlockEntity
 
         availableMechanicalBudget =
                 mechanicalPower;
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.WATER_WHEEL_SIM,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private boolean wouldCollide(

@@ -1,8 +1,10 @@
 package net.caravidro.wayaround.ecology.ai;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import net.caravidro.wayaround.performance.PerformanceProfiler;
+import java.util.List;
+
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import net.minecraft.world.entity.Entity;
 
 import net.caravidro.wayaround.ecology.AquaticPredator;
 import net.caravidro.wayaround.ecology.MantaRayEntity;
@@ -74,8 +76,16 @@ public final class MarineInteractionModule {
     public static void tickSeagulls(
             ServerLevel level
     ) {
-        Set<UUID> touched =
-                new HashSet<>();
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MARINE_AI
+                );
+
+        try {
+        IntOpenHashSet touched =
+                new IntOpenHashSet(
+                        192
+                );
 
         int processed =
                 0;
@@ -96,7 +106,7 @@ public final class MarineInteractionModule {
                             area
                     )) {
                 if (!touched.add(
-                        gull.getUUID()
+                        gull.getId()
                 )) {
                     continue;
                 }
@@ -111,6 +121,43 @@ public final class MarineInteractionModule {
                 }
             }
         }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MARINE_AI,
+                    wayperfStartedAt
+            );
+        }
+    }
+
+    private static <T extends Entity> T nearest(
+            Entity origin,
+            List<T> candidates
+    ) {
+        T nearest =
+                null;
+
+        double bestDistance =
+                Double.MAX_VALUE;
+
+        for (T candidate :
+                candidates) {
+
+            double distance =
+                    origin.distanceToSqr(
+                            candidate
+                    );
+
+            if (distance < bestDistance) {
+                bestDistance =
+                        distance;
+
+                nearest =
+                        candidate;
+            }
+        }
+
+        return nearest;
     }
 
     private static void tickSeagull(
@@ -129,16 +176,19 @@ public final class MarineInteractionModule {
                 );
 
         AbstractFish carried =
-                gull.getPassengers()
-                        .stream()
-                        .filter(
-                                AbstractFish.class::isInstance
-                        )
-                        .map(
-                                AbstractFish.class::cast
-                        )
-                        .findFirst()
-                        .orElse(null);
+                null;
+
+        for (Entity passenger :
+                gull.getPassengers()) {
+
+            if (passenger
+                    instanceof AbstractFish fish) {
+                carried =
+                        fish;
+
+                break;
+            }
+        }
 
         if (carried != null) {
             carried.setAirSupply(
@@ -508,7 +558,9 @@ public final class MarineInteractionModule {
         }
 
         SunfishEntity sunfish =
-                level.getEntitiesOfClass(
+                nearest(
+                        gull,
+                        level.getEntitiesOfClass(
                                 SunfishEntity.class,
                                 gull.getBoundingBox()
                                         .inflate(
@@ -521,15 +573,7 @@ public final class MarineInteractionModule {
                                                 && fish.isBasking()
                                                 && fish.isInWaterOrBubble()
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        gull::distanceToSqr
-                                )
-                        )
-                        .orElse(
-                                null
-                        );
+                );
 
         if (sunfish == null) {
             return false;
@@ -857,7 +901,9 @@ public final class MarineInteractionModule {
             long now
     ) {
         WhaleCarcassEntity carcass =
-                level.getEntitiesOfClass(
+                nearest(
+                        gull,
+                        level.getEntitiesOfClass(
                                 WhaleCarcassEntity.class,
                                 gull.getBoundingBox()
                                         .inflate(
@@ -869,13 +915,7 @@ public final class MarineInteractionModule {
                                         body.isAlive()
                                                 && !body.isSkeleton()
                         )
-                        .stream()
-                        .min(
-                                java.util.Comparator.comparingDouble(
-                                        gull::distanceToSqr
-                                )
-                        )
-                        .orElse(null);
+                );
 
         if (carcass == null) {
             return false;
@@ -1034,7 +1074,9 @@ public final class MarineInteractionModule {
             ServerLevel level,
             SeagullEntity gull
     ) {
-        return level.getEntitiesOfClass(
+        return nearest(
+                gull,
+                level.getEntitiesOfClass(
                         AbstractFish.class,
                         gull.getBoundingBox()
                                 .inflate(
@@ -1058,13 +1100,7 @@ public final class MarineInteractionModule {
                                         fish.blockPosition()
                                 )
                 )
-                .stream()
-                .min(
-                        java.util.Comparator.comparingDouble(
-                                gull::distanceToSqr
-                        )
-                )
-                .orElse(null);
+        );
     }
 
     private static void eatCarriedFish(

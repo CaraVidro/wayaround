@@ -1,8 +1,7 @@
 package net.caravidro.wayaround.voice;
 
-import java.util.HashSet;
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,6 +28,12 @@ public final class VoiceServer {
             ServerPlayer sender,
             byte[] pcm
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.VOICE
+                );
+
+        try {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.VOICE_CHAT
         )) {
@@ -115,6 +120,13 @@ public final class VoiceServer {
                 pcm,
                 false
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.VOICE,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static void relayProjectedGhost(
@@ -127,31 +139,30 @@ public final class VoiceServer {
          * another dimension). Their voice is emitted around the host instead.
          * Never return microphone audio to its sender: it can feed back into capture.
          */
-        Set<UUID> sent =
-                new HashSet<>();
-
-
-
         double maxDistanceSqr =
                 VoiceConstants.HEARING_RANGE_BLOCKS
                         * VoiceConstants.HEARING_RANGE_BLOCKS;
+
+        VoiceFrameS2CPayload frame =
+                new VoiceFrameS2CPayload(
+                        pcm
+                );
 
         for (ServerPlayer receiver :
                 host.serverLevel()
                         .players()) {
 
-            if (receiver.getUUID().equals(ghost.getUUID())) continue;
-            if (!receiver.isAlive()) continue;
-            if (receiver.distanceToSqr(
+            if (receiver == ghost
+                    || !receiver.isAlive()
+                    || receiver.distanceToSqr(
                     host
             ) > maxDistanceSqr) {
                 continue;
             }
 
-            sendOnce(
+            PacketDistributor.sendToPlayer(
                     receiver,
-                    pcm,
-                    sent
+                    frame
             );
         }
     }
@@ -165,6 +176,11 @@ public final class VoiceServer {
         double maxDistanceSqr =
                 VoiceConstants.HEARING_RANGE_BLOCKS
                         * VoiceConstants.HEARING_RANGE_BLOCKS;
+
+        VoiceFrameS2CPayload frame =
+                new VoiceFrameS2CPayload(
+                        pcm
+                );
 
         for (ServerPlayer receiver :
                 anchor.serverLevel()
@@ -187,31 +203,9 @@ public final class VoiceServer {
 
             PacketDistributor.sendToPlayer(
                     receiver,
-                    new VoiceFrameS2CPayload(
-                            pcm
-                    )
+                    frame
             );
         }
-    }
-
-    private static void sendOnce(
-            ServerPlayer receiver,
-            byte[] pcm,
-            Set<UUID> sent
-    ) {
-        if (!receiver.isAlive()
-                || !sent.add(
-                receiver.getUUID()
-        )) {
-            return;
-        }
-
-        PacketDistributor.sendToPlayer(
-                receiver,
-                new VoiceFrameS2CPayload(
-                        pcm
-                )
-        );
     }
 
     private static boolean containsSpeech(
@@ -246,12 +240,18 @@ public final class VoiceServer {
                             * sample;
         }
 
-        double rms =
-                Math.sqrt(
-                        squareSum
-                                / (double) samples
-                )
-                        / 32768.0;
+        /*
+         * Compare mean-square energy directly. sqrt() was being paid for on
+         * every voice frame only to compare against a constant RMS threshold.
+         */
+        double sampleThreshold =
+                0.0065
+                        * 32768.0;
+
+        double requiredSquareSum =
+                samples
+                        * sampleThreshold
+                        * sampleThreshold;
 
         /*
          * Lower than the client's voice-activation threshold on purpose: once
@@ -259,7 +259,8 @@ public final class VoiceServer {
          * still move Tukuna's cheek mouth. Mic hiss / held PTT silence should
          * not.
          */
-        return rms >= 0.0065;
+        return squareSum
+                >= requiredSquareSum;
     }
 
     private static boolean allowPacket(UUID playerId) {

@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
 import net.caravidro.wayaround.industrial.crushing.MachinePartSpec;
 import java.util.WeakHashMap;
@@ -8,6 +9,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.caravidro.wayaround.industrial.power.MechanicalMillBlock;
 import net.caravidro.wayaround.industrial.power.MechanicalMillBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -27,6 +29,11 @@ public final class MechanicalMillRenderer
             > ROTATIONS =
             new WeakHashMap<>();
 
+    private static final double[] SIGNS = {
+            -1.0,
+            1.0
+    };
+
     private final BlockRenderDispatcher blockRenderer;
 
     public MechanicalMillRenderer(
@@ -45,6 +52,12 @@ public final class MechanicalMillRenderer
             int packedLight,
             int packedOverlay
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_RENDER
+                );
+
+        try {
         double renderTime =
                 mill.getLevel() == null
                         ? 0.0
@@ -60,11 +73,19 @@ public final class MechanicalMillRenderer
                         )
                 );
 
+        DistanceLod.Tier lod =
+                DistanceLod.forBlock(
+                        mill.getBlockPos()
+                );
+
         float visualAngle =
-                rotation.update(
-                        renderTime,
-                        mill.rpm(),
-                        mill.rotationDegrees()
+                DistanceLod.quantizeDegrees(
+                        rotation.update(
+                                renderTime,
+                                mill.rpm(),
+                                mill.rotationDegrees()
+                        ),
+                        lod
                 );
 
         poseStack.pushPose();
@@ -101,7 +122,8 @@ public final class MechanicalMillRenderer
                     poseStack,
                     bufferSource,
                     packedLight,
-                    packedOverlay
+                    packedOverlay,
+                    lod.detailedGeometry()
             );
         }
 
@@ -112,7 +134,8 @@ public final class MechanicalMillRenderer
                     poseStack,
                     bufferSource,
                     packedLight,
-                    packedOverlay
+                    packedOverlay,
+                    lod.detailedGeometry()
             );
         }
 
@@ -123,7 +146,8 @@ public final class MechanicalMillRenderer
                     poseStack,
                     bufferSource,
                     packedLight,
-                    packedOverlay
+                    packedOverlay,
+                    lod.detailedGeometry()
             );
         }
 
@@ -138,7 +162,8 @@ public final class MechanicalMillRenderer
             );
         }
 
-        if (mill.parts().has(MachinePartSpec.Role.BEARING)) {
+        if (lod.detailedGeometry()
+                && mill.parts().has(MachinePartSpec.Role.BEARING)) {
             var bearing = mill.parts().spec(MachinePartSpec.Role.BEARING).heavy() ? Blocks.IRON_BLOCK : Blocks.COPPER_BLOCK;
             renderCuboid(poseStack, bufferSource, packedLight, packedOverlay, bearing.defaultBlockState(),
                 0, .39, 0, .22, .10, .22);
@@ -154,6 +179,13 @@ public final class MechanicalMillRenderer
         }
 
         poseStack.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private void renderFrame(
@@ -177,22 +209,16 @@ public final class MechanicalMillRenderer
                 0.92, 0.10, 0.92
         );
 
-        for (double x :
-                new double[] {
-                        -0.34,
-                        0.34
-                }) {
+        for (double sx :
+                SIGNS) {
 
-            for (double z :
-                    new double[] {
-                            -0.34,
-                            0.34
-                    }) {
+            for (double sz :
+                    SIGNS) {
 
                 renderCuboid(
                         poseStack, bufferSource, light, overlay,
                         wood,
-                        x, -0.16, z,
+                        sx * 0.34, -0.16, sz * 0.34,
                         0.11, 0.46, 0.11
                 );
             }
@@ -211,13 +237,15 @@ public final class MechanicalMillRenderer
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int light,
-            int overlay
+            int overlay,
+            boolean details
     ) {
         renderStoneDisc(
                 0.17,
                 0.0F,
                 Blocks.STONE.defaultBlockState(),
                 reinforced,
+                details,
                 poseStack,
                 bufferSource,
                 light,
@@ -231,7 +259,8 @@ public final class MechanicalMillRenderer
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int light,
-            int overlay
+            int overlay,
+            boolean details
     ) {
         poseStack.pushPose();
         poseStack.translate(
@@ -251,6 +280,7 @@ public final class MechanicalMillRenderer
                 angle,
                 Blocks.SMOOTH_STONE.defaultBlockState(),
                 reinforced,
+                details,
                 poseStack,
                 bufferSource,
                 light,
@@ -265,6 +295,7 @@ public final class MechanicalMillRenderer
             float angle,
             BlockState stone,
             boolean reinforced,
+            boolean details,
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int light,
@@ -277,14 +308,19 @@ public final class MechanicalMillRenderer
                 0.0
         );
 
+        int segments =
+                details
+                        ? 12
+                        : 6;
+
         for (int index = 0;
-             index < 12;
+             index < segments;
              index++) {
 
             double a =
                     Math.PI * 2.0
                             * index
-                            / 12.0;
+                            / segments;
 
             double x =
                     Math.cos(a)
@@ -310,8 +346,13 @@ public final class MechanicalMillRenderer
         }
 
         if (reinforced) {
-            for (int index = 0; index < 16; index++) {
-                double a = Math.PI * 2 * index / 16;
+            int reinforcements =
+                    details
+                            ? 16
+                            : 8;
+
+            for (int index = 0; index < reinforcements; index++) {
+                double a = Math.PI * 2 * index / reinforcements;
                 renderCuboid(poseStack, bufferSource, light, overlay, Blocks.IRON_BLOCK.defaultBlockState(),
                     Math.cos(a) * .36, 0, Math.sin(a) * .36, .09, .065, .09);
             }
@@ -340,7 +381,8 @@ public final class MechanicalMillRenderer
             PoseStack poseStack,
             MultiBufferSource bufferSource,
             int light,
-            int overlay
+            int overlay,
+            boolean details
     ) {
         renderCuboid(
                 poseStack,
@@ -369,15 +411,22 @@ public final class MechanicalMillRenderer
                 )
         );
 
+        int spokes =
+                details
+                        ? 4
+                        : 2;
+
         for (int index = 0;
-             index < 4;
+             index < spokes;
              index++) {
 
             poseStack.pushPose();
 
             poseStack.mulPose(
                     Axis.YP.rotationDegrees(
-                            index * 90.0F
+                            index
+                                    * 360.0F
+                                    / spokes
                     )
             );
 

@@ -37,6 +37,26 @@ public final class DistanceLod {
         public boolean particles() { return particles; }
     }
 
+    /*
+     * Renderer hot path cache. A scene can ask for LOD hundreds/thousands of
+     * times in one client tick. Reading the option tree and taking sqrt() for
+     * every entity is wasted work; cache the player/config snapshot once and
+     * compare squared distances.
+     */
+    private static int cachedPlayerTick =
+            Integer.MIN_VALUE;
+
+    private static Object cachedPlayerIdentity;
+
+    private static double cachedPlayerX;
+    private static double cachedPlayerY;
+    private static double cachedPlayerZ;
+
+    private static double fullSqr;
+    private static double reducedSqr;
+    private static double coarseSqr;
+    private static double farSqr;
+
     private DistanceLod() {}
 
     public static Tier forEntity(Entity entity) {
@@ -66,20 +86,111 @@ public final class DistanceLod {
     }
 
     private static Tier tier(double x, double y, double z) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null) return Tier.FULL;
+        Minecraft minecraft =
+                Minecraft.getInstance();
 
-        int simulationChunks = Math.max(2, minecraft.options.simulationDistance().get());
-        double full = Math.max(48.0, simulationChunks * 16.0);
-        double dx = minecraft.player.getX() - x;
-        double dy = minecraft.player.getEyeY() - y;
-        double dz = minecraft.player.getZ() - z;
-        double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (minecraft.player == null) {
+            return Tier.FULL;
+        }
 
-        if (distance <= full) return Tier.FULL;
-        if (distance <= full + 64.0) return Tier.REDUCED;
-        if (distance <= full + 160.0) return Tier.COARSE;
-        if (distance <= full + 320.0) return Tier.FAR;
+        refreshSnapshot(
+                minecraft
+        );
+
+        double dx =
+                cachedPlayerX - x;
+
+        double dy =
+                cachedPlayerY - y;
+
+        double dz =
+                cachedPlayerZ - z;
+
+        double distanceSqr =
+                dx * dx
+                        + dy * dy
+                        + dz * dz;
+
+        if (distanceSqr <= fullSqr) {
+            return Tier.FULL;
+        }
+
+        if (distanceSqr <= reducedSqr) {
+            return Tier.REDUCED;
+        }
+
+        if (distanceSqr <= coarseSqr) {
+            return Tier.COARSE;
+        }
+
+        if (distanceSqr <= farSqr) {
+            return Tier.FAR;
+        }
+
         return Tier.FROZEN;
+    }
+
+    private static void refreshSnapshot(
+            Minecraft minecraft
+    ) {
+        int tick =
+                minecraft.player.tickCount;
+
+        if (cachedPlayerIdentity
+                == minecraft.player
+                && cachedPlayerTick
+                == tick) {
+            return;
+        }
+
+        cachedPlayerIdentity =
+                minecraft.player;
+
+        cachedPlayerTick =
+                tick;
+
+        cachedPlayerX =
+                minecraft.player.getX();
+
+        cachedPlayerY =
+                minecraft.player.getEyeY();
+
+        cachedPlayerZ =
+                minecraft.player.getZ();
+
+        int simulationChunks =
+                Math.max(
+                        2,
+                        minecraft.options
+                                .simulationDistance()
+                                .get()
+                );
+
+        double full =
+                Math.max(
+                        48.0,
+                        simulationChunks * 16.0
+                );
+
+        double reduced =
+                full + 64.0;
+
+        double coarse =
+                full + 160.0;
+
+        double far =
+                full + 320.0;
+
+        fullSqr =
+                full * full;
+
+        reducedSqr =
+                reduced * reduced;
+
+        coarseSqr =
+                coarse * coarse;
+
+        farSqr =
+                far * far;
     }
 }

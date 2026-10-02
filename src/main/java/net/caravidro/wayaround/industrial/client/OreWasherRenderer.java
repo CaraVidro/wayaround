@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -7,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
+import net.caravidro.wayaround.client.performance.DistanceLod;
 import net.caravidro.wayaround.industrial.washing.OreWasherBlock;
 import net.caravidro.wayaround.industrial.washing.OreWasherBlockEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -47,6 +49,12 @@ public final class OreWasherRenderer
             int light,
             int overlay
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_RENDER
+                );
+
+        try {
         double time =
                 washer.getLevel() == null
                         ? 0.0
@@ -54,19 +62,27 @@ public final class OreWasherRenderer
                                 .getGameTime()
                                 + partialTick;
 
+        DistanceLod.Tier lod =
+                DistanceLod.forBlock(
+                        washer.getBlockPos()
+                );
+
         float angle =
-                ROTATIONS.computeIfAbsent(
-                        washer,
-                        ignored ->
-                                new SmoothObjectAnimation.Rotation(
+                DistanceLod.quantizeDegrees(
+                        ROTATIONS.computeIfAbsent(
+                                washer,
+                                ignored ->
+                                        new SmoothObjectAnimation.Rotation(
+                                                washer.angle()
+                                        )
+                        )
+                                .update(
+                                        time,
+                                        washer.rpm(),
                                         washer.angle()
-                                )
-                )
-                        .update(
-                                time,
-                                washer.rpm(),
-                                washer.angle()
-                        );
+                                ),
+                        lod
+                );
 
         pose.pushPose();
 
@@ -111,7 +127,8 @@ public final class OreWasherRenderer
                 pose,
                 buffers,
                 light,
-                overlay
+                overlay,
+                lod.detailedGeometry()
         );
 
         if (washer.hasDrum()) {
@@ -121,7 +138,8 @@ public final class OreWasherRenderer
                     pose,
                     buffers,
                     light,
-                    overlay
+                    overlay,
+                    lod.detailedGeometry()
             );
         }
 
@@ -160,6 +178,13 @@ public final class OreWasherRenderer
         }
 
         pose.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private void renderFrame(
@@ -277,7 +302,8 @@ public final class OreWasherRenderer
             PoseStack pose,
             MultiBufferSource buffers,
             int light,
-            int overlay
+            int overlay,
+            boolean details
     ) {
         BlockState iron =
                 Blocks.IRON_BLOCK.defaultBlockState();
@@ -319,7 +345,8 @@ public final class OreWasherRenderer
             );
         }
 
-        if (washer.waterAmount() > 0) {
+        if (details
+                && washer.waterAmount() > 0) {
             double fill =
                     Math.min(
                             1.0,
@@ -352,7 +379,8 @@ public final class OreWasherRenderer
             PoseStack pose,
             MultiBufferSource buffers,
             int light,
-            int overlay
+            int overlay,
+            boolean details
     ) {
         pose.pushPose();
 
@@ -376,6 +404,11 @@ public final class OreWasherRenderer
         BlockState hub =
                 Blocks.COPPER_BLOCK.defaultBlockState();
 
+        int rimSegments =
+                details
+                        ? 12
+                        : 6;
+
         for (double z :
                 new double[] {
                         -0.27,
@@ -383,14 +416,14 @@ public final class OreWasherRenderer
                 }) {
 
             for (int index = 0;
-                 index < 12;
+                 index < rimSegments;
                  index++) {
 
                 double a =
                         Math.PI
                                 * 2.0
                                 * index
-                                / 12.0;
+                                / rimSegments;
 
                 double x =
                         Math.cos(
@@ -426,15 +459,20 @@ public final class OreWasherRenderer
             }
         }
 
+        int longitudinal =
+                details
+                        ? 6
+                        : 3;
+
         for (int index = 0;
-             index < 6;
+             index < longitudinal;
              index++) {
 
             double a =
                     Math.PI
                             * 2.0
                             * index
-                            / 6.0;
+                            / longitudinal;
 
             double x =
                     Math.cos(

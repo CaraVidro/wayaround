@@ -1,12 +1,14 @@
 package net.caravidro.wayaround.client.weather;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -61,6 +63,17 @@ public final class LivingCloudRenderer {
     private static final Map<Long, CloudMesh> CACHE = new HashMap<>();
 
     /*
+     * Per-frame scratch set reused forever. Immediate-mode renderers already
+     * allocate enough; visible cloud ids do not need a fresh HashSet every
+     * frame.
+     */
+    private static final LongOpenHashSet VISIBLE_IDS =
+            new LongOpenHashSet();
+
+    private static final Face[] FACES =
+            Face.values();
+
+    /*
      * Temporary holes cut by the Blue prototype. Clouds are generated and
      * rendered client-side, so the cut belongs here rather than in world data.
      * The revision number forces cached cloud meshes to rebuild immediately.
@@ -73,6 +86,12 @@ public final class LivingCloudRenderer {
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.CLOUD_RENDER
+                );
+
+        try {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             return;
         }
@@ -145,7 +164,10 @@ public final class LivingCloudRenderer {
                         renderRange
                 );
 
-        Set<Long> visibleIds = new HashSet<>();
+        LongOpenHashSet visibleIds =
+                VISIBLE_IDS;
+
+        visibleIds.clear();
         int rebuildBudget =
                 MAX_REBUILDS_PER_FRAME;
         boolean anyVertex = false;
@@ -375,6 +397,13 @@ public final class LivingCloudRenderer {
         }
 
         poseStack.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.CLOUD_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static double effectiveRenderRange(
@@ -567,8 +596,14 @@ public final class LivingCloudRenderer {
 
     private static final class CloudMesh {
 
-        private final Set<Voxel> occupied =
-                new HashSet<>();
+        /*
+         * Compact primitive occupancy. The old HashSet<Voxel> boxed every
+         * cloud cell into an object and then allocated six temporary Voxel
+         * objects per neighbor test. This keeps the same sparse topology in
+         * packed longs.
+         */
+        private final LongOpenHashSet occupied =
+                new LongOpenHashSet();
 
         /*
          * Expensive neighbor tests happen only when the cloud shape changes.
@@ -688,7 +723,7 @@ public final class LivingCloudRenderer {
                                         cell.z() + wz
                                 )) {
                             occupied.add(
-                                    new Voxel(
+                                    packVoxel(
                                             x,
                                             y,
                                             z
@@ -710,10 +745,31 @@ public final class LivingCloudRenderer {
         private void rebuildSurfaceFaces() {
             surfaceFaces.clear();
 
-            for (Voxel voxel : occupied) {
-                for (Face face : Face.values()) {
+            LongIterator iterator =
+                    occupied.iterator();
+
+            while (iterator.hasNext()) {
+                long packed =
+                        iterator.nextLong();
+
+                Voxel voxel =
+                        new Voxel(
+                                unpackVoxelX(
+                                        packed
+                                ),
+                                unpackVoxelY(
+                                        packed
+                                ),
+                                unpackVoxelZ(
+                                        packed
+                                )
+                        );
+
+                for (Face face :
+                        FACES) {
+
                     if (occupied.contains(
-                            new Voxel(
+                            packVoxel(
                                     voxel.x + face.dx,
                                     voxel.y + face.dy,
                                     voxel.z + face.dz
@@ -775,7 +831,7 @@ public final class LivingCloudRenderer {
                     continue;
                 }
 
-                CloudColor shade =
+                int shade =
                         cloudColor(
                                 cell,
                                 voxel,
@@ -794,10 +850,7 @@ public final class LivingCloudRenderer {
                         cell,
                         voxel,
                         face,
-                        shade.red,
-                        shade.green,
-                        shade.blue,
-                        shade.alpha,
+                        shade,
                         builtVoxel
                 );
 
@@ -833,7 +886,7 @@ public final class LivingCloudRenderer {
                     );
 
             return occupied.contains(
-                    new Voxel(
+                    packVoxel(
                             vx,
                             vy,
                             vz
@@ -1423,7 +1476,7 @@ public final class LivingCloudRenderer {
         return forward > CAMERA_NEAR_GUARD;
     }
 
-    private static CloudColor cloudColor(
+    private static int cloudColor(
             LocalWeatherField.CloudCell cell,
             Voxel voxel,
             Face face,
@@ -1592,12 +1645,10 @@ public final class LivingCloudRenderer {
                         236
                 );
 
-        return new CloudColor(
-                red,
-                green,
-                blue,
-                alpha
-        );
+        return red
+                | green << 8
+                | blue << 16
+                | alpha << 24;
     }
 
     private static double signedColorBias(
@@ -1616,12 +1667,24 @@ public final class LivingCloudRenderer {
             LocalWeatherField.CloudCell cell,
             Voxel voxel,
             Face face,
-            int red,
-            int green,
-            int blue,
-            int alpha,
+            int packedColor,
             double voxelSize
     ) {
+        int red =
+                packedColor
+                        & 255;
+
+        int green =
+                packedColor >>> 8
+                        & 255;
+
+        int blue =
+                packedColor >>> 16
+                        & 255;
+
+        int alpha =
+                packedColor >>> 24
+                        & 255;
         double cx =
                 cell.x()
                 + voxel.x * voxelSize;
@@ -1723,6 +1786,71 @@ public final class LivingCloudRenderer {
                 );
     }
 
+    /*
+     * 21 signed bits per axis are far beyond this renderer's +/-25 voxel
+     * bounds, but keep the packing general and collision-free.
+     */
+    private static long packVoxel(
+            int x,
+            int y,
+            int z
+    ) {
+        return (
+                (
+                        (long) x
+                                & 0x1FFFFFL
+                ) << 42
+        )
+                | (
+                (
+                        (long) y
+                                & 0x1FFFFFL
+                ) << 21
+        )
+                | (
+                (long) z
+                        & 0x1FFFFFL
+        );
+    }
+
+    private static int unpackVoxelX(
+            long packed
+    ) {
+        return signExtend21(
+                packed >>> 42
+        );
+    }
+
+    private static int unpackVoxelY(
+            long packed
+    ) {
+        return signExtend21(
+                packed >>> 21
+        );
+    }
+
+    private static int unpackVoxelZ(
+            long packed
+    ) {
+        return signExtend21(
+                packed
+        );
+    }
+
+    private static int signExtend21(
+            long value
+    ) {
+        int compact =
+                (int) (
+                        value
+                                & 0x1FFFFFL
+                );
+
+        return (
+                compact << 11
+        ) >> 11;
+    }
+
     private static double random01(
             long value
     ) {
@@ -1741,14 +1869,6 @@ public final class LivingCloudRenderer {
         value *= 0x94d049bb133111ebL;
         value ^= value >>> 31;
         return value;
-    }
-
-    private record CloudColor(
-            int red,
-            int green,
-            int blue,
-            int alpha
-    ) {
     }
 
     private record CloudHole(

@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.washing;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Collection;
 import java.util.List;
 
@@ -263,6 +264,12 @@ public final class OreWasherBlockEntity
     private void tick(
             ServerLevel level
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_SIM
+                );
+
+        try {
         if (!WorldFeatureRuntime.enabled(
                 level,
                 WorldFeature.INDUSTRIAL_MACHINES
@@ -498,6 +505,13 @@ public final class OreWasherBlockEntity
 
         } else {
             setChanged();
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_SIM,
+                    wayperfStartedAt
+            );
         }
     }
 
