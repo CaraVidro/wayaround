@@ -145,9 +145,8 @@ public final class KrakenManager {
                     && random.nextInt(
                     18_000
             ) == 0) {
-                startTentacle(
-                        player
-                );
+                if (random.nextBoolean()) startTentacle(player);
+                else forceScene(player, 2);
             } else if (isNight(
                     level
             )
@@ -871,10 +870,18 @@ public final class KrakenManager {
             }
             age++;
             if (kind < 3 && (age == KrakenMotion.breachAge(kind) || age == KrakenMotion.impactAge(kind))) {
-                level.playSound(null, new BlockPos(site.x, site.surface, site.z),
-                        SoundEvents.GENERIC_SPLASH, SoundSource.AMBIENT, 7.0F, 0.45F);
+                double splashX=site.x, splashZ=site.z;
+                if (kind!=1 && age==KrakenMotion.impactAge(kind)) {
+                    var tip=KrakenMotion.tentacle(1,age,kind);
+                    double length=Math.sqrt(site.dirX*site.dirX+site.dirZ*site.dirZ);
+                    double dx=length<.1?1:site.dirX/length, dz=length<.1?0:site.dirZ/length;
+                    splashX+=dx*tip.x()-dz*tip.z();
+                    splashZ+=dz*tip.x()+dx*tip.z();
+                }
+                level.playSound(null, BlockPos.containing(splashX,site.surface,splashZ),
+                        SoundEvents.GENERIC_SPLASH, SoundSource.AMBIENT, 10.0F, 0.45F);
                 for (ServerPlayer watcher : level.players()) {
-                    if (watcher.distanceToSqr(site.x, site.surface, site.z) < 160.0 * 160.0)
+                    if (watcher.distanceToSqr(splashX, site.surface, splashZ) < 160.0 * 160.0)
                         shake(watcher, 42, kind == 1 ? 0.55F : 0.32F);
                 }
             }
