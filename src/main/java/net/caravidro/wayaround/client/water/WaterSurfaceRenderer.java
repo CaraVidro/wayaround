@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.client.water;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayList;
 import net.caravidro.wayaround.storage.IncrementalSquareScan;
 
@@ -87,6 +88,12 @@ public final class WaterSurfaceRenderer {
     public static void render(
             RenderLevelStageEvent event
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.WATER_RENDER
+                );
+
+        try {
         if (event.getStage()
                 != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             return;
@@ -549,6 +556,13 @@ public final class WaterSurfaceRenderer {
         }
 
         stack.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.WATER_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static boolean quadSafelyInFront(
