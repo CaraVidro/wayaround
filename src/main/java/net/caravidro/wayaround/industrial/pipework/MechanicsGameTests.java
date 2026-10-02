@@ -125,6 +125,108 @@ public final class MechanicsGameTests {
 
 
     @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void pressurePulseFollowsPumpDischargeRoute(GameTestHelper h){
+        var root=pipe(h,5,2,5,PipeworkContent.SMALL_COPPER_PIPE.get());
+        var next=pipe(h,5,2,4,PipeworkContent.SMALL_COPPER_PIPE.get());
+        PipeFlow.applyPressurePulse(h.getLevel(),root,Direction.NORTH,5.5F);
+        h.assertTrue(root.hydraulicPressureBar()>=5.4F,
+                "Pump pressure reaches the discharge root even before useful flow");
+        h.assertTrue(next.hydraulicPressureBar()>4.6F,
+                "Pressure propagates through the bounded directional liquid route");
+        h.succeed();
+    }
+
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=100)
+    public static void narrowRotaryLiftIsVisualOnly(GameTestHelper h){
+        BlockPos headLocal=new BlockPos(5,3,5);
+        BlockPos crankLocal=new BlockPos(6,3,5);
+        BlockPos sourceLocal=headLocal.below();
+        BlockPos routeLocal=headLocal.relative(Direction.NORTH);
+
+        h.setBlock(sourceLocal,Blocks.WATER);
+        h.setBlock(
+                headLocal,
+                PipeworkContent.ROTARY_SMALL_COPPER_LIFT.get()
+                        .defaultBlockState()
+                        .setValue(RotaryLiftPipeBlock.FACING,Direction.NORTH)
+        );
+        h.setBlock(routeLocal,PipeworkContent.SMALL_COPPER_PIPE.get());
+        h.setBlock(
+                crankLocal,
+                PowerContent.MANUAL_CRANK.get()
+                        .defaultBlockState()
+                        .setValue(ManualCrankBlock.FACING,Direction.WEST)
+        );
+
+        var head=(PipeBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(headLocal));
+        var route=(PipeBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(routeLocal));
+        var crank=(ManualCrankBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(crankLocal));
+        crank.crank(h.makeMockPlayer(GameType.SURVIVAL));
+
+        for(int tick=0;tick<18;tick++){
+            ManualCrankBlockEntity.serverTick(h.getLevel(),crank.getBlockPos(),crank.getBlockState(),crank);
+            PipeBlockEntity.tick(h.getLevel(),head.getBlockPos(),head.getBlockState(),head);
+        }
+
+        h.assertTrue(
+                h.getBlockState(sourceLocal).is(Blocks.WATER),
+                "Narrow rotary lift must never remove its reference water source"
+        );
+        h.assertTrue(
+                route.wet()&&route.amount()==0,
+                "Narrow lift propagates visible water through the route without creating stored volume"
+        );
+        h.succeed();
+    }
+
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=120)
+    public static void largeRotaryLiftMovesOneRealSource(GameTestHelper h){
+        BlockPos headLocal=new BlockPos(5,3,5);
+        BlockPos crankLocal=new BlockPos(6,3,5);
+        BlockPos sourceLocal=headLocal.below();
+        BlockPos routeLocal=headLocal.relative(Direction.NORTH);
+        BlockPos outletLocal=routeLocal.relative(Direction.NORTH);
+
+        h.setBlock(sourceLocal,Blocks.WATER);
+        h.setBlock(
+                headLocal,
+                PipeworkContent.ROTARY_LARGE_WATER_LIFT.get()
+                        .defaultBlockState()
+                        .setValue(RotaryLiftPipeBlock.FACING,Direction.NORTH)
+        );
+        h.setBlock(routeLocal,PipeworkContent.LARGE_WATER_MAIN.get());
+        h.setBlock(
+                crankLocal,
+                PowerContent.MANUAL_CRANK.get()
+                        .defaultBlockState()
+                        .setValue(ManualCrankBlock.FACING,Direction.WEST)
+        );
+
+        var head=(PipeBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(headLocal));
+        var crank=(ManualCrankBlockEntity)h.getLevel().getBlockEntity(h.absolutePos(crankLocal));
+        crank.crank(h.makeMockPlayer(GameType.SURVIVAL));
+
+        for(int tick=0;tick<24;tick++){
+            ManualCrankBlockEntity.serverTick(h.getLevel(),crank.getBlockPos(),crank.getBlockState(),crank);
+            PipeBlockEntity.tick(h.getLevel(),head.getBlockPos(),head.getBlockState(),head);
+        }
+
+        h.assertTrue(
+                h.getBlockState(sourceLocal).isAir(),
+                "Large rotary lift removes the real source bucket at the intake"
+        );
+        h.assertTrue(
+                h.getBlockState(outletLocal).is(Blocks.WATER),
+                "Large rotary lift recreates the conserved source bucket at the terminal mouth"
+        );
+        h.assertTrue(
+                head.amount()==0,
+                "Successful large transfer leaves no duplicated hidden bucket in the intake head"
+        );
+        h.succeed();
+    }
+
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
     public static void mechanicalPumpUsesOneInstalledModule(GameTestHelper h){
         BlockPos local=new BlockPos(5,2,5);
         h.setBlock(local.below(),Blocks.STONE);
