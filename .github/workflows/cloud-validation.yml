@@ -9,6 +9,7 @@ on:
       - 'src/main/java/net/caravidro/wayaround/mixin/client/Kraken*'
       - 'src/main/java/net/caravidro/wayaround/mixin/client/SimpleDynamic*'
       - 'tests/clouds/**'
+      - 'tests/weather/**'
       - '.github/workflows/cloud-validation.yml'
 jobs:
   client:
@@ -16,6 +17,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -26,6 +29,8 @@ jobs:
           mkdir -p /tmp/cloud-classes
           javac -d /tmp/cloud-classes src/main/java/net/caravidro/wayaround/worldgen/weather/local/CloudStormMath.java tests/clouds/CloudStormMathTest.java
           java -cp /tmp/cloud-classes CloudStormMathTest
+      - name: Weather search equivalence against prior revision
+        run: python tests/weather/weather_equivalence.py
       - name: Client boot and mixin application
         env:
           ALSOFT_DRIVERS: 'null'

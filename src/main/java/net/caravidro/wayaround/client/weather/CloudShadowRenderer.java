@@ -3,6 +3,7 @@ package net.caravidro.wayaround.client.weather;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.caravidro.wayaround.worldgen.weather.local.CloudStormMath;
@@ -46,6 +47,10 @@ public final class CloudShadowRenderer {
         row=0;
     }
     @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
+        long started=PerformanceProfiler.begin(PerformanceProfiler.Section.CLOUD_SHADOW_UPDATE);
+        try{update();}finally{PerformanceProfiler.end(PerformanceProfiler.Section.CLOUD_SHADOW_UPDATE,started);}
+    }
+    private static void update(){
         var mc=Minecraft.getInstance();
         if(owner!=mc.level){clear();owner=mc.level;}
         if(!enabled()){clear();return;}
@@ -103,20 +108,41 @@ public final class CloudShadowRenderer {
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e){
         if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS||!enabled())return;
+        long started=PerformanceProfiler.begin(PerformanceProfiler.Section.CLOUD_SHADOW_RENDER);
+        try{draw(e);}finally{PerformanceProfiler.end(PerformanceProfiler.Section.CLOUD_SHADOW_RENDER,started);}
+    }
+    private static int alpha(Tile tile,Vec3 camera,float partial){
+        if(tile==null)return 0;
+        double edge=CloudStormMath.shadowEdge(Math.max(Math.abs(tile.x+.5-camera.x),Math.abs(tile.z+.5-camera.z)),RADIUS);
+        return (int)Math.round((tile.previousAlpha+(tile.alpha-tile.previousAlpha)*partial)*edge);
+    }
+    private static void draw(RenderLevelStageEvent e){
         var camera=e.getCamera().getPosition();var m=e.getPoseStack().last().pose();
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
         boolean any=false;
         float partial=e.getPartialTick().getGameTimeDeltaPartialTick(false);
-        for(var tiles:TILES)for(var t:tiles){
-            if(t==null)continue;
-            double edge=CloudStormMath.shadowEdge(Math.max(Math.abs(t.x+.5-camera.x),Math.abs(t.z+.5-camera.z)),RADIUS);
-            int alpha=(int)Math.round((t.previousAlpha+(t.alpha-t.previousAlpha)*partial)*edge);
-            if(alpha<=1)continue;
-            any=true;
-            b.addVertex(m,(float)(t.x-camera.x),(float)(t.y-camera.y),(float)(t.z-camera.z)).setColor(4,8,16,alpha);
-            b.addVertex(m,(float)(t.x-camera.x),(float)(t.y-camera.y),(float)(t.z+1-camera.z)).setColor(4,8,16,alpha);
-            b.addVertex(m,(float)(t.x+1-camera.x),(float)(t.y-camera.y),(float)(t.z+1-camera.z)).setColor(4,8,16,alpha);
-            b.addVertex(m,(float)(t.x+1-camera.x),(float)(t.y-camera.y),(float)(t.z-camera.z)).setColor(4,8,16,alpha);
+        int cx=(int)Math.floor(camera.x),cz=(int)Math.floor(camera.z);
+        for(int z=cz-RADIUS;z<=cz+RADIUS;z++){
+            int rz=Math.floorMod(z,WIDTH);
+            for(int x=cx-RADIUS;x<=cx+RADIUS;){
+                Tile t=TILES[Math.floorMod(x,WIDTH)][rz];
+                int shade=t!=null&&t.x==x&&t.z==z?alpha(t,camera,partial):0;
+                if(shade<=1){x++;continue;}
+                int end=x+1;
+                // Merge only exact coplanar/equal-alpha neighbors. No lost terrain
+                // detail, no approximated gradient or duplicated blended area.
+                while(end<=cx+RADIUS){
+                    Tile next=TILES[Math.floorMod(end,WIDTH)][rz];
+                    if(next==null||next.x!=end||next.z!=z||next.y!=t.y||alpha(next,camera,partial)!=shade)break;
+                    end++;
+                }
+                any=true;
+                b.addVertex(m,(float)(x-camera.x),(float)(t.y-camera.y),(float)(z-camera.z)).setColor(4,8,16,shade);
+                b.addVertex(m,(float)(x-camera.x),(float)(t.y-camera.y),(float)(z+1-camera.z)).setColor(4,8,16,shade);
+                b.addVertex(m,(float)(end-camera.x),(float)(t.y-camera.y),(float)(z+1-camera.z)).setColor(4,8,16,shade);
+                b.addVertex(m,(float)(end-camera.x),(float)(t.y-camera.y),(float)(z-camera.z)).setColor(4,8,16,shade);
+                x=end;
+            }
         }
         if(!any){b.build();return;}
         RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();

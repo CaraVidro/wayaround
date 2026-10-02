@@ -86,13 +86,11 @@ public final class LocalWeatherField {
                         gameTime
                 );
 
-        double drift =
-                gameTime
-                        * DRIFT_SPEED;
+        double driftX = driftX(gameTime), driftZ = driftZ(gameTime);
 
-        double staticX = x - driftX(gameTime);
+        double staticX = x - driftX;
 
-        double staticZ = z - driftZ(gameTime);
+        double staticZ = z - driftZ;
 
         int centerX =
                 floorCell(
@@ -105,8 +103,7 @@ public final class LocalWeatherField {
                 );
 
         double range =
-                MAX_RADIUS
-                        + 260.0;
+                260.0;
 
         int reach =
                 Math.max(
@@ -114,7 +111,7 @@ public final class LocalWeatherField {
                         (int) Math.ceil(
                                 (
                                         range
-                                                + MAX_RADIUS
+                                                + MAX_RADIUS * 1.04
                                 )
                                         / CELL_SPACING
                         )
@@ -138,8 +135,11 @@ public final class LocalWeatherField {
                  gz <= centerZ + reach;
                  gz++) {
 
-                CloudCell cell = RegionalCloudClimate.adapt(level,
-                        cell(gx,gz,gameTime,windX,windZ,drift));
+                CloudCell raw = cell(gx,gz,driftX,driftZ);
+                double rawDx=x-raw.x,rawDz=z-raw.z;
+                double influence=raw.radius*1.04+235;
+                if(rawDx*rawDx+rawDz*rawDz>influence*influence)continue;
+                CloudCell cell=RegionalCloudClimate.adapt(level,raw);
                 if(cell==null)continue;
 
                 double dx =
@@ -312,26 +312,28 @@ public final class LocalWeatherField {
     }
 
     public static List<CloudCell> nearbyCells(net.minecraft.world.level.Level level,double x,double z,long gameTime,double range) {
-        float wx = windX(gameTime);
-        float wz = windZ(gameTime);
-        double drift = gameTime * DRIFT_SPEED;
+        double driftX = driftX(gameTime), driftZ = driftZ(gameTime);
 
-        double staticX = x - driftX(gameTime);
-        double staticZ = z - driftZ(gameTime);
+        double staticX = x - driftX;
+        double staticZ = z - driftZ;
 
         int centerX = floorCell(staticX);
         int centerZ = floorCell(staticZ);
 
         int reach = Math.max(
                 2,
-                (int) Math.ceil((range + MAX_RADIUS) / CELL_SPACING) + 1
+                (int) Math.ceil((range + MAX_RADIUS * 1.04) / CELL_SPACING) + 1
         );
 
         List<CloudCell> result = new ArrayList<>();
 
         for (int gx = centerX - reach; gx <= centerX + reach; gx++) {
             for (int gz = centerZ - reach; gz <= centerZ + reach; gz++) {
-                CloudCell cell = RegionalCloudClimate.adapt(level,cell(gx, gz, gameTime, wx, wz, drift));
+                CloudCell raw=cell(gx,gz,driftX,driftZ);
+                double rawDx=x-raw.x,rawDz=z-raw.z;
+                double influence=range+raw.radius*1.04;
+                if(rawDx*rawDx+rawDz*rawDz>influence*influence)continue;
+                CloudCell cell=RegionalCloudClimate.adapt(level,raw);
                 if(cell==null)continue;
 
                 double dx = x - cell.x;
@@ -357,10 +359,8 @@ public final class LocalWeatherField {
     private static CloudCell cell(
             int gx,
             int gz,
-            long gameTime,
-            float windX,
-            float windZ,
-            double drift
+            double driftX,
+            double driftZ
     ) {
         long seed = hash(gx, gz);
 
@@ -482,8 +482,8 @@ public final class LocalWeatherField {
 
         return new CloudCell(
                 seed,
-                gx * CELL_SPACING + jitterX + driftX(gameTime),
-                gz * CELL_SPACING + jitterZ + driftZ(gameTime),
+                gx * CELL_SPACING + jitterX + driftX,
+                gz * CELL_SPACING + jitterZ + driftZ,
                 height,
                 radius * 1.55,
                 storm

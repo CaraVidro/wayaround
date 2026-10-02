@@ -45,6 +45,8 @@ public final class PerformanceProfiler {
         VOICE("Voice relay"),
         LOCAL_WEATHER("Local weather sampling"),
         CLOUD_RENDER("Cloud rendering"),
+        CLOUD_SHADOW_UPDATE("Cloud shadow sampling"),
+        CLOUD_SHADOW_RENDER("Cloud shadow rendering"),
         WATER_RENDER("Water overlay rendering"),
         MACHINE_RENDER("Procedural machine rendering");
 

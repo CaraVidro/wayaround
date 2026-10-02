@@ -277,20 +277,8 @@ public final class StructuralCollapseClient {
                         pos.getY()
                                 - drop;
 
-                if (Vec3.atCenterOf(
-                                pos
-                        )
-                        .add(
-                                0.0,
-                                -drop,
-                                0.0
-                        )
-                        .distanceToSqr(
-                                camera
-                        )
-                        > RENDER_DISTANCE_SQR) {
-                    continue;
-                }
+                double dx=pos.getX()+.5-camera.x,dy=worldY+.5-camera.y,dz=pos.getZ()+.5-camera.z;
+                if(dx*dx+dy*dy+dz*dz>RENDER_DISTANCE_SQR)continue;
 
                 event.getPoseStack()
                         .pushPose();

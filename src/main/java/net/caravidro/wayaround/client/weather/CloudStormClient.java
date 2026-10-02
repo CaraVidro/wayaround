@@ -77,6 +77,7 @@ public final class CloudStormClient {
         points.add(new Vec3(p.x(),p.groundY()+.1,p.z()));return List.copyOf(points);
     }
     public static float glow(long cellId,double x,double y,double z,long time){
+        if(FLASHES.isEmpty())return 0;
         float result=0;
         for(Flash f:FLASHES){
             if(f.event.cellId()!=cellId)continue;

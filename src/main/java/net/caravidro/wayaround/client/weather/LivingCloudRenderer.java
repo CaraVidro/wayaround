@@ -86,16 +86,13 @@ public final class LivingCloudRenderer {
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
         long wayperfStartedAt =
                 PerformanceProfiler.begin(
                         PerformanceProfiler.Section.CLOUD_RENDER
                 );
 
         try {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
-            return;
-        }
-
         Minecraft minecraft = Minecraft.getInstance();
 
         if (!WorldFeatureRuntime.clientEnabled(
@@ -725,7 +722,7 @@ public final class LivingCloudRenderer {
                 }
             }
 
-            rebuildSurfaceFaces();
+            rebuildSurfaceFaces(cell);
 
             builtAt = time;
             builtRadius = radius;
@@ -733,7 +730,7 @@ public final class LivingCloudRenderer {
             lastUsed = time;
         }
 
-        private void rebuildSurfaceFaces() {
+        private void rebuildSurfaceFaces(LocalWeatherField.CloudCell cell) {
             surfaceFaces.clear();
 
             LongIterator iterator =
@@ -772,7 +769,8 @@ public final class LivingCloudRenderer {
                     surfaceFaces.add(
                             new SurfaceFace(
                                     voxel,
-                                    face
+                                    face,
+                                    cloudShade(cell,voxel,face,builtVoxel)
                             )
                     );
                 }
@@ -797,8 +795,9 @@ public final class LivingCloudRenderer {
                 return false;
             }
 
-            boolean emitted =
-                    false;
+            boolean emitted = false;
+            double phase=random01(cell.id() ^ 0xD1B54A32D192ED03L)*Math.PI*2;
+            double temporal=.988+Math.sin(time*.0032+phase)*.012;
 
             for (SurfaceFace surfaceFace :
                     surfaceFaces) {
@@ -838,7 +837,8 @@ public final class LivingCloudRenderer {
                                 blue,
                                 alpha,
                                 time,
-                                builtVoxel
+                                builtVoxel,
+                                surfaceFace.shade*temporal
                         );
 
                 emitFace(
@@ -1487,17 +1487,7 @@ public final class LivingCloudRenderer {
         return forward > CAMERA_NEAR_GUARD;
     }
 
-    private static int cloudColor(
-            LocalWeatherField.CloudCell cell,
-            Voxel voxel,
-            Face face,
-            int baseRed,
-            int baseGreen,
-            int baseBlue,
-            int baseAlpha,
-            long time,
-            double voxelSize
-    ) {
+    private static double cloudShade(LocalWeatherField.CloudCell cell,Voxel voxel,Face face,double voxelSize) {
         double radius =
                 visualRadius(
                         cell
@@ -1574,26 +1564,21 @@ public final class LivingCloudRenderer {
                 )
                         * 0.014;
 
-        /*
-         * Very slow whole-cloud breathing. It changes the atmosphere without
-         * causing individual cubes to flash independently.
-         */
-        double temporal =
-                0.988
-                        + Math.sin(
-                                time * 0.0032
-                                        + phase
-                        ) * 0.012;
+        return faceShade * verticalShade * (1.0 + broadPatch);
+    }
 
-        double shade =
-                faceShade
-                        * verticalShade
-                        * (
-                        1.0
-                                + broadPatch
-                        )
-                        * temporal;
-
+    private static int cloudColor(
+            LocalWeatherField.CloudCell cell,
+            Voxel voxel,
+            Face face,
+            int baseRed,
+            int baseGreen,
+            int baseBlue,
+            int baseAlpha,
+            long time,
+            double voxelSize,
+            double shade
+    ) {
         double tint =
                 signedColorBias(
                         cell.id()
@@ -1898,7 +1883,8 @@ public final class LivingCloudRenderer {
 
     private record SurfaceFace(
             Voxel voxel,
-            Face face
+            Face face,
+            double shade
     ) {
     }
 

@@ -42,11 +42,13 @@ public final class SimpleDynamicLights {
         return light>0?new Source(e.position().add(0,e.getBbHeight()*.65,0),light):null;
     }
     private static void dirty(Source source){
-        BlockPos c=BlockPos.containing(source.pos);
-        int sx=Math.floorDiv(c.getX(),16),sy=Math.floorDiv(c.getY(),16),sz=Math.floorDiv(c.getZ(),16);
-        for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++){
+        int radius=source.level;
+        int minX=(int)Math.floor((source.pos.x-radius)/16),maxX=(int)Math.floor((source.pos.x+radius)/16);
+        int minY=(int)Math.floor((source.pos.y-radius)/16),maxY=(int)Math.floor((source.pos.y+radius)/16);
+        int minZ=(int)Math.floor((source.pos.z-radius)/16),maxZ=(int)Math.floor((source.pos.z+radius)/16);
+        for(int x=minX;x<=maxX;x++)for(int y=minY;y<=maxY;y++)for(int z=minZ;z<=maxZ;z++){
             if(dirtySections.size()>=216)return;
-            dirtySections.add(new BlockPos(sx+x,sy+y,sz+z));
+            dirtySections.add(new BlockPos(x,y,z));
         }
     }
     @SubscribeEvent public static void tick(ClientTickEvent.Post e){
@@ -78,10 +80,13 @@ public final class SimpleDynamicLights {
     }
     public static int light(BlockPos pos,int packed){
         int value=(packed>>4)&15;
-        for(Source s:sources){
+        List<Source> snapshot=sources;
+        if(value==15||snapshot.isEmpty())return packed;
+        for(Source s:snapshot){
+            if(s.level<=value)continue;
             double dx=pos.getX()+.5-s.pos.x,dy=pos.getY()+.5-s.pos.y,dz=pos.getZ()+.5-s.pos.z;
             double squared=dx*dx+dy*dy+dz*dz;
-            if(squared<s.level*s.level)value=Math.max(value,(int)Math.max(0,s.level-Math.sqrt(squared)));
+            if(squared<(s.level-value)*(s.level-value))value=Math.max(value,(int)Math.max(0,s.level-Math.sqrt(squared)));
         }
         return (packed&~0xF0)|(value<<4);
     }
