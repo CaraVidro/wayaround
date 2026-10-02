@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
 import net.caravidro.wayaround.industrial.crushing.MachinePartSpec;
 import java.util.WeakHashMap;
@@ -51,6 +52,12 @@ public final class MechanicalMillRenderer
             int packedLight,
             int packedOverlay
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_RENDER
+                );
+
+        try {
         double renderTime =
                 mill.getLevel() == null
                         ? 0.0
@@ -172,6 +179,13 @@ public final class MechanicalMillRenderer
         }
 
         poseStack.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private void renderFrame(
