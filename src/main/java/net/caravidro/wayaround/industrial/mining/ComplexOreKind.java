@@ -2,36 +2,48 @@ package net.caravidro.wayaround.industrial.mining;
 
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
+/**
+ * Geological identity stays registry-light: vanilla Items/Blocks are resolved
+ * only when gameplay actually asks for drops or block states.
+ */
 public enum ComplexOreKind {
-    IRON("iron", Items.RAW_IRON, Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE, 1.00F),
-    GOLD("gold", Items.RAW_GOLD, Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE, 1.35F),
-    COPPER("copper", Items.RAW_COPPER, Blocks.COPPER_ORE, Blocks.DEEPSLATE_COPPER_ORE, 0.88F),
-    COAL("coal", Items.COAL, Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE, 0.72F);
+    IRON("iron", 1.00F),
+    GOLD("gold", 1.35F),
+    COPPER("copper", 0.88F),
+    COAL("coal", 0.72F);
 
     private final String id;
-    private final Item drop;
-    private final Block ore;
-    private final Block deepOre;
     private final float miningLoad;
 
-    ComplexOreKind(String id, Item drop, Block ore, Block deepOre, float miningLoad) {
+    ComplexOreKind(String id, float miningLoad) {
         this.id = id;
-        this.drop = drop;
-        this.ore = ore;
-        this.deepOre = deepOre;
         this.miningLoad = miningLoad;
     }
 
     public String id() { return id; }
-    public Item drop() { return drop; }
     public float miningLoad() { return miningLoad; }
 
+    public Item drop() {
+        return switch (this) {
+            case IRON -> Items.RAW_IRON;
+            case GOLD -> Items.RAW_GOLD;
+            case COPPER -> Items.RAW_COPPER;
+            case COAL -> Items.COAL;
+        };
+    }
+
     public BlockState oreState(int y) {
-        return (y < 8 ? deepOre : ore).defaultBlockState();
+        boolean deep = y < 8;
+
+        return switch (this) {
+            case IRON -> (deep ? Blocks.DEEPSLATE_IRON_ORE : Blocks.IRON_ORE).defaultBlockState();
+            case GOLD -> (deep ? Blocks.DEEPSLATE_GOLD_ORE : Blocks.GOLD_ORE).defaultBlockState();
+            case COPPER -> (deep ? Blocks.DEEPSLATE_COPPER_ORE : Blocks.COPPER_ORE).defaultBlockState();
+            case COAL -> (deep ? Blocks.DEEPSLATE_COAL_ORE : Blocks.COAL_ORE).defaultBlockState();
+        };
     }
 
     public BlockState exhaustedState(int y) {
