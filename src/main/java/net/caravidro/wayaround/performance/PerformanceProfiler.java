@@ -127,6 +127,7 @@ public final class PerformanceProfiler {
             long heapEndBytes,
             long gcCountDelta,
             long gcTimeMillisDelta,
+            long observedServerTicks,
             List<SectionSnapshot> sections
     ) {
         public double elapsedSeconds() {
@@ -137,6 +138,16 @@ public final class PerformanceProfiler {
             return (heapEndBytes - heapStartBytes)
                     / (1024.0 * 1024.0);
         }
+
+        public double estimatedTps() {
+            double seconds =
+                    elapsedSeconds();
+
+            return seconds <= 0.0
+                    ? 0.0
+                    : observedServerTicks
+                            / seconds;
+        }
     }
 
     private static final Counter[] COUNTERS =
@@ -144,8 +155,12 @@ public final class PerformanceProfiler {
                     Section.values().length
             ];
 
+    private static final LongAdder OBSERVED_SERVER_TICKS =
+            new LongAdder();
+
     private static volatile boolean enabled;
-    private static volatile long stopAtServerTick =
+
+    private static volatile long stopAtNano =
             Long.MAX_VALUE;
 
     private static long startedNano;
@@ -212,6 +227,8 @@ public final class PerformanceProfiler {
 
         resetCounters();
 
+        OBSERVED_SERVER_TICKS.reset();
+
         startedNano =
                 System.nanoTime();
 
@@ -224,12 +241,12 @@ public final class PerformanceProfiler {
         startedGcTimeMillis =
                 gcTimeMillis();
 
-        stopAtServerTick =
-                server.getTickCount()
+        stopAtNano =
+                startedNano
                         + Math.max(
                         1,
                         seconds
-                ) * 20L;
+                ) * 1_000_000_000L;
 
         lastSnapshot =
                 null;
@@ -238,7 +255,7 @@ public final class PerformanceProfiler {
                 true;
 
         WayAround.LOGGER.info(
-                "WayAround profiler iniciado por {}s.",
+                "WayAround profiler iniciado por {}s de tempo real.",
                 seconds
         );
     }
@@ -257,7 +274,7 @@ public final class PerformanceProfiler {
         lastSnapshot =
                 snapshot;
 
-        stopAtServerTick =
+        stopAtNano =
                 Long.MAX_VALUE;
 
         return snapshot;
@@ -271,21 +288,22 @@ public final class PerformanceProfiler {
             MinecraftServer server
     ) {
         if (!enabled
-                || stopAtServerTick
+                || stopAtNano
                 == Long.MAX_VALUE) {
             return 0L;
         }
 
-        long ticks =
+        long remainingNanos =
                 Math.max(
                         0L,
-                        stopAtServerTick
-                                - server.getTickCount()
+                        stopAtNano
+                                - System.nanoTime()
                 );
 
         return (
-                ticks + 19L
-        ) / 20L;
+                remainingNanos
+                        + 999_999_999L
+        ) / 1_000_000_000L;
     }
 
     public static Snapshot reportSnapshot() {
@@ -299,10 +317,14 @@ public final class PerformanceProfiler {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
-        if (!enabled
-                || event.getServer()
-                        .getTickCount()
-                        < stopAtServerTick) {
+        if (!enabled) {
+            return;
+        }
+
+        OBSERVED_SERVER_TICKS.increment();
+
+        if (System.nanoTime()
+                < stopAtNano) {
             return;
         }
 
@@ -376,8 +398,9 @@ public final class PerformanceProfiler {
         lines.add(
                 String.format(
                         Locale.ROOT,
-                        "WAYPERF %.2fs | heap %+.2f MiB | GC %d coleta(s), %d ms",
+                        "WAYPERF %.2fs | TPS ~%.2f | heap %+.2f MiB | GC %d coleta(s), %d ms",
                         elapsedSeconds,
+                        snapshot.estimatedTps(),
                         snapshot.heapDeltaMiB(),
                         snapshot.gcCountDelta(),
                         snapshot.gcTimeMillisDelta()
@@ -473,6 +496,24 @@ public final class PerformanceProfiler {
         ).append(
                 format(
                         snapshot.elapsedSeconds()
+                )
+        ).append(
+                ",,,,,\n"
+        );
+
+        csv.append(
+                "meta,observed_server_ticks,"
+        ).append(
+                snapshot.observedServerTicks()
+        ).append(
+                ",,,,,\n"
+        );
+
+        csv.append(
+                "meta,estimated_tps,"
+        ).append(
+                format(
+                        snapshot.estimatedTps()
                 )
         ).append(
                 ",,,,,\n"
@@ -639,6 +680,7 @@ public final class PerformanceProfiler {
                         gcTimeMillis()
                                 - startedGcTimeMillis
                 ),
+                OBSERVED_SERVER_TICKS.sum(),
                 List.copyOf(
                         sections
                 )
