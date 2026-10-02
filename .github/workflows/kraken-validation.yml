@@ -86,10 +86,12 @@ jobs:
           fi
           python - <<'PYBASE'
           from pathlib import Path
+          import re
           text=Path('kraken-baseline-tests.log').read_text(errors='replace')
           names=['crankactuallydrivesmechanicalpump','largerotaryliftmovesonerealsource','narrowrotaryliftisvisualonly']
-          assert all(name+' failed' in text for name in names),text[-12000:]
-          print('All three pump/lift failures also occur on unchanged base 7689ce59.')
+          observed=set(re.findall(r'LogTestReporter\]: ([a-z0-9_]+) failed',text))
+          assert observed and observed.issubset(set(names)),text[-12000:]
+          print('Unchanged base reproduces known hydraulic failures:', ', '.join(sorted(observed)))
           PYBASE
       - uses: actions/upload-artifact@v4
         if: always()

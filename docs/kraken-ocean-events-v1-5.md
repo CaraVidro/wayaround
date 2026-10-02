@@ -58,7 +58,17 @@ javac -d /tmp/kraken-classes src/main/java/net/caravidro/wayaround/ecology/Krake
 java -cp /tmp/kraken-classes KrakenMotionTest
 ```
 
-Full build and in-game visual/performance checks require Java 21 and Gradle
-network access. A compilation attempt in the editing environment was blocked
-by unavailable Gradle download, before project compilation. Do not interpret
-standalone geometry checks as a successful Minecraft build or visual QA.
+Validation completed through GitHub Actions because the editing environment
+could not download Gradle:
+
+- Full Gradle build and dedicated-server startup passed.
+- Client startup, resource loading and registered boat/light mixins passed.
+- Standalone motion/contact tests and common/client boundary audit passed.
+- The broad fish/electronics workflows also run hydraulic machinery tests.
+  Pump and rotary-lift failures were reproduced on unchanged base 7689ce59;
+  the narrow-lift failure varies between runs. These are existing suite failures,
+  not green checks. No unrelated machinery was changed for this Kraken update.
+
+Client boot does not verify in-world appearance, terrain-shadow artifacts,
+shader compatibility or measured FPS. Those remain manual checks using the
+commands above.
