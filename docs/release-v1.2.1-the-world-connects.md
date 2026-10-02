@@ -139,6 +139,21 @@ And the reverse conversion is now possible:
 - temporary hidden VISTA hints can appear before those secrets and are revoked when the real discovery is earned;
 - Antarctic cold, sky, lightmap, precipitation and wind ambience now begin gradually in the Southern Ocean instead of snapping at the continental biome boundary.
 
+### Performance foundation
+
+- build/assemble now verify a lossless compacted JAR and keep the original whenever recompression would be larger;
+- development-only local OGG backups are excluded from shipped resources without reducing canonical audio/image quality;
+- compact source-project archives can be produced separately without changing the editable checkout;
+- the optional local Vosk model can release native RAM after idle time and hibernate its extracted cache after extended inactivity;
+- cold speech-model storage restores locally with checksum, extraction-bound and path-safety validation, without bypassing explicit download consent;
+- water surface discovery is spread across ticks with a bounded candidate budget instead of rescanning the full radius synchronously;
+- turbulence discovery is also incremental, invalidates safely after movement/world changes and skips unloaded chunks;
+- above-water cosmetic surface work is disabled while the camera is underwater;
+- hot world-feature checks use a precomputed effective bitmask while saved/network settings remain unchanged;
+- storage regression coverage includes lossless freeze/thaw, corruption, traversal, symlink, interrupted-retirement recovery and scan completeness.
+
+This milestone is intentionally an infrastructure pass: it makes existing systems cheaper and safer to keep around before v1.2.1 connects more of them together.
+
 ## Minecraft title menu
 
 The title screen keeps showing the active release:
