@@ -238,6 +238,105 @@ tasks.named('check') {
     dependsOn verifyDedicatedSafeNetwork
 }
 
+
+/*
+ * Dedicated-server boundary guard for the whole common source tree.
+ *
+ * Client implementations may live in explicit /client/ packages, client
+ * mixins, or classes whose event subscriber is physically CLIENT-only.
+ * The particle provider implementations are also client-only by construction:
+ * the common registry contains only ParticleType objects while providers are
+ * referenced from WayAroundClientParticles (Dist.CLIENT).
+ *
+ * Everything else must stay free of physical-client APIs and direct references
+ * to WayAround client packages. This catches classloading bugs before runServer.
+ */
+def dedicatedCommonJavaPaths =
+        fileTree('src/main/java') {
+            include '**/*.java'
+        }.files
+                .collect { it.absolutePath }
+                .sort()
+
+def dedicatedClientParticleFiles = [
+        'AirBubbleParticle.java',
+        'BlizzardCloudParticle.java',
+        'LivingCloudParticle.java',
+        'PrioriteBubbleParticle.java',
+        'WindLeafParticle.java',
+        'ParticleWindMixin.java'
+] as Set
+
+def verifyDedicatedCommonBoundary = tasks.register('verifyDedicatedCommonBoundary') {
+    group = 'verification'
+    description = 'Rejects physical-client references from classes that may load on a dedicated server.'
+    inputs.files(dedicatedCommonJavaPaths)
+
+    doLast {
+        def violations = []
+
+        dedicatedCommonJavaPaths.each { sourcePath ->
+            def source = new File(sourcePath)
+            def normalized =
+                    sourcePath.replace('\\', '/')
+            def text =
+                    source.getText('UTF-8')
+
+            def clientPackage =
+                    normalized.contains('/client/')
+                            || normalized.contains('/mixin/client/')
+
+            def explicitClientSubscriber =
+                    text.contains('value = Dist.CLIENT')
+                            || text.contains('value=Dist.CLIENT')
+                            || text.contains('dist = Dist.CLIENT')
+                            || text.contains('dist=Dist.CLIENT')
+
+            def isolatedParticleProvider =
+                    normalized.contains('/particle/')
+                            && dedicatedClientParticleFiles.contains(source.name)
+
+            if (clientPackage
+                    || explicitClientSubscriber
+                    || isolatedParticleProvider) {
+                return
+            }
+
+            source.readLines('UTF-8')
+                    .eachWithIndex { line, index ->
+                        def trimmed = line.trim()
+
+                        def physicalMinecraftClient =
+                                trimmed.startsWith('import net.minecraft.client.')
+                                        || trimmed.startsWith('import com.mojang.blaze3d.')
+                                        || trimmed.startsWith('import org.lwjgl.')
+                                        || line.contains('net.minecraft.client.')
+
+                        def directWayAroundClient =
+                                (
+                                        line =~ /net\.caravidro\.wayaround\.[A-Za-z0-9_.]*client\./
+                                ).find()
+
+                        if (physicalMinecraftClient
+                                || directWayAroundClient) {
+                            violations << "${source.name}:${index + 1}: ${trimmed}"
+                        }
+                    }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new GradleException(
+                    'Dedicated-server unsafe common references found:\n'
+                            + violations.join('\n')
+            )
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn verifyDedicatedCommonBoundary
+}
+
 repositories {
     // Vosk is published on Maven Central.
     mavenCentral()
