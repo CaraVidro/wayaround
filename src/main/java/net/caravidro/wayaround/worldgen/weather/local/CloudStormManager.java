@@ -38,10 +38,9 @@ public final class CloudStormManager {
                 if(level.getBiome(player.blockPosition()).is(WayAroundBiomes.ANTARCTIC_ICE_SHEET))continue;
                 for(var cell:LocalWeatherField.nearbyCells(level,player.getX(),player.getZ(),level.getGameTime(),580)){
                     if(cell.storm()<.64||cooldown.getOrDefault(cell.id(),0L)>level.getGameTime())continue;
-                    if(!level.hasChunkAt(BlockPos.containing(cell.x(),level.getSeaLevel(),cell.z())))continue;
                     if(level.random.nextFloat()>.07F*cell.storm())continue;
                     int kind=level.random.nextFloat()<.30F?1:0;
-                    if(!emit(level,cell,kind))continue;
+                    if(!emit(level,cell,kind,player))continue;
                     cooldown.put(cell.id(),level.getGameTime()+500+level.random.nextInt(500));
                     emitted=true;break;
                 }
@@ -54,20 +53,28 @@ public final class CloudStormManager {
         if(!level.dimension().equals(Level.OVERWORLD)||!WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_WEATHER)
                 || !WorldFeatureRuntime.serverEnabled(WorldFeature.PROCEDURAL_CLOUDS))return false;
         var cells=LocalWeatherField.nearbyCells(level,player.getX(),player.getZ(),level.getGameTime(),480);
-        var best=cells.stream().filter(c->level.hasChunkAt(BlockPos.containing(c.x(),level.getSeaLevel(),c.z())))
+        var best=cells.stream().filter(c->kind!=1 || level.hasChunkAt(BlockPos.containing(c.x(),level.getSeaLevel(),c.z()))
+                || c.densityAt(player.getX(),player.getZ())>.05F)
                 .min(java.util.Comparator.comparingDouble(c->Math.pow(c.x()-player.getX(),2)+Math.pow(c.z()-player.getZ(),2))).orElse(null);
         if(best==null)return false;
-        return emit(level,best,kind);
+        return emit(level,best,kind,player);
     }
-    private static boolean emit(ServerLevel level,LocalWeatherField.CloudCell cell,int kind){
+    private static boolean emit(ServerLevel level,LocalWeatherField.CloudCell cell,int kind,ServerPlayer focus){
         double x=cell.x()+(level.random.nextDouble()-.5)*cell.radius()*.55;
         double z=cell.z()+(level.random.nextDouble()-.5)*cell.radius()*.55;
-        BlockPos column=BlockPos.containing(x,level.getSeaLevel(),z);
-        if(!level.hasChunkAt(column)) {
-            x=cell.x();z=cell.z();column=BlockPos.containing(x,level.getSeaLevel(),z);
-            if(!level.hasChunkAt(column))return false;
+        int ground=level.getSeaLevel();
+        if(kind==1){
+            BlockPos column=BlockPos.containing(x,level.getSeaLevel(),z);
+            if(!level.hasChunkAt(column)) {
+                x=cell.x();z=cell.z();column=BlockPos.containing(x,level.getSeaLevel(),z);
+                if(!level.hasChunkAt(column) && cell.densityAt(focus.getX(),focus.getZ())>.05F){
+                    x=focus.getX();z=focus.getZ();column=BlockPos.containing(x,level.getSeaLevel(),z);
+                }
+                if(!level.hasChunkAt(column))return false;
+            }
+            ground=level.getHeight(Heightmap.Types.MOTION_BLOCKING,column.getX(),column.getZ());
         }
-        int ground=level.getHeight(Heightmap.Types.MOTION_BLOCKING,column.getX(),column.getZ());
+        // In-cloud discharges and gusts do not inspect terrain at all.
         var p=new CloudStormS2CPayload(cell.id(),x,cell.y()+12,z,ground,kind,.65F+cell.storm()*.35F);
         for(ServerPlayer player:level.players())if(player.distanceToSqr(x,player.getY(),z)<800*800)PacketDistributor.sendToPlayer(player,p);
         return true;
