@@ -154,7 +154,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
             manualCrankTicks--;
         }
 
-        float targetRpm =
+        float driveRpm =
                 source == null
                         ? (
                         manual
@@ -196,7 +196,7 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
 
         float speedAbs =
                 Math.abs(
-                        targetRpm
+                        driveRpm
                 );
 
         float dullness =
@@ -236,6 +236,50 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
             }
         }
 
+        float requiredTorque =
+                !mechanicallyComplete
+                        ? 0.0F
+                        : jammed
+                                ? 2.8F
+                                : input.isEmpty()
+                                        ? 0.12F
+                                        : 0.62F
+                                                + dullness * 0.78F;
+
+        float machineCondition =
+                bladeProfile == null
+                        ? 0.0F
+                        : bladeProfile.durabilityScore();
+
+        if (shaftProfile != null) {
+            machineCondition =
+                    Math.min(
+                            machineCondition,
+                            shaftProfile.durabilityScore()
+                    );
+        }
+
+        if (bodyProfile != null) {
+            machineCondition =
+                    Math.min(
+                            machineCondition,
+                            bodyProfile.durabilityScore()
+                    );
+        }
+
+        MechanicalLoad.OperatingPoint operating =
+                source == null
+                        ? null
+                        : MechanicalLoad.operate(
+                                source,
+                                requestedPower,
+                                requiredTorque,
+                                SAFE_RPM,
+                                heat,
+                                vibration,
+                                machineCondition
+                        );
+
         float granted =
                 requestedPower <= 0.0F
                         ? 0.0F
@@ -245,11 +289,9 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                                         requestedPower,
                                         1.85F
                                 )
-                                : source == null
+                                : operating == null
                                         ? 0.0F
-                                        : source.consumePower(
-                                                requestedPower
-                                        );
+                                        : operating.grantedPower();
 
         lastRequestedPower =
                 requestedPower;
@@ -258,18 +300,34 @@ public final class SawmillBlockEntity extends BlockEntity implements MenuProvide
                 granted;
 
         lastPowerRatio =
-                MechanicalLoad.fulfillment(
-                        requestedPower,
-                        granted
-                );
+                operating == null
+                        ? MechanicalLoad.fulfillment(
+                                requestedPower,
+                                granted
+                        )
+                        : operating.fulfillment();
+
+        float targetRpm =
+                manual
+                        && source == null
+                        ? driveRpm
+                                * lastPowerRatio
+                        : operating == null
+                                ? 0.0F
+                                : operating.targetRpm();
+
+        boolean torqueStarved =
+                operating != null
+                        && operating.torqueStarved();
 
         boolean spinning =
                 !jammed
+                        && !torqueStarved
                         && (source != null
                         || manual)
                         && mechanicallyComplete
                         && granted > 0.035F
-                        && speedAbs > 0.5F;
+                        && Math.abs(targetRpm) > 0.5F;
 
         float transmissionFactor =
                 Mth.clamp(
