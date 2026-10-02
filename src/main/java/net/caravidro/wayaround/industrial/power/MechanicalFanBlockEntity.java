@@ -11,6 +11,7 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -40,6 +41,9 @@ public final class MechanicalFanBlockEntity
 
     private static final float POWER_DRAW =
             1.25F;
+
+    private static final float SAFE_RPM =
+            96.0F;
 
     private float rpm;
     private float rotationDegrees;
@@ -88,47 +92,49 @@ public final class MechanicalFanBlockEntity
         fan.connected =
                 source != null;
 
-        float targetRpm =
-                0.0F;
+        float sourceRpm =
+                source == null
+                        ? 0.0F
+                        : Math.abs(source.rpm());
+
+        float requested =
+                POWER_DRAW
+                        + Math.min(
+                        0.85F,
+                        sourceRpm / 90.0F
+                );
+
+        /*
+         * Air drag is a torque load, not just another power tax. A very fast
+         * but weak drive may therefore fail to spin the fan under load.
+         */
+        float requiredTorque =
+                0.16F
+                        + Math.min(
+                        0.62F,
+                        sourceRpm / 150.0F
+                );
+
+        MechanicalLoad.OperatingPoint operating =
+                MechanicalLoad.operate(
+                        source,
+                        requested,
+                        requiredTorque,
+                        SAFE_RPM,
+                        0.0F,
+                        0.0F,
+                        Mth.clamp(
+                                1.0F - fan.assemblyWear,
+                                0.0F,
+                                1.0F
+                        )
+                );
 
         fan.lastPower =
-                0.0F;
+                operating.grantedPower();
 
-        if (source != null
-                && source.active()) {
-
-            float requested =
-                    POWER_DRAW
-                            + Math.min(
-                            0.85F,
-                            Math.abs(
-                                    source.rpm()
-                            )
-                                    / 90.0F
-                    );
-
-            float accepted =
-                    source.consumePower(
-                            requested
-                    );
-
-            fan.lastPower =
-                    accepted;
-
-            float powerRatio =
-                    requested <= 0.0001F
-                            ? 0.0F
-                            : Mth.clamp(
-                            accepted
-                                    / requested,
-                            0.0F,
-                            1.0F
-                    );
-
-            targetRpm =
-                    source.rpm()
-                            * powerRatio;
-        }
+        float targetRpm =
+                operating.targetRpm();
 
         fan.rpm +=
                 (

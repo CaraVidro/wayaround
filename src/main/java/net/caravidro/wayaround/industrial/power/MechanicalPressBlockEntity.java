@@ -14,6 +14,7 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -45,6 +46,15 @@ public final class MechanicalPressBlockEntity
 
     private static final float START_POWER =
             3.6F;
+
+    private static final float START_TORQUE =
+            2.2F;
+
+    private static final float SAFE_RPM =
+            60.0F;
+
+    private static final float MIN_START_RPM =
+            4.0F;
 
     private final ObjectAnimationPlayback animation =
             new ObjectAnimationPlayback();
@@ -168,21 +178,40 @@ public final class MechanicalPressBlockEntity
         IRotationalPower source =
                 findBestSource();
 
-        float granted =
+        boolean creative =
                 player.getAbilities()
-                        .instabuild
+                        .instabuild;
+
+        MechanicalLoad.OperatingPoint operating =
+                MechanicalLoad.operate(
+                        creative
+                                ? null
+                                : source,
+                        START_POWER,
+                        START_TORQUE,
+                        SAFE_RPM,
+                        0.0F,
+                        0.0F,
+                        Mth.clamp(
+                                1.0F - assemblyWear,
+                                0.0F,
+                                1.0F
+                        )
+                );
+
+        float granted =
+                creative
                         ? START_POWER
-                        : source == null
-                                ? 0.0F
-                                : source.consumePower(
-                                        START_POWER
-                                );
+                        : operating.grantedPower();
 
         lastGrantedPower =
                 granted;
 
-        if (granted
-                < START_POWER * 0.55F) {
+        if (!creative
+                && !operating.canWork(
+                        MIN_START_RPM,
+                        0.55F
+                )) {
 
             player.displayClientMessage(
                     Component.translatable(
