@@ -384,6 +384,10 @@ public final class PerformanceProfiler {
                 )
         );
 
+        lines.add(
+                "Tempos são inclusivos: uma seção pode chamar outra; não some os totais como se fossem exclusivos."
+        );
+
         if (ordered.isEmpty()) {
             lines.add(
                     "Nenhuma seção instrumentada executou nesta janela."
@@ -496,6 +500,41 @@ public final class PerformanceProfiler {
                 "meta,gc_time_ms,"
         ).append(
                 snapshot.gcTimeMillisDelta()
+        ).append(
+                ",,,,,\n"
+        );
+
+        csv.append(
+                "meta,available_processors,"
+        ).append(
+                Runtime.getRuntime()
+                        .availableProcessors()
+        ).append(
+                ",,,,,\n"
+        );
+
+        csv.append(
+                "meta,max_heap_mib,"
+        ).append(
+                format(
+                        Runtime.getRuntime()
+                                .maxMemory()
+                                / (1024.0 * 1024.0)
+                )
+        ).append(
+                ",,,,,\n"
+        );
+
+        csv.append(
+                "meta,java_version,"
+        ).append(
+                System.getProperty(
+                        "java.version",
+                        "unknown"
+                ).replace(
+                        ',',
+                        '_'
+                )
         ).append(
                 ",,,,,\n"
         );
