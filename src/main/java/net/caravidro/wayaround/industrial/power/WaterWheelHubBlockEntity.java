@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.power;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -995,6 +996,12 @@ public final class WaterWheelHubBlockEntity
             ServerLevel level,
             BlockState state
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.WATER_WHEEL_SIM
+                );
+
+        try {
         flowCache.clear();
 
         float appliedMechanicalLoad =
@@ -1564,6 +1571,13 @@ public final class WaterWheelHubBlockEntity
 
         availableMechanicalBudget =
                 mechanicalPower;
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.WATER_WHEEL_SIM,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private boolean wouldCollide(
