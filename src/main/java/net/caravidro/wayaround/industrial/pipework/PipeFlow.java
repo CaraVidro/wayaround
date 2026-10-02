@@ -831,35 +831,76 @@ public final class PipeFlow {
                 PipeBlockEntity terminal =
                         outlet.pipe();
 
-                /*
-                 * A one-pipe legacy valve owns the exact FluidStack passed to
-                 * deliver(). Do not "receive" that same stack back into itself
-                 * or the amount doubles before the caller removes it.
-                 */
-                boolean sourceIsTerminal =
-                        terminal.stored()
-                        == fluid;
+                FluidStack buffered =
+                        terminal.outletStored();
 
-                if (sourceIsTerminal) {
-                    if (terminal.amount() >= 1000
-                            && limit >= 1000) {
+                boolean compatible =
+                        buffered.isEmpty()
+                                || FluidStack.isSameFluidSameComponents(
+                                buffered,
+                                fluid
+                        );
 
+                if (compatible) {
+                    /*
+                     * Flush a bucket that was accumulated by earlier ticks.
+                     * This volume was already removed from the upstream source
+                     * when it entered outletBuffer, so it MUST NOT be counted
+                     * as newly consumed now.
+                     */
+                    if (terminal.outletAmount() >= 1000) {
                         int released =
                                 spill(
                                         level,
                                         end,
-                                        terminal.stored(),
+                                        terminal.outletStored(),
                                         true
                                 );
 
+                        if (released > 0) {
+                            terminal.usedOutlet(
+                                    released
+                            );
+                        }
+                    }
+
+                    int accepted =
+                            Math.min(
+                                    limit,
+                                    terminal.outletRoom()
+                            );
+
+                    if (accepted > 0) {
+                        terminal.receiveOutlet(
+                                fluid.copyWithAmount(
+                                        accepted
+                                )
+                        );
+
                         /*
-                         * The valve caller removes this returned amount from
-                         * its own tank, so do not terminal.used() here.
+                         * Only this fresh amount is charged to the pump/valve
+                         * source budget.
                          */
                         consumed =
-                                released;
+                                accepted;
+                    }
 
-                    } else if (!fluid.isEmpty()) {
+                    if (terminal.outletAmount() >= 1000) {
+                        int released =
+                                spill(
+                                        level,
+                                        end,
+                                        terminal.outletStored(),
+                                        true
+                                );
+
+                        if (released > 0) {
+                            terminal.usedOutlet(
+                                    released
+                            );
+                        }
+
+                    } else if (accepted > 0) {
                         jet(
                                 level,
                                 end,
@@ -867,68 +908,6 @@ public final class PipeFlow {
                                 fluid,
                                 3
                         );
-                    }
-
-                } else {
-                    FluidStack stored =
-                            terminal.stored();
-
-                    boolean compatible =
-                            stored.isEmpty()
-                                    || FluidStack.isSameFluidSameComponents(
-                                    stored,
-                                    fluid
-                            );
-
-                    if (compatible) {
-                        int room =
-                                Math.max(
-                                        0,
-                                        terminal.capacity()
-                                                - terminal.amount()
-                                );
-
-                        int accepted =
-                                Math.min(
-                                        limit,
-                                        room
-                                );
-
-                        if (accepted > 0) {
-                            terminal.receive(
-                                    fluid.copyWithAmount(
-                                            accepted
-                                    )
-                            );
-
-                            consumed =
-                                    accepted;
-                        }
-
-                        if (terminal.amount() >= 1000) {
-                            int released =
-                                    spill(
-                                            level,
-                                            end,
-                                            terminal.stored(),
-                                            true
-                                    );
-
-                            if (released > 0) {
-                                terminal.used(
-                                        released
-                                );
-                            }
-
-                        } else if (accepted > 0) {
-                            jet(
-                                    level,
-                                    end,
-                                    outlet.direction(),
-                                    fluid,
-                                    3
-                            );
-                        }
                     }
                 }
 
