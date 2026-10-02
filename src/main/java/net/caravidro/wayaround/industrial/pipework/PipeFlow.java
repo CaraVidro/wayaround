@@ -706,6 +706,86 @@ public final class PipeFlow {
         );
     }
 
+    /**
+     * Apply a bounded pressure pulse through the same directional route used by
+     * machine discharge. Pressure can therefore damage a weak section even
+     * when a downstream restriction is preventing useful flow.
+     */
+    public static void applyPressurePulse(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromPump,
+            float pressureBar
+    ) {
+        if (root == null
+                || pressureBar <= 0.001F
+                || root.owner() != null
+                || !root.complete()) {
+            return;
+        }
+
+        root.applyHydraulicPressure(
+                pressureBar
+        );
+
+        List<Outlet> outputs =
+                outlets(
+                        level,
+                        root,
+                        awayFromPump
+                );
+
+        if (outputs.isEmpty()) {
+            return;
+        }
+
+        Set<BlockPos> stressed =
+                new HashSet<>();
+
+        stressed.add(
+                root.getBlockPos()
+        );
+
+        for (Outlet outlet :
+                outputs) {
+
+            List<PipeBlockEntity> path =
+                    outlet.path();
+
+            for (int index = 0;
+                 index < path.size();
+                 index++) {
+
+                PipeBlockEntity pipe =
+                        path.get(index);
+
+                if (!stressed.add(
+                        pipe.getBlockPos()
+                )) {
+                    continue;
+                }
+
+                float distanceLoss =
+                        path.size() <= 1
+                                ? 1.0F
+                                : 1.0F
+                                        - 0.12F
+                                                * index
+                                                / (float) (
+                                                path.size() - 1
+                                        );
+
+                pipe.applyHydraulicPressure(
+                        pressureBar
+                                * Math.max(
+                                0.78F,
+                                distanceLoss
+                        )
+                );
+            }
+        }
+    }
+
     private static int deliver(
             ServerLevel level,
             Outlet outlet,

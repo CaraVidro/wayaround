@@ -40,6 +40,12 @@ Implemented in the development branch:
 - shaft/gearbox stress integration;
 - pulley throughput limits and overload wear;
 - mechanical pump torque demand from pressure/flow;
+- shared `HydraulicLoad` model connecting flow, pressure, torque, cavitation and backpressure;
+- closed/restricted discharge now raises backpressure and mechanical demand instead of merely producing zero flow;
+- suction starvation creates cavitation, reducing useful flow while increasing vibration and impeller wear;
+- pump pressure propagates through the bounded PipeFlow route and can damage pipe sections above their pressure rating;
+- pipe current/peak hydraulic pressure persists for world consequences and diagnostics;
+- hydraulic regression coverage protects pressure-rating, cavitation and backpressure behavior;
 - crusher demand integration;
 - sawmill shared load math;
 - GameTest coverage for power vs torque vs speed;

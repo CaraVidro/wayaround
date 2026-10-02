@@ -82,15 +82,26 @@ public final class MechanicalPumpRenderer
                 )
         );
 
-        if (pump.working()) {
+        float hydraulicTrouble =
+                Math.min(
+                        1.5F,
+                        pump.vibration()
+                                + pump.cavitation() * 0.70F
+                                + pump.backpressure() * 0.30F
+                );
+
+        if (Math.abs(pump.rpm()) > 0.5F
+                && hydraulicTrouble > 0.01F) {
             pose.translate(
-                    Math.sin(time * 1.6)
-                            * pump.vibration()
-                            * 0.006,
-                    0.0,
-                    Math.cos(time * 1.8)
-                            * pump.vibration()
-                            * 0.006
+                    Math.sin(time * 2.15)
+                            * hydraulicTrouble
+                            * 0.0075,
+                    Math.sin(time * 3.70)
+                            * pump.cavitation()
+                            * 0.0035,
+                    Math.cos(time * 1.85)
+                            * hydraulicTrouble
+                            * 0.0075
             );
         }
 

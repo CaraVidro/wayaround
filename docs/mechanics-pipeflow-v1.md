@@ -87,5 +87,11 @@ buffer. Low-RPM pumps may therefore gulp a bucket and meter it out over several
 ticks; this avoids requiring 1000 u/t instantaneous flow while still conserving
 the real source block.
 
-The pump currently models a simple pressure estimate and network pressure cap,
-not a complete pump curve, cavitation model or hydrostatic solver.
+The pump now uses the shared bounded `HydraulicLoad` model. Discharge
+restriction creates remembered backpressure, suction starvation creates
+cavitation, and both feed mechanical power/torque demand through
+`MechanicalLoad`. Pump pressure is propagated through the bounded PipeFlow
+route and can structurally damage pipe sections above their pressure rating.
+
+This still deliberately stops short of a complete pump curve, hydrostatic head
+solver or per-cell fluid dynamics.

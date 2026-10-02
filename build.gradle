@@ -569,6 +569,14 @@ tasks.register('pipeworkRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('pipeworkRegressionTest') }
 
+// Mechanical <-> hydraulic load, cavitation, backpressure and pressure-rating invariants.
+tasks.register('hydraulicLoadRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.pipework.HydraulicLoadTest'
+}
+tasks.named('check') { dependsOn tasks.named('hydraulicLoadRegressionTest') }
+
 
 // Shared object-animation timeline invariants.
 tasks.register('objectAnimationRegressionTest', JavaExec) {

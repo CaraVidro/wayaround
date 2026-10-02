@@ -112,6 +112,18 @@ public final class MechanicsGameTests {
     }
 
     @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
+    public static void pressurePulseFollowsPumpDischargeRoute(GameTestHelper h){
+        var root=pipe(h,5,2,5,PipeworkContent.SMALL_COPPER_PIPE.get());
+        var next=pipe(h,5,2,4,PipeworkContent.SMALL_COPPER_PIPE.get());
+        PipeFlow.applyPressurePulse(h.getLevel(),root,Direction.NORTH,5.5F);
+        h.assertTrue(root.hydraulicPressureBar()>=5.4F,
+                "Pump pressure reaches the discharge root even before useful flow");
+        h.assertTrue(next.hydraulicPressureBar()>4.6F,
+                "Pressure propagates through the bounded directional liquid route");
+        h.succeed();
+    }
+
+    @GameTest(template="assembly_test",batch="mechanics",timeoutTicks=80)
     public static void damagedFilledPipeLeaksItsStoredLiquid(GameTestHelper h){
         var pipe=pipe(h,5,2,5,PipeworkContent.IRON_WATER_PIPE.get());
         pipe.receive(new net.neoforged.neoforge.fluids.FluidStack(net.minecraft.world.level.material.Fluids.WATER,1000));

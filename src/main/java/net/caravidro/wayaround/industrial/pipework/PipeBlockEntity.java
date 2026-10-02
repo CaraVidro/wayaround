@@ -33,6 +33,8 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     private FluidStack visible=FluidStack.EMPTY;
     private long wetUntil;
     private float integrity=1;
+    private float hydraulicPressureBar;
+    private float peakHydraulicPressureBar;
     private int outletCursor;
     public PipeBlockEntity(BlockPos pos,BlockState state){super(PipeworkContent.PIPE_ENTITY.get(),pos,state);}
     public void restoreBody(ItemStack stack){body=section(stack);sync();}
@@ -46,6 +48,8 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     public boolean complete(){return !(getBlockState().getBlock() instanceof LargePipeBlock b)||sections==b.required();}
     public int capacity(){return getBlockState().getBlock() instanceof LargePipeBlock b?(b.colossal()?64000:16000):2000;}
     public int amount(){return tank.getAmount();}
+    public float hydraulicPressureBar(){return hydraulicPressureBar;}
+    public float peakHydraulicPressureBar(){return peakHydraulicPressureBar;}
     public PipeBlockEntity controller(){return owner==null?this:level!=null&&level.hasChunkAt(owner)&&level.getBlockEntity(owner) instanceof PipeBlockEntity pipe?pipe:null;}
     public static List<BlockPos> shellPositions(BlockPos center,BlockState state){
         if(!(state.getBlock() instanceof LargePipeBlock b))return List.of();
@@ -127,6 +131,8 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         if(level.isClientSide)return;
         if(!(level instanceof ServerLevel server))return;
         if(pipe.open&&pipe.hasValve()&&Math.floorMod(level.getGameTime()+pos.asLong(),10)==0)PipeFlow.pump(server,pipe);
+        pipe.hydraulicPressureBar*=.94F;
+        if(pipe.hydraulicPressureBar<.01F)pipe.hydraulicPressureBar=0;
         if(pipe.wet()&&pipe.integrity<.65F&&Math.floorMod(level.getGameTime()+pos.asLong(),20)==0){
             FluidStack liquid=pipe.visualFluid();
             server.sendParticles(PipeFlow.drip(liquid),pos.getX()+.5,pos.getY()+.05,pos.getZ()+.5,1,.25,0,.25,0);
@@ -141,13 +147,60 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         int tolerance=getBlockState().getBlock() instanceof IndustrialPipeBlock pipe?pipe.spec().maxTemperatureC():800;
         if(temperature>tolerance)damage(Math.min(.025F,(temperature-tolerance)*.00001F));
         flow=hasValve()?flow:direction;visible=fluid.copyWithAmount(1);wetUntil=level.getGameTime()+30;sync();}
+
+    public void applyHydraulicPressure(float pressureBar){
+        if(owner!=null||!complete())return;
+
+        float actual=Float.isFinite(pressureBar)?Math.max(0,pressureBar):0;
+        hydraulicPressureBar=Math.max(hydraulicPressureBar,actual);
+        peakHydraulicPressureBar=Math.max(peakHydraulicPressureBar,actual);
+
+        float rating=pressureRatingBar();
+        float pressureDamage=HydraulicLoad.pressureDamage(actual,rating,integrity);
+
+        boolean wearTick=
+                level==null
+                        || Math.floorMod(
+                        level.getGameTime()+worldPosition.asLong(),
+                        20
+                )==0;
+
+        if(pressureDamage>0&&wearTick){
+            damage(Math.min(.08F,pressureDamage*4F));
+        }
+
+        float loadRatio=rating<=.001F?0:actual/rating;
+        if(!body.isEmpty()){
+            var profile=AssemblyItemData.readPart(body);
+            if(profile!=null)AssemblyItemData.observeMaterialUse(
+                    body,profile.material(),level==null?0:level.getGameTime(),
+                    Math.min(2.5F,loadRatio),Math.max(0,loadRatio-1F)*.35F,0);
+        }
+
+        if(pressureDamage>0&&level instanceof ServerLevel server&&Math.floorMod(server.getGameTime()+worldPosition.asLong(),20)==0){
+            server.playSound(null,worldPosition,SoundEvents.IRON_TRAPDOOR_CLOSE,SoundSource.BLOCKS,
+                    .18F+Math.min(.32F,pressureDamage*8F),.72F);
+            if(wet())server.sendParticles(ParticleTypes.SPLASH,
+                    worldPosition.getX()+.5,worldPosition.getY()+.5,worldPosition.getZ()+.5,
+                    2,.18,.18,.18,.02);
+        }
+
+        setChanged();
+    }
+
+    private float pressureRatingBar(){
+        BlockState state=getBlockState();
+        if(state.getBlock() instanceof IndustrialPipeBlock pipe)return pipe.spec().maxPressureBar();
+        if(state.getBlock() instanceof LargePipeBlock duct)return duct.colossal()?14F:8F;
+        return 4F;
+    }
     public void sync(){setChanged();if(level!=null&&!level.isClientSide)level.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),3);}
     @Override public CompoundTag getUpdateTag(HolderLookup.Provider registries){
         CompoundTag tag=new CompoundTag();if(owner!=null)tag.putLong("Owner",owner.asLong());tag.putInt("Sections",sections);
         if(!valve.isEmpty())tag.put("Valve",new ItemStack(valve.getItem()).save(registries));
         tag.putInt("Flow",flow.ordinal());tag.putBoolean("Open",open);
         FluidStack liquid=visualFluid();if(!liquid.isEmpty())tag.put("Visible",liquid.copyWithAmount(1).save(registries));
-        tag.putLong("WetUntil",wet()?Math.max(wetUntil,(level==null?0:level.getGameTime())+30):0);tag.putFloat("Integrity",integrity);
+        tag.putLong("WetUntil",wet()?Math.max(wetUntil,(level==null?0:level.getGameTime())+30):0);tag.putFloat("Integrity",integrity);tag.putFloat("HydraulicPressure",hydraulicPressureBar);
         // Disk owns all real stacks and fluid volume. Rendering needs only the visible state.
         return tag;
     }
@@ -156,7 +209,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         super.saveAdditional(tag,registries);if(!body.isEmpty())tag.put("Body",body.save(registries));ListTag parts=new ListTag();for(ItemStack stack:installedSections)parts.add(stack.save(registries));tag.put("InstalledSections",parts);if(owner!=null)tag.putLong("Owner",owner.asLong());tag.putInt("Sections",sections);
         if(!valve.isEmpty())tag.put("Valve",valve.save(registries));tag.putInt("Flow",flow.ordinal());tag.putBoolean("Open",open);
         if(!tank.isEmpty())tag.put("Fluid",tank.save(registries));if(!visible.isEmpty())tag.put("Visible",visible.save(registries));
-        tag.putLong("WetUntil",wetUntil);tag.putFloat("Integrity",integrity);tag.putInt("OutletCursor",outletCursor);
+        tag.putLong("WetUntil",wetUntil);tag.putFloat("Integrity",integrity);tag.putFloat("HydraulicPressure",hydraulicPressureBar);tag.putFloat("PeakHydraulicPressure",peakHydraulicPressureBar);tag.putInt("OutletCursor",outletCursor);
     }
     @Override protected void loadAdditional(CompoundTag tag,HolderLookup.Provider registries){
         super.loadAdditional(tag,registries);owner=tag.contains("Owner")?BlockPos.of(tag.getLong("Owner")):null;
@@ -172,6 +225,8 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         valve=ItemStack.parseOptional(registries,tag.getCompound("Valve"));flow=Direction.values()[Math.floorMod(tag.getInt("Flow"),6)];open=tag.getBoolean("Open");
         tank=FluidStack.parseOptional(registries,tag.getCompound("Fluid"));if(tank.getAmount()>capacity())tank.setAmount(capacity());
         visible=FluidStack.parseOptional(registries,tag.getCompound("Visible"));wetUntil=tag.getLong("WetUntil");float value=tag.getFloat("Integrity");integrity=Float.isFinite(value)?Math.clamp(value,0,1):0;
+        float pressure=tag.getFloat("HydraulicPressure");hydraulicPressureBar=Float.isFinite(pressure)?Math.max(0,pressure):0;
+        float peakPressure=tag.getFloat("PeakHydraulicPressure");peakHydraulicPressureBar=Float.isFinite(peakPressure)?Math.max(hydraulicPressureBar,peakPressure):hydraulicPressureBar;
         outletCursor=tag.getInt("OutletCursor");
     }
     public int nextOutlet(int count){int chosen=Math.floorMod(outletCursor,count);outletCursor=chosen+1;return chosen;}
