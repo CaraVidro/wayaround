@@ -39,7 +39,9 @@ public final class MechanicalTransmission {
             Route route=queue.removeFirst();Route prior=visited.get(route.pos());
             if(prior!=null){if(Math.abs(prior.ratio()-route.ratio())>.01F||prior.sign()!=route.sign())conflict=true;continue;}
             if(!level.hasChunkAt(route.pos()))continue;
-            BlockState state=level.getBlockState(route.pos());if(!transmission(state))continue;visited.put(route.pos(),route);
+            BlockState state=level.getBlockState(route.pos());if(!transmission(state))continue;
+            if(level.getBlockEntity(route.pos()) instanceof MechanicalTransmissionBlockEntity part&&part.seized())continue;
+            visited.put(route.pos(),route);
             for(Direction side:Direction.values()){
                 if(!accepts(state,side.getAxis()))continue;
                 BlockPos next=route.pos().relative(side);if(!level.hasChunkAt(next))continue;

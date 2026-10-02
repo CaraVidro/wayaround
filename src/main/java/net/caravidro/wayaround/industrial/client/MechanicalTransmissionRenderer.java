@@ -76,22 +76,109 @@ public final class MechanicalTransmissionRenderer
         if (state.getBlock() instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock gear) {
             var mount=gear.mountOffset(node.getLevel(),node.getBlockPos(),state);
             poseStack.translate(mount.x,mount.y,mount.z);
+
+            float toothDamage =
+                    node.toothDamage();
+
+            if (toothDamage > 0.02F) {
+                float toothPulse =
+                        (float) Math.sin(
+                                Math.toRadians(
+                                        transmissionAngle
+                                )
+                        );
+
+                poseStack.translate(
+                        toothPulse * toothDamage * 0.018F,
+                        -toothPulse * toothDamage * 0.010F,
+                        0.0F
+                );
+            }
             Direction.Axis axle = state.getValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS);
             if (axle == Direction.Axis.Y) poseStack.mulPose(Axis.ZP.rotationDegrees(90));
             if (axle == Direction.Axis.Z) poseStack.mulPose(Axis.YP.rotationDegrees(90));
             poseStack.mulPose(Axis.XP.rotationDegrees(transmissionAngle));
             double radius = gear.large() ? 0.72 : 0.36;
             int visibleTeeth = lod.detailedGeometry() ? gear.teeth() : Math.min(8, gear.teeth());
+            int healthyVisualTeeth =
+                    Math.max(
+                            3,
+                            Math.round(
+                                    visibleTeeth
+                                            * (
+                                            1.0F
+                                                    - node.toothDamage()
+                                                            * 0.45F
+                                    )
+                            )
+                    );
             IndustrialRenderUtil.radialWheel(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                    Blocks.IRON_BLOCK.defaultBlockState(), Blocks.POLISHED_ANDESITE.defaultBlockState(), visibleTeeth, radius, .20);
-            if (lod.detailedGeometry()) for (int i = 0; i < gear.teeth(); i++) {
-                double angle = Math.PI * 2 * i / gear.teeth();
-                IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                        Blocks.IRON_BLOCK.defaultBlockState(), 0, Math.cos(angle)*radius, Math.sin(angle)*radius,
-                        .24, .09, .09, (float)Math.toDegrees(angle), 0, 0);
+                    Blocks.IRON_BLOCK.defaultBlockState(), Blocks.POLISHED_ANDESITE.defaultBlockState(), healthyVisualTeeth, radius, .20);
+            if (lod.detailedGeometry()) {
+                int missing =
+                        Math.min(
+                                gear.teeth() - 3,
+                                Math.round(
+                                        gear.teeth()
+                                                * node.toothDamage()
+                                                * 0.42F
+                                )
+                        );
+
+                int hash =
+                        (int) (
+                                node.getBlockPos().asLong()
+                                        ^ (
+                                        node.getBlockPos().asLong()
+                                                >>> 32
+                                )
+                        );
+
+                for (int i = 0; i < gear.teeth(); i++) {
+                    if (missing > 0
+                            && Math.floorMod(
+                            i * 7 + hash,
+                            gear.teeth()
+                    ) < missing) {
+                        continue;
+                    }
+
+                    double angle = Math.PI * 2 * i / gear.teeth();
+                    IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
+                            Blocks.IRON_BLOCK.defaultBlockState(), 0, Math.cos(angle)*radius, Math.sin(angle)*radius,
+                            .24, .09, .09, (float)Math.toDegrees(angle), 0, 0);
+                }
             }
         } else if (state.getBlock()
                 instanceof MechanicalShaftBlock) {
+
+            float bend =
+                    node.deformation();
+
+            if (bend > 0.01F) {
+                double phase =
+                        Math.toRadians(
+                                transmissionAngle
+                        );
+
+                poseStack.translate(
+                        Math.sin(phase)
+                                * bend
+                                * 0.045,
+                        Math.cos(phase)
+                                * bend
+                                * 0.045,
+                        0.0
+                );
+
+                poseStack.mulPose(
+                        Axis.XP.rotationDegrees(
+                                (float) Math.sin(phase)
+                                        * bend
+                                        * 3.8F
+                        )
+                );
+            }
 
             renderShaft(
                     poseStack,
@@ -107,6 +194,32 @@ public final class MechanicalTransmissionRenderer
             );
         } else if (state.getBlock()
                 instanceof MechanicalGearboxBlock) {
+
+            float bearingDamage =
+                    node.bearingDamage();
+
+            if (bearingDamage > 0.01F) {
+                double phase =
+                        Math.toRadians(
+                                transmissionAngle
+                        );
+
+                poseStack.mulPose(
+                        Axis.YP.rotationDegrees(
+                                (float) Math.sin(phase)
+                                        * bearingDamage
+                                        * 2.7F
+                        )
+                );
+
+                poseStack.mulPose(
+                        Axis.XP.rotationDegrees(
+                                (float) Math.cos(phase)
+                                        * bearingDamage
+                                        * 1.8F
+                        )
+                );
+            }
 
             renderCuboid(
                     poseStack,

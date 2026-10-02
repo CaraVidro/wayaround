@@ -75,6 +75,27 @@ public final class PulleyWheelRenderer
         poseStack.translate(0.5, 0.5, 0.5);
         orientLocalZToAxis(poseStack, pulley.axleAxis());
 
+        float stressWobble =
+                Math.min(
+                        1.0F,
+                        pulley.driveStress()
+                                / 1.6F
+                );
+
+        if (stressWobble > 0.02F) {
+            poseStack.mulPose(
+                    Axis.XP.rotationDegrees(
+                            (float) Math.sin(
+                                    Math.toRadians(
+                                            visualAngle
+                                    )
+                            )
+                                    * stressWobble
+                                    * 1.8F
+                    )
+            );
+        }
+
         poseStack.mulPose(
                 Axis.ZP.rotationDegrees(
                         visualAngle
@@ -218,7 +239,23 @@ public final class PulleyWheelRenderer
 
         double nx = -dy / distance;
         double ny = dx / distance;
-        double beltOffset = RADIUS + 0.015;
+        float slip =
+                pulley.beltSlip();
+
+        double flutter =
+                Math.sin(
+                        pulley.getLevel().getGameTime()
+                                * 0.55
+                                + pulley.getBlockPos().asLong()
+                                        * 0.0001
+                )
+                        * slip
+                        * 0.026;
+
+        double beltOffset =
+                RADIUS
+                        + 0.015
+                        + flutter;
 
         poseStack.pushPose();
         poseStack.translate(0.5, 0.5, 0.5);
@@ -250,7 +287,14 @@ public final class PulleyWheelRenderer
          * Moving knots make belt motion visible without a custom texture.
          * They crawl along one strand using the driving pulley's phase.
          */
-        double phase = visualAngle / 360.0;
+        double phase =
+                visualAngle
+                        * (
+                        1.0
+                                - slip
+                                        * 0.80
+                )
+                        / 360.0;
         for (int i = 0; i < 8; i++) {
             double t = (i / 8.0 + phase) % 1.0;
             double x = nx * beltOffset + dx * t;

@@ -30,6 +30,13 @@ Implemented in the development branch:
 - torque starvation;
 - safe-RPM / overspeed evaluation;
 - combined failure-stress evaluation;
+- persistent `MechanicalFailure` states shared by transmission hardware;
+- shafts accumulate deformation instead of disappearing;
+- exposed gears accumulate visible tooth loss;
+- gearboxes accumulate bearing damage, friction and wobble;
+- critical transmission hardware remains in-world as a seized component until dismantled;
+- pulley belts now slip progressively, losing RPM/power before near-ruined belts can snap;
+- failure state persists through saves/reloads and feeds transmission efficiency;
 - shaft/gearbox stress integration;
 - pulley throughput limits and overload wear;
 - mechanical pump torque demand from pressure/flow;

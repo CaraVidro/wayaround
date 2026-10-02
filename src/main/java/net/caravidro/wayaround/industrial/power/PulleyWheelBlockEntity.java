@@ -7,6 +7,7 @@ import net.caravidro.wayaround.advancement.WayAroundAdvancements;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalFailure;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.minecraft.core.BlockPos;
@@ -55,6 +56,8 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
     private float rpm;
     private float rotationDegrees;
     private float mechanicalPower;
+    private float beltSlip;
+    private float driveStress;
 
     @Nullable private IRotationalPower localSource;
 
@@ -92,6 +95,59 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
 
             float downstreamRequest = Math.max(0.0F, requestedPower);
 
+            float capacity =
+                    driveCapacity();
+
+            float loadRatio =
+                    capacity <= 0.001F
+                            || capacity == Float.MAX_VALUE
+                            ? 0.0F
+                            : downstreamRequest
+                                    / capacity;
+
+            float overSpeed =
+                    MechanicalLoad.overspeed(
+                            driver.rpm(),
+                            72.0F
+                    );
+
+            float targetSlip =
+                    linkedPos == null
+                            ? 0.0F
+                            : MechanicalFailure.beltSlip(
+                                    loadRatio,
+                                    overSpeed,
+                                    beltConditionFactor()
+                            );
+
+            beltSlip +=
+                    (
+                            targetSlip
+                                    - beltSlip
+                    )
+                            * 0.35F;
+
+            beltSlip =
+                    Mth.clamp(
+                            beltSlip,
+                            0.0F,
+                            1.0F
+                    );
+
+            driveStress =
+                    MechanicalLoad.failureStress(
+                            MechanicalLoad.normalized(
+                                    downstreamRequest,
+                                    capacity == Float.MAX_VALUE
+                                            ? Math.max(0.001F, downstreamRequest)
+                                            : Math.max(0.001F, capacity)
+                            ),
+                            overSpeed,
+                            beltSlip,
+                            0.0F,
+                            beltConditionFactor()
+                    );
+
             float transmissible =
                     Math.min(
                             downstreamRequest,
@@ -99,17 +155,11 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                                     0.0F,
                                     mechanicalPower
                             )
-                    );
-
-            float slip =
-                    downstreamRequest <= 0.001F
-                            ? 0.0F
-                            : Mth.clamp(
+                    )
+                            * (
                             1.0F
-                                    - transmissible
-                                            / downstreamRequest,
-                            0.0F,
-                            1.0F
+                                    - beltSlip
+                                            * 0.72F
                     );
 
             float requestedFromDriver = transmissible / efficiency;
@@ -120,8 +170,12 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                     taken
                             * (
                             1.0F
-                                    + slip
-                                            * 1.8F
+                                    + beltSlip
+                                            * 2.2F
+                                    + Math.max(
+                                    0.0F,
+                                    driveStress - 0.85F
+                            )
                     ),
                     driver.rpm()
             );
@@ -187,7 +241,17 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         float targetPower = 0.0F;
 
         if (driver != null && driver != rotationOutput) {
-            targetRpm = driver.rpm();
+            float slipFactor =
+                    localSource != null
+                            ? 1.0F
+                            : 1.0F
+                                    - beltSlip
+                                            * 0.78F;
+
+            targetRpm =
+                    driver.rpm()
+                            * slipFactor;
+
             targetPower =
                     Math.min(
                             Math.max(
@@ -196,8 +260,26 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                             )
                                     * driveEfficiency(),
                             driveCapacity()
+                    )
+                            * (
+                            1.0F
+                                    - beltSlip
+                                            * 0.60F
                     );
         }
+
+        if (linkedPos == null
+                || driver == null) {
+            beltSlip +=
+                    (0.0F - beltSlip)
+                            * 0.12F;
+        } else {
+            beltSlip *=
+                    0.996F;
+        }
+
+        driveStress *=
+                0.985F;
 
         rpm += (targetRpm - rpm) * 0.32F;
         if (Math.abs(rpm) < 0.006F && Math.abs(targetRpm) < 0.006F) rpm = 0.0F;
@@ -441,6 +523,14 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                                 + (float) distance
                                         / 18.0F
                 )
+                        * (
+                        1.0F
+                                + beltSlip * 2.6F
+                                + Math.max(
+                                0.0F,
+                                driveStress - 0.80F
+                        )
+                )
         );
 
         AssemblyItemData.writePart(
@@ -452,9 +542,12 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                 beltPart.copy();
 
         if (belt.durabilityScore()
-                < 0.045F
+                < 0.025F
+                && beltSlip > 0.60F
                 && server.random.nextFloat()
-                < 0.06F) {
+                < 0.035F
+                        + beltSlip
+                                * 0.055F) {
 
             snapBelt(
                     server,
@@ -1011,6 +1104,25 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         return mechanicalPower;
     }
 
+    public float beltSlip() {
+        return beltSlip;
+    }
+
+    public float driveStress() {
+        return driveStress;
+    }
+
+    public MechanicalFailure.Mode failureMode() {
+        return MechanicalFailure.classify(
+                0.0F,
+                0.0F,
+                0.0F,
+                0.0F,
+                beltSlip,
+                false
+        );
+    }
+
     private static float wrap(float value) {
         value %= 360.0F;
         if (value < 0.0F) value += 360.0F;
@@ -1032,6 +1144,8 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         tag.putFloat("Rpm", rpm);
         tag.putFloat("Rotation", rotationDegrees);
         tag.putFloat("MechanicalPower", mechanicalPower);
+        tag.putFloat("BeltSlip", beltSlip);
+        tag.putFloat("DriveStress", driveStress);
         tag.putBoolean("HasLink", linkedPos != null);
         tag.putInt("BeltLines", beltLines);
         if (linkedPos != null) tag.putLong("LinkedPos", linkedPos.asLong());
@@ -1062,6 +1176,9 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         rpm = tag.getFloat("Rpm");
         rotationDegrees = tag.getFloat("Rotation");
         mechanicalPower = tag.getFloat("MechanicalPower");
+        beltSlip = Mth.clamp(tag.getFloat("BeltSlip"), 0.0F, 1.0F);
+        driveStress = Math.max(0.0F, tag.getFloat("DriveStress"));
+        beltLines = Mth.clamp(tag.getInt("BeltLines"), 0, MAX_BELT_LINES);
         linkedPos = tag.getBoolean("HasLink") ? BlockPos.of(tag.getLong("LinkedPos")) : null;
 
         wheelPart =

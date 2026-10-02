@@ -11,6 +11,7 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalFailure;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.interaction.StructuralDamage;
 import net.caravidro.wayaround.interaction.StructuralReceiver;
@@ -50,6 +51,11 @@ public final class MechanicalTransmissionBlockEntity
     private float heat;
     private float lastLoad;
     private float peakLoad;
+    private float lastStress;
+    private float deformation;
+    private float toothDamage;
+    private float bearingDamage;
+    private boolean criticalFailureRecorded;
 
     public MechanicalTransmissionBlockEntity(
             BlockPos pos,
@@ -80,6 +86,10 @@ public final class MechanicalTransmissionBlockEntity
     }
 
     public float transmissionEfficiency() {
+        if (seized()) {
+            return 0.0F;
+        }
+
         AssemblyPartProfile profile =
                 partProfile();
 
@@ -110,7 +120,14 @@ public final class MechanicalTransmissionBlockEntity
         float thermal =
                 1.0F
                         - heat
-                                * 0.045F;
+                                * 0.055F;
+
+        float physical =
+                MechanicalFailure.transmissionFactor(
+                        deformation,
+                        toothDamage,
+                        bearingDamage
+                );
 
         return Mth.clamp(
                 base
@@ -119,8 +136,9 @@ public final class MechanicalTransmissionBlockEntity
                                 + condition
                                         * 0.10F
                 )
-                        * thermal,
-                0.68F,
+                        * thermal
+                        * physical,
+                0.04F,
                 0.999F
         );
     }
@@ -129,7 +147,8 @@ public final class MechanicalTransmissionBlockEntity
             float power,
             float rpm
     ) {
-        if (!(level instanceof ServerLevel server)) {
+        if (!(level instanceof ServerLevel server)
+                || seized()) {
             return;
         }
 
@@ -160,26 +179,39 @@ public final class MechanicalTransmissionBlockEntity
                         load
                 );
 
+        float safeRpm =
+                safeRpm();
+
+        float ratedPower =
+                ratedPower();
+
         float rpmFactor =
                 MechanicalLoad.normalized(
                         rpm,
-                        52.0F
+                        safeRpm
                 );
 
         float loadFactor =
                 MechanicalLoad.normalized(
                         load,
-                        4.5F
+                        ratedPower
+                );
+
+        float failureVibration =
+                MechanicalFailure.vibration(
+                        deformation,
+                        toothDamage,
+                        bearingDamage
                 );
 
         float targetHeat =
                 Mth.clamp(
-                        rpmFactor
-                                * 0.24F
-                                + loadFactor
-                                        * 0.34F,
+                        rpmFactor * 0.22F
+                                + loadFactor * 0.32F
+                                + bearingDamage * 0.42F
+                                + toothDamage * 0.10F,
                         0.0F,
-                        1.0F
+                        1.25F
                 );
 
         heat +=
@@ -189,17 +221,23 @@ public final class MechanicalTransmissionBlockEntity
                 )
                         * 0.035F;
 
+        float overSpeed =
+                MechanicalLoad.overspeed(
+                        rpm,
+                        safeRpm
+                );
+
         float stress =
                 MechanicalLoad.failureStress(
                         loadFactor,
-                        Math.max(
-                                0.0F,
-                                rpmFactor - 1.0F
-                        ),
-                        0.0F,
+                        overSpeed,
+                        failureVibration,
                         heat,
                         profile.durabilityScore()
                 );
+
+        lastStress =
+                stress;
 
         long time =
                 server.getGameTime();
@@ -210,16 +248,49 @@ public final class MechanicalTransmissionBlockEntity
                 20
         ) == 0) {
 
-            float gearboxMultiplier =
-                    getBlockState()
-                            .getBlock()
-                            instanceof MechanicalGearboxBlock
+            float condition =
+                    profile.durabilityScore();
+
+            if (isShaft()) {
+                deformation =
+                        MechanicalFailure.shaftDeformation(
+                                deformation,
+                                stress,
+                                overSpeed,
+                                condition
+                        );
+            }
+
+            if (isGear()) {
+                toothDamage =
+                        MechanicalFailure.toothDamage(
+                                toothDamage,
+                                stress,
+                                overSpeed,
+                                condition
+                        );
+            }
+
+            if (isGearbox()) {
+                bearingDamage =
+                        MechanicalFailure.bearingDamage(
+                                bearingDamage,
+                                stress,
+                                heat,
+                                condition
+                        );
+            }
+
+            float hardwareMultiplier =
+                    isGearbox()
                             ? 1.45F
-                            : 1.0F;
+                            : isGear()
+                                    ? 1.25F
+                                    : 1.0F;
 
             profile.applyWear(
                     0.00016F
-                            * gearboxMultiplier
+                            * hardwareMultiplier
                             * (
                             0.25F
                                     + loadFactor
@@ -231,6 +302,8 @@ public final class MechanicalTransmissionBlockEntity
                             1.0F
                                     + heat
                                             * 0.7F
+                                    + failureVibration
+                                            * 0.55F
                                     + Math.max(
                                     0.0F,
                                     stress - 0.85F
@@ -250,31 +323,32 @@ public final class MechanicalTransmissionBlockEntity
                     time,
                     loadFactor,
                     Math.max(
-                            0.0F,
-                            stress - 0.65F
+                            failureVibration,
+                            Math.max(
+                                    0.0F,
+                                    stress - 0.65F
+                            )
                     ),
                     heat
             );
 
-            if (profile.durabilityScore()
-                    < 0.035F
-                    && server.random.nextFloat()
-                    < 0.02F
-                            + Math.min(
-                            0.055F,
-                            stress * 0.022F
-                    )) {
-
-                fail(
+            if (MechanicalFailure.seized(
+                    profile.durabilityScore(),
+                    deformation,
+                    toothDamage,
+                    bearingDamage
+            )) {
+                enterCriticalFailure(
                         server
                 );
 
                 return;
             }
 
-            if ((profile.durabilityScore()
-                    < 0.18F
-                    || stress > 0.95F)
+            MechanicalFailure.Mode mode =
+                    failureMode();
+
+            if (mode != MechanicalFailure.Mode.HEALTHY
                     && Math.floorMod(
                     time
                             + worldPosition.asLong(),
@@ -284,14 +358,18 @@ public final class MechanicalTransmissionBlockEntity
                 server.playSound(
                         null,
                         worldPosition,
-                        SoundEvents.IRON_TRAPDOOR_CLOSE,
+                        mode == MechanicalFailure.Mode.CRITICAL
+                                ? SoundEvents.ANVIL_LAND
+                                : SoundEvents.IRON_TRAPDOOR_CLOSE,
                         SoundSource.BLOCKS,
-                        0.22F,
-                        getBlockState()
-                                .getBlock()
-                                instanceof MechanicalGearboxBlock
+                        mode == MechanicalFailure.Mode.CRITICAL
+                                ? 0.42F
+                                : 0.22F,
+                        isGearbox()
                                 ? 0.65F
-                                : 1.35F
+                                : isGear()
+                                        ? 0.90F
+                                        : 1.35F
                 );
             }
 
@@ -299,24 +377,15 @@ public final class MechanicalTransmissionBlockEntity
         }
     }
 
-    private void fail(
+    private void enterCriticalFailure(
             ServerLevel server
     ) {
-        AssemblyHistory.recordFailure(
-                server,
-                this,
-                "mechanical_component_failure"
+        ensureProfile(
+                server
         );
 
-        ItemStack remains =
-                part.isEmpty()
-                        ? defaultPart()
-                        : part.copy();
-
         AssemblyPartProfile profile =
-                AssemblyItemData.readPart(
-                        remains
-                );
+                partProfile();
 
         if (profile != null) {
             profile.setWearFraction(
@@ -324,34 +393,63 @@ public final class MechanicalTransmissionBlockEntity
             );
 
             AssemblyItemData.writePart(
-                    remains,
+                    part,
                     profile
             );
         }
 
-        Block.popResource(
-                server,
-                worldPosition,
-                remains
-        );
+        if (isShaft()) {
+            deformation =
+                    Math.max(
+                            deformation,
+                            0.995F
+                    );
+        } else if (isGear()) {
+            toothDamage =
+                    Math.max(
+                            toothDamage,
+                            0.995F
+                    );
+        } else {
+            bearingDamage =
+                    Math.max(
+                            bearingDamage,
+                            0.995F
+                    );
+        }
 
-        server.playSound(
-                null,
-                worldPosition,
-                SoundEvents.ANVIL_BREAK,
-                SoundSource.BLOCKS,
-                0.65F,
-                0.80F
-        );
+        heat =
+                Math.max(
+                        heat,
+                        0.92F
+                );
 
-        part =
-                ItemStack.EMPTY;
+        if (!criticalFailureRecorded) {
+            criticalFailureRecorded =
+                    true;
 
-        server.setBlock(
-                worldPosition,
-                Blocks.AIR.defaultBlockState(),
-                3
-        );
+            AssemblyHistory.recordFailure(
+                    server,
+                    this,
+                    "mechanical_component_seized"
+            );
+
+            server.playSound(
+                    null,
+                    worldPosition,
+                    SoundEvents.ANVIL_BREAK,
+                    SoundSource.BLOCKS,
+                    0.65F,
+                    0.80F
+            );
+        }
+
+        /*
+         * Deliberately keep the failed hardware in the world. A destroyed
+         * transmission part becomes a seized/ruined object that must be
+         * dismantled; it never vanishes just because an invisible HP reached 0.
+         */
+        sync();
     }
 
     public void dropAssembly() {
@@ -447,6 +545,92 @@ public final class MechanicalTransmissionBlockEntity
         return profile == null
                 ? 0.82F
                 : profile.durabilityScore();
+    }
+
+    public float deformation() {
+        return deformation;
+    }
+
+    public float toothDamage() {
+        return toothDamage;
+    }
+
+    public float bearingDamage() {
+        return bearingDamage;
+    }
+
+    public float lastStress() {
+        return lastStress;
+    }
+
+    public boolean seized() {
+        return MechanicalFailure.seized(
+                condition(),
+                deformation,
+                toothDamage,
+                bearingDamage
+        );
+    }
+
+    public MechanicalFailure.Mode failureMode() {
+        return MechanicalFailure.classify(
+                heat,
+                deformation,
+                toothDamage,
+                bearingDamage,
+                0.0F,
+                seized()
+        );
+    }
+
+    private boolean isShaft() {
+        return getBlockState()
+                .getBlock()
+                instanceof MechanicalShaftBlock;
+    }
+
+    private boolean isGearbox() {
+        return getBlockState()
+                .getBlock()
+                instanceof MechanicalGearboxBlock;
+    }
+
+    private boolean isGear() {
+        return getBlockState()
+                .getBlock()
+                instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock;
+    }
+
+    private float safeRpm() {
+        if (isGearbox()) {
+            return 58.0F;
+        }
+
+        if (getBlockState()
+                .getBlock()
+                instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock gear) {
+            return gear.large()
+                    ? 64.0F
+                    : 92.0F;
+        }
+
+        return 110.0F;
+    }
+
+    private float ratedPower() {
+        if (isGearbox()) {
+            return 5.0F;
+        }
+
+        if (getBlockState()
+                .getBlock()
+                instanceof net.caravidro.wayaround.industrial.mechanical.GearBlock gear) {
+            return gear.large()
+                    ? 6.0F
+                    : 3.5F;
+        }
+
+        return 7.0F;
     }
 
 
@@ -549,7 +733,7 @@ public final class MechanicalTransmissionBlockEntity
 
         if (profile.durabilityScore()
                 <= 0.015F) {
-            fail(
+            enterCriticalFailure(
                     server
             );
 
@@ -595,6 +779,35 @@ public final class MechanicalTransmissionBlockEntity
                         peakLoad,
                         normalized
                 );
+
+        if (isShaft()) {
+            deformation =
+                    MechanicalFailure.accumulate(
+                            deformation,
+                            normalized,
+                            0.85F,
+                            0.006F,
+                            condition()
+                    );
+        } else if (isGear()) {
+            toothDamage =
+                    MechanicalFailure.accumulate(
+                            toothDamage,
+                            normalized,
+                            1.05F,
+                            0.004F,
+                            condition()
+                    );
+        } else if (isGearbox()) {
+            bearingDamage =
+                    MechanicalFailure.accumulate(
+                            bearingDamage,
+                            normalized,
+                            1.15F,
+                            0.0035F,
+                            condition()
+                    );
+        }
 
         applyAssemblyWear(
                 AssemblyEngine.externalWearFraction(
@@ -668,6 +881,31 @@ public final class MechanicalTransmissionBlockEntity
                 peakLoad
         );
 
+        tag.putFloat(
+                "LastStress",
+                lastStress
+        );
+
+        tag.putFloat(
+                "Deformation",
+                deformation
+        );
+
+        tag.putFloat(
+                "ToothDamage",
+                toothDamage
+        );
+
+        tag.putFloat(
+                "BearingDamage",
+                bearingDamage
+        );
+
+        tag.putBoolean(
+                "CriticalFailureRecorded",
+                criticalFailureRecorded
+        );
+
         if (!part.isEmpty()) {
             tag.put(
                     "Part",
@@ -711,6 +949,46 @@ public final class MechanicalTransmissionBlockEntity
                         tag.getFloat(
                                 "PeakLoad"
                         )
+                );
+
+        lastStress =
+                Math.max(
+                        0.0F,
+                        tag.getFloat(
+                                "LastStress"
+                        )
+                );
+
+        deformation =
+                Mth.clamp(
+                        tag.getFloat(
+                                "Deformation"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        toothDamage =
+                Mth.clamp(
+                        tag.getFloat(
+                                "ToothDamage"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        bearingDamage =
+                Mth.clamp(
+                        tag.getFloat(
+                                "BearingDamage"
+                        ),
+                        0.0F,
+                        1.0F
+                );
+
+        criticalFailureRecorded =
+                tag.getBoolean(
+                        "CriticalFailureRecorded"
                 );
 
         part =

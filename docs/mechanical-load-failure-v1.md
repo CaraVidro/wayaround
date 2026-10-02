@@ -81,11 +81,30 @@ mechanical press now all use this common contract. This removes parallel
 `granted / requested` drive formulas and prevents a fast-but-weak source from
 being treated as universally capable.
 
+### Progressive physical failures
+
+`MechanicalFailure` turns shared stress into persistent physical damage instead
+of deleting hardware when a hidden durability value reaches zero.
+
+Transmission parts now carry failure state in the world:
+
+- shafts accumulate deformation and begin wobbling/misalignment;
+- exposed gears accumulate tooth damage and visually lose teeth;
+- gearboxes accumulate bearing damage, friction and visible wobble;
+- all three lose transmission efficiency as damage grows;
+- a truly ruined component becomes `SEIZED`, stays physically present, and
+  breaks the transmission graph until the player dismantles/replaces it;
+- failure state is persisted in NBT, so relogging is not a free repair.
+
+The shared progression is deliberately gradual:
+
+`HEALTHY → WORN → MISALIGNED/OVERHEATED → CRITICAL → SEIZED`
+
 ### Shafts and gearboxes
 
 Existing transmission block entities continue to own their real Assembly part state.
 
-Sustained mechanical load now uses the shared stress model to accelerate wear and failure probability. Poor condition, high load, heat and overspeed compound rather than acting as unrelated timers.
+Sustained mechanical load now uses the shared stress model to accelerate wear and progressive physical failure. Poor condition, high load, heat, vibration and overspeed compound rather than acting as unrelated timers.
 
 ### Pulley belts
 
@@ -98,9 +117,9 @@ Its available transmitted power is capped by:
 - wheel geometry;
 - transmission efficiency.
 
-Demand beyond the currently transmissible output becomes slip/starvation and increases drive wear.
+Demand beyond the currently transmissible output becomes progressive belt slip. Slip reduces transmitted RPM and power, increases visible belt flutter and accelerates wear.
 
-Existing belt rupture behavior remains in use.
+A belt no longer snaps merely because durability is low. Rupture is reserved for a belt that is both near-ruined and actively slipping under severe load.
 
 ### Mechanical pump
 

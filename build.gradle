@@ -594,6 +594,14 @@ tasks.register('mechanicalLoadRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('mechanicalLoadRegressionTest') }
 
+// Progressive shafts/gears/bearings/belts failure invariants.
+tasks.register('mechanicalFailureRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.mechanical.MechanicalFailureTest'
+}
+tasks.named('check') { dependsOn tasks.named('mechanicalFailureRegressionTest') }
+
 // Natural regional distribution and trench depth boundaries.
 tasks.register('fishHabitatRegressionTest', JavaExec) {
     dependsOn tasks.named('spectrumTestClasses')
