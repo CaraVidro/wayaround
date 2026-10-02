@@ -1018,5 +1018,12 @@
   "message.wayaround.ore_washer.drum_ready": "ready",
   "message.wayaround.ore_washer.drum_missing": "missing",
   "message.wayaround.ore_washer.screen_ready": "ready",
-  "message.wayaround.ore_washer.screen_missing": "missing"
+  "message.wayaround.ore_washer.screen_missing": "missing",
+  "itemGroup.wayaround.mining_geology": "Mining & Geology",
+  "block.wayaround.iron_complex": "Iron Complex",
+  "block.wayaround.gold_complex": "Gold Complex",
+  "block.wayaround.copper_complex": "Copper Complex",
+  "block.wayaround.coal_complex": "Coal Complex",
+  "block.wayaround.mechanical_miner": "Mechanical Miner",
+  "item.wayaround.mining_drill_head": "Mining Drill Head"
 }

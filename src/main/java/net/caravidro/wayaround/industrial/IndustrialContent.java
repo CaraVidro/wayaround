@@ -243,6 +243,7 @@ public final class IndustrialContent {
         net.caravidro.wayaround.industrial.crushing.CrusherContent.register(bus);
         net.caravidro.wayaround.industrial.washing.OreWashingContent.register(bus);
         PipeworkContent.register(bus);
+        net.caravidro.wayaround.industrial.mining.MiningContent.register(bus);
         CoalShipContent.register(bus);
         ExperimentalShipContent.register(bus);
     }

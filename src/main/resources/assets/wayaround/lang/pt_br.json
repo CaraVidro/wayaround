@@ -1018,5 +1018,12 @@
   "message.wayaround.ore_washer.drum_ready": "instalado",
   "message.wayaround.ore_washer.drum_missing": "faltando",
   "message.wayaround.ore_washer.screen_ready": "instalada",
-  "message.wayaround.ore_washer.screen_missing": "faltando"
+  "message.wayaround.ore_washer.screen_missing": "faltando",
+  "itemGroup.wayaround.mining_geology": "Mineração & Geologia",
+  "block.wayaround.iron_complex": "Complexo de Ferro",
+  "block.wayaround.gold_complex": "Complexo de Ouro",
+  "block.wayaround.copper_complex": "Complexo de Cobre",
+  "block.wayaround.coal_complex": "Complexo de Carvão",
+  "block.wayaround.mechanical_miner": "Mineradora Mecânica",
+  "item.wayaround.mining_drill_head": "Cabeça de Broca de Mineração"
 }

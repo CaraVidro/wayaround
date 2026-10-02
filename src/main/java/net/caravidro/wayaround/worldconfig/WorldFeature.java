@@ -105,6 +105,12 @@ public enum WorldFeature {
             "Shafts, gearboxes, generators, cables and energy networks."
     ),
 
+    MINING_REGIONS(
+            WorldFeatureCategory.INDUSTRY,
+            "Mining & Geology",
+            "Rare mining regions, deferred mine caverns, finite ore Complex deposits and mechanical extraction."
+    ),
+
     SHIPS(
             WorldFeatureCategory.INDUSTRY,
             "Ships",
