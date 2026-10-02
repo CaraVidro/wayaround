@@ -3,8 +3,8 @@ package net.caravidro.wayaround.client.water;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import net.caravidro.wayaround.storage.IncrementalSquareScan;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.particle.WayAroundParticles;
@@ -38,10 +38,17 @@ public final class WaterEffectsClient {
             FALLING_BLOCKS_IN_WATER =
             new HashSet<>();
 
-    private static final List<TurbulenceEmitter>
+    private static final ArrayList<TurbulenceEmitter>
             TURBULENCE =
             new ArrayList<>();
 
+    private static final ArrayList<TurbulenceEmitter> pendingTurbulence = new ArrayList<>();
+    private static IncrementalSquareScan scan;
+    private static int scanX, scanY, scanZ;
+    private static int turbulenceCenterY = Integer.MIN_VALUE;
+    private static int lastRebuildTick;
+    private static Level cachedLevel;
+    private static final int SCAN_BUDGET = 128;
     private static boolean wasInWater;
     private static int ticks;
     private static int turbulenceCenterX =
@@ -59,26 +66,16 @@ public final class WaterEffectsClient {
         Minecraft minecraft =
                 Minecraft.getInstance();
 
-        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.WATER_DYNAMICS)) {
-            FALLING_BLOCKS_IN_WATER.clear();
-            TURBULENCE.clear();
-            wasInWater = false;
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.WATER_DYNAMICS)
+                || minecraft.level == null || minecraft.player == null
+                || !minecraft.level.dimension().equals(Level.OVERWORLD)) {
+            clearCache();
             return;
         }
-
-        if (minecraft.level == null
-                || minecraft.player == null
-                || minecraft.isPaused()) {
-
-            FALLING_BLOCKS_IN_WATER.clear();
-            TURBULENCE.clear();
-            wasInWater = false;
-            return;
-        }
-
-        if (!minecraft.level.dimension()
-                .equals(Level.OVERWORLD)) {
-            return;
+        if (minecraft.isPaused()) return;
+        if (cachedLevel != minecraft.level) {
+            clearCache();
+            cachedLevel = minecraft.level;
         }
 
         ticks++;
@@ -91,13 +88,20 @@ public final class WaterEffectsClient {
                 minecraft
         );
 
-        if (needsTurbulenceRebuild(
-                minecraft
-        )) {
-            rebuildTurbulence(
-                    minecraft
-            );
+        if (scan != null && (Math.abs((long) minecraft.player.getBlockX() - scanX) > 22
+                || Math.abs((long) minecraft.player.getBlockZ() - scanZ) > 22
+                || Math.abs((long) minecraft.player.getBlockY() - scanY) > 7)) {
+            scan = null;
+            pendingTurbulence.clear();
         }
+        if (scan == null && needsTurbulenceRebuild(minecraft)) {
+            scanX = minecraft.player.getBlockX();
+            scanY = minecraft.player.getBlockY();
+            scanZ = minecraft.player.getBlockZ();
+            scan = new IncrementalSquareScan(22);
+            pendingTurbulence.clear();
+        }
+        if (scan != null) rebuildTurbulence(minecraft);
 
         if (ticks % 2 == 0) {
             emitTurbulence(
@@ -336,13 +340,12 @@ public final class WaterEffectsClient {
             return true;
         }
 
-        int dx =
-                x - turbulenceCenterX;
+        long dx = (long) x - turbulenceCenterX;
 
-        int dz =
-                z - turbulenceCenterZ;
+        long dz = (long) z - turbulenceCenterZ;
 
-        return ticks % 20 == 0
+        return ticks - lastRebuildTick >= 20
+                || Math.abs((long) minecraft.player.getBlockY() - turbulenceCenterY) >= 4
                 || dx * dx
                 + dz * dz
                 >= 36;
@@ -351,39 +354,17 @@ public final class WaterEffectsClient {
     private static void rebuildTurbulence(
             Minecraft minecraft
     ) {
-        TURBULENCE.clear();
-
-        int centerX =
-                minecraft.player.getBlockX();
-
-        int centerY =
-                minecraft.player.getBlockY();
-
-        int centerZ =
-                minecraft.player.getBlockZ();
-
-        int radius =
-                22;
-
-        for (int x = centerX - radius;
-                x <= centerX + radius;
-                x++) {
-
-            for (int z = centerZ - radius;
-                    z <= centerZ + radius;
-                    z++) {
-
-                int dx =
-                        x - centerX;
-
-                int dz =
-                        z - centerZ;
-
-                if (dx * dx
-                        + dz * dz
-                        > radius * radius) {
-                    continue;
-                }
+        int centerX = scanX;
+        int centerY = scanY;
+        int centerZ = scanZ;
+        int radius = 22;
+        for (int budget = 0; budget < SCAN_BUDGET && scan.advance(); budget++) {
+                int dx = scan.x();
+                int dz = scan.z();
+                int x = centerX + dx;
+                int z = centerZ + dz;
+                if (dx * dx + dz * dz > radius * radius
+                        || !minecraft.level.hasChunk(x >> 4, z >> 4)) continue;
 
                 BlockPos water =
                         findWater(
@@ -421,7 +402,7 @@ public final class WaterEffectsClient {
                                 current
                         );
 
-                TURBULENCE.add(
+                pendingTurbulence.add(
                         new TurbulenceEmitter(
                                 water,
                                 turbulence,
@@ -430,7 +411,15 @@ public final class WaterEffectsClient {
                         )
                 );
             }
-        }
+
+
+        if (!scan.complete()) return;
+        scan = null;
+        TURBULENCE.clear();
+        TURBULENCE.addAll(pendingTurbulence);
+        pendingTurbulence.clear();
+        turbulenceCenterY = centerY;
+        lastRebuildTick = ticks;
 
         TURBULENCE.sort(
                 Comparator.comparingDouble(
@@ -455,9 +444,9 @@ public final class WaterEffectsClient {
     private static void emitTurbulence(
             Minecraft minecraft
     ) {
-        for (TurbulenceEmitter emitter :
-                TURBULENCE) {
-
+        for (TurbulenceEmitter emitter : TURBULENCE) {
+            if (emitter.pos().distSqr(minecraft.player.blockPosition()) > 32 * 32
+                    || !minecraft.level.hasChunkAt(emitter.pos())) continue;
             if (!minecraft.level
                     .getFluidState(
                             emitter.pos()
@@ -639,6 +628,21 @@ public final class WaterEffectsClient {
         }
 
         return null;
+    }
+
+    public static void clearCache() {
+        FALLING_BLOCKS_IN_WATER.clear();
+        TURBULENCE.clear();
+        TURBULENCE.trimToSize();
+        pendingTurbulence.clear();
+        pendingTurbulence.trimToSize();
+        scan = null;
+        cachedLevel = null;
+        turbulenceCenterX = Integer.MIN_VALUE;
+        turbulenceCenterY = Integer.MIN_VALUE;
+        turbulenceCenterZ = Integer.MIN_VALUE;
+        wasInWater = false;
+        ticks = 0;
     }
 
     private record TurbulenceEmitter(

@@ -1,7 +1,7 @@
 package net.caravidro.wayaround.client.water;
 
 import java.util.ArrayList;
-import java.util.List;
+import net.caravidro.wayaround.storage.IncrementalSquareScan;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -41,8 +41,13 @@ import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 @EventBusSubscriber(modid = WayAround.MODID, value = Dist.CLIENT)
 public final class WaterSurfaceRenderer {
 
-    private static final List<WaterSurface> SURFACES =
-            new ArrayList<>();
+    private static ArrayList<WaterSurface> SURFACES = new ArrayList<>();
+    private static ArrayList<WaterSurface> pendingSurfaces = new ArrayList<>();
+    private static IncrementalSquareScan scan;
+    private static int scanX, scanZ, scanRadius;
+    private static long lastScanTick = Long.MIN_VALUE;
+    private static Level cachedLevel;
+    private static final int SCAN_BUDGET = 2048;
 
     private static int cachedCenterX =
             Integer.MIN_VALUE;
@@ -104,6 +109,16 @@ public final class WaterSurfaceRenderer {
             return;
         }
 
+        if (cachedLevel != minecraft.level) {
+            clearCache();
+            cachedLevel = minecraft.level;
+        }
+        // This is an above-water cosmetic layer. Vanilla renders underwater water.
+        if (event.getCamera().getFluidInCamera() == net.minecraft.world.level.material.FogType.WATER) {
+            clearCache();
+            return;
+        }
+
         int radius =
                 Math.max(
                         24,
@@ -123,19 +138,22 @@ public final class WaterSurfaceRenderer {
         long time =
                 minecraft.level.getGameTime();
 
-        if (needsRebuild(
-                centerX,
-                centerZ,
-                radius,
-                time
-        )) {
-            rebuildSurfaces(
-                    minecraft,
-                    centerX,
-                    centerZ,
-                    radius,
-                    time
-            );
+        if (scan != null && (scanRadius != radius
+                || Math.abs((long) centerX - scanX) > radius
+                || Math.abs((long) centerZ - scanZ) > radius)) {
+            scan = null;
+            pendingSurfaces.clear();
+        }
+        if (scan == null && needsRebuild(centerX, centerZ, radius, time)) {
+            scanX = centerX;
+            scanZ = centerZ;
+            scanRadius = radius;
+            scan = new IncrementalSquareScan(radius);
+            pendingSurfaces.clear();
+        }
+        if (scan != null && lastScanTick != time && !minecraft.isPaused()) {
+            lastScanTick = time;
+            rebuildSurfaces(minecraft, scanX, scanZ, scanRadius, time);
         }
 
         Vec3 camera =
@@ -594,12 +612,12 @@ public final class WaterSurfaceRenderer {
             return true;
         }
 
-        int dx =
-                centerX
+        long dx =
+                (long) centerX
                 - cachedCenterX;
 
-        int dz =
-                centerZ
+        long dz =
+                (long) centerZ
                 - cachedCenterZ;
 
         return dx * dx
@@ -616,33 +634,15 @@ public final class WaterSurfaceRenderer {
             int radius,
             long time
     ) {
-        SURFACES.clear();
-
-        int radiusSquared =
-                radius * radius;
-
-        BlockPos.MutableBlockPos mutable =
-                new BlockPos.MutableBlockPos();
-
-        for (int x = centerX - radius;
-                x <= centerX + radius;
-                x++) {
-
-            int dx =
-                    x - centerX;
-
-            for (int z = centerZ - radius;
-                    z <= centerZ + radius;
-                    z++) {
-
-                int dz =
-                        z - centerZ;
-
-                if (dx * dx
-                        + dz * dz
-                        > radiusSquared) {
-                    continue;
-                }
+        int radiusSquared = radius * radius;
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        for (int budget = 0; budget < SCAN_BUDGET && scan.advance(); budget++) {
+                int dx = scan.x();
+                int dz = scan.z();
+                int x = centerX + dx;
+                int z = centerZ + dz;
+                if (dx * dx + dz * dz > radiusSquared
+                        || !minecraft.level.hasChunk(x >> 4, z >> 4)) continue;
 
                 int surfaceY =
                         minecraft.level.getHeight(
@@ -679,7 +679,7 @@ public final class WaterSurfaceRenderer {
                             ).value()
                                     .getWaterColor();
 
-                    SURFACES.add(
+                    pendingSurfaces.add(
                             new WaterSurface(
                                     water.getX(),
                                     water.getZ(),
@@ -699,7 +699,14 @@ public final class WaterSurfaceRenderer {
                     );
                 }
             }
-        }
+
+
+        if (!scan.complete()) return;
+        ArrayList<WaterSurface> old = SURFACES;
+        SURFACES = pendingSurfaces;
+        pendingSurfaces = old;
+        pendingSurfaces.clear();
+        scan = null;
 
         cachedCenterX =
                 centerX;
@@ -785,8 +792,14 @@ public final class WaterSurfaceRenderer {
     ) {
     }
 
-    private static void clearCache() {
+    public static void clearCache() {
         SURFACES.clear();
+        SURFACES.trimToSize();
+        pendingSurfaces.clear();
+        pendingSurfaces.trimToSize();
+        scan = null;
+        cachedLevel = null;
+        lastScanTick = Long.MIN_VALUE;
         cachedCenterX = Integer.MIN_VALUE;
         cachedCenterZ = Integer.MIN_VALUE;
         cachedRadius = -1;
