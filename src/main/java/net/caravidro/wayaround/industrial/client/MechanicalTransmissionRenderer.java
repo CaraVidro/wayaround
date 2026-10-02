@@ -8,6 +8,7 @@ import com.mojang.math.Axis;
 
 import net.caravidro.wayaround.animation.SmoothObjectAnimation;
 import net.caravidro.wayaround.client.performance.DistanceLod;
+import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.industrial.power.MechanicalGearboxBlock;
 import net.caravidro.wayaround.industrial.power.MechanicalShaftBlock;
@@ -66,6 +67,16 @@ public final class MechanicalTransmissionRenderer
         BlockState state =
                 node.getBlockState();
 
+        BlockState bodyMaterial =
+                materialState(
+                        node.material()
+                );
+
+        BlockState accentMaterial =
+                accentState(
+                        node.material()
+                );
+
         poseStack.pushPose();
         poseStack.translate(
                 0.5,
@@ -113,7 +124,7 @@ public final class MechanicalTransmissionRenderer
                             )
                     );
             IndustrialRenderUtil.radialWheel(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                    Blocks.IRON_BLOCK.defaultBlockState(), Blocks.POLISHED_ANDESITE.defaultBlockState(), healthyVisualTeeth, radius, .20);
+                    bodyMaterial, accentMaterial, healthyVisualTeeth, radius, .20);
             if (lod.detailedGeometry()) {
                 int missing =
                         Math.min(
@@ -145,7 +156,7 @@ public final class MechanicalTransmissionRenderer
 
                     double angle = Math.PI * 2 * i / gear.teeth();
                     IndustrialRenderUtil.cuboid(blockRenderer, poseStack, bufferSource, packedLight, packedOverlay,
-                            Blocks.IRON_BLOCK.defaultBlockState(), 0, Math.cos(angle)*radius, Math.sin(angle)*radius,
+                            bodyMaterial, 0, Math.cos(angle)*radius, Math.sin(angle)*radius,
                             .24, .09, .09, (float)Math.toDegrees(angle), 0, 0);
                 }
             }
@@ -190,7 +201,9 @@ public final class MechanicalTransmissionRenderer
                     ),
                     transmissionAngle,
                     1.04F,
-                    0.30F
+                    0.30F,
+                    bodyMaterial,
+                    accentMaterial
             );
         } else if (state.getBlock()
                 instanceof MechanicalGearboxBlock) {
@@ -226,7 +239,7 @@ public final class MechanicalTransmissionRenderer
                     bufferSource,
                     packedLight,
                     packedOverlay,
-                    Blocks.IRON_BLOCK.defaultBlockState(),
+                    bodyMaterial,
                     0.0,
                     0.0,
                     0.0,
@@ -243,7 +256,9 @@ public final class MechanicalTransmissionRenderer
                     Direction.Axis.X,
                     transmissionAngle,
                     1.06F,
-                    0.22F
+                    0.22F,
+                    bodyMaterial,
+                    accentMaterial
             );
 
             renderShaft(
@@ -254,7 +269,9 @@ public final class MechanicalTransmissionRenderer
                     Direction.Axis.Y,
                     transmissionAngle,
                     1.06F,
-                    0.22F
+                    0.22F,
+                    bodyMaterial,
+                    accentMaterial
             );
 
             renderShaft(
@@ -265,8 +282,50 @@ public final class MechanicalTransmissionRenderer
                     Direction.Axis.Z,
                     transmissionAngle,
                     1.06F,
-                    0.22F
+                    0.22F,
+                    bodyMaterial,
+                    accentMaterial
             );
+        }
+
+        if (lod.detailedGeometry()) {
+            float surfaceHistory =
+                    Math.max(
+                            node.materialCorrosion(),
+                            Math.max(
+                                    node.materialHeatDamage(),
+                                    node.materialFatigueDamage()
+                            )
+                    );
+
+            if (surfaceHistory > 0.12F) {
+                BlockState scar =
+                        node.materialCorrosion()
+                                >= Math.max(
+                                node.materialHeatDamage(),
+                                node.materialFatigueDamage()
+                        )
+                                ? Blocks.WEATHERED_COPPER.defaultBlockState()
+                                : node.materialHeatDamage()
+                                        >= node.materialFatigueDamage()
+                                        ? Blocks.COAL_BLOCK.defaultBlockState()
+                                        : Blocks.COBBLESTONE.defaultBlockState();
+
+                renderCuboid(
+                        poseStack,
+                        bufferSource,
+                        packedLight,
+                        packedOverlay,
+                        scar,
+                        0.24,
+                        0.22,
+                        0.24,
+                        0.08
+                                + surfaceHistory * 0.08,
+                        0.06,
+                        0.06
+                );
+            }
         }
 
         poseStack.popPose();
@@ -280,7 +339,9 @@ public final class MechanicalTransmissionRenderer
             Direction.Axis axis,
             float angle,
             float length,
-            float thickness
+            float thickness,
+            BlockState bodyMaterial,
+            BlockState accentMaterial
     ) {
         poseStack.pushPose();
 
@@ -304,7 +365,7 @@ public final class MechanicalTransmissionRenderer
                 bufferSource,
                 packedLight,
                 packedOverlay,
-                Blocks.STRIPPED_OAK_LOG.defaultBlockState(),
+                bodyMaterial,
                 0.0,
                 0.0,
                 0.0,
@@ -318,7 +379,7 @@ public final class MechanicalTransmissionRenderer
                 bufferSource,
                 packedLight,
                 packedOverlay,
-                Blocks.IRON_BLOCK.defaultBlockState(),
+                accentMaterial,
                 thickness * 0.45F,
                 0.0,
                 0.0,
@@ -328,6 +389,52 @@ public final class MechanicalTransmissionRenderer
         );
 
         poseStack.popPose();
+    }
+
+    private static BlockState materialState(
+            AssemblyPartProfile.Material material
+    ) {
+        return switch (material) {
+            case STONE ->
+                    Blocks.ANDESITE.defaultBlockState();
+            case WOOD ->
+                    Blocks.STRIPPED_OAK_LOG.defaultBlockState();
+            case FIBER ->
+                    Blocks.BROWN_WOOL.defaultBlockState();
+            case COPPER ->
+                    Blocks.COPPER_BLOCK.defaultBlockState();
+            case BRONZE ->
+                    Blocks.CUT_COPPER.defaultBlockState();
+            case IRON ->
+                    Blocks.IRON_BLOCK.defaultBlockState();
+            case STEEL ->
+                    Blocks.IRON_BLOCK.defaultBlockState();
+            case DIAMOND ->
+                    Blocks.DIAMOND_BLOCK.defaultBlockState();
+        };
+    }
+
+    private static BlockState accentState(
+            AssemblyPartProfile.Material material
+    ) {
+        return switch (material) {
+            case STONE ->
+                    Blocks.POLISHED_ANDESITE.defaultBlockState();
+            case WOOD ->
+                    Blocks.IRON_BLOCK.defaultBlockState();
+            case FIBER ->
+                    Blocks.OAK_PLANKS.defaultBlockState();
+            case COPPER ->
+                    Blocks.CUT_COPPER.defaultBlockState();
+            case BRONZE ->
+                    Blocks.COPPER_BLOCK.defaultBlockState();
+            case IRON ->
+                    Blocks.POLISHED_ANDESITE.defaultBlockState();
+            case STEEL ->
+                    Blocks.SMOOTH_STONE.defaultBlockState();
+            case DIAMOND ->
+                    Blocks.IRON_BLOCK.defaultBlockState();
+        };
     }
 
     private static void orientLocalZTo(

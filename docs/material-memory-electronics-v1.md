@@ -26,6 +26,7 @@ Assembly wear remains the ordinary present condition of a component.
 - heat damage;
 - corrosion;
 - permanent deformation;
+- cumulative fatigue damage;
 - last service time.
 
 Maintenance can clean corrosion and correct small deformation.
@@ -39,21 +40,44 @@ It does not erase history or magically remove severe heat damage.
 - electrical conductivity;
 - thermal tolerance;
 - corrosion resistance;
-- ductility.
+- ductility;
+- mechanical strength;
+- surface hardness;
+- fatigue endurance;
+- vibration damping;
+- friction.
 
 These values are gameplay properties, not SI engineering measurements.
 
 Mechanical systems and electronics now use the same material vocabulary.
 
+The traits are deliberately non-linear choices rather than a universal tier list.
+For example, copper is conductive and ductile but yields sooner as a shaft;
+bronze is particularly suitable for low-friction cyclic transmission service;
+steel has excellent strength and fatigue endurance; diamond keeps extreme
+hardness but is intentionally not treated as an unbeatable cyclic/shock
+material.
+
 ## Mechanical integration
 
 Material history now affects:
 
-- shafts and gearboxes;
+- shafts, exposed gears and gearboxes;
+- pulley wheels and belt lines;
 - pump impellers;
 - crusher parts;
 - mill parts;
 - sawmill blade, shaft and frame.
+
+Mechanical transmission now reads that history directly. Old fatigue and
+deformation reduce effective load capacity and safe RPM, while each material's
+strength/hardness/endurance/friction changes whether abuse tends to become a
+bent shaft, damaged teeth, hot bearing or accelerated cyclic wear.
+
+The same state is exposed qualitatively in-world: transmission geometry uses
+the actual Assembly material, corrosion/heat/fatigue leave visible scar cues,
+and failing hardware produces material-dependent impact/creak/grind feedback.
+Exact percentages are still intentionally not dumped into normal gameplay.
 
 A component can therefore be mechanically repaired while still carrying permanent history from abuse.
 

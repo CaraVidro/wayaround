@@ -399,12 +399,21 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         return profile == null
                 ? 0.92F
                 : Mth.clamp(
+                (
                 0.72F
                         + profile.performanceFactor()
                                 * 0.18F
                         + profile.durabilityScore()
-                                * 0.10F,
-                0.58F,
+                                * 0.10F
+                )
+                        * (
+                        0.88F
+                                + AssemblyItemData.materialMechanicalIntegrity(
+                                wheelPart
+                        )
+                                        * 0.12F
+                ),
+                0.52F,
                 1.0F
         );
     }
@@ -423,15 +432,31 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                             : peer.beltProfile();
         }
 
+        ItemStack memoryStack =
+                !beltPart.isEmpty()
+                        ? beltPart
+                        : linkedPulley() == null
+                                ? ItemStack.EMPTY
+                                : linkedPulley().beltPart;
+
         return profile == null
                 ? 0.90F
                 : Mth.clamp(
+                (
                 0.62F
                         + profile.performanceFactor()
                                 * 0.20F
                         + profile.durabilityScore()
-                                * 0.18F,
-                0.42F,
+                                * 0.18F
+                )
+                        * (
+                        0.82F
+                                + AssemblyItemData.materialMechanicalIntegrity(
+                                memoryStack
+                        )
+                                        * 0.18F
+                ),
+                0.34F,
                 1.0F
         );
     }
@@ -479,6 +504,29 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
             AssemblyItemData.writePart(
                     wheelPart,
                     wheel
+            );
+
+            AssemblyItemData.observeMaterialUse(
+                    wheelPart,
+                    wheel.material(),
+                    server.getGameTime(),
+                    MechanicalLoad.normalized(
+                            transferredPower,
+                            4.0F
+                    ),
+                    Math.min(
+                            1.5F,
+                            beltSlip
+                                    + driveStress * 0.22F
+                    ),
+                    Math.min(
+                            1.25F,
+                            MechanicalLoad.overspeed(
+                                    sourceRpm,
+                                    55.0F
+                            )
+                                    * 0.35F
+                    )
             );
         }
 
@@ -555,6 +603,32 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
         AssemblyItemData.writePart(
                 beltPart,
                 belt
+        );
+
+        AssemblyItemData.observeMaterialUse(
+                beltPart,
+                belt.material(),
+                server.getGameTime(),
+                MechanicalLoad.normalized(
+                        transferredPower,
+                        2.75F
+                                * Math.max(
+                                1,
+                                beltLines
+                        )
+                ),
+                Math.min(
+                        1.5F,
+                        beltSlip * 1.25F
+                                + Math.max(
+                                0.0F,
+                                driveStress - 0.65F
+                        )
+                ),
+                Math.min(
+                        1.25F,
+                        beltSlip * 0.45F
+                )
         );
 
         peer.beltPart =
@@ -653,6 +727,11 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                 0,
                 server.random
         );
+
+        AssemblyItemData.materialMemoryOrCreate(
+                wheelPart,
+                server.getGameTime()
+        );
     }
 
     private void ensureBeltProfile(
@@ -679,6 +758,11 @@ public final class PulleyWheelBlockEntity extends BlockEntity {
                 AssemblyPartProfile.Kind.BELT,
                 0,
                 server.random
+        );
+
+        AssemblyItemData.materialMemoryOrCreate(
+                beltPart,
+                server.getGameTime()
         );
 
         if (peer != null) {

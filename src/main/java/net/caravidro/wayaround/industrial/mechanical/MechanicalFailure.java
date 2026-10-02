@@ -68,12 +68,35 @@ public final class MechanicalFailure {
             float overspeed,
             float condition
     ) {
+        return shaftDeformation(
+                current,
+                stress,
+                overspeed,
+                condition,
+                1.0F
+        );
+    }
+
+    public static float shaftDeformation(
+            float current,
+            float stress,
+            float overspeed,
+            float condition,
+            float materialMultiplier
+    ) {
+        float response =
+                Mth.clamp(
+                        materialMultiplier,
+                        0.35F,
+                        1.75F
+                );
+
         float value =
                 accumulate(
                         current,
                         stress,
                         0.72F,
-                        0.0055F,
+                        0.0055F * response,
                         condition
                 );
 
@@ -81,6 +104,7 @@ public final class MechanicalFailure {
                 value
                         + Math.max(0.0F, overspeed)
                                 * 0.0018F
+                                * response
                                 * (
                                 1.15F
                                         - Mth.clamp(condition, 0.0F, 1.0F)
@@ -96,12 +120,35 @@ public final class MechanicalFailure {
             float overspeed,
             float condition
     ) {
+        return toothDamage(
+                current,
+                stress,
+                overspeed,
+                condition,
+                1.0F
+        );
+    }
+
+    public static float toothDamage(
+            float current,
+            float stress,
+            float overspeed,
+            float condition,
+            float materialMultiplier
+    ) {
+        float response =
+                Mth.clamp(
+                        materialMultiplier,
+                        0.35F,
+                        1.75F
+                );
+
         float value =
                 accumulate(
                         current,
                         stress,
                         0.82F,
-                        0.0065F,
+                        0.0065F * response,
                         condition
                 );
 
@@ -109,6 +156,7 @@ public final class MechanicalFailure {
                 value
                         + Math.max(0.0F, overspeed)
                                 * 0.0024F
+                                * response
                                 * (
                                 1.20F
                                         - Mth.clamp(condition, 0.0F, 1.0F)
@@ -124,12 +172,35 @@ public final class MechanicalFailure {
             float heat,
             float condition
     ) {
+        return bearingDamage(
+                current,
+                stress,
+                heat,
+                condition,
+                1.0F
+        );
+    }
+
+    public static float bearingDamage(
+            float current,
+            float stress,
+            float heat,
+            float condition,
+            float materialMultiplier
+    ) {
+        float response =
+                Mth.clamp(
+                        materialMultiplier,
+                        0.35F,
+                        1.75F
+                );
+
         float value =
                 accumulate(
                         current,
                         stress,
                         0.62F,
-                        0.0045F,
+                        0.0045F * response,
                         condition
                 );
 
@@ -140,6 +211,7 @@ public final class MechanicalFailure {
                         finite(heat) - 0.52F
                 )
                                 * 0.0028F
+                                * response
                                 * (
                                 1.25F
                                         - Mth.clamp(condition, 0.0F, 1.0F)

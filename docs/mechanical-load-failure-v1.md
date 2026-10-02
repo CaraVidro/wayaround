@@ -100,6 +100,22 @@ The shared progression is deliberately gradual:
 
 `HEALTHY → WORN → MISALIGNED/OVERHEATED → CRITICAL → SEIZED`
 
+### Material personality + remembered abuse
+
+Mechanical failure now consumes the shared `MaterialProperties` and
+`MaterialMemory` vocabulary instead of treating every shaft/gear/bearing as
+the same substance.
+
+- strength and ductility influence shaft yielding;
+- hardness and fatigue endurance influence gear-tooth survival;
+- friction and fatigue endurance influence bearing heat/damage;
+- vibration damping changes how strongly damage feeds back into the machine;
+- accumulated fatigue/deformation/heat/corrosion reduce future mechanical
+  integrity even after ordinary servicing;
+- the renderer uses the installed Assembly material and adds qualitative
+  surface-history cues;
+- failure sounds and critical particles vary with material/severity.
+
 ### Shafts and gearboxes
 
 Existing transmission block entities continue to own their real Assembly part state.

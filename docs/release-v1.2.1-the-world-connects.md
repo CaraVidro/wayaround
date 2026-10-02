@@ -49,9 +49,14 @@ Implemented in the development branch:
 
 Implemented in the development branch:
 
-- persistent material memory for load cycles, thermal cycles, heat damage, corrosion and deformation;
-- common material conductivity, heat tolerance, corrosion resistance and ductility traits;
-- material history integrated into shafts, gearboxes, pump impellers, crushers, mills and sawmills;
+- persistent material memory for load cycles, thermal cycles, heat damage, corrosion, deformation and cumulative fatigue;
+- common material conductivity, heat tolerance, corrosion resistance, ductility, strength, hardness, fatigue endurance, vibration damping and friction traits;
+- material personality now changes shaft yielding, gear-tooth damage, bearing heat/damage, cyclic wear, effective load capacity and safe RPM;
+- material history integrated into shafts, exposed gears, gearboxes, pulley wheels/belts, pump impellers, crushers, mills and sawmills;
+- transmission models now reflect installed Assembly material and expose qualitative corrosion/heat/fatigue scar cues;
+- failing transmission hardware uses material-aware sound/particle feedback instead of generic identical clunks;
+- maintenance can improve repairable condition but cannot erase deep fatigue history;
+- deterministic regression coverage compares material personalities and verifies memory persistence/service limits;
 - user-built 6×4 circuit boards with physical component cells and explicit copper traces;
 - input/output terminals, resistors, capacitors, diodes, transistors and relays as installed parts;
 - circuit assembly on a dedicated Electronics Workbench, keeping Engineering focused on design/calculation;

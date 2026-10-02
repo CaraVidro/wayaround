@@ -602,6 +602,14 @@ tasks.register('mechanicalFailureRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('mechanicalFailureRegressionTest') }
 
+// Persistent material-history and material-personality invariants.
+tasks.register('materialMemoryRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.material.MaterialMemoryTest'
+}
+tasks.named('check') { dependsOn tasks.named('materialMemoryRegressionTest') }
+
 // Natural regional distribution and trench depth boundaries.
 tasks.register('fishHabitatRegressionTest', JavaExec) {
     dependsOn tasks.named('spectrumTestClasses')

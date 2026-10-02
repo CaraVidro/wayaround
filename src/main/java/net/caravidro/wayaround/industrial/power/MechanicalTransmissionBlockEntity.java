@@ -13,11 +13,14 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalFailure;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
+import net.caravidro.wayaround.industrial.material.MaterialMemory;
+import net.caravidro.wayaround.industrial.material.MaterialProperties;
 import net.caravidro.wayaround.interaction.StructuralDamage;
 import net.caravidro.wayaround.interaction.StructuralReceiver;
 import net.caravidro.wayaround.interaction.WorldForce;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
@@ -94,7 +97,7 @@ public final class MechanicalTransmissionBlockEntity
                 partProfile();
 
         float memoryCondition =
-                AssemblyItemData.materialCondition(
+                AssemblyItemData.materialMechanicalIntegrity(
                         part
                 );
 
@@ -179,11 +182,48 @@ public final class MechanicalTransmissionBlockEntity
                         load
                 );
 
+        long time =
+                server.getGameTime();
+
+        MaterialMemory memory =
+                AssemblyItemData.materialMemoryOrCreate(
+                        part,
+                        time
+                );
+
+        MaterialProperties.Traits traits =
+                MaterialProperties.of(
+                        profile.material()
+                );
+
+        float historyIntegrity =
+                memory.mechanicalIntegrityFactor();
+
         float safeRpm =
-                safeRpm();
+                safeRpm()
+                        * (
+                        0.78F
+                                + traits.fatigueEndurance()
+                                        * 0.30F
+                )
+                        * (
+                        0.88F
+                                + historyIntegrity
+                                        * 0.12F
+                );
 
         float ratedPower =
-                ratedPower();
+                ratedPower()
+                        * (
+                        0.65F
+                                + traits.mechanicalStrength()
+                                        * 0.45F
+                )
+                        * (
+                        0.78F
+                                + historyIntegrity
+                                        * 0.22F
+                );
 
         float rpmFactor =
                 MechanicalLoad.normalized(
@@ -198,18 +238,32 @@ public final class MechanicalTransmissionBlockEntity
                 );
 
         float failureVibration =
-                MechanicalFailure.vibration(
-                        deformation,
-                        toothDamage,
-                        bearingDamage
+                Mth.clamp(
+                        MechanicalFailure.vibration(
+                                deformation,
+                                toothDamage,
+                                bearingDamage
+                        )
+                                * traits.vibrationFactor()
+                                + memory.deformation()
+                                        * 0.28F
+                                + memory.fatigueDamage()
+                                        * 0.18F,
+                        0.0F,
+                        1.5F
                 );
 
         float targetHeat =
                 Mth.clamp(
+                        (
                         rpmFactor * 0.22F
                                 + loadFactor * 0.32F
+                )
+                                * traits.heatGenerationMultiplier()
                                 + bearingDamage * 0.42F
-                                + toothDamage * 0.10F,
+                                + toothDamage * 0.10F
+                                + memory.heatDamage()
+                                        * 0.12F,
                         0.0F,
                         1.25F
                 );
@@ -227,20 +281,21 @@ public final class MechanicalTransmissionBlockEntity
                         safeRpm
                 );
 
+        float physicalCondition =
+                profile.durabilityScore()
+                        * historyIntegrity;
+
         float stress =
                 MechanicalLoad.failureStress(
                         loadFactor,
                         overSpeed,
                         failureVibration,
                         heat,
-                        profile.durabilityScore()
+                        physicalCondition
                 );
 
         lastStress =
                 stress;
-
-        long time =
-                server.getGameTime();
 
         if (Math.floorMod(
                 time
@@ -249,7 +304,8 @@ public final class MechanicalTransmissionBlockEntity
         ) == 0) {
 
             float condition =
-                    profile.durabilityScore();
+                    profile.durabilityScore()
+                            * memory.mechanicalIntegrityFactor();
 
             if (isShaft()) {
                 deformation =
@@ -257,7 +313,8 @@ public final class MechanicalTransmissionBlockEntity
                                 deformation,
                                 stress,
                                 overSpeed,
-                                condition
+                                condition,
+                                traits.shaftDeformationMultiplier()
                         );
             }
 
@@ -267,7 +324,8 @@ public final class MechanicalTransmissionBlockEntity
                                 toothDamage,
                                 stress,
                                 overSpeed,
-                                condition
+                                condition,
+                                traits.gearDamageMultiplier()
                         );
             }
 
@@ -277,7 +335,8 @@ public final class MechanicalTransmissionBlockEntity
                                 bearingDamage,
                                 stress,
                                 heat,
-                                condition
+                                condition,
+                                traits.bearingDamageMultiplier()
                         );
             }
 
@@ -291,6 +350,12 @@ public final class MechanicalTransmissionBlockEntity
             profile.applyWear(
                     0.00016F
                             * hardwareMultiplier
+                            * traits.cyclicWearMultiplier()
+                            * (
+                            1.0F
+                                    + memory.fatigueDamage()
+                                            * 0.55F
+                    )
                             * (
                             0.25F
                                     + loadFactor
@@ -333,7 +398,10 @@ public final class MechanicalTransmissionBlockEntity
             );
 
             if (MechanicalFailure.seized(
-                    profile.durabilityScore(),
+                    profile.durabilityScore()
+                            * AssemblyItemData.materialMechanicalIntegrity(
+                                    part
+                            ),
                     deformation,
                     toothDamage,
                     bearingDamage
@@ -348,30 +416,12 @@ public final class MechanicalTransmissionBlockEntity
             MechanicalFailure.Mode mode =
                     failureMode();
 
-            if (mode != MechanicalFailure.Mode.HEALTHY
-                    && Math.floorMod(
+            emitFailureFeedback(
+                    server,
+                    mode,
+                    profile.material(),
                     time
-                            + worldPosition.asLong(),
-                    60
-            ) == 0) {
-
-                server.playSound(
-                        null,
-                        worldPosition,
-                        mode == MechanicalFailure.Mode.CRITICAL
-                                ? SoundEvents.ANVIL_LAND
-                                : SoundEvents.IRON_TRAPDOOR_CLOSE,
-                        SoundSource.BLOCKS,
-                        mode == MechanicalFailure.Mode.CRITICAL
-                                ? 0.42F
-                                : 0.22F,
-                        isGearbox()
-                                ? 0.65F
-                                : isGear()
-                                        ? 0.90F
-                                        : 1.35F
-                );
-            }
+            );
 
             sync();
         }
@@ -489,6 +539,11 @@ public final class MechanicalTransmissionBlockEntity
                 part,
                 server
         );
+
+        AssemblyItemData.materialMemoryOrCreate(
+                part,
+                server.getGameTime()
+        );
     }
 
     private void ensureProfileOnStack(
@@ -544,11 +599,72 @@ public final class MechanicalTransmissionBlockEntity
 
         return profile == null
                 ? 0.82F
-                : profile.durabilityScore();
+                : profile.durabilityScore()
+                        * AssemblyItemData.materialMechanicalIntegrity(
+                                part
+                        );
+    }
+
+    public AssemblyPartProfile.Material material() {
+        AssemblyPartProfile profile =
+                partProfile();
+
+        return profile == null
+                ? AssemblyPartProfile.Material.IRON
+                : profile.material();
+    }
+
+    public float materialHeatDamage() {
+        MaterialMemory memory =
+                AssemblyItemData.readMaterialMemory(
+                        part
+                );
+
+        return memory == null
+                ? 0.0F
+                : memory.heatDamage();
+    }
+
+    public float materialCorrosion() {
+        MaterialMemory memory =
+                AssemblyItemData.readMaterialMemory(
+                        part
+                );
+
+        return memory == null
+                ? 0.0F
+                : memory.corrosion();
+    }
+
+    public float materialFatigueDamage() {
+        return AssemblyItemData.materialFatigueDamage(
+                part
+        );
+    }
+
+    public float materialHistoryDeformation() {
+        MaterialMemory memory =
+                AssemblyItemData.readMaterialMemory(
+                        part
+                );
+
+        return memory == null
+                ? 0.0F
+                : memory.deformation();
+    }
+
+    public float materialIntegrity() {
+        return AssemblyItemData.materialMechanicalIntegrity(
+                part
+        );
     }
 
     public float deformation() {
-        return deformation;
+        return Math.max(
+                deformation,
+                materialHistoryDeformation()
+                        * 0.72F
+        );
     }
 
     public float toothDamage() {
@@ -581,6 +697,118 @@ public final class MechanicalTransmissionBlockEntity
                 0.0F,
                 seized()
         );
+    }
+
+    private void emitFailureFeedback(
+            ServerLevel server,
+            MechanicalFailure.Mode mode,
+            AssemblyPartProfile.Material material,
+            long time
+    ) {
+        if (mode == MechanicalFailure.Mode.HEALTHY) {
+            return;
+        }
+
+        int period =
+                switch (mode) {
+                    case WORN -> 100;
+                    case MISALIGNED -> 60;
+                    case OVERHEATED -> 40;
+                    case CRITICAL, SEIZED -> 20;
+                    default -> 80;
+                };
+
+        if (Math.floorMod(
+                time
+                        + worldPosition.asLong(),
+                period
+        ) != 0) {
+            return;
+        }
+
+        var event =
+                switch (material) {
+                    case WOOD, FIBER ->
+                            SoundEvents.WOOD_HIT;
+                    case STONE, DIAMOND ->
+                            SoundEvents.STONE_HIT;
+                    default ->
+                            mode == MechanicalFailure.Mode.CRITICAL
+                                    || mode == MechanicalFailure.Mode.SEIZED
+                                    ? SoundEvents.ANVIL_LAND
+                                    : SoundEvents.IRON_TRAPDOOR_CLOSE;
+                };
+
+        float materialPitch =
+                switch (material) {
+                    case WOOD, FIBER -> 0.82F;
+                    case STONE -> 0.72F;
+                    case COPPER -> 1.12F;
+                    case BRONZE -> 0.96F;
+                    case IRON -> 0.86F;
+                    case STEEL -> 0.74F;
+                    case DIAMOND -> 1.34F;
+                };
+
+        float severity =
+                Mth.clamp(
+                        lastStress / 1.6F,
+                        0.0F,
+                        1.0F
+                );
+
+        server.playSound(
+                null,
+                worldPosition,
+                event,
+                SoundSource.BLOCKS,
+                0.14F
+                        + severity * 0.34F,
+                materialPitch
+                        * (
+                        1.04F
+                                - severity * 0.18F
+                )
+        );
+
+        if (heat > 0.82F) {
+            server.sendParticles(
+                    ParticleTypes.SMOKE,
+                    worldPosition.getX() + 0.5,
+                    worldPosition.getY() + 0.55,
+                    worldPosition.getZ() + 0.5,
+                    mode == MechanicalFailure.Mode.CRITICAL
+                            ? 3
+                            : 1,
+                    0.12,
+                    0.08,
+                    0.12,
+                    0.005
+            );
+        }
+
+        if (mode == MechanicalFailure.Mode.CRITICAL
+                || mode == MechanicalFailure.Mode.SEIZED) {
+            boolean metallic =
+                    material == AssemblyPartProfile.Material.COPPER
+                            || material == AssemblyPartProfile.Material.BRONZE
+                            || material == AssemblyPartProfile.Material.IRON
+                            || material == AssemblyPartProfile.Material.STEEL;
+
+            server.sendParticles(
+                    metallic
+                            ? ParticleTypes.CRIT
+                            : ParticleTypes.POOF,
+                    worldPosition.getX() + 0.5,
+                    worldPosition.getY() + 0.5,
+                    worldPosition.getZ() + 0.5,
+                    3,
+                    0.16,
+                    0.12,
+                    0.16,
+                    0.02
+            );
+        }
     }
 
     private boolean isShaft() {
