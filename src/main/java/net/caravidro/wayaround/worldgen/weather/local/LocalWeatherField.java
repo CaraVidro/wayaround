@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.worldgen.weather.local;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,6 +58,12 @@ public final class LocalWeatherField {
             double z,
             long gameTime
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.LOCAL_WEATHER
+                );
+
+        try {
         /*
          * Hot-path sampling used to call nearbyCells(), allocate a list, then
          * calculate density twice (densityAt + rainAt) and distance again for
@@ -294,6 +301,13 @@ public final class LocalWeatherField {
                 windX,
                 windZ
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.LOCAL_WEATHER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     public static List<CloudCell> nearbyCells(
