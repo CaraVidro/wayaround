@@ -16,7 +16,7 @@ public final class LocalWeatherField {
 
     private static final double CELL_SPACING = 360.0;
     private static final double DRIFT_SPEED = 0.024;
-    private static final double MAX_RADIUS = 278.0;
+    private static final double MAX_RADIUS = 431.0;
 
     private LocalWeatherField() {
     }
@@ -485,7 +485,7 @@ public final class LocalWeatherField {
                 gx * CELL_SPACING + jitterX + driftX(gameTime),
                 gz * CELL_SPACING + jitterZ + driftZ(gameTime),
                 height,
-                radius,
+                radius * 1.55,
                 storm
         );
     }

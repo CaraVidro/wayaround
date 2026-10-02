@@ -7,6 +7,14 @@ public final class CloudStormMath {
     public static double cover(double humidity){return .22+.73*clamp(humidity,0,1);}
     public static double size(double humidity){return .72+.32*clamp(humidity,0,1);}
     public static float storm(float base,double humidity){return (float)clamp(base*(.55+.55*humidity)+.12*humidity-.12,0,1);}
+    /** Receiver-to-cloud displacement along the direction toward the sun. */
+    public static double solarOffset(double height,double sunX,double sunY){
+        return height<=0||sunY<.18?0:height*sunX/sunY;
+    }
+    public static int shadowAlpha(double density,double sunY,double distance,double radius){
+        double edge=clamp((radius-distance)/10.0,0,1);
+        return (int)Math.round(104*clamp(density*1.8,0,1)*edge*clamp((sunY-.18)/.30,0,1));
+    }
     public static int soundDelay(double distance){return (int)Math.ceil(clamp(distance,0,2000)/343.0*20);}
     public static float flash(double age){
         if(age<0||age>18)return 0;

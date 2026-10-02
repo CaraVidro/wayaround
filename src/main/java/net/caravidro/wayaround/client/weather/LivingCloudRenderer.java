@@ -51,7 +51,7 @@ public final class LivingCloudRenderer {
 
     private static final double RENDER_RANGE = 760.0;
     private static final double BASE_VOXEL = 6.5;
-    private static final double MAX_VISUAL_RADIUS = 278.0;
+    private static final double MAX_VISUAL_RADIUS = 450.0;
     private static final int MAX_HORIZONTAL_VOXELS = 25;
     private static final int MAX_VERTICAL_VOXELS = 16;
     private static final int REBUILD_INTERVAL_NEAR = 80;
@@ -256,17 +256,7 @@ public final class LivingCloudRenderer {
                     );
 
             int alpha =
-                    inside
-                            ? 34
-                            : Mth.clamp(
-                                    Math.round(
-                                            176.0F
-                                                    + cell.storm()
-                                                            * 24.0F
-                                    ),
-                                    168,
-                                    200
-                            );
+                    inside ? 34 : 255;
 
             alpha =
                     Math.round(
@@ -365,9 +355,10 @@ public final class LivingCloudRenderer {
 
             /*
              * These are the EXTERNAL shell faces, not smoke sprites.
-             * Writing depth prevents the opposite/lower faces from bleeding
-             * through the near shell and creating the stacked "lasagna"
-             * pattern visible from below.
+             * Outside shells are opaque: unordered far faces cannot remain
+             * blended into a nearer face drawn later. Depth writing alone
+             * cannot fix that translucent draw-order problem. Interior fog
+             * and intentional Nexus visibility fades retain translucency.
              */
             RenderSystem.depthMask(true);
             RenderSystem.disableCull();
@@ -727,7 +718,7 @@ public final class LivingCloudRenderer {
                                 wy,
                                 wz,
                                 voxel
-                        ) && wy >= -18.0-cell.storm()*10
+                        ) && wy >= (-18.0-cell.storm()*10)*1.2
                                 && !cutByBlue(
                                         cell.x() + wx,
                                         cell.y() + wy,
@@ -828,6 +819,12 @@ public final class LivingCloudRenderer {
 
                 Face face =
                         surfaceFace.face;
+
+                double faceX = cell.x() + (voxel.x + face.dx * .5) * builtVoxel;
+                double faceY = cell.y() + (voxel.y + face.dy * .5) * builtVoxel;
+                double faceZ = cell.z() + (voxel.z + face.dz * .5) * builtVoxel;
+                if (alpha > 80 && (camera.x-faceX)*face.dx
+                        + (camera.y-faceY)*face.dy + (camera.z-faceZ)*face.dz <= 0) continue;
 
                 if (faceUnsafeForCamera(
                         cell,
@@ -960,13 +957,10 @@ public final class LivingCloudRenderer {
                 );
 
         /*
-         * Keep giant fronts detailed enough that one voxel does not become a
-         * building-sized plate. MAX_HORIZONTAL_VOXELS was raised alongside
-         * this, so a 278-block cloud still fits without clipping its radius.
+         * Scale voxel spacing with large banks to preserve the bounded grid
+         * while fitting the enlarged silhouette without truncating its radius.
          */
-        return BASE_VOXEL
-                + giant
-                        * 3.55;
+        return Math.max(BASE_VOXEL + giant * 3.55, radius / (MAX_HORIZONTAL_VOXELS - 1));
     }
 
     private static List<Lobe> lobes(
@@ -1229,11 +1223,15 @@ public final class LivingCloudRenderer {
             }
             lobes.add(new Lobe(windX*radius*.28,38+development*40,windZ*radius*.28,radius*.62,12+development*8));
         }
+        for(int i=0;i<lobes.size();i++){
+            Lobe lobe=lobes.get(i);
+            lobes.set(i,new Lobe(lobe.x,lobe.y*1.2,lobe.z,lobe.horizontalRadius,lobe.verticalRadius*1.2));
+        }
         return lobes;
     }
 
     private static double verticalExtent(LocalWeatherField.CloudCell cell){
-        return cell.storm()>.60?70+(cell.storm()-.60)/.40*58:30+cell.radius()*.08;
+        return 1.2*(cell.storm()>.60?70+(cell.storm()-.60)/.40*58:30+cell.radius()*.08);
     }
 
     private static boolean occupiedByLobe(
@@ -1655,14 +1653,12 @@ public final class LivingCloudRenderer {
                 Mth.clamp(
                         baseAlpha
                                 + (
-                                face == Face.DOWN
-                                        ? 4
-                                        : face == Face.UP
-                                        ? -4
-                                        : 0
+                                baseAlpha == 255
+                                        ? 0
+                                        : face == Face.DOWN ? 4 : face == Face.UP ? -4 : 0
                         ),
                         24,
-                        236
+                        255
                 );
 
         float flash=CloudStormClient.glow(cell.id(),cell.x()+voxel.x*voxelSize,
@@ -1749,39 +1745,39 @@ public final class LivingCloudRenderer {
         switch (face) {
             case DOWN -> {
                 vertex(buffer, matrix, minX, minY, maxZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, minY, maxZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, minY, minZ, red, green, blue, alpha);
                 vertex(buffer, matrix, minX, minY, minZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, minY, minZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, minY, maxZ, red, green, blue, alpha);
             }
             case UP -> {
                 vertex(buffer, matrix, minX, maxY, minZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, maxY, minZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, maxY, maxZ, red, green, blue, alpha);
                 vertex(buffer, matrix, minX, maxY, maxZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, maxY, maxZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, maxY, minZ, red, green, blue, alpha);
             }
             case NORTH -> {
                 vertex(buffer, matrix, minX, minY, minZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, minY, minZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, maxY, minZ, red, green, blue, alpha);
                 vertex(buffer, matrix, minX, maxY, minZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, maxY, minZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, minY, minZ, red, green, blue, alpha);
             }
             case SOUTH -> {
                 vertex(buffer, matrix, minX, maxY, maxZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, maxY, maxZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, minY, maxZ, red, green, blue, alpha);
                 vertex(buffer, matrix, minX, minY, maxZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, minY, maxZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, maxY, maxZ, red, green, blue, alpha);
             }
             case WEST -> {
                 vertex(buffer, matrix, minX, minY, maxZ, red, green, blue, alpha);
-                vertex(buffer, matrix, minX, minY, minZ, red, green, blue, alpha);
-                vertex(buffer, matrix, minX, maxY, minZ, red, green, blue, alpha);
                 vertex(buffer, matrix, minX, maxY, maxZ, red, green, blue, alpha);
+                vertex(buffer, matrix, minX, maxY, minZ, red, green, blue, alpha);
+                vertex(buffer, matrix, minX, minY, minZ, red, green, blue, alpha);
             }
             case EAST -> {
                 vertex(buffer, matrix, maxX, minY, minZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, minY, maxZ, red, green, blue, alpha);
-                vertex(buffer, matrix, maxX, maxY, maxZ, red, green, blue, alpha);
                 vertex(buffer, matrix, maxX, maxY, minZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, maxY, maxZ, red, green, blue, alpha);
+                vertex(buffer, matrix, maxX, minY, maxZ, red, green, blue, alpha);
             }
         }
     }

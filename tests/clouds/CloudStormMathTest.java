@@ -2,6 +2,12 @@ import net.caravidro.wayaround.worldgen.weather.local.CloudStormMath;
 
 public final class CloudStormMathTest {
     public static void main(String[] args){
+        check(CloudStormMath.solarOffset(100,0,1)==0,"noon projection below cloud");
+        check(Math.abs(CloudStormMath.solarOffset(100,.6,.8)-75)<.001,"angled solar projection");
+        check(CloudStormMath.solarOffset(100,-.6,.8)<0,"opposite sun displacement");
+        check(CloudStormMath.shadowAlpha(.6,1,0,40)>90,"visible shadow at viewer, no camera exclusion");
+        check(CloudStormMath.shadowAlpha(.6,1,40,40)==0,"soft bounded shadow edge");
+        check(CloudStormMath.shadowAlpha(1,.1,0,40)==0,"no daytime shadow below horizon");
         int wet=0,dry=0;
         for(int i=0;i<10000;i++){
             double roll=i/10000.0;
