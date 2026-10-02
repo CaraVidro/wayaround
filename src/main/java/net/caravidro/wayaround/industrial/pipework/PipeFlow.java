@@ -170,8 +170,10 @@ public final class PipeFlow {
         ArrayDeque<Step> queue =
                 new ArrayDeque<>();
 
-        Set<BlockPos> seen =
-                new HashSet<>();
+        LongOpenHashSet seen =
+                new LongOpenHashSet(
+                        MAX_NODES * 2
+                );
 
         ArrayList<Outlet> outputs =
                 new ArrayList<>();
@@ -218,7 +220,7 @@ public final class PipeFlow {
                     0;
 
             for (Direction direction :
-                    Direction.values()) {
+                    DIRECTIONS) {
 
                 if (!axisAllows(
                         pipe,
@@ -418,8 +420,10 @@ public final class PipeFlow {
         ArrayDeque<SuctionStep> queue =
                 new ArrayDeque<>();
 
-        Set<BlockPos> seen =
-                new HashSet<>();
+        LongOpenHashSet seen =
+                new LongOpenHashSet(
+                        MAX_NODES * 2
+                );
 
         queue.add(
                 new SuctionStep(
@@ -439,6 +443,7 @@ public final class PipeFlow {
 
             if (!seen.add(
                     pipe.getBlockPos()
+                            .asLong()
             )) {
                 continue;
             }
@@ -449,7 +454,7 @@ public final class PipeFlow {
             }
 
             for (Direction direction :
-                    Direction.values()) {
+                    DIRECTIONS) {
 
                 if (!axisAllows(
                         pipe,
