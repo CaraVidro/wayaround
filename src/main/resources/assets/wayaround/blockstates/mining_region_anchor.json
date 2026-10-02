@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "wayaround:block/mining_region_anchor"
+    }
+  }
+}
