@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.mechanical;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.*;
 import javax.annotation.Nullable;
 import net.caravidro.wayaround.industrial.power.*;
@@ -33,6 +34,12 @@ public final class MechanicalTransmission {
         return transmission(state)?network(level,node,axis(state),null):null;
     }
     @Nullable private static IRotationalPower network(Level level,BlockPos start,Direction.Axis output,@Nullable BlockPos excluded){
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.POWER_NETWORK
+                );
+
+        try {
         ArrayDeque<Route> queue=new ArrayDeque<>();Map<BlockPos,Route> visited=new HashMap<>();Map<BlockPos,Feed> feeds=new LinkedHashMap<>();
         queue.add(new Route(start,List.of(start),1,1));boolean conflict=false;
         while(!queue.isEmpty()&&visited.size()<MAX_NETWORK_NODES){
@@ -76,6 +83,13 @@ public final class MechanicalTransmission {
         if(feeds.values().stream().anyMatch(f->f.rpm()*best.rpm()<-.01F))return null; // opposing wheels jam a rigid axle
         List<Feed> compatible=feeds.values().stream().filter(f->Math.abs(f.rpm())>.05F||Math.abs(best.rpm())<=.05F).toList();
         return new CombinedPower(level,compatible,output);
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.POWER_NETWORK,
+                    wayperfStartedAt
+            );
+        }
     }
     private static boolean transmission(BlockState s){return s.getBlock() instanceof MechanicalShaftBlock||s.getBlock() instanceof MechanicalGearboxBlock||s.getBlock() instanceof GearBlock;}
     private static Direction.Axis axis(BlockState s){return s.hasProperty(MechanicalShaftBlock.AXIS)?s.getValue(MechanicalShaftBlock.AXIS):Direction.Axis.X;}
