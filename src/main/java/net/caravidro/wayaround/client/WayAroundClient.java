@@ -352,6 +352,15 @@ public final class WayAroundClient {
                     }
 
                     @Override
+                    public void structuralCollapse(
+                            net.caravidro.wayaround.network.StructuralCollapseS2CPayload payload
+                    ) {
+                        net.caravidro.wayaround.client.debris.StructuralCollapseClient.receive(
+                                payload
+                        );
+                    }
+
+                    @Override
                     public void blueVisual(
                             BlueVisualPayload payload
                     ) {
