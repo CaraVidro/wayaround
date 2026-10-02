@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.client.weather;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -85,6 +86,12 @@ public final class LivingCloudRenderer {
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.CLOUD_RENDER
+                );
+
+        try {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             return;
         }
@@ -390,6 +397,13 @@ public final class LivingCloudRenderer {
         }
 
         poseStack.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.CLOUD_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static double effectiveRenderRange(
