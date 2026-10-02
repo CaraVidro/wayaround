@@ -1,0 +1,98 @@
+name: Kraken runtime validation
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/net/caravidro/wayaround/ecology/Kraken*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/client/Kraken*'
+      - 'src/main/java/net/caravidro/wayaround/client/SimpleDynamicLights.java'
+      - 'src/main/java/net/caravidro/wayaround/client/weather/CloudShadowRenderer.java'
+      - 'src/main/java/net/caravidro/wayaround/mixin/client/Kraken*'
+      - 'src/main/java/net/caravidro/wayaround/mixin/client/SimpleDynamic*'
+      - 'tests/kraken/**'
+      - '.github/workflows/kraken-validation.yml'
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Deterministic motion and splash contacts
+        run: |
+          mkdir -p /tmp/kraken-classes
+          javac -d /tmp/kraken-classes src/main/java/net/caravidro/wayaround/ecology/KrakenMotion.java tests/kraken/KrakenMotionTest.java
+          java -cp /tmp/kraken-classes KrakenMotionTest
+      - name: Client boot and mixin application
+        env:
+          ALSOFT_DRIVERS: 'null'
+        shell: bash
+        run: |
+          python - <<'PYCLIENT'
+          import os,re,signal,subprocess,time
+          from pathlib import Path
+          path=Path('kraken-client-smoke.log')
+          ready=False
+          with path.open('w') as log:
+              process=subprocess.Popen(['xvfb-run','-a','bash','gradlew','runClient','--console=plain'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+              try:
+                  deadline=time.monotonic()+240
+                  while process.poll() is None and time.monotonic()<deadline:
+                      text=path.read_text(errors='replace')
+                      if ('OpenAL initialized' in text or 'Sound engine started' in text) and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                          ready=True
+                          break
+                      time.sleep(1)
+              finally:
+                  if process.poll() is None: os.killpg(process.pid,signal.SIGTERM)
+                  try: process.wait(timeout=15)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(process.pid,signal.SIGKILL);process.wait()
+          text=path.read_text(errors='replace')
+          if not ready or re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text):
+              print('\n'.join(text.splitlines()[-120:]));raise SystemExit(1)
+          print('Client boot and registered light/boat mixins passed. In-world visual QA remains manual.')
+          PYCLIENT
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kraken-client-runtime
+          path: kraken-client-smoke.log
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7689ce593c8e8e418d3262b5d3fcc89393cee4b4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compare pre-existing pump tests on unchanged base
+        shell: bash
+        run: |
+          set +e
+          bash gradlew runFishGameTestServer --console=plain > kraken-baseline-tests.log 2>&1
+          result=$?
+          set -e
+          if [ "$result" -eq 0 ]; then
+            echo 'Base suite passed; current branch failures require investigation.'
+            exit 1
+          fi
+          python - <<'PYBASE'
+          from pathlib import Path
+          text=Path('kraken-baseline-tests.log').read_text(errors='replace')
+          names=['crankactuallydrivesmechanicalpump','largerotaryliftmovesonerealsource','narrowrotaryliftisvisualonly']
+          assert all(name+' failed' in text for name in names),text[-12000:]
+          print('All three pump/lift failures also occur on unchanged base 7689ce59.')
+          PYBASE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kraken-unchanged-base-comparison
+          path: kraken-baseline-tests.log

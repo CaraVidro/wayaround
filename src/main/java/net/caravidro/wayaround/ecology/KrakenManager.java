@@ -1,18 +1,14 @@
 package net.caravidro.wayaround.ecology;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.KrakenShakeS2CPayload;
 import net.caravidro.wayaround.network.KrakenSceneS2CPayload;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,8 +17,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -49,9 +43,6 @@ public final class KrakenManager {
 
     private static final Map<UUID, Long> NEXT_RUMBLE =
             new HashMap<>();
-
-    private static final Set<Long> PREPARED_LAIRS =
-            new HashSet<>();
 
     private static final Map<ServerLevel, KrakenEvent> ACTIVE =
             new HashMap<>();
@@ -89,18 +80,6 @@ public final class KrakenManager {
 
             ServerLevel level =
                     player.serverLevel();
-
-            long cell =
-                    cellKey(
-                            player.blockPosition()
-                    );
-
-            if (PREPARED_LAIRS.size() >= 4096) PREPARED_LAIRS.clear();
-            if (PREPARED_LAIRS.add(
-                    cell
-            )) {
-                // Wrecks are generated with terrain; never replace live kelp at runtime.
-            }
 
             RandomSource random =
                     player.getRandom();
@@ -247,7 +226,6 @@ public final class KrakenManager {
         ACTIVE.clear();
         NEXT_TREMOR.clear();
         NEXT_RUMBLE.clear();
-        PREPARED_LAIRS.clear();
     }
 
     private static void subtleTremor(
@@ -806,28 +784,6 @@ public final class KrakenManager {
                 mixed,
                 4L
         ) == 0L;
-    }
-
-    private static long cellKey(
-            BlockPos pos
-    ) {
-        long x =
-                Math.floorDiv(
-                        pos.getX(),
-                        REGION_SIZE
-                );
-
-        long z =
-                Math.floorDiv(
-                        pos.getZ(),
-                        REGION_SIZE
-                );
-
-        return mix(
-                x * 31L
-                        ^ z
-                        * 0x9E3779B97F4A7C15L
-        );
     }
 
     private static long mix(
