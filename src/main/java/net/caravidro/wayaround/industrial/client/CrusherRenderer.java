@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
 import java.util.WeakHashMap;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -21,6 +22,12 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
     private final BlockRenderDispatcher blocks;
     public CrusherRenderer(BlockEntityRendererProvider.Context context){blocks=context.getBlockRenderDispatcher();}
     @Override public void render(CrusherBlockEntity crusher,float partialTick,PoseStack pose,MultiBufferSource buffer,int light,int overlay){
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_RENDER
+                );
+
+        try {
         double time=crusher.getLevel()==null?0:crusher.getLevel().getGameTime()+partialTick;
         DistanceLod.Tier lod=DistanceLod.forBlock(crusher.getBlockPos());
         float angle=DistanceLod.quantizeDegrees(
@@ -90,6 +97,13 @@ public final class CrusherRenderer implements BlockEntityRenderer<CrusherBlockEn
         if(crusher.inputCount()>0)box(pose,buffer,light,overlay,Blocks.IRON_ORE.defaultBlockState(),0,.8,0,.22,.12,.2);
         if(crusher.outputCount()>0)box(pose,buffer,light,overlay,Blocks.GRAVEL.defaultBlockState(),0,.16,-.35,.32,.07,.2);
         pose.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
     private void roller(PoseStack pose,MultiBufferSource buffer,int light,int overlay,BlockState material,double x,float angle,boolean teeth,int count,double radius){
         pose.pushPose();pose.translate(x,.5,0);pose.mulPose(Axis.ZP.rotationDegrees(angle));
