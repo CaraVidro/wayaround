@@ -14,7 +14,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "23";
+            "24";
 
     private WayAroundNetwork() {
     }
@@ -137,6 +137,12 @@ public final class WayAroundNetwork {
                 BlueVisualPayload.TYPE,
                 BlueVisualPayload.STREAM_CODEC,
                 ClientPayloadBridge::handleBlueVisual
+        );
+
+        registrar.playToClient(
+                StructuralCollapseS2CPayload.TYPE,
+                StructuralCollapseS2CPayload.STREAM_CODEC,
+                ClientPayloadBridge::handleStructuralCollapse
         );
 
         registrar.playToClient(
