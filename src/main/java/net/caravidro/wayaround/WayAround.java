@@ -162,6 +162,7 @@ public class WayAround {
         EnhancedFireVisuals.clearAll();
         KrakenManager.clearAll();
         DeferredMiningManager.clearAll();
+        net.caravidro.wayaround.media.MediaTransferServer.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }
 }
