@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.safety.DownloadConsentContract;
 import net.caravidro.wayaround.storage.ColdDirectoryArchive;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -25,6 +26,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import net.caravidro.wayaround.voice.VoiceConstants;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import net.neoforged.fml.loading.FMLPaths;
 import org.vosk.Model;
 import org.vosk.Recognizer;
@@ -348,12 +353,64 @@ public final class VoskSpeechRecognizer {
     }
 
     /**
-     * The only code path permitted to download the Vosk model.
+     * The only public entry point for installing the optional speech model.
      *
-     * Callers must obtain informed user consent immediately before invoking
-     * this method. warmUpAsync() and recognize() intentionally cannot download.
+     * This method always presents the informed-consent screen itself. There is
+     * deliberately no public method that can jump straight to HTTP.
      */
-    public static void installWithUserConsentAsync() {
+    public static void requestModelInstallConsent(
+            Screen parent
+    ) {
+        Minecraft minecraft =
+                Minecraft.getInstance();
+
+        if (minecraft == null
+                || PREPARING.get()) {
+            return;
+        }
+
+        if (isModelInstalled()) {
+            warmUpAsync();
+            return;
+        }
+
+        String destination =
+                "config/wayaround/voice-models/"
+                        + MODEL_NAME;
+
+        minecraft.setScreen(
+                new ConfirmScreen(
+                        accepted -> {
+                            Minecraft current =
+                                    Minecraft.getInstance();
+
+                            if (current != null) {
+                                current.setScreen(
+                                        parent
+                                );
+                            }
+
+                            if (accepted) {
+                                startConsentedInstallAsync();
+                            }
+                        },
+                        Component.literal(
+                                "Download Way Around speech model?"
+                        ),
+                        Component.literal(
+                                "About 31 MB will be downloaded from https://alphacephei.com for offline Portuguese speech recognition and stored in "
+                                        + destination
+                                        + ". No network request starts unless you choose Yes."
+                        )
+                )
+        );
+    }
+
+    /**
+     * Private on purpose: only the confirmation callback above may reach the
+     * network-install worker.
+     */
+    private static void startConsentedInstallAsync() {
         if (model != null) {
             return;
         }
@@ -375,8 +432,10 @@ public final class VoskSpeechRecognizer {
                         () -> {
                             try {
                                 WayAround.LOGGER.info(
-                                        "[Voice/Vosk] download autorizado pelo usuario; source={}",
-                                        MODEL_URL
+                                        "[Voice/Vosk] informed download consent accepted; source={}; destination={}",
+                                        MODEL_URL,
+                                        modelDirectory()
+                                                .toAbsolutePath()
                                 );
 
                                 downloadAndInstallModel();
@@ -716,6 +775,15 @@ public final class VoskSpeechRecognizer {
     private static void downloadAndInstallModel()
             throws Exception {
 
+        if (!DownloadConsentContract.isExactHttpsHost(
+                MODEL_URL,
+                "alphacephei.com"
+        )) {
+            throw new IllegalStateException(
+                    "fonte do modelo Vosk nao corresponde ao host HTTPS informado ao usuario"
+            );
+        }
+
         Path base =
                 modelsDirectory();
 
@@ -738,8 +806,12 @@ public final class VoskSpeechRecognizer {
 
         HttpClient client =
                 HttpClient.newBuilder()
+                        /*
+                         * Consent names alphacephei.com explicitly. Do not follow
+                         * redirects to a different, undisclosed download source.
+                         */
                         .followRedirects(
-                                HttpClient.Redirect.NORMAL
+                                HttpClient.Redirect.NEVER
                         )
                         .connectTimeout(
                                 Duration.ofSeconds(12)
@@ -760,41 +832,71 @@ public final class VoskSpeechRecognizer {
                         .GET()
                         .build();
 
-        HttpResponse<Path> response =
+        HttpResponse<InputStream> response =
                 client.send(
                         request,
                         HttpResponse.BodyHandlers
-                                .ofFile(download)
+                                .ofInputStream()
                 );
 
-        if (response.statusCode() < 200
-                || response.statusCode() >= 300) {
+        try (InputStream body =
+                     response.body()) {
 
-            Files.deleteIfExists(download);
+            if (response.statusCode() < 200
+                    || response.statusCode() >= 300) {
 
-            throw new IllegalStateException(
-                    "download do modelo respondeu HTTP "
-                            + response.statusCode()
-            );
-        }
+                throw new IllegalStateException(
+                        "download do modelo respondeu HTTP "
+                                + response.statusCode()
+                                + "; redirects nao sao aceitos sem novo consentimento"
+                );
+            }
 
-        long downloadedBytes =
-                Files.size(
+            long advertisedBytes =
+                    response.headers()
+                            .firstValueAsLong(
+                                    "Content-Length"
+                            )
+                            .orElse(
+                                    -1L
+                            );
+
+            if (advertisedBytes > MAX_MODEL_DOWNLOAD_BYTES) {
+                throw new IllegalStateException(
+                        "servidor anunciou modelo maior que o limite de seguranca: "
+                                + advertisedBytes
+                                + " bytes"
+                );
+            }
+
+            long downloadedBytes =
+                    copyDownloadBounded(
+                            body,
+                            download,
+                            MAX_MODEL_DOWNLOAD_BYTES
+                    );
+
+            if (downloadedBytes <= 0L) {
+                Files.deleteIfExists(
                         download
                 );
 
-        if (downloadedBytes <= 0L
-                || downloadedBytes
-                        > MAX_MODEL_DOWNLOAD_BYTES) {
-            Files.deleteIfExists(
-                    download
-            );
+                throw new IllegalStateException(
+                        "download do modelo retornou arquivo vazio"
+                );
+            }
+        } catch (Exception failure) {
+            try {
+                Files.deleteIfExists(
+                        download
+                );
+            } catch (Exception cleanupFailure) {
+                failure.addSuppressed(
+                        cleanupFailure
+                );
+            }
 
-            throw new IllegalStateException(
-                    "download do modelo com tamanho inesperado: "
-                            + downloadedBytes
-                            + " bytes"
-            );
+            throw failure;
         }
 
         Files.createDirectories(staging);
@@ -827,6 +929,54 @@ public final class VoskSpeechRecognizer {
 
         Files.deleteIfExists(download);
         deleteTree(staging);
+    }
+
+    private static long copyDownloadBounded(
+            InputStream input,
+            Path target,
+            long byteLimit
+    ) throws Exception {
+
+        long written =
+                0L;
+
+        byte[] buffer =
+                new byte[
+                        16 * 1024
+                        ];
+
+        try (var output =
+                     Files.newOutputStream(
+                             target
+                     )) {
+
+            int read;
+
+            while ((read = input.read(
+                    buffer
+            )) >= 0) {
+                if (read == 0) {
+                    continue;
+                }
+
+                written +=
+                        read;
+
+                if (written > byteLimit) {
+                    throw new IllegalStateException(
+                            "download do modelo excedeu o limite de seguranca antes de tocar mais disco"
+                    );
+                }
+
+                output.write(
+                        buffer,
+                        0,
+                        read
+                );
+            }
+        }
+
+        return written;
     }
 
     private static Path findExtractedModelRoot(
