@@ -429,6 +429,17 @@ public final class LivingCloudRenderer {
         );
     }
 
+    /** Reuse cached silhouette columns for cloud-shadow holes and billows. */
+    public static float shadowDensity(LocalWeatherField.CloudCell cell,double x,double z){
+        CloudMesh mesh=CACHE.get(cell.id());
+        float density=cell.densityAt(x,z);
+        if(mesh==null||mesh.builtAt==Long.MIN_VALUE)return density;
+        int vx=(int)Math.round((x-cell.x())/mesh.builtVoxel),vz=(int)Math.round((z-cell.z())/mesh.builtVoxel);
+        for(int y=-MAX_VERTICAL_VOXELS;y<=MAX_VERTICAL_VOXELS;y++)
+            if(mesh.occupied.contains(packVoxel(vx,y,vz)))return density;
+        return 0;
+    }
+
     public static boolean isInsideCloud(
             Vec3 position
     ) {
@@ -660,8 +671,10 @@ public final class LivingCloudRenderer {
                             cell
                     );
 
-            builtVoxel =
-                    voxel;
+            var camera=Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+            double distanceSquared=(cell.x()-camera.x)*(cell.x()-camera.x)+(cell.z()-camera.z)*(cell.z()-camera.z);
+            voxel*=distanceSquared>520*520?1.75:distanceSquared>280*280?1.25:1.0;
+            builtVoxel = voxel;
 
             int horizontal =
                     Mth.clamp(

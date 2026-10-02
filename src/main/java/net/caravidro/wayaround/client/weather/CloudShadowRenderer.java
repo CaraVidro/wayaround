@@ -69,7 +69,7 @@ public final class CloudShadowRenderer {
             for(var cell:cells){
                 double distance=(cell.y()-y)/sun.y;
                 if(distance<0)continue;
-                density=Math.max(density,cell.densityAt(from.x+sun.x*distance,from.z));
+                density=Math.max(density,LivingCloudRenderer.shadowDensity(cell,from.x+sun.x*distance,from.z));
             }
             double fade=1-Math.max(Math.abs(dx),Math.abs(dz))/24.0;
             int alpha=(int)(48*density*fade*sun.y);
