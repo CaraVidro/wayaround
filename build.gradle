@@ -618,6 +618,14 @@ tasks.register('materialMemoryRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('materialMemoryRegressionTest') }
 
+// Mechanical <-> hydraulic load, cavitation, backpressure and pressure-rating invariants.
+tasks.register('hydraulicLoadRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.pipework.HydraulicLoadTest'
+}
+tasks.named('check') { dependsOn tasks.named('hydraulicLoadRegressionTest') }
+
 // Keep local audio backups out of shipped resources (the canonical OGG is retained).
 sourceSets.main.resources.exclude('**/*.local.ogg')
 

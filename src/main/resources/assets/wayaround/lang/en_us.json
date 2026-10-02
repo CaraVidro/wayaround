@@ -1025,5 +1025,9 @@
   "block.wayaround.copper_complex": "Copper Complex",
   "block.wayaround.coal_complex": "Coal Complex",
   "block.wayaround.mechanical_miner": "Mechanical Miner",
-  "item.wayaround.mining_drill_head": "Mining Drill Head"
+  "item.wayaround.mining_drill_head": "Mining Drill Head",
+  "block.wayaround.rotary_small_copper_lift_pipe": "Rotary Small Copper Lift Pipe",
+  "block.wayaround.rotary_iron_water_lift_pipe": "Rotary Iron Water Lift Pipe",
+  "block.wayaround.rotary_large_water_lift_pipe": "Rotary Large Water Lift",
+  "block.wayaround.rotary_steel_pressure_lift_pipe": "Rotary Steel Pressure Lift Pipe"
 }
