@@ -56,6 +56,44 @@ public final class MechanicalLoad {
         }
     }
 
+    /**
+     * Result of asking one rotational source to perform one machine's work.
+     *
+     * Every consumer receives the same answer: what the drive could supply,
+     * what was actually granted, whether torque was sufficient, and the RPM
+     * that may reach the machine after power starvation. Machine-specific
+     * behavior (jams, cutting, pumping, particles, etc.) stays outside here.
+     */
+    public record OperatingPoint(
+            Demand demand,
+            float grantedPower,
+            float fulfillment,
+            float targetRpm,
+            State state
+    ) {
+        public boolean powerStarved() {
+            return state == State.POWER_STARVED
+                    || demand.powerStarved();
+        }
+
+        public boolean torqueStarved() {
+            return state == State.TORQUE_STARVED
+                    || demand.torqueStarved();
+        }
+
+        public boolean canWork(
+                float minimumRpm,
+                float minimumFulfillment
+        ) {
+            return state != State.CRITICAL
+                    && !torqueStarved()
+                    && fulfillment + 0.001F
+                            >= Mth.clamp(minimumFulfillment, 0.0F, 1.0F)
+                    && Math.abs(targetRpm) + 0.001F
+                            >= Math.max(0.0F, minimumRpm);
+        }
+    }
+
     private MechanicalLoad() {
     }
 
@@ -87,6 +125,72 @@ public final class MechanicalLoad {
                 finitePositive(Math.abs(source.torque())),
                 Float.isFinite(source.rpm()) ? source.rpm() : 0.0F,
                 safe
+        );
+    }
+
+    /**
+     * Shared machine operating contract.
+     *
+     * This is the one place that turns source power + torque + RPM into a
+     * granted mechanical operating point. Calling it consumes from the
+     * source's existing power budget, so multiple machines still compete for
+     * the same real source instead of reading free copies of its output.
+     */
+    public static OperatingPoint operate(
+            @Nullable IRotationalPower source,
+            float requestedPower,
+            float requiredTorque,
+            float safeRpm,
+            float heat,
+            float vibration,
+            float condition
+    ) {
+        Demand demand =
+                sample(
+                        source,
+                        requestedPower,
+                        requiredTorque,
+                        safeRpm
+                );
+
+        float granted =
+                source != null
+                        && source.active()
+                        && demand.requestedPower() > 0.001F
+                        ? source.consumePower(
+                                demand.requestedPower()
+                        )
+                        : 0.0F;
+
+        float ratio =
+                fulfillment(
+                        demand.requestedPower(),
+                        granted
+                );
+
+        float targetRpm =
+                source == null
+                        || demand.torqueStarved()
+                        || granted <= 0.001F
+                        ? 0.0F
+                        : demand.rpm()
+                                * ratio;
+
+        State state =
+                classify(
+                        demand,
+                        granted,
+                        heat,
+                        vibration,
+                        condition
+                );
+
+        return new OperatingPoint(
+                demand,
+                granted,
+                ratio,
+                targetRpm,
+                state
         );
     }
 

@@ -13,6 +13,7 @@ import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.assembly.LegacyMachineAssembly;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
+import net.caravidro.wayaround.industrial.mechanical.MechanicalLoad;
 import net.caravidro.wayaround.industrial.mechanical.MechanicalTransmission;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -47,6 +48,9 @@ public final class MechanicalMillBlockEntity
 
     private static final float MIN_WORK_RPM =
             7.5F;
+
+    private static final float SAFE_RPM =
+            72.0F;
 
     private static final int MAX_INPUT =
             16;
@@ -125,46 +129,47 @@ public final class MechanicalMillBlockEntity
         mill.connected =
                 source != null;
 
+        float loadMultiplier =
+                mill.wheatInput > 0
+                        ? 1.0F
+                        : 0.35F;
+
+        float requested =
+                POWER_DRAW
+                        * loadMultiplier
+                        * mill.parts.driveCost();
+
+        float requiredTorque =
+                (mill.wheatInput > 0
+                        ? 0.95F
+                        : 0.14F)
+                        * mill.parts.driveCost();
+
+        float condition =
+                Mth.clamp(
+                        mill.parts.condition(MachinePartSpec.Role.DRIVE) * 0.55F
+                                + mill.parts.condition(MachinePartSpec.Role.BEARING) * 0.45F
+                                - mill.assemblyWear * 0.20F,
+                        0.0F,
+                        1.0F
+                );
+
+        MechanicalLoad.OperatingPoint operating =
+                MechanicalLoad.operate(
+                        source,
+                        requested,
+                        requiredTorque,
+                        SAFE_RPM,
+                        0.0F,
+                        0.0F,
+                        condition
+                );
+
         mill.lastPower =
-                0.0F;
+                operating.grantedPower();
 
         float targetRpm =
-                0.0F;
-
-        if (source != null
-                && source.active()) {
-
-            float loadMultiplier =
-                    mill.wheatInput > 0
-                            ? 1.0F
-                            : 0.35F;
-
-            float requested =
-                    POWER_DRAW
-                            * loadMultiplier * mill.parts.driveCost();
-
-            float accepted =
-                    source.consumePower(
-                            requested
-                    );
-
-            mill.lastPower =
-                    accepted;
-
-            float ratio =
-                    requested <= 0.0001F
-                            ? 0.0F
-                            : Mth.clamp(
-                            accepted
-                                    / requested,
-                            0.0F,
-                            1.0F
-                    );
-
-            targetRpm =
-                    source.rpm()
-                            * ratio;
-        }
+                operating.targetRpm();
 
         mill.rpm +=
                 (

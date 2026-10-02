@@ -586,6 +586,14 @@ tasks.register('crushingRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('crushingRegressionTest') }
 
+// Shared rotational power / torque / starvation invariants.
+tasks.register('mechanicalLoadRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.mechanical.MechanicalLoadTest'
+}
+tasks.named('check') { dependsOn tasks.named('mechanicalLoadRegressionTest') }
+
 // Natural regional distribution and trench depth boundaries.
 tasks.register('fishHabitatRegressionTest', JavaExec) {
     dependsOn tasks.named('spectrumTestClasses')

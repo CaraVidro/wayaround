@@ -59,6 +59,28 @@ It is intentionally dimensionless. It is a simulation signal, not a real-world e
 
 ## Current integrations
 
+### Universal operating point
+
+Rotational consumers now use `MechanicalLoad.OperatingPoint` as the shared
+answer to a request for work. It combines the existing source budget with:
+
+- requested/granted power;
+- required/available torque;
+- source RPM and safe RPM;
+- power fulfillment;
+- torque starvation;
+- the RPM that can actually reach the machine after starvation;
+- the shared operating state.
+
+The network still does not know whether the consumer is a fan, mill, press,
+pump, crusher or sawmill. Each machine calculates its own physical demand, then
+submits that demand to the same evaluator.
+
+The mechanical pump, crusher, sawmill, mechanical mill, mechanical fan and
+mechanical press now all use this common contract. This removes parallel
+`granted / requested` drive formulas and prevents a fast-but-weak source from
+being treated as universally capable.
+
 ### Shafts and gearboxes
 
 Existing transmission block entities continue to own their real Assembly part state.

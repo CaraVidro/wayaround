@@ -177,54 +177,43 @@ public final class MechanicalPumpBlockEntity
                                         / (float) MAX_MACHINE_FLOW
                                         * 0.75F;
 
-        MechanicalLoad.Demand demand =
-                MechanicalLoad.sample(
-                        source,
+        IRotationalPower engagedSource =
+                hasImpeller()
+                        && discharge != null
+                        ? source
+                        : null;
+
+        MechanicalLoad.OperatingPoint operating =
+                MechanicalLoad.operate(
+                        engagedSource,
                         requested,
                         requiredTorque,
-                        72.0F
+                        72.0F,
+                        0.0F,
+                        vibration,
+                        condition
                 );
 
-        float granted = 0.0F;
-        float targetRpm = 0.0F;
+        MechanicalLoad.Demand demand =
+                operating.demand();
+
+        float granted =
+                operating.grantedPower();
+
+        load =
+                operating.fulfillment();
 
         stalled =
                 !hasImpeller()
                         || condition < 0.12F
                         || discharge == null
                         || hydraulic.flowPerTick() <= 0
-                        || (source != null
-                        && demand.torqueStarved());
+                        || operating.torqueStarved();
 
-        if (source != null
-                && source.active()
-                && hasImpeller()
-                && discharge != null) {
-            granted =
-                    source.consumePower(
-                            requested
-                    );
-
-            load =
-                    MechanicalLoad.fulfillment(
-                            requested,
-                            granted
-                    );
-
-            if (!stalled
-                    && granted > 0.01F) {
-                targetRpm =
-                        source.rpm()
-                                * Mth.clamp(
-                                granted
-                                        / requested,
-                                0.0F,
-                                1.0F
-                        );
-            }
-        } else {
-            load = 0.0F;
-        }
+        float targetRpm =
+                stalled
+                        ? 0.0F
+                        : operating.targetRpm();
 
         rpm +=
                 (targetRpm - rpm)

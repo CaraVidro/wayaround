@@ -23,6 +23,9 @@ The release should emphasize connections rather than raw item count:
 Implemented in the development branch:
 
 - shared `MechanicalLoad` model;
+- universal `MechanicalLoad.OperatingPoint` contract for rotational consumers;
+- pump, crusher, sawmill, mill, fan and press now resolve power/torque/RPM through the same mechanical language;
+- shared-source budget regression coverage prevents multiple consumers from duplicating available power;
 - power fulfillment;
 - torque starvation;
 - safe-RPM / overspeed evaluation;
