@@ -121,6 +121,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(DeferredMiningManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(MiningInteractionEvents::onBlockBreak);
         NeoForge.EVENT_BUS.addListener(PerformanceProfiler::onServerTick);
+        NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.interaction.StructuralCollapseManager::onServerTick);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
@@ -138,6 +139,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(TreeArchitectureCommands::register);
         NeoForge.EVENT_BUS.addListener(PerformanceCommands::register);
         NeoForge.EVENT_BUS.addListener(MiningCommands::register);
+        NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.interaction.StructuralCollapseCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);
@@ -162,6 +164,7 @@ public class WayAround {
         EnhancedFireVisuals.clearAll();
         KrakenManager.clearAll();
         DeferredMiningManager.clearAll();
+        net.caravidro.wayaround.interaction.StructuralCollapseManager.clearAll();
         net.caravidro.wayaround.media.MediaTransferServer.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }
