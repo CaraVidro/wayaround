@@ -626,6 +626,22 @@ tasks.register('hydraulicLoadRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('hydraulicLoadRegressionTest') }
 
+// Unified power/torque/RPM operating-point invariants.
+tasks.register('mechanicalLoadRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.mechanical.MechanicalLoadTest'
+}
+tasks.named('check') { dependsOn tasks.named('mechanicalLoadRegressionTest') }
+
+// Progressive shaft/gear/bearing/belt physical-failure invariants.
+tasks.register('mechanicalFailureRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.mechanical.MechanicalFailureTest'
+}
+tasks.named('check') { dependsOn tasks.named('mechanicalFailureRegressionTest') }
+
 // Keep local audio backups out of shipped resources (the canonical OGG is retained).
 sourceSets.main.resources.exclude('**/*.local.ogg')
 

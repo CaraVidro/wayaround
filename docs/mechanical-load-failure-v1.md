@@ -59,11 +59,68 @@ It is intentionally dimensionless. It is a simulation signal, not a real-world e
 
 ## Current integrations
 
+### Universal operating point
+
+Rotational consumers now use `MechanicalLoad.OperatingPoint` as the shared
+answer to a request for work. It combines the existing source budget with:
+
+- requested/granted power;
+- required/available torque;
+- source RPM and safe RPM;
+- power fulfillment;
+- torque starvation;
+- the RPM that can actually reach the machine after starvation;
+- the shared operating state.
+
+The network still does not know whether the consumer is a fan, mill, press,
+pump, crusher or sawmill. Each machine calculates its own physical demand, then
+submits that demand to the same evaluator.
+
+The mechanical pump, crusher, sawmill, mechanical mill, mechanical fan and
+mechanical press now all use this common contract. This removes parallel
+`granted / requested` drive formulas and prevents a fast-but-weak source from
+being treated as universally capable.
+
+### Progressive physical failures
+
+`MechanicalFailure` turns shared stress into persistent physical damage instead
+of deleting hardware when a hidden durability value reaches zero.
+
+Transmission parts now carry failure state in the world:
+
+- shafts accumulate deformation and begin wobbling/misalignment;
+- exposed gears accumulate tooth damage and visually lose teeth;
+- gearboxes accumulate bearing damage, friction and visible wobble;
+- all three lose transmission efficiency as damage grows;
+- a truly ruined component becomes `SEIZED`, stays physically present, and
+  breaks the transmission graph until the player dismantles/replaces it;
+- failure state is persisted in NBT, so relogging is not a free repair.
+
+The shared progression is deliberately gradual:
+
+`HEALTHY → WORN → MISALIGNED/OVERHEATED → CRITICAL → SEIZED`
+
+### Material personality + remembered abuse
+
+Mechanical failure now consumes the shared `MaterialProperties` and
+`MaterialMemory` vocabulary instead of treating every shaft/gear/bearing as
+the same substance.
+
+- strength and ductility influence shaft yielding;
+- hardness and fatigue endurance influence gear-tooth survival;
+- friction and fatigue endurance influence bearing heat/damage;
+- vibration damping changes how strongly damage feeds back into the machine;
+- accumulated fatigue/deformation/heat/corrosion reduce future mechanical
+  integrity even after ordinary servicing;
+- the renderer uses the installed Assembly material and adds qualitative
+  surface-history cues;
+- failure sounds and critical particles vary with material/severity.
+
 ### Shafts and gearboxes
 
 Existing transmission block entities continue to own their real Assembly part state.
 
-Sustained mechanical load now uses the shared stress model to accelerate wear and failure probability. Poor condition, high load, heat and overspeed compound rather than acting as unrelated timers.
+Sustained mechanical load now uses the shared stress model to accelerate wear and progressive physical failure. Poor condition, high load, heat, vibration and overspeed compound rather than acting as unrelated timers.
 
 ### Pulley belts
 
@@ -76,9 +133,9 @@ Its available transmitted power is capped by:
 - wheel geometry;
 - transmission efficiency.
 
-Demand beyond the currently transmissible output becomes slip/starvation and increases drive wear.
+Demand beyond the currently transmissible output becomes progressive belt slip. Slip reduces transmitted RPM and power, increases visible belt flutter and accelerates wear.
 
-Existing belt rupture behavior remains in use.
+A belt no longer snaps merely because durability is low. Rupture is reserved for a belt that is both near-ruined and actively slipping under severe load.
 
 ### Mechanical pump
 
