@@ -23,14 +23,21 @@ submarines, structural debris, fire limits and dynamic lights.
 - More detailed fair cloud surfaces, flattened dark bases, taller convection
   towers and sheared anvils in developed storm banks. Slow shape rebuilds and
   one rebuild per frame keep the extra cells bounded.
-- Terrain shadows reuse the same regional cloud selection and solar projection.
-  Cached depth-tested one-block tiles follow individual exposed collision tops,
-  including uneven ground and the area beside the player. Short solar rays
-  reject local obstructions; the cloud search includes the solar displacement.
-  The 81×81 receiver grid refreshes five rows (405 columns) per tick, with a
-  soft 40-block edge and stronger opacity. No remote chunks are loaded. This
-  remains a terrain-top approximation, not a full shadow map for vertical walls,
-  irregular stairs or water.
+- Shadows project vertically below regional clouds, at every time of day,
+  without sun-angle offsets, horizon gating or solar obstruction rays. A broad
+  continuous canopy footprint fills the interior and feathers its boundary.
+  This deliberately approximates the cloud bank instead of matching individual
+  voxel gaps/Blue holes, so mesh rebuilds and distance detail cannot recreate it.
+- Depth-tested one-block receivers follow exposed terrain tops and fluid surfaces.
+  The 113×113 toroidal world-column cache retains overlapping tiles as the camera
+  moves; only newly entering columns are replaced. Five rows (565 columns) are
+  sampled per tick, completing a sweep in 23 ticks. All receiver opacity eases
+  toward its target each tick and interpolates between frames; new coverage fades
+  in, departing coverage fades out. No whole-grid camera/mesh reset.
+- Dense shadow opacity reaches 144/255; overlapping banks combine their coverage.
+  A soft 16-block camera-edge fade bounds drawing to 56 blocks. Only loaded
+  columns are sampled. This remains a surface-top approximation, not a complete
+  shadow map for vertical walls, irregular stair treads or displaced water waves.
 - Server-authoritative sparse internal flashes and occasional branching bolts.
   Internal light is localized to a patch of the cloud, with a secondary flicker.
   Bolts are cosmetic geometry: no vanilla immediate-thunder duplicate, entities,
@@ -54,16 +61,19 @@ Operator in ordinary Overworld with clouds and living weather enabled:
 
 Automatic storms require a sufficiently developed cloud. Commands bypass that
 strength threshold so they can be tested without waiting. Compare a desert,
-river/lake and ocean region. At `/time set noon`, walk over grass and stepped
-hills under a cloud: the shadow includes the player area and refreshes within
-17 ticks. At `/time set 2000` or `/time set 10000`, check lateral solar movement.
-Fly below and above banks to check that the far/top faces do not show through.
-At the horizon (solar elevation below 0.18), projection is disabled.
+river/lake and ocean region. Walk over grass and stepped hills under a bank,
+including its water edge; wait about two seconds for a newly entered area to
+complete sampling and fade in. Switch `/time set noon`, `/time set 2000` and
+`/time set midnight`: the footprint stays directly below the cloud. Stand still
+through mesh rebuilds and walk across camera recentering boundaries: coverage
+must remain continuous. Fly below/above banks to check the opaque outside shell.
 
 ## Validation
 
 Standalone `CloudStormMathTest` checks humidity/cover ordering, storm suppression,
-sound propagation, the flash envelope, downwind gust bias and distance bounds.
+sound propagation, the flash envelope, downwind gust bias, continuous canopy
+coverage, dense inner coverage, bounded receiver fading and gradual opacity
+convergence without overshoot.
 GitHub CI runs the full build, existing dedicated-server smoke and a separate
 client boot check. In-world silhouettes, terrain-shadow artifacts, audible
 mix and FPS still require manual visual/listening review.

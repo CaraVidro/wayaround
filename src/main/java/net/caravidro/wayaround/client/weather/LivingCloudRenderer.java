@@ -420,17 +420,6 @@ public final class LivingCloudRenderer {
         );
     }
 
-    /** Reuse cached silhouette columns for cloud-shadow holes and billows. */
-    public static float shadowDensity(LocalWeatherField.CloudCell cell,double x,double z){
-        CloudMesh mesh=CACHE.get(cell.id());
-        float density=cell.densityAt(x,z);
-        if(mesh==null||mesh.builtAt==Long.MIN_VALUE)return density;
-        int vx=(int)Math.round((x-cell.x())/mesh.builtVoxel),vz=(int)Math.round((z-cell.z())/mesh.builtVoxel);
-        for(int y=-MAX_VERTICAL_VOXELS;y<=MAX_VERTICAL_VOXELS;y++)
-            if(mesh.occupied.contains(packVoxel(vx,y,vz)))return density;
-        return 0;
-    }
-
     public static boolean isInsideCloud(
             Vec3 position
     ) {

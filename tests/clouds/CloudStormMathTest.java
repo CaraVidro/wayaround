@@ -2,12 +2,18 @@ import net.caravidro.wayaround.worldgen.weather.local.CloudStormMath;
 
 public final class CloudStormMathTest {
     public static void main(String[] args){
-        check(CloudStormMath.solarOffset(100,0,1)==0,"noon projection below cloud");
-        check(Math.abs(CloudStormMath.solarOffset(100,.6,.8)-75)<.001,"angled solar projection");
-        check(CloudStormMath.solarOffset(100,-.6,.8)<0,"opposite sun displacement");
-        check(CloudStormMath.shadowAlpha(.6,1,0,40)>90,"visible shadow at viewer, no camera exclusion");
-        check(CloudStormMath.shadowAlpha(.6,1,40,40)==0,"soft bounded shadow edge");
-        check(CloudStormMath.shadowAlpha(1,.1,0,40)==0,"no daytime shadow below horizon");
+        check(CloudStormMath.downwardShadowDensity(0,0,200)==1,"dense coverage directly below cloud");
+        check(CloudStormMath.downwardShadowDensity(100,0,200)==1,"continuous dense inner canopy");
+        check(CloudStormMath.downwardShadowDensity(220,0,200)==0,"outside canopy stays clear");
+        check(CloudStormMath.shadowAlpha(.2)>60,"thin canopy still visibly shades terrain");
+        check(CloudStormMath.shadowEdge(0,56)==1,"full shadow near player");
+        check(CloudStormMath.shadowEdge(56,56)==0,"soft bounded receiver edge");
+        double alpha=100;
+        double next=CloudStormMath.approachShadow(alpha,144);
+        check(next>alpha && next<110,"coverage change fades instead of recreating shadow");
+        for(int i=0;i<60;i++)alpha=CloudStormMath.approachShadow(alpha,144);
+        check(Math.abs(alpha-144)<.01,"fade converges without overshoot");
+        check(CloudStormMath.approachShadow(100,0)>80,"departing canopy does not vanish in one tick");
         int wet=0,dry=0;
         for(int i=0;i<10000;i++){
             double roll=i/10000.0;
