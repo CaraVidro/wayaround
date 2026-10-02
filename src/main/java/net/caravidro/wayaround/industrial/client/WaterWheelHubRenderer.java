@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -71,6 +72,12 @@ public final class WaterWheelHubRenderer
             int packedLight,
             int packedOverlay
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_RENDER
+                );
+
+        try {
         if (hub.getLevel() == null) {
             return;
         }
@@ -180,6 +187,13 @@ public final class WaterWheelHubRenderer
         }
 
         poseStack.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private void renderBody(
