@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ISI","ICI","III"],
+  "key": {
+    "I": {"item":"minecraft:iron_ingot"},
+    "S": {"item":"wayaround:mechanical_shaft"},
+    "C": {"item":"minecraft:copper_ingot"}
+  },
+  "result": {"id":"wayaround:mechanical_miner","count":1}
+}

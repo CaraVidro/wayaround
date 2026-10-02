@@ -13,6 +13,9 @@ import net.caravidro.wayaround.ecology.EcologyTimeCommand;
 import net.caravidro.wayaround.ecology.KrakenCommands;
 import net.caravidro.wayaround.ecology.KrakenManager;
 import net.caravidro.wayaround.industrial.IndustrialContent;
+import net.caravidro.wayaround.industrial.mining.DeferredMiningManager;
+import net.caravidro.wayaround.industrial.mining.MiningInteractionEvents;
+import net.caravidro.wayaround.industrial.mining.MiningCommands;
 import net.caravidro.wayaround.infinity.InfinityManager;
 import net.caravidro.wayaround.media.MediaContent;
 import net.caravidro.wayaround.nexus.NexusCommands;
@@ -103,6 +106,8 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(WarBallistics::onServerTick);
         NeoForge.EVENT_BUS.addListener(KrakenManager::tick);
+        NeoForge.EVENT_BUS.addListener(DeferredMiningManager::onServerTick);
+        NeoForge.EVENT_BUS.addListener(MiningInteractionEvents::onBlockBreak);
 
         // Comandos.
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
@@ -114,6 +119,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(EcologyTimeCommand::register);
         NeoForge.EVENT_BUS.addListener(KrakenCommands::register);
         NeoForge.EVENT_BUS.addListener(NexusCommands::register);
+        NeoForge.EVENT_BUS.addListener(MiningCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);
@@ -137,6 +143,7 @@ public class WayAround {
         JusticeSenseManager.clearTransient();
         EnhancedFireVisuals.clearAll();
         KrakenManager.clearAll();
+        DeferredMiningManager.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }
 }

@@ -994,5 +994,16 @@
   "block.wayaround.rotary_small_copper_lift_pipe": "Cano Elevador Rotativo de Cobre",
   "block.wayaround.rotary_iron_water_lift_pipe": "Cano Elevador Rotativo de Ferro",
   "block.wayaround.rotary_large_water_lift_pipe": "Cano Elevador Rotativo Grande",
-  "block.wayaround.rotary_steel_pressure_lift_pipe": "Cano Elevador Rotativo de Aço"
+  "block.wayaround.rotary_steel_pressure_lift_pipe": "Cano Elevador Rotativo de Aço",
+  "itemGroup.wayaround.mining_geology": "Mineração & Geologia",
+  "block.wayaround.iron_complex": "Complexo de Ferro",
+  "block.wayaround.gold_complex": "Complexo de Ouro",
+  "block.wayaround.copper_complex": "Complexo de Cobre",
+  "block.wayaround.coal_complex": "Complexo de Carvão",
+  "block.wayaround.mechanical_miner": "Mineradora Mecânica",
+  "item.wayaround.mining_drill_head": "Cabeça de Broca de Mineração",
+  "message.wayaround.mechanical_miner.status": "Mineradora: %s | alvo %s | %s RPM",
+  "message.wayaround.mechanical_miner.drill_ready": "broca instalada",
+  "message.wayaround.mechanical_miner.drill_missing": "sem broca",
+  "message.wayaround.mechanical_miner.no_target": "sem Complex"
 }

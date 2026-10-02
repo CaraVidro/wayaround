@@ -165,6 +165,20 @@ And the reverse conversion is now possible:
 - temporary hidden VISTA hints can appear before those secrets and are revoked when the real discovery is earned;
 - Antarctic cold, sky, lightmap, precipitation and wind ambience now begin gradually in the Southern Ocean instead of snapping at the continental biome boundary.
 
+### Mining regions & deferred caverns
+
+- rare deterministic Iron, Gold, Copper and Coal mining regions create real geological destinations instead of only uniform ore scatter;
+- regions may be open-pit or underground;
+- underground WayAround mine caverns stay latent while a player merely travels over them;
+- approaching the planned entrance, reaching the underground volume or digging close to it starts bounded staged generation;
+- generation order is structure → ore/Complex pass → mine supports/rails → mobs;
+- persistent hidden region anchors keep generation progress across saves;
+- Iron/Gold/Copper/Coal Complex blocks contain large but finite persistent reserves;
+- breaking a Complex extracts ore while leaving the deposit in place until its reserve is exhausted;
+- the Mechanical Miner uses one physical drill head and shared mechanical load/torque to extract adjacent Complex deposits over time;
+- /wayaroundmine locate and /wayaroundmine awaken provide focused development testing;
+- vanilla cave carvers are intentionally unchanged in this iteration; the deferred mining cavern layer is the safe performance prototype before touching base-game cave generation.
+
 ### Performance foundation
 
 - build/assemble now verify a lossless compacted JAR and keep the original whenever recompression would be larger;

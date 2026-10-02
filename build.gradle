@@ -626,6 +626,14 @@ tasks.register('fishHabitatRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('fishHabitatRegressionTest') }
 
+// Deterministic geological-region rarity, geometry and ore-family invariants.
+tasks.register('miningRegionRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.industrial.mining.MiningRegionRulesTest'
+}
+tasks.named('check') { dependsOn tasks.named('miningRegionRegressionTest') }
+
 // Keep local audio backups out of shipped resources (the canonical OGG is retained).
 sourceSets.main.resources.exclude('**/*.local.ogg')
 

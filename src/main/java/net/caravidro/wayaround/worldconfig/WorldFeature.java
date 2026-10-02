@@ -145,6 +145,12 @@ public enum WorldFeature {
             WorldFeatureCategory.SYSTEMS,
             "Cinematics",
             "Way Around camera locks, procedural cutscenes and cinematic poses."
+    ),
+
+    MINING_REGIONS(
+            WorldFeatureCategory.INDUSTRY,
+            "Mining & Geology",
+            "Rare mining regions, deferred mine caverns, ore Complex deposits and mechanical extraction."
     );
 
     private final WorldFeatureCategory category;

@@ -994,5 +994,16 @@
   "block.wayaround.rotary_small_copper_lift_pipe": "Rotary Small Copper Lift Pipe",
   "block.wayaround.rotary_iron_water_lift_pipe": "Rotary Iron Water Lift Pipe",
   "block.wayaround.rotary_large_water_lift_pipe": "Rotary Large Water Lift",
-  "block.wayaround.rotary_steel_pressure_lift_pipe": "Rotary Steel Pressure Lift Pipe"
+  "block.wayaround.rotary_steel_pressure_lift_pipe": "Rotary Steel Pressure Lift Pipe",
+  "itemGroup.wayaround.mining_geology": "Mining & Geology",
+  "block.wayaround.iron_complex": "Iron Complex",
+  "block.wayaround.gold_complex": "Gold Complex",
+  "block.wayaround.copper_complex": "Copper Complex",
+  "block.wayaround.coal_complex": "Coal Complex",
+  "block.wayaround.mechanical_miner": "Mechanical Miner",
+  "item.wayaround.mining_drill_head": "Mining Drill Head",
+  "message.wayaround.mechanical_miner.status": "Miner: %s | target %s | %s RPM",
+  "message.wayaround.mechanical_miner.drill_ready": "drill installed",
+  "message.wayaround.mechanical_miner.drill_missing": "missing drill",
+  "message.wayaround.mechanical_miner.no_target": "no Complex"
 }
