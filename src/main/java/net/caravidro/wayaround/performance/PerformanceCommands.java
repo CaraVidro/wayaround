@@ -15,6 +15,8 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
  * /wayperf start [seconds]
  * /wayperf stop
  * /wayperf report
+ * /wayperf baseline
+ * /wayperf compare
  * /wayperf dump
  * /wayperf status
  */
@@ -92,6 +94,28 @@ public final class PerformanceCommands {
                                                 .executes(
                                                         context ->
                                                                 report(
+                                                                        context.getSource()
+                                                                )
+                                                )
+                                )
+                                .then(
+                                        Commands.literal(
+                                                        "baseline"
+                                                )
+                                                .executes(
+                                                        context ->
+                                                                baseline(
+                                                                        context.getSource()
+                                                                )
+                                                )
+                                )
+                                .then(
+                                        Commands.literal(
+                                                        "compare"
+                                                )
+                                                .executes(
+                                                        context ->
+                                                                compare(
                                                                         context.getSource()
                                                                 )
                                                 )
@@ -190,6 +214,78 @@ public final class PerformanceCommands {
         return 1;
     }
 
+    private static int baseline(
+            CommandSourceStack source
+    ) {
+        PerformanceProfiler.Snapshot snapshot =
+                PerformanceProfiler.pinBaseline();
+
+        if (snapshot == null) {
+            source.sendFailure(
+                    Component.literal(
+                            "Nenhuma captura disponível para usar como baseline."
+                    )
+            );
+
+            return 0;
+        }
+
+        source.sendSuccess(
+                () -> Component.literal(
+                        "WAYPERF baseline fixada. Faça outra captura com /wayperf start e depois use /wayperf compare."
+                ),
+                false
+        );
+
+        return 1;
+    }
+
+    private static int compare(
+            CommandSourceStack source
+    ) {
+        PerformanceProfiler.Snapshot baseline =
+                PerformanceProfiler.baselineSnapshot();
+
+        PerformanceProfiler.Snapshot current =
+                PerformanceProfiler.reportSnapshot();
+
+        if (baseline == null) {
+            source.sendFailure(
+                    Component.literal(
+                            "Nenhuma baseline WAYPERF. Use /wayperf baseline após uma captura."
+                    )
+            );
+
+            return 0;
+        }
+
+        if (current == null) {
+            source.sendFailure(
+                    Component.literal(
+                            "Nenhuma captura atual para comparar."
+                    )
+            );
+
+            return 0;
+        }
+
+        for (String line :
+                PerformanceProfiler.formatComparison(
+                        baseline,
+                        current,
+                        12
+                )) {
+            source.sendSuccess(
+                    () -> Component.literal(
+                            line
+                    ),
+                    false
+            );
+        }
+
+        return 1;
+    }
+
     private static int dump(
             CommandSourceStack source
     ) {
@@ -260,7 +356,7 @@ public final class PerformanceCommands {
                 != null) {
             source.sendSuccess(
                     () -> Component.literal(
-                            "WAYPERF parado | existe uma captura pronta. Use /wayperf report ou /wayperf dump."
+                            "WAYPERF parado | captura pronta. Use /wayperf report, /wayperf baseline, /wayperf compare ou /wayperf dump."
                     ),
                     false
             );

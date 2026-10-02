@@ -30,6 +30,7 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 public final class PerformanceProfiler {
 
     public enum Section {
+        SERVER_TICK("Whole server tick"),
         ECOLOGY_SUCCESSION("Ecology succession"),
         FAUNA_AI("Fauna AI"),
         MARINE_AI("Marine interactions"),
@@ -60,6 +61,13 @@ public final class PerformanceProfiler {
     }
 
     private static final class Counter {
+        /*
+         * Log2 nanosecond histogram. This gives useful p95/p99 numbers without
+         * retaining individual samples or allocating during a profiled call.
+         */
+        private static final int HISTOGRAM_BUCKETS =
+                64;
+
         private final LongAdder calls =
                 new LongAdder();
 
@@ -72,25 +80,126 @@ public final class PerformanceProfiler {
                         0L
                 );
 
+        private final LongAdder[] histogram =
+                new LongAdder[
+                        HISTOGRAM_BUCKETS
+                ];
+
+        Counter() {
+            for (int index = 0;
+                 index < histogram.length;
+                 index++) {
+                histogram[index] =
+                        new LongAdder();
+            }
+        }
+
         void add(long nanos) {
+            long bounded =
+                    Math.max(
+                            1L,
+                            nanos
+                    );
+
             calls.increment();
-            totalNanos.add(nanos);
-            maxNanos.accumulate(nanos);
+            totalNanos.add(
+                    bounded
+            );
+            maxNanos.accumulate(
+                    bounded
+            );
+
+            int bucket =
+                    63
+                            - Long.numberOfLeadingZeros(
+                            bounded
+                    );
+
+            histogram[
+                    Math.min(
+                            histogram.length - 1,
+                            bucket
+                    )
+            ].increment();
         }
 
         SectionSnapshot snapshot(Section section) {
+            long callCount =
+                    calls.sum();
+
             return new SectionSnapshot(
                     section,
-                    calls.sum(),
+                    callCount,
                     totalNanos.sum(),
-                    maxNanos.get()
+                    maxNanos.get(),
+                    percentileNanos(
+                            callCount,
+                            0.95
+                    ),
+                    percentileNanos(
+                            callCount,
+                            0.99
+                    )
             );
+        }
+
+        private long percentileNanos(
+                long callCount,
+                double percentile
+        ) {
+            if (callCount <= 0L) {
+                return 0L;
+            }
+
+            long target =
+                    Math.max(
+                            1L,
+                            (long) Math.ceil(
+                                    callCount
+                                            * percentile
+                            )
+                    );
+
+            long seen =
+                    0L;
+
+            for (int bucket = 0;
+                 bucket < histogram.length;
+                 bucket++) {
+
+                seen +=
+                        histogram[
+                                bucket
+                        ].sum();
+
+                if (seen >= target) {
+                    if (bucket >= 62) {
+                        return Long.MAX_VALUE;
+                    }
+
+                    /*
+                     * Return the upper edge of the bucket. Percentiles are
+                     * intentionally approximate; maxima stay exact.
+                     */
+                    return 1L
+                            << (
+                            bucket + 1
+                    );
+                }
+            }
+
+            return maxNanos.get();
         }
 
         void reset() {
             calls.reset();
             totalNanos.reset();
             maxNanos.reset();
+
+            for (LongAdder bucket :
+                    histogram) {
+                bucket.reset();
+            }
         }
     }
 
@@ -98,7 +207,9 @@ public final class PerformanceProfiler {
             Section section,
             long calls,
             long totalNanos,
-            long maxNanos
+            long maxNanos,
+            long p95Nanos,
+            long p99Nanos
     ) {
         public double totalMillis() {
             return totalNanos / 1_000_000.0;
@@ -114,10 +225,31 @@ public final class PerformanceProfiler {
             return maxNanos / 1_000_000.0;
         }
 
+        public double p95Millis() {
+            return p95Nanos / 1_000_000.0;
+        }
+
+        public double p99Millis() {
+            return p99Nanos / 1_000_000.0;
+        }
+
         public double callsPerSecond(double elapsedSeconds) {
             return elapsedSeconds <= 0.0
                     ? 0.0
                     : calls / elapsedSeconds;
+        }
+
+        public double millisPerSecond(double elapsedSeconds) {
+            return elapsedSeconds <= 0.0
+                    ? 0.0
+                    : totalMillis()
+                            / elapsedSeconds;
+        }
+
+        public double wallSharePercent(double elapsedSeconds) {
+            return millisPerSecond(
+                    elapsedSeconds
+            ) / 10.0;
         }
     }
 
@@ -169,6 +301,10 @@ public final class PerformanceProfiler {
     private static long startedGcTimeMillis;
 
     private static volatile Snapshot lastSnapshot;
+
+    private static volatile Snapshot baselineSnapshot;
+
+    private static volatile long serverTickStartedAt;
 
     static {
         for (int index = 0;
@@ -228,6 +364,9 @@ public final class PerformanceProfiler {
         resetCounters();
 
         OBSERVED_SERVER_TICKS.reset();
+
+        serverTickStartedAt =
+                0L;
 
         startedNano =
                 System.nanoTime();
@@ -314,12 +453,34 @@ public final class PerformanceProfiler {
         return lastSnapshot;
     }
 
+    public static void onServerTickPre(
+            ServerTickEvent.Pre event
+    ) {
+        serverTickStartedAt =
+                begin(
+                        Section.SERVER_TICK
+                );
+    }
+
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
         if (!enabled) {
+            serverTickStartedAt =
+                    0L;
             return;
         }
+
+        long tickStartedAt =
+                serverTickStartedAt;
+
+        serverTickStartedAt =
+                0L;
+
+        end(
+                Section.SERVER_TICK,
+                tickStartedAt
+        );
 
         OBSERVED_SERVER_TICKS.increment();
 
@@ -428,19 +589,209 @@ public final class PerformanceProfiler {
             lines.add(
                     String.format(
                             Locale.ROOT,
-                            "%02d. %s | total %.3f ms | %d calls | avg %.2f us | max %.3f ms | %.1f/s",
+                            "%02d. %s | %.2f ms/s (%.2f%% wall) | %d calls | avg %.2f us | p95 %.3f ms | p99 %.3f ms | max %.3f ms | %.1f/s",
                             rank++,
                             stat.section()
                                     .label(),
-                            stat.totalMillis(),
+                            stat.millisPerSecond(
+                                    elapsedSeconds
+                            ),
+                            stat.wallSharePercent(
+                                    elapsedSeconds
+                            ),
                             stat.calls(),
                             stat.averageMicros(),
+                            stat.p95Millis(),
+                            stat.p99Millis(),
                             stat.maxMillis(),
                             stat.callsPerSecond(
                                     elapsedSeconds
                             )
                     )
             );
+        }
+
+        return lines;
+    }
+
+    public static Snapshot pinBaseline() {
+        Snapshot snapshot =
+                reportSnapshot();
+
+        baselineSnapshot =
+                snapshot;
+
+        return snapshot;
+    }
+
+    public static Snapshot baselineSnapshot() {
+        return baselineSnapshot;
+    }
+
+    public static List<String> formatComparison(
+            Snapshot baseline,
+            Snapshot current,
+            int limit
+    ) {
+        if (baseline == null
+                || current == null) {
+            return List.of(
+                    "Baseline ou captura atual ausente."
+            );
+        }
+
+        double baselineSeconds =
+                Math.max(
+                        0.000001,
+                        baseline.elapsedSeconds()
+                );
+
+        double currentSeconds =
+                Math.max(
+                        0.000001,
+                        current.elapsedSeconds()
+                );
+
+        record Delta(
+                SectionSnapshot baselineStat,
+                SectionSnapshot currentStat,
+                double baselineMsPerSecond,
+                double currentMsPerSecond,
+                double deltaPercent
+        ) {
+        }
+
+        List<Delta> deltas =
+                new ArrayList<>();
+
+        for (Section section :
+                Section.values()) {
+
+            SectionSnapshot baselineStat =
+                    baseline.sections()
+                            .get(
+                                    section.ordinal()
+                            );
+
+            SectionSnapshot currentStat =
+                    current.sections()
+                            .get(
+                                    section.ordinal()
+                            );
+
+            double before =
+                    baselineStat.millisPerSecond(
+                            baselineSeconds
+                    );
+
+            double after =
+                    currentStat.millisPerSecond(
+                            currentSeconds
+                    );
+
+            double deltaPercent =
+                    before <= 0.000001
+                            ? (
+                            after <= 0.000001
+                                    ? 0.0
+                                    : Double.POSITIVE_INFINITY
+                    )
+                            : (
+                            after - before
+                    ) / before * 100.0;
+
+            deltas.add(
+                    new Delta(
+                            baselineStat,
+                            currentStat,
+                            before,
+                            after,
+                            deltaPercent
+                    )
+            );
+        }
+
+        deltas.sort(
+                Comparator.comparingDouble(
+                                delta ->
+                                        Math.abs(
+                                                delta.currentMsPerSecond()
+                                                        - delta.baselineMsPerSecond()
+                                        )
+                        )
+                        .reversed()
+        );
+
+        List<String> lines =
+                new ArrayList<>();
+
+        lines.add(
+                String.format(
+                        Locale.ROOT,
+                        "WAYPERF compare | baseline %.2fs -> atual %.2fs | TPS %.2f -> %.2f | heap %+.2f -> %+.2f MiB",
+                        baselineSeconds,
+                        currentSeconds,
+                        baseline.estimatedTps(),
+                        current.estimatedTps(),
+                        baseline.heapDeltaMiB(),
+                        current.heapDeltaMiB()
+                )
+        );
+
+        int emitted =
+                0;
+
+        for (Delta delta :
+                deltas) {
+
+            if (delta.baselineStat().calls() == 0L
+                    && delta.currentStat().calls() == 0L) {
+                continue;
+            }
+
+            String percent =
+                    Double.isFinite(
+                            delta.deltaPercent()
+                    )
+                            ? String.format(
+                            Locale.ROOT,
+                            "%+.1f%%",
+                            delta.deltaPercent()
+                    )
+                            : "novo";
+
+            lines.add(
+                    String.format(
+                            Locale.ROOT,
+                            "%s | %.3f -> %.3f ms/s (%s) | p95 %.3f -> %.3f ms | calls/s %.1f -> %.1f",
+                            delta.currentStat()
+                                    .section()
+                                    .label(),
+                            delta.baselineMsPerSecond(),
+                            delta.currentMsPerSecond(),
+                            percent,
+                            delta.baselineStat()
+                                    .p95Millis(),
+                            delta.currentStat()
+                                    .p95Millis(),
+                            delta.baselineStat()
+                                    .callsPerSecond(
+                                            baselineSeconds
+                                    ),
+                            delta.currentStat()
+                                    .callsPerSecond(
+                                            currentSeconds
+                                    )
+                    )
+            );
+
+            if (++emitted
+                    >= Math.max(
+                    1,
+                    limit
+            )) {
+                break;
+            }
         }
 
         return lines;
@@ -488,7 +839,7 @@ public final class PerformanceProfiler {
                 );
 
         csv.append(
-                "type,name,value,total_ms,calls,avg_us,max_ms,calls_per_second\n"
+                "type,name,value,total_ms,calls,avg_us,p95_ms,p99_ms,max_ms,calls_per_second,ms_per_second,wall_share_percent\n"
         );
 
         csv.append(
@@ -614,6 +965,18 @@ public final class PerformanceProfiler {
                     ','
             ).append(
                     format(
+                            stat.p95Millis()
+                    )
+            ).append(
+                    ','
+            ).append(
+                    format(
+                            stat.p99Millis()
+                    )
+            ).append(
+                    ','
+            ).append(
+                    format(
                             stat.maxMillis()
                     )
             ).append(
@@ -621,6 +984,22 @@ public final class PerformanceProfiler {
             ).append(
                     format(
                             stat.callsPerSecond(
+                                    elapsedSeconds
+                            )
+                    )
+            ).append(
+                    ','
+            ).append(
+                    format(
+                            stat.millisPerSecond(
+                                    elapsedSeconds
+                            )
+                    )
+            ).append(
+                    ','
+            ).append(
+                    format(
+                            stat.wallSharePercent(
                                     elapsedSeconds
                             )
                     )

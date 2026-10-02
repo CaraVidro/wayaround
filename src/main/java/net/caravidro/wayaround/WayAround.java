@@ -115,6 +115,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(InfinityManager::onServerTick);
         NeoForge.EVENT_BUS.addListener(WarBallistics::onServerTick);
         NeoForge.EVENT_BUS.addListener(KrakenManager::tick);
+        NeoForge.EVENT_BUS.addListener(PerformanceProfiler::onServerTickPre);
         NeoForge.EVENT_BUS.addListener(PerformanceProfiler::onServerTick);
 
         // Comandos.
