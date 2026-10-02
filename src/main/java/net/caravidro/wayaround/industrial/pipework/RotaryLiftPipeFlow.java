@@ -92,7 +92,7 @@ public final class RotaryLiftPipeFlow {
         float requiredTorque =
                 workingLoad
                         ? 0.16F
-                                + familyScale * 0.34F
+                                + familyScale * 0.25F
                         : 0.045F;
 
         MechanicalLoad.OperatingPoint operating =
