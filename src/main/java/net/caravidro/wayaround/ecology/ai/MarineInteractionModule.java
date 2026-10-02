@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.ecology.ai;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.List;
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -75,6 +76,12 @@ public final class MarineInteractionModule {
     public static void tickSeagulls(
             ServerLevel level
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MARINE_AI
+                );
+
+        try {
         IntOpenHashSet touched =
                 new IntOpenHashSet(
                         192
@@ -113,6 +120,13 @@ public final class MarineInteractionModule {
                     break outer;
                 }
             }
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MARINE_AI,
+                    wayperfStartedAt
+            );
         }
     }
 
