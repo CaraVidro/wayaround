@@ -69,6 +69,14 @@ public final class BlizzardManager {
         private long actualEndTick =
                 -1L;
 
+        /*
+         * Several systems ask for the same storm many times in one server
+         * tick (snow accumulation, player sync, visuals). Avoid recalculating
+         * center/radius and allocating a fresh Vec3 for identical gameTime.
+         */
+        private long lastUpdateTick =
+                Long.MIN_VALUE;
+
         private Blizzard(
                 ResourceKey<Level> dimension,
                 Vec3 center,
@@ -189,6 +197,13 @@ public final class BlizzardManager {
         public void update(
                 long gameTime
         ) {
+            if (lastUpdateTick
+                    == gameTime) {
+                return;
+            }
+
+            lastUpdateTick =
+                    gameTime;
 
             long elapsed =
                     Math.max(
@@ -274,10 +289,16 @@ public final class BlizzardManager {
                             *
                             elapsed;
 
-            return originCenter.add(
-                    movementDirection.scale(
-                            distance
-                    )
+            return new Vec3(
+                    originCenter.x
+                            + movementDirection.x
+                                    * distance,
+                    originCenter.y
+                            + movementDirection.y
+                                    * distance,
+                    originCenter.z
+                            + movementDirection.z
+                                    * distance
             );
         }
 
