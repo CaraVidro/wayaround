@@ -184,7 +184,9 @@ public final class MechanicalPressBlockEntity
 
         MechanicalLoad.OperatingPoint operating =
                 MechanicalLoad.operate(
-                        source,
+                        creative
+                                ? null
+                                : source,
                         START_POWER,
                         START_TORQUE,
                         SAFE_RPM,
