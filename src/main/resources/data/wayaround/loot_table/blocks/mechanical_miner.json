@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {"type":"minecraft:item","name":"wayaround:mechanical_miner"}
+      ],
+      "conditions": [
+        {"condition":"minecraft:survives_explosion"}
+      ]
+    }
+  ],
+  "random_sequence": "wayaround:blocks/mechanical_miner"
+}
