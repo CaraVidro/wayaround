@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.voice;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +28,12 @@ public final class VoiceServer {
             ServerPlayer sender,
             byte[] pcm
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.VOICE
+                );
+
+        try {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.VOICE_CHAT
         )) {
@@ -113,6 +120,13 @@ public final class VoiceServer {
                 pcm,
                 false
         );
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.VOICE,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private static void relayProjectedGhost(
