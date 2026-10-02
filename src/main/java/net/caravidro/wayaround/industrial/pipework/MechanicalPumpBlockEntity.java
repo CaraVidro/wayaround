@@ -54,6 +54,10 @@ public final class MechanicalPumpBlockEntity
     private float flowPerTick;
     private float load;
     private float vibration;
+    private float cavitation;
+    private float backpressure;
+    private float intakeFulfillment = 1.0F;
+    private float dischargeFulfillment = 1.0F;
     private boolean stalled;
 
     public MechanicalPumpBlockEntity(
@@ -89,6 +93,22 @@ public final class MechanicalPumpBlockEntity
 
     public float vibration() {
         return vibration;
+    }
+
+    public float cavitation() {
+        return cavitation;
+    }
+
+    public float backpressure() {
+        return backpressure;
+    }
+
+    public float intakeFulfillment() {
+        return intakeFulfillment;
+    }
+
+    public float dischargeFulfillment() {
+        return dischargeFulfillment;
     }
 
     public int bufferAmount() {
@@ -168,70 +188,96 @@ public final class MechanicalPumpBlockEntity
         IRotationalPower source =
                 bestSource(facing);
 
+        float driveRpm =
+                source != null
+                        && source.active()
+                        ? source.rpm()
+                        : rpm;
+
+        float requestedFlow =
+                Math.min(
+                        MAX_MACHINE_FLOW,
+                        Math.min(
+                                hydraulic.flowPerTick(),
+                                Math.abs(driveRpm)
+                                        * 14.0F
+                                        * (
+                                        0.55F
+                                                + condition * 0.45F
+                                )
+                        )
+                );
+
+        HydraulicLoad.Demand hydraulicDemand =
+                HydraulicLoad.evaluate(
+                        driveRpm,
+                        condition,
+                        hydraulic.flowPerTick(),
+                        hydraulic.pressureBar(),
+                        requestedFlow,
+                        cavitation,
+                        backpressure
+                );
+
         float requested =
-                BASE_POWER_DRAW
-                        + hydraulic.flowPerTick()
-                                / 1800.0F
-                                * 1.1F;
+                Math.max(
+                        BASE_POWER_DRAW,
+                        hydraulicDemand.requiredPower()
+                                + 0.20F
+                );
 
         float requiredTorque =
                 discharge == null
                         ? 0.0F
-                        : 0.35F
-                                + hydraulic.pressureBar()
-                                        * 0.11F
-                                + hydraulic.flowPerTick()
-                                        / (float) MAX_MACHINE_FLOW
-                                        * 0.75F;
+                        : hydraulicDemand.requiredTorque();
 
-        MechanicalLoad.Demand demand =
-                MechanicalLoad.sample(
-                        source,
+        IRotationalPower engagedSource =
+                hasImpeller()
+                        && discharge != null
+                        ? source
+                        : null;
+
+        MechanicalLoad.OperatingPoint operating =
+                MechanicalLoad.operate(
+                        engagedSource,
                         requested,
                         requiredTorque,
-                        72.0F
+                        72.0F,
+                        Math.min(
+                                1.25F,
+                                hydraulicDemand.pressureBar()
+                                        / Math.max(
+                                        1.0F,
+                                        hydraulic.pressureBar()
+                                )
+                        ),
+                        Math.max(
+                                vibration,
+                                hydraulicDemand.vibration()
+                        ),
+                        condition
                 );
 
-        float granted = 0.0F;
-        float targetRpm = 0.0F;
+        MechanicalLoad.Demand demand =
+                operating.demand();
+
+        float granted =
+                operating.grantedPower();
+
+        load =
+                operating.fulfillment();
 
         stalled =
                 !hasImpeller()
                         || condition < 0.12F
                         || discharge == null
                         || hydraulic.flowPerTick() <= 0
-                        || (source != null
-                        && demand.torqueStarved());
+                        || operating.torqueStarved();
 
-        if (source != null
-                && source.active()
-                && hasImpeller()
-                && discharge != null) {
-            granted =
-                    source.consumePower(
-                            requested
-                    );
-
-            load =
-                    MechanicalLoad.fulfillment(
-                            requested,
-                            granted
-                    );
-
-            if (!stalled
-                    && granted > 0.01F) {
-                targetRpm =
-                        source.rpm()
-                                * Mth.clamp(
-                                granted
-                                        / requested,
-                                0.0F,
-                                1.0F
-                        );
-            }
-        } else {
-            load = 0.0F;
-        }
+        float targetRpm =
+                stalled
+                        ? 0.0F
+                        : operating.targetRpm();
 
         rpm +=
                 (targetRpm - rpm)
@@ -246,63 +292,110 @@ public final class MechanicalPumpBlockEntity
                         + rpm * 0.30F)
                         % 360.0F;
 
-        float desiredPressure =
-                Math.abs(rpm)
-                        * 0.13F
-                        * (0.65F + condition * 0.35F);
+        float actualRequestedFlow =
+                Math.min(
+                        MAX_MACHINE_FLOW,
+                        Math.min(
+                                hydraulic.flowPerTick(),
+                                Math.abs(rpm)
+                                        * 14.0F
+                                        * (
+                                        0.55F
+                                                + condition * 0.45F
+                                )
+                        )
+                );
+
+        HydraulicLoad.Demand actualHydraulic =
+                HydraulicLoad.evaluate(
+                        rpm,
+                        condition,
+                        hydraulic.flowPerTick(),
+                        hydraulic.pressureBar(),
+                        actualRequestedFlow,
+                        cavitation,
+                        backpressure
+                );
 
         pressureBar =
                 discharge == null
                         ? 0.0F
-                        : Math.min(
-                        desiredPressure,
-                        hydraulic.pressureBar()
-                );
+                        : actualHydraulic.pressureBar()
+                                * Mth.clamp(
+                                operating.fulfillment(),
+                                0.0F,
+                                1.0F
+                        );
 
         vibration =
                 Mth.clamp(
-                        Math.max(
-                                0.0F,
-                                desiredPressure
-                                        - hydraulic.pressureBar()
+                        actualHydraulic.vibration()
+                                + (
+                                1.0F
+                                        - condition
                         )
-                                / 12.0F
-                                + (1.0F - condition)
                                         * load
-                                        * 0.55F
-                                + (source != null
+                                        * 0.32F
+                                + (
+                                source != null
                                         && source.active()
                                         && demand.torqueStarved()
                                         ? 0.35F
-                                        : 0.0F)
+                                        : 0.0F
+                        )
                                 + demand.overspeed()
                                         * 0.18F,
                         0.0F,
-                        1.0F
+                        1.5F
                 );
 
+        if (discharge != null
+                && pressureBar > 0.01F
+                && Math.floorMod(
+                level.getGameTime()
+                        + worldPosition.asLong(),
+                5
+        ) == 0) {
+            PipeFlow.applyPressurePulse(
+                    level,
+                    discharge,
+                    facing,
+                    pressureBar
+            );
+        }
+
         flowPerTick = 0.0F;
+
+        int availableBeforeIntake =
+                buffer.getAmount();
+
+        int intakeRequested =
+                0;
+
+        int intakeReceived =
+                0;
+
+        int dischargeAttempted =
+                0;
+
+        int dischargeAccepted =
+                0;
 
         if (!stalled
                 && Math.abs(rpm) >= MIN_WORK_RPM
                 && granted > 0.01F) {
 
-            int rpmFlow =
-                    Math.max(
-                            1,
-                            Math.round(
-                                    Math.abs(rpm)
-                                            * 14.0F
-                                            * (0.55F + condition * 0.45F)
-                            )
-                    );
-
             int limit =
-                    Math.min(
-                            MAX_MACHINE_FLOW,
+                    Math.max(
+                            0,
                             Math.min(
-                                    hydraulic.flowPerTick(),
-                                    rpmFlow
+                                    MAX_MACHINE_FLOW,
+                                    Math.min(
+                                            hydraulic.flowPerTick(),
+                                            Math.round(
+                                                    actualHydraulic.effectiveFlow()
+                                            )
+                                    )
                             )
                     );
 
@@ -324,6 +417,9 @@ public final class MechanicalPumpBlockEntity
                                         : limit
                         );
 
+                intakeRequested =
+                        intakeLimit;
+
                 FluidStack pulled =
                         PipeFlow.pullForMachine(
                                 level,
@@ -335,11 +431,22 @@ public final class MechanicalPumpBlockEntity
                                 buffer
                         );
 
-                mergeBuffer(pulled);
+                intakeReceived =
+                        pulled.getAmount();
+
+                mergeBuffer(
+                        pulled
+                );
             }
 
             if (!buffer.isEmpty()
                     && limit > 0) {
+
+                dischargeAttempted =
+                        Math.min(
+                                limit,
+                                buffer.getAmount()
+                        );
 
                 int pushed =
                         PipeFlow.pushFromMachine(
@@ -347,15 +454,20 @@ public final class MechanicalPumpBlockEntity
                                 discharge,
                                 facing,
                                 buffer,
-                                Math.min(
-                                        limit,
-                                        buffer.getAmount()
-                                )
+                                dischargeAttempted
                         );
 
+                dischargeAccepted =
+                        pushed;
+
                 if (pushed > 0) {
-                    buffer.shrink(pushed);
-                    flowPerTick = pushed;
+                    buffer.shrink(
+                            pushed
+                    );
+
+                    flowPerTick =
+                            pushed;
+
                     wearImpeller(
                             pushed
                                     / (float) MAX_MACHINE_FLOW
@@ -363,6 +475,11 @@ public final class MechanicalPumpBlockEntity
                                     * Math.max(
                                     0.4F,
                                     load
+                            )
+                                    * (
+                                    1.0F
+                                            + actualHydraulic.hydraulicStress()
+                                                    * 0.35F
                             )
                     );
 
@@ -387,6 +504,129 @@ public final class MechanicalPumpBlockEntity
                     }
                 }
             }
+
+            int suppliedToPump =
+                    Math.min(
+                            Math.max(
+                                    0,
+                                    Math.round(
+                                            actualHydraulic.effectiveFlow()
+                                    )
+                            ),
+                            availableBeforeIntake
+                                    + intakeReceived
+                    );
+
+            float bufferFill =
+                    buffer.getAmount()
+                            / (float) BUFFER_CAPACITY;
+
+            float cavitationTarget =
+                    HydraulicLoad.cavitationTarget(
+                            rpm,
+                            actualHydraulic.effectiveFlow(),
+                            suppliedToPump,
+                            bufferFill
+                    );
+
+            float backpressureTarget =
+                    HydraulicLoad.backpressureTarget(
+                            dischargeAttempted,
+                            dischargeAccepted,
+                            bufferFill
+                    );
+
+            cavitation +=
+                    (
+                            cavitationTarget
+                                    - cavitation
+                    )
+                            * 0.28F;
+
+            backpressure +=
+                    (
+                            backpressureTarget
+                                    - backpressure
+                    )
+                            * 0.24F;
+
+            cavitation =
+                    Mth.clamp(
+                            cavitation,
+                            0.0F,
+                            1.0F
+                    );
+
+            backpressure =
+                    Mth.clamp(
+                            backpressure,
+                            0.0F,
+                            1.0F
+                    );
+
+            intakeFulfillment =
+                    actualHydraulic.effectiveFlow() <= 0.001F
+                            ? 1.0F
+                            : Mth.clamp(
+                            suppliedToPump
+                                    / actualHydraulic.effectiveFlow(),
+                            0.0F,
+                            1.0F
+                    );
+
+            dischargeFulfillment =
+                    dischargeAttempted <= 0
+                            ? 1.0F
+                            : Mth.clamp(
+                            dischargeAccepted
+                                    / (float) dischargeAttempted,
+                            0.0F,
+                            1.0F
+                    );
+
+            if (Math.floorMod(
+                    level.getGameTime()
+                            + worldPosition.asLong(),
+                    20
+            ) == 0
+                    && Math.abs(rpm) >= MIN_WORK_RPM) {
+
+                wearImpeller(
+                        0.00008F
+                                * (
+                                1.0F
+                                        + actualHydraulic.hydraulicStress()
+                                                * 1.35F
+                                        + cavitation * 2.2F
+                                        + backpressure * 0.75F
+                        )
+                );
+
+                if (cavitation > 0.25F) {
+                    level.playSound(
+                            null,
+                            worldPosition,
+                            SoundEvents.BUBBLE_COLUMN_BUBBLE_POP,
+                            SoundSource.BLOCKS,
+                            0.18F
+                                    + cavitation * 0.20F,
+                            0.72F
+                                    + cavitation * 0.36F
+                    );
+                }
+            }
+        } else {
+            cavitation *=
+                    0.88F;
+
+            backpressure *=
+                    0.94F;
+
+            intakeFulfillment =
+                    1.0F;
+
+            dischargeFulfillment =
+                    1.0F;
         }
 
         if (Math.floorMod(
@@ -513,7 +753,7 @@ public final class MechanicalPumpBlockEntity
                 )
                 : profile.durabilityScore()
                         * profile.performanceFactor()
-                        * AssemblyItemData.materialCondition(
+                        * AssemblyItemData.materialMechanicalIntegrity(
                         impeller
                 );
     }
@@ -610,6 +850,11 @@ public final class MechanicalPumpBlockEntity
                 AssemblyPartProfile.Kind.SHAFT,
                 0,
                 player.getRandom()
+        );
+
+        AssemblyItemData.materialMemoryOrCreate(
+                impeller,
+                level.getGameTime()
         );
 
         if (!player.getAbilities().instabuild) {
@@ -808,6 +1053,10 @@ public final class MechanicalPumpBlockEntity
         tag.putFloat("Flow", flowPerTick);
         tag.putFloat("Load", load);
         tag.putFloat("Vibration", vibration);
+        tag.putFloat("Cavitation", cavitation);
+        tag.putFloat("Backpressure", backpressure);
+        tag.putFloat("IntakeFulfillment", intakeFulfillment);
+        tag.putFloat("DischargeFulfillment", dischargeFulfillment);
         tag.putBoolean("Stalled", stalled);
     }
 
@@ -852,7 +1101,15 @@ public final class MechanicalPumpBlockEntity
         pressureBar = finite(tag.getFloat("Pressure"), 0.0F, 30.0F);
         flowPerTick = finite(tag.getFloat("Flow"), 0.0F, MAX_MACHINE_FLOW);
         load = finite(tag.getFloat("Load"), 0.0F, 4.0F);
-        vibration = finite(tag.getFloat("Vibration"), 0.0F, 1.0F);
+        vibration = finite(tag.getFloat("Vibration"), 0.0F, 1.5F);
+        cavitation = finite(tag.getFloat("Cavitation"), 0.0F, 1.0F);
+        backpressure = finite(tag.getFloat("Backpressure"), 0.0F, 1.0F);
+        intakeFulfillment = tag.contains("IntakeFulfillment")
+                ? finite(tag.getFloat("IntakeFulfillment"), 0.0F, 1.0F)
+                : 1.0F;
+        dischargeFulfillment = tag.contains("DischargeFulfillment")
+                ? finite(tag.getFloat("DischargeFulfillment"), 0.0F, 1.0F)
+                : 1.0F;
         stalled = tag.getBoolean("Stalled");
     }
 
