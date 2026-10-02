@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.worldgen.weather;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -45,6 +46,12 @@ public final class AntarcticBlizzard {
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.BLIZZARD
+                );
+
+        try {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.ANTARCTICA
         )) {
@@ -130,6 +137,13 @@ public final class AntarcticBlizzard {
 
             renderStormForPlayer(
                     player
+            );
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.BLIZZARD,
+                    wayperfStartedAt
             );
         }
     }
