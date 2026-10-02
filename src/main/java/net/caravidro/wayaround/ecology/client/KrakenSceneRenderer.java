@@ -222,7 +222,13 @@ public final class KrakenSceneRenderer {
         for(int[] f:faces)quad(b,m,camera,v[f[0]],v[f[1]],v[f[2]],v[f[3]],r,g,bl,alpha);
         return 6;
     }
+    private static void vertex(BufferBuilder b,Matrix4f m,Vec3 camera,Vec3 v,int r,int g,int blue,int alpha) {
+        b.addVertex(m,(float)(v.x-camera.x),(float)(v.y-camera.y),(float)(v.z-camera.z)).setColor(r,g,blue,Math.max(0,alpha));
+    }
     private static void quad(BufferBuilder b,Matrix4f m,Vec3 camera,Vec3 a,Vec3 c,Vec3 d,Vec3 e,int r,int g,int blue,int alpha) {
-        for(Vec3 v:new Vec3[]{a,c,d,e})b.addVertex(m,(float)(v.x-camera.x),(float)(v.y-camera.y),(float)(v.z-camera.z)).setColor(r,g,blue,Math.max(0,alpha));
+        vertex(b,m,camera,a,r,g,blue,alpha);
+        vertex(b,m,camera,c,r,g,blue,alpha);
+        vertex(b,m,camera,d,r,g,blue,alpha);
+        vertex(b,m,camera,e,r,g,blue,alpha);
     }
 }

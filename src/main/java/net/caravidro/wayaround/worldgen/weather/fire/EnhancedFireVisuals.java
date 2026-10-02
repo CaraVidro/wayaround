@@ -153,7 +153,16 @@ public final class EnhancedFireVisuals {
             for (ServerPlayer player : level.players()) {
                 if (player.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) < 96.0 * 96.0) { nearby = true; break; }
             }
-            if (nearby) updateFire(level, pos, entry.getValue());
+            if (nearby) {
+                FireState state=entry.getValue();
+                int elapsed=state.lastUpdate<0?STEP:(int)Math.min(80, level.getGameTime()-state.lastUpdate);
+                state.lastUpdate=level.getGameTime();
+                state.ageTicks+=Math.max(0,elapsed-STEP);
+                state.spreadCooldown-=Math.max(0,elapsed-STEP);
+                state.smokeCooldown-=Math.max(0,elapsed-STEP);
+                state.damageCooldown-=Math.max(0,elapsed-STEP);
+                updateFire(level,pos,state);
+            }
         }
         rotation = snapshot.isEmpty() ? 0 : (rotation + count) % snapshot.size();
     }
@@ -520,6 +529,8 @@ public final class EnhancedFireVisuals {
                             fuelPos.relative(
                                     direction
                             );
+
+                    if (firePos.distSqr(source.origin) > 24.0 * 24.0) continue;
 
                     if (!level.hasChunkAt(
                             firePos
@@ -1466,6 +1477,7 @@ public final class EnhancedFireVisuals {
         private final double z;
 
         private BlockPos origin;
+        private long lastUpdate=-1;
         private int ageTicks;
         private int damageCooldown;
         private int spreadCooldown =
