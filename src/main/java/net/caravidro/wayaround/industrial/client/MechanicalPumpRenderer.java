@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.client;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -45,6 +46,12 @@ public final class MechanicalPumpRenderer
             int light,
             int overlay
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.MACHINE_RENDER
+                );
+
+        try {
         double time =
                 pump.getLevel() == null
                         ? 0.0
@@ -258,6 +265,13 @@ public final class MechanicalPumpRenderer
         }
 
         pose.popPose();
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.MACHINE_RENDER,
+                    wayperfStartedAt
+            );
+        }
     }
 
     private void box(
