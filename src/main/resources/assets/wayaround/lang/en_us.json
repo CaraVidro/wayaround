@@ -990,5 +990,9 @@
   "container.wayaround.electronics.upgrade_compact": "%sx %s • %sx %s • %sx %s",
   "container.wayaround.electronics.expand_shift": "SHIFT + CLICK: EXPAND PCB",
   "message.wayaround.circuit_workbench.upgrade_missing": "PCB expansion aborted: all upgrade materials must be present before anything is consumed.",
-  "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s)."
+  "message.wayaround.circuit_workbench.upgraded": "PCB expanded to %sx%s (level %s).",
+  "block.wayaround.rotary_small_copper_lift_pipe": "Rotary Small Copper Lift Pipe",
+  "block.wayaround.rotary_iron_water_lift_pipe": "Rotary Iron Water Lift Pipe",
+  "block.wayaround.rotary_large_water_lift_pipe": "Rotary Large Water Lift",
+  "block.wayaround.rotary_steel_pressure_lift_pipe": "Rotary Steel Pressure Lift Pipe"
 }

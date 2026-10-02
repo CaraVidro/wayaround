@@ -95,3 +95,23 @@ route and can structurally damage pipe sections above their pressure rating.
 
 This still deliberately stops short of a complete pump curve, hydrostatic head
 solver or per-cell fluid dynamics.
+
+## Rotary lift pipe heads
+
+Four liquid-capable ordinary pipe families now have mechanically driven intake
+heads. The intake is always below the head; placement facing selects the
+discharge route.
+
+Small Copper, Iron Water and Steel Pressure heads are visual-volume devices:
+they leave the source block untouched, mark the bounded downstream route and
+emit terminal spray particles. They never fill receivers or create world fluid.
+
+The Large Water Main head is physical-volume. It removes one real 1000 mB
+source only when a valid all-large downstream route exists, buffers that bucket
+inside its existing PipeBlockEntity state, and recreates/accepts exactly the
+volume the terminal can receive. Giant and Colossal staged ducts may participate
+in that physical route.
+
+Only the intake head consumes rotation. Downstream pipe blocks stay passive;
+the implementation reuses bounded PipeFlow traversal rather than ticking one
+fluid object per segment.

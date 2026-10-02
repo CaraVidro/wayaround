@@ -1,0 +1,104 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "OR": [
+          {
+            "north": "true"
+          },
+          {
+            "south": "true"
+          },
+          {
+            "east": "true"
+          },
+          {
+            "west": "true"
+          },
+          {
+            "up": "true"
+          },
+          {
+            "down": "true"
+          }
+        ]
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_core"
+      }
+    },
+    {
+      "when": {
+        "north": "false",
+        "south": "false",
+        "east": "false",
+        "west": "false",
+        "up": "false",
+        "down": "false"
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_single"
+      }
+    },
+    {
+      "when": {
+        "south": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_arm",
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "north": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_arm",
+        "x": 0,
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "east": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_arm",
+        "x": 0,
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "west": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_arm",
+        "x": 0,
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "up": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_arm",
+        "x": 270,
+        "y": 0
+      }
+    },
+    {
+      "when": {
+        "down": "true"
+      },
+      "apply": {
+        "model": "wayaround:block/small_copper_pipe_arm",
+        "x": 90,
+        "y": 0
+      }
+    }
+  ]
+}

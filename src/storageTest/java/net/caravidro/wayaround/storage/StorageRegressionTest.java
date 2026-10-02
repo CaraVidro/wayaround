@@ -64,9 +64,46 @@ public final class StorageRegressionTest {
 
             Path linked = temp.resolve("linked");
             Files.createDirectories(linked);
-            Files.createSymbolicLink(linked.resolve("secret"), random.resolve("noise"));
-            fail(() -> ColdDirectoryArchive.freeze(linked, LIMIT), "symlink rejected");
-            check(Files.exists(random.resolve("noise")), "symlink target untouched");
+
+            /*
+             * Creating a symlink on Windows may require Developer Mode or the
+             * SeCreateSymbolicLinkPrivilege. That is an environment capability,
+             * not a WayAround archive failure. Exercise the rejection path when
+             * the host can create links; otherwise keep the rest of the storage
+             * regression suite meaningful instead of failing during test setup.
+             */
+            boolean symlinkCreated = false;
+
+            try {
+                Files.createSymbolicLink(
+                        linked.resolve("secret"),
+                        random.resolve("noise")
+                );
+
+                symlinkCreated = true;
+
+            } catch (UnsupportedOperationException
+                     | IOException
+                     | SecurityException unavailable) {
+
+                System.out.println(
+                        "SKIP: symbolic-link rejection check (host cannot create test symlink: "
+                                + unavailable.getClass().getSimpleName()
+                                + ")"
+                );
+            }
+
+            if (symlinkCreated) {
+                fail(
+                        () -> ColdDirectoryArchive.freeze(linked, LIMIT),
+                        "symlink rejected"
+                );
+
+                check(
+                        Files.exists(random.resolve("noise")),
+                        "symlink target untouched"
+                );
+            }
 
             for (int radius : new int[]{0, 1, 2, 22, 24, 128}) {
                 var scan = new IncrementalSquareScan(radius);

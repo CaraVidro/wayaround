@@ -786,6 +786,214 @@ public final class PipeFlow {
         }
     }
 
+    /**
+     * Narrow rotary lift heads use the pipe network as a visual conveyor only:
+     * mark every admitted segment and emit a terminal spray without draining a
+     * source block, filling a tank or placing a world-fluid block.
+     */
+    public static boolean visualFromMachine(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromMachine,
+            FluidStack fluid,
+            int visualStrength
+    ) {
+        if (root == null
+                || fluid.isEmpty()
+                || root.owner() != null
+                || !root.complete()) {
+            return false;
+        }
+
+        List<Outlet> outputs =
+                outlets(
+                        level,
+                        root,
+                        awayFromMachine
+                );
+
+        if (outputs.isEmpty()) {
+            return false;
+        }
+
+        Outlet outlet =
+                outputs.get(
+                        root.nextOutlet(
+                                outputs.size()
+                        )
+                );
+
+        FluidStack marking =
+                fluid.copyWithAmount(
+                        1
+                );
+
+        for (int index = 0;
+             index < outlet.path().size();
+             index++) {
+
+            PipeBlockEntity pipe =
+                    outlet.path()
+                            .get(index);
+
+            Direction direction =
+                    index + 1
+                            < outlet.path().size()
+                            ? Direction.getNearest(
+                            outlet.path()
+                                    .get(index + 1)
+                                    .getBlockPos()
+                                    .getX()
+                                    - pipe.getBlockPos()
+                                    .getX(),
+                            outlet.path()
+                                    .get(index + 1)
+                                    .getBlockPos()
+                                    .getY()
+                                    - pipe.getBlockPos()
+                                    .getY(),
+                            outlet.path()
+                                    .get(index + 1)
+                                    .getBlockPos()
+                                    .getZ()
+                                    - pipe.getBlockPos()
+                                    .getZ()
+                    )
+                            : outlet.direction();
+
+            pipe.markFlow(
+                    marking,
+                    direction
+            );
+        }
+
+        BlockPos end =
+                outlet.pipe()
+                        .getBlockPos()
+                        .relative(
+                                outlet.direction(),
+                                mouthDistance(
+                                        outlet.pipe()
+                                )
+                        );
+
+        int particles =
+                Math.clamp(
+                        3
+                                + visualStrength / 120,
+                        3,
+                        14
+                );
+
+        jet(
+                level,
+                end,
+                outlet.direction(),
+                fluid,
+                particles
+        );
+
+        return true;
+    }
+
+    public static boolean hasPhysicalWaterOutlet(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromMachine
+    ) {
+        if (root == null
+                || root.owner() != null
+                || !root.complete()) {
+            return false;
+        }
+
+        return outlets(
+                level,
+                root,
+                awayFromMachine
+        ).stream()
+                .anyMatch(
+                        PipeFlow::physicalWaterPath
+                );
+    }
+
+    /**
+     * Real-volume mode for large rotary lift heads. Only routes made entirely
+     * from physical-water conduits are admitted; this prevents a removed source
+     * bucket from silently turning into a cosmetic spray through a thin line.
+     */
+    public static int pushPhysicalWaterFromMachine(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromMachine,
+            FluidStack supplied,
+            int limit
+    ) {
+        if (root == null
+                || supplied.isEmpty()
+                || limit < 1000
+                || root.owner() != null
+                || !root.complete()) {
+            return 0;
+        }
+
+        List<Outlet> physical =
+                outlets(
+                        level,
+                        root,
+                        awayFromMachine
+                ).stream()
+                        .filter(
+                                PipeFlow::physicalWaterPath
+                        )
+                        .toList();
+
+        if (physical.isEmpty()) {
+            return 0;
+        }
+
+        Outlet outlet =
+                physical.get(
+                        root.nextOutlet(
+                                physical.size()
+                        )
+                );
+
+        return deliver(
+                level,
+                outlet,
+                supplied,
+                limit
+        );
+    }
+
+    private static boolean physicalWaterPath(
+            Outlet outlet
+    ) {
+        return outlet.path()
+                .stream()
+                .allMatch(
+                        PipeFlow::isPhysicalWaterConduit
+                );
+    }
+
+    private static boolean isPhysicalWaterConduit(
+            PipeBlockEntity pipe
+    ) {
+        BlockState state =
+                pipe.getBlockState();
+
+        if (state.getBlock()
+                instanceof LargePipeBlock) {
+            return true;
+        }
+
+        return state.getBlock()
+                instanceof IndustrialPipeBlock industrial
+                && industrial.spec()
+                        == PipeCatalog.LARGE_WATER_MAIN;
+    }
+
     private static int deliver(
             ServerLevel level,
             Outlet outlet,
@@ -852,15 +1060,9 @@ public final class PipeFlow {
                             IFluidHandler.FluidAction.EXECUTE
                     );
 
-        } else if (outlet.pipe()
-                .getBlockState()
-                .getBlock()
-                instanceof LargePipeBlock
-                || outlet.pipe()
-                .getBlockState()
-                .is(
-                        PipeworkContent.LARGE_WATER_MAIN.get()
-                )) {
+        } else if (isPhysicalWaterConduit(
+                outlet.pipe()
+        )) {
 
             if (fluid.getAmount() >= 1000
                     && limit >= 1000) {

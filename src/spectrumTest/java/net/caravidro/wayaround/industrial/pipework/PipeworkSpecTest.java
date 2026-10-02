@@ -10,6 +10,7 @@ public final class PipeworkSpecTest {
         mediumCompatibilityMatchesDesign();
         capacitiesStayOrdered();
         steamLineRetainsHighTemperatureRole();
+        rotaryWaterLiftModesStayConservative();
 
         System.out.println(
                 "Pipework specification regression tests passed"
@@ -111,6 +112,54 @@ public final class PipeworkSpecTest {
                 steam.maxTemperatureC()
                         > PipeCatalog.STEEL_PRESSURE.maxTemperatureC(),
                 "Insulated steam pipe should have the highest thermal rating"
+        );
+    }
+
+    private static void rotaryWaterLiftModesStayConservative() {
+        require(
+                RotaryLiftRules.supportsWaterLift(
+                        PipeCatalog.SMALL_COPPER
+                )
+                        && RotaryLiftRules.supportsWaterLift(
+                        PipeCatalog.IRON_WATER
+                )
+                        && RotaryLiftRules.supportsWaterLift(
+                        PipeCatalog.LARGE_WATER_MAIN
+                )
+                        && RotaryLiftRules.supportsWaterLift(
+                        PipeCatalog.STEEL_PRESSURE
+                ),
+                "Every liquid-capable ordinary pipe family may have a rotary water-lift head"
+        );
+
+        require(
+                !RotaryLiftRules.supportsWaterLift(
+                        PipeCatalog.THIN_GAS
+                )
+                        && !RotaryLiftRules.supportsWaterLift(
+                        PipeCatalog.INSULATED_STEAM
+                ),
+                "Gas/steam-only families must not silently become water pipes"
+        );
+
+        require(
+                RotaryLiftRules.mode(
+                        PipeCatalog.LARGE_WATER_MAIN
+                ) == RotaryLiftRules.TransferMode.PHYSICAL,
+                "Large Water Main is the real-volume rotary transfer family"
+        );
+
+        require(
+                RotaryLiftRules.mode(
+                        PipeCatalog.SMALL_COPPER
+                ) == RotaryLiftRules.TransferMode.VISUAL
+                        && RotaryLiftRules.mode(
+                        PipeCatalog.IRON_WATER
+                ) == RotaryLiftRules.TransferMode.VISUAL
+                        && RotaryLiftRules.mode(
+                        PipeCatalog.STEEL_PRESSURE
+                ) == RotaryLiftRules.TransferMode.VISUAL,
+                "Narrow rotary lift families remain particle-only and never duplicate/drain world water"
         );
     }
 

@@ -96,6 +96,10 @@ Adding the utility alone does not automatically hibernate another system.
   extraction byte limits, validation rejection, interrupted retirement recovery,
   checksum corruption, path traversal, symlink rejection, and complete center-out
   scans for radii 0, 1, 2, 22, 24 and 128.
+- Symlink rejection still runs on hosts capable of creating a test link. Windows
+  hosts without Developer Mode / symbolic-link privilege now skip only that
+  environment-dependent setup case instead of failing before WayAround archive
+  code is exercised.
 - Local tests use the actual Java implementation, without Minecraft or stubs.
 - Full Gradle compilation was attempted but this environment cannot reach
   `services.gradle.org` to fetch the configured Gradle 9.7.1 wrapper. Java 21 and

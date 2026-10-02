@@ -42,6 +42,33 @@ public final class PipeRenderer implements BlockEntityRenderer<PipeBlockEntity> 
             IndustrialRenderUtil.radialWheel(blocks,pose,buffers,light,overlay,Blocks.REDSTONE_BLOCK.defaultBlockState(),Blocks.IRON_BLOCK.defaultBlockState(),8,.22,.06);
             pose.popPose();
         }
+
+        if(pipe.getBlockState().getBlock() instanceof RotaryLiftPipeBlock lift){
+            pose.pushPose();
+            pose.translate(.5,.53,.5);
+            pose.mulPose(Axis.YP.rotationDegrees(pipe.rotaryLiftAngle()));
+
+            var body=lift.spec()==PipeCatalog.SMALL_COPPER
+                    ?Blocks.COPPER_BLOCK.defaultBlockState()
+                    :lift.spec()==PipeCatalog.LARGE_WATER_MAIN
+                    ?Blocks.IRON_BLOCK.defaultBlockState()
+                    :Blocks.POLISHED_ANDESITE.defaultBlockState();
+
+            var accent=lift.spec()==PipeCatalog.STEEL_PRESSURE
+                    ?Blocks.IRON_BLOCK.defaultBlockState()
+                    :Blocks.CUT_COPPER.defaultBlockState();
+
+            double radius=lift.spec()==PipeCatalog.LARGE_WATER_MAIN?.30:.22;
+            IndustrialRenderUtil.radialWheel(blocks,pose,buffers,light,overlay,body,accent,8,radius,.075);
+            IndustrialRenderUtil.cuboid(blocks,pose,buffers,light,overlay,accent,0,-.30,0,.10,.62,.10);
+
+            if(pipe.rotaryLiftTorqueStarved()){
+                double wobble=Math.sin((pipe.getLevel().getGameTime()+partial)*2.7)*.035;
+                pose.translate(wobble,0,-wobble);
+            }
+
+            pose.popPose();
+        }
         if(!(pipe.getBlockState().getBlock() instanceof LargePipeBlock duct)||!pipe.wet()||(pipe.hasValve()&&!pipe.open())||!lod.particles())return;
         var player=Minecraft.getInstance().player;if(player==null)return;
         double dx=player.getX()-pipe.getBlockPos().getX()-.5,dy=player.getEyeY()-pipe.getBlockPos().getY()-.5,dz=player.getZ()-pipe.getBlockPos().getZ()-.5;

@@ -46,6 +46,11 @@ Implemented in the development branch:
 - pump pressure propagates through the bounded PipeFlow route and can damage pipe sections above their pressure rating;
 - pipe current/peak hydraulic pressure persists for world consequences and diagnostics;
 - hydraulic regression coverage protects pressure-rating, cavitation and backpressure behavior;
+- rotary water-lift heads added for Small Copper, Iron Water, Steel Pressure and Large Water Main families;
+- narrow rotary lift heads propagate visual water/terminal spray without draining or creating liquid volume;
+- Rotary Large Water Lift conserves real 1000 mB source blocks through large-pipe/duct routes;
+- rotary heads consume shared mechanical power while downstream pipes remain passive bounded conduits;
+- Windows storage regression no longer fails merely because the host cannot create a test symbolic link; capable hosts still execute the security rejection check;
 - crusher demand integration;
 - sawmill shared load math;
 - GameTest coverage for power vs torque vs speed;
