@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.ecology.ai;
 
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.ecology.DeepOceanManager;
 
 import java.util.ArrayList;
@@ -461,6 +462,12 @@ public final class LivingFaunaManager {
     private static void tickAnimals(
             ServerLevel level
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.FAUNA_AI
+                );
+
+        try {
         /*
          * Lithium-style hot-path rule: use primitive IDs and streamless
          * filtering. UUID HashSet + candidates.stream().toList() used to
@@ -636,6 +643,13 @@ public final class LivingFaunaManager {
                     level,
                     animal,
                     group
+            );
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.FAUNA_AI,
+                    wayperfStartedAt
             );
         }
     }
@@ -853,6 +867,12 @@ public final class LivingFaunaManager {
     private static void tickFish(
             ServerLevel level
     ) {
+        long wayperfStartedAt =
+                PerformanceProfiler.begin(
+                        PerformanceProfiler.Section.FAUNA_AI
+                );
+
+        try {
         IntOpenHashSet touched =
                 new IntOpenHashSet(
                         MAX_FISH_PER_LEVEL * 2
@@ -1038,6 +1058,13 @@ public final class LivingFaunaManager {
                     break outer;
                 }
             }
+        }
+    
+        } finally {
+            PerformanceProfiler.end(
+                    PerformanceProfiler.Section.FAUNA_AI,
+                    wayperfStartedAt
+            );
         }
     }
 
