@@ -655,7 +655,7 @@ public final class VoskSpeechRecognizer {
     private static synchronized Model ensureModel() throws Exception {
         lastModelUseNanos = System.nanoTime();
         if (model != null) return model;
-        if (!isValidModelRoot(modelDirectory()) && ColdDirectoryArchive.isCold(modelDirectory())) {
+        if (ColdDirectoryArchive.isCold(modelDirectory())) {
             WayAround.LOGGER.info("[Voice/Storage] restoring local speech model");
             ColdDirectoryArchive.restore(modelDirectory(), MAX_MODEL_EXTRACTED_BYTES,
                     VoskSpeechRecognizer::isValidModelRoot);

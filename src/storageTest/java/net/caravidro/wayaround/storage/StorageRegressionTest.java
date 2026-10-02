@@ -35,6 +35,14 @@ public final class StorageRegressionTest {
             Files.writeString(temp.resolve("model.retiring/leftover"), "partial deletion");
             ColdDirectoryArchive.restore(model, LIMIT, p -> true);
             check(!Files.exists(temp.resolve("model.retiring")), "interrupted retirement recovers");
+            // A crash immediately after committing the warm directory can leave both copies.
+            Files.writeString(ColdDirectoryArchive.archive(model), "obsolete archive placeholder");
+            Files.createDirectories(temp.resolve("model.retiring"));
+            ColdDirectoryArchive.restore(model, LIMIT, p -> Files.exists(p.resolve("am/final.mdl")));
+            check(!ColdDirectoryArchive.isCold(model) && !Files.exists(temp.resolve("model.retiring")),
+                    "post-commit thaw interruption cleaned up");
+            check(Arrays.equals(original, Files.readAllBytes(model.resolve("am/final.mdl"))),
+                    "recovery keeps committed warm bytes");
 
             Path random = temp.resolve("random");
             Files.createDirectories(random);

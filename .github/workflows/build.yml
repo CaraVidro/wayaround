@@ -24,7 +24,7 @@ jobs:
       - name: Build with Gradle
         run: |
           chmod +x gradlew
-          ./gradlew build
+          ./gradlew build compactSourceArchive
 
       - name: Upload test build
         if: success()
@@ -32,4 +32,12 @@ jobs:
         with:
           name: wayaround-1.0.5
           path: build/libs/*.jar
+          if-no-files-found: error
+
+      - name: Upload compact source project
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wayaround-source-project
+          path: build/distributions/*-source-project.zip
           if-no-files-found: error
