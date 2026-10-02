@@ -198,8 +198,8 @@ public final class DownloadConsentContractTest {
                         "HttpURLConnection",
                         ".openConnection(",
                         ".openStream(",
-                        "BodyHandlers.ofFile(",
-                        "BodyHandlers.ofInputStream(",
+                        ".ofFile(",
+                        ".ofInputStream(",
                         "okhttp"
                 );
 
@@ -291,10 +291,10 @@ public final class DownloadConsentContractTest {
 
         check(
                 voskSource.contains(
-                        "BodyHandlers.ofInputStream()"
+                        ".ofInputStream()"
                 )
                         && !voskSource.contains(
-                        "BodyHandlers.ofFile("
+                        ".ofFile("
                 ),
                 "Vosk download is bounded before disk growth instead of unbounded ofFile"
         );
