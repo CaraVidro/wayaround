@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.network;
 
+import net.caravidro.wayaround.dream.DreamPayload;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
@@ -13,7 +14,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "22";
+            "23";
 
     private WayAroundNetwork() {
     }
@@ -448,6 +449,12 @@ public final class WayAroundNetwork {
                 DomainIntroS2CPayload.TYPE,
                 DomainIntroS2CPayload.STREAM_CODEC,
                 ClientPayloadBridge::handleDomainIntro
+        );
+
+        registrar.playToClient(
+                DreamPayload.TYPE,
+                DreamPayload.CODEC,
+                ClientPayloadBridge::handleDream
         );
     }
 }

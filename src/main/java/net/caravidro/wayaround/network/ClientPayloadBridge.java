@@ -3,6 +3,7 @@ package net.caravidro.wayaround.network;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import net.caravidro.wayaround.dream.DreamPayload;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
@@ -174,6 +175,10 @@ public final class ClientPayloadBridge {
 
         default void domainIntro(
                 DomainIntroS2CPayload payload
+        ) {}
+
+        default void dream(
+                DreamPayload payload
         ) {}
     }
 
@@ -612,5 +617,16 @@ public final class ClientPayloadBridge {
             IPayloadContext context
     ) {
         context.enqueueWork(() -> realtimeHandlers.domainIntro(payload));
+    }
+
+    public static void handleDream(
+            DreamPayload payload,
+            IPayloadContext context
+    ) {
+        context.enqueueWork(
+                () -> realtimeHandlers.dream(
+                        payload
+                )
+        );
     }
 }

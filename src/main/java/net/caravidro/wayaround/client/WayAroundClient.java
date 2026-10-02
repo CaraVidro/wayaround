@@ -2,6 +2,8 @@ package net.caravidro.wayaround.client;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.client.calving.ClientCalvingEffects;
+import net.caravidro.wayaround.dream.DreamPayload;
+import net.caravidro.wayaround.dream.client.DreamClientState;
 import net.caravidro.wayaround.media.broadcast.BroadcastEffect;
 import net.caravidro.wayaround.media.client.BroadcastAudioClient;
 import net.caravidro.wayaround.media.client.BroadcastClientState;
@@ -516,6 +518,15 @@ public final class WayAroundClient {
                                 payload.style(),
                                 payload.variant(),
                                 payload.durationTicks()
+                        );
+                    }
+
+                    @Override
+                    public void dream(
+                            DreamPayload payload
+                    ) {
+                        DreamClientState.receive(
+                                payload
                         );
                     }
                 }

@@ -28,8 +28,5 @@ public final class DreamContent {
         });
         bus.addListener((net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent event)->
                 event.put(PLAYER.get(),DreamPlayerEntity.attributes().build()));
-        bus.addListener((net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent event)->
-                event.registrar("1").playToClient(DreamPayload.TYPE,DreamPayload.CODEC,
-                        (payload,context)->context.enqueueWork(()->net.caravidro.wayaround.dream.client.DreamClientState.receive(payload))));
     }
 }
