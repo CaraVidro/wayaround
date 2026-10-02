@@ -960,7 +960,8 @@ public final class LivingCloudRenderer {
          * Scale voxel spacing with large banks to preserve the bounded grid
          * while fitting the enlarged silhouette without truncating its radius.
          */
-        return Math.max(BASE_VOXEL + giant * 3.55, radius / (MAX_HORIZONTAL_VOXELS - 1));
+        return Math.max(Math.max(BASE_VOXEL + giant * 3.55,
+                radius / (MAX_HORIZONTAL_VOXELS - 1)), verticalExtent(cell) / (MAX_VERTICAL_VOXELS - 1));
     }
 
     private static List<Lobe> lobes(
