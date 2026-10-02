@@ -5,7 +5,6 @@ import java.util.List;
 import net.caravidro.wayaround.voice.VoiceConstants;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -292,49 +291,13 @@ public final class VoiceSettingsScreen
     }
 
     private void requestModelInstallConsent() {
-        if (this.minecraft == null
-                || VoskSpeechRecognizer.isPreparing()) {
-            return;
-        }
-
-        if (VoskSpeechRecognizer.isModelInstalled()) {
-            VoskSpeechRecognizer.warmUpAsync();
-            return;
-        }
-
         /*
-         * Informed consent required by Modrinth:
-         * - what: Portuguese Vosk speech model
-         * - size: about 31 MB
-         * - source: alphacephei.com
-         * - destination: local Way Around config/model directory
-         * - purpose: offline/local speech recognition
-         *
-         * No network request is issued before the player chooses Yes.
+         * VoskSpeechRecognizer owns the confirmation dialog and keeps the
+         * actual HTTP install method private. That makes consent a structural
+         * prerequisite rather than a convention callers can accidentally skip.
          */
-        this.minecraft.setScreen(
-                new ConfirmScreen(
-                        accepted -> {
-                            if (this.minecraft == null) {
-                                return;
-                            }
-
-                            this.minecraft.setScreen(
-                                    this
-                            );
-
-                            if (accepted) {
-                                VoskSpeechRecognizer
-                                        .installWithUserConsentAsync();
-                            }
-                        },
-                        Component.literal(
-                                "Download Way Around speech model?"
-                        ),
-                        Component.literal(
-                                "Downloads about 31 MB from alphacephei.com and stores it locally for offline Portuguese speech recognition. No download occurs unless you choose Yes."
-                        )
-                )
+        VoskSpeechRecognizer.requestModelInstallConsent(
+                this
         );
     }
 

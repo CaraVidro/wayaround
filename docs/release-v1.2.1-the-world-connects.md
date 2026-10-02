@@ -179,6 +179,16 @@ And the reverse conversion is now possible:
 - /wayaroundmine locate and /wayaroundmine awaken provide focused development testing;
 - vanilla cave carvers are intentionally unchanged in this iteration; the deferred mining cavern layer is the safe performance prototype before touching base-game cave generation.
 
+### Modrinth informed-download safety gate
+
+- optional Vosk model installation now owns its consent dialog internally; there is no public direct-to-HTTP installer;
+- the Vosk source is pinned to HTTPS `alphacephei.com`, redirects are rejected, and the response body is byte-bounded before it can grow a file on disk;
+- VHS/TV recording downloads now use a short-lived one-time offer containing recording ID, exact byte size and token;
+- unsolicited recording offers are ignored, and both server and client require the exact approved ID/size/token before file chunks may flow or touch disk;
+- stale offers expire and server transfer state is cleared on shutdown;
+- NeoForge `updateJSONURL` remains disabled, so WayAround has no automatic mod-JAR updater;
+- `downloadConsentRegressionTest` is part of `check` and scans runtime sources for newly introduced direct network/download sinks.
+
 ### Performance foundation
 
 - build/assemble now verify a lossless compacted JAR and keep the original whenever recompression would be larger;

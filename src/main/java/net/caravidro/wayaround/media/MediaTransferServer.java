@@ -4,6 +4,7 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,6 +16,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.MediaNetworkLimits;
 import net.caravidro.wayaround.network.MediaRecordingChunkS2CPayload;
 import net.caravidro.wayaround.network.MediaRecordingOfferS2CPayload;
+import net.caravidro.wayaround.safety.DownloadConsentContract;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.server.MinecraftServer;
@@ -40,6 +42,16 @@ public final class MediaTransferServer {
     private static final List<DownloadSession>
             DOWNLOADS =
             new ArrayList<>();
+
+    private static final Map<String, DownloadConsentContract.Grant>
+            DOWNLOAD_OFFERS =
+            new HashMap<>();
+
+    private static final SecureRandom OFFER_RANDOM =
+            new SecureRandom();
+
+    private static final long OFFER_TTL_TICKS =
+            20L * 60L;
 
     public static synchronized void acceptUpload(
             ServerPlayer player,
@@ -185,11 +197,32 @@ public final class MediaTransferServer {
                 return;
             }
 
+            long offerToken =
+                    nextOfferToken();
+
+            DownloadConsentContract.Grant grant =
+                    new DownloadConsentContract.Grant(
+                            recordingId,
+                            length,
+                            offerToken,
+                            player.server.getTickCount()
+                                    + OFFER_TTL_TICKS
+                    );
+
+            DOWNLOAD_OFFERS.put(
+                    offerKey(
+                            player,
+                            recordingId
+                    ),
+                    grant
+            );
+
             PacketDistributor.sendToPlayer(
                     player,
                     new MediaRecordingOfferS2CPayload(
                             recordingId,
-                            length
+                            length,
+                            offerToken
                     )
             );
 
@@ -207,14 +240,37 @@ public final class MediaTransferServer {
      */
     public static synchronized void approveDownload(
             ServerPlayer player,
-            String recordingId
+            String recordingId,
+            long approvedLength,
+            long offerToken
     ) {
         if (!WorldFeatureRuntime.serverEnabled(
                 WorldFeature.MEDIA
         )
                 || !validId(
                 recordingId
-        )) {
+        )
+                || approvedLength <= 0L
+                || approvedLength > MediaNetworkLimits.MAX_RECORDING_BYTES
+                || offerToken == 0L) {
+            return;
+        }
+
+        DownloadConsentContract.Grant grant =
+                DOWNLOAD_OFFERS.remove(
+                        offerKey(
+                                player,
+                                recordingId
+                        )
+                );
+
+        if (grant == null
+                || !grant.matches(
+                        recordingId,
+                        approvedLength,
+                        offerToken,
+                        player.server.getTickCount()
+                )) {
             return;
         }
 
@@ -250,7 +306,8 @@ public final class MediaTransferServer {
                             path
                     );
 
-            if (length <= 0L
+            if (length != approvedLength
+                    || length <= 0L
                     || length > MediaNetworkLimits.MAX_RECORDING_BYTES) {
                 return;
             }
@@ -260,7 +317,8 @@ public final class MediaTransferServer {
                             player.getUUID(),
                             recordingId,
                             path,
-                            length
+                            length,
+                            offerToken
                     )
             );
 
@@ -290,6 +348,16 @@ public final class MediaTransferServer {
                 event.getServer();
 
         synchronized (MediaTransferServer.class) {
+            long now =
+                    server.getTickCount();
+
+            DOWNLOAD_OFFERS.entrySet()
+                    .removeIf(
+                            entry ->
+                                    now > entry.getValue()
+                                            .expiresAt()
+                    );
+
             int budget =
                     MediaNetworkLimits.DOWNLOAD_CHUNKS_PER_TICK;
 
@@ -336,6 +404,42 @@ public final class MediaTransferServer {
                 }
             }
         }
+    }
+
+    public static synchronized void clearAll() {
+        for (UploadSession session :
+                UPLOADS.values()) {
+            session.close();
+        }
+
+        for (DownloadSession session :
+                DOWNLOADS) {
+            session.close();
+        }
+
+        UPLOADS.clear();
+        DOWNLOADS.clear();
+        DOWNLOAD_OFFERS.clear();
+    }
+
+    private static String offerKey(
+            ServerPlayer player,
+            String recordingId
+    ) {
+        return player.getUUID()
+                + ":"
+                + recordingId;
+    }
+
+    private static long nextOfferToken() {
+        long token;
+
+        do {
+            token =
+                    OFFER_RANDOM.nextLong();
+        } while (token == 0L);
+
+        return token;
     }
 
     private static boolean validId(
@@ -459,6 +563,7 @@ public final class MediaTransferServer {
         private final UUID playerId;
         private final String recordingId;
         private final long totalLength;
+        private final long offerToken;
         private final RandomAccessFile file;
 
         private long offset;
@@ -467,7 +572,8 @@ public final class MediaTransferServer {
                 UUID playerId,
                 String recordingId,
                 Path path,
-                long totalLength
+                long totalLength,
+                long offerToken
         ) throws Exception {
 
             this.playerId =
@@ -478,6 +584,9 @@ public final class MediaTransferServer {
 
             this.totalLength =
                     totalLength;
+
+            this.offerToken =
+                    offerToken;
 
             this.file =
                     new RandomAccessFile(
@@ -518,6 +627,7 @@ public final class MediaTransferServer {
                     new MediaRecordingChunkS2CPayload(
                             recordingId,
                             totalLength,
+                            offerToken,
                             offset,
                             data
                     )

@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import net.caravidro.wayaround.network.MediaRecordingApproveC2SPayload;
+import net.caravidro.wayaround.safety.DownloadConsentContract;
 import net.caravidro.wayaround.network.MediaRecordingRequestC2SPayload;
 import net.caravidro.wayaround.network.MediaRecordingUploadC2SPayload;
 import net.minecraft.client.Minecraft;
@@ -38,6 +39,12 @@ public final class MediaTransferClient {
     private static final long DECLINE_COOLDOWN_MS =
             5L * 60L * 1000L;
 
+    private static final long OFFER_TIMEOUT_MS =
+            30_000L;
+
+    private static final long APPROVAL_TIMEOUT_MS =
+            2L * 60L * 1000L;
+
     private static final Queue<UploadTask>
             UPLOADS =
             new ArrayDeque<>();
@@ -51,11 +58,11 @@ public final class MediaTransferClient {
             new HashMap<>();
 
     /*
-     * A recording is allowed to touch disk only while its exact server-advertised
-     * size exists in this map. A malicious/buggy server cannot bypass the UI by
-     * sending MediaRecordingChunkS2CPayload directly.
+     * A recording is allowed to touch disk only while its exact consent grant
+     * exists here. Resource ID, byte count, one-time offer token and expiry all
+     * have to match every incoming chunk.
      */
-    private static final Map<String, Long>
+    private static final Map<String, DownloadConsentContract.Grant>
             APPROVED_DOWNLOADS =
             new HashMap<>();
 
@@ -163,6 +170,18 @@ public final class MediaTransferClient {
         long now =
                 System.currentTimeMillis();
 
+        DownloadConsentContract.Grant existingGrant =
+                APPROVED_DOWNLOADS.get(
+                        recordingId
+                );
+
+        if (existingGrant != null
+                && now > existingGrant.expiresAt()) {
+            APPROVED_DOWNLOADS.remove(
+                    recordingId
+            );
+        }
+
         Long declined =
                 DECLINED_UNTIL.get(
                         recordingId
@@ -212,10 +231,12 @@ public final class MediaTransferClient {
      */
     public static synchronized void offer(
             String recordingId,
-            long totalLength
+            long totalLength,
+            long offerToken
     ) {
         if (totalLength <= 0L
                 || totalLength > MAX_RECORDING_BYTES
+                || offerToken == 0L
                 || RecordingStore.find(
                 recordingId
         ).isPresent()) {
@@ -227,6 +248,26 @@ public final class MediaTransferClient {
                     recordingId
             );
         } catch (Exception exception) {
+            return;
+        }
+
+        long now =
+                System.currentTimeMillis();
+
+        Long requestedAt =
+                REQUESTED_AT.get(
+                        recordingId
+                );
+
+        /*
+         * A server cannot create unsolicited download prompts. Metadata offers
+         * are accepted only as the direct response to a recent client request.
+         */
+        if (requestedAt == null
+                || now - requestedAt > OFFER_TIMEOUT_MS) {
+            REQUESTED_AT.remove(
+                    recordingId
+            );
             return;
         }
 
@@ -277,14 +318,25 @@ public final class MediaTransferClient {
                                 );
 
                                 if (accepted) {
+                                    DownloadConsentContract.Grant grant =
+                                            new DownloadConsentContract.Grant(
+                                                    recordingId,
+                                                    totalLength,
+                                                    offerToken,
+                                                    System.currentTimeMillis()
+                                                            + APPROVAL_TIMEOUT_MS
+                                            );
+
                                     APPROVED_DOWNLOADS.put(
                                             recordingId,
-                                            totalLength
+                                            grant
                                     );
 
                                     PacketDistributor.sendToServer(
                                             new MediaRecordingApproveC2SPayload(
-                                                    recordingId
+                                                    recordingId,
+                                                    totalLength,
+                                                    offerToken
                                             )
                                     );
 
@@ -321,21 +373,27 @@ public final class MediaTransferClient {
     public static synchronized void acceptChunk(
             String recordingId,
             long totalLength,
+            long offerToken,
             long offset,
             byte[] data
     ) {
-        Long approvedLength =
+        DownloadConsentContract.Grant grant =
                 APPROVED_DOWNLOADS.get(
                         recordingId
                 );
 
         /*
          * Consent is enforced at the file-writing boundary, not just by trusting
-         * the normal server handshake.
+         * the normal server handshake. A chunk from another offer cannot reuse
+         * a previous Yes click.
          */
-        if (approvedLength == null
-                || approvedLength.longValue()
-                != totalLength
+        if (grant == null
+                || !grant.matches(
+                        recordingId,
+                        totalLength,
+                        offerToken,
+                        System.currentTimeMillis()
+                )
                 || totalLength <= 0L
                 || totalLength > MAX_RECORDING_BYTES
                 || offset < 0L
@@ -359,7 +417,9 @@ public final class MediaTransferClient {
 
             if (task == null
                     || task.totalLength
-                    != totalLength) {
+                    != totalLength
+                    || task.offerToken
+                    != offerToken) {
 
                 if (task != null) {
                     task.close();
@@ -368,7 +428,8 @@ public final class MediaTransferClient {
                 task =
                         new DownloadTask(
                                 recordingId,
-                                totalLength
+                                totalLength,
+                                offerToken
                         );
 
                 DOWNLOADS.put(
@@ -518,6 +579,7 @@ public final class MediaTransferClient {
     private static final class DownloadTask {
 
         private final long totalLength;
+        private final long offerToken;
         private final Path finalPath;
         private final Path temporaryPath;
         private final RandomAccessFile file;
@@ -526,11 +588,15 @@ public final class MediaTransferClient {
 
         private DownloadTask(
                 String recordingId,
-                long totalLength
+                long totalLength,
+                long offerToken
         ) throws Exception {
 
             this.totalLength =
                     totalLength;
+
+            this.offerToken =
+                    offerToken;
 
             Files.createDirectories(
                     RecordingStore.directory()

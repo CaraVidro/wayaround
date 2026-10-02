@@ -634,6 +634,14 @@ tasks.register('miningRegionRegressionTest', JavaExec) {
 }
 tasks.named('check') { dependsOn tasks.named('miningRegionRegressionTest') }
 
+// Informed-consent invariants for every runtime file-download path.
+tasks.register('downloadConsentRegressionTest', JavaExec) {
+    dependsOn tasks.named('spectrumTestClasses')
+    classpath = sourceSets.spectrumTest.runtimeClasspath
+    mainClass = 'net.caravidro.wayaround.safety.DownloadConsentContractTest'
+}
+tasks.named('check') { dependsOn tasks.named('downloadConsentRegressionTest') }
+
 // Keep local audio backups out of shipped resources (the canonical OGG is retained).
 sourceSets.main.resources.exclude('**/*.local.ogg')
 

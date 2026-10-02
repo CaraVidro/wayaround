@@ -10,10 +10,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * Sent only after the local player explicitly accepts the download prompt.
+ * Sent only after the local player explicitly accepts one exact metadata offer.
  */
 public record MediaRecordingApproveC2SPayload(
-        String recordingId
+        String recordingId,
+        long totalLength,
+        long offerToken
 ) implements CustomPacketPayload {
 
     public static final Type<MediaRecordingApproveC2SPayload> TYPE =
@@ -29,16 +31,25 @@ public record MediaRecordingApproveC2SPayload(
             MediaRecordingApproveC2SPayload
             > STREAM_CODEC =
             StreamCodec.of(
-                    (buf, payload) ->
-                            buf.writeUtf(
-                                    payload.recordingId(),
-                                    64
-                            ),
+                    (buf, payload) -> {
+                        buf.writeUtf(
+                                payload.recordingId(),
+                                64
+                        );
+                        buf.writeLong(
+                                payload.totalLength()
+                        );
+                        buf.writeLong(
+                                payload.offerToken()
+                        );
+                    },
                     buf ->
                             new MediaRecordingApproveC2SPayload(
                                     buf.readUtf(
                                             64
-                                    )
+                                    ),
+                                    buf.readLong(),
+                                    buf.readLong()
                             )
             );
 
@@ -57,7 +68,9 @@ public record MediaRecordingApproveC2SPayload(
                             instanceof ServerPlayer player) {
                         MediaTransferServer.approveDownload(
                                 player,
-                                payload.recordingId()
+                                payload.recordingId(),
+                                payload.totalLength(),
+                                payload.offerToken()
                         );
                     }
                 }
