@@ -10,6 +10,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public record MediaRecordingChunkS2CPayload(
         String recordingId,
         long totalLength,
+        long offerToken,
         long offset,
         byte[] data
 ) implements CustomPacketPayload {
@@ -36,6 +37,9 @@ public record MediaRecordingChunkS2CPayload(
                                 payload.totalLength()
                         );
                         buf.writeLong(
+                                payload.offerToken()
+                        );
+                        buf.writeLong(
                                 payload.offset()
                         );
                         buf.writeByteArray(
@@ -45,6 +49,7 @@ public record MediaRecordingChunkS2CPayload(
                     buf ->
                             new MediaRecordingChunkS2CPayload(
                                     buf.readUtf(64),
+                                    buf.readLong(),
                                     buf.readLong(),
                                     buf.readLong(),
                                     buf.readByteArray(

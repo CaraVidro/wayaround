@@ -8,11 +8,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * Metadata only. Receiving this packet never writes a file.
+ * Metadata only. Receiving this packet never writes a file or starts transfer.
  */
 public record MediaRecordingOfferS2CPayload(
         String recordingId,
-        long totalLength
+        long totalLength,
+        long offerToken
 ) implements CustomPacketPayload {
 
     public static final Type<MediaRecordingOfferS2CPayload> TYPE =
@@ -36,12 +37,16 @@ public record MediaRecordingOfferS2CPayload(
                         buf.writeLong(
                                 payload.totalLength()
                         );
+                        buf.writeLong(
+                                payload.offerToken()
+                        );
                     },
                     buf ->
                             new MediaRecordingOfferS2CPayload(
                                     buf.readUtf(
                                             64
                                     ),
+                                    buf.readLong(),
                                     buf.readLong()
                             )
             );

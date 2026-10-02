@@ -306,6 +306,7 @@ public final class ClientPayloadBridge {
                 || payload.totalLength() <= 0L
                 || payload.totalLength()
                 > MediaNetworkLimits.MAX_RECORDING_BYTES
+                || payload.offerToken() == 0L
                 || payload.offset() < 0L
                 || payload.offset()
                 + payload.data().length
@@ -326,7 +327,8 @@ public final class ClientPayloadBridge {
     ) {
         if (payload.totalLength() <= 0L
                 || payload.totalLength()
-                > MediaNetworkLimits.MAX_RECORDING_BYTES) {
+                > MediaNetworkLimits.MAX_RECORDING_BYTES
+                || payload.offerToken() == 0L) {
             return;
         }
 

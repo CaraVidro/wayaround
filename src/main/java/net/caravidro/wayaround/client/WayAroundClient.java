@@ -189,6 +189,7 @@ public final class WayAroundClient {
                         MediaTransferClient.acceptChunk(
                                 payload.recordingId(),
                                 payload.totalLength(),
+                                payload.offerToken(),
                                 payload.offset(),
                                 payload.data()
                         );
@@ -200,7 +201,8 @@ public final class WayAroundClient {
                     ) {
                         MediaTransferClient.offer(
                                 payload.recordingId(),
-                                payload.totalLength()
+                                payload.totalLength(),
+                                payload.offerToken()
                         );
                     }
 
