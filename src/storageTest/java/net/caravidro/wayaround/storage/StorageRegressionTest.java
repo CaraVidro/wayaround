@@ -62,11 +62,10 @@ public final class StorageRegressionTest {
             fail(() -> ColdDirectoryArchive.restore(malicious, LIMIT, p -> true), "checksum corruption blocked");
             check(!Files.exists(malicious) && ColdDirectoryArchive.isCold(malicious), "corrupt archive retained for recovery");
 
-            Path linked = temp.resolve("linked");
-            Files.createDirectories(linked);
-            Files.createSymbolicLink(linked.resolve("secret"), random.resolve("noise"));
-            fail(() -> ColdDirectoryArchive.freeze(linked, LIMIT), "symlink rejected");
-            check(Files.exists(random.resolve("noise")), "symlink target untouched");
+            verifySymlinkRejectionWhenSupported(
+                    temp,
+                    random.resolve("noise")
+            );
 
             for (int radius : new int[]{0, 1, 2, 22, 24, 128}) {
                 var scan = new IncrementalSquareScan(radius);
@@ -87,6 +86,83 @@ public final class StorageRegressionTest {
                 for (Path p : paths.sorted(java.util.Comparator.reverseOrder()).toList()) Files.delete(p);
             }
         }
+    }
+
+    private static void verifySymlinkRejectionWhenSupported(
+            Path temp,
+            Path target
+    ) throws Exception {
+        Path linked =
+                temp.resolve("linked");
+
+        Files.createDirectories(
+                linked
+        );
+
+        Path link =
+                linked.resolve("secret");
+
+        try {
+            Files.createSymbolicLink(
+                    link,
+                    target
+            );
+        } catch (java.nio.file.FileSystemException exception) {
+            /*
+             * Windows commonly requires Developer Mode or SeCreateSymbolicLinkPrivilege
+             * for ordinary processes. That is an environment limitation, not a storage
+             * regression. Linux/macOS CI still exercise the real rejection path.
+             */
+            if (System.getProperty(
+                            "os.name",
+                            ""
+                    )
+                    .toLowerCase(
+                            java.util.Locale.ROOT
+                    )
+                    .contains("windows")) {
+
+                System.out.println(
+                        "SKIP: symbolic-link rejection check unavailable on this Windows account: "
+                                + exception.getReason()
+                );
+
+                check(
+                        Files.exists(target),
+                        "symlink target remains untouched when Windows refuses link creation"
+                );
+
+                return;
+            }
+
+            throw exception;
+        } catch (UnsupportedOperationException | SecurityException exception) {
+            System.out.println(
+                    "SKIP: symbolic-link rejection check unsupported by this filesystem/runtime: "
+                            + exception.getClass()
+                                    .getSimpleName()
+            );
+
+            check(
+                    Files.exists(target),
+                    "symlink target remains untouched when symbolic links are unavailable"
+            );
+
+            return;
+        }
+
+        fail(
+                () -> ColdDirectoryArchive.freeze(
+                        linked,
+                        LIMIT
+                ),
+                "symlink rejected"
+        );
+
+        check(
+                Files.exists(target),
+                "symlink target untouched"
+        );
     }
 
     private static void writeZip(Path file, String name, String checksum) throws Exception {
