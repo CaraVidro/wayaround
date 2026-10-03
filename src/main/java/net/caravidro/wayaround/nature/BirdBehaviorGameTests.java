@@ -39,11 +39,11 @@ public final class BirdBehaviorGameTests {
         for(int x=2;x<=12;x++)for(int z=2;z<=12;z++)l.setBlock(h.absolutePos(new BlockPos(x,0,z)),Blocks.DIRT.defaultBlockState(),3);
         for(int y=1;y<=6;y++)for(int z=4;z<=9;z++)l.setBlock(h.absolutePos(new BlockPos(7,y,z)),Blocks.STONE.defaultBlockState(),3);
         var bird=NatureContent.HUMMINGBIRD.get().create(l);BlockPos start=h.absolutePos(new BlockPos(4,3,6));bird.moveTo(start.getX()+.5,start.getY(),start.getZ()+.5,0,0);l.addFreshEntity(bird);
-        BlockPos target=h.absolutePos(new BlockPos(10,3,6));bird.getNavigation().setMaxVisitedNodesMultiplier(32);var path=bird.getNavigation().createPath(target,1);
+        BlockPos target=h.absolutePos(new BlockPos(10,3,6));bird.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.FOLLOW_RANGE).setBaseValue(48);var path=bird.getNavigation().createPath(target,1);
         for(int accuracy=0;accuracy<=4;accuracy++){var probe=bird.getNavigation().createPath(target,accuracy);System.out.println("Bird accuracy="+accuracy+", reachable="+(probe!=null&&probe.canReach())+", distance="+(probe==null?-1:probe.getDistToTarget()));}
         System.out.println("Bird target block="+l.getBlockState(target)+", above="+l.getBlockState(target.above()));
         System.out.println("Bird follow range="+bird.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.FOLLOW_RANGE)+", start="+start+", target="+target+", box="+bird.getBoundingBox());
-        if(path!=null)for(int i=0;i<path.getNodeCount();i++){var n=path.getNode(i);System.out.println("Bird node="+n+", type="+n.type+", malus="+n.costMalus);}
+        if(path!=null)for(int i=0;i<path.getNodeCount();i++){var n=path.getNode(i);System.out.println("Bird node="+n+", type="+n.type+", malus="+n.costMalus+", walked="+n.walkedDistance);}
         if(path!=null)System.out.println("Bird route: nodes="+path.getNodeCount()+", reachable="+path.canReach()+", distance="+path.getDistToTarget());
         h.assertTrue(path!=null&&path.canReach(),"Flight navigation reaches the far side of the wall");
         for(int i=0;i<path.getNodeCount();i++){
