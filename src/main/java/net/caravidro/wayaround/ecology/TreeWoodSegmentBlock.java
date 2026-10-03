@@ -99,36 +99,31 @@ public final class TreeWoodSegmentBlock extends Block {
     private static VoxelShape shapeFor(
             BlockState state
     ) {
-        int thickness =
-                state.getValue(
-                        THICKNESS
-                );
+        return SHAPES[index(state.getValue(AXIS), state.getValue(THICKNESS), state.getValue(ROOT))];
+    }
 
-        double width =
-                switch (thickness) {
-                    case 1 -> 4.0;
-                    case 2 -> 7.0;
-                    case 3 -> 10.0;
-                    default -> 14.0;
-                };
+    private static int index(Direction.Axis axis, int thickness, boolean root) {
+        return (root ? 12 : 0) + axis.ordinal() * 4 + thickness - 1;
+    }
 
-        double min =
-                8.0
-                        - width * 0.5;
+    private static final VoxelShape[] SHAPES = buildShapes();
+    private static VoxelShape[] buildShapes() {
+        VoxelShape[] shapes = new VoxelShape[24];
+        for (Direction.Axis axis : Direction.Axis.values())
+            for (int thickness = 1; thickness <= 4; thickness++)
+                for (boolean root : new boolean[]{false, true})
+                    shapes[index(axis, thickness, root)] = createShape(axis, thickness, root);
+        return shapes;
+    }
 
-        double max =
-                8.0
-                        + width * 0.5;
-
-        Direction.Axis axis =
-                state.getValue(
-                        AXIS
-                );
-
-        boolean root =
-                state.getValue(
-                        ROOT
-                );
+    private static VoxelShape createShape(Direction.Axis axis, int thickness, boolean root) {
+        double width = switch (thickness) {
+            case 1 -> 4.0;
+            case 2 -> 7.0;
+            case 3 -> 10.0;
+            default -> 14.0;
+        };
+        double min = 8.0 - width * .5, max = 8.0 + width * .5;
 
         if (root
                 && axis

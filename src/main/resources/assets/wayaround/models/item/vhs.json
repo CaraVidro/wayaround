@@ -3,7 +3,7 @@
   "textures": {
     "case": "minecraft:block/black_concrete",
     "edge": "minecraft:block/polished_blackstone",
-    "label": "minecraft:block/quartz_block",
+    "label": "minecraft:block/quartz_block_side",
     "window": "minecraft:block/gray_stained_glass",
     "reel": "minecraft:block/iron_block",
     "tape": "minecraft:block/brown_concrete",

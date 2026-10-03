@@ -19,7 +19,8 @@
     "FireBlockMixin",
     "FireRenderShapeMixin",
     "FireAnimateTickMixin",
-    "FireBlockAccessor"
+    "FireBlockAccessor",
+    "PlayerStepSoundMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
@@ -46,7 +47,8 @@
     "client.SplashRendererAccessor",
     "client.TitleScreenBrandingMixin",
     "client.KrakenBoatRendererMixin",
-    "client.SimpleDynamicLightMixin"
+    "client.SimpleDynamicLightMixin",
+    "client.VegetationLodMixin"
   ],
   "injectors": {
     "defaultRequire": 1

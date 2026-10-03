@@ -1,4 +1,4 @@
-name: Kraken runtime validation
+name: Vegetation and Kraken runtime validation
 on:
   pull_request:
     paths:
@@ -8,6 +8,12 @@ on:
       - 'src/main/java/net/caravidro/wayaround/client/weather/CloudShadowRenderer.java'
       - 'src/main/java/net/caravidro/wayaround/mixin/client/Kraken*'
       - 'src/main/java/net/caravidro/wayaround/mixin/client/SimpleDynamic*'
+      - 'src/main/java/net/caravidro/wayaround/client/*LeavesModel.java'
+      - 'src/main/java/net/caravidro/wayaround/client/VegetationLod*.java'
+      - 'src/main/java/net/caravidro/wayaround/mixin/client/VegetationLodMixin.java'
+      - 'src/main/resources/wayaround.mixins.json'
+      - 'src/main/resources/assets/wayaround/models/**'
+      - 'tests/visuals/**'
       - 'tests/kraken/**'
       - '.github/workflows/kraken-validation.yml'
 jobs:
@@ -24,8 +30,9 @@ jobs:
       - name: Deterministic motion and splash contacts
         run: |
           mkdir -p /tmp/kraken-classes
-          javac -d /tmp/kraken-classes src/main/java/net/caravidro/wayaround/ecology/KrakenMotion.java tests/kraken/KrakenMotionTest.java
+          javac -d /tmp/kraken-classes src/main/java/net/caravidro/wayaround/ecology/KrakenMotion.java tests/kraken/KrakenMotionTest.java src/main/java/net/caravidro/wayaround/ecology/KrakenAnimationClock.java src/main/java/net/caravidro/wayaround/client/VegetationLodMath.java tests/visuals/VisualTimingTest.java
           java -cp /tmp/kraken-classes KrakenMotionTest
+          java -cp /tmp/kraken-classes VisualTimingTest
       - name: Client boot and mixin application
         env:
           ALSOFT_DRIVERS: 'null'
@@ -54,7 +61,11 @@ jobs:
           text=path.read_text(errors='replace')
           if not ready or re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text):
               print('\n'.join(text.splitlines()[-120:]));raise SystemExit(1)
-          print('Client boot and registered light/boat mixins passed. In-world visual QA remains manual.')
+          for mixin in ['PlayerStepSoundMixin','client.VegetationLodMixin']:
+              assert 'Mixing '+mixin+' from wayaround.mixins.json' in text,'Mixin not exercised: '+mixin
+          missing=[line for line in text.splitlines() if 'Missing textures in model wayaround:' in line]
+          assert not missing,'\n'.join(missing)
+          print('Client boot, vegetation/step mixins and all mod model textures passed. In-world visual/audio QA remains manual.')
           PYCLIENT
       - uses: actions/upload-artifact@v4
         if: always()

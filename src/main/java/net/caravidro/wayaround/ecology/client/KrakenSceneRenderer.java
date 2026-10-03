@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.ecology.KrakenMotion;
+import net.caravidro.wayaround.ecology.KrakenAnimationClock;
 import net.caravidro.wayaround.network.KrakenSceneS2CPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -24,7 +25,7 @@ import org.joml.Matrix4f;
 public final class KrakenSceneRenderer {
     private static KrakenSceneS2CPayload scene;
     private static ClientLevel owner;
-    private static long receivedAt;
+    private static final KrakenAnimationClock clock = new KrakenAnimationClock();
     private static int lastAge = -1;
     private static boolean emerged, submerged;
     private static final List<Splash> splashes = new ArrayList<>();
@@ -40,11 +41,12 @@ public final class KrakenSceneRenderer {
         boolean fresh = scene == null || scene.kind() != p.kind() || scene.x() != p.x()
                 || scene.z() != p.z() || p.age() < scene.age();
         scene = p;
-        receivedAt = level.getGameTime();
+        if (fresh) clock.reset(p.age(), level.getGameTime());
+        else clock.synchronize(p.age(), level.getGameTime());
         if (fresh) { emerged = false; submerged = false; lastAge = p.age() - 1; }
     }
     private static void clear() { scene = null; splashes.clear(); owner = null; lastAge = -1; }
-    private static double age() { return scene.age() + owner.getGameTime() - receivedAt; }
+    private static double age() { return clock.age(); }
     private static Vec3 origin() { return new Vec3(scene.x()+0.5, scene.surface()+0.5, scene.z()+0.5); }
     private static Vec3 direction() { return new Vec3(scene.dx(),0,scene.dz()).normalize(); }
     private static Vec3 world(KrakenMotion.Point p) {
@@ -55,9 +57,10 @@ public final class KrakenSceneRenderer {
     @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
         var mc = Minecraft.getInstance();
         if (mc.level != owner) { clear(); return; }
-        if (owner == null) return;
+        if (owner == null || mc.isPaused()) return;
         splashes.removeIf(s -> owner.getGameTime() - s.start > 70);
         if (scene == null) return;
+        clock.advance(owner.getGameTime());
         int age = (int)age();
         int duration = KrakenMotion.duration(scene.kind());
         if (age > duration + 20) { scene = null; return; }
@@ -86,7 +89,7 @@ public final class KrakenSceneRenderer {
     }
     public static float boatRoll(Vec3 pos, float partial) {
         if (scene==null || owner==null || scene.kind()!=4 || pos.distanceToSqr(origin())>90*90) return 0;
-        double age=age()+partial;
+        double age=clock.sample(partial);
         return (float)(Math.sin(age*.17)*12 * Math.sin(Math.PI*Math.min(1,age/200)));
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e) {
@@ -98,7 +101,7 @@ public final class KrakenSceneRenderer {
         float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
         int count=0;
         if(scene!=null && camera.distanceToSqr(origin())<360*360) {
-            double a=age()+partial;
+            double a=clock.sample(partial);
             Vec3 d=direction();
             Vec3 side=new Vec3(-d.z,0,d.x);
             double shade=Math.max(.25, owner.getSkyColor(camera, partial).length()/1.73);
@@ -131,7 +134,7 @@ public final class KrakenSceneRenderer {
                     count+=tube(b,matrix,camera,points,widths,6,shade,false);
                 }
             } else if(scene.kind()<3) {
-                int segments=camera.distanceToSqr(origin())>180*180?36:64;
+                int segments=camera.distanceToSqr(origin())>180*180?36:96;
                 List<Vec3> points=new ArrayList<>(); List<Double> widths=new ArrayList<>();
                 for(int i=0;i<=segments;i++) {
                     var p=KrakenMotion.tentacle(i/(double)segments,a,scene.kind());
@@ -139,7 +142,7 @@ public final class KrakenSceneRenderer {
                 }
                 count+=tube(b,matrix,camera,points,widths,8,shade,true);
                 // Two rows of raised suction cups follow the inner curve.
-                for(int i=2;i<segments-2;i+=2) for(int sign:new int[]{-1,1}) {
+                for(int i=3;i<segments-3;i+=(segments>36?3:2)) for(int sign:new int[]{-1,1}) {
                     double r=widths.get(i), cup=Math.max(.22,r*.29);
                     Vec3 c=points.get(i).add(side.scale(sign*r*.48)).add(d.scale(r*.78));
                     count+=box(b,matrix,camera,c,cup,cup*.65,cup,97,123,105,255);

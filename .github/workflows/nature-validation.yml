@@ -9,6 +9,8 @@ on:
       - 'src/main/java/net/caravidro/wayaround/ecology/Ecological*'
       - 'src/main/java/net/caravidro/wayaround/ecology/SunfishEntity.java'
       - 'src/main/java/net/caravidro/wayaround/industrial/mining/**'
+      - 'src/main/java/net/caravidro/wayaround/mixin/PlayerStepSoundMixin.java'
+      - 'src/main/resources/wayaround.mixins.json'
       - 'tests/nature/**'
       - '.github/workflows/nature-validation.yml'
 jobs:
