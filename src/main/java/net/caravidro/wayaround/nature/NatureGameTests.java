@@ -8,7 +8,7 @@ import net.neoforged.neoforge.gametest.*;
 @GameTestHolder("wayaround_nature")
 @PrefixGameTestTemplate(false)
 public final class NatureGameTests {
-    @GameTest(template="wayaround_crushing:assembly_test",batch="nature",timeoutTicks=80)
+    @GameTest(template="assembly_test",batch="nature",timeoutTicks=80)
     public static void orchardGrowthHarvestAndReload(GameTestHelper h) {
         BlockPos root=h.absolutePos(new BlockPos(5,2,5));
         var level=h.getLevel();
@@ -38,7 +38,7 @@ public final class NatureGameTests {
         h.assertTrue(level.getBlockState(fruit).getValue(AppleLeavesBlock.FRUIT)==3,"Apples regrow without replacing canopy");
         h.succeed();
     }
-    @GameTest(template="wayaround_crushing:assembly_test",batch="nature",timeoutTicks=80)
+    @GameTest(template="assembly_test",batch="nature",timeoutTicks=80)
     public static void blockedTreeAndBirdHealth(GameTestHelper h) {
         BlockPos root=h.absolutePos(new BlockPos(5,2,5));var l=h.getLevel();
         l.setBlock(root,NatureContent.APPLE_SAPLING.get().defaultBlockState(),3);
