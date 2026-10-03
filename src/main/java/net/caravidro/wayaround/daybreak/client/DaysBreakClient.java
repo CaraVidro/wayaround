@@ -26,7 +26,7 @@ public final class DaysBreakClient {
     private static void stopMusic(){if(theme!=null){Minecraft.getInstance().getSoundManager().stop(theme);theme=null;}}
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event){enabled=false;elapsed=0;stopMusic();}
     @SubscribeEvent public static void tick(ClientTickEvent.Post event){
-        if(day()){if(theme==null){theme=new Theme();Minecraft.getInstance().getSoundManager().play(theme);}}
+        if(day()){var mc=Minecraft.getInstance();if(theme==null){mc.getMusicManager().stopPlaying();theme=new Theme();mc.getSoundManager().play(theme);}else if(mc.level.getGameTime()%100==0)mc.getMusicManager().stopPlaying();}
         else stopMusic();
     }
     private static final class Theme extends AbstractTickableSoundInstance {

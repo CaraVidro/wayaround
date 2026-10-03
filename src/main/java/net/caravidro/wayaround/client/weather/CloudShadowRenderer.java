@@ -35,7 +35,7 @@ public final class CloudShadowRenderer {
     private static int row;
     private static boolean enabled() {
         var mc=Minecraft.getInstance();
-        if(net.caravidro.wayaround.daybreak.client.DaysBreakClient.active())return;
+        if(net.caravidro.wayaround.daybreak.client.DaysBreakClient.active())return false;
         return mc.level!=null && mc.player!=null && mc.level.dimensionType().hasSkyLight()
                 && mc.level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)
                 && !net.caravidro.wayaround.client.AntarcticClientLighting.isAntarctic(mc)
@@ -53,7 +53,6 @@ public final class CloudShadowRenderer {
     }
     private static void update(){
         var mc=Minecraft.getInstance();
-        if(net.caravidro.wayaround.daybreak.client.DaysBreakClient.active())return;
         if(owner!=mc.level){clear();owner=mc.level;}
         if(!enabled()){clear();return;}
         Vec3 camera=mc.gameRenderer.getMainCamera().getPosition();
