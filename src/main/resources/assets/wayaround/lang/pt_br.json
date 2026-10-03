@@ -1051,5 +1051,9 @@
   "screen.wayaround.entry.1": "Algumas ferramentas e efeitos podem mover seu personagem ou controlar temporariamente seu corpo.",
   "screen.wayaround.entry.2": "Há terror, profundezas escuras, criaturas enormes e situações que podem despertar talassofobia.",
   "screen.wayaround.entry.3": "Você pode encontrar sons repentinos, flashes, tremores de câmera e perigo de morte. Ajuste as opções do mundo e de áudio conforme seu conforto.",
-  "screen.wayaround.entry.4": "A comunicação por voz é opcional. A próxima tela permite revisar o microfone e suas preferências, sem revelar itens ou acontecimentos."
+  "screen.wayaround.entry.4": "A comunicação por voz é opcional. A próxima tela permite revisar o microfone e suas preferências, sem revelar itens ou acontecimentos.",
+  "block.wayaround.nexus_control": "Terminal de corte do Nexus",
+  "message.wayaround.nexus.cutoff_warning": "O vínculo ainda responde. Agache e use este terminal para cortar TODOS os portais. Não haverá retorno.",
+  "message.wayaround.nexus.cutoff_dead": "A conexão foi cortada. Nada responde do outro lado.",
+  "message.wayaround.nexus.permanent_link": "O portal é permanente. Somente os terminais do outro lado podem cortar o vínculo."
 }

@@ -13,9 +13,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * The Nexus is intentionally almost black. The biome already has black fog;
- * this pins the final shader fog too so sky/effect modifiers cannot wash the
- * cavern into blue/gray.
+ * Dark red atmospheric haze for the fractured Nexus exterior. Underwater fog
+ * retains its separate fluid treatment.
  */
 @Mixin(value=FogRenderer.class,priority=900)
 public abstract class NexusFogMixin {
@@ -49,16 +48,18 @@ public abstract class NexusFogMixin {
         if (!level.dimension()
                 .equals(
                         NexusPortalManager.NEXUS
-                )) {
+        )) {
             return;
         }
-
+        if(camera.getFluidInCamera()!=net.minecraft.world.level.material.FogType.NONE)return;
+        fogRed=.095F;fogGreen=.009F;fogBlue=.018F;
         RenderSystem.setShaderFogColor(
-                0.002F,
-                0.002F,
-                0.003F,
+                fogRed,
+                fogGreen,
+                fogBlue,
                 1.0F
         );
+        RenderSystem.clearColor(fogRed,fogGreen,fogBlue,0);
     }
 
     @Inject(
@@ -79,18 +80,18 @@ public abstract class NexusFogMixin {
                 .dimension()
                 .equals(
                         NexusPortalManager.NEXUS
-                )) {
+        )) {
             return;
         }
-
+        if(camera.getFluidInCamera()!=net.minecraft.world.level.material.FogType.NONE)return;
         RenderSystem.setShaderFogStart(
-                5.0F
+                Math.min(farPlaneDistance*.55F,140.0F)
         );
 
         RenderSystem.setShaderFogEnd(
                 Math.min(
                         farPlaneDistance,
-                        196.0F
+                        448.0F
                 )
         );
     }

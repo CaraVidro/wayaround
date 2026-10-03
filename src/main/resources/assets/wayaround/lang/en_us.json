@@ -1051,5 +1051,9 @@
   "screen.wayaround.entry.1": "Some tools and effects can move your character or temporarily control your body.",
   "screen.wayaround.entry.2": "Horror, dark depths and enormous creatures may trigger thalassophobia.",
   "screen.wayaround.entry.3": "Expect sudden sounds, flashes, camera shake and lethal hazards. Adjust world and audio options to your comfort.",
-  "screen.wayaround.entry.4": "Voice communication is optional. Review microphone and voice preferences on the next screen. No items or encounters are disclosed."
+  "screen.wayaround.entry.4": "Voice communication is optional. Review microphone and voice preferences on the next screen. No items or encounters are disclosed.",
+  "block.wayaround.nexus_control": "Nexus Cutoff Terminal",
+  "message.wayaround.nexus.cutoff_warning": "The link still responds. Crouch and use this terminal to cut ALL portals. There will be no return.",
+  "message.wayaround.nexus.cutoff_dead": "The connection has been cut. Nothing answers from the other side.",
+  "message.wayaround.nexus.permanent_link": "The portal is permanent. Only terminals on the other side can cut the link."
 }
