@@ -172,31 +172,13 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 0.98
         );
 
-        cuboid(
-                pose,
-                buffers,
-                light,
-                iron,
-                -0.49,
-                0.02,
-                -0.03,
-                0.18,
-                0.68,
-                0.96
-        );
-
-        cuboid(
-                pose,
-                buffers,
-                light,
-                iron,
-                0.49,
-                0.02,
-                -0.03,
-                0.18,
-                0.68,
-                0.96
-        );
+        for(int sign:new int[]{-1,1}) {
+            // Two side observation ports, with load-bearing rails and pillars.
+            cuboid(pose,buffers,light,iron,sign*.49,-.27,-.03,.18,.12,.96);
+            cuboid(pose,buffers,light,iron,sign*.49,.30,-.03,.18,.12,.96);
+            for(double z:new double[]{-.43,.37})cuboid(pose,buffers,light,iron,sign*.49,.02,z,.18,.48,.12);
+            cuboid(pose,buffers,light,Blocks.GLASS.defaultBlockState(),sign*.49,.02,-.03,.04,.44,.66);
+        }
 
         // Rear pressure plate and machinery stay opaque behind the pilot.
         cuboid(
@@ -678,12 +660,8 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
             int light,
             float lampPitch
     ) {
-        /*
-         * Reworked as a twin floodlight bar. The previous single pin-light had
-         * a pretty beam but almost no visual authority in a pitch-black abyss.
-         * Both lamps share the pilot's vertical look angle; the fog/lightmap
-         * mixins provide the actual usable illuminated range.
-         */
+        // Keep the articulated supports and lamps. AbyssVehicleEntity supplies
+        // real dynamic lighting; there is no decorative glass beam in the water.
         for (double x :
                 new double[]{-0.30, 0.30}) {
 
@@ -742,42 +720,6 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                     0.15,
                     0.13
             );
-
-            /*
-             * Six short overlapping volumes make a wider, less laser-like
-             * flood cone. This remains cheap decorative geometry; visibility
-             * itself no longer depends on seeing these glass pieces.
-             */
-            for (int step = 0;
-                 step < 6;
-                 step++) {
-
-                double width =
-                        0.12
-                                + step
-                                * 0.050;
-
-                double height =
-                        0.10
-                                + step
-                                * 0.034;
-
-                cuboid(
-                        pose,
-                        buffers,
-                        LightTexture.FULL_BRIGHT,
-                        Blocks.LIGHT_BLUE_STAINED_GLASS
-                                .defaultBlockState(),
-                        0.0,
-                        0.0,
-                        0.78
-                                + step
-                                * 0.72,
-                        width,
-                        height,
-                        0.82
-                );
-            }
 
             pose.popPose();
         }

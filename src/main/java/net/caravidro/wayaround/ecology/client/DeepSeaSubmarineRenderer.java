@@ -90,8 +90,9 @@ public final class DeepSeaSubmarineRenderer
         );
 
         // Hollow panels have inside-facing surfaces; the pilot sees a real cabin.
-        renderHull(pose, buffers, Math.max(light & 0xFFFF, LightTexture.pack(9, 0)) | (light & 0xFFFF0000));
-        renderViewport(pose, buffers);
+        int cabinLight = Math.max(light & 0xFFFF, LightTexture.pack(9, 0)) | (light & 0xFFFF0000);
+        renderHull(pose, buffers, cabinLight);
+        renderViewport(pose, buffers, cabinLight);
         if (!firstPersonPilot) {
             renderKeel(pose, buffers, light);
             renderPropeller(submarine, partialTick, pose, buffers, light);
@@ -118,8 +119,12 @@ public final class DeepSeaSubmarineRenderer
                         .defaultBlockState();
 
         // Walls surround an empty cabin instead of putting the camera in solid iron.
-        cuboid(pose, buffers, light, iron, -.76, 0, -.10, .12, .86, 2.28);
-        cuboid(pose, buffers, light, iron, .76, 0, -.10, .12, .86, 2.28);
+        for (int sign : new int[]{-1, 1}) {
+            cuboid(pose,buffers,light,iron,sign*.76,-.32,-.10,.12,.22,2.28);
+            cuboid(pose,buffers,light,iron,sign*.76,.32,-.10,.12,.22,2.28);
+            for (double z : new double[]{-.98,.08,.91}) cuboid(pose,buffers,light,iron,sign*.76,0,z,.12,.5,.10);
+            cuboid(pose,buffers,light,Blocks.GLASS.defaultBlockState(),sign*.76,0,-.10,.035,.42,1.9);
+        }
         cuboid(pose, buffers, light, dark, 0, -.40, -.10, 1.40, .10, 2.28);
         cuboid(pose, buffers, light, iron, 0, .40, -.10, 1.40, .10, 2.28);
         cuboid(pose, buffers, light, iron, 0, 0, -1.18, 1.40, .70, .12);
@@ -133,10 +138,10 @@ public final class DeepSeaSubmarineRenderer
                 light,
                 copper,
                 -0.80,
-                0.0,
+                -0.30,
                 -0.05,
                 0.12,
-                0.62,
+                0.12,
                 1.90
         );
 
@@ -146,10 +151,10 @@ public final class DeepSeaSubmarineRenderer
                 light,
                 copper,
                 0.80,
-                0.0,
+                -0.30,
                 -0.05,
                 0.12,
-                0.62,
+                0.12,
                 1.90
         );
 
@@ -197,21 +202,23 @@ public final class DeepSeaSubmarineRenderer
 
     private void renderViewport(
             PoseStack pose,
-            MultiBufferSource buffers
+            MultiBufferSource buffers,
+            int light
     ) {
         BlockState frame =
                 Blocks.POLISHED_BLACKSTONE
                         .defaultBlockState();
 
         BlockState glass =
-                Blocks.LIGHT_BLUE_STAINED_GLASS
+                Blocks.GLASS
                         .defaultBlockState();
 
-        // Bow frame around a genuinely large viewport.
+        // Match the side ports: cutout glass keeps clear pixels out of the
+        // depth buffer instead of hiding water and the Kraken behind a tint.
         cuboid(
                 pose,
                 buffers,
-                LightTexture.FULL_BRIGHT,
+                light,
                 frame,
                 -0.61,
                 0.08,
@@ -224,7 +231,7 @@ public final class DeepSeaSubmarineRenderer
         cuboid(
                 pose,
                 buffers,
-                LightTexture.FULL_BRIGHT,
+                light,
                 frame,
                 0.61,
                 0.08,
@@ -237,7 +244,7 @@ public final class DeepSeaSubmarineRenderer
         cuboid(
                 pose,
                 buffers,
-                LightTexture.FULL_BRIGHT,
+                light,
                 frame,
                 0.0,
                 0.38,
@@ -250,7 +257,7 @@ public final class DeepSeaSubmarineRenderer
         cuboid(
                 pose,
                 buffers,
-                LightTexture.FULL_BRIGHT,
+                light,
                 frame,
                 0.0,
                 -0.22,
@@ -263,7 +270,7 @@ public final class DeepSeaSubmarineRenderer
         cuboid(
                 pose,
                 buffers,
-                LightTexture.FULL_BRIGHT,
+                light,
                 glass,
                 0.0,
                 0.08,

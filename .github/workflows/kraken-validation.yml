@@ -9,6 +9,7 @@ on:
       - 'src/main/java/net/caravidro/wayaround/mixin/client/Kraken*'
       - 'src/main/java/net/caravidro/wayaround/mixin/client/SimpleDynamic*'
       - 'src/main/java/net/caravidro/wayaround/client/*LeavesModel.java'
+      - 'src/main/java/net/caravidro/wayaround/client/ConnectedTreeModel.java'
       - 'src/main/java/net/caravidro/wayaround/client/VegetationLod*.java'
       - 'src/main/java/net/caravidro/wayaround/mixin/client/VegetationLodMixin.java'
       - 'src/main/resources/wayaround.mixins.json'

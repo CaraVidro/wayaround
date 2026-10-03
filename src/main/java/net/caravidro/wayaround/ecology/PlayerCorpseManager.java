@@ -149,6 +149,8 @@ public final class PlayerCorpseManager {
                 stored
         );
 
+        corpse.copySkin(player.getGameProfile());
+
         corpse.setPos(
                 player.getX(),
                 player.getY()

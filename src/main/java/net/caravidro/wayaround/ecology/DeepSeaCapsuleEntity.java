@@ -18,7 +18,7 @@ import net.minecraft.world.phys.Vec3;
  * its lamp, while W/S command vertical ascent/descent. This keeps the abyss about
  * looking and descending rather than turning it into a submarine racing game.
  */
-public final class DeepSeaCapsuleEntity extends Entity {
+public final class DeepSeaCapsuleEntity extends AbyssVehicleEntity {
     private float verticalInput;
     private long lastInputTick;
 
@@ -27,9 +27,7 @@ public final class DeepSeaCapsuleEntity extends Entity {
         blocksBuilding = true;
     }
 
-    @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-    }
+    @Override protected boolean capsule() { return true; }
 
     public void setVerticalInput(float input) {
         verticalInput = Math.max(-1.0F, Math.min(1.0F, input));
@@ -40,10 +38,11 @@ public final class DeepSeaCapsuleEntity extends Entity {
     public void tick() {
         super.tick();
 
+        if (level().isClientSide || !isAlive()) return;
         Entity pilot = getFirstPassenger();
         if (pilot != null) {
-            setYRot(pilot.getYRot());
-            setXRot(pilot.getXRot());
+            setYRot(net.minecraft.util.Mth.rotLerp(.18F, getYRot(), pilot.getYRot()));
+            setXRot(net.minecraft.util.Mth.lerp(.18F, getXRot(), pilot.getXRot()));
 
             if (!level().isClientSide && pilot instanceof Player player) {
                 player.setAirSupply(player.getMaxAirSupply());
@@ -55,10 +54,11 @@ public final class DeepSeaCapsuleEntity extends Entity {
                 verticalInput = 0.0F;
             }
 
-            double speed = verticalInput * 0.16;
-            setDeltaMovement(0.0, speed, 0.0);
-            move(MoverType.SELF, getDeltaMovement());
-            setDeltaMovement(0.0, 0.0, 0.0);
+            Vec3 motion = inWaterColumn()
+                    ? constrainAscent(getDeltaMovement().scale(.82).add(0, verticalInput*.16*.18, 0))
+                    : getDeltaMovement().add(0,-.055,0).multiply(.8,.88,.8);
+            move(MoverType.SELF, motion); impact(motion);
+            setDeltaMovement(verticalCollision ? Vec3.ZERO : motion);
         }
     }
 
@@ -81,7 +81,7 @@ public final class DeepSeaCapsuleEntity extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (player.isSecondaryUseActive()) {
-            if (!level().isClientSide && !isVehicle()) {
+            if (!level().isClientSide && !isVehicle() && pressureExposure()==0) {
                 spawnAtLocation(EcologyContent.DEEP_SEA_CAPSULE_ITEM.get());
                 discard();
             }
@@ -94,12 +94,10 @@ public final class DeepSeaCapsuleEntity extends Entity {
     }
 
     @Override
-    protected void readAdditionalSaveData(CompoundTag tag) {
-    }
+    protected void readAdditionalSaveData(CompoundTag tag) { super.readAdditionalSaveData(tag); }
 
     @Override
-    protected void addAdditionalSaveData(CompoundTag tag) {
-    }
+    protected void addAdditionalSaveData(CompoundTag tag) { super.addAdditionalSaveData(tag); }
 
     @Override
     public boolean isPickable() {

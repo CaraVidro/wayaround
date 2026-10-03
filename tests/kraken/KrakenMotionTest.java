@@ -31,6 +31,10 @@ public final class KrakenMotionTest {
                 check(KrakenMotion.tentacle(1,impact,kind).y()<=0,"splash at contact");
             }
         }
+        int touched=0;
+        for(int i=1;i<=16;i++)for(int age=150;age<KrakenMotion.duration(0);age++)
+            if(KrakenMotion.contact(i/16.0,age-1,age,0)) { touched++;break; }
+        check(touched>=14,"splash contacts span the tentacle body, not just its tip");
         check(peak>220,"breaches well above clouds");
         check(KrakenMotion.tentacle(0,200,2).x()>40,"migrating root moves");
         System.out.println("KrakenMotion: geometry invariants passed; peak="+peak);

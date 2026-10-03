@@ -104,5 +104,7 @@ public final class CoalShipContent {
                         output.accept(COAL_SHIP_ITEM.get());
                         output.accept(CARAVEL_ITEM.get());
                         output.accept(GREAT_SHIP_ITEM.get());
+                        output.accept(net.caravidro.wayaround.ecology.EcologyContent.DEEP_SEA_CAPSULE_ITEM.get());
+                        output.accept(net.caravidro.wayaround.ecology.EcologyContent.DEEP_SEA_SUBMARINE_ITEM.get());
                     }).build());
 }

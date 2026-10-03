@@ -1044,5 +1044,12 @@
   "entity.wayaround.crow": "Crow",
   "item.wayaround.crow_spawn_egg": "Crow Spawn Egg",
   "death.attack.then_days_break": "%1$s was consumed by the broken sun",
-  "death.attack.then_days_break.player": "%1$s was consumed by the broken sun (%2$s)"
+  "death.attack.then_days_break.player": "%1$s was consumed by the broken sun (%2$s)",
+  "container.wayaround.submarine_cargo": "Submarine cargo",
+  "screen.wayaround.entry.title": "Before exploring",
+  "screen.wayaround.entry.continue": "Understood · voice settings",
+  "screen.wayaround.entry.1": "Some tools and effects can move your character or temporarily control your body.",
+  "screen.wayaround.entry.2": "Horror, dark depths and enormous creatures may trigger thalassophobia.",
+  "screen.wayaround.entry.3": "Expect sudden sounds, flashes, camera shake and lethal hazards. Adjust world and audio options to your comfort.",
+  "screen.wayaround.entry.4": "Voice communication is optional. Review microphone and voice preferences on the next screen. No items or encounters are disclosed."
 }

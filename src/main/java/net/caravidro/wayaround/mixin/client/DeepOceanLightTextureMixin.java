@@ -103,6 +103,9 @@ public abstract class DeepOceanLightTextureMixin {
                                 / 15.0F;
 
                 artificial *= artificial;
+                if (minecraft.player.getVehicle() instanceof net.caravidro.wayaround.ecology.AbyssVehicleEntity craft
+                        && craft.pressureExposure() >= net.caravidro.wayaround.ecology.OceanPressure.CRITICAL
+                        && minecraft.level.getGameTime() % 180 < 6) artificial *= .65F;
 
                 /*
                  * The submarine no longer gets a global fake brightness
@@ -114,11 +117,8 @@ public abstract class DeepOceanLightTextureMixin {
                         minecraft.player.getVehicle()
                                 instanceof DeepSeaSubmarineEntity;
 
-                float lampFloor =
-                        realSubmarineLight
-                                ? 0.0F
-                                : lamp
-                                * 0.34F;
+                // Both pressure craft now use real, stable moving light sources.
+                float lampFloor = 0.0F;
 
                 float visibleLight =
                         Math.max(

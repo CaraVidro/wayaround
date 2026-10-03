@@ -20,7 +20,8 @@
     "FireRenderShapeMixin",
     "FireAnimateTickMixin",
     "FireBlockAccessor",
-    "PlayerStepSoundMixin"
+    "PlayerStepSoundMixin",
+    "ContinentalNoiseAccessor"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
@@ -50,7 +51,9 @@
     "client.SimpleDynamicLightMixin",
     "client.VegetationLodMixin",
     "client.DaysBreakSkyMixin",
-    "client.DaysBreakLightMixin"
+    "client.DaysBreakLightMixin",
+    "client.RegionLightTextureMixin",
+    "client.RegionFogMixin"
   ],
   "injectors": {
     "defaultRequire": 1

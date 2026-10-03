@@ -90,18 +90,23 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
                 }
 
                 BlockPos.MutableBlockPos cursor =
-                        new BlockPos.MutableBlockPos(x, seaLevel - 1, z);
+                        new BlockPos.MutableBlockPos(x, oldFloor, z);
 
-                for (int y = seaLevel - 1; y > targetFloor; y--) {
+                var stranded = new java.util.ArrayList<BlockPos>();
+                for (int y = oldFloor; y > targetFloor; y--) {
                     cursor.setY(y);
                     BlockState old = level.getBlockState(cursor);
 
-                    if (old.is(Blocks.BEDROCK) || level.getBlockEntity(cursor) != null) {
+                    // Water and terrain cannot own block entities. Avoid two
+                    // expensive BE queries at every height of every column.
+                    if (old.hasBlockEntity()) {
+                        if (level.getBlockEntity(cursor) instanceof net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity) stranded.add(cursor.immutable());
                         continue;
                     }
+                    if (old.is(Blocks.BEDROCK)) continue;
 
                     if (!old.is(Blocks.WATER)) {
-                        level.setBlock(cursor, Blocks.WATER.defaultBlockState(), 2);
+                        level.setBlock(cursor, Blocks.WATER.defaultBlockState(), 50);
                         changed++;
                     }
                 }
@@ -114,12 +119,15 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
                                 ? Blocks.TUFF.defaultBlockState()
                                 : Blocks.DEEPSLATE.defaultBlockState();
 
-                level.setBlock(cursor, floor, 2);
+                BlockState substrate = level.getBlockState(cursor);
+                if (!substrate.hasBlockEntity() && !substrate.is(Blocks.BEDROCK)) level.setBlock(cursor, floor, 50);
+
+                for (BlockPos container : stranded) net.caravidro.wayaround.ecology.OceanFloorRemains.settle(level,container,targetFloor);
 
                 for (int depth = 1; depth <= 3; depth++) {
                     cursor.setY(targetFloor - depth);
-                    if (!level.getBlockState(cursor).is(Blocks.BEDROCK)) {
-                        level.setBlock(cursor, Blocks.DEEPSLATE.defaultBlockState(), 2);
+                    if (!level.getBlockState(cursor).is(Blocks.BEDROCK) && !level.getBlockState(cursor).hasBlockEntity()) {
+                        level.setBlock(cursor, Blocks.DEEPSLATE.defaultBlockState(), 50);
                     }
                 }
             }
@@ -139,6 +147,17 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             }
         }
 
+        if(changed>0 && chunkInterior>.6 && random.nextInt(12)==0) {
+            int x=baseX+3+random.nextInt(10),z=baseZ+3+random.nextInt(10);
+            int y=level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG,x,z);
+            BlockPos p=new BlockPos(x,y,z);
+            if(level.getBlockState(p).is(Blocks.WATER))level.setBlock(p,net.caravidro.wayaround.ecology.EcologyContent.ABYSSAL_SKELETON_SKULL.get().defaultBlockState().setValue(net.minecraft.world.level.block.SkullBlock.ROTATION,random.nextInt(16)),2);
+        }
+        if(changed>0 && chunkInterior>.6 && random.nextInt(8)==0) {
+            int x=baseX+4+random.nextInt(8),z=baseZ+4+random.nextInt(8),y=level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG,x,z);
+            var fish=net.caravidro.wayaround.ecology.EcologyContent.FISH_CARCASS.get().create(level.getLevel());
+            if(fish!=null) { fish.initialize(net.caravidro.wayaround.ecology.FishProcessingProfile.SARDINE,1.2F,false);fish.setAbyssalSettled(true);fish.setPos(x+.5,y+.15,z+.5);level.addFreshEntity(fish); }
+        }
         return changed > 0;
     }
 
@@ -220,7 +239,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             int seaLevel
     ) {
         BlockPos.MutableBlockPos cursor =
-                new BlockPos.MutableBlockPos(x, seaLevel - 1, z);
+                new BlockPos.MutableBlockPos(x, oldFloor, z);
 
         for (int y = seaLevel - 1;
              y > level.getMinBuildHeight() + 4;

@@ -89,6 +89,7 @@ public final class VegetationLod {
             camera = null;
             sections.clear();
             synchronized (leavesModels) { leavesModels.clear(); }
+            ConnectedTreeModel.clearCache();
             scan = null;
             owner = mc.level;
             generation++;
