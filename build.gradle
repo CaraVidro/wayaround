@@ -390,9 +390,10 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_nature'
         }
 
-        nexusGameTestServer {
-            type = "gameTestServer"
-            systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_nexus'
+        nexusValidationServer {
+            server()
+            programArgument '--nogui'
+            systemProperty 'wayaround.validateNexus', 'true'
         }
 
         fishGameTestServer {
