@@ -54,12 +54,12 @@ public abstract class FireBlockMixin {
     ) {
         EnhancedFireVisuals.register(level,pos);
         if(!level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOFIRETICK))return;
-        if(net.caravidro.wayaround.worldgen.weather.fire.FireTickLimiter.shouldThin(level,pos)) {
-            level.setBlock(pos,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),3);
-            ci.cancel();return;
-        }
         if(!net.caravidro.wayaround.worldgen.weather.fire.FireTickLimiter.allowTick(level)) {
             level.scheduleTick(pos,(FireBlock)(Object)this,20+(int)Math.floorMod(pos.asLong(),20));
+            ci.cancel();return;
+        }
+        if(net.caravidro.wayaround.worldgen.weather.fire.FireTickLimiter.shouldThin(level,pos)) {
+            level.setBlock(pos,net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),3);
             ci.cancel();
         }
     }

@@ -99,7 +99,7 @@ public final class EnhancedFireVisuals {
         // Spread callbacks can register new fires. Copy only this tick's
         // bounded work slice, then rotate completed entries to the back.
         var snapshot=new ArrayList<Map.Entry<GlobalPos,FireState>>(64);
-        for(var entry:ACTIVE.entrySet()){snapshot.add(entry);if(snapshot.size()==64)break;}
+        for(var entry:ACTIVE.entrySet()){snapshot.add(Map.entry(entry.getKey(),entry.getValue()));if(snapshot.size()==64)break;}
         for(var entry:snapshot) {
             GlobalPos key =
                     entry.getKey();

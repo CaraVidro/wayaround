@@ -72,7 +72,8 @@ public final class BirdAmbientClient {
         int count=24+(int)Math.floorMod(migrationSeed,13);
         for(int i=0;i<count;i++){
             int rank=i/2;double side=(i%2==0?1:-1)*rank*3;
-            double x=origin.x-160+age*.48+side,z=origin.z-50+age*.16-rank*3,y=origin.y+Math.sin(i*1.9)*3;
+            double x=origin.x-160+age*BirdMigrationMath.VELOCITY_X+BirdMigrationMath.x(side,-rank*3);
+            double z=origin.z-50+age*BirdMigrationMath.VELOCITY_Z+BirdMigrationMath.z(side,-rank*3),y=origin.y+Math.sin(i*1.9)*3;
             double flap=BirdMigrationMath.flap(age,i);
             birdQuad(b,matrix,camera,x,y,z,-.18,0,-.45,.18,0,-.45,.18,0,.45,-.18,0,.45);
             birdQuad(b,matrix,camera,x,y,z,0,0,.1,-1.2,flap,-.05,-.9,flap,-.45,0,0,-.2);
