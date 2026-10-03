@@ -423,7 +423,7 @@ public final class EcologyEntityAttributes {
                         .add(Attributes.MAX_HEALTH, 8.0)
                         .add(Attributes.MOVEMENT_SPEED, 0.26)
                         .add(Attributes.FLYING_SPEED, 0.46)
-                        .add(Attributes.FOLLOW_RANGE, 32.0)
+                        .add(Attributes.FOLLOW_RANGE, 48.0)
                         .build()
         );
 

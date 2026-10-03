@@ -46,7 +46,7 @@ public final class SeagullEntity
     public boolean removeWhenFarAway(
             double distanceToClosestPlayer
     ) {
-        return !hasCustomName() && getMainHandItem().isEmpty();
+        return !hasCustomName() && getMainHandItem().isEmpty() && getPassengers().isEmpty();
     }
 
     @Override
