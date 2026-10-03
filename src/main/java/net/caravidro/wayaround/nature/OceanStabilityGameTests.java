@@ -58,4 +58,26 @@ public final class OceanStabilityGameTests {
             h.assertTrue(l.getEntitiesOfClass(ItemEntity.class,new AABB(root).inflate(2)).isEmpty(),"No broken plant item drops");h.succeed();
         });
     }
+    @GameTest(template="assembly_test",batch="ocean_stability",timeoutTicks=80)
+    public static void oceanSamplingRetainsExactCoordinates(GameTestHelper h) {
+        var registry=h.getLevel().registryAccess();
+        var settings=registry.registryOrThrow(net.minecraft.core.registries.Registries.NOISE_SETTINGS)
+                .getHolderOrThrow(net.minecraft.world.level.levelgen.NoiseGeneratorSettings.OVERWORLD).value();
+        var router=net.minecraft.world.level.levelgen.RandomState.create(settings,
+                registry.registryOrThrow(net.minecraft.core.registries.Registries.NOISE).asLookup(),42L).router();
+        net.caravidro.wayaround.worldgen.terrain.OceanContinentalness[] leaf={null};
+        router.continents().mapAll(new net.minecraft.world.level.levelgen.DensityFunction.Visitor() {
+            public net.minecraft.world.level.levelgen.DensityFunction apply(net.minecraft.world.level.levelgen.DensityFunction f) {
+                if(f instanceof net.caravidro.wayaround.worldgen.terrain.OceanContinentalness scaled)leaf[0]=scaled;return f;
+            }
+        });
+        h.assertTrue(leaf[0]!=null,"Real bound Overworld continental noise is present");
+        for(int x=-100;x<=100;x++)for(int z=-5;z<=5;z++) {
+            var c=new net.minecraft.world.level.levelgen.DensityFunction.SinglePointContext(x,17,z);
+            double expected=leaf[0].input().compute(new net.minecraft.world.level.levelgen.DensityFunction.SinglePointContext(Math.floorDiv(x,4),17,Math.floorDiv(z,4)));
+            h.assertTrue(Double.doubleToLongBits(expected)==Double.doubleToLongBits(leaf[0].compute(c)),"Context reuse preserves continental noise, including negative coordinates");
+        }
+        h.succeed();
+    }
+
 }

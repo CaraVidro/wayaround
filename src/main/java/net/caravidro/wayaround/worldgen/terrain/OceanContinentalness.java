@@ -10,7 +10,22 @@ public record OceanContinentalness(DensityFunction input) implements DensityFunc
     public static final MapCodec<OceanContinentalness> DATA_CODEC=RecordCodecBuilder.mapCodec(i->i.group(
             DensityFunction.HOLDER_HELPER_CODEC.fieldOf("input").forGetter(OceanContinentalness::input)).apply(i,OceanContinentalness::new));
     public static final KeyDispatchDataCodec<OceanContinentalness> CODEC=KeyDispatchDataCodec.of(DATA_CODEC);
-    @Override public double compute(FunctionContext c) { return input.compute(new SinglePointContext(Math.floorDiv(c.blockX(),4),c.blockY(),Math.floorDiv(c.blockZ(),4))); }
+    private static final ThreadLocal<SampleContext> SAMPLES = ThreadLocal.withInitial(SampleContext::new);
+    private static final class SampleContext implements FunctionContext {
+        int x,y,z;
+        @Override public int blockX() { return x; }
+        @Override public int blockY() { return y; }
+        @Override public int blockZ() { return z; }
+    }
+    @Override public double compute(FunctionContext c) {
+        // Noise leaves sample immediately. Reuse one context per worker rather
+        // than allocating for every density evaluation; preserve nested calls.
+        int x=Math.floorDiv(c.blockX(),4),y=c.blockY(),z=Math.floorDiv(c.blockZ(),4);
+        SampleContext sample=SAMPLES.get();int previousX=sample.x,previousY=sample.y,previousZ=sample.z;
+        sample.x=x;sample.y=y;sample.z=z;
+        try { return input.compute(sample); }
+        finally { sample.x=previousX;sample.y=previousY;sample.z=previousZ; }
+    }
     @Override public void fillArray(double[] values,ContextProvider provider) { provider.fillAllDirectly(values,this); }
     @Override public DensityFunction mapAll(Visitor visitor) { return visitor.apply(new OceanContinentalness(input.mapAll(visitor))); }
     @Override public double minValue() { return input.minValue(); }

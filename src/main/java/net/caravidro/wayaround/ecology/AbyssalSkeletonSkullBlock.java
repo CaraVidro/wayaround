@@ -17,7 +17,7 @@ public final class AbyssalSkeletonSkullBlock extends SkullBlock implements Simpl
         super(SkullBlock.Types.SKELETON, properties);
         registerDefaultState(defaultBlockState().setValue(BlockStateProperties.WATERLOGGED, true));
     }
-    @Override protected MapCodec<? extends SkullBlock> codec() { return CODEC; }
+    @Override public MapCodec<? extends SkullBlock> codec() { return CODEC; }
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
         builder.add(BlockStateProperties.WATERLOGGED);

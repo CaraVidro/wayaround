@@ -88,6 +88,7 @@ public final class AbyssVoyagerGameTests {
         var registry=h.getLevel().registryAccess();
         var settings=registry.registryOrThrow(net.minecraft.core.registries.Registries.NOISE_SETTINGS)
                 .getHolderOrThrow(net.minecraft.world.level.levelgen.NoiseGeneratorSettings.OVERWORLD).value();
+        h.assertTrue(settings.noiseRouter()==settings.noiseRouter(),"Repeated settings access reuses the transformed density graph");
         var router=net.minecraft.world.level.levelgen.RandomState.create(settings,
                 registry.registryOrThrow(net.minecraft.core.registries.Registries.NOISE).asLookup(),42L).router();
         int[] climate={0},terrain={0};

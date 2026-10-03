@@ -239,7 +239,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             int seaLevel
     ) {
         BlockPos.MutableBlockPos cursor =
-                new BlockPos.MutableBlockPos(x, oldFloor, z);
+                new BlockPos.MutableBlockPos(x, seaLevel - 1, z);
 
         for (int y = seaLevel - 1;
              y > level.getMinBuildHeight() + 4;
