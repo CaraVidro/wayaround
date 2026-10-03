@@ -40,7 +40,7 @@ jobs:
           for attempt in $(seq 1 90); do
             if [ "$attempt" -eq 60 ]; then
               for java_pid in $(jcmd -l | awk '/net.neoforged.devlaunch.Main/ {print $1}'); do
-                jcmd "$java_pid" Thread.print -l > dedicated-server-threads.txt || true
+                timeout 10s jcmd "$java_pid" Thread.print -l > dedicated-server-threads.txt || true
               done
             fi
             if grep -Eq 'Done \\([0-9.]+s\\)!|For help, type "help"' dedicated-server.log; then
@@ -58,7 +58,7 @@ jobs:
           cat dedicated-server.log
           if [ "$ready" -ne 1 ]; then
             for java_pid in $(jcmd -l | awk '/net.neoforged.devlaunch.Main/ {print $1}'); do
-              jcmd "$java_pid" Thread.print -l >> dedicated-server-threads.txt || true
+              timeout 10s jcmd "$java_pid" Thread.print -l >> dedicated-server-threads.txt || true
             done
             cat dedicated-server-threads.txt 2>/dev/null || true
           fi

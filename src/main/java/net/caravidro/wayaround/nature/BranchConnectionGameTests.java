@@ -49,4 +49,23 @@ public final class BranchConnectionGameTests {
         h.assertTrue(TreeWoodSegmentBlock.branchConnections(root,level,center)==0,"Terrain-following root models keep their existing joints");
         h.succeed();
     }
+    @GameTest(template="assembly_test",batch="nature",timeoutTicks=80)
+    public static void branchLightingNeverReadsNeighborChunks(GameTestHelper h) {
+        net.minecraft.world.level.BlockGetter unavailable = new net.minecraft.world.level.BlockGetter() {
+            public net.minecraft.world.level.block.entity.BlockEntity getBlockEntity(BlockPos p) { throw new AssertionError("Lighting queried a block entity"); }
+            public net.minecraft.world.level.block.state.BlockState getBlockState(BlockPos p) { throw new AssertionError("Lighting waited for a neighboring chunk"); }
+            public net.minecraft.world.level.material.FluidState getFluidState(BlockPos p) { throw new AssertionError("Lighting queried neighboring fluids"); }
+            public int getHeight() { return 384; }
+            public int getMinBuildHeight() { return -64; }
+        };
+        for(Direction.Axis axis:Direction.Axis.values())for(int thickness=1;thickness<=4;thickness++)for(boolean root:new boolean[]{false,true}) {
+            var state=EcologyContent.OAK_TREE_SEGMENT.get().defaultBlockState().setValue(TreeWoodSegmentBlock.AXIS,axis)
+                    .setValue(TreeWoodSegmentBlock.THICKNESS,thickness).setValue(TreeWoodSegmentBlock.ROOT,root);
+            h.assertTrue(state.propagatesSkylightDown(unavailable,BlockPos.ZERO),"Narrow wood preserves skylight without neighbor reads");
+            h.assertTrue(state.getLightBlock(unavailable,BlockPos.ZERO)==0,"Opacity is independent of FULL chunk availability");
+            h.assertTrue(state.getOcclusionShape(unavailable,BlockPos.ZERO).isEmpty(),"Lighting occlusion never uses dynamic junction geometry");
+        }
+        h.succeed();
+    }
+
 }

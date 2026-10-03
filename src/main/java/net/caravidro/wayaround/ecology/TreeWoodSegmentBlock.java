@@ -94,15 +94,29 @@ public final class TreeWoodSegmentBlock extends Block {
         return connectedShape(state, level, pos);
     }
 
-    /** Only six adjacent cells are inspected, never requesting an unloaded chunk. */
+    // None of the branch/root shapes fills a cube. Lighting must use this
+    // invariant rather than querying live junction shapes: the lighting thread
+    // cannot wait for FULL chunks whose completion depends on its own work.
+    @Override public boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) { return true; }
+    @Override public int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) { return 0; }
+    @Override public VoxelShape getOcclusionShape(BlockState state, BlockGetter level, BlockPos pos) { return Shapes.empty(); }
+
+    /** Only six adjacent cells are inspected, never waiting for an unfinished chunk. */
     public static int branchConnections(BlockState state, BlockGetter level, BlockPos pos) {
         if (state.getValue(ROOT)) return 0;
         int mask = 0;
         for (Direction direction : Direction.values()) {
             if (direction.getAxis() == state.getValue(AXIS)) continue;
             BlockPos neighbor = pos.relative(direction);
-            if (level instanceof LevelReader reader && !reader.hasChunkAt(neighbor)) continue;
-            BlockState other = level.getBlockState(neighbor);
+            BlockState other;
+            if (level instanceof net.minecraft.server.level.ServerLevel server) {
+                var chunk = server.getChunkSource().getChunkNow(neighbor.getX() >> 4, neighbor.getZ() >> 4);
+                if (chunk == null) continue;
+                other = chunk.getBlockState(neighbor);
+            } else {
+                if (level instanceof LevelReader reader && !reader.hasChunkAt(neighbor)) continue;
+                other = level.getBlockState(neighbor);
+            }
             if (other.is(BlockTags.LOGS) || (other.getBlock() instanceof TreeWoodSegmentBlock && !other.getValue(ROOT)))
                 mask |= 1 << direction.ordinal();
         }
