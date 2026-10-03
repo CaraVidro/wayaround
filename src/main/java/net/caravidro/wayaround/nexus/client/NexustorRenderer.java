@@ -138,7 +138,7 @@ public final class NexustorRenderer
                 packedOverlay
         );
 
-        if (reactor.complete()) {
+        if (reactor.complete()&&reactor.portalEnabled()) {
             renderPortal(
                     reactor,
                     partialTick,

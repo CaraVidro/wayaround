@@ -36,7 +36,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nexus-server-tests.log').read_text(errors='replace')
-          assert 'All 4 required tests passed' in text,text[-16000:]
+          assert 'All 5 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application

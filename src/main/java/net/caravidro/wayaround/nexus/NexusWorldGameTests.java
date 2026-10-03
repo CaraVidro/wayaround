@@ -17,7 +17,7 @@ public final class NexusWorldGameTests {
     private static net.minecraft.server.level.ServerLevel nexus(GameTestHelper h) {
         var n=h.getLevel().getServer().getLevel(NexusPortalManager.NEXUS);h.assertTrue(n!=null,"Dimension is registered on a dedicated server");return n;
     }
-    @GameTest(template="wayaround_nature:assembly_test",batch="nexus",timeoutTicks=300)
+    @GameTest(template="assembly_test",batch="nexus",timeoutTicks=300)
     public static void generatedRoomsHaveRealFloorsOpenDoorsAndExterior(GameTestHelper h) {
         var n=nexus(h);h.assertTrue(n.getChunkSource().getGenerator() instanceof NexusChunkGenerator,"Custom chunk generator decoded from dimension JSON");
         long seed=NexusChunkGenerator.layoutSeed(n.getChunkSource().randomState());NexusLayout.Room room=null;
@@ -30,7 +30,7 @@ public final class NexusWorldGameTests {
         h.assertTrue(n.getHeight(Heightmap.Types.MOTION_BLOCKING,outside.getX(),outside.getZ())<=80,"Exterior has open sky over a rocky plane");
         h.assertTrue(!n.dimensionType().hasCeiling(),"No artificial dimension ceiling hides the fracture");h.succeed();
     }
-    @GameTest(template="wayaround_nature:assembly_test",batch="nexus",timeoutTicks=300)
+    @GameTest(template="assembly_test",batch="nexus",timeoutTicks=300)
     public static void generatedFurnitureKeepsRealBlockEntities(GameTestHelper h) {
         var n=nexus(h);long seed=NexusChunkGenerator.layoutSeed(n.getChunkSource().randomState());NexusLayout.Room r=null;
         for(int x=240;x<280;x++){var candidate=NexusLayout.room(seed,x,230);if(candidate.decor()==2){r=candidate;break;}}
@@ -39,7 +39,7 @@ public final class NexusWorldGameTests {
         h.assertTrue(n.getBlockState(tv).is(MediaContent.TELEVISION.get())&&n.getBlockEntity(tv) instanceof TelevisionBlockEntity,"TV is the existing functional media block with a valid saved block entity");
         h.assertTrue(n.getBlockEntity(chair) instanceof ChairBlockEntity,"Chairs preserve seating behavior instead of becoming fake scenery");h.succeed();
     }
-    @GameTest(template="wayaround_nature:assembly_test",batch="nexus",timeoutTicks=300)
+    @GameTest(template="assembly_test",batch="nexus",timeoutTicks=300)
     public static void transitPersistsCutoffAndUniquePreparedDestinations(GameTestHelper h) {
         var n=nexus(h);var source=h.getLevel();var data=new NexusTransitData();var base=new BlockPos(24000,90,24000);
         var a=data.activate(source,base);var b=data.activate(source,base.east(2));
@@ -53,11 +53,26 @@ public final class NexusWorldGameTests {
         h.assertTrue(restored.find(source.dimension(),base).destination.equals(a.destination),"Return coordinates remain fixed across reloads");
         h.assertTrue(restored.maintenanceSlice().size()<=16,"Maintenance is bounded");h.succeed();
     }
-    @GameTest(template="wayaround_nature:assembly_test",batch="nexus",timeoutTicks=300)
+    @GameTest(template="assembly_test",batch="nexus",timeoutTicks=300)
     public static void naturalFaunaIncludesEndermenAndLostAnimals(GameTestHelper h) {
         var n=nexus(h);var biome=n.getBiome(new BlockPos(40,80,40)).value();
         h.assertTrue(biome.getMobSettings().getMobs(MobCategory.MONSTER).unwrap().stream().anyMatch(s->s.type==EntityType.ENDERMAN&&s.getWeight().asInt()==95),"Endermen dominate natural hostile spawns");
         var r=NexusLayout.room(NexusChunkGenerator.layoutSeed(n.getChunkSource().randomState()),310,310);var p=new BlockPos(r.x(),80,r.z());n.getChunkAt(p);
         h.assertTrue(SpawnPlacements.checkSpawnRules(EntityType.SHEEP,n,MobSpawnType.CHUNK_GENERATION,p,net.minecraft.util.RandomSource.create(42)),"Lost sheep can spawn on real Nexus concrete/rock without requiring Overworld grass or sunlight");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="nexus",timeoutTicks=300)
+    public static void physicalCutoffRequiresDeliberateCrouching(GameTestHelper h) {
+        var n=nexus(h);var data=NexusTransitData.get(n.getServer());boolean wasOpen=data.open();
+        var p=new BlockPos(28040,80,28040);n.getChunkAt(p);var old=n.getBlockState(p);
+        var player=net.neoforged.neoforge.common.util.FakePlayerFactory.getMinecraft(n);
+        try {
+            data.reopen();n.setBlock(p,NexusContent.NEXUS_CONTROL.get().defaultBlockState(),18);
+            var hit=new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(p),net.minecraft.core.Direction.NORTH,p,false);
+            player.setShiftKeyDown(false);n.getBlockState(p).useWithoutItem(n,player,hit);
+            h.assertTrue(data.open(),"Ordinary interaction explains the consequence without cutting the return");
+            player.setShiftKeyDown(true);n.getBlockState(p).useWithoutItem(n,player,hit);
+            h.assertTrue(!data.open(),"Actual interior cutoff closes the saved global network");
+        } finally {player.setShiftKeyDown(false);n.setBlock(p,old,18);if(wasOpen)data.reopen();else data.shutDown();}
+        h.succeed();
     }
 }

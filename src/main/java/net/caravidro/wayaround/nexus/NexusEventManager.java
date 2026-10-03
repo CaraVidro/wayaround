@@ -1172,6 +1172,11 @@ public final class NexusEventManager {
         long now =
                 level.getGameTime();
 
+        if(!NexusTransitData.get(level.getServer()).open()) {
+            if(now%40L==0L)NexusPortalManager.sync(level,base,reactor);
+            return;
+        }
+
         if (now % 6L == 0L) {
             double time =
                     now * 0.10;

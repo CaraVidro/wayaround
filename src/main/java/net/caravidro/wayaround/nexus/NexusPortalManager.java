@@ -26,8 +26,9 @@ public final class NexusPortalManager {
     public static void sync(ServerLevel source,BlockPos base,NexustorBaseBlockEntity reactor) {
         if(source.dimension().equals(NEXUS))return;
         var data=NexusTransitData.get(source.getServer());var link=data.find(source.dimension(),base);
-        if(link==null && reactor.complete()&&reactor.portalEnabled())link=data.activate(source,base);
+        if(link==null && reactor.complete())link=data.activate(source,base);
         if(link==null)return;
+        reactor.setPortalVisual(data.open());
         setPlane(source,sourceAnchor(base),data.open());
         var nexus=source.getServer().getLevel(NEXUS);
         if(nexus!=null&&link.prepared&&loadedPlane(nexus,link.destination))setPlane(nexus,link.destination,data.open());
@@ -38,6 +39,10 @@ public final class NexusPortalManager {
         for(var link:data.maintenanceSlice()) {
             var source=server.getLevel(link.source.dimension());var anchor=sourceAnchor(link.source.pos());
             if(source!=null&&loadedPlane(source,anchor))setPlane(source,anchor,data.open());
+            if(source!=null) {
+                var base=link.source.pos();var chunk=source.getChunkSource().getChunkNow(base.getX()>>4,base.getZ()>>4);
+                if(chunk!=null&&chunk.getBlockEntity(base) instanceof NexustorBaseBlockEntity reactor)reactor.setPortalVisual(data.open());
+            }
             if(nexus!=null&&link.prepared&&loadedPlane(nexus,link.destination))setPlane(nexus,link.destination,data.open());
         }
     }

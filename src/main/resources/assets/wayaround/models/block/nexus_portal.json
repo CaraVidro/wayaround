@@ -1,6 +1,29 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "render_type": "minecraft:translucent",
   "textures": {
-    "all": "minecraft:block/black_stained_glass"
-  }
+    "portal": "wayaround:block/nexus_pool",
+    "particle": "wayaround:block/nexus_pool"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        7.5
+      ],
+      "to": [
+        16,
+        16,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#portal"
+        },
+        "south": {
+          "texture": "#portal"
+        }
+      }
+    }
+  ]
 }
