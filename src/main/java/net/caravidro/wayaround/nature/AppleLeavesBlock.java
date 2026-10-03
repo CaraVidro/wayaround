@@ -18,7 +18,7 @@ public final class AppleLeavesBlock extends LeavesBlock {
     public AppleLeavesBlock(Properties p){super(p);registerDefaultState(defaultBlockState().setValue(FRUIT,0));}
     @Override public MapCodec<? extends LeavesBlock> codec(){return CODEC;}
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){super.createBlockStateDefinition(b);b.add(FRUIT);}
-    @Override protected VoxelShape getShape(BlockState s,net.minecraft.world.level.BlockGetter l,BlockPos p,CollisionContext c){return s.getValue(FRUIT)>0?Shapes.or(Shapes.block(),Block.box(5,-5,5,11,0,11)):Shapes.block();}
+    @Override protected VoxelShape getShape(BlockState s,net.minecraft.world.level.BlockGetter l,BlockPos p,CollisionContext c){return s.getValue(FRUIT)>0?Shapes.or(Shapes.block(),Block.box(5,-6,5,11,0,11)):Shapes.block();}
     @Override protected VoxelShape getCollisionShape(BlockState s,net.minecraft.world.level.BlockGetter l,BlockPos p,CollisionContext c){return Shapes.block();}
     @Override protected InteractionResult useWithoutItem(BlockState s,Level l,BlockPos p,Player player,BlockHitResult hit){
         if(s.getValue(FRUIT)!=3)return InteractionResult.PASS;

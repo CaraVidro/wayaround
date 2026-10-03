@@ -22,7 +22,7 @@ public final class NatureGameTests {
         h.assertTrue(level.getBlockState(fruit).getValue(AppleLeavesBlock.FRUIT)==1,"Physical green fruit starts on canopy");
         tree.advance(8000);
         h.assertTrue(level.getBlockState(fruit).getValue(AppleLeavesBlock.FRUIT)==3,"Ecological clock ripens fruit");
-        var player=h.makeMockPlayer();
+        var player=h.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
         var state=level.getBlockState(fruit);
         var hit=new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(fruit),net.minecraft.core.Direction.DOWN,fruit,false);
         NatureContent.APPLE_LEAVES.get().useWithoutItem(state,level,fruit,player,hit);
