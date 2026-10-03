@@ -36,9 +36,11 @@ public final class BirdBehaviorGameTests {
     public static void birdRoutesAroundSolidWall(GameTestHelper h) {
         var l=h.getLevel();
         for(int x=2;x<=12;x++)for(int y=1;y<=8;y++)for(int z=2;z<=12;z++)l.setBlock(h.absolutePos(new BlockPos(x,y,z)),Blocks.AIR.defaultBlockState(),3);
+        for(int x=2;x<=12;x++)for(int z=2;z<=12;z++)l.setBlock(h.absolutePos(new BlockPos(x,0,z)),Blocks.DIRT.defaultBlockState(),3);
         for(int y=1;y<=6;y++)for(int z=4;z<=9;z++)l.setBlock(h.absolutePos(new BlockPos(7,y,z)),Blocks.STONE.defaultBlockState(),3);
         var bird=NatureContent.HUMMINGBIRD.get().create(l);BlockPos start=h.absolutePos(new BlockPos(4,3,6));bird.moveTo(start.getX()+.5,start.getY(),start.getZ()+.5,0,0);l.addFreshEntity(bird);
-        BlockPos target=h.absolutePos(new BlockPos(10,3,6));var path=bird.getNavigation().createPath(target,0);
+        BlockPos target=h.absolutePos(new BlockPos(10,3,6));var path=bird.getNavigation().createPath(target,1);
+        if(path!=null)System.out.println("Bird route: nodes="+path.getNodeCount()+", reachable="+path.canReach()+", distance="+path.getDistToTarget());
         h.assertTrue(path!=null&&path.canReach(),"Flight navigation reaches the far side of the wall");
         for(int i=0;i<path.getNodeCount();i++){
             var n=path.getNode(i);h.assertTrue(!l.getBlockState(new BlockPos(n.x,n.y,n.z)).is(Blocks.STONE),"Route never walks through wall cells");

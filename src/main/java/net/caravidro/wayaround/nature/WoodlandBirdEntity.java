@@ -106,7 +106,7 @@ public final class WoodlandBirdEntity extends PathfinderMob implements FlyingAni
             if(last!=null&&position().distanceToSqr(last)<.0004)stuck++;else stuck=0;
             last=position();
             if(tickCount>=repathAt){
-                Path path=getNavigation().createPath(target.x,target.y,target.z,0);
+                Path path=getNavigation().createPath(target.x,target.y,target.z,1);
                 if(path!=null&&path.canReach())getNavigation().moveTo(path,1);else nextMove=tickCount+10;
                 repathAt=tickCount+30;
             }
@@ -122,7 +122,7 @@ public final class WoodlandBirdEntity extends PathfinderMob implements FlyingAni
                 if(!level().getBlockState(p).isAir()||!level().getFluidState(p).isEmpty())continue;
                 Vec3 candidate=new Vec3(x+.5,y+(species()==0?.7:0),z+.5);
                 if(!level().noCollision(WoodlandBirdEntity.this,getBoundingBox().move(candidate.subtract(position()))))continue;
-                Path path=getNavigation().createPath(candidate.x,candidate.y,candidate.z,0);
+                Path path=getNavigation().createPath(candidate.x,candidate.y,candidate.z,1);
                 if(path==null||!path.canReach())continue;
                 target=candidate;getNavigation().moveTo(path,1);return;
             }

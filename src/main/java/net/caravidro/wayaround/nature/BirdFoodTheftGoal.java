@@ -51,7 +51,7 @@ public final class BirdFoodTheftGoal extends Goal {
                     Vec3 candidate = bird.position().add(away.yRot((attempt-3.5f)*.18f).scale(8+bird.getRandom().nextInt(5))).add(0,1+bird.getRandom().nextInt(5),0);
                     if (!bird.level().hasChunkAt(net.minecraft.core.BlockPos.containing(candidate))
                             || !bird.level().noCollision(bird,bird.getBoundingBox().move(candidate.subtract(bird.position())))) continue;
-                    var path = bird.getNavigation().createPath(candidate.x,candidate.y,candidate.z,0);
+                    var path = bird.getNavigation().createPath(candidate.x,candidate.y,candidate.z,1);
                     if (path == null || !path.canReach()) continue;
                     escape = candidate;bird.getNavigation().moveTo(path,1.35);break;
                 }

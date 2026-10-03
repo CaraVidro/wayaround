@@ -13,13 +13,7 @@ public final class DeepOceanClientVisibility {
     private DeepOceanClientVisibility() {}
 
     public static boolean isDeepOcean(ClientLevel level, BlockPos pos) {
-        return level.getBiome(pos).unwrapKey().map(key -> {
-            String path = key.location().getPath();
-            return path.equals("deep_ocean")
-                    || path.equals("deep_cold_ocean")
-                    || path.equals("deep_frozen_ocean")
-                    || path.equals("deep_lukewarm_ocean");
-        }).orElse(false);
+        return net.caravidro.wayaround.ecology.DeepOceanBiomes.contains(level,pos);
     }
 
     public static boolean submerged(Entity entity, ClientLevel level, Vec3 eye) {
