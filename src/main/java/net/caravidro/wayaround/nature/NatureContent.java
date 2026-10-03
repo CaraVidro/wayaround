@@ -17,6 +17,8 @@ import net.neoforged.neoforge.registries.*;
 
 @EventBusSubscriber(modid=WayAround.MODID,bus=EventBusSubscriber.Bus.MOD)
 public final class NatureContent {
+    public static final DeferredRegister<net.minecraft.world.level.levelgen.feature.Feature<?>> FEATURES=DeferredRegister.create(Registries.FEATURE,WayAround.MODID);
+    public static final DeferredHolder<net.minecraft.world.level.levelgen.feature.Feature<?>,WildAppleTreeFeature> WILD_APPLE_TREE=FEATURES.register("wild_apple_tree",WildAppleTreeFeature::new);
     public static final DeferredRegister.Blocks BLOCKS=DeferredRegister.createBlocks(WayAround.MODID);
     public static final DeferredRegister.Items ITEMS=DeferredRegister.createItems(WayAround.MODID);
     public static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(Registries.ENTITY_TYPE,WayAround.MODID);
@@ -43,7 +45,7 @@ public final class NatureContent {
     }
     public static final DeferredHolder<CreativeModeTab,CreativeModeTab> BIRDS=TABS.register("birds",()->CreativeModeTab.builder().title(Component.translatable("itemGroup.wayaround.birds")).icon(()->new ItemStack(PARROT_EGG.get())).displayItems((p,o)->{o.accept(HUMMINGBIRD_EGG);o.accept(THRUSH_EGG);o.accept(PARROT_EGG);}).build());
     public static final DeferredHolder<CreativeModeTab,CreativeModeTab> AGRICULTURE=TABS.register("agriculture",()->CreativeModeTab.builder().title(Component.translatable("itemGroup.wayaround.agriculture")).icon(()->new ItemStack(APPLE_SAPLING_ITEM.get())).displayItems((p,o)->{o.accept(APPLE_SAPLING_ITEM);o.accept(APPLE_LEAVES_ITEM);o.accept(APPLE_LOG_ITEM);o.accept(Items.APPLE);}).build());
-    public static void register(IEventBus bus){BLOCKS.register(bus);ITEMS.register(bus);ENTITIES.register(bus);BLOCK_ENTITIES.register(bus);TABS.register(bus);}
+    public static void register(IEventBus bus){FEATURES.register(bus);BLOCKS.register(bus);ITEMS.register(bus);ENTITIES.register(bus);BLOCK_ENTITIES.register(bus);TABS.register(bus);}
     @SubscribeEvent public static void attributes(EntityAttributeCreationEvent e){
         e.put(HUMMINGBIRD.get(),WoodlandBirdEntity.attributes(4,.45).build());
         e.put(THRUSH.get(),WoodlandBirdEntity.attributes(8,.28).build());

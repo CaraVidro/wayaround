@@ -251,12 +251,16 @@ public final class EcologicalSuccession {
         }
     }
 
+    public static void seedHistoricalChunk(ServerLevel level,int x,int z){
+        if(EcologyWorldData.get(level).markSeeded(x,z))seedChunk(level,x,z);
+    }
+
     private static void seedChunk(
             ServerLevel level,
             int chunkX,
             int chunkZ
     ) {
-        RandomSource random = level.random;
+        RandomSource random = RandomSource.create(EcologicalHistory.mix(level.getSeed() ^ net.minecraft.world.level.ChunkPos.asLong(chunkX,chunkZ)));
 
         for (int i = 0; i < 112; i++) {
             int x = (chunkX << 4) + random.nextInt(16);

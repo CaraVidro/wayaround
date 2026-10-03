@@ -17,7 +17,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 @EventBusSubscriber(modid=WayAround.MODID)
 public final class BirdWorldEvents {
-    private static final Map<ServerLevel,Long> NEXT_FLOCK=new WeakHashMap<>();
+    private static final Map<ServerLevel,Map<Long,Long>> NEXT_FLOCK=new WeakHashMap<>();
     @SubscribeEvent public static void stopped(ServerStoppedEvent e){NEXT_FLOCK.clear();AppleTreeBlockEntity.clear();ParrotMimicManager.clear();}
     @SubscribeEvent public static void tick(ServerTickEvent.Post e){
         ParrotMimicManager.tick(e.getServer());
@@ -41,8 +41,14 @@ public final class BirdWorldEvents {
                 }
             }
             long now=l.getGameTime();
-            if(now>=NEXT_FLOCK.getOrDefault(l,now+6000L)){migration(p);NEXT_FLOCK.put(l,now+6000+l.random.nextInt(6000));}
-            else NEXT_FLOCK.putIfAbsent(l,now+6000L);
+            long region=((long)Math.floorDiv(p.getBlockX(),512)<<32)^(Math.floorDiv(p.getBlockZ(),512)&0xffffffffL);
+            long phase=net.caravidro.wayaround.ecology.EcologicalHistory.phase(l.getSeed(),region,now,6000);
+            long cycle=Math.floorDiv(now-phase,6000);
+            var shown=NEXT_FLOCK.computeIfAbsent(l,k->new LinkedHashMap<>());
+            if(phase<1000&&shown.getOrDefault(region,Long.MIN_VALUE)!=cycle){
+                migration(p);shown.put(region,cycle);
+                if(shown.size()>256)shown.remove(shown.keySet().iterator().next());
+            }
         }
     }
     public static void migration(ServerPlayer p){

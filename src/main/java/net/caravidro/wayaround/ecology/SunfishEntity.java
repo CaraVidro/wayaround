@@ -38,6 +38,8 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                     EntityDataSerializers.INT
             );
 
+    private long historySample=-1;
+    private boolean naturalHistory;
     private int baskTicks;
     private int baskApproachTicks;
     private int baskSurfaceY;
@@ -109,12 +111,37 @@ public final class SunfishEntity extends AguaWorldFishEntity {
         }
 
         initializeNaturalScars();
+        long now=level().getGameTime();
+        if(naturalHistory&&(historySample<0||now-historySample>200))restoreHistoricalBasking(now);
+        historySample=now;
         tickBasking();
 
         if (isBasking()
                 && isInWaterOrBubble()) {
             supportBackPassengers();
         }
+    }
+
+    @Override public net.minecraft.world.entity.SpawnGroupData finalizeSpawn(
+            net.minecraft.world.level.ServerLevelAccessor world,net.minecraft.world.DifficultyInstance difficulty,
+            net.minecraft.world.entity.MobSpawnType reason,net.minecraft.world.entity.SpawnGroupData group){
+        var result=super.finalizeSpawn(world,difficulty,reason,group);
+        naturalHistory=reason==net.minecraft.world.entity.MobSpawnType.NATURAL||reason==net.minecraft.world.entity.MobSpawnType.CHUNK_GENERATION;
+        if(naturalHistory)restoreHistoricalBasking(world.getLevel().getGameTime());
+        historySample=world.getLevel().getGameTime();
+        return result;
+    }
+    public void restoreHistoricalBasking(long now){
+        if(!(level() instanceof net.minecraft.server.level.ServerLevel server)||!server.hasChunkAt(blockPosition()))return;
+        long phase=EcologicalHistory.phase(server.getSeed(),getUUID().getMostSignificantBits(),now,8000);
+        baskApproachTicks=0;
+        if(phase>=1100){setBasking(false);baskTicks=0;baskCooldown=(int)(8000-phase);return;}
+        int y=server.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,getBlockX(),getBlockZ());
+        BlockPos air=new BlockPos(getBlockX(),y,getBlockZ());
+        if(!server.getBlockState(air).isAir()||!server.getFluidState(air.below()).is(FluidTags.WATER)||!server.canSeeSky(air))return;
+        var old=position();setPos(getX(),y-.22,getZ());
+        if(!server.noCollision(this)){setPos(old.x,old.y,old.z);return;}
+        baskSurfaceY=y;baskTicks=(int)(1100-phase);baskCooldown=0;setBasking(true);getNavigation().stop();
     }
 
     private void initializeNaturalScars() {
@@ -713,6 +740,8 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                 tag
         );
 
+        tag.putLong("HistorySample",historySample);
+        tag.putBoolean("NaturalHistory",naturalHistory);
         tag.putBoolean(
                 "Basking",
                 isBasking()
@@ -752,6 +781,8 @@ public final class SunfishEntity extends AguaWorldFishEntity {
                 tag
         );
 
+        historySample=tag.contains("HistorySample")?tag.getLong("HistorySample"):-1;
+        naturalHistory=tag.contains("NaturalHistory")?tag.getBoolean("NaturalHistory"):!fromBucket()&&!hasCustomName();
         setBasking(
                 tag.getBoolean(
                         "Basking"

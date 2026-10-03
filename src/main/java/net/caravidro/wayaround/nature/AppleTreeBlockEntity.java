@@ -32,8 +32,10 @@ public final class AppleTreeBlockEntity extends BlockEntity {
         if(!(level instanceof ServerLevel s)||isRemoved())return;
         TimeAgingEngine.sampleWorldSurface(s,worldPosition,false);
         if(getBlockState().is(NatureContent.APPLE_SAPLING.get())){
-            saplingAge+=Math.max(0,Math.min(dt,24000));
-            if(saplingAge>=6000)grow();
+            long before=saplingAge,elapsed=Math.max(0,Math.min(dt,24000));
+            saplingAge+=elapsed;
+            if(saplingAge>=6000&&grow()&&s.getBlockEntity(worldPosition) instanceof AppleTreeBlockEntity grown)
+                grown.advance(Math.max(0,elapsed-Math.max(0,6000-before)));
         }else{
             for(int i=0;i<FRUIT.length;i++){
                 BlockPos p=worldPosition.offset(FRUIT[i][0],FRUIT[i][1],FRUIT[i][2]);
@@ -51,21 +53,21 @@ public final class AppleTreeBlockEntity extends BlockEntity {
     }
     public boolean grow(){
         if(!(level instanceof ServerLevel s))return false;
-        // Validate the entire footprint before placing anything; no chunk loads.
-        for(int x=-2;x<=2;x++)for(int y=0;y<=5;y++)for(int z=-2;z<=2;z++){
-            BlockPos p=worldPosition.offset(x,y,z);
-            if(!s.hasChunkAt(p))return false;
-            BlockState b=s.getBlockState(p);
-            if(!p.equals(worldPosition)&&!b.isAir()&&!b.is(BlockTags.LEAVES)&&!b.canBeReplaced())return false;
-        }
-        for(int y=1;y<=3;y++)s.setBlock(worldPosition.above(y),Blocks.OAK_LOG.defaultBlockState(),3);
-        for(int y=3;y<=5;y++)for(int x=-2;x<=2;x++)for(int z=-2;z<=2;z++){
-            if(x==0&&z==0&&y==3||Math.abs(x)==2&&Math.abs(z)==2||y==5&&(Math.abs(x)>1||Math.abs(z)>1))continue;
-            s.setBlock(worldPosition.offset(x,y,z),NatureContent.APPLE_LEAVES.get().defaultBlockState().setValue(LeavesBlock.DISTANCE,1),3);
-        }
-        s.setBlock(worldPosition,NatureContent.APPLE_LOG.get().defaultBlockState(),3);
+        if(!AppleTreePlacement.place(s,worldPosition,s::hasChunkAt))return false;
         if(s.getBlockEntity(worldPosition) instanceof AppleTreeBlockEntity grown){grown.lastSample=s.getGameTime();grown.advance(0);}
         return true;
+    }
+    public void initializeWild(LevelAccessor world,long now,long seed){
+        lastSample=now;
+        for(int i=0;i<FRUIT.length;i++){
+            BlockPos p=worldPosition.offset(FRUIT[i][0],FRUIT[i][1],FRUIT[i][2]);
+            ages[i]=Math.floorMod(net.caravidro.wayaround.ecology.EcologicalHistory.mix(seed^p.asLong()),16000);
+            if(i%4==0)ages[i]=8000+ages[i]%4001;
+            ages[i]=Math.min(12000,ages[i]);stages[i]=NatureMath.fruitStage(ages[i]);
+            var leaf=world.getBlockState(p);
+            if(leaf.is(NatureContent.APPLE_LEAVES.get()))world.setBlock(p,leaf.setValue(AppleLeavesBlock.FRUIT,stages[i]),2);
+        }
+        setChanged();
     }
     public static void debugPulse(ServerLevel l,long dt){
         var set=ACTIVE.get(l);if(set==null)return;int budget=128;

@@ -222,6 +222,7 @@ public final class DeferredMiningManager {
             return centerDistance <= 72.0;
         }
 
+        if(!level.hasChunk(region.centerX()>>4,region.centerZ()>>4))return false;
         int centerSurface = level.getHeight(
                 Heightmap.Types.WORLD_SURFACE,
                 region.centerX(),
@@ -251,6 +252,8 @@ public final class DeferredMiningManager {
             ServerLevel level,
             MiningRegionRules.Region region) {
 
+        if(!regionLoaded(level,new BlockPos(region.centerX(),0,region.centerZ()),region.radius()+3))return;
+        if(region.openPit()&&!level.getFluidState(new BlockPos(region.centerX(),level.getHeight(Heightmap.Types.WORLD_SURFACE,region.centerX(),region.centerZ())-1,region.centerZ())).isEmpty())return;
         BlockPos anchor = anchorPos(level, region);
 
         if (!regionLoaded(level, anchor, region.radius() + 3)) {
@@ -313,11 +316,7 @@ public final class DeferredMiningManager {
             return new BlockPos(region.centerX(), y, region.centerZ());
         }
 
-        int surface = level.getHeight(
-                Heightmap.Types.WORLD_SURFACE,
-                region.centerX(),
-                region.centerZ()
-        ) - 1;
+        int surface = naturalSurface(level,region.centerX(),region.centerZ());
 
         int pitDepth = 7 + region.radius() / 4;
         int floor = Math.max(
@@ -337,10 +336,10 @@ public final class DeferredMiningManager {
             BlockPos center,
             int radius) {
 
-        return level.hasChunkAt(center.offset(radius, 0, radius))
-                && level.hasChunkAt(center.offset(radius, 0, -radius))
-                && level.hasChunkAt(center.offset(-radius, 0, radius))
-                && level.hasChunkAt(center.offset(-radius, 0, -radius));
+        for(int x=(center.getX()-radius)>>4;x<=(center.getX()+radius)>>4;x++)
+            for(int z=(center.getZ()-radius)>>4;z<=(center.getZ()+radius)>>4;z++)
+                if(!level.hasChunk(x,z))return false;
+        return true;
     }
 
     private static void processActive(ServerLevel level) {
@@ -386,6 +385,7 @@ public final class DeferredMiningManager {
                 continue;
             }
 
+            if(!regionLoaded(level,pos,anchor.radius()+3))continue;
             switch (anchor.stage()) {
                 case STRUCTURE -> structureStep(level, pos, anchor, region);
                 case ORES -> oreStep(level, pos, anchor, region);
@@ -399,7 +399,7 @@ public final class DeferredMiningManager {
         if (anchors.isEmpty()) ACTIVE.remove(level);
     }
 
-    private static void structureStep(
+    static void structureStep(
             ServerLevel level,
             BlockPos anchorPos,
             MiningRegionAnchorBlockEntity anchor,
@@ -424,7 +424,9 @@ public final class DeferredMiningManager {
 
                 int x = anchorPos.getX() + dx;
                 int z = anchorPos.getZ() + dz;
-                int surface = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+                if(!level.hasChunk(x>>4,z>>4))return;
+                int top = level.getHeight(Heightmap.Types.WORLD_SURFACE,x,z)-1;
+                int surface = naturalSurface(level,x,z);
 
                 double normalized = distance / radius;
                 double bowl = 1.0 - normalized;
@@ -432,10 +434,10 @@ public final class DeferredMiningManager {
                 int depth = Math.max(1, (int) Math.round((7 + radius / 4.0) * bowl));
                 int floor = Math.max(anchorPos.getY() + 3, surface - depth);
 
-                for (int y = surface; y > floor; y--) {
+                for (int y = top; y > floor; y--) {
                     BlockPos carve = new BlockPos(x, y, z);
                     if (carve.equals(anchorPos)) continue;
-                    if (carvable(level.getBlockState(carve))) {
+                    if (level.getBlockEntity(carve)==null&&pitCarvable(level.getBlockState(carve))) {
                         level.setBlock(carve, Blocks.AIR.defaultBlockState(), 2);
                     }
                 }
@@ -444,7 +446,7 @@ public final class DeferredMiningManager {
             anchor.cursor(cursor);
 
             if (cursor >= total) {
-                anchor.advance();
+                if(anchor.roofRepairOnly())anchor.completeNow();else anchor.advance();
             }
 
             return;
@@ -559,7 +561,7 @@ public final class DeferredMiningManager {
                 for (int oy = 0; oy <= 2; oy++) {
                     BlockPos carve = new BlockPos(x + ox, y + oy, z);
                     if (!level.hasChunkAt(carve) || carve.equals(anchor)) continue;
-                    if (carvable(level.getBlockState(carve))) {
+                    if (level.getBlockEntity(carve)==null&&pitCarvable(level.getBlockState(carve))) {
                         level.setBlock(carve, Blocks.CAVE_AIR.defaultBlockState(), 2);
                     }
                 }
@@ -800,6 +802,32 @@ public final class DeferredMiningManager {
         );
 
         anchor.advance();
+    }
+
+    public static void resume(MiningRegionAnchorBlockEntity anchor){
+        if(anchor.getLevel() instanceof ServerLevel l&&!anchor.complete())ACTIVE.computeIfAbsent(l,k->new LinkedHashSet<>()).add(anchor.getBlockPos().immutable());
+    }
+    public static void onLoadedTerrain(ServerLevel l,int chunkX,int chunkZ){
+        int cx=MiningRegionRules.cell(chunkX*16+8),cz=MiningRegionRules.cell(chunkZ*16+8);
+        for(int x=cx-1;x<=cx+1;x++)for(int z=cz-1;z<=cz+1;z++){
+            var r=MiningRegionRules.region(l.getSeed(),x,z);
+            if(r.isPresent()&&r.get().openPit())awaken(l,r.get());
+        }
+    }
+    public static int naturalSurface(ServerLevel l,int x,int z){
+        int y=l.getHeight(Heightmap.Types.WORLD_SURFACE,x,z)-1;
+        int limit=Math.max(l.getMinBuildHeight(),y-48);
+        while(y>limit){
+            var b=l.getBlockState(new BlockPos(x,y,z));
+            if(!b.is(net.minecraft.tags.BlockTags.LEAVES)&&!b.is(net.minecraft.tags.BlockTags.LOGS)&&!b.canBeReplaced()&&!b.is(Blocks.SNOW_BLOCK))break;
+            y--;
+        }
+        return y;
+    }
+    public static boolean pitCarvable(BlockState state){
+        return carvable(state)||state.is(net.minecraft.tags.BlockTags.DIRT)||state.is(net.minecraft.tags.BlockTags.SAND)
+            ||state.is(net.minecraft.tags.BlockTags.LEAVES)||state.is(net.minecraft.tags.BlockTags.LOGS)
+            ||state.canBeReplaced()&&state.getFluidState().isEmpty()||state.is(Blocks.SNOW_BLOCK);
     }
 
     private static boolean carvable(BlockState state) {
