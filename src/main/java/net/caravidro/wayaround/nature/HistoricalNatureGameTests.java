@@ -23,7 +23,9 @@ public final class HistoricalNatureGameTests {
         h.assertTrue(ripe>0,"Previously unseen wild tree already carries ripe apples");
         l.setBlock(p,NatureContent.APPLE_SAPLING.get().defaultBlockState(),3);
         for(int x=-2;x<=2;x++)for(int y=1;y<=5;y++)for(int z=-2;z<=2;z++)l.setBlock(p.offset(x,y,z),Blocks.AIR.defaultBlockState(),3);
-        ((AppleTreeBlockEntity)l.getBlockEntity(p)).advance(24000);
+        var sapling=(AppleTreeBlockEntity)l.getBlockEntity(p);sapling.onLoad();
+        h.assertTrue(sapling.saveWithFullMetadata(l.registryAccess()).getLong("LastSample")>=0,"Planting clock is saved before the first ecological pulse");
+        sapling.advance(24000);
         h.assertTrue(l.getBlockState(p.offset(2,3,0)).getValue(AppleLeavesBlock.FRUIT)==3,"Unloaded sapling catches up growth AND fruit maturity in one pulse");
         h.succeed();
     }

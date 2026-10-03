@@ -20,7 +20,7 @@ public final class AppleTreeBlockEntity extends BlockEntity {
     private long[] ages=new long[12];
     private int[] stages=new int[12];
     public AppleTreeBlockEntity(BlockPos p,BlockState s){super(NatureContent.APPLE_TREE_ENTITY.get(),p,s);}
-    @Override public void onLoad(){super.onLoad();if(level instanceof ServerLevel s)ACTIVE.computeIfAbsent(s,k->new HashSet<>()).add(this);}
+    @Override public void onLoad(){super.onLoad();if(level instanceof ServerLevel s){if(lastSample<0){lastSample=s.getGameTime();setChanged();}ACTIVE.computeIfAbsent(s,k->new HashSet<>()).add(this);}}
     @Override public void setRemoved(){if(level instanceof ServerLevel s){var set=ACTIVE.get(s);if(set!=null)set.remove(this);}super.setRemoved();}
     public static void tick(Level l,BlockPos p,BlockState state,AppleTreeBlockEntity tree){
         if(l.getGameTime()%80!=Math.floorMod(p.asLong(),80))return;
