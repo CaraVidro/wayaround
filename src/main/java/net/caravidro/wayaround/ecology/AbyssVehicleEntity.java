@@ -44,7 +44,7 @@ public abstract class AbyssVehicleEntity extends Entity {
     protected final Vec3 constrainAscent(Vec3 motion) {
         // The drive must not turn into a flying machine at the fluid boundary.
         if (motion.y > 0 && !level().getFluidState(BlockPos.containing(getX(), getY()+0.35, getZ())).is(FluidTags.WATER))
-            return new Vec3(motion.x, Math.min(0, level().getSeaLevel()-0.85-getY()), motion.z);
+            return new Vec3(motion.x, 0, motion.z);
         return motion;
     }
     @Override public void lerpTo(double x, double y, double z, float yaw, float pitch, int steps) {

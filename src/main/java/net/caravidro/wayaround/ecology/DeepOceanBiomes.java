@@ -8,7 +8,7 @@ import net.minecraft.world.level.biome.Biome;
 /** Cave biomes below an ocean must not switch off pressure or abyss darkness. */
 public final class DeepOceanBiomes {
     private DeepOceanBiomes() {}
-    private static boolean deep(Holder<Biome> biome) {
+    public static boolean deep(Holder<Biome> biome) {
         return biome.unwrapKey().map(key->{
             String path=key.location().getPath();
             return path.equals("deep_ocean")||path.equals("deep_cold_ocean")

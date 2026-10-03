@@ -51,7 +51,9 @@
     "client.SimpleDynamicLightMixin",
     "client.VegetationLodMixin",
     "client.DaysBreakSkyMixin",
-    "client.DaysBreakLightMixin"
+    "client.DaysBreakLightMixin",
+    "client.RegionLightTextureMixin",
+    "client.RegionFogMixin"
   ],
   "injectors": {
     "defaultRequire": 1

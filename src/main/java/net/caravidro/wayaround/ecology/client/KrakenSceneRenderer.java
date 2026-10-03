@@ -28,6 +28,7 @@ public final class KrakenSceneRenderer {
     private static final KrakenAnimationClock clock = new KrakenAnimationClock();
     private static int lastAge = -1;
     private static boolean emerged, submerged;
+    private static int riseContacts,fallContacts;
     private static final List<Splash> splashes = new ArrayList<>();
     private record Splash(Vec3 center, long start, double radius) {}
     private KrakenSceneRenderer() {}
@@ -47,7 +48,7 @@ public final class KrakenSceneRenderer {
         scene = p;
         if (fresh) clock.reset(p.age(), level.getGameTime());
         else clock.synchronize(p.age(), level.getGameTime());
-        if (fresh) { emerged = false; submerged = false; lastAge = p.age() - 1; }
+        if (fresh) { emerged = false; submerged = false; riseContacts=fallContacts=0; lastAge = p.age() - 1; }
     }
     private static void clear() { scene = null; splashes.clear(); owner = null; lastAge = -1; }
     private static double age() { return clock.age(); }
@@ -69,6 +70,16 @@ public final class KrakenSceneRenderer {
         int duration = KrakenMotion.duration(scene.kind());
         if (age > duration + 20) { scene = null; return; }
         if (scene.kind() < 3) {
+            if(scene.kind()!=1 && lastAge>=0)for(int i=1;i<=16;i++) {
+                double segment=i/16.0;int bit=1<<(i-1);
+                var now=KrakenMotion.tentacle(segment,age,scene.kind());
+                var before=KrakenMotion.tentacle(segment,lastAge,scene.kind());
+                boolean rising=now.y()>before.y();int mask=rising?riseContacts:fallContacts;
+                if((mask&bit)==0 && KrakenMotion.contact(segment,lastAge,age,scene.kind())) {
+                    Vec3 hit=world(now);if(splashes.size()<24)splashes.add(new Splash(new Vec3(hit.x,KrakenMotion.waterSurface(scene.surface()),hit.z),owner.getGameTime(),6+now.radius()*1.5));
+                    if(rising)riseContacts|=bit;else fallContacts|=bit;
+                }
+            }
             int riseAt = KrakenMotion.breachAge(scene.kind());
             int fallAt = KrakenMotion.impactAge(scene.kind());
             if (!emerged && lastAge < riseAt && age >= riseAt) {
@@ -79,7 +90,7 @@ public final class KrakenSceneRenderer {
                 splashes.add(new Splash(new Vec3(end.x,KrakenMotion.waterSurface(scene.surface()),end.z), owner.getGameTime(), scene.kind()==1?42:48));
                 submerged = true;
             }
-        } else if (age % 4 == 0 && mc.options.particles().get() != net.minecraft.client.ParticleStatus.MINIMAL) {
+        } else if (scene.kind()<5 && age % 4 == 0 && mc.options.particles().get() != net.minecraft.client.ParticleStatus.MINIMAL) {
             // Eight particles per tick at most. Large volume is mesh, not particle count.
             for (int i=0;i<8;i++) {
                 double a = age*.10+i*Math.PI/4;

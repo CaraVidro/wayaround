@@ -26,6 +26,11 @@ public final class KrakenMotion {
         }
         return duration(kind)-1;
     }
+    public static boolean contact(double segment,double previous,double current,int kind) {
+        Point before=tentacle(segment,previous,kind),after=tentacle(segment,current,kind);
+        return before.y()-before.radius()>0 && after.y()-after.radius()<=0
+                || before.y()+before.radius()<0 && after.y()+after.radius()>=0;
+    }
     public static Point tentacle(double t, double age, int kind) {
         double rise = smooth(age / 100.0);
         double sink = smooth((age - 270) / 70.0);

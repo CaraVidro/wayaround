@@ -26,7 +26,7 @@ public final class KrakenCommands {
             final int kind = i + 2;
             dispatcher.register(Commands.literal("kraken").requires(source -> source.hasPermission(2))
                     .then(Commands.literal(scenes[i]).executes(context -> {
-                        boolean started = KrakenManager.forceScene(context.getSource().getPlayerOrException(), kind);
+                        boolean started = KrakenManager.forceSceneCommand(context.getSource().getPlayerOrException(), kind);
                         if (!started) context.getSource().sendFailure(Component.literal("Precisa de mar aberto e nenhum evento ativo."));
                         return started ? 1 : 0;
                     })));

@@ -177,17 +177,15 @@ public final class KrakenManager {
     public static boolean forceTentacle(
             ServerPlayer player
     ) {
-        return startTentacle(
-                player
-        );
+        if (startTentacle(player)) return true;
+        return commandRemote(player,0);
     }
 
     public static boolean forceWatch(
             ServerPlayer player
     ) {
-        return startWatch(
-                player
-        );
+        if (startWatch(player)) return true;
+        return commandRemote(player,1);
     }
 
     public static void forceRumble(
@@ -197,6 +195,32 @@ public final class KrakenManager {
                 player,
                 true
         );
+    }
+
+    public static boolean forceSceneCommand(ServerPlayer player,int kind) {
+        if(forceScene(player,kind))return true;
+        return kind==2 && commandRemote(player,kind);
+    }
+    /** Command-only climate search. It never generates or inspects remote chunks. */
+    private static boolean commandRemote(ServerPlayer player,int kind) {
+        ServerLevel level=player.serverLevel();if(ACTIVE.containsKey(level))return false;
+        var source=level.getChunkSource();var biomes=source.getGenerator().getBiomeSource();
+        var sampler=source.randomState().sampler();BlockPos base=player.blockPosition();
+        BlockPos closest=null;long best=Long.MAX_VALUE;int surface=level.getSeaLevel()-1;
+        // Nearest sampled deep biome within 8192 blocks; at most 16641 samples.
+        for(int ring=0;ring<=64 && (long)ring*128*ring*128<=best;ring++) {
+            for(int dx=-ring;dx<=ring;dx++)for(int dz=-ring;dz<=ring;dz++) {
+                if(Math.max(Math.abs(dx),Math.abs(dz))!=ring)continue;
+                int x=base.getX()+dx*128,z=base.getZ()+dz*128;long distance=(long)dx*dx+(long)dz*dz;distance*=128*128;
+                if(distance>=best || Math.abs((long)x)>29999000 || Math.abs((long)z)>29999000)continue;
+                if(DeepOceanBiomes.deep(biomes.getNoiseBiome(x>>2,(surface-8)>>2,z>>2,sampler))) { closest=new BlockPos(x,surface,z);best=distance; }
+            }
+        }
+        if(closest==null)return false;
+        Site site=new Site(closest.getX(),closest.getZ(),surface-110,surface,1,1);
+        ACTIVE.put(level,new KrakenEvent(level,site,player.getUUID(),kind));
+        player.sendSystemMessage(net.minecraft.network.chat.Component.literal("Evento no deep ocean: X "+site.x+", Z "+site.z+"."));
+        return true;
     }
 
     public static boolean forceScene(ServerPlayer player, int kind) {
@@ -893,6 +917,11 @@ public final class KrakenManager {
                 submarine.push(Math.sin(age*.31)*.045*envelope,Math.sin(age*.22)*.035*envelope,Math.cos(age*.31)*.045*envelope);
                 submarine.hurtMarked=true;submarine.shake(14,(float)(.3*envelope));
                 if(age%36==0) submarine.sound(SoundEvents.IRON_DOOR_CLOSE,1F,.35F);
+            }
+            if ((kind==0 || kind==2) && age%12==0) {
+                boolean contact=false;
+                for(int i=1;i<=16;i++)if(KrakenMotion.contact(i/16.0,age-12,age,kind))contact=true;
+                if(contact) level.playSound(null,new BlockPos(site.x,site.surface,site.z),SoundEvents.GENERIC_SPLASH,SoundSource.AMBIENT,7F,.45F);
             }
             if (kind < 3 && (age == KrakenMotion.breachAge(kind) || age == KrakenMotion.impactAge(kind))) {
                 double splashX=site.x, splashZ=site.z;

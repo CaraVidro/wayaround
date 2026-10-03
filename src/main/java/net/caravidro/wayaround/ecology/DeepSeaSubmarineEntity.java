@@ -15,7 +15,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.Mth;
 
 /** Powered exploration submarine with saved physical cargo. */
-public final class DeepSeaSubmarineEntity extends AbyssVehicleEntity {
+public final class DeepSeaSubmarineEntity extends AbyssVehicleEntity implements HasCustomInventoryScreen {
     private float throttle, steering, vertical, turnSpeed;
     private long lastInputTick;
     private final SimpleContainer cargo = new SimpleContainer(27) {
@@ -46,11 +46,14 @@ public final class DeepSeaSubmarineEntity extends AbyssVehicleEntity {
     @Override public InteractionResult interact(Player player, InteractionHand hand) {
         if(player.isSecondaryUseActive()) {
             if(!level().isClientSide) {
-                if(player.getItemInHand(hand).is(Items.STICK) && !isVehicle() && cargo.isEmpty()) { spawnAtLocation(EcologyContent.DEEP_SEA_SUBMARINE_ITEM.get());discard(); }
-                else player.openMenu(new SimpleMenuProvider((id,inventory,p)->ChestMenu.threeRows(id,inventory,cargo),Component.translatable("container.wayaround.submarine_cargo")));
+                if(player.getItemInHand(hand).is(Items.STICK) && !isVehicle() && cargo.isEmpty() && pressureExposure()==0) { spawnAtLocation(EcologyContent.DEEP_SEA_SUBMARINE_ITEM.get());discard(); }
+                else openCustomInventoryScreen(player);
             }
         } else if(!level().isClientSide && !player.isPassenger()) player.startRiding(this);
         return InteractionResult.sidedSuccess(level().isClientSide);
+    }
+    @Override public void openCustomInventoryScreen(Player player) {
+        if(!level().isClientSide && cargo.stillValid(player)) player.openMenu(new SimpleMenuProvider((id,inventory,p)->ChestMenu.threeRows(id,inventory,cargo),Component.translatable("container.wayaround.submarine_cargo")));
     }
     @Override protected void dropCargo() { Containers.dropContents(level(),this,cargo);cargo.clearContent(); }
     @Override protected void readAdditionalSaveData(CompoundTag tag) {

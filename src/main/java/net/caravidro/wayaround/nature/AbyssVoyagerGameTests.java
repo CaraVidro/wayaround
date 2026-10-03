@@ -28,7 +28,7 @@ public final class AbyssVoyagerGameTests {
         var l=h.getLevel();var capsule=EcologyContent.DEEP_SEA_CAPSULE.get().create(l);
         BlockPos p=h.absolutePos(new BlockPos(5,4,5));
         for(int y=1;y<=7;y++)l.setBlock(new BlockPos(p.getX(),h.absolutePos(new BlockPos(0,y,0)).getY(),p.getZ()),Blocks.AIR.defaultBlockState(),3);
-        capsule.setPos(p.getX()+.5,p.getY(),p.getZ()+.5);capsule.setVerticalInput(1);capsule.tick();
+        capsule.setPos(p.getX()+.5,p.getY(),p.getZ()+.5);h.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL).startRiding(capsule,true);capsule.setVerticalInput(1);capsule.tick();
         h.assertTrue(capsule.getY()<p.getY(),"Out-of-water capsule obeys gravity");h.succeed();
     }
     @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
@@ -47,5 +47,23 @@ public final class AbyssVoyagerGameTests {
         var tag=corpse.saveWithoutId(new CompoundTag());tag.putBoolean("Skeleton",true);
         var reload=EcologyContent.PLAYER_CORPSE.get().create(l);reload.load(tag);
         h.assertTrue(owner.equals(reload.owner()) && reload.isSkeleton() && reload.storedStackCount()==1,"Owner skin identity and skeletal body preserve inventory");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void giantJellyfishGrowthRetainsMorph(GameTestHelper h) {
+        var jelly=EcologyContent.JELLYFISH.get().create(h.getLevel());jelly.setVariant(JellyfishEntity.JellyVariant.ABYSSAL_GIANT);
+        for(float scale:new float[]{.3F,1F,2F,.5F}) {
+            net.caravidro.wayaround.ecology.ai.LivingFaunaManager.setFishSize(jelly,scale);
+            h.assertTrue(jelly.getAttribute(Attributes.SCALE).getBaseValue()>=6.4,"Ecological growth never shrinks giant morph");
+        }
+        h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void unopenedWreckLootMovesIntact(GameTestHelper h) {
+        var l=h.getLevel();BlockPos from=h.absolutePos(new BlockPos(7,5,7)),to=from.below(3);
+        l.setBlock(to.below(),Blocks.STONE.defaultBlockState(),3);l.setBlock(to,Blocks.WATER.defaultBlockState(),3);l.setBlock(from,Blocks.CHEST.defaultBlockState(),3);
+        var key=net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,net.minecraft.resources.ResourceLocation.withDefaultNamespace("chests/shipwreck_supply"));
+        ((ChestBlockEntity)l.getBlockEntity(from)).setLootTable(key);
+        h.assertTrue(OceanFloorRemains.settle(l,from,to.getY()-1),"Unopened wreck loot settles");
+        h.assertTrue(((ChestBlockEntity)l.getBlockEntity(to)).saveWithFullMetadata(l.registryAccess()).getString("LootTable").equals("minecraft:chests/shipwreck_supply"),"Loot remains unopened, not rerolled or duplicated");h.succeed();
     }
 }

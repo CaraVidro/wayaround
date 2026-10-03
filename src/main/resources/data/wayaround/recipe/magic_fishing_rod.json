@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " A ",
+    "PRG",
+    " S "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:amethyst_shard"
+    },
+    "P": {
+      "item": "minecraft:prismarine_shard"
+    },
+    "R": {
+      "item": "minecraft:fishing_rod"
+    },
+    "G": {
+      "item": "minecraft:glow_ink_sac"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
+  },
+  "result": {
+    "id": "wayaround:magic_fishing_rod",
+    "count": 1
+  }
+}

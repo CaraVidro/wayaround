@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "W W",
+    "WDW",
+    " S "
+  ],
+  "key": {
+    "W": {
+      "tag": "minecraft:wool"
+    },
+    "S": {
+      "item": "minecraft:string"
+    },
+    "D": {
+      "item": "minecraft:green_dye"
+    }
+  },
+  "result": {
+    "id": "wayaround:casual_shirt",
+    "count": 1
+  }
+}

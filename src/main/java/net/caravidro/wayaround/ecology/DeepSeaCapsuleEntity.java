@@ -81,7 +81,7 @@ public final class DeepSeaCapsuleEntity extends AbyssVehicleEntity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         if (player.isSecondaryUseActive()) {
-            if (!level().isClientSide && !isVehicle()) {
+            if (!level().isClientSide && !isVehicle() && pressureExposure()==0) {
                 spawnAtLocation(EcologyContent.DEEP_SEA_CAPSULE_ITEM.get());
                 discard();
             }

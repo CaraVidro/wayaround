@@ -1045,5 +1045,11 @@
   "item.wayaround.crow_spawn_egg": "Ovo de Corvo",
   "death.attack.then_days_break": "%1$s foi consumido pelo sol rompido",
   "death.attack.then_days_break.player": "%1$s foi consumido pelo sol rompido (%2$s)",
-  "container.wayaround.submarine_cargo": "Armazém do submarino"
+  "container.wayaround.submarine_cargo": "Armazém do submarino",
+  "screen.wayaround.entry.title": "Antes de explorar",
+  "screen.wayaround.entry.continue": "Entendi · configurar voz",
+  "screen.wayaround.entry.1": "Algumas ferramentas e efeitos podem mover seu personagem ou controlar temporariamente seu corpo.",
+  "screen.wayaround.entry.2": "Há terror, profundezas escuras, criaturas enormes e situações que podem despertar talassofobia.",
+  "screen.wayaround.entry.3": "Você pode encontrar sons repentinos, flashes, tremores de câmera e perigo de morte. Ajuste as opções do mundo e de áudio conforme seu conforto.",
+  "screen.wayaround.entry.4": "A comunicação por voz é opcional. A próxima tela permite revisar o microfone e suas preferências, sem revelar itens ou acontecimentos."
 }

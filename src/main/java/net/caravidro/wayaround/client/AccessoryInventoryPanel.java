@@ -35,27 +35,10 @@ public final class AccessoryInventoryPanel {
     private static final int SLOT_SIZE =
             18;
 
-    private static final int[] SLOT_X = {
-            77,
-            97,
-            77,
-            77,
-            97,
-            77,
-            97,
-            97
-    };
-
-    private static final int[] SLOT_Y = {
-            8,
-            8,
-            44,
-            26,
-            44,
-            80,
-            26,
-            80
-    };
+    // Eight sockets occupy a separate strip above the vanilla inventory.
+    // They never intercept crafting, armor, recipe-book or storage slots.
+    private static final int[] SLOT_X = {8,28,48,68,88,108,128,148};
+    private static final int[] SLOT_Y = {-24,-24,-24,-24,-24,-24,-24,-24};
 
     private static final String[] EMPTY_MARKS = {
             "H",
@@ -242,7 +225,7 @@ public final class AccessoryInventoryPanel {
     public static void click(
             ScreenEvent.MouseButtonPressed.Pre event
     ) {
-        if (!(event.getScreen()
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.ACCESSORIES) || !(event.getScreen()
                 instanceof InventoryScreen screen)) {
             return;
         }

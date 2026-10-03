@@ -48,7 +48,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '14 required tests passed' in text or 'All 14 required tests passed' in text,text[-16000:]
+          assert '17 required tests passed' in text or 'All 17 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application
@@ -79,7 +79,7 @@ jobs:
           text=path.read_text(errors='replace')
           if not ready or re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text):
               print('\n'.join(text.splitlines()[-120:]));raise SystemExit(1)
-          relevant=[line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',line) and re.search(r'wayaround:.*(?:apple_|hummingbird|woodland_thrush|mimic_parrot)',line)]
+          relevant=[line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',line) and 'wayaround:' in line]
           if relevant:
               print('\n'.join(relevant));raise SystemExit(1)
           print('Client boot and bird renderers and orchard registration passed. In-world visual QA remains manual.')

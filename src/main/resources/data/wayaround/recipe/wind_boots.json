@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "F F",
+    "LDL",
+    "I I"
+  ],
+  "key": {
+    "L": {
+      "item": "minecraft:leather"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "F": {
+      "item": "minecraft:feather"
+    },
+    "D": {
+      "item": "minecraft:prismarine_shard"
+    }
+  },
+  "result": {
+    "id": "wayaround:wind_boots",
+    "count": 1
+  }
+}
