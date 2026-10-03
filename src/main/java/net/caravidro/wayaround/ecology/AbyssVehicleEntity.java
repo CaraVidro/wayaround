@@ -28,14 +28,15 @@ public abstract class AbyssVehicleEntity extends Entity {
     private Vec3 lampOrigin;
     private float lampYaw, lampPitch;
     private int lastImpact = -100, lastBeep = -100;
+    private int exposureTicks;
     private int lerpSteps;
     private double targetX, targetY, targetZ;
     private float targetYaw, targetPitch;
 
     protected AbyssVehicleEntity(EntityType<?> type, Level level) { super(type, level); blocksBuilding = true; }
     protected abstract boolean capsule();
-    public final int pressureExposure() { return entityData.get(PRESSURE); }
-    public final void setPressureExposure(int ticks) { entityData.set(PRESSURE, Mth.clamp(ticks, 0, OceanPressure.FAILURE)); }
+    public final int pressureExposure() { return level().isClientSide ? entityData.get(PRESSURE) : exposureTicks; }
+    public final void setPressureExposure(int ticks) { exposureTicks=Mth.clamp(ticks,0,OceanPressure.FAILURE);if(exposureTicks%20==0 || exposureTicks==OceanPressure.FAILURE) entityData.set(PRESSURE,exposureTicks); }
     @Override protected void defineSynchedData(SynchedEntityData.Builder builder) { builder.define(PRESSURE, 0); }
     @Override protected void readAdditionalSaveData(CompoundTag tag) { setPressureExposure(tag.getInt("PressureExposure")); }
     @Override protected void addAdditionalSaveData(CompoundTag tag) { tag.putInt("PressureExposure", pressureExposure()); }

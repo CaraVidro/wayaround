@@ -19,7 +19,7 @@ import net.minecraft.world.entity.LivingEntity;
 /** Prone vanilla models, actual synchronized owner skins; no cosmetic entities. */
 public final class PlayerCorpseRenderer extends EntityRenderer<PlayerCorpseEntity> {
     private final PlayerModel<LivingEntity> wide, slim;
-    private final SkeletonModel<LivingEntity> skeleton;
+    private final SkeletonModel<net.minecraft.world.entity.monster.AbstractSkeleton> skeleton;
     private final Map<UUID,PlayerSkin> skins=new LinkedHashMap<>();
     public PlayerCorpseRenderer(EntityRendererProvider.Context context) {
         super(context);wide=new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER),false);

@@ -15,13 +15,20 @@ public final class OceanFloorRemains {
         BlockEntity entity=level.getBlockEntity(from);
         if(!(entity instanceof RandomizableContainerBlockEntity container) || !(entity instanceof net.minecraft.world.Container inventory))return false;
         BlockPos to=new BlockPos(from.getX(),floorY+1,from.getZ());
+        for(int stacked=0;stacked<4 && level.getBlockEntity(to)!=null;stacked++)to=to.above();
         if(to.equals(from) || !level.getBlockState(to).is(Blocks.WATER) || level.getBlockEntity(to)!=null)return false;
-        CompoundTag saved=entity.saveWithFullMetadata(level.registryAccess());BlockState state=level.getBlockState(from);
+        CompoundTag saved=entity.saveWithFullMetadata(level.registryAccess());BlockState original=level.getBlockState(from),state=original;
+        if(state.hasProperty(ChestBlock.TYPE))state=state.setValue(ChestBlock.TYPE,net.minecraft.world.level.block.state.properties.ChestType.SINGLE);
         // Clear before onRemove; the original cannot spill a second inventory.
         container.setLootTable(null);inventory.clearContent();
         level.setBlock(from,Blocks.WATER.defaultBlockState(),2);level.setBlock(to,state,2);
         BlockEntity moved=level.getBlockEntity(to);if(moved!=null)moved.loadWithComponents(saved,level.registryAccess());
-        return moved!=null;
+        if(moved==null) {
+            level.setBlock(to,Blocks.WATER.defaultBlockState(),2);level.setBlock(from,original,2);
+            BlockEntity restored=level.getBlockEntity(from);if(restored!=null)restored.loadWithComponents(saved,level.registryAccess());
+            return false;
+        }
+        return true;
     }
     public static void repair(ServerLevel level, ChunkPos pos) {
         if(!level.hasChunk(pos.x,pos.z))return;

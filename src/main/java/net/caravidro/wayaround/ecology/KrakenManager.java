@@ -210,10 +210,14 @@ public final class KrakenManager {
             var look=player.getLookAngle();
             int dx=look.x>=0?1:-1,dz=look.z>=0?1:-1;
             site=new Site(player.blockPosition().getX()+(kind==5?dx*22:0),player.blockPosition().getZ()+(kind==5?dz*22:0),0,
-                    (int)player.getY()-2,dx,dz);
+                    (int)player.getEyeY()-1,dx,dz);
         }
-        if (site == null || !player.serverLevel().getFluidState(
-                new BlockPos(site.x, site.surface - 2, site.z)).is(FluidTags.WATER)) return false;
+        if (site == null) return false;
+        BlockPos anchor=new BlockPos(site.x, site.surface, site.z);
+        if (!player.serverLevel().isLoaded(anchor)) return false;
+        if (kind<5 && !player.serverLevel().getFluidState(anchor.below(2)).is(FluidTags.WATER)) return false;
+        if (kind==5 && !player.serverLevel().getFluidState(anchor).is(FluidTags.WATER)) return false;
+        if (kind==6 && !((DeepSeaSubmarineEntity)player.getVehicle()).inWaterColumn()) return false;
         ACTIVE.put(player.serverLevel(), new KrakenEvent(player.serverLevel(), site, player.getUUID(), kind));
         deepRumble(player, true);
         return true;

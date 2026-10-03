@@ -20,7 +20,8 @@
     "FireRenderShapeMixin",
     "FireAnimateTickMixin",
     "FireBlockAccessor",
-    "PlayerStepSoundMixin"
+    "PlayerStepSoundMixin",
+    "ContinentalNoiseAccessor"
   ],
   "client": [
     "client.DreamWakeCameraMixin",

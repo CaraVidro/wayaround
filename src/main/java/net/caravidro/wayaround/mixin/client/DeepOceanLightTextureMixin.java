@@ -103,6 +103,9 @@ public abstract class DeepOceanLightTextureMixin {
                                 / 15.0F;
 
                 artificial *= artificial;
+                if (minecraft.player.getVehicle() instanceof net.caravidro.wayaround.ecology.AbyssVehicleEntity craft
+                        && craft.pressureExposure() >= net.caravidro.wayaround.ecology.OceanPressure.CRITICAL
+                        && minecraft.level.getGameTime() % 180 < 6) artificial *= .65F;
 
                 /*
                  * The submarine no longer gets a global fake brightness

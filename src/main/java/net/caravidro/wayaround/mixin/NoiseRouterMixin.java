@@ -83,12 +83,15 @@ public abstract class NoiseRouterMixin {
 
         if (!antarcticaEnabled
                 && !volcanicEnabled
-                && !riftEnabled) {
+                && !riftEnabled && !WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
             return;
         }
 
         NoiseRouter vanilla = cir.getReturnValue();
-        if (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) vanilla = net.caravidro.wayaround.worldgen.terrain.OceanContinentalness.scale(vanilla);
+        if (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
+            vanilla = net.caravidro.wayaround.worldgen.terrain.OceanContinentalness.scale(vanilla);
+            cir.setReturnValue(vanilla);
+        }
 
 
         /*

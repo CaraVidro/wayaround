@@ -20,8 +20,7 @@ public record OceanContinentalness(DensityFunction input) implements DensityFunc
         return router.mapAll(new Visitor() {
             @Override public DensityFunction apply(DensityFunction f) {
                 DensityFunction.NoiseHolder noise=null;
-                if(f instanceof DensityFunctions.Noise n) noise=n.noise();
-                else if(f instanceof DensityFunctions.ShiftedNoise n) noise=n.noise();
+                if(f instanceof net.caravidro.wayaround.mixin.ContinentalNoiseAccessor n) noise=n.wayaround$noise();
                 if(noise!=null && noise.noiseData().unwrapKey().map(k->k.location().getPath().startsWith("continentalness")).orElse(false)) return new OceanContinentalness(f);
                 return f;
             }
