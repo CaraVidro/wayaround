@@ -164,9 +164,6 @@ public final class NexustorBaseBlock extends BaseEntityBlock {
             if (reactor.complete()
                     && player.isShiftKeyDown()) {
 
-                boolean enabled =
-                        reactor.togglePortal();
-
                 NexusPortalManager.sync(
                         serverPlayer.serverLevel(),
                         pos,
@@ -175,9 +172,7 @@ public final class NexustorBaseBlock extends BaseEntityBlock {
 
                 serverPlayer.displayClientMessage(
                         Component.translatable(
-                                enabled
-                                        ? "message.wayaround.nexus.portal_on"
-                                        : "message.wayaround.nexus.portal_off"
+                                "message.wayaround.nexus.permanent_link"
                         ),
                         false
                 );

@@ -355,6 +355,10 @@ public final class NexustorBaseBlockEntity
     public boolean complete() { return complete; }
     public boolean portalEnabled() { return portalEnabled; }
 
+    public void setPortalVisual(boolean enabled) {
+        if(portalEnabled!=enabled){portalEnabled=enabled;sync();}
+    }
+
     public boolean togglePortal() {
         if (!complete) {
             return false;

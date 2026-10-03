@@ -25,6 +25,11 @@ import java.util.function.Supplier;
 
 public final class WorldgenRegistry {
 
+    private static final DeferredRegister<MapCodec<? extends net.minecraft.world.level.chunk.ChunkGenerator>> CHUNK_GENERATORS =
+            DeferredRegister.create(Registries.CHUNK_GENERATOR,WayAround.MODID);
+    public static final Supplier<MapCodec<net.caravidro.wayaround.nexus.world.NexusChunkGenerator>> NEXUS_COMPLEX =
+            CHUNK_GENERATORS.register("nexus_complex",()->net.caravidro.wayaround.nexus.world.NexusChunkGenerator.CODEC);
+
     /*
      * =========================================================
      * DENSITY FUNCTIONS
@@ -131,6 +136,7 @@ public final class WorldgenRegistry {
     public static void register(
             IEventBus bus
     ) {
+        CHUNK_GENERATORS.register(bus);
 
         /*
          * Density Function customizada.

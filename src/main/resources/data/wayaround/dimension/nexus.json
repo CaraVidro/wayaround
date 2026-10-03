@@ -1,8 +1,7 @@
 {
   "type": "wayaround:nexus",
   "generator": {
-    "type": "minecraft:noise",
-    "settings": "minecraft:caves",
+    "type": "wayaround:nexus_complex",
     "biome_source": {
       "type": "minecraft:fixed",
       "biome": "wayaround:nexus_caverns"

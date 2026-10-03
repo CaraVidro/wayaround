@@ -38,6 +38,9 @@ public final class NexusContent {
     private static final DeferredRegister<CreativeModeTab> TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, WayAround.MODID);
 
+    public static final DeferredBlock<NexusControlBlock> NEXUS_CONTROL = BLOCKS.register("nexus_control",()->new NexusControlBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_RED).strength(-1.0F,3600000.0F).sound(SoundType.METAL).lightLevel(s->7).noLootTable()));
+
     public static final DeferredBlock<Block> NEXUSTOETOR =
             BLOCKS.register(
                     "nexustoetor",

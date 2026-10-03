@@ -41,7 +41,7 @@ public final class NexusPortalBlock
     protected RenderShape getRenderShape(
             BlockState state
     ) {
-        return RenderShape.INVISIBLE;
+        return RenderShape.MODEL;
     }
 
     @Override

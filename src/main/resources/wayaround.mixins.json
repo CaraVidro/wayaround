@@ -53,7 +53,8 @@
     "client.DaysBreakSkyMixin",
     "client.DaysBreakLightMixin",
     "client.RegionLightTextureMixin",
-    "client.RegionFogMixin"
+    "client.RegionFogMixin",
+    "client.NexusDimensionSkyMixin"
   ],
   "injectors": {
     "defaultRequire": 1
