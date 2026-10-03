@@ -70,6 +70,7 @@ public final class WayAroundNetwork {
                 AccessoryWorkshopApplyC2SPayload::handle
         );
 
+        registrar.playToClient(net.caravidro.wayaround.nature.NatureAmbientPayload.TYPE,net.caravidro.wayaround.nature.NatureAmbientPayload.STREAM_CODEC,ClientPayloadBridge::handleNatureAmbient);
         registrar.playToClient(CloudStormS2CPayload.TYPE,CloudStormS2CPayload.STREAM_CODEC,ClientPayloadBridge::handleCloudStorm);
 
         registrar.playToClient(KrakenSceneS2CPayload.TYPE, KrakenSceneS2CPayload.STREAM_CODEC,

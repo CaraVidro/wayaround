@@ -385,6 +385,11 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_crushing'
         }
 
+        natureGameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_nature'
+        }
+
         fishGameTestServer {
             type = "gameTestServer"
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_crushing'

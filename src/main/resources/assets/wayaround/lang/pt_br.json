@@ -1029,5 +1029,16 @@
   "block.wayaround.rotary_small_copper_lift_pipe": "Cano Elevador Rotativo de Cobre",
   "block.wayaround.rotary_iron_water_lift_pipe": "Cano Elevador Rotativo de Ferro",
   "block.wayaround.rotary_large_water_lift_pipe": "Cano Elevador Rotativo Grande",
-  "block.wayaround.rotary_steel_pressure_lift_pipe": "Cano Elevador Rotativo de Aço"
+  "block.wayaround.rotary_steel_pressure_lift_pipe": "Cano Elevador Rotativo de Aço",
+  "itemGroup.wayaround.birds": "Pássaros",
+  "itemGroup.wayaround.agriculture": "Agricultura",
+  "block.wayaround.apple_sapling": "Muda de macieira",
+  "block.wayaround.apple_tree_log": "Tronco de macieira",
+  "block.wayaround.apple_leaves": "Folhas de macieira",
+  "entity.wayaround.hummingbird": "Beija-flor",
+  "entity.wayaround.woodland_thrush": "Sabiá",
+  "entity.wayaround.mimic_parrot": "Papagaio imitador",
+  "item.wayaround.hummingbird_spawn_egg": "Ovo de beija-flor",
+  "item.wayaround.woodland_thrush_spawn_egg": "Ovo de sabiá",
+  "item.wayaround.mimic_parrot_spawn_egg": "Ovo de papagaio imitador"
 }

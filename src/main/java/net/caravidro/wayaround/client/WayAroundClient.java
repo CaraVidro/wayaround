@@ -286,6 +286,9 @@ public final class WayAroundClient {
                     }
 
                     @Override
+                    public void natureAmbient(net.caravidro.wayaround.nature.NatureAmbientPayload p){net.caravidro.wayaround.nature.client.BirdAmbientClient.receive(p);}
+
+                    @Override
                     public void cloudStorm(net.caravidro.wayaround.network.CloudStormS2CPayload payload) {
                         net.caravidro.wayaround.client.weather.CloudStormClient.receive(payload);
                     }

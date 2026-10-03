@@ -1,0 +1,105 @@
+{
+  "textures": {
+    "fruit": "minecraft:block/yellow_terracotta",
+    "stem": "minecraft:block/oak_log",
+    "leaf": "minecraft:block/green_concrete"
+  },
+  "elements": [
+    {
+      "from": [
+        5.5,
+        -5,
+        5.5
+      ],
+      "to": [
+        10.5,
+        -0.6,
+        10.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#fruit"
+        },
+        "down": {
+          "texture": "#fruit"
+        },
+        "north": {
+          "texture": "#fruit"
+        },
+        "south": {
+          "texture": "#fruit"
+        },
+        "east": {
+          "texture": "#fruit"
+        },
+        "west": {
+          "texture": "#fruit"
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        -0.8,
+        7.5
+      ],
+      "to": [
+        8.5,
+        1,
+        8.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#stem"
+        },
+        "down": {
+          "texture": "#stem"
+        },
+        "north": {
+          "texture": "#stem"
+        },
+        "south": {
+          "texture": "#stem"
+        },
+        "east": {
+          "texture": "#stem"
+        },
+        "west": {
+          "texture": "#stem"
+        }
+      }
+    },
+    {
+      "from": [
+        8,
+        -0.2,
+        7.3
+      ],
+      "to": [
+        10.5,
+        0.4,
+        8.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#leaf"
+        },
+        "down": {
+          "texture": "#leaf"
+        },
+        "north": {
+          "texture": "#leaf"
+        },
+        "south": {
+          "texture": "#leaf"
+        },
+        "east": {
+          "texture": "#leaf"
+        },
+        "west": {
+          "texture": "#leaf"
+        }
+      }
+    }
+  ]
+}

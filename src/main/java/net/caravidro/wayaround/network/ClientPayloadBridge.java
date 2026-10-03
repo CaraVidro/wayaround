@@ -78,6 +78,7 @@ public final class ClientPayloadBridge {
         ) {}
 
         default void cloudStorm(CloudStormS2CPayload payload) {}
+        default void natureAmbient(net.caravidro.wayaround.nature.NatureAmbientPayload payload) {}
 
         default void krakenScene(KrakenSceneS2CPayload payload) {}
 
@@ -406,6 +407,8 @@ public final class ClientPayloadBridge {
                 )
         );
     }
+
+    public static void handleNatureAmbient(net.caravidro.wayaround.nature.NatureAmbientPayload p,IPayloadContext context){if(p.sane())context.enqueueWork(()->realtimeHandlers.natureAmbient(p));}
 
     public static void handleCloudStorm(CloudStormS2CPayload payload,IPayloadContext context){
         if(payload.isSane())context.enqueueWork(()->realtimeHandlers.cloudStorm(payload));

@@ -1029,5 +1029,16 @@
   "block.wayaround.rotary_small_copper_lift_pipe": "Rotary Small Copper Lift Pipe",
   "block.wayaround.rotary_iron_water_lift_pipe": "Rotary Iron Water Lift Pipe",
   "block.wayaround.rotary_large_water_lift_pipe": "Rotary Large Water Lift",
-  "block.wayaround.rotary_steel_pressure_lift_pipe": "Rotary Steel Pressure Lift Pipe"
+  "block.wayaround.rotary_steel_pressure_lift_pipe": "Rotary Steel Pressure Lift Pipe",
+  "itemGroup.wayaround.birds": "Birds",
+  "itemGroup.wayaround.agriculture": "Agriculture",
+  "block.wayaround.apple_sapling": "Apple Sapling",
+  "block.wayaround.apple_tree_log": "Apple Tree Trunk",
+  "block.wayaround.apple_leaves": "Apple Leaves",
+  "entity.wayaround.hummingbird": "Hummingbird",
+  "entity.wayaround.woodland_thrush": "Woodland Thrush",
+  "entity.wayaround.mimic_parrot": "Mimic Parrot",
+  "item.wayaround.hummingbird_spawn_egg": "Hummingbird Spawn Egg",
+  "item.wayaround.woodland_thrush_spawn_egg": "Woodland Thrush Spawn Egg",
+  "item.wayaround.mimic_parrot_spawn_egg": "Mimic Parrot Spawn Egg"
 }
