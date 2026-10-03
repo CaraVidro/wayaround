@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Unlike the red GUI wash, this changes ClientLevel#getSkyColor itself, so the
  * actual rendered sky turns Nexus red while the event is active.
  */
-@Mixin(ClientLevel.class)
+@Mixin(value=ClientLevel.class,priority=900)
 public abstract class NexusSkyMixin {
 
     @Inject(
@@ -25,6 +25,10 @@ public abstract class NexusSkyMixin {
             float partialTick,
             CallbackInfoReturnable<Vec3> cir
     ) {
+        if (net.caravidro.wayaround.daybreak.client.DaysBreakClient.active()) {
+            cir.setReturnValue(net.caravidro.wayaround.daybreak.client.DaysBreakClient.day() ? new Vec3(.86,.008,.004) : Vec3.ZERO);
+            return;
+        }
         float strength =
                 NexusClientState.strength();
 

@@ -35,6 +35,7 @@ public final class CloudShadowRenderer {
     private static int row;
     private static boolean enabled() {
         var mc=Minecraft.getInstance();
+        if(net.caravidro.wayaround.daybreak.client.DaysBreakClient.active())return false;
         return mc.level!=null && mc.player!=null && mc.level.dimensionType().hasSkyLight()
                 && mc.level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)
                 && !net.caravidro.wayaround.client.AntarcticClientLighting.isAntarctic(mc)

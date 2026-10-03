@@ -62,5 +62,13 @@
         "stream": true
       }
     ]
+  },
+  "then_days_break": {
+    "sounds": [
+      {
+        "name": "wayaround:when_days_break_theme",
+        "stream": true
+      }
+    ]
   }
 }

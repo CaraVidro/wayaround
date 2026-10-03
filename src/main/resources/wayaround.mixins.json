@@ -48,7 +48,9 @@
     "client.TitleScreenBrandingMixin",
     "client.KrakenBoatRendererMixin",
     "client.SimpleDynamicLightMixin",
-    "client.VegetationLodMixin"
+    "client.VegetationLodMixin",
+    "client.DaysBreakSkyMixin",
+    "client.DaysBreakLightMixin"
   ],
   "injectors": {
     "defaultRequire": 1

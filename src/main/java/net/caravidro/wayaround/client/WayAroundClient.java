@@ -267,6 +267,8 @@ public final class WayAroundClient {
                         );
                     }
 
+                    @Override public void daysBreak(net.caravidro.wayaround.daybreak.DaysBreakPayload payload){net.caravidro.wayaround.daybreak.client.DaysBreakClient.receive(payload);}
+
                     @Override
                     public void nexusState(
                             NexusStateS2CPayload payload

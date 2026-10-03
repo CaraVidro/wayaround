@@ -94,6 +94,7 @@ public final class LivingCloudRenderer {
 
         try {
         Minecraft minecraft = Minecraft.getInstance();
+        if(net.caravidro.wayaround.daybreak.client.DaysBreakClient.active())return;
 
         if (!WorldFeatureRuntime.clientEnabled(
                 WorldFeature.PROCEDURAL_CLOUDS

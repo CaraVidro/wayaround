@@ -78,6 +78,7 @@ public final class ClientPayloadBridge {
         ) {}
 
         default void cloudStorm(CloudStormS2CPayload payload) {}
+        default void daysBreak(net.caravidro.wayaround.daybreak.DaysBreakPayload payload) {}
         default void natureAmbient(net.caravidro.wayaround.nature.NatureAmbientPayload payload) {}
 
         default void krakenScene(KrakenSceneS2CPayload payload) {}
@@ -428,6 +429,8 @@ public final class ClientPayloadBridge {
                 )
         );
     }
+
+    public static void daysBreak(net.caravidro.wayaround.daybreak.DaysBreakPayload payload){realtimeHandlers.daysBreak(payload);}
 
     public static void handleNexusState(
             NexusStateS2CPayload payload,

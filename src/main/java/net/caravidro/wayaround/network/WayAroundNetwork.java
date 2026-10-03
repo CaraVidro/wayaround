@@ -451,6 +451,10 @@ public final class WayAroundNetwork {
                 HerobrinePhotoModeS2CPayload::handle
         );
 
+        registrar.playToClient(net.caravidro.wayaround.daybreak.DaysBreakPayload.TYPE,
+                net.caravidro.wayaround.daybreak.DaysBreakPayload.STREAM_CODEC,
+                net.caravidro.wayaround.daybreak.DaysBreakPayload::handle);
+
         registrar.playToClient(
                 NexusStateS2CPayload.TYPE,
                 NexusStateS2CPayload.STREAM_CODEC,
