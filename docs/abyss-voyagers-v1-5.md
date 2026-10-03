@@ -9,7 +9,7 @@ Implemented:
 - Wreck chests settle onto the rebuilt floor preserving loot tables and inventory. Legacy repair only moves unsupported unopened vanilla shipwreck/ruin containers, not player storage.
 - Sparse seabed skulls and settled physical fish carcasses in newly generated trenches.
 - Giant jellyfish growth retains its morph's minimum scale; no client scale correction loop.
-- Player corpses float in water and lava. After ten seconds in lava, the model becomes a skeleton without deleting inventory. Synchronized owner UUID lets the client use the online owner's actual skin; cached skin remains after disconnect, otherwise a vanilla default skin is used.
+- Player corpses float in water and lava. After ten seconds in lava, the model becomes a skeleton without deleting inventory. Synchronized owner UUID and saved signed texture properties let the client use the owner's actual skin even after disconnect/save/reload. Vanilla defaults are used while texture loading is pending or a profile has no skin data.
 - Kraken movement/reveal sounds. `/kraken eyes` opens/blinks/retreats a pair of eyes at diving depth. `/kraken submarine` shakes a occupied submarine. Both can occur naturally in haunted abyss waters.
 - Continental noise uses fourfold horizontal sampling for larger connected oceans and continents. The same input feeds climate and terrain; the existing abyss basin feature remains. Applies to newly generated terrain with living vegetation enabled, not retroactive terraforming.
 

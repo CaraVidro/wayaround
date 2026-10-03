@@ -21,6 +21,7 @@ public final class PlayerCorpseRenderer extends EntityRenderer<PlayerCorpseEntit
     private final PlayerModel<LivingEntity> wide, slim;
     private final SkeletonModel<net.minecraft.world.entity.monster.AbstractSkeleton> skeleton;
     private final Map<UUID,PlayerSkin> skins=new LinkedHashMap<>();
+    private final Map<UUID,com.mojang.authlib.GameProfile> profiles=new LinkedHashMap<>();
     public PlayerCorpseRenderer(EntityRendererProvider.Context context) {
         super(context);wide=new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER),false);
         slim=new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER_SLIM),true);
@@ -31,6 +32,18 @@ public final class PlayerCorpseRenderer extends EntityRenderer<PlayerCorpseEntit
         var connection=Minecraft.getInstance().getConnection();
         var info=connection==null?null:connection.getPlayerInfo(owner);
         if(info!=null) { if(skins.size()>=128)skins.clear();skins.put(owner,info.getSkin()); }
+        else if(!corpse.skinTextures().isEmpty()) {
+            var profile=profiles.get(owner);
+            if(profile==null) {
+                if(profiles.size()>=128)profiles.clear();
+                profile=new com.mojang.authlib.GameProfile(owner,"Corpse");
+                profile.getProperties().put("textures",corpse.skinSignature().isEmpty()
+                        ? new com.mojang.authlib.properties.Property("textures",corpse.skinTextures())
+                        : new com.mojang.authlib.properties.Property("textures",corpse.skinTextures(),corpse.skinSignature()));
+                profiles.put(owner,profile);
+            }
+            if(skins.size()>=128)skins.clear();skins.put(owner,Minecraft.getInstance().getSkinManager().getInsecureSkin(profile));
+        }
         return skins.getOrDefault(owner,DefaultPlayerSkin.get(owner));
     }
     @Override public ResourceLocation getTextureLocation(PlayerCorpseEntity corpse) {
@@ -42,6 +55,11 @@ public final class PlayerCorpseRenderer extends EntityRenderer<PlayerCorpseEntit
         pose.mulPose(Axis.XP.rotationDegrees(90));pose.scale(-1,-1,1);
         model.head.xRot=0;model.head.yRot=0;model.rightArm.zRot=.12F;model.leftArm.zRot=-.12F;
         model.rightLeg.xRot=0;model.leftLeg.xRot=0;
+        model.hat.copyFrom(model.head);
+        if(model instanceof PlayerModel<?> player) {
+            player.rightSleeve.copyFrom(player.rightArm);player.leftSleeve.copyFrom(player.leftArm);
+            player.rightPants.copyFrom(player.rightLeg);player.leftPants.copyFrom(player.leftLeg);player.jacket.copyFrom(player.body);
+        }
         model.renderToBuffer(pose,buffers.getBuffer(RenderType.entityCutoutNoCull(getTextureLocation(corpse))),light,OverlayTexture.NO_OVERLAY);
         pose.popPose();super.render(corpse,yaw,partial,pose,buffers,light);
     }

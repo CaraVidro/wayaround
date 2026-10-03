@@ -33,6 +33,8 @@ public final class PlayerCorpseEntity extends Entity {
             SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.OPTIONAL_UUID);
     private static final net.minecraft.network.syncher.EntityDataAccessor<Boolean> SKELETON =
             SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN);
+    private static final net.minecraft.network.syncher.EntityDataAccessor<String> SKIN = SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.STRING);
+    private static final net.minecraft.network.syncher.EntityDataAccessor<String> SKIN_SIGNATURE = SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.STRING);
     private int lavaTicks;
     private UUID owner;
     private String ownerName =
@@ -60,8 +62,18 @@ public final class PlayerCorpseEntity extends Entity {
     ) {
         builder.define(OWNER, java.util.Optional.empty());
         builder.define(SKELETON, false);
+        builder.define(SKIN, "");builder.define(SKIN_SIGNATURE, "");
     }
 
+    public String skinTextures() { return entityData.get(SKIN); }
+    public String skinSignature() { return entityData.get(SKIN_SIGNATURE); }
+    public void copySkin(com.mojang.authlib.GameProfile profile) {
+        var texture=profile.getProperties().get("textures").stream().findFirst().orElse(null);
+        if(texture!=null && texture.value().length()<=8192) {
+            entityData.set(SKIN,texture.value());
+            String signature=texture.signature();entityData.set(SKIN_SIGNATURE,signature!=null && signature.length()<=4096?signature:"");
+        }
+    }
     public boolean isSkeleton() { return entityData.get(SKELETON); }
 
     public void initialize(
@@ -281,6 +293,7 @@ public final class PlayerCorpseEntity extends Entity {
     protected void addAdditionalSaveData(
             CompoundTag tag
     ) {
+        tag.putString("OwnerSkinTextures",skinTextures());tag.putString("OwnerSkinSignature",skinSignature());
         tag.putInt("LavaExposure", lavaTicks);
         tag.putBoolean("Skeleton", isSkeleton());
         if (owner != null) {
@@ -337,6 +350,8 @@ public final class PlayerCorpseEntity extends Entity {
     protected void readAdditionalSaveData(
             CompoundTag tag
     ) {
+        String skin=tag.getString("OwnerSkinTextures"),signature=tag.getString("OwnerSkinSignature");
+        entityData.set(SKIN,skin.length()<=8192?skin:"");entityData.set(SKIN_SIGNATURE,signature.length()<=4096?signature:"");
         lavaTicks = tag.getInt("LavaExposure");
         entityData.set(SKELETON, tag.getBoolean("Skeleton"));
         owner =
