@@ -168,48 +168,6 @@
     },
     {
       "from": [
-        6.2,
-        1.4,
-        8
-      ],
-      "to": [
-        9.8,
-        3.5,
-        14
-      ],
-      "faces": {
-        "down": {
-          "texture": "#leaf"
-        },
-        "up": {
-          "texture": "#leaf"
-        },
-        "north": {
-          "texture": "#leaf"
-        },
-        "south": {
-          "texture": "#leaf"
-        },
-        "west": {
-          "texture": "#leaf"
-        },
-        "east": {
-          "texture": "#leaf"
-        }
-      },
-      "rotation": {
-        "origin": [
-          8,
-          2,
-          8
-        ],
-        "axis": "x",
-        "angle": -22.5,
-        "rescale": true
-      }
-    },
-    {
-      "from": [
         3,
         2.2,
         3
