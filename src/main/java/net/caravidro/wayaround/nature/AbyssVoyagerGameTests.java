@@ -79,7 +79,10 @@ public final class AbyssVoyagerGameTests {
     }
     @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
     public static void largeOceanNoiseReachesClimateAndTerrain(GameTestHelper h) {
-        var router=h.getLevel().getChunkSource().randomState().router();
+        // The GameTest fixture uses a flat generator with dummy zero noise.
+        // Bind the actual Overworld profile, just as a normal world does.
+        var router=net.minecraft.world.level.levelgen.RandomState.create(h.getLevel().registryAccess(),
+                net.minecraft.world.level.levelgen.NoiseGeneratorSettings.OVERWORLD,42L).router();
         int[] climate={0},terrain={0};
         router.continents().mapAll(new net.minecraft.world.level.levelgen.DensityFunction.Visitor() {
             public net.minecraft.world.level.levelgen.DensityFunction apply(net.minecraft.world.level.levelgen.DensityFunction f) {
@@ -91,6 +94,6 @@ public final class AbyssVoyagerGameTests {
                 if(f instanceof net.caravidro.wayaround.worldgen.terrain.OceanContinentalness)terrain[0]++;return f;
             }
         });
-        h.assertTrue(climate[0]>0 && terrain[0]>0,"Expanded continental noise drives both biome climate and final terrain density");h.succeed();
+        h.assertTrue(climate[0]>0 && terrain[0]>0,"Expanded continental noise drives climate and terrain: "+climate[0]+" / "+terrain[0]);h.succeed();
     }
 }

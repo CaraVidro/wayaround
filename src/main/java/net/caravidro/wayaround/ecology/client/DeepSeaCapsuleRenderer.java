@@ -172,31 +172,13 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                 0.98
         );
 
-        cuboid(
-                pose,
-                buffers,
-                light,
-                iron,
-                -0.49,
-                0.02,
-                -0.03,
-                0.18,
-                0.68,
-                0.96
-        );
-
-        cuboid(
-                pose,
-                buffers,
-                light,
-                iron,
-                0.49,
-                0.02,
-                -0.03,
-                0.18,
-                0.68,
-                0.96
-        );
+        for(int sign:new int[]{-1,1}) {
+            // Two side observation ports, with load-bearing rails and pillars.
+            cuboid(pose,buffers,light,iron,sign*.49,-.27,-.03,.18,.12,.96);
+            cuboid(pose,buffers,light,iron,sign*.49,.30,-.03,.18,.12,.96);
+            for(double z:new double[]{-.43,.37})cuboid(pose,buffers,light,iron,sign*.49,.02,z,.18,.48,.12);
+            cuboid(pose,buffers,light,Blocks.GLASS.defaultBlockState(),sign*.49,.02,-.03,.04,.44,.66);
+        }
 
         // Rear pressure plate and machinery stay opaque behind the pilot.
         cuboid(
