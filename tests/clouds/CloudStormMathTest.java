@@ -1,0 +1,41 @@
+import net.caravidro.wayaround.worldgen.weather.local.CloudStormMath;
+
+public final class CloudStormMathTest {
+    public static void main(String[] args){
+        check(CloudStormMath.downwardShadowDensity(0,0,200)==1,"dense coverage directly below cloud");
+        check(CloudStormMath.downwardShadowDensity(100,0,200)==1,"continuous dense inner canopy");
+        check(CloudStormMath.downwardShadowDensity(220,0,200)==0,"outside canopy stays clear");
+        check(CloudStormMath.shadowAlpha(.2)>20,"thin canopy still visibly shades terrain");
+        check(CloudStormMath.shadowEdge(0,56)==1,"full shadow near player");
+        check(CloudStormMath.shadowEdge(56,56)==0,"soft bounded receiver edge");
+        double alpha=100;
+        double next=CloudStormMath.approachShadow(alpha,144);
+        check(next>alpha && next<110,"coverage change fades instead of recreating shadow");
+        for(int i=0;i<60;i++)alpha=CloudStormMath.approachShadow(alpha,144);
+        check(Math.abs(alpha-144)<.01,"fade converges without overshoot");
+        check(CloudStormMath.approachShadow(100,0)>80,"departing canopy does not vanish in one tick");
+        int wet=0,dry=0;
+        for(int i=0;i<10000;i++){
+            double roll=i/10000.0;
+            if(roll<CloudStormMath.cover(.96))wet++;
+            if(roll<CloudStormMath.cover(.10))dry++;
+        }
+        check(wet>dry*2,"wet regions carry more clouds");
+        check(CloudStormMath.storm(.9F,.1)<CloudStormMath.storm(.9F,.96),"desert storm suppression");
+        check(CloudStormMath.soundDelay(343)==20,"one second sound travel at 343 blocks");
+        check(CloudStormMath.soundDelay(0)==0,"no minimum artificial delay");
+        check(CloudStormMath.soundDelay(686)==40,"distance scales arrival");
+        check(CloudStormMath.flash(0)>CloudStormMath.flash(3),"flash decay");
+        check(CloudStormMath.flash(6)>CloudStormMath.flash(4),"internal secondary flicker");
+        check(CloudStormMath.flash(20)==0,"flash expires");
+        check(CloudStormMath.gustWeight(80,0,1,0,160)>CloudStormMath.gustWeight(-80,0,1,0,160),"downwind arrival strongest");
+        check(CloudStormMath.gustWeight(1000,0,1,0,160)==0,"distant wind inaudible");
+        for(int i=-100;i<=200;i++){
+            double h=i/100.0;
+            check(CloudStormMath.cover(h)>=.22&&CloudStormMath.cover(h)<=.951,"cover bounds");
+            check(Float.isFinite(CloudStormMath.storm(.7F,h)),"finite storm strength");
+        }
+        System.out.println("CloudStormMath passed: wet="+wet+", desert="+dry+", sound and gust propagation valid");
+    }
+    private static void check(boolean test,String name){if(!test)throw new AssertionError(name);}
+}

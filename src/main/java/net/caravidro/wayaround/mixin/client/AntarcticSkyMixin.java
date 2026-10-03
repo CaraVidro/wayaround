@@ -62,6 +62,7 @@ public abstract class AntarcticSkyMixin {
 
         LocalWeatherField.Sample weather =
                 LocalWeatherField.sample(
+                        level,
                         cameraPosition.x,
                         cameraPosition.z,
                         level.getGameTime()

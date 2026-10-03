@@ -56,6 +56,7 @@ public final class LivingWeatherEcology {
 
                 LocalWeatherField.Sample weather =
                         LocalWeatherField.sample(
+                        level,
                                 player.getX(),
                                 player.getZ(),
                                 level.getGameTime()

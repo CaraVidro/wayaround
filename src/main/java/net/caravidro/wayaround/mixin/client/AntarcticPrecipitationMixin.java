@@ -41,6 +41,7 @@ public abstract class AntarcticPrecipitationMixin {
 
         LocalWeatherField.Sample weather =
                 LocalWeatherField.sample(
+                        minecraft.level,
                         minecraft.getCameraEntity().getX(),
                         minecraft.getCameraEntity().getZ(),
                         minecraft.level.getGameTime()

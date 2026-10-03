@@ -127,6 +127,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(AvalancheCommand::register);
         NeoForge.EVENT_BUS.addListener(BlizzardCommand::register);
         NeoForge.EVENT_BUS.addListener(WindTestCommand::register);
+        NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.worldgen.weather.command.CloudStormCommand::register);
         NeoForge.EVENT_BUS.addListener(DomainCommands::register);
         NeoForge.EVENT_BUS.addListener(SpectrumCommands::register);
         NeoForge.EVENT_BUS.addListener(TukunaDebugCommands::register);

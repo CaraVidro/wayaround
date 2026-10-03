@@ -14,9 +14,9 @@ import net.minecraft.util.Mth;
  */
 public final class LocalWeatherField {
 
-    private static final double CELL_SPACING = 520.0;
+    private static final double CELL_SPACING = 360.0;
     private static final double DRIFT_SPEED = 0.024;
-    private static final double MAX_RADIUS = 278.0;
+    private static final double MAX_RADIUS = 431.0;
 
     private LocalWeatherField() {
     }
@@ -58,6 +58,10 @@ public final class LocalWeatherField {
             double z,
             long gameTime
     ) {
+        return sample(null,x,z,gameTime);
+    }
+
+    public static Sample sample(net.minecraft.world.level.Level level,double x,double z,long gameTime) {
         long wayperfStartedAt =
                 PerformanceProfiler.begin(
                         PerformanceProfiler.Section.LOCAL_WEATHER
@@ -82,19 +86,11 @@ public final class LocalWeatherField {
                         gameTime
                 );
 
-        double drift =
-                gameTime
-                        * DRIFT_SPEED;
+        double driftX = driftX(gameTime), driftZ = driftZ(gameTime);
 
-        double staticX =
-                x
-                        - windX
-                                * drift;
+        double staticX = x - driftX;
 
-        double staticZ =
-                z
-                        - windZ
-                                * drift;
+        double staticZ = z - driftZ;
 
         int centerX =
                 floorCell(
@@ -107,8 +103,7 @@ public final class LocalWeatherField {
                 );
 
         double range =
-                MAX_RADIUS
-                        + 260.0;
+                260.0;
 
         int reach =
                 Math.max(
@@ -116,7 +111,7 @@ public final class LocalWeatherField {
                         (int) Math.ceil(
                                 (
                                         range
-                                                + MAX_RADIUS
+                                                + MAX_RADIUS * 1.04
                                 )
                                         / CELL_SPACING
                         )
@@ -140,15 +135,12 @@ public final class LocalWeatherField {
                  gz <= centerZ + reach;
                  gz++) {
 
-                CloudCell cell =
-                        cell(
-                                gx,
-                                gz,
-                                gameTime,
-                                windX,
-                                windZ,
-                                drift
-                        );
+                CloudCell raw = cell(gx,gz,driftX,driftZ);
+                double rawDx=x-raw.x,rawDz=z-raw.z;
+                double influence=raw.radius*1.04+235;
+                if(rawDx*rawDx+rawDz*rawDz>influence*influence)continue;
+                CloudCell cell=RegionalCloudClimate.adapt(level,raw);
+                if(cell==null)continue;
 
                 double dx =
                         x
@@ -316,26 +308,33 @@ public final class LocalWeatherField {
             long gameTime,
             double range
     ) {
-        float wx = windX(gameTime);
-        float wz = windZ(gameTime);
-        double drift = gameTime * DRIFT_SPEED;
+        return nearbyCells(null,x,z,gameTime,range);
+    }
 
-        double staticX = x - wx * drift;
-        double staticZ = z - wz * drift;
+    public static List<CloudCell> nearbyCells(net.minecraft.world.level.Level level,double x,double z,long gameTime,double range) {
+        double driftX = driftX(gameTime), driftZ = driftZ(gameTime);
+
+        double staticX = x - driftX;
+        double staticZ = z - driftZ;
 
         int centerX = floorCell(staticX);
         int centerZ = floorCell(staticZ);
 
         int reach = Math.max(
                 2,
-                (int) Math.ceil((range + MAX_RADIUS) / CELL_SPACING) + 1
+                (int) Math.ceil((range + MAX_RADIUS * 1.04) / CELL_SPACING) + 1
         );
 
         List<CloudCell> result = new ArrayList<>();
 
         for (int gx = centerX - reach; gx <= centerX + reach; gx++) {
             for (int gz = centerZ - reach; gz <= centerZ + reach; gz++) {
-                CloudCell cell = cell(gx, gz, gameTime, wx, wz, drift);
+                CloudCell raw=cell(gx,gz,driftX,driftZ);
+                double rawDx=x-raw.x,rawDz=z-raw.z;
+                double influence=range+raw.radius*1.04;
+                if(rawDx*rawDx+rawDz*rawDz>influence*influence)continue;
+                CloudCell cell=RegionalCloudClimate.adapt(level,raw);
+                if(cell==null)continue;
 
                 double dx = x - cell.x;
                 double dz = z - cell.z;
@@ -350,28 +349,18 @@ public final class LocalWeatherField {
         return result;
     }
 
-    public static float windX(long gameTime) {
-        return (float) Math.cos(windAngle(gameTime));
-    }
-
-    public static float windZ(long gameTime) {
-        return (float) Math.sin(windAngle(gameTime));
-    }
-
-    private static double windAngle(long gameTime) {
-        double slow = gameTime / 36000.0;
-        return 0.72
-                + Math.sin(slow) * 0.34
-                + Math.sin(slow * 0.37 + 1.8) * 0.16;
-    }
+    public static double driftX(long time){return Math.cos(.72)*time*DRIFT_SPEED+120*Math.sin(time/36000.0);}
+    public static double driftZ(long time){return Math.sin(.72)*time*DRIFT_SPEED+90*(Math.cos(time/54000.0)-1);}
+    public static float windX(long time){double x=Math.cos(.72)*DRIFT_SPEED+120.0/36000*Math.cos(time/36000.0);
+        double z=Math.sin(.72)*DRIFT_SPEED-90.0/54000*Math.sin(time/54000.0);return(float)(x/Math.sqrt(x*x+z*z));}
+    public static float windZ(long time){double x=Math.cos(.72)*DRIFT_SPEED+120.0/36000*Math.cos(time/36000.0);
+        double z=Math.sin(.72)*DRIFT_SPEED-90.0/54000*Math.sin(time/54000.0);return(float)(z/Math.sqrt(x*x+z*z));}
 
     private static CloudCell cell(
             int gx,
             int gz,
-            long gameTime,
-            float windX,
-            float windZ,
-            double drift
+            double driftX,
+            double driftZ
     ) {
         long seed = hash(gx, gz);
 
@@ -493,10 +482,10 @@ public final class LocalWeatherField {
 
         return new CloudCell(
                 seed,
-                gx * CELL_SPACING + jitterX + windX * drift,
-                gz * CELL_SPACING + jitterZ + windZ * drift,
+                gx * CELL_SPACING + jitterX + driftX,
+                gz * CELL_SPACING + jitterZ + driftZ,
                 height,
-                radius,
+                radius * 1.55,
                 storm
         );
     }

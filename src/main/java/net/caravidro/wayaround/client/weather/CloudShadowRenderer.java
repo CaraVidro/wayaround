@@ -2,19 +2,17 @@ package net.caravidro.wayaround.client.weather;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import java.util.ArrayList;
-import java.util.List;
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.performance.PerformanceProfiler;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
+import net.caravidro.wayaround.worldgen.weather.local.CloudStormMath;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -22,64 +20,134 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-/** Small depth-tested tiles on flat exposed surfaces; no giant intersecting mesh. */
+/** Stable downward cloud coverage with persistent world-column receivers. */
 @EventBusSubscriber(modid=WayAround.MODID,value=Dist.CLIENT)
 public final class CloudShadowRenderer {
-    private record Tile(double x,double y,double z,int alpha) {}
-    private static final List<Tile> TILES=new ArrayList<>();
+    private static final int RADIUS=56, WIDTH=RADIUS*2+1, ROWS_PER_TICK=5;
+    private static final class Tile {
+        final int x,z;
+        double y,previousAlpha,alpha,target;
+        long sampled;
+        Tile(int x,int z){this.x=x;this.z=z;}
+    }
+    private static final Tile[][] TILES=new Tile[WIDTH][WIDTH];
     private static ClientLevel owner;
+    private static int row;
     private static boolean enabled() {
         var mc=Minecraft.getInstance();
         return mc.level!=null && mc.player!=null && mc.level.dimensionType().hasSkyLight()
-                && !mc.player.isUnderWater() && WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER);
+                && mc.level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)
+                && !net.caravidro.wayaround.client.AntarcticClientLighting.isAntarctic(mc)
+                && net.caravidro.wayaround.client.VoidDomainClientEffects.localInterior()==null
+                && !mc.player.isUnderWater() && WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)
+                && WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER);
+    }
+    private static void clear(){
+        for(var tiles:TILES)java.util.Arrays.fill(tiles,null);
+        row=0;
     }
     @SubscribeEvent public static void tick(ClientTickEvent.Post e) {
+        long started=PerformanceProfiler.begin(PerformanceProfiler.Section.CLOUD_SHADOW_UPDATE);
+        try{update();}finally{PerformanceProfiler.end(PerformanceProfiler.Section.CLOUD_SHADOW_UPDATE,started);}
+    }
+    private static void update(){
         var mc=Minecraft.getInstance();
-        if(owner!=mc.level){TILES.clear();owner=mc.level;}
-        if(!enabled()){TILES.clear();return;}
-        if(mc.level.getGameTime()%16!=0)return;
-        TILES.clear();
-        double angle=mc.level.getSunAngle(1);
-        Vec3 sun=new Vec3(-Math.sin(angle),Math.cos(angle),0);
-        if(sun.y<.22)return;
+        if(owner!=mc.level){clear();owner=mc.level;}
+        if(!enabled()){clear();return;}
         Vec3 camera=mc.gameRenderer.getMainCamera().getPosition();
+        int cx=(int)Math.floor(camera.x),cz=(int)Math.floor(camera.z);
         long time=mc.level.getGameTime();
-        var cells=LocalWeatherField.nearbyCells(camera.x,camera.z,time,760);
-        int cx=BlockPos.containing(camera).getX(),cz=BlockPos.containing(camera).getZ();
-        for(int dx=-20;dx<=20;dx+=4)for(int dz=-20;dz<=20;dz+=4){
-            int x=Math.floorDiv(cx,4)*4+dx,z=Math.floorDiv(cz,4)*4+dz;
-            if(!mc.level.hasChunkAt(new BlockPos(x,0,z))||!mc.level.hasChunkAt(new BlockPos(x+3,0,z+3)))continue;
-            int y=mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING,x,z);
-            // Only flat, solid full tops. Water, steep edges, leaves, caves and
-            // the camera's immediate surroundings never receive these quads.
-            if(Math.abs(camera.x-x)<7&&Math.abs(camera.z-z)<7)continue;
-            if(!mc.level.getBlockState(new BlockPos(x,y-1,z)).isSolidRender(mc.level,new BlockPos(x,y-1,z)))continue;
-            if(mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING,x+3,z)!=y
-                    ||mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING,x,z+3)!=y
-                    ||mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING,x+3,z+3)!=y)continue;
-            Vec3 from=new Vec3(x+2,y+.12,z+2);
-            // The short solar ray rejects walls over the receiving tile.
-            if(mc.level.clip(new ClipContext(from,from.add(sun.scale(12)),ClipContext.Block.COLLIDER,
-                    ClipContext.Fluid.NONE,mc.player)).getType()!=HitResult.Type.MISS)continue;
-            float density=0;
-            for(var cell:cells){
-                double distance=(cell.y()-y)/sun.y;
-                if(distance<0)continue;
-                density=Math.max(density,cell.densityAt(from.x+sun.x*distance,from.z));
+        var cells=LocalWeatherField.nearbyCells(mc.level,camera.x,camera.z,time,RADIUS+16);
+        BlockPos.MutableBlockPos pos=new BlockPos.MutableBlockPos();
+        for(int i=0;i<ROWS_PER_TICK;i++){
+            int rx=row;row=(row+1)%WIDTH;
+            // A toroidal cache keeps unchanged world columns when the viewer moves.
+            int startX=cx-RADIUS,x=startX+Math.floorMod(rx-startX,WIDTH);
+            for(int z=cz-RADIUS;z<=cz+RADIUS;z++){
+                int rz=Math.floorMod(z,WIDTH);
+                Tile tile=TILES[rx][rz];
+                if(tile==null||tile.x!=x||tile.z!=z){
+                    tile=new Tile(x,z);TILES[rx][rz]=tile;
+                }
+                tile.target=0;tile.sampled=time;
+                pos.set(x,0,z);
+                if(!mc.level.hasChunkAt(pos))continue;
+                int y=mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING,x,z)-1;
+                var state=mc.level.getBlockState(pos.set(x,y,z));
+                var fluid=mc.level.getFluidState(pos);
+                double top;
+                if(!fluid.isEmpty()){
+                    top=y+fluid.getHeight(mc.level,pos);
+                }else{
+                    // Ignore noncolliding grass/flowers, preserving each terrain top.
+                    var shape=state.getCollisionShape(mc.level,pos);
+                    for(int down=0;shape.isEmpty()&&down<4;down++){
+                        y--;shape=mc.level.getBlockState(pos.set(x,y,z)).getCollisionShape(mc.level,pos);
+                    }
+                    if(shape.isEmpty())continue;
+                    top=y+shape.bounds().maxY;
+                }
+                tile.y=top+.012;
+                double density=0;
+                for(var cell:cells){
+                    if(cell.y()<=top)continue;
+                    // A continuous canopy footprint avoids holes that pop when a
+                    // distant mesh is created, rebuilt, culled, or changes LOD.
+                    double cover=CloudStormMath.downwardShadowDensity(x+.5-cell.x(),z+.5-cell.z(),cell.radius());
+                    density=1-(1-density)*(1-cover);
+                    if(density==1)break;
+                }
+                tile.target=CloudStormMath.shadowAlpha(density);
             }
-            double fade=1-Math.max(Math.abs(dx),Math.abs(dz))/24.0;
-            int alpha=(int)(48*density*fade*sun.y);
-            if(alpha>2)TILES.add(new Tile(x,y+.018,z,alpha));
+        }
+        for(var tiles:TILES)for(var tile:tiles){
+            if(tile==null)continue;
+            tile.previousAlpha=tile.alpha;
+            if(time-tile.sampled>WIDTH/ROWS_PER_TICK+8)tile.target=0;
+            if(tile.alpha==0&&tile.target==0)continue;
+            tile.alpha=CloudStormMath.approachShadow(tile.alpha,tile.target);
+            if(tile.target==0&&tile.alpha<.01)tile.alpha=0;
         }
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e){
-        if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || TILES.isEmpty()||!enabled())return;
+        if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS||!enabled())return;
+        long started=PerformanceProfiler.begin(PerformanceProfiler.Section.CLOUD_SHADOW_RENDER);
+        try{draw(e);}finally{PerformanceProfiler.end(PerformanceProfiler.Section.CLOUD_SHADOW_RENDER,started);}
+    }
+    private static int alpha(Tile tile,Vec3 camera,float partial){
+        if(tile==null||(tile.alpha<=1&&tile.previousAlpha<=1))return 0;
+        double edge=CloudStormMath.shadowEdge(Math.max(Math.abs(tile.x+.5-camera.x),Math.abs(tile.z+.5-camera.z)),RADIUS);
+        return (int)Math.round((tile.previousAlpha+(tile.alpha-tile.previousAlpha)*partial)*edge);
+    }
+    private static void draw(RenderLevelStageEvent e){
         var camera=e.getCamera().getPosition();var m=e.getPoseStack().last().pose();
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
-        for(var t:TILES){
-            for(int[] corner:new int[][]{{0,0},{0,4},{4,4},{4,0}})
-                b.addVertex(m,(float)(t.x+corner[0]-camera.x),(float)(t.y-camera.y),(float)(t.z+corner[1]-camera.z)).setColor(4,8,16,t.alpha);
+        boolean any=false;
+        float partial=e.getPartialTick().getGameTimeDeltaPartialTick(false);
+        int cx=(int)Math.floor(camera.x),cz=(int)Math.floor(camera.z);
+        for(int z=cz-RADIUS;z<=cz+RADIUS;z++){
+            int rz=Math.floorMod(z,WIDTH);
+            for(int x=cx-RADIUS;x<=cx+RADIUS;){
+                Tile t=TILES[Math.floorMod(x,WIDTH)][rz];
+                int shade=t!=null&&t.x==x&&t.z==z?alpha(t,camera,partial):0;
+                if(shade<=1){x++;continue;}
+                int end=x+1;
+                // Merge only exact coplanar/equal-alpha neighbors. No lost terrain
+                // detail, no approximated gradient or duplicated blended area.
+                while(end<=cx+RADIUS){
+                    Tile next=TILES[Math.floorMod(end,WIDTH)][rz];
+                    if(next==null||next.x!=end||next.z!=z||next.y!=t.y||alpha(next,camera,partial)!=shade)break;
+                    end++;
+                }
+                any=true;
+                b.addVertex(m,(float)(x-camera.x),(float)(t.y-camera.y),(float)(z-camera.z)).setColor(4,8,16,shade);
+                b.addVertex(m,(float)(x-camera.x),(float)(t.y-camera.y),(float)(z+1-camera.z)).setColor(4,8,16,shade);
+                b.addVertex(m,(float)(end-camera.x),(float)(t.y-camera.y),(float)(z+1-camera.z)).setColor(4,8,16,shade);
+                b.addVertex(m,(float)(end-camera.x),(float)(t.y-camera.y),(float)(z-camera.z)).setColor(4,8,16,shade);
+                x=end;
+            }
         }
+        if(!any){b.build();return;}
         RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();
         RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
         try{BufferUploader.drawWithShader(b.buildOrThrow());}
