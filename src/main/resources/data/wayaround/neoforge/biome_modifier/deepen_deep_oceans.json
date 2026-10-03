@@ -9,5 +9,5 @@
   "features": [
     "wayaround:deep_ocean_trench"
   ],
-  "step": "top_layer_modification"
+  "step": "local_modifications"
 }

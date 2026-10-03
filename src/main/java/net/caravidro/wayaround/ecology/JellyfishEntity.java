@@ -64,7 +64,7 @@ public final class JellyfishEntity extends AguaWorldFishEntity {
                     true;
         }
 
-        if (variant()
+        if (!level().isClientSide && variant()
                 == JellyVariant.ABYSSAL_GIANT
                 && tickCount % 20 == 0) {
             applyVariantScale();

@@ -55,7 +55,7 @@ public final class VoiceClientGameEvents {
         VoiceIntentClient.tick();
 
         boolean enabled =
-                VoiceConfig.isEnabled()
+                !net.caravidro.wayaround.client.WorldEntryNotices.blockVoiceCapture() && VoiceConfig.isEnabled()
                         && net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.clientEnabled(
                         net.caravidro.wayaround.worldconfig.WorldFeature.VOICE_CHAT);
 

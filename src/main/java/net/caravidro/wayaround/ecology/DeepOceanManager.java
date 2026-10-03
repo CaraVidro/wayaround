@@ -49,6 +49,7 @@ public final class DeepOceanManager {
             return;
         }
 
+        int cleanupBudget = 4;
         for (ServerPlayer player :
                 event.getServer()
                         .getPlayerList()
@@ -61,7 +62,7 @@ public final class DeepOceanManager {
                 continue;
             }
 
-            if ((now % 400L) == 0L) {
+            if (cleanupBudget-- > 0) {
                 cleanLegacyFloatingOceanDecor(
                         player.serverLevel(),
                         player.blockPosition()
@@ -271,58 +272,42 @@ public final class DeepOceanManager {
                 level.getSeaLevel()
                         - 1;
 
-        // Inspect a staggered 9x9 patch. Never cut a supported kelp column:
-        // the old pass deleted even planted vegetation every twenty seconds.
-        int phase = (int)(level.getGameTime() / 400L) & 3;
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        // At most four players get one column each per second, rather than
+        // 81 full-height columns per player on the same twentieth-second tick.
+        int column = Math.floorMod(level.getGameTime() / 20L + center.getX() * 31L + center.getZ(), 81);
+        int x = center.getX() - 8 + (column % 9) * 2;
+        int z = center.getZ() - 8 + (column / 9) * 2;
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(x, surface, z);
+        if (!level.hasChunkAt(cursor) || !isDeepOcean(level, cursor)) return;
+        int floor = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
+        int bottom = Math.max(level.getMinBuildHeight() + 1, floor + 1);
         int edits = 0;
-        for (int dx = -8 + (phase & 1); dx <= 8; dx += 2) {
-            for (int dz = -8 + ((phase >> 1) & 1); dz <= 8; dz += 2) {
-                int x = center.getX() + dx, z = center.getZ() + dz;
-                if (!level.hasChunkAt(new BlockPos(x, surface, z))) continue;
-                if (!isDeepOcean(level, new BlockPos(x, surface, z))) continue;
-                int floor = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
-                int bottom = Math.max(level.getMinBuildHeight() + 1, floor + 1);
-                // Descend from the top so a removed orphan never drops an upper half.
-                for (int y = surface; y >= bottom; y--) {
-                    cursor.set(x,y,z);
-                    var state = level.getBlockState(cursor);
-                    boolean kelp = state.is(Blocks.KELP) || state.is(Blocks.KELP_PLANT);
-                    boolean grass = state.is(Blocks.SEAGRASS) || state.is(Blocks.TALL_SEAGRASS);
-                    if (!kelp && !grass) continue;
-                    if (kelp) {
-                        int top=y, root=y;
-                        while(root>level.getMinBuildHeight()+1) {
-                            var lower=level.getBlockState(new BlockPos(x,root-1,z));
-                            if (!lower.is(Blocks.KELP) && !lower.is(Blocks.KELP_PLANT)) break;
-                            root--;
-                        }
-                        BlockPos rootPos=new BlockPos(x,root,z);
-                        if (!level.getBlockState(rootPos).canSurvive(level,rootPos)) {
-                            for(int remove=top;remove>=root;remove--) {
-                                level.setBlock(new BlockPos(x,remove,z),Blocks.WATER.defaultBlockState(),
-                                        net.minecraft.world.level.block.Block.UPDATE_CLIENTS
-                                        | net.minecraft.world.level.block.Block.UPDATE_SUPPRESS_DROPS);
-                                edits++;
-                            }
-                        }
-                        y=root;
-                    } else if (!state.canSurvive(level,cursor)) {
-                        // Remove both halves in one pass, top first.
-                        if (state.is(Blocks.TALL_SEAGRASS)) {
-                            var lower=cursor.below();
-                            if(level.getBlockState(lower).is(Blocks.TALL_SEAGRASS)) {
-                                level.setBlock(cursor,Blocks.WATER.defaultBlockState(),18);
-                                level.setBlock(lower,Blocks.WATER.defaultBlockState(),18);
-                                edits+=2; y--;
-                            } else {
-                                level.setBlock(cursor,Blocks.WATER.defaultBlockState(),18);edits++;
-                            }
-                        } else {level.setBlock(cursor,Blocks.WATER.defaultBlockState(),18);edits++;}
+        for (int y = surface; y >= bottom; y--) {
+            cursor.setY(y);
+            var state = level.getBlockState(cursor);
+            if (state.is(Blocks.KELP) || state.is(Blocks.KELP_PLANT)) {
+                int root = y;
+                while (root > level.getMinBuildHeight() + 1) {
+                    var lower = level.getBlockState(new BlockPos(x, root - 1, z));
+                    if (!lower.is(Blocks.KELP) && !lower.is(Blocks.KELP_PLANT)) break;
+                    root--;
+                }
+                BlockPos rootPos = new BlockPos(x, root, z);
+                if (!level.getBlockState(rootPos).canSurvive(level, rootPos)) {
+                    for (int remove = y; remove >= root && edits < 48; remove--, edits++) {
+                        level.setBlock(new BlockPos(x, remove, z), Blocks.WATER.defaultBlockState(), 50);
                     }
-                    if (edits >= 48) return;
+                }
+                y = root;
+            } else if ((state.is(Blocks.SEAGRASS) || state.is(Blocks.TALL_SEAGRASS)) && !state.canSurvive(level, cursor)) {
+                level.setBlock(cursor, Blocks.WATER.defaultBlockState(), 50);
+                edits++;
+                if (state.is(Blocks.TALL_SEAGRASS) && level.getBlockState(cursor.below()).is(Blocks.TALL_SEAGRASS)) {
+                    level.setBlock(cursor.below(), Blocks.WATER.defaultBlockState(), 50);
+                    edits++; y--;
                 }
             }
+            if (edits >= 48) return;
         }
     }
 

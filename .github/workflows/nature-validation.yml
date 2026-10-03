@@ -4,16 +4,29 @@ on:
     paths:
       - 'src/main/java/net/caravidro/wayaround/nature/**'
       - 'src/main/java/net/caravidro/wayaround/voice/VoiceServer.java'
+      - 'src/main/java/net/caravidro/wayaround/voice/VoiceDistanceMath.java'
+      - 'src/main/java/net/caravidro/wayaround/ecology/TreeWoodSegmentBlock.java'
       - 'src/main/java/net/caravidro/wayaround/particle/WindLeafParticle.java'
       - 'src/main/resources/assets/wayaround/**/apple_*'
       - 'src/main/java/net/caravidro/wayaround/ecology/Ecological*'
       - 'src/main/java/net/caravidro/wayaround/ecology/SunfishEntity.java'
       - 'src/main/java/net/caravidro/wayaround/ecology/DeepOcean*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/Ocean*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/Abyss*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/EcologyContent.java'
+      - 'src/main/java/net/caravidro/wayaround/worldgen/feature/DeepOceanTrenchFeature.java'
+      - 'src/main/resources/data/wayaround/neoforge/biome_modifier/deepen_deep_oceans.json'
       - 'src/main/java/net/caravidro/wayaround/ecology/SeagullEntity.java'
       - 'src/main/java/net/caravidro/wayaround/industrial/mining/**'
       - 'src/main/java/net/caravidro/wayaround/mixin/PlayerStepSoundMixin.java'
       - 'src/main/resources/wayaround.mixins.json'
       - 'tests/nature/**'
+      - 'tests/fire/**'
+      - 'src/main/java/net/caravidro/wayaround/worldgen/weather/fire/**'
+      - 'src/main/java/net/caravidro/wayaround/mixin/Fire*.java'
+      - 'src/main/java/net/caravidro/wayaround/network/FireFrameS2CPayload.java'
+      - 'src/main/java/net/caravidro/wayaround/client/BatchedFireRenderer.java'
+      - 'tests/voice/**'
       - 'tests/daybreak/**'
       - 'src/main/java/net/caravidro/wayaround/daybreak/**'
       - '.github/workflows/nature-validation.yml'
@@ -35,6 +48,13 @@ jobs:
           mkdir -p /tmp/nature-classes
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/nature/NatureMath.java tests/nature/NatureMathTest.java src/main/java/net/caravidro/wayaround/ecology/EcologicalHistory.java tests/nature/EcologicalHistoryTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/daybreak/DaysBreakMath.java tests/daybreak/DaysBreakMathTest.java
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/ecology/OceanPressure.java tests/nature/OceanPressureTest.java
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/voice/VoiceConstants.java src/main/java/net/caravidro/wayaround/voice/VoiceDistanceMath.java tests/voice/VoiceDistanceTest.java
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/worldgen/weather/fire/FireWorkBudget.java tests/fire/FireWorkBudgetTest.java src/main/java/net/caravidro/wayaround/nature/BirdMigrationMath.java tests/nature/BirdMigrationTest.java
+          java -cp /tmp/nature-classes FireWorkBudgetTest
+          java -cp /tmp/nature-classes BirdMigrationTest
+          java -cp /tmp/nature-classes VoiceDistanceTest
+          java -cp /tmp/nature-classes OceanPressureTest
           java -cp /tmp/nature-classes DaysBreakMathTest
           java -cp /tmp/nature-classes NatureMathTest
           java -cp /tmp/nature-classes EcologicalHistoryTest
@@ -46,7 +66,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '10 required tests passed' in text or 'All 10 required tests passed' in text,text[-16000:]
+          assert '29 required tests passed' in text or 'All 29 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application
@@ -77,7 +97,7 @@ jobs:
           text=path.read_text(errors='replace')
           if not ready or re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text):
               print('\n'.join(text.splitlines()[-120:]));raise SystemExit(1)
-          relevant=[line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',line) and re.search(r'wayaround:.*(?:apple_|hummingbird|woodland_thrush|mimic_parrot)',line)]
+          relevant=[line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',line) and 'wayaround:' in line]
           if relevant:
               print('\n'.join(relevant));raise SystemExit(1)
           print('Client boot and bird renderers and orchard registration passed. In-world visual QA remains manual.')

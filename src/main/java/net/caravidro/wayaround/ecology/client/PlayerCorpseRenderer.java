@@ -1,230 +1,66 @@
 package net.caravidro.wayaround.ecology.client;
 
+import java.util.*;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.caravidro.wayaround.ecology.PlayerCorpseEntity;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.model.SkeletonModel;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.client.resources.PlayerSkin;
+import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.entity.*;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.LivingEntity;
 
-/**
- * Cheap prone body renderer. The corpse system is storage-first; later passes
- * can replace this with the exact player skin without changing persistence.
- */
-public final class PlayerCorpseRenderer
-        extends EntityRenderer<PlayerCorpseEntity> {
-
-    private final BlockRenderDispatcher blocks;
-
-    public PlayerCorpseRenderer(
-            EntityRendererProvider.Context context
-    ) {
-        super(
-                context
-        );
-
-        blocks =
-                context.getBlockRenderDispatcher();
-
-        shadowRadius =
-                0.52F;
+/** Prone vanilla models, actual synchronized owner skins; no cosmetic entities. */
+public final class PlayerCorpseRenderer extends EntityRenderer<PlayerCorpseEntity> {
+    private final PlayerModel<LivingEntity> wide, slim;
+    private final SkeletonModel<net.minecraft.world.entity.monster.AbstractSkeleton> skeleton;
+    private final Map<UUID,PlayerSkin> skins=new LinkedHashMap<>();
+    private final Map<UUID,com.mojang.authlib.GameProfile> profiles=new LinkedHashMap<>();
+    public PlayerCorpseRenderer(EntityRendererProvider.Context context) {
+        super(context);wide=new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER),false);
+        slim=new PlayerModel<>(context.bakeLayer(ModelLayers.PLAYER_SLIM),true);
+        skeleton=new SkeletonModel<>(context.bakeLayer(ModelLayers.SKELETON));shadowRadius=.5F;
     }
-
-    @Override
-    public ResourceLocation getTextureLocation(
-            PlayerCorpseEntity entity
-    ) {
-        return ResourceLocation.withDefaultNamespace(
-                "textures/atlas/blocks.png"
-        );
+    private PlayerSkin skin(PlayerCorpseEntity corpse) {
+        UUID owner=corpse.owner();if(owner==null)owner=new UUID(0,0);
+        var connection=Minecraft.getInstance().getConnection();
+        var info=connection==null?null:connection.getPlayerInfo(owner);
+        if(info!=null) { if(skins.size()>=128)skins.clear();skins.put(owner,info.getSkin()); }
+        else if(!corpse.skinTextures().isEmpty()) {
+            var profile=profiles.get(owner);
+            if(profile==null) {
+                if(profiles.size()>=128)profiles.clear();
+                profile=new com.mojang.authlib.GameProfile(owner,"Corpse");
+                profile.getProperties().put("textures",corpse.skinSignature().isEmpty()
+                        ? new com.mojang.authlib.properties.Property("textures",corpse.skinTextures())
+                        : new com.mojang.authlib.properties.Property("textures",corpse.skinTextures(),corpse.skinSignature()));
+                profiles.put(owner,profile);
+            }
+            if(skins.size()>=128)skins.clear();skins.put(owner,Minecraft.getInstance().getSkinManager().getInsecureSkin(profile));
+        }
+        return skins.getOrDefault(owner,DefaultPlayerSkin.get(owner));
     }
-
-    @Override
-    public void render(
-            PlayerCorpseEntity corpse,
-            float yaw,
-            float partialTick,
-            PoseStack pose,
-            MultiBufferSource buffers,
-            int light
-    ) {
-        pose.pushPose();
-
-        pose.translate(
-                0.0,
-                0.18,
-                0.0
-        );
-
-        pose.mulPose(
-                Axis.YP.rotationDegrees(
-                        -yaw
-                )
-        );
-
-        int hash =
-                corpse.owner() == null
-                        ? 0
-                        : corpse.owner()
-                        .hashCode();
-
-        BlockState shirt =
-                (
-                        hash
-                                & 1
-                ) == 0
-                        ? Blocks.BLUE_CONCRETE
-                        .defaultBlockState()
-                        : Blocks.GREEN_CONCRETE
-                        .defaultBlockState();
-
-        BlockState trousers =
-                Blocks.GRAY_CONCRETE
-                        .defaultBlockState();
-
-        BlockState skin =
-                Blocks.TERRACOTTA
-                        .defaultBlockState();
-
-        // Torso lying along local Z.
-        cuboid(
-                pose,
-                buffers,
-                light,
-                shirt,
-                0.0,
-                0.10,
-                0.0,
-                0.55,
-                0.26,
-                0.78
-        );
-
-        // Head.
-        cuboid(
-                pose,
-                buffers,
-                light,
-                skin,
-                0.0,
-                0.12,
-                -0.56,
-                0.42,
-                0.38,
-                0.42
-        );
-
-        // Arms.
-        cuboid(
-                pose,
-                buffers,
-                light,
-                shirt,
-                -0.39,
-                0.09,
-                0.02,
-                0.19,
-                0.20,
-                0.78
-        );
-
-        cuboid(
-                pose,
-                buffers,
-                light,
-                shirt,
-                0.39,
-                0.09,
-                0.02,
-                0.19,
-                0.20,
-                0.78
-        );
-
-        // Legs.
-        cuboid(
-                pose,
-                buffers,
-                light,
-                trousers,
-                -0.15,
-                0.09,
-                0.72,
-                0.24,
-                0.22,
-                0.74
-        );
-
-        cuboid(
-                pose,
-                buffers,
-                light,
-                trousers,
-                0.15,
-                0.09,
-                0.72,
-                0.24,
-                0.22,
-                0.74
-        );
-
-        pose.popPose();
-
-        super.render(
-                corpse,
-                yaw,
-                partialTick,
-                pose,
-                buffers,
-                light
-        );
+    @Override public ResourceLocation getTextureLocation(PlayerCorpseEntity corpse) {
+        return corpse.isSkeleton()?ResourceLocation.withDefaultNamespace("textures/entity/skeleton/skeleton.png"):skin(corpse).texture();
     }
-
-    private void cuboid(
-            PoseStack pose,
-            MultiBufferSource buffers,
-            int light,
-            BlockState state,
-            double x,
-            double y,
-            double z,
-            double sx,
-            double sy,
-            double sz
-    ) {
-        pose.pushPose();
-
-        pose.translate(
-                x,
-                y,
-                z
-        );
-
-        pose.scale(
-                (float) sx,
-                (float) sy,
-                (float) sz
-        );
-
-        pose.translate(
-                -0.5,
-                -0.5,
-                -0.5
-        );
-
-        blocks.renderSingleBlock(
-                state,
-                pose,
-                buffers,
-                light,
-                OverlayTexture.NO_OVERLAY
-        );
-
-        pose.popPose();
+    @Override public void render(PlayerCorpseEntity corpse,float yaw,float partial,PoseStack pose,MultiBufferSource buffers,int light) {
+        var model=corpse.isSkeleton()?skeleton:skin(corpse).model()==PlayerSkin.Model.SLIM?slim:wide;
+        pose.pushPose();pose.translate(0,.28,.65);pose.mulPose(Axis.YP.rotationDegrees(-yaw));
+        pose.mulPose(Axis.XP.rotationDegrees(90));pose.scale(-1,-1,1);
+        model.head.xRot=0;model.head.yRot=0;model.rightArm.zRot=.12F;model.leftArm.zRot=-.12F;
+        model.rightLeg.xRot=0;model.leftLeg.xRot=0;
+        model.hat.copyFrom(model.head);
+        if(model instanceof PlayerModel<?> player) {
+            player.rightSleeve.copyFrom(player.rightArm);player.leftSleeve.copyFrom(player.leftArm);
+            player.rightPants.copyFrom(player.rightLeg);player.leftPants.copyFrom(player.leftLeg);player.jacket.copyFrom(player.body);
+        }
+        model.renderToBuffer(pose,buffers.getBuffer(RenderType.entityCutoutNoCull(getTextureLocation(corpse))),light,OverlayTexture.NO_OVERLAY);
+        pose.popPose();super.render(corpse,yaw,partial,pose,buffers,light);
     }
 }

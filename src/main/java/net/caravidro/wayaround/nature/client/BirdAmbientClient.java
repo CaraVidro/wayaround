@@ -31,7 +31,7 @@ public final class BirdAmbientClient {
     private static Vec3 origin=Vec3.ZERO;
     public static void receive(NatureAmbientPayload p){
         var mc=Minecraft.getInstance();if(mc.level==null||mc.player==null||!p.sane())return;
-        if(p.kind()==0){migrationStart=mc.level.getGameTime();migrationSeed=p.seed();origin=new Vec3(p.x(),p.y(),p.z());}
+        if(p.kind()==0){if(owner!=mc.level){owner=mc.level;CHIRPS.clear();nextChorus=0;}migrationStart=mc.level.getGameTime();migrationSeed=p.seed();origin=new Vec3(p.x(),p.y(),p.z());}
         else{
             var entity=mc.level.getEntity(p.entityId());
             if(!(entity instanceof WoodlandBirdEntity bird)||bird.species()!=2||mc.player.distanceToSqr(bird)>24*24)return;
@@ -66,20 +66,29 @@ public final class BirdAmbientClient {
     @SubscribeEvent public static void render(RenderLevelStageEvent e){
         var mc=Minecraft.getInstance();
         if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS||migrationStart<0||mc.level!=owner||mc.player==null||mc.player.isUnderWater())return;
-        var camera=e.getCamera().getPosition();var matrix=e.getPoseStack().last().pose();
+        var camera=e.getCamera().getPosition();var matrix=e.getModelViewMatrix();
         double age=owner.getGameTime()-migrationStart+e.getPartialTick().getGameTimeDeltaPartialTick(false);
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
         int count=24+(int)Math.floorMod(migrationSeed,13);
         for(int i=0;i<count;i++){
             int rank=i/2;double side=(i%2==0?1:-1)*rank*3;
-            double x=origin.x-160+age*.48+side,z=origin.z-50+age*.16-rank*3,y=origin.y+Math.sin(i*1.9)*3;
-            double flap=Math.sin(age*.65+i)*.40;
-            quad(b,matrix,camera,x-.18,y,z-.45,x+.18,y,z-.45,x+.18,y,z+.45,x-.18,y,z+.45);
-            quad(b,matrix,camera,x,y,z-.1,x-1.2,y+flap,z+.05,x-.9,y+flap,z+.45,x,y,z+.2);
-            quad(b,matrix,camera,x,y,z-.1,x+1.2,y-flap,z+.05,x+.9,y-flap,z+.45,x,y,z+.2);
+            double x=origin.x-160+age*BirdMigrationMath.VELOCITY_X+BirdMigrationMath.x(side,-rank*3);
+            double z=origin.z-50+age*BirdMigrationMath.VELOCITY_Z+BirdMigrationMath.z(side,-rank*3),y=origin.y+Math.sin(i*1.9)*3;
+            double flap=BirdMigrationMath.flap(age,i);
+            birdQuad(b,matrix,camera,x,y,z,-.18,0,-.45,.18,0,-.45,.18,0,.45,-.18,0,.45);
+            birdQuad(b,matrix,camera,x,y,z,0,0,.1,-1.2,flap,-.05,-.9,flap,-.45,0,0,-.2);
+            birdQuad(b,matrix,camera,x,y,z,0,0,.1,1.2,flap,-.05,.9,flap,-.45,0,0,-.2);
         }
         RenderSystem.enableDepthTest();RenderSystem.depthMask(true);RenderSystem.disableCull();RenderSystem.disableBlend();RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        try{BufferUploader.drawWithShader(b.buildOrThrow());}finally{RenderSystem.enableCull();}
+        var modelView=RenderSystem.getModelViewStack();modelView.pushMatrix();modelView.identity();RenderSystem.applyModelViewMatrix();
+        try{BufferUploader.drawWithShader(b.buildOrThrow());}finally{RenderSystem.enableCull();modelView.popMatrix();RenderSystem.applyModelViewMatrix();}
+    }
+    private static void birdQuad(BufferBuilder b,org.joml.Matrix4f m,Vec3 c,double x,double y,double z,
+                                 double ax,double ay,double az,double bx,double by,double bz,double cx,double cy,double cz,double dx,double dy,double dz) {
+        quad(b,m,c,x+BirdMigrationMath.x(ax,az),y+ay,z+BirdMigrationMath.z(ax,az),
+                x+BirdMigrationMath.x(bx,bz),y+by,z+BirdMigrationMath.z(bx,bz),
+                x+BirdMigrationMath.x(cx,cz),y+cy,z+BirdMigrationMath.z(cx,cz),
+                x+BirdMigrationMath.x(dx,dz),y+dy,z+BirdMigrationMath.z(dx,dz));
     }
     private static void quad(BufferBuilder b,org.joml.Matrix4f m,Vec3 c,double x,double y,double z,double x2,double y2,double z2,double x3,double y3,double z3,double x4,double y4,double z4){
         b.addVertex(m,(float)(x-c.x),(float)(y-c.y),(float)(z-c.z)).setColor(55,62,70,255);b.addVertex(m,(float)(x2-c.x),(float)(y2-c.y),(float)(z2-c.z)).setColor(55,62,70,255);b.addVertex(m,(float)(x3-c.x),(float)(y3-c.y),(float)(z3-c.z)).setColor(55,62,70,255);b.addVertex(m,(float)(x4-c.x),(float)(y4-c.y),(float)(z4-c.z)).setColor(55,62,70,255);

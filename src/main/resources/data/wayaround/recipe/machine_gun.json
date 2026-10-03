@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ISI",
+    "GRC",
+    " L "
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "S": {
+      "item": "wayaround:reinforced_machine_shaft"
+    },
+    "G": {
+      "item": "wayaround:small_mechanical_gear"
+    },
+    "R": {
+      "item": "minecraft:tripwire_hook"
+    },
+    "C": {
+      "item": "wayaround:circuit_board"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    }
+  },
+  "result": {
+    "id": "wayaround:machine_gun",
+    "count": 1
+  }
+}

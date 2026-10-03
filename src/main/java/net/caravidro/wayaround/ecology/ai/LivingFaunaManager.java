@@ -4067,6 +4067,9 @@ public final class LivingFaunaManager {
                             )
                     );
 
+            if (fish instanceof net.caravidro.wayaround.ecology.JellyfishEntity jelly
+                    && jelly.variant() == net.caravidro.wayaround.ecology.JellyfishEntity.JellyVariant.ABYSSAL_GIANT) target = Math.max(6.4, target);
+
             if (Math.abs(
                     attribute.getBaseValue()
                             - target

@@ -29,6 +29,13 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class PlayerCorpseEntity extends Entity {
 
+    private static final net.minecraft.network.syncher.EntityDataAccessor<java.util.Optional<UUID>> OWNER =
+            SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.OPTIONAL_UUID);
+    private static final net.minecraft.network.syncher.EntityDataAccessor<Boolean> SKELETON =
+            SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN);
+    private static final net.minecraft.network.syncher.EntityDataAccessor<String> SKIN = SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.STRING);
+    private static final net.minecraft.network.syncher.EntityDataAccessor<String> SKIN_SIGNATURE = SynchedEntityData.defineId(PlayerCorpseEntity.class, net.minecraft.network.syncher.EntityDataSerializers.STRING);
+    private int lavaTicks;
     private UUID owner;
     private String ownerName =
             "Player";
@@ -53,7 +60,21 @@ public final class PlayerCorpseEntity extends Entity {
     protected void defineSynchedData(
             SynchedEntityData.Builder builder
     ) {
+        builder.define(OWNER, java.util.Optional.empty());
+        builder.define(SKELETON, false);
+        builder.define(SKIN, "");builder.define(SKIN_SIGNATURE, "");
     }
+
+    public String skinTextures() { return entityData.get(SKIN); }
+    public String skinSignature() { return entityData.get(SKIN_SIGNATURE); }
+    public void copySkin(com.mojang.authlib.GameProfile profile) {
+        var texture=profile.getProperties().get("textures").stream().findFirst().orElse(null);
+        if(texture!=null && texture.value().length()<=8192) {
+            entityData.set(SKIN,texture.value());
+            String signature=texture.signature();entityData.set(SKIN_SIGNATURE,signature!=null && signature.length()<=4096?signature:"");
+        }
+    }
+    public boolean isSkeleton() { return entityData.get(SKELETON); }
 
     public void initialize(
             UUID owner,
@@ -69,6 +90,7 @@ public final class PlayerCorpseEntity extends Entity {
                         ? "Player"
                         : ownerName;
 
+        entityData.set(OWNER, java.util.Optional.ofNullable(owner));
         contents.clear();
 
         for (StoredStack stored :
@@ -101,7 +123,7 @@ public final class PlayerCorpseEntity extends Entity {
     }
 
     public UUID owner() {
-        return owner;
+        return entityData.get(OWNER).orElse(owner);
     }
 
     public String ownerName() {
@@ -123,7 +145,10 @@ public final class PlayerCorpseEntity extends Entity {
         Vec3 motion =
                 getDeltaMovement();
 
-        if (isInWater()) {
+        if (!level().isClientSide && isInLava() && !isSkeleton()) {
+            if (++lavaTicks >= 200) entityData.set(SKELETON, true);
+        }
+        if (isInWater() || isInLava()) {
             /*
              * A body containing the player's entire inventory must not quietly
              * disappear into a trench. It rises slowly and drifts instead of
@@ -268,6 +293,9 @@ public final class PlayerCorpseEntity extends Entity {
     protected void addAdditionalSaveData(
             CompoundTag tag
     ) {
+        tag.putString("OwnerSkinTextures",skinTextures());tag.putString("OwnerSkinSignature",skinSignature());
+        tag.putInt("LavaExposure", lavaTicks);
+        tag.putBoolean("Skeleton", isSkeleton());
         if (owner != null) {
             tag.putUUID(
                     "Owner",
@@ -322,6 +350,10 @@ public final class PlayerCorpseEntity extends Entity {
     protected void readAdditionalSaveData(
             CompoundTag tag
     ) {
+        String skin=tag.getString("OwnerSkinTextures"),signature=tag.getString("OwnerSkinSignature");
+        entityData.set(SKIN,skin.length()<=8192?skin:"");entityData.set(SKIN_SIGNATURE,signature.length()<=4096?signature:"");
+        lavaTicks = tag.getInt("LavaExposure");
+        entityData.set(SKELETON, tag.getBoolean("Skeleton"));
         owner =
                 tag.hasUUID(
                         "Owner"
@@ -341,6 +373,7 @@ public final class PlayerCorpseEntity extends Entity {
                     "Player";
         }
 
+        entityData.set(OWNER, java.util.Optional.ofNullable(owner));
         contents.clear();
 
         ListTag list =

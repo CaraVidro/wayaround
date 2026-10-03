@@ -12,6 +12,7 @@ import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.NoiseRouter;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,6 +22,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(NoiseGeneratorSettings.class)
 public abstract class NoiseRouterMixin {
+    // Atomic cache entry: source router, feature flags, transformed router.
+    // Settings are immutable; only feature configuration invalidates this map.
+    @Unique private volatile Object[] wayaround$routerCache;
+
 
     private static boolean wayaround$logged =
             false;
@@ -83,12 +88,23 @@ public abstract class NoiseRouterMixin {
 
         if (!antarcticaEnabled
                 && !volcanicEnabled
-                && !riftEnabled) {
+                && !riftEnabled && !WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
             return;
         }
 
-        NoiseRouter vanilla =
-                cir.getReturnValue();
+        NoiseRouter source = cir.getReturnValue();
+        int flags = (antarcticaEnabled ? 1 : 0) | (volcanicEnabled ? 2 : 0) | (riftEnabled ? 4 : 0)
+                | (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION) ? 8 : 0);
+        Object[] cached = wayaround$routerCache;
+        if (cached != null && cached[0] == source && ((Integer) cached[1]) == flags) {
+            cir.setReturnValue((NoiseRouter) cached[2]);
+            return;
+        }
+        NoiseRouter vanilla = source;
+        if (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
+            vanilla = net.caravidro.wayaround.worldgen.terrain.OceanContinentalness.scale(vanilla);
+            cir.setReturnValue(vanilla);
+        }
 
 
         /*
@@ -125,6 +141,7 @@ public abstract class NoiseRouterMixin {
         if (alreadyAntarctic
                 && alreadyVolcanic
                 && alreadyRift) {
+            wayaround$routerCache = new Object[]{source, flags, vanilla};
             return;
         }
 
@@ -285,6 +302,7 @@ public abstract class NoiseRouterMixin {
         cir.setReturnValue(
                 modified
         );
+        wayaround$routerCache = new Object[]{source, flags, modified};
 
 
         /*

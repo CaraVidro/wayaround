@@ -28,6 +28,7 @@ public final class KrakenSceneRenderer {
     private static final KrakenAnimationClock clock = new KrakenAnimationClock();
     private static int lastAge = -1;
     private static boolean emerged, submerged;
+    private static int riseContacts,fallContacts;
     private static final List<Splash> splashes = new ArrayList<>();
     private record Splash(Vec3 center, long start, double radius) {}
     private KrakenSceneRenderer() {}
@@ -47,7 +48,7 @@ public final class KrakenSceneRenderer {
         scene = p;
         if (fresh) clock.reset(p.age(), level.getGameTime());
         else clock.synchronize(p.age(), level.getGameTime());
-        if (fresh) { emerged = false; submerged = false; lastAge = p.age() - 1; }
+        if (fresh) { emerged = false; submerged = false; riseContacts=fallContacts=0; lastAge = p.age() - 1; }
     }
     private static void clear() { scene = null; splashes.clear(); owner = null; lastAge = -1; }
     private static double age() { return clock.age(); }
@@ -69,6 +70,16 @@ public final class KrakenSceneRenderer {
         int duration = KrakenMotion.duration(scene.kind());
         if (age > duration + 20) { scene = null; return; }
         if (scene.kind() < 3) {
+            if(scene.kind()!=1 && lastAge>=0)for(int i=1;i<=16;i++) {
+                double segment=i/16.0;int bit=1<<(i-1);
+                var now=KrakenMotion.tentacle(segment,age,scene.kind());
+                var before=KrakenMotion.tentacle(segment,lastAge,scene.kind());
+                boolean rising=now.y()>before.y();int mask=rising?riseContacts:fallContacts;
+                if((mask&bit)==0 && KrakenMotion.contact(segment,lastAge,age,scene.kind())) {
+                    Vec3 hit=world(now);if(splashes.size()<24)splashes.add(new Splash(new Vec3(hit.x,KrakenMotion.waterSurface(scene.surface()),hit.z),owner.getGameTime(),6+now.radius()*1.5));
+                    if(rising)riseContacts|=bit;else fallContacts|=bit;
+                }
+            }
             int riseAt = KrakenMotion.breachAge(scene.kind());
             int fallAt = KrakenMotion.impactAge(scene.kind());
             if (!emerged && lastAge < riseAt && age >= riseAt) {
@@ -79,7 +90,7 @@ public final class KrakenSceneRenderer {
                 splashes.add(new Splash(new Vec3(end.x,KrakenMotion.waterSurface(scene.surface()),end.z), owner.getGameTime(), scene.kind()==1?42:48));
                 submerged = true;
             }
-        } else if (age % 4 == 0 && mc.options.particles().get() != net.minecraft.client.ParticleStatus.MINIMAL) {
+        } else if (scene.kind()<5 && age % 4 == 0 && mc.options.particles().get() != net.minecraft.client.ParticleStatus.MINIMAL) {
             // Eight particles per tick at most. Large volume is mesh, not particle count.
             for (int i=0;i<8;i++) {
                 double a = age*.10+i*Math.PI/4;
@@ -104,10 +115,15 @@ public final class KrakenSceneRenderer {
         return false;
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e) {
-        if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || owner==null
+        if(owner==null
                 || Minecraft.getInstance().level!=owner || (scene==null && splashes.isEmpty())) return;
+        if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS) renderCreature(e);
+        else if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) renderWaterEffects(e);
+    }
+    private static void renderCreature(RenderLevelStageEvent e) {
         Vec3 camera=e.getCamera().getPosition();
-        Matrix4f matrix=e.getPoseStack().last().pose();
+        if(scene==null || !visibleScene(camera) || (scene.kind()>=3 && scene.kind()!=5)) return;
+        Matrix4f matrix=e.getModelViewMatrix();
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
         float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
         int count=0;
@@ -116,7 +132,19 @@ public final class KrakenSceneRenderer {
             Vec3 d=direction();
             Vec3 side=new Vec3(-d.z,0,d.x);
             double shade=Math.max(.25, owner.getSkyColor(camera, partial).length()/1.73);
-            if(scene.kind()==1) {
+            if(scene.kind()==5) {
+                // A pair of eyes only: open, blink, then retreat into black water.
+                Vec3 facing=d.scale(-1);
+                double retreat=KrakenMotion.smooth((a-175)/110)*65;
+                double opening=KrakenMotion.smooth(a/55)*(1-KrakenMotion.smooth((a-260)/40));
+                for(double blink:new double[]{110,170}) if(a>=blink && a<blink+14) opening*=Math.abs((a-blink-7)/7);
+                int alpha=(int)(220*(1-KrakenMotion.smooth((a-210)/90)));
+                for(int sign:new int[]{-1,1}) if(alpha>0) {
+                    Vec3 center=origin().add(d.scale(retreat)).add(side.scale(sign*4.5));
+                    count+=eye(b,matrix,camera,center,side,3.2,.05+opening*1.6,171,129,53,alpha);
+                    count+=eye(b,matrix,camera,center.add(facing.scale(.03)),side,.40,.04+opening*1.48,7,9,7,alpha);
+                }
+            } else if(scene.kind()==1) {
                 double rise=KrakenMotion.emergence(a,1);
                 Vec3 center=origin().add(0,-70+rise*84,0);
                 // A tapered squid mantle, collar, broad fins and binocular eyes.
@@ -160,16 +188,26 @@ public final class KrakenSceneRenderer {
                     count+=box(b,matrix,camera,c.add(d.scale(cup*.6)),cup*.52,cup*.4,cup*.52,24,37,33,255);
                 }
             }
-            // Opaque skin writes depth so rear faces/arms cannot overwrite the
-            // front of the mantle. Foam and shadows use a separate transparent pass.
-            if(count>0) draw(b,true); else b.build();
-            b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
-            count=0;
+        }
+        // Draw before water and translucent vehicle panes can write depth.
+        // Depth testing stays enabled: terrain and the hull still hide the creature.
+        // Skin also writes depth to keep rear arms from overwriting the mantle.
+        if(count>0) draw(b,true); else b.build();
+    }
+    private static void renderWaterEffects(RenderLevelStageEvent e) {
+        Vec3 camera=e.getCamera().getPosition();
+        Matrix4f matrix=e.getModelViewMatrix();
+        var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
+        float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
+        int count=0;
+        if(scene!=null && scene.kind()<5 && visibleScene(camera)) {
+            double a=clock.sample(partial);
+            Vec3 d=direction();
             // Broad moving silhouette on the water, softened with nested bands.
             double pass=scene.kind()==4?(a/200.0-.5)*140:0;
             Vec3 shadow=origin().add(d.scale(pass)).add(0,.04,0);
-            for(int ring=0;ring<5;ring++) count+=disc(b,matrix,camera,shadow,55-ring*7,0,5,12,18,12+ring*4);
-            if(scene.kind()>=3) {
+            for(int ring=0;scene.kind()<5 && ring<5;ring++) count+=disc(b,matrix,camera,shadow,55-ring*7,0,5,12,18,12+ring*4);
+            if(scene.kind()>=3 && scene.kind()<5) {
                 for(int i=0;i<18;i++) {
                     double phase=(a*.035+i*.37)%1;
                     double angle=i*2.39996;
@@ -202,11 +240,28 @@ public final class KrakenSceneRenderer {
         if(count==0) { b.build(); return; }
         draw(b,false);
     }
+    private static int eye(BufferBuilder b,Matrix4f matrix,Vec3 camera,Vec3 center,Vec3 side,double width,double height,int r,int g,int blue,int alpha) {
+        for(int i=0;i<24;i++) {
+            double a=i*Math.PI/12,n=(i+1)*Math.PI/12;
+            Vec3 p=center.add(side.scale(Math.cos(a)*width)).add(0,Math.sin(a)*height,0);
+            Vec3 q=center.add(side.scale(Math.cos(n)*width)).add(0,Math.sin(n)*height,0);
+            quad(b,matrix,camera,center,p,q,center,r,g,blue,alpha);
+        }
+        return 24;
+    }
     private static void draw(BufferBuilder b,boolean opaque) {
+        // Chunk-layer stages have no PoseStack. Their explicit view matrix has
+        // already rotated our camera-relative vertices; the shader must not
+        // apply an inherited view transform a second time.
+        var modelView=RenderSystem.getModelViewStack();
+        modelView.pushMatrix();modelView.identity();RenderSystem.applyModelViewMatrix();
         RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();
         RenderSystem.depthMask(opaque);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
         try { BufferUploader.drawWithShader(b.buildOrThrow()); }
-        finally { RenderSystem.enableCull();RenderSystem.depthMask(true);RenderSystem.disableBlend(); }
+        finally {
+            RenderSystem.enableCull();RenderSystem.depthMask(true);RenderSystem.disableBlend();
+            modelView.popMatrix();RenderSystem.applyModelViewMatrix();
+        }
     }
     private static int tube(BufferBuilder b,Matrix4f m,Vec3 camera,List<Vec3> points,List<Double> radii,
                             int sides,double shade,boolean inner) {
