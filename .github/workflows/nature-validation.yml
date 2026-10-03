@@ -56,7 +56,7 @@ jobs:
           python - <<'PYFLIGHT'
           from pathlib import Path
           import zipfile,subprocess
-          names=['net/minecraft/world/level/pathfinder/FlyNodeEvaluator','net/minecraft/world/level/pathfinder/PathFinder','net/minecraft/world/entity/ai/navigation/FlyingPathNavigation']
+          names=['net/minecraft/world/level/pathfinder/FlyNodeEvaluator','net/minecraft/world/level/pathfinder/PathFinder','net/minecraft/world/entity/ai/navigation/FlyingPathNavigation','net/minecraft/world/entity/ai/navigation/PathNavigation','net/minecraft/world/level/pathfinder/Node','net/minecraft/world/level/pathfinder/WalkNodeEvaluator','net/minecraft/world/level/pathfinder/PathfindingContext']
           found=False
           for path in Path.home().joinpath('.gradle/caches').rglob('*.jar'):
               if path.stat().st_size<10000000:continue
