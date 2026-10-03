@@ -660,12 +660,8 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
             int light,
             float lampPitch
     ) {
-        /*
-         * Reworked as a twin floodlight bar. The previous single pin-light had
-         * a pretty beam but almost no visual authority in a pitch-black abyss.
-         * Both lamps share the pilot's vertical look angle; the fog/lightmap
-         * mixins provide the actual usable illuminated range.
-         */
+        // Keep the articulated supports and lamps. AbyssVehicleEntity supplies
+        // real dynamic lighting; there is no decorative glass beam in the water.
         for (double x :
                 new double[]{-0.30, 0.30}) {
 
@@ -724,42 +720,6 @@ public final class DeepSeaCapsuleRenderer extends EntityRenderer<DeepSeaCapsuleE
                     0.15,
                     0.13
             );
-
-            /*
-             * Six short overlapping volumes make a wider, less laser-like
-             * flood cone. This remains cheap decorative geometry; visibility
-             * itself no longer depends on seeing these glass pieces.
-             */
-            for (int step = 0;
-                 step < 6;
-                 step++) {
-
-                double width =
-                        0.12
-                                + step
-                                * 0.050;
-
-                double height =
-                        0.10
-                                + step
-                                * 0.034;
-
-                cuboid(
-                        pose,
-                        buffers,
-                        LightTexture.FULL_BRIGHT,
-                        Blocks.LIGHT_BLUE_STAINED_GLASS
-                                .defaultBlockState(),
-                        0.0,
-                        0.0,
-                        0.78
-                                + step
-                                * 0.72,
-                        width,
-                        height,
-                        0.82
-                );
-            }
 
             pose.popPose();
         }

@@ -115,9 +115,14 @@ public final class KrakenSceneRenderer {
         return false;
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e) {
-        if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || owner==null
+        if(owner==null
                 || Minecraft.getInstance().level!=owner || (scene==null && splashes.isEmpty())) return;
+        if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS) renderCreature(e);
+        else if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) renderWaterEffects(e);
+    }
+    private static void renderCreature(RenderLevelStageEvent e) {
         Vec3 camera=e.getCamera().getPosition();
+        if(scene==null || !visibleScene(camera) || (scene.kind()>=3 && scene.kind()!=5)) return;
         Matrix4f matrix=e.getPoseStack().last().pose();
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
         float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
@@ -134,7 +139,7 @@ public final class KrakenSceneRenderer {
                 double opening=KrakenMotion.smooth(a/55)*(1-KrakenMotion.smooth((a-260)/40));
                 for(double blink:new double[]{110,170}) if(a>=blink && a<blink+14) opening*=Math.abs((a-blink-7)/7);
                 int alpha=(int)(220*(1-KrakenMotion.smooth((a-210)/90)));
-                for(int sign:new int[]{-1,1}) {
+                for(int sign:new int[]{-1,1}) if(alpha>0) {
                     Vec3 center=origin().add(d.scale(retreat)).add(side.scale(sign*4.5));
                     count+=eye(b,matrix,camera,center,side,3.2,.05+opening*1.6,171,129,53,alpha);
                     count+=eye(b,matrix,camera,center.add(facing.scale(.03)),side,.40,.04+opening*1.48,7,9,7,alpha);
@@ -183,11 +188,21 @@ public final class KrakenSceneRenderer {
                     count+=box(b,matrix,camera,c.add(d.scale(cup*.6)),cup*.52,cup*.4,cup*.52,24,37,33,255);
                 }
             }
-            // Opaque skin writes depth so rear faces/arms cannot overwrite the
-            // front of the mantle. Foam and shadows use a separate transparent pass.
-            if(count>0) draw(b,true); else b.build();
-            b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
-            count=0;
+        }
+        // Draw before water and translucent vehicle panes can write depth.
+        // Depth testing stays enabled: terrain and the hull still hide the creature.
+        // Skin also writes depth to keep rear arms from overwriting the mantle.
+        if(count>0) draw(b,true); else b.build();
+    }
+    private static void renderWaterEffects(RenderLevelStageEvent e) {
+        Vec3 camera=e.getCamera().getPosition();
+        Matrix4f matrix=e.getPoseStack().last().pose();
+        var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
+        float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
+        int count=0;
+        if(scene!=null && scene.kind()<5 && visibleScene(camera)) {
+            double a=clock.sample(partial);
+            Vec3 d=direction();
             // Broad moving silhouette on the water, softened with nested bands.
             double pass=scene.kind()==4?(a/200.0-.5)*140:0;
             Vec3 shadow=origin().add(d.scale(pass)).add(0,.04,0);
