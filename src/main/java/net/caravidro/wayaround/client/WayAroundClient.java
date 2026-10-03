@@ -296,6 +296,11 @@ public final class WayAroundClient {
                     }
 
                     @Override
+                    public void fireFrame(net.caravidro.wayaround.network.FireFrameS2CPayload payload) {
+                        BatchedFireRenderer.receive(payload);
+                    }
+
+                    @Override
                     public void krakenScene(net.caravidro.wayaround.network.KrakenSceneS2CPayload payload) {
                         net.caravidro.wayaround.ecology.client.KrakenSceneRenderer.receive(payload);
                     }

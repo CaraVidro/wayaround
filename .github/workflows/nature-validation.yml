@@ -21,6 +21,11 @@ on:
       - 'src/main/java/net/caravidro/wayaround/mixin/PlayerStepSoundMixin.java'
       - 'src/main/resources/wayaround.mixins.json'
       - 'tests/nature/**'
+      - 'tests/fire/**'
+      - 'src/main/java/net/caravidro/wayaround/worldgen/weather/fire/**'
+      - 'src/main/java/net/caravidro/wayaround/mixin/Fire*.java'
+      - 'src/main/java/net/caravidro/wayaround/network/FireFrameS2CPayload.java'
+      - 'src/main/java/net/caravidro/wayaround/client/BatchedFireRenderer.java'
       - 'tests/voice/**'
       - 'tests/daybreak/**'
       - 'src/main/java/net/caravidro/wayaround/daybreak/**'
@@ -45,6 +50,9 @@ jobs:
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/daybreak/DaysBreakMath.java tests/daybreak/DaysBreakMathTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/ecology/OceanPressure.java tests/nature/OceanPressureTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/voice/VoiceConstants.java src/main/java/net/caravidro/wayaround/voice/VoiceDistanceMath.java tests/voice/VoiceDistanceTest.java
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/worldgen/weather/fire/FireWorkBudget.java tests/fire/FireWorkBudgetTest.java src/main/java/net/caravidro/wayaround/nature/BirdMigrationMath.java tests/nature/BirdMigrationTest.java
+          java -cp /tmp/nature-classes FireWorkBudgetTest
+          java -cp /tmp/nature-classes BirdMigrationTest
           java -cp /tmp/nature-classes VoiceDistanceTest
           java -cp /tmp/nature-classes OceanPressureTest
           java -cp /tmp/nature-classes DaysBreakMathTest
@@ -58,7 +66,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '26 required tests passed' in text or 'All 26 required tests passed' in text,text[-16000:]
+          assert '29 required tests passed' in text or 'All 29 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application

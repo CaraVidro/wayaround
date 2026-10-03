@@ -73,6 +73,8 @@ public final class WayAroundNetwork {
         registrar.playToClient(net.caravidro.wayaround.nature.NatureAmbientPayload.TYPE,net.caravidro.wayaround.nature.NatureAmbientPayload.STREAM_CODEC,ClientPayloadBridge::handleNatureAmbient);
         registrar.playToClient(CloudStormS2CPayload.TYPE,CloudStormS2CPayload.STREAM_CODEC,ClientPayloadBridge::handleCloudStorm);
 
+        registrar.playToClient(FireFrameS2CPayload.TYPE, FireFrameS2CPayload.STREAM_CODEC, ClientPayloadBridge::handleFireFrame);
+
         registrar.playToClient(KrakenSceneS2CPayload.TYPE, KrakenSceneS2CPayload.STREAM_CODEC,
                 ClientPayloadBridge::handleKrakenScene);
 

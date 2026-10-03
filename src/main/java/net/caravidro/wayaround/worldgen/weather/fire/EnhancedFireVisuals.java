@@ -28,7 +28,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /**
- * Physical/visual extension for vanilla fire.
+ * Bounded physical extension and batched visual snapshots for vanilla fire.
  *
  * FireBlock still owns ignition, spread and extinction. This system gives each
  * fire event a stable sub-block origin, lets the visible flame body grow around
@@ -39,14 +39,18 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 public final class EnhancedFireVisuals {
 
     private static final Map<GlobalPos, FireState> ACTIVE =
-            new HashMap<>();
+            new java.util.LinkedHashMap<>();
 
     private static final int STEP =
             4;
 
-    private static int spreadBudget;
+    private static final FireWorkBudget SPREAD=new FireWorkBudget(4,8);
+    private static final FireWorkBudget PROBES=new FireWorkBudget(4,256);
+    private static final FireWorkBudget SMOKE=new FireWorkBudget(20,2);
+    private static final FireWorkBudget SOUNDS=new FireWorkBudget(20,8);
+    private static final Map<GlobalPos,Long> SMOKE_CELLS=new HashMap<>();
+    private static int damageBudget;
     private static final int MAX_TRACKED = 1024;
-    private static int rotation;
 
 
     private EnhancedFireVisuals() {
@@ -86,32 +90,21 @@ public final class EnhancedFireVisuals {
         MinecraftServer server =
                 event.getServer();
 
-        if (Math.floorMod(
-                server.getTickCount(),
-                STEP
-        ) != 0) {
-            return;
-        }
-
-        spreadBudget =
-                Mth.clamp(
-                        8 + server.getPlayerList().getPlayerCount() * 4,
-                        8,
-                        24
-                );
-
+        damageBudget=12;
         /*
          * Use a snapshot because a large fire may create new vanilla fire
          * blocks during this pass. Their onPlace mixin registers them in ACTIVE
-         * immediately; they simply begin updating on the next STEP.
+         * immediately; they begin updating on a later work slice.
          */
-        var snapshot = new ArrayList<>(ACTIVE.entrySet());
-        int count = Math.min(256, snapshot.size());
-        for (int i = 0; i < count; i++) {
-            Map.Entry<GlobalPos, FireState> entry = snapshot.get((rotation + i) % snapshot.size());
-
+        // Spread callbacks can register new fires. Copy only this tick's
+        // bounded work slice, then rotate completed entries to the back.
+        var snapshot=new ArrayList<Map.Entry<GlobalPos,FireState>>(64);
+        for(var entry:ACTIVE.entrySet()){snapshot.add(entry);if(snapshot.size()==64)break;}
+        for(var entry:snapshot) {
             GlobalPos key =
                     entry.getKey();
+
+            ACTIVE.remove(key);ACTIVE.put(key,entry.getValue());
 
             ServerLevel level =
                     server.getLevel(
@@ -128,9 +121,7 @@ public final class EnhancedFireVisuals {
             BlockPos pos =
                     key.pos();
 
-            if (!level.hasChunkAt(
-                    pos
-            )) {
+            if (!ready(level,pos)) {
                 ACTIVE.remove(
                         key
                 );
@@ -155,31 +146,29 @@ public final class EnhancedFireVisuals {
             }
             if (nearby) {
                 FireState state=entry.getValue();
-                int elapsed=state.lastUpdate<0?STEP:(int)Math.min(80, level.getGameTime()-state.lastUpdate);
+                int elapsed=state.lastUpdate<0?STEP:(int)Math.min(80,Math.max(1,level.getGameTime()-state.lastUpdate));
                 state.lastUpdate=level.getGameTime();
-                state.ageTicks+=Math.max(0,elapsed-STEP);
-                state.spreadCooldown-=Math.max(0,elapsed-STEP);
-                state.smokeCooldown-=Math.max(0,elapsed-STEP);
-                state.damageCooldown-=Math.max(0,elapsed-STEP);
-                updateFire(level,pos,state);
+                updateFire(level,pos,state,elapsed);
             }
         }
-        rotation = snapshot.isEmpty() ? 0 : (rotation + count) % snapshot.size();
+        if(server.getTickCount()%10==0)sendFireFrames(server);
+        if(server.getTickCount()%100==0)SMOKE_CELLS.entrySet().removeIf(entry->{
+            var level=server.getLevel(entry.getKey().dimension());return level==null || level.getGameTime()-entry.getValue()>80;});
     }
 
     private static void updateFire(
             ServerLevel level,
             BlockPos pos,
-            FireState fire
+            FireState fire,
+            int elapsed
     ) {
-        int neighbors =
-                adjacentFireCount(
-                        level,
-                        pos
-                );
+        if(level.getGameTime()-fire.clusterAt>=20 || fire.clusterAt<0) {
+            int sample=sampleCluster(level,pos);fire.neighbors=sample&31;fire.primary=(sample&32)!=0;fire.clusterAt=level.getGameTime();
+        }
+        int neighbors=fire.neighbors;
 
         fire.ageTicks +=
-                STEP;
+                elapsed;
 
         float ageGrowth =
                 Mth.clamp(
@@ -202,10 +191,7 @@ public final class EnhancedFireVisuals {
 
         if (raining
                 || touchingWater) {
-            fire.wetTicks +=
-                    touchingWater
-                            ? 8
-                            : 4;
+            fire.wetTicks += touchingWater ? elapsed*2 : elapsed;
 
             fire.size =
                     Math.max(
@@ -215,7 +201,7 @@ public final class EnhancedFireVisuals {
                                     touchingWater
                                             ? 0.16F
                                             : 0.075F
-                            )
+                            ) * elapsed / STEP
                     );
 
             int extinguishAt =
@@ -266,7 +252,7 @@ public final class EnhancedFireVisuals {
             fire.wetTicks =
                     Math.max(
                             0,
-                            fire.wetTicks - STEP
+                            fire.wetTicks - elapsed
                     );
         }
 
@@ -299,14 +285,10 @@ public final class EnhancedFireVisuals {
                         targetSize
                                 - fire.size
                 )
-                        * (
-                        targetSize > fire.size
-                                ? 0.075F
-                                : 0.13F
-                );
+                        * (float)(1-Math.pow(1-(targetSize>fire.size?.075:.13),elapsed/(double)STEP));
 
         fire.spreadCooldown -=
-                STEP;
+                elapsed;
 
         if (fire.spreadCooldown <= 0) {
             spreadWildfire(
@@ -334,9 +316,10 @@ public final class EnhancedFireVisuals {
         }
 
         fire.damageCooldown -=
-                STEP;
+                elapsed;
 
-        if (fire.damageCooldown <= 0) {
+        if (fire.damageCooldown <= 0 && damageBudget>0) {
+            damageBudget--;
             fire.damageCooldown =
                     12;
 
@@ -346,21 +329,12 @@ public final class EnhancedFireVisuals {
             );
         }
 
-        renderFire(
-                level,
-                pos,
-                fire,
-                neighbors
-        );
 
         fire.smokeCooldown -=
-                STEP;
+                elapsed;
 
         if (fire.smokeCooldown <= 0
-                && primaryInCluster(
-                level,
-                pos
-        )) {
+                && fire.primary) {
             spawnSmokeVolume(
                     level,
                     pos,
@@ -370,10 +344,7 @@ public final class EnhancedFireVisuals {
         }
 
         if (neighbors < 4
-                || primaryInCluster(
-                level,
-                pos
-        )) {
+                || fire.primary) {
             emitAmbientSound(
                     level,
                     pos,
@@ -381,12 +352,7 @@ public final class EnhancedFireVisuals {
             );
         }
 
-        mergeNearbyFire(
-                level,
-                pos,
-                fire,
-                neighbors
-        );
+
     }
 
     private static void spreadWildfire(
@@ -398,9 +364,7 @@ public final class EnhancedFireVisuals {
     ) {
         if (!level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOFIRETICK)) return;
         if (sourcePos.distSqr(source.origin) > 24.0 * 24.0) return;
-        if (spreadBudget <= 0) {
-            return;
-        }
+
 
         if (raining
                 || touchesWater(
@@ -452,6 +416,7 @@ public final class EnhancedFireVisuals {
             for (int probe = 0;
                  probe < 9;
                  probe++) {
+                if(!PROBES.tryUse(level.getServer().getTickCount()))return;
 
                 int dx =
                         level.random.nextInt(
@@ -488,7 +453,7 @@ public final class EnhancedFireVisuals {
                                 dz
                         );
 
-                if (!level.hasChunkAt(
+                if (!ready(level,
                         fuelPos
                 )
                         || !vanillaCanBurn(
@@ -532,7 +497,7 @@ public final class EnhancedFireVisuals {
 
                     if (firePos.distSqr(source.origin) > 24.0 * 24.0) continue;
 
-                    if (!level.hasChunkAt(
+                    if (!ready(level,
                             firePos
                     )
                             || !level.getBlockState(
@@ -565,17 +530,13 @@ public final class EnhancedFireVisuals {
                         continue;
                     }
 
+                    if(!SPREAD.tryUse(level.getServer().getTickCount()) || !readyNeighborhood(level,firePos))return;
                     level.setBlock(
                             firePos,
                             fireState,
                             Block.UPDATE_ALL
                     );
 
-                    spreadBudget =
-                            Math.max(
-                                    0,
-                                    spreadBudget - 1
-                            );
 
                     inheritSpreadHeat(
                             level,
@@ -583,46 +544,6 @@ public final class EnhancedFireVisuals {
                             source
                     );
 
-                    Vec3 from =
-                            new Vec3(
-                                    source.x,
-                                    source.y
-                                            + source.height()
-                                                    * 0.55,
-                                    source.z
-                            );
-
-                    Vec3 to =
-                            Vec3.atCenterOf(
-                                    firePos
-                            );
-
-                    Vec3 middle =
-                            from.add(
-                                    to
-                            ).scale(
-                                    0.5
-                            );
-
-                    level.sendParticles(
-                            ParticleTypes.SMALL_FLAME,
-                            middle.x,
-                            middle.y,
-                            middle.z,
-                            source.size > 1.55F
-                                    ? 3
-                                    : 1,
-                            Math.abs(
-                                    to.x
-                                            - from.x
-                            ) * 0.13,
-                            0.16,
-                            Math.abs(
-                                    to.z
-                                            - from.z
-                            ) * 0.13,
-                            0.018
-                    );
 
                     break;
                 }
@@ -644,13 +565,9 @@ public final class EnhancedFireVisuals {
                     );
 
             if (vanillaCanBurn(
-                    level.getBlockState(
-                            neighbor
-                    )
+                    readState(level,neighbor)
             )
-                    && !level.getFluidState(
-                    neighbor
-            ).is(
+                    && !readState(level,neighbor).getFluidState().is(
                     FluidTags.WATER
             )) {
                 return true;
@@ -674,11 +591,7 @@ public final class EnhancedFireVisuals {
 
         for (Direction direction :
                 Direction.values()) {
-            if (level.getFluidState(
-                    pos.relative(
-                            direction
-                    )
-            ).is(
+            if (readState(level,pos.relative(direction)).getFluidState().is(
                     FluidTags.WATER
             )) {
                 return true;
@@ -802,13 +715,8 @@ public final class EnhancedFireVisuals {
                         42
                 );
 
-        if (Math.floorMod(
-                level.getGameTime()
-                        + pos.asLong(),
-                interval
-        ) >= STEP) {
-            return;
-        }
+        if(level.getGameTime()<fire.nextSound || !SOUNDS.tryUse(level.getServer().getTickCount()))return;
+        fire.nextSound=level.getGameTime()+interval;
 
         level.playSound(
                 null,
@@ -831,267 +739,6 @@ public final class EnhancedFireVisuals {
         );
     }
 
-    private static void renderFire(
-            ServerLevel level,
-            BlockPos pos,
-            FireState fire,
-            int neighbors
-    ) {
-        /*
-         * Detailed fire is a near LOD only. Far players receive no fire
-         * particles at all; they see the voxel smoke volumes instead.
-         */
-        boolean anyClose =
-                false;
-
-        double closeDistance =
-                48.0;
-
-        for (ServerPlayer viewer :
-                level.players()) {
-            if (viewer.distanceToSqr(
-                    fire.x,
-                    fire.y,
-                    fire.z
-            ) <= closeDistance
-                    * closeDistance) {
-                anyClose =
-                        true;
-                break;
-            }
-        }
-
-        if (!anyClose) {
-            return;
-        }
-
-        /*
-         * In a dense wildfire we do not need a full particle emitter on every
-         * burning block. The terrain is still physically burning everywhere;
-         * this only coalesces the near visual layer.
-         */
-        if (neighbors >= 4) {
-            int visualStride =
-                    neighbors >= 7
-                            ? 3
-                            : 2;
-
-            if (Math.floorMod(
-                    pos.getX()
-                            + pos.getY()
-                            + pos.getZ(),
-                    visualStride
-            ) != 0) {
-                return;
-            }
-        }
-
-        /*
-         * Dense forests used to flicker because every fire randomized all
-         * particle positions every four ticks at the same time. Stable anchors
-         * plus staggered emission make a large fire read as one continuous
-         * surface instead of hundreds of blinking points.
-         */
-        int intervalSteps =
-                neighbors >= 5
-                        ? 3
-                        : neighbors >= 2
-                        ? 2
-                        : 1;
-
-        long visualStep =
-                level.getGameTime()
-                        / STEP;
-
-        if (Math.floorMod(
-                visualStep
-                        + fire.visualSeed,
-                intervalSteps
-        ) != 0) {
-            return;
-        }
-
-        double height =
-                fire.height();
-
-        double radius =
-                fire.radius();
-
-        int fronts =
-                Mth.clamp(
-                        2
-                                + Math.round(
-                                fire.size
-                                        * (
-                                        neighbors >= 4
-                                                ? 1.15F
-                                                : 1.70F
-                                )
-                        ),
-                        2,
-                        6
-                );
-
-        for (int i = 0;
-             i < fronts;
-             i++) {
-
-            double angle =
-                    fire.unit(
-                            i * 0x9E3779B97F4A7C15L
-                                    + 11L
-                    )
-                            * Math.PI
-                            * 2.0;
-
-            double spread =
-                    Math.sqrt(
-                            fire.unit(
-                                    i * 0xC2B2AE3D27D4EB4FL
-                                            + 37L
-                            )
-                    )
-                            * radius
-                            * 0.82;
-
-            double baseHeight =
-                    0.05
-                            + fire.unit(
-                            i * 0x165667B19E3779F9L
-                                    + 71L
-                    )
-                                    * height
-                                    * 0.46;
-
-            double phase =
-                    level.getGameTime()
-                            * 0.095
-                            + i
-                                    * 1.73
-                            + (
-                            fire.visualSeed
-                                    & 255L
-                    )
-                                    * 0.013;
-
-            double x =
-                    fire.x
-                            + Math.cos(
-                            angle
-                    )
-                                    * spread
-                            + Math.sin(
-                            phase
-                    )
-                                    * 0.035;
-
-            double y =
-                    fire.y
-                            + baseHeight
-                            + Math.sin(
-                            phase
-                                    * 1.31
-                            )
-                                    * 0.045;
-
-            double z =
-                    fire.z
-                            + Math.sin(
-                            angle
-                    )
-                                    * spread
-                            + Math.cos(
-                            phase
-                                    * 0.91
-                    )
-                                    * 0.035;
-
-            for (ServerPlayer viewer :
-                    level.players()) {
-
-                if (viewer.distanceToSqr(
-                        x,
-                        y,
-                        z
-                ) > closeDistance
-                        * closeDistance) {
-                    continue;
-                }
-
-                level.sendParticles(
-                        viewer,
-                        fire.size > 0.88F
-                                && i % 3 == 0
-                                ? ParticleTypes.FLAME
-                                : ParticleTypes.SMALL_FLAME,
-                        false,
-                        x,
-                        y,
-                        z,
-                        1,
-                        0.025
-                                + fire.size
-                                        * 0.018,
-                        0.020,
-                        0.025
-                                + fire.size
-                                        * 0.018,
-                        0.004
-                                + fire.size
-                                        * 0.004
-                );
-            }
-        }
-
-        /*
-         * Close smoke remains particulate and dense. It is intentionally cheap:
-         * one small emission per fire update, and only to nearby clients.
-         */
-        int smokeCount =
-                fire.size > 1.35F
-                        ? 2
-                        : 1;
-
-        double smokeY =
-                fire.y
-                        + height
-                                * 0.70;
-
-        for (ServerPlayer viewer :
-                level.players()) {
-            if (viewer.distanceToSqr(
-                    fire.x,
-                    smokeY,
-                    fire.z
-            ) > closeDistance
-                    * closeDistance) {
-                continue;
-            }
-
-            level.sendParticles(
-                    viewer,
-                    fire.size > 0.78F
-                            ? ParticleTypes.LARGE_SMOKE
-                            : ParticleTypes.SMOKE,
-                    false,
-                    fire.x,
-                    smokeY,
-                    fire.z,
-                    smokeCount,
-                    radius
-                            * 0.24,
-                    0.10
-                            + fire.size
-                                    * 0.055,
-                    radius
-                            * 0.24,
-                    0.012
-                            + fire.size
-                                    * 0.006
-            );
-        }
-    }
-
     private static void spawnSmokeVolume(
             ServerLevel level,
             BlockPos pos,
@@ -1103,6 +750,12 @@ public final class EnhancedFireVisuals {
                     36;
             return;
         }
+
+        GlobalPos cell=GlobalPos.of(level.dimension(),new BlockPos(pos.getX()>>4,pos.getY()>>4,pos.getZ()>>4));
+        if(level.getGameTime()-SMOKE_CELLS.getOrDefault(cell,Long.MIN_VALUE/2)<40 || !SMOKE.tryUse(level.getServer().getTickCount())) {
+            fire.smokeCooldown=20;return;
+        }
+        SMOKE_CELLS.put(cell,level.getGameTime());
 
         AABB localSmoke =
                 new AABB(
@@ -1236,238 +889,51 @@ public final class EnhancedFireVisuals {
                 );
     }
 
-    private static void mergeNearbyFire(
-            ServerLevel level,
-            BlockPos pos,
-            FireState fire,
-            int neighbors
-    ) {
-        /*
-         * Once four or more neighbouring fires overlap, bridge particles add
-         * nothing visually and are one of the biggest particle multipliers.
-         */
-        if (neighbors >= 4) {
-            return;
-        }
-
-        if (Math.floorMod(
-                level.getGameTime()
-                        / STEP
-                        + fire.visualSeed,
-                3
-        ) != 0) {
-            return;
-        }
-
-        for (int x = -1;
-             x <= 1;
-             x++) {
-            for (int y = -1;
-                 y <= 1;
-                 y++) {
-                for (int z = -1;
-                     z <= 1;
-                     z++) {
-
-                    if (x == 0
-                            && y == 0
-                            && z == 0) {
-                        continue;
-                    }
-
-                    BlockPos neighborPos =
-                            pos.offset(
-                                    x,
-                                    y,
-                                    z
-                            );
-
-                    FireState other =
-                            ACTIVE.get(
-                                    GlobalPos.of(
-                                            level.dimension(),
-                                            neighborPos
-                                    )
-                            );
-
-                    if (other == null
-                            || neighborPos.asLong()
-                                    < pos.asLong()) {
-                        continue;
-                    }
-
-                    double dx =
-                            other.x
-                                    - fire.x;
-
-                    double dy =
-                            other.y
-                                    - fire.y;
-
-                    double dz =
-                            other.z
-                                    - fire.z;
-
-                    double distance =
-                            Math.sqrt(
-                                    dx * dx
-                                            + dy * dy
-                                            + dz * dz
-                            );
-
-                    if (distance > fire.radius()
-                            + other.radius()
-                            + 0.16) {
-                        continue;
-                    }
-
-                    double px =
-                            (
-                                    fire.x
-                                            + other.x
-                            )
-                                    * 0.5;
-
-                    double py =
-                            (
-                                    fire.y
-                                            + other.y
-                            )
-                                    * 0.5
-                                    + Math.min(
-                                    fire.height(),
-                                    other.height()
-                            )
-                                            * 0.24;
-
-                    double pz =
-                            (
-                                    fire.z
-                                            + other.z
-                            )
-                                    * 0.5;
-
-                    for (ServerPlayer viewer :
-                            level.players()) {
-
-                        if (viewer.distanceToSqr(
-                                px,
-                                py,
-                                pz
-                        ) > 46.0
-                                * 46.0) {
-                            continue;
-                        }
-
-                        level.sendParticles(
-                                viewer,
-                                ParticleTypes.FLAME,
-                                false,
-                                px,
-                                py,
-                                pz,
-                                1,
-                                0.09,
-                                0.07,
-                                0.09,
-                                0.008
-                        );
-                    }
-                }
-            }
-        }
+    private static boolean ready(ServerLevel level,BlockPos pos) {
+        return level.getChunkSource().getChunkNow(pos.getX()>>4,pos.getZ()>>4)!=null;
     }
-
-    private static int adjacentFireCount(
-            ServerLevel level,
-            BlockPos pos
-    ) {
-        int count =
-                0;
-
-        for (int x = -1;
-             x <= 1;
-             x++) {
-            for (int y = -1;
-                 y <= 1;
-                 y++) {
-                for (int z = -1;
-                     z <= 1;
-                     z++) {
-
-                    if (x == 0
-                            && y == 0
-                            && z == 0) {
-                        continue;
-                    }
-
-                    if (level.getBlockState(
-                            pos.offset(
-                                    x,
-                                    y,
-                                    z
-                            )
-                    ).getBlock()
-                            instanceof BaseFireBlock) {
-                        count++;
-                    }
-                }
-            }
-        }
-
-        return count;
-    }
-
-    private static boolean primaryInCluster(
-            ServerLevel level,
-            BlockPos pos
-    ) {
-        long own =
-                pos.asLong();
-
-        for (int x = -1;
-             x <= 1;
-             x++) {
-            for (int y = -1;
-                 y <= 1;
-                 y++) {
-                for (int z = -1;
-                     z <= 1;
-                     z++) {
-
-                    if (x == 0
-                            && y == 0
-                            && z == 0) {
-                        continue;
-                    }
-
-                    BlockPos neighbor =
-                            pos.offset(
-                                    x,
-                                    y,
-                                    z
-                            );
-
-                    if (level.getBlockState(
-                            neighbor
-                    ).getBlock()
-                            instanceof BaseFireBlock
-                            && neighbor.asLong()
-                                    < own) {
-                        return false;
-                    }
-                }
-            }
-        }
-
+    private static boolean readyNeighborhood(ServerLevel level,BlockPos pos) {
+        for(Direction direction:Direction.values())if(!ready(level,pos.relative(direction)))return false;
         return true;
+    }
+    private static net.minecraft.world.level.block.state.BlockState readState(ServerLevel level,BlockPos pos) {
+        var chunk=level.getChunkSource().getChunkNow(pos.getX()>>4,pos.getZ()>>4);
+        return chunk==null?Blocks.AIR.defaultBlockState():chunk.getBlockState(pos);
+    }
+    private static int sampleCluster(ServerLevel level,BlockPos pos) {
+        int count=0;boolean primary=true;long own=pos.asLong();
+        BlockPos.MutableBlockPos cursor=new BlockPos.MutableBlockPos();
+        for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++) {
+            if(x==0&&y==0&&z==0)continue;cursor.setWithOffset(pos,x,y,z);
+            if(readState(level,cursor).getBlock() instanceof BaseFireBlock){count++;if(cursor.asLong()<own)primary=false;}
+        }
+        return count|(primary?32:0);
+    }
+    private static void sendFireFrames(MinecraftServer server) {
+        for(ServerPlayer player:server.getPlayerList().getPlayers()) {
+            var level=player.serverLevel();var grouped=new HashMap<Long,Map.Entry<GlobalPos,FireState>>();
+            for(var entry:ACTIVE.entrySet()) {
+                if(!entry.getKey().dimension().equals(level.dimension()))continue;
+                var fire=entry.getValue();var p=entry.getKey().pos();
+                if(player.distanceToSqr(fire.x,fire.y,fire.z)>96*96)continue;
+                long cell=fire.size>=.9F?BlockPos.asLong(p.getX()&~1,p.getY()&~1,p.getZ()&~1):p.asLong();
+                var old=grouped.get(cell);
+                if(old==null || fire.size>old.getValue().size)grouped.put(cell,entry);
+            }
+            var nearest=new ArrayList<>(grouped.values());
+            nearest.sort(java.util.Comparator.comparingDouble(entry->player.distanceToSqr(entry.getValue().x,entry.getValue().y,entry.getValue().z)));
+            var flames=new ArrayList<net.caravidro.wayaround.network.FireFrameS2CPayload.Flame>();
+            for(int i=0;i<Math.min(nearest.size(),net.caravidro.wayaround.network.FireFrameS2CPayload.MAX_FLAMES);i++) {
+                var entry=nearest.get(i);var p=entry.getKey().pos();var fire=entry.getValue();
+                flames.add(new net.caravidro.wayaround.network.FireFrameS2CPayload.Flame(p.asLong(),(float)(fire.x-p.getX()),(float)(fire.y-p.getY()),(float)(fire.z-p.getZ()),fire.size));
+            }
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,new net.caravidro.wayaround.network.FireFrameS2CPayload(flames));
+        }
     }
 
     public static void clearAll() {
         ACTIVE.clear();
-        rotation = 0;
-        spreadBudget =
-                0;
+        SPREAD.clear();PROBES.clear();SMOKE.clear();SOUNDS.clear();SMOKE_CELLS.clear();FireTickLimiter.clear();
     }
 
     private static final class FireState {
@@ -1479,6 +945,10 @@ public final class EnhancedFireVisuals {
         private BlockPos origin;
         private long lastUpdate=-1;
         private int ageTicks;
+        private int neighbors;
+        private boolean primary;
+        private long clusterAt=-1;
+        private long nextSound;
         private int damageCooldown;
         private int spreadCooldown =
                 18;

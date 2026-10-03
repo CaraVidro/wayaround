@@ -81,6 +81,8 @@ public final class ClientPayloadBridge {
         default void daysBreak(net.caravidro.wayaround.daybreak.DaysBreakPayload payload) {}
         default void natureAmbient(net.caravidro.wayaround.nature.NatureAmbientPayload payload) {}
 
+        default void fireFrame(FireFrameS2CPayload payload) {}
+
         default void krakenScene(KrakenSceneS2CPayload payload) {}
 
         default void krakenShake(
@@ -413,6 +415,10 @@ public final class ClientPayloadBridge {
 
     public static void handleCloudStorm(CloudStormS2CPayload payload,IPayloadContext context){
         if(payload.isSane())context.enqueueWork(()->realtimeHandlers.cloudStorm(payload));
+    }
+
+    public static void handleFireFrame(FireFrameS2CPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> realtimeHandlers.fireFrame(payload));
     }
 
     public static void handleKrakenScene(KrakenSceneS2CPayload payload, IPayloadContext context) {
