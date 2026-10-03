@@ -3,7 +3,9 @@ package net.caravidro.wayaround.mixin.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.caravidro.wayaround.client.CoreLeavesModel;
+import net.caravidro.wayaround.client.ConnectedTreeModel;
 import net.caravidro.wayaround.client.VegetationLod;
+import net.caravidro.wayaround.ecology.TreeWoodSegmentBlock;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.resources.model.BakedModel;
@@ -24,16 +26,24 @@ public abstract class VegetationLodMixin {
     private void wayaround$distanceDetail(BlockAndTintGetter level, BakedModel model, BlockState state,
             BlockPos pos, PoseStack pose, VertexConsumer vertices, boolean checkSides, RandomSource random,
             long seed, int overlay, ModelData data, RenderType type, CallbackInfo ci) {
-        if (model instanceof CoreLeavesModel) return;
+        if (model instanceof CoreLeavesModel || model instanceof ConnectedTreeModel) return;
         boolean leaves = VegetationLod.organicLeaves(state);
         boolean detail = VegetationLod.smallDetail(state);
-        if (!leaves && !detail) return;
+        boolean branch = state.getBlock() instanceof TreeWoodSegmentBlock && !state.getValue(TreeWoodSegmentBlock.ROOT);
+        if (!leaves && !detail && !branch) return;
         int tier = VegetationLod.tier(pos);
         if (detail && VegetationLod.hidden(level, state, pos, tier)) ci.cancel();
         else if (leaves && tier > 0) {
             ((ModelBlockRenderer)(Object)this).tesselateBlock(level, VegetationLod.coreLeaves(model), state,
                     pos, pose, vertices, checkSides, random, seed, overlay, data, type);
             ci.cancel();
+        } else if (branch) {
+            int connections = TreeWoodSegmentBlock.branchConnections(state, level, pos);
+            if (connections != 0) {
+                ((ModelBlockRenderer)(Object)this).tesselateBlock(level, ConnectedTreeModel.connect(model,state,connections),
+                        state,pos,pose,vertices,checkSides,random,seed,overlay,data,type);
+                ci.cancel();
+            }
         }
     }
 }

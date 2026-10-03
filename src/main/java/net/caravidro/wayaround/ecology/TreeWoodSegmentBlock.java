@@ -3,7 +3,9 @@ package net.caravidro.wayaround.ecology;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -47,7 +49,7 @@ public final class TreeWoodSegmentBlock extends Block {
             BlockBehaviour.Properties properties
     ) {
         super(
-                properties
+                properties.dynamicShape()
         );
 
         registerDefaultState(
@@ -79,9 +81,7 @@ public final class TreeWoodSegmentBlock extends Block {
             BlockPos pos,
             CollisionContext context
     ) {
-        return shapeFor(
-                state
-        );
+        return connectedShape(state, level, pos);
     }
 
     @Override
@@ -91,9 +91,51 @@ public final class TreeWoodSegmentBlock extends Block {
             BlockPos pos,
             CollisionContext context
     ) {
-        return shapeFor(
-                state
-        );
+        return connectedShape(state, level, pos);
+    }
+
+    /** Only six adjacent cells are inspected, never requesting an unloaded chunk. */
+    public static int branchConnections(BlockState state, BlockGetter level, BlockPos pos) {
+        if (state.getValue(ROOT)) return 0;
+        int mask = 0;
+        for (Direction direction : Direction.values()) {
+            if (direction.getAxis() == state.getValue(AXIS)) continue;
+            BlockPos neighbor = pos.relative(direction);
+            if (level instanceof LevelReader reader && !reader.hasChunkAt(neighbor)) continue;
+            BlockState other = level.getBlockState(neighbor);
+            if (other.is(BlockTags.LOGS) || (other.getBlock() instanceof TreeWoodSegmentBlock && !other.getValue(ROOT)))
+                mask |= 1 << direction.ordinal();
+        }
+        return mask;
+    }
+
+    public static double branchWidth(int thickness) {
+        return switch (thickness) { case 1 -> 4; case 2 -> 7; case 3 -> 10; default -> 14; };
+    }
+
+    private static final java.util.Map<Integer, VoxelShape> JOINT_SHAPES = new java.util.concurrent.ConcurrentHashMap<>();
+    private static VoxelShape connectedShape(BlockState state, BlockGetter level, BlockPos pos) {
+        int mask = branchConnections(state, level, pos);
+        if (mask == 0) return shapeFor(state);
+        int key = index(state.getValue(AXIS), state.getValue(THICKNESS), false) * 64 + mask;
+        return JOINT_SHAPES.computeIfAbsent(key, ignored -> {
+            VoxelShape result = shapeFor(state);
+            double min = 8 - branchWidth(state.getValue(THICKNESS)) / 2, max = 16 - min;
+            for (Direction direction : Direction.values()) {
+                if ((mask & (1 << direction.ordinal())) == 0) continue;
+                double x0=min,y0=min,z0=min,x1=max,y1=max,z1=max;
+                switch (direction) {
+                    case DOWN -> { y0=0; y1=min; }
+                    case UP -> { y0=max; y1=16; }
+                    case NORTH -> { z0=0; z1=min; }
+                    case SOUTH -> { z0=max; z1=16; }
+                    case WEST -> { x0=0; x1=min; }
+                    case EAST -> { x0=max; x1=16; }
+                }
+                result = Shapes.or(result, box(x0,y0,z0,x1,y1,z1));
+            }
+            return result.optimize();
+        });
     }
 
     private static VoxelShape shapeFor(
@@ -117,12 +159,7 @@ public final class TreeWoodSegmentBlock extends Block {
     }
 
     private static VoxelShape createShape(Direction.Axis axis, int thickness, boolean root) {
-        double width = switch (thickness) {
-            case 1 -> 4.0;
-            case 2 -> 7.0;
-            case 3 -> 10.0;
-            default -> 14.0;
-        };
+        double width = branchWidth(thickness);
         double min = 8.0 - width * .5, max = 8.0 + width * .5;
 
         if (root

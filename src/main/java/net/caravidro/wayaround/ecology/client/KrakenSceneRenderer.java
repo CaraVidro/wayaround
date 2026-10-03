@@ -123,7 +123,7 @@ public final class KrakenSceneRenderer {
     private static void renderCreature(RenderLevelStageEvent e) {
         Vec3 camera=e.getCamera().getPosition();
         if(scene==null || !visibleScene(camera) || (scene.kind()>=3 && scene.kind()!=5)) return;
-        Matrix4f matrix=e.getPoseStack().last().pose();
+        Matrix4f matrix=e.getModelViewMatrix();
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
         float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
         int count=0;
@@ -196,7 +196,7 @@ public final class KrakenSceneRenderer {
     }
     private static void renderWaterEffects(RenderLevelStageEvent e) {
         Vec3 camera=e.getCamera().getPosition();
-        Matrix4f matrix=e.getPoseStack().last().pose();
+        Matrix4f matrix=e.getModelViewMatrix();
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
         float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
         int count=0;
@@ -250,10 +250,18 @@ public final class KrakenSceneRenderer {
         return 24;
     }
     private static void draw(BufferBuilder b,boolean opaque) {
+        // Chunk-layer stages have no PoseStack. Their explicit view matrix has
+        // already rotated our camera-relative vertices; the shader must not
+        // apply an inherited view transform a second time.
+        var modelView=RenderSystem.getModelViewStack();
+        modelView.pushMatrix();modelView.identity();RenderSystem.applyModelViewMatrix();
         RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();
         RenderSystem.depthMask(opaque);RenderSystem.disableCull();RenderSystem.setShader(GameRenderer::getPositionColorShader);
         try { BufferUploader.drawWithShader(b.buildOrThrow()); }
-        finally { RenderSystem.enableCull();RenderSystem.depthMask(true);RenderSystem.disableBlend(); }
+        finally {
+            RenderSystem.enableCull();RenderSystem.depthMask(true);RenderSystem.disableBlend();
+            modelView.popMatrix();RenderSystem.applyModelViewMatrix();
+        }
     }
     private static int tube(BufferBuilder b,Matrix4f m,Vec3 camera,List<Vec3> points,List<Double> radii,
                             int sides,double shade,boolean inner) {

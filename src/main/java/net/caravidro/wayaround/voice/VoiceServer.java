@@ -49,6 +49,7 @@ public final class VoiceServer {
 
         if (pcm == null
                 || pcm.length == 0
+                || (pcm.length & 1) != 0
                 || pcm.length > VoiceConstants.MAX_PACKET_BYTES) {
             return;
         }
@@ -162,7 +163,7 @@ public final class VoiceServer {
 
             PacketDistributor.sendToPlayer(
                     receiver,
-                    frame
+                    proximityFrame(frame, receiver.distanceToSqr(host))
             );
         }
     }
@@ -203,9 +204,14 @@ public final class VoiceServer {
 
             PacketDistributor.sendToPlayer(
                     receiver,
-                    frame
+                    proximityFrame(frame, receiver.distanceToSqr(anchor))
             );
         }
+    }
+
+    private static VoiceFrameS2CPayload proximityFrame(VoiceFrameS2CPayload original, double distanceSquared) {
+        double gain = VoiceDistanceMath.gain(distanceSquared);
+        return gain == 1 ? original : new VoiceFrameS2CPayload(VoiceDistanceMath.attenuate(original.pcm(), gain));
     }
 
     private static boolean containsSpeech(

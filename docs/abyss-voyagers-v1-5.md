@@ -7,6 +7,7 @@ Implemented:
 - Inventory key while aboard or Shift-right-click opens a persisted 27-slot cargo inventory. Shift-right-click with a stick packs an empty, unoccupied submarine; loaded cargo or pressure strain cannot be erased by packing.
 - Motor/ambient hum, pressure warnings, bottom proximity beeps, collision sound, sediment and camera impulse. Side windows and a surface-waterline camera fix; upward abyss visibility is limited by black fog.
 - The submarine's front viewport uses the same clear cutout glass and cabin lighting as its side ports. Kraken skin/eyes render before translucent water and vehicle panes, with depth testing retained for terrain and hull occlusion; foam and surface shadows retain their later pass. The capsule has no decorative glass floodlight cone; its articulated supports, lamps and real dynamic lighting remain.
+- Kraken vertices subtract the interpolated camera position once and use the render event's explicit view matrix. The shader model-view is temporarily identity, then restored, avoiding camera-following geometry and duplicate camera rotation in either mesh pass.
 - Wreck chests settle onto the rebuilt floor preserving loot tables and inventory. Legacy repair only moves unsupported unopened vanilla shipwreck/ruin containers, not player storage.
 - Sparse seabed skulls and settled physical fish carcasses in newly generated trenches.
 - Giant jellyfish growth retains its morph's minimum scale; no client scale correction loop.
@@ -17,5 +18,7 @@ Implemented:
 Validation: pressure duration/recovery contracts; dedicated-server cargo/pressure persistence, dry capsule gravity, container conservation, corpse ownership/skeleton persistence; existing nature and Kraken animation tests; client startup/resources. Gameplay visuals, sound mix, waterline and geography require manual in-world inspection.
 
 Viewport visual checks: compare the submarine's front and side windows from inside and outside, both submerged and at the waterline; view `/kraken eyes` while diving and a head/tentacle event at the surface; confirm hull/terrain still occlude the creature. In the capsule, confirm the twin supports and lamps remain, with illuminated blocks ahead and no blue glass beam. Repeat with Fast, Fancy and Fabulous graphics; these GPU composition checks are not covered by the startup smoke test.
+
+During Kraken checks, turn the camera through a full circle and move sideways while the event runs. Eyes, tentacles, foam and shadows must keep their world anchors and animate there rather than rotate with the view.
 
 Additional work: complete entry notice followed by optional voice settings, gradual regional ambient/fog transitions, accessory sockets outside vanilla crafting/storage, mushroom texture references repaired, water contact along 16 tentacle sections, and command-only remote deep-biome search without generating chunks. Survival recipe coverage is documented in survival-recipe-audit-v1-5.md.
