@@ -170,6 +170,10 @@ public final class MarineInteractionModule {
         var data =
                 gull.getPersistentData();
 
+        // Held food and the theft flight own this gull's movement temporarily.
+        if (!gull.getMainHandItem().isEmpty()
+                || now < data.getLong("WayAroundBirdFoodFlightUntil")) return;
+
         int phase =
                 data.getInt(
                         GULL_PHASE

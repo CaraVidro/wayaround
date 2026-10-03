@@ -98,7 +98,7 @@ public final class WoodlandBirdEntity extends PathfinderMob implements FlyingAni
             if(distance<.5){
                 getNavigation().stop();setDeltaMovement(getDeltaMovement().scale(.5));
                 BlockPos below=BlockPos.containing(target).below();
-                if(species()!=0&&level().getBlockState(below).isCollisionShapeFullBlock(level(),below)){
+                if(species()!=0&&level().noCollision(WoodlandBirdEntity.this)&&level().getBlockState(below).isCollisionShapeFullBlock(level(),below)){
                     entityData.set(PERCHED,true);setNoGravity(false);perchUntil=tickCount+60+random.nextInt(100);nextMove=perchUntil;
                 }
                 return;

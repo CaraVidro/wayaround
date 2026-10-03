@@ -117,6 +117,11 @@ public final class SeagullRenderer
                 0.055F, 0.24F, 0.055F,
                 0, 0, 0, pose, buffers, light);
 
+        if(!gull.getMainHandItem().isEmpty()){
+            pose.pushPose();pose.translate(-.65,.03,0);pose.scale(.30f,.30f,.30f);
+            net.minecraft.client.Minecraft.getInstance().getItemRenderer().renderStatic(gull.getMainHandItem(),net.minecraft.world.item.ItemDisplayContext.GROUND,light,OverlayTexture.NO_OVERLAY,pose,buffers,gull.level(),gull.getId());
+            pose.popPose();
+        }
         pose.popPose();
         // Do not call super.render(...): Agua World keeps fauna nametag-free.
     }
@@ -173,11 +178,6 @@ public final class SeagullRenderer
                 OverlayTexture.NO_OVERLAY
         );
 
-        if(!gull.getMainHandItem().isEmpty()){
-            pose.pushPose();pose.translate(-.65,.03,0);pose.scale(.30f,.30f,.30f);
-            net.minecraft.client.Minecraft.getInstance().getItemRenderer().renderStatic(gull.getMainHandItem(),net.minecraft.world.item.ItemDisplayContext.GROUND,light,OverlayTexture.NO_OVERLAY,pose,buffers,gull.level(),gull.getId());
-            pose.popPose();
-        }
         pose.popPose();
     }
 }
