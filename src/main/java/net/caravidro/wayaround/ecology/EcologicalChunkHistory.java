@@ -31,16 +31,18 @@ public final class EcologicalChunkHistory {
     @SubscribeEvent public static void tick(ServerTickEvent.Post e){
         if(e.getServer().getTickCount()%20!=0)return;
         if(!WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)&&!WorldFeatureRuntime.serverEnabled(WorldFeature.MINING_REGIONS))return;
-        for(var entry:PENDING.entrySet()){
+        for(var entry:List.copyOf(PENDING.entrySet())){
             var l=entry.getKey();var q=entry.getValue();int checks=16,work=2;
-            var it=q.iterator();
-            while(it.hasNext()&&checks-->0&&work>0){
-                long key=it.next();var p=new ChunkPos(key);
-                if(!l.hasChunk(p.x,p.z)){it.remove();continue;}
+            // Work can synchronously produce chunk-load callbacks. Never keep
+            // a live iterator across repair/seeding; rotate at most 16 entries.
+            checks=Math.min(checks,q.size());
+            while(!q.isEmpty()&&checks-->0&&work>0){
+                long key=q.iterator().next();q.remove(key);var p=new ChunkPos(key);
+                if(!l.hasChunk(p.x,p.z))continue;
                 boolean ready=true;
                 for(int x=p.x-1;x<=p.x+1;x++)for(int z=p.z-1;z<=p.z+1;z++)if(!l.hasChunk(x,z))ready=false;
-                if(!ready)continue;
-                it.remove();work--;
+                if(!ready){q.add(key);continue;}
+                work--;
                 if(WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)){
                     DeepOceanSurfaceRepair.repair(l,p);
                     OceanFloorRemains.repair(l,p);

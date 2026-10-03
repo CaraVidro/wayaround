@@ -48,7 +48,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '17 required tests passed' in text or 'All 17 required tests passed' in text,text[-16000:]
+          assert '19 required tests passed' in text or 'All 19 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application

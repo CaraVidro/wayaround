@@ -66,4 +66,31 @@ public final class AbyssVoyagerGameTests {
         h.assertTrue(OceanFloorRemains.settle(l,from,to.getY()-1),"Unopened wreck loot settles");
         h.assertTrue(((ChestBlockEntity)l.getBlockEntity(to)).saveWithFullMetadata(l.registryAccess()).getString("LootTable").equals("minecraft:chests/shipwreck_supply"),"Loot remains unopened, not rerolled or duplicated");h.succeed();
     }
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void pressureImplodesCraftAndKillsRider(GameTestHelper h) {
+        var l=h.getLevel();var sub=EcologyContent.DEEP_SEA_SUBMARINE.get().create(l);
+        BlockPos p=h.absolutePos(new BlockPos(4,2,4));
+        l.setBlock(p,Blocks.WATER.defaultBlockState(),3);l.setBlock(p.above(),Blocks.WATER.defaultBlockState(),3);
+        sub.setPos(p.getX()+.5,p.getY(),p.getZ()+.5);sub.setPressureExposure(OceanPressure.FAILURE-1);
+        var rider=h.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);rider.setHealth(20);rider.startRiding(sub,true);
+        sub.tick();
+        h.assertTrue(sub.isRemoved(),"Sustained abyss pressure implodes the craft");
+        h.assertTrue(!rider.isAlive(),"Implosion kills the mounted occupant through normal damage handling");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void largeOceanNoiseReachesClimateAndTerrain(GameTestHelper h) {
+        var router=h.getLevel().getChunkSource().randomState().router();
+        int[] climate={0},terrain={0};
+        router.continents().mapAll(new net.minecraft.world.level.levelgen.DensityFunction.Visitor() {
+            public net.minecraft.world.level.levelgen.DensityFunction apply(net.minecraft.world.level.levelgen.DensityFunction f) {
+                if(f instanceof net.caravidro.wayaround.worldgen.terrain.OceanContinentalness)climate[0]++;return f;
+            }
+        });
+        router.finalDensity().mapAll(new net.minecraft.world.level.levelgen.DensityFunction.Visitor() {
+            public net.minecraft.world.level.levelgen.DensityFunction apply(net.minecraft.world.level.levelgen.DensityFunction f) {
+                if(f instanceof net.caravidro.wayaround.worldgen.terrain.OceanContinentalness)terrain[0]++;return f;
+            }
+        });
+        h.assertTrue(climate[0]>0 && terrain[0]>0,"Expanded continental noise drives both biome climate and final terrain density");h.succeed();
+    }
 }
