@@ -14,7 +14,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "24";
+            "25";
 
     private WayAroundNetwork() {
     }
@@ -23,8 +23,23 @@ public final class WayAroundNetwork {
             RegisterPayloadHandlersEvent event
     ) {
 
-        PayloadRegistrar registrar =
+        /*
+         * Keep one tiny channel mandatory so old/new WayAround jars still fail
+         * fast on a real protocol mismatch. Feature channels are optional at
+         * negotiation time: a missing feature registration must not strand a
+         * remote client in CONFIGURATION until Minecraft's timeout expires.
+         */
+        PayloadRegistrar requiredRegistrar =
                 event.registrar(PROTOCOL_VERSION);
+
+        requiredRegistrar.playBidirectional(
+                WayAroundProtocolPayload.TYPE,
+                WayAroundProtocolPayload.STREAM_CODEC,
+                WayAroundProtocolPayload::handle
+        );
+
+        PayloadRegistrar registrar =
+                requiredRegistrar.optional();
 
         registrar.playToServer(SpectrumInputPayload.TYPE, SpectrumInputPayload.STREAM_CODEC, SpectrumInputPayload::handle);
         registrar.playToServer(
