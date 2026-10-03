@@ -31,12 +31,18 @@ jobs:
         run: |
           mkdir -p run
           printf 'eula=true\n' > run/eula.txt
+          printf 'level-seed=42\n' > run/server.properties
 
           ./gradlew runServer --no-daemon > dedicated-server.log 2>&1 &
           server_pid=$!
 
           ready=0
-          for _ in $(seq 1 90); do
+          for attempt in $(seq 1 90); do
+            if [ "$attempt" -eq 60 ]; then
+              for java_pid in $(jcmd -l | awk '/net.neoforged.devlaunch.Main/ {print $1}'); do
+                jcmd "$java_pid" Thread.print -l > dedicated-server-threads.txt || true
+              done
+            fi
             if grep -Eq 'Done \\([0-9.]+s\\)!|For help, type "help"' dedicated-server.log; then
               ready=1
               break
@@ -50,6 +56,12 @@ jobs:
           done
 
           cat dedicated-server.log
+          if [ "$ready" -ne 1 ]; then
+            for java_pid in $(jcmd -l | awk '/net.neoforged.devlaunch.Main/ {print $1}'); do
+              jcmd "$java_pid" Thread.print -l >> dedicated-server-threads.txt || true
+            done
+            cat dedicated-server-threads.txt 2>/dev/null || true
+          fi
 
           if kill -0 "$server_pid" 2>/dev/null; then
             kill "$server_pid" || true
@@ -63,6 +75,16 @@ jobs:
           fi
 
           echo 'Dedicated server reached the ready state without loading client-only classes.'
+
+      - name: Upload server diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dedicated-server-diagnostics
+          path: |
+            dedicated-server.log
+            dedicated-server-threads.txt
+            run/crash-reports/**
 
       - name: Upload test build
         if: success()
