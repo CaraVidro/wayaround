@@ -32,6 +32,10 @@ public final class EcologyContent {
     public static final DeferredRegister.Blocks BLOCKS =
             DeferredRegister.createBlocks(WayAround.MODID);
 
+    public static final DeferredBlock<AbyssalSkeletonSkullBlock> ABYSSAL_SKELETON_SKULL =
+            BLOCKS.register("abyssal_skeleton_skull", () -> new AbyssalSkeletonSkullBlock(
+                    BlockBehaviour.Properties.ofFullCopy(net.minecraft.world.level.block.Blocks.SKELETON_SKULL)));
+
     public static final DeferredRegister.Items ITEMS =
             DeferredRegister.createItems(WayAround.MODID);
 
@@ -1594,7 +1598,12 @@ public final class EcologyContent {
 
     private EcologyContent() {}
 
+    private static void extendSkullBlocks(net.neoforged.neoforge.event.BlockEntityTypeAddBlocksEvent event) {
+        event.modify(net.minecraft.world.level.block.entity.BlockEntityType.SKULL, ABYSSAL_SKELETON_SKULL.get());
+    }
+
     public static void register(IEventBus bus) {
+        bus.addListener(EcologyContent::extendSkullBlocks);
         RegionalFishSpecies.bootstrap();
         ENTITIES.register(bus);
         BLOCKS.register(bus);

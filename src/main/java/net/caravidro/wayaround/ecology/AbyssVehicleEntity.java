@@ -136,8 +136,9 @@ public abstract class AbyssVehicleEntity extends Entity {
                     Lease lease=leases.get(pos);
                     if(lease==null) {
                         if(!state.is(Blocks.WATER) && !state.isAir()) continue;
+                        if(!OceanLightSafety.canPlace(level(),pos)) continue;
                         lease=new Lease(state,new HashSet<>());leases.put(pos,lease);
-                        level().setBlock(pos,Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL,14).setValue(LightBlock.WATERLOGGED,state.is(Blocks.WATER)),3);
+                        level().setBlock(pos,Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL,14).setValue(LightBlock.WATERLOGGED,state.is(Blocks.WATER)),OceanLightSafety.UPDATE_FLAGS);
                     }
                     lease.owners().add(getUUID());fresh.add(pos);lampNodes.put(pos,Integer.MAX_VALUE);
                 }
@@ -151,7 +152,7 @@ public abstract class AbyssVehicleEntity extends Entity {
         Lease lease=leases.get(pos);if(lease==null)return;
         lease.owners().remove(getUUID());
         if(lease.owners().isEmpty()) {
-            if(level().isLoaded(pos) && level().getBlockState(pos).is(Blocks.LIGHT)) level().setBlock(pos,lease.original(),3);
+            if(level().isLoaded(pos) && level().getBlockState(pos).is(Blocks.LIGHT)) level().setBlock(pos,lease.original(),OceanLightSafety.UPDATE_FLAGS);
             leases.remove(pos);
         }
     }

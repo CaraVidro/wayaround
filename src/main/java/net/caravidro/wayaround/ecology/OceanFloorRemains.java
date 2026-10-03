@@ -30,12 +30,26 @@ public final class OceanFloorRemains {
         }
         return true;
     }
+    public static boolean waterlogLegacySkull(LevelAccessor level, BlockPos pos) {
+        BlockState state=level.getBlockState(pos);
+        if(!state.is(Blocks.SKELETON_SKULL) || !level.getFluidState(pos.above()).is(net.minecraft.tags.FluidTags.WATER))return false;
+        BlockEntity old=level.getBlockEntity(pos);
+        CompoundTag saved=old==null?null:old.saveWithFullMetadata(level.registryAccess());
+        BlockState replacement=EcologyContent.ABYSSAL_SKELETON_SKULL.get().defaultBlockState().setValue(SkullBlock.ROTATION,state.getValue(SkullBlock.ROTATION));
+        if(!level.setBlock(pos,replacement,OceanLightSafety.UPDATE_FLAGS))return false;
+        BlockEntity moved=level.getBlockEntity(pos);
+        if(moved!=null && saved!=null)moved.loadWithComponents(saved,level.registryAccess());
+        return true;
+    }
     public static void repair(ServerLevel level, ChunkPos pos) {
         if(!level.hasChunk(pos.x,pos.z))return;
         int checked=0;
         for(BlockEntity entity:java.util.List.copyOf(level.getChunk(pos.x,pos.z).getBlockEntities().values())) {
             if(checked++>=32)break;
             BlockPos p=entity.getBlockPos();
+            if(entity instanceof SkullBlockEntity && DeepOceanBiomes.contains(level,p)) {
+                waterlogLegacySkull(level,p);continue;
+            }
             if(!(entity instanceof RandomizableContainerBlockEntity) || !DeepOceanBiomes.contains(level,p)
                     || !level.getFluidState(p.below()).is(net.minecraft.tags.FluidTags.WATER))continue;
             CompoundTag tag=entity.saveWithFullMetadata(level.registryAccess());

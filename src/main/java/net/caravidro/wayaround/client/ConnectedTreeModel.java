@@ -1,7 +1,7 @@
 package net.caravidro.wayaround.client;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 import net.caravidro.wayaround.ecology.TreeWoodSegmentBlock;
@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 /** Junction arms are baked into chunk meshes; no per-frame block/entity rendering. */
 public final class ConnectedTreeModel extends BakedModelWrapper<BakedModel> {
     private record Key(BakedModel model, BlockState state, int mask) {}
-    private static final Map<Key, ConnectedTreeModel> CACHE = new LinkedHashMap<>(64, .75F, true);
+    private static final Map<Key, ConnectedTreeModel> CACHE = new ConcurrentHashMap<>();
     private final List<BakedQuad> quads;
 
     private ConnectedTreeModel(BakedModel original, BlockState state, int mask) {
@@ -53,18 +53,17 @@ public final class ConnectedTreeModel extends BakedModelWrapper<BakedModel> {
 
     public static BakedModel connect(BakedModel original, BlockState state, int mask) {
         if (mask == 0) return original;
-        synchronized (CACHE) {
-            Key key = new Key(original, state, mask);
-            ConnectedTreeModel result = CACHE.get(key);
-            if (result == null) {
-                result = new ConnectedTreeModel(original, state, mask);
-                if (CACHE.size() >= 512) CACHE.remove(CACHE.keySet().iterator().next());
-                CACHE.put(key, result);
-            }
-            return result;
-        }
+        Key key = new Key(original, state, mask);
+        ConnectedTreeModel cached = CACHE.get(key);
+        if (cached != null) return cached;
+        // Model lookup and quad baking must never hold a shared cache lock:
+        // chunk workers and the render thread can otherwise wait on each other.
+        ConnectedTreeModel built = new ConnectedTreeModel(original, state, mask);
+        if (CACHE.size() >= 2048) return built;
+        ConnectedTreeModel raced = CACHE.putIfAbsent(key, built);
+        return raced == null ? built : raced;
     }
-    public static void clearCache() { synchronized (CACHE) { CACHE.clear(); } }
+    public static void clearCache() { CACHE.clear(); }
 
     @Override public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource random) {
         return side == null ? quads : originalModel.getQuads(state, side, random);

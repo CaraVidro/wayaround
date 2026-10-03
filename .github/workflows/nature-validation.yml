@@ -11,6 +11,11 @@ on:
       - 'src/main/java/net/caravidro/wayaround/ecology/Ecological*'
       - 'src/main/java/net/caravidro/wayaround/ecology/SunfishEntity.java'
       - 'src/main/java/net/caravidro/wayaround/ecology/DeepOcean*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/Ocean*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/Abyss*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/EcologyContent.java'
+      - 'src/main/java/net/caravidro/wayaround/worldgen/feature/DeepOceanTrenchFeature.java'
+      - 'src/main/resources/data/wayaround/neoforge/biome_modifier/deepen_deep_oceans.json'
       - 'src/main/java/net/caravidro/wayaround/ecology/SeagullEntity.java'
       - 'src/main/java/net/caravidro/wayaround/industrial/mining/**'
       - 'src/main/java/net/caravidro/wayaround/mixin/PlayerStepSoundMixin.java'
@@ -53,7 +58,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '21 required tests passed' in text or 'All 21 required tests passed' in text,text[-16000:]
+          assert '24 required tests passed' in text or 'All 24 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application
