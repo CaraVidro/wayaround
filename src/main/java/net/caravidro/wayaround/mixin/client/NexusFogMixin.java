@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * this pins the final shader fog too so sky/effect modifiers cannot wash the
  * cavern into blue/gray.
  */
-@Mixin(FogRenderer.class)
+@Mixin(value=FogRenderer.class,priority=900)
 public abstract class NexusFogMixin {
 
     @Inject(
@@ -31,6 +31,14 @@ public abstract class NexusFogMixin {
             float bossColorModifier,
             CallbackInfo ci
     ) {
+        if (net.caravidro.wayaround.daybreak.client.DaysBreakClient.active()
+                && camera.getFluidInCamera()==net.minecraft.world.level.material.FogType.NONE) {
+            boolean day=net.caravidro.wayaround.daybreak.client.DaysBreakClient.day();
+            float r=day?.86F:0F,g=day?.008F:0F,b=day?.004F:0F;
+            RenderSystem.setShaderFogColor(r,g,b,1);
+            RenderSystem.clearColor(r,g,b,0);
+            return;
+        }
         if (!level.dimension()
                 .equals(
                         NexusPortalManager.NEXUS

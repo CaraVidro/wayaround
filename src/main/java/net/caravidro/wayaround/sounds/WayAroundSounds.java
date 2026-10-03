@@ -45,6 +45,8 @@ public final class WayAroundSounds {
                     ResourceLocation.fromNamespaceAndPath(WayAround.MODID, "battle_judes"),
                     48.0F));
 
+    public static final DeferredHolder<SoundEvent,SoundEvent> THEN_DAYS_BREAK=SOUNDS.register("then_days_break",()->SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(WayAround.MODID,"then_days_break")));
+
     private WayAroundSounds() {
     }
 
