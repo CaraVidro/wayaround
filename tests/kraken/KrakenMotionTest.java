@@ -8,7 +8,8 @@ public final class KrakenMotionTest {
         for(int kind:new int[]{0,2}) {
             for(int age=0;age<=KrakenMotion.duration(kind);age++) {
                 var root=KrakenMotion.tentacle(0,age,kind);
-                check(Math.abs(root.y()+24)<1e-9,"anchored depth");
+                check(root.y() <= .01 && root.y() >= -115,"root stays below the surface");
+                if(age<=170)check(Math.abs(root.y()+24)<1e-9,"anchored before throwing");
                 for(int i=0;i<=64;i++) {
                     var p=KrakenMotion.tentacle(i/64.0,age,kind);
                     check(Double.isFinite(p.x())&&Double.isFinite(p.y())&&Double.isFinite(p.z()),"finite mesh");

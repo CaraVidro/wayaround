@@ -173,6 +173,11 @@ public final class SeagullRenderer
                 OverlayTexture.NO_OVERLAY
         );
 
+        if(!gull.getMainHandItem().isEmpty()){
+            pose.pushPose();pose.translate(-.65,.03,0);pose.scale(.30f,.30f,.30f);
+            net.minecraft.client.Minecraft.getInstance().getItemRenderer().renderStatic(gull.getMainHandItem(),net.minecraft.world.item.ItemDisplayContext.GROUND,light,OverlayTexture.NO_OVERLAY,pose,buffers,gull.level(),gull.getId());
+            pose.popPose();
+        }
         pose.popPose();
     }
 }

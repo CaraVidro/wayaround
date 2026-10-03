@@ -21,6 +21,15 @@ public final class EcologyWorldData extends SavedData {
     private final Set<Long> seededChunks =
             new HashSet<>();
 
+    private final Set<Long> repairedSurfaces = new HashSet<>();
+
+    public boolean isSurfaceRepaired(int x, int z) { return repairedSurfaces.contains(ChunkPos.asLong(x,z)); }
+
+    public boolean markSurfaceRepaired(int x, int z) {
+        if (repairedSurfaces.size() >= MAX_TRACKED_CHUNKS || !repairedSurfaces.add(ChunkPos.asLong(x,z))) return false;
+        setDirty(); return true;
+    }
+
     public static EcologyWorldData get(ServerLevel level) {
         return level.getDataStorage()
                 .computeIfAbsent(
@@ -91,6 +100,7 @@ public final class EcologyWorldData extends SavedData {
                 values
         );
 
+        tag.putLongArray("AbyssSurfaceV2", repairedSurfaces.stream().mapToLong(Long::longValue).toArray());
         return tag;
     }
 
@@ -117,6 +127,10 @@ public final class EcologyWorldData extends SavedData {
             );
         }
 
+        for (long value : tag.getLongArray("AbyssSurfaceV2")) {
+            if (data.repairedSurfaces.size() >= MAX_TRACKED_CHUNKS) break;
+            data.repairedSurfaces.add(value);
+        }
         return data;
     }
 }

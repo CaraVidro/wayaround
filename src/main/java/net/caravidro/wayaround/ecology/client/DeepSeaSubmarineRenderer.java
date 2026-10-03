@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Compact one-person exploration submarine: pressure hull, panoramic bow
- * viewport, ballast keel, rear propeller and twin floodlights.
+ * viewport, hollow cabin, ballast keel and rear propeller.
  */
 public final class DeepSeaSubmarineRenderer
         extends EntityRenderer<DeepSeaSubmarineEntity> {
@@ -89,40 +89,13 @@ public final class DeepSeaSubmarineRenderer
                 )
         );
 
+        // Hollow panels have inside-facing surfaces; the pilot sees a real cabin.
+        renderHull(pose, buffers, Math.max(light & 0xFFFF, LightTexture.pack(9, 0)) | (light & 0xFFFF0000));
+        renderViewport(pose, buffers);
         if (!firstPersonPilot) {
-            renderHull(
-                    pose,
-                    buffers,
-                    light
-            );
-
-            renderViewport(
-                    pose,
-                    buffers
-            );
-
-            renderKeel(
-                    pose,
-                    buffers,
-                    light
-            );
-
-            renderPropeller(
-                    submarine,
-                    partialTick,
-                    pose,
-                    buffers,
-                    light
-            );
+            renderKeel(pose, buffers, light);
+            renderPropeller(submarine, partialTick, pose, buffers, light);
         }
-
-        renderFloodlights(
-                pose,
-                buffers,
-                firstPersonPilot
-                        ? LightTexture.FULL_BRIGHT
-                        : light
-        );
 
         pose.popPose();
     }
@@ -144,19 +117,14 @@ public final class DeepSeaSubmarineRenderer
                 Blocks.POLISHED_DEEPSLATE
                         .defaultBlockState();
 
-        // Long pressure vessel.
-        cuboid(
-                pose,
-                buffers,
-                light,
-                iron,
-                0.0,
-                0.0,
-                -0.10,
-                1.62,
-                0.86,
-                2.28
-        );
+        // Walls surround an empty cabin instead of putting the camera in solid iron.
+        cuboid(pose, buffers, light, iron, -.76, 0, -.10, .12, .86, 2.28);
+        cuboid(pose, buffers, light, iron, .76, 0, -.10, .12, .86, 2.28);
+        cuboid(pose, buffers, light, dark, 0, -.40, -.10, 1.40, .10, 2.28);
+        cuboid(pose, buffers, light, iron, 0, .40, -.10, 1.40, .10, 2.28);
+        cuboid(pose, buffers, light, iron, 0, 0, -1.18, 1.40, .70, .12);
+        // A low dashboard does not obstruct the forward window.
+        cuboid(pose, buffers, light, dark, 0, -.23, .84, 1.20, .16, .30);
 
         // Rounded-ish shoulder strips.
         cuboid(
@@ -403,76 +371,6 @@ public final class DeepSeaSubmarineRenderer
         );
 
         pose.popPose();
-    }
-
-    private void renderFloodlights(
-            PoseStack pose,
-            MultiBufferSource buffers,
-            int light
-    ) {
-        BlockState housing =
-                Blocks.COPPER_BLOCK
-                        .defaultBlockState();
-
-        BlockState lamp =
-                Blocks.SEA_LANTERN
-                        .defaultBlockState();
-
-        for (double x :
-                new double[]{-0.48, 0.48}) {
-
-            cuboid(
-                    pose,
-                    buffers,
-                    light,
-                    housing,
-                    x,
-                    0.34,
-                    1.08,
-                    0.28,
-                    0.24,
-                    0.30
-            );
-
-            cuboid(
-                    pose,
-                    buffers,
-                    LightTexture.FULL_BRIGHT,
-                    lamp,
-                    x,
-                    0.34,
-                    1.25,
-                    0.20,
-                    0.17,
-                    0.10
-            );
-
-            /*
-             * Visible beam guide. Actual abyss visibility is handled by the
-             * lightmap/fog mixins so this is no longer only decorative.
-             */
-            for (int step = 0;
-                 step < 5;
-                 step++) {
-
-                cuboid(
-                        pose,
-                        buffers,
-                        LightTexture.FULL_BRIGHT,
-                        Blocks.LIGHT_BLUE_STAINED_GLASS
-                                .defaultBlockState(),
-                        x,
-                        0.34,
-                        1.65
-                                + step * 0.72,
-                        0.12
-                                + step * 0.035,
-                        0.10
-                                + step * 0.025,
-                        0.68
-                );
-            }
-        }
     }
 
     private void cuboid(

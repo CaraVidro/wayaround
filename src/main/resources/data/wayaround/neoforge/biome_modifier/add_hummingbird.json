@@ -1,0 +1,15 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": [
+    "minecraft:flower_forest",
+    "minecraft:forest",
+    "minecraft:jungle",
+    "minecraft:sparse_jungle"
+  ],
+  "spawners": {
+    "type": "wayaround:hummingbird",
+    "weight": 8,
+    "minCount": 1,
+    "maxCount": 3
+  }
+}

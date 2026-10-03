@@ -27,7 +27,7 @@ public abstract class DeepOceanFogMixin {
             CallbackInfo ci
     ) {
         if (camera.getEntity() == null
-                || !camera.getEntity().isUnderWater()
+                || !DeepOceanClientVisibility.submerged(camera.getEntity(), level, camera.getPosition())
                 || !DeepOceanClientVisibility.isDeepOcean(level, camera.getBlockPosition())) {
             return;
         }
@@ -41,19 +41,10 @@ public abstract class DeepOceanFogMixin {
         float t = Mth.clamp((float) ((depth - 12.0) / 36.0), 0.0F, 1.0F);
         t = t * t * (3.0F - 2.0F * t);
 
-        float lamp =
-                DeepOceanClientVisibility.vehicleLampStrength(
-                        camera.getEntity()
-                );
-
-        /*
-         * Unlit abyss still reaches literal black. A vehicle floodlight raises
-         * only a tiny neutral floor, enough for the lightmap to reveal nearby
-         * geometry without turning the deep ocean blue again.
-         */
-        float r = Mth.lerp(t, 0.030F, 0.012F * lamp);
-        float g = Mth.lerp(t, 0.060F, 0.019F * lamp);
-        float b = Mth.lerp(t, 0.080F, 0.026F * lamp);
+        // A lamp lights real nearby geometry, never the water's ambient fog.
+        float r = Mth.lerp(t, 0.030F, 0.0F);
+        float g = Mth.lerp(t, 0.060F, 0.0F);
+        float b = Mth.lerp(t, 0.080F, 0.0F);
         RenderSystem.setShaderFogColor(r, g, b, 1.0F);
     }
 
@@ -67,8 +58,8 @@ public abstract class DeepOceanFogMixin {
             CallbackInfo ci
     ) {
         if (camera.getEntity() == null
-                || !camera.getEntity().isUnderWater()
                 || !(camera.getEntity().level() instanceof ClientLevel level)
+                || !DeepOceanClientVisibility.submerged(camera.getEntity(), level, camera.getPosition())
                 || !DeepOceanClientVisibility.isDeepOcean(level, camera.getBlockPosition())) {
             return;
         }
@@ -97,10 +88,7 @@ public abstract class DeepOceanFogMixin {
                         * black
                         * (3.0F - 2.0F * black);
 
-        if (black >= 0.995F
-                && DeepOceanClientVisibility.vehicleLampStrength(
-                camera.getEntity()
-        ) <= 0.0F) {
+        if (black >= 0.995F) {
             RenderSystem.setShaderFogColor(
                     0.0F,
                     0.0F,

@@ -22,11 +22,19 @@ public final class DeepOceanClientVisibility {
         }).orElse(false);
     }
 
+    public static boolean submerged(Entity entity, ClientLevel level, Vec3 eye) {
+        if (entity == null) return false;
+        boolean vehicle = entity.getVehicle() instanceof DeepSeaSubmarineEntity
+                || entity.getVehicle() instanceof DeepSeaCapsuleEntity;
+        return entity.isUnderWater() || (vehicle && eye.y < level.getSeaLevel()
+                && level.getFluidState(BlockPos.containing(eye)).is(net.minecraft.tags.FluidTags.WATER));
+    }
+
     public static boolean shouldRender(Entity target) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null
                 || minecraft.level == null
-                || !minecraft.player.isUnderWater()
+                || !submerged(minecraft.player, minecraft.level, minecraft.gameRenderer.getMainCamera().getPosition())
                 || !isDeepOcean(minecraft.level, minecraft.player.blockPosition())) {
             return true;
         }
