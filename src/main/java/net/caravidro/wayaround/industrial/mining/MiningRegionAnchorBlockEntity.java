@@ -19,6 +19,8 @@ public final class MiningRegionAnchorBlockEntity extends BlockEntity {
 
     private ComplexOreKind kind = ComplexOreKind.IRON;
     private boolean openPit;
+    private int geometryVersion=1;
+    private boolean roofRepairOnly;
     private int radius = 20;
     private int cursor;
     private Stage stage = Stage.STRUCTURE;
@@ -27,10 +29,14 @@ public final class MiningRegionAnchorBlockEntity extends BlockEntity {
         super(MiningContent.REGION_ANCHOR_ENTITY.get(), pos, state);
     }
 
+    @Override public void onLoad(){super.onLoad();DeferredMiningManager.resume(this);}
+    public boolean roofRepairOnly(){return roofRepairOnly;}
+
     public void configure(ComplexOreKind kind, boolean openPit, int radius) {
         this.kind = kind == null ? ComplexOreKind.IRON : kind;
         this.openPit = openPit;
         this.radius = Mth.clamp(radius, 12, 36);
+        this.geometryVersion=1;this.roofRepairOnly=false;
         this.cursor = 0;
         this.stage = Stage.STRUCTURE;
         sync();
@@ -71,6 +77,8 @@ public final class MiningRegionAnchorBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        tag.putInt("GeometryVersion",geometryVersion);
+        tag.putBoolean("RoofRepairOnly",roofRepairOnly);
         tag.putInt("Kind", kind.ordinal());
         tag.putBoolean("OpenPit", openPit);
         tag.putInt("Radius", radius);
@@ -88,6 +96,10 @@ public final class MiningRegionAnchorBlockEntity extends BlockEntity {
         radius = Mth.clamp(tag.getInt("Radius"), 12, 36);
         cursor = Math.max(0, tag.getInt("Cursor"));
         stage = stages[Math.floorMod(tag.getInt("Stage"), stages.length)];
+        geometryVersion=tag.getInt("GeometryVersion");roofRepairOnly=tag.getBoolean("RoofRepairOnly");
+        if(openPit&&geometryVersion<1){
+            roofRepairOnly=stage==Stage.COMPLETE;stage=Stage.STRUCTURE;cursor=0;geometryVersion=1;
+        }
     }
 
     @Override

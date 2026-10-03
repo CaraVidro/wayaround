@@ -6,6 +6,9 @@ on:
       - 'src/main/java/net/caravidro/wayaround/voice/VoiceServer.java'
       - 'src/main/java/net/caravidro/wayaround/particle/WindLeafParticle.java'
       - 'src/main/resources/assets/wayaround/**/apple_*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/Ecological*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/SunfishEntity.java'
+      - 'src/main/java/net/caravidro/wayaround/industrial/mining/**'
       - 'tests/nature/**'
       - '.github/workflows/nature-validation.yml'
 jobs:
@@ -24,8 +27,9 @@ jobs:
       - name: Fruit clock and voice transformation contracts
         run: |
           mkdir -p /tmp/nature-classes
-          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/nature/NatureMath.java tests/nature/NatureMathTest.java
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/nature/NatureMath.java tests/nature/NatureMathTest.java src/main/java/net/caravidro/wayaround/ecology/EcologicalHistory.java tests/nature/EcologicalHistoryTest.java
           java -cp /tmp/nature-classes NatureMathTest
+          java -cp /tmp/nature-classes EcologicalHistoryTest
       - name: Orchard lifecycle and bird attributes on dedicated server
         shell: bash
         run: |
@@ -34,7 +38,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '2 required tests passed' in text or 'All 2 required tests passed' in text,text[-16000:]
+          assert '5 required tests passed' in text or 'All 5 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application
