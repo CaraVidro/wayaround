@@ -87,7 +87,11 @@ public abstract class AbyssVehicleEntity extends Entity {
                 if(!level().getBlockState(floor).getCollisionShape(level(),floor).isEmpty()) { if(tickCount-lastBeep>=100) beep(); break; }
             }
         }
-        updateLamp(water);
+        long lightingStarted=net.caravidro.wayaround.performance.PerformanceProfiler.begin(
+                net.caravidro.wayaround.performance.PerformanceProfiler.Section.SUBMARINE_LIGHTING);
+        try { updateLamp(water); }
+        finally { net.caravidro.wayaround.performance.PerformanceProfiler.end(
+                net.caravidro.wayaround.performance.PerformanceProfiler.Section.SUBMARINE_LIGHTING,lightingStarted); }
     }
     protected void dropCargo() {}
     private void beep() { lastBeep=tickCount; sound(SoundEvents.NOTE_BLOCK_PLING.value(),.55F,pressureExposure()>=OceanPressure.WARNING?.7F:1.4F); }

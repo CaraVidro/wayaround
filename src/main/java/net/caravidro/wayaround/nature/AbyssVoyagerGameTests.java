@@ -44,9 +44,13 @@ public final class AbyssVoyagerGameTests {
     public static void corpseSkinAndSkeletonReload(GameTestHelper h) {
         var l=h.getLevel();var corpse=EcologyContent.PLAYER_CORPSE.get().create(l);UUID owner=UUID.randomUUID();
         corpse.initialize(owner,"Test",List.of(new PlayerCorpseEntity.StoredStack(0,new ItemStack(Items.BREAD,7))));
+        var profile=new com.mojang.authlib.GameProfile(owner,"Test");
+        profile.getProperties().put("textures",new com.mojang.authlib.properties.Property("textures","saved-texture-property","saved-signature"));
+        corpse.copySkin(profile);
         var tag=corpse.saveWithoutId(new CompoundTag());tag.putBoolean("Skeleton",true);
         var reload=EcologyContent.PLAYER_CORPSE.get().create(l);reload.load(tag);
-        h.assertTrue(owner.equals(reload.owner()) && reload.isSkeleton() && reload.storedStackCount()==1,"Owner skin identity and skeletal body preserve inventory");h.succeed();
+        h.assertTrue(owner.equals(reload.owner()) && reload.isSkeleton() && reload.storedStackCount()==1,"Owner skin identity and skeletal body preserve inventory");
+        h.assertTrue(reload.skinTextures().equals("saved-texture-property") && reload.skinSignature().equals("saved-signature"),"Signed death-time skin survives save/reload");h.succeed();
     }
     @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
     public static void giantJellyfishGrowthRetainsMorph(GameTestHelper h) {
