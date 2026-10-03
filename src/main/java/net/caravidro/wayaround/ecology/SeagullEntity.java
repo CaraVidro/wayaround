@@ -79,10 +79,9 @@ public final class SeagullEntity
     protected PathNavigation createNavigation(
             Level level
     ) {
-        return new FlyingPathNavigation(
-                this,
-                level
-        );
+        FlyingPathNavigation nav=new FlyingPathNavigation(this,level);
+        nav.setCanFloat(true);nav.setMaxVisitedNodesMultiplier(3);
+        return nav;
     }
 
     @Override
