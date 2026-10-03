@@ -19,10 +19,10 @@ public final class DaysBreakClient {
     private static boolean enabled;
     private static long elapsed,received;
     private static Theme theme;
-    public static void receive(DaysBreakPayload packet){enabled=packet.active();elapsed=packet.elapsed();var level=Minecraft.getInstance().level;received=level==null?0:level.getGameTime();if(!enabled)stopMusic();}
+    public static void receive(DaysBreakPayload packet){enabled=packet.active();elapsed=packet.elapsed();var level=Minecraft.getInstance().level;received=level==null?-1:level.getGameTime();if(!enabled)stopMusic();}
     public static boolean active(){var level=Minecraft.getInstance().level;return enabled&&level!=null&&level.dimensionType().hasSkyLight()&&!level.dimensionType().hasFixedTime();}
     public static boolean day(){return active()&&DaysBreakMath.day(Minecraft.getInstance().level.getDayTime());}
-    public static float sunScale(){var level=Minecraft.getInstance().level;return DaysBreakMath.sunScale(elapsed+(level==null?0:Math.max(0,level.getGameTime()-received)));}
+    public static float sunScale(){var level=Minecraft.getInstance().level;if(level!=null&&received<0)received=level.getGameTime();return DaysBreakMath.sunScale(elapsed+(level==null?0:Math.max(0,level.getGameTime()-received)));}
     private static void stopMusic(){if(theme!=null){Minecraft.getInstance().getSoundManager().stop(theme);theme=null;}}
     @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut event){enabled=false;elapsed=0;stopMusic();}
     @SubscribeEvent public static void tick(ClientTickEvent.Post event){

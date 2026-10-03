@@ -29,7 +29,7 @@ public final class WoodlandBirdEntity extends PathfinderMob implements FlyingAni
     public int species(){return getType()==NatureContent.HUMMINGBIRD.get()?0:getType()==NatureContent.THRUSH.get()?1:getType()==NatureContent.PARROT.get()?2:3;}
     public boolean perched(){return entityData.get(PERCHED);}
     @Override protected void defineSynchedData(SynchedEntityData.Builder b){super.defineSynchedData(b);b.define(PERCHED,false);}
-    public static AttributeSupplier.Builder attributes(double hp,double speed){return Mob.createMobAttributes().add(Attributes.MAX_HEALTH,hp).add(Attributes.MOVEMENT_SPEED,.18).add(Attributes.FLYING_SPEED,speed).add(Attributes.FOLLOW_RANGE,24);}
+    public static AttributeSupplier.Builder attributes(double hp,double speed){return Mob.createMobAttributes().add(Attributes.MAX_HEALTH,hp).add(Attributes.MOVEMENT_SPEED,.18).add(Attributes.FLYING_SPEED,speed).add(Attributes.FOLLOW_RANGE,48);}
     @Override protected PathNavigation createNavigation(Level l){FlyingPathNavigation nav = new FlyingPathNavigation(this,l); nav.setCanFloat(true); nav.setMaxVisitedNodesMultiplier(3); nav.setCanPassDoors(false); nav.setCanOpenDoors(false); return nav;}
     @Override protected void registerGoals(){goalSelector.addGoal(0,new PanicGoal(this,1.4)); if(getType()==NatureContent.CROW.get())goalSelector.addGoal(1,new BirdFoodTheftGoal(this)); goalSelector.addGoal(2,new NectarGoal()); goalSelector.addGoal(4,new BirdFlightGoal());}
     @Override public boolean isFlying(){return !perched();}

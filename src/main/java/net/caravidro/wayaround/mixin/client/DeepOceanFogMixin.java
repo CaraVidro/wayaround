@@ -7,6 +7,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.FogRenderer;
 import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -17,6 +18,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(FogRenderer.class)
 public abstract class DeepOceanFogMixin {
+    @Shadow private static float fogRed;
+    @Shadow private static float fogGreen;
+    @Shadow private static float fogBlue;
     @Inject(method = "setupColor", at = @At("TAIL"))
     private static void wayaround$deepOceanColor(
             Camera camera,
@@ -45,6 +49,8 @@ public abstract class DeepOceanFogMixin {
         float r = Mth.lerp(t, 0.030F, 0.0F);
         float g = Mth.lerp(t, 0.060F, 0.0F);
         float b = Mth.lerp(t, 0.080F, 0.0F);
+        fogRed=r;fogGreen=g;fogBlue=b;
+        RenderSystem.clearColor(r,g,b,0);
         RenderSystem.setShaderFogColor(r, g, b, 1.0F);
     }
 
