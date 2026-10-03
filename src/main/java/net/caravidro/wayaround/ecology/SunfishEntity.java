@@ -136,9 +136,9 @@ public final class SunfishEntity extends AguaWorldFishEntity {
         long phase=EcologicalHistory.phase(server.getSeed(),getUUID().getMostSignificantBits(),now,8000);
         baskApproachTicks=0;
         if(phase>=1100){setBasking(false);baskTicks=0;baskCooldown=(int)(8000-phase);return;}
-        int y=server.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,getBlockX(),getBlockZ());
+        int y=server.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,getBlockX(),getBlockZ());
         BlockPos air=new BlockPos(getBlockX(),y,getBlockZ());
-        if(!server.getBlockState(air).isAir()||!server.getFluidState(air.below()).is(FluidTags.WATER)||!server.canSeeSky(air))return;
+        if(!server.getBlockState(air).isAir()||!server.getFluidState(air.below()).is(FluidTags.WATER))return;
         var old=position();setPos(getX(),y-.22,getZ());
         if(!server.noCollision(this)){setPos(old.x,old.y,old.z);return;}
         baskSurfaceY=y;baskTicks=(int)(1100-phase);baskCooldown=0;setBasking(true);getNavigation().stop();

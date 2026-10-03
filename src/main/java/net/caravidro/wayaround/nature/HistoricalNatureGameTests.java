@@ -36,7 +36,7 @@ public final class HistoricalNatureGameTests {
         long offset=net.caravidro.wayaround.ecology.EcologicalHistory.phase(l.getSeed(),fish.getUUID().getMostSignificantBits(),0,8000);
         long start=16000+8000-offset;
         fish.restoreHistoricalBasking(start);
-        h.assertTrue(fish.isBasking()&&fish.getY()>p.getY()+3,"First encounter can already be resting at open water surface");
+        h.assertTrue(fish.isBasking()&&fish.getY()>p.getY()+3,"First encounter: basking="+fish.isBasking()+", y="+fish.getY()+", pool="+p.getY()+", surface="+l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE,fish.getBlockX(),fish.getBlockZ())+", phase="+net.caravidro.wayaround.ecology.EcologicalHistory.phase(l.getSeed(),fish.getUUID().getMostSignificantBits(),start,8000));
         fish.restoreHistoricalBasking(start+1300);
         h.assertTrue(!fish.isBasking(),"Elapsed offscreen time ends the resting phase");
         h.succeed();
