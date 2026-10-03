@@ -67,9 +67,8 @@ public final class VoiceServer {
             return;
         }
 
-        if (containsSpeech(
-                pcm
-        )) {
+        boolean speaking = containsSpeech(pcm);
+        if (speaking) {
             TukunaManager.pulseProjectedSpeech(
                     sender
             );
@@ -90,6 +89,7 @@ public final class VoiceServer {
                     pcm
             );
         } else {
+            net.caravidro.wayaround.nature.ParrotMimicManager.capture(sender,pcm,speaking);
             BlackBoxManager.captureVoice(
                     sender.serverLevel(),
                     sender.position(),

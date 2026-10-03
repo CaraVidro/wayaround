@@ -74,7 +74,7 @@ public final class WindLeafParticle extends TextureSheetParticle {
          * instead of trusting one exact Y so tall/custom leaf blocks still
          * carry their own biome tint into the particle.
          */
-        for (int offset = 0;
+        for (int offset = 2;
              offset >= -3;
              offset--) {
             BlockPos candidate =
@@ -168,6 +168,11 @@ public final class WindLeafParticle extends TextureSheetParticle {
         oRoll = roll;
         roll += 0.18F + (float) Math.sqrt(xd * xd + zd * zd) * 0.65F;
 
+        float wind=net.caravidro.wayaround.client.weather.ClientWind.getStrength();
+        xd+=net.caravidro.wayaround.client.weather.ClientWind.getX()*wind*.0025;
+        zd+=net.caravidro.wayaround.client.weather.ClientWind.getZ()*wind*.0025;
+        var player=Minecraft.getInstance().player;
+        if(player==null||player.distanceToSqr(x,y,z)>48*48){remove();return;}
         xd += (random.nextDouble() - 0.5) * 0.003;
         zd += (random.nextDouble() - 0.5) * 0.003;
 

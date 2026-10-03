@@ -1,0 +1,68 @@
+name: Birds and orchards runtime validation
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/net/caravidro/wayaround/nature/**'
+      - 'src/main/java/net/caravidro/wayaround/voice/VoiceServer.java'
+      - 'src/main/java/net/caravidro/wayaround/particle/WindLeafParticle.java'
+      - 'src/main/resources/assets/wayaround/**/apple_*'
+      - 'tests/nature/**'
+      - '.github/workflows/nature-validation.yml'
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Fruit clock and voice transformation contracts
+        run: |
+          mkdir -p /tmp/nature-classes
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/nature/NatureMath.java tests/nature/NatureMathTest.java
+          java -cp /tmp/nature-classes NatureMathTest
+      - name: Orchard lifecycle and bird attributes on dedicated server
+        run: bash gradlew runNatureGameTestServer --console=plain
+      - name: Client boot and mixin application
+        env:
+          ALSOFT_DRIVERS: 'null'
+        shell: bash
+        run: |
+          python - <<'PYCLIENT'
+          import os,re,signal,subprocess,time
+          from pathlib import Path
+          path=Path('nature-client-smoke.log')
+          ready=False
+          with path.open('w') as log:
+              process=subprocess.Popen(['xvfb-run','-a','bash','gradlew','runClient','--console=plain'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+              try:
+                  deadline=time.monotonic()+240
+                  while process.poll() is None and time.monotonic()<deadline:
+                      text=path.read_text(errors='replace')
+                      if ('OpenAL initialized' in text or 'Sound engine started' in text) and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                          ready=True
+                          break
+                      time.sleep(1)
+              finally:
+                  if process.poll() is None: os.killpg(process.pid,signal.SIGTERM)
+                  try: process.wait(timeout=15)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(process.pid,signal.SIGKILL);process.wait()
+          text=path.read_text(errors='replace')
+          if not ready or re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text):
+              print('\n'.join(text.splitlines()[-120:]));raise SystemExit(1)
+          relevant=[line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',line) and re.search(r'wayaround:.*(?:apple_|hummingbird|woodland_thrush|mimic_parrot)',line)]
+          if relevant:
+              print('\n'.join(relevant));raise SystemExit(1)
+          print('Client boot and bird renderers and orchard registration passed. In-world visual QA remains manual.')
+          PYCLIENT
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nature-client-runtime
+          path: nature-client-smoke.log

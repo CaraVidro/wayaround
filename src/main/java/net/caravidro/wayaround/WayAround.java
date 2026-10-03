@@ -77,6 +77,7 @@ public class WayAround {
         FireContent.register(modEventBus);
         Area001Content.register(modEventBus);
         EcologyContent.register(modEventBus);
+        net.caravidro.wayaround.nature.NatureContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
         WarContent.register(modEventBus);
         MediaContent.register(modEventBus);

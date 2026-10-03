@@ -1,0 +1,33 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "wayaround:block/apple_leaves"
+      }
+    },
+    {
+      "when": {
+        "fruit": "1"
+      },
+      "apply": {
+        "model": "wayaround:block/apple_fruit_1"
+      }
+    },
+    {
+      "when": {
+        "fruit": "2"
+      },
+      "apply": {
+        "model": "wayaround:block/apple_fruit_2"
+      }
+    },
+    {
+      "when": {
+        "fruit": "3"
+      },
+      "apply": {
+        "model": "wayaround:block/apple_fruit_3"
+      }
+    }
+  ]
+}
