@@ -798,6 +798,7 @@ public final class LivingCloudRenderer {
             boolean emitted = false;
             double phase=random01(cell.id() ^ 0xD1B54A32D192ED03L)*Math.PI*2;
             double temporal=.988+Math.sin(time*.0032+phase)*.012;
+            double tint=signedColorBias(cell.id());
 
             for (SurfaceFace surfaceFace :
                     surfaceFaces) {
@@ -838,7 +839,8 @@ public final class LivingCloudRenderer {
                                 alpha,
                                 time,
                                 builtVoxel,
-                                surfaceFace.shade*temporal
+                                surfaceFace.shade*temporal,
+                                tint
                         );
 
                 emitFace(
@@ -1577,12 +1579,9 @@ public final class LivingCloudRenderer {
             int baseAlpha,
             long time,
             double voxelSize,
-            double shade
+            double shade,
+            double tint
     ) {
-        double tint =
-                signedColorBias(
-                        cell.id()
-                );
 
         int red =
                 Mth.clamp(

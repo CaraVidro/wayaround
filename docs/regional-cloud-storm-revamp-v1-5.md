@@ -34,7 +34,7 @@ submarines, structural debris, fire limits and dynamic lights.
   sampled per tick, completing a sweep in 23 ticks. All receiver opacity eases
   toward its target each tick and interpolates between frames; new coverage fades
   in, departing coverage fades out. No whole-grid camera/mesh reset.
-- Dense shadow opacity reaches 144/255; overlapping banks combine their coverage.
+- Light shadow opacity reaches 56/255; overlapping banks combine their coverage.
   A soft 16-block camera-edge fade bounds drawing to 56 blocks. Only loaded
   columns are sampled. This remains a surface-top approximation, not a complete
   shadow map for vertical walls, irregular stair treads or displaced water waves.

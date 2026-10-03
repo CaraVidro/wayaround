@@ -43,3 +43,14 @@ still need comparison on the same world/camera/settings. Use `/wayperf start 30`
 then `/wayperf report` for instrumented sections in singleplayer. Dedicated
 servers cannot measure a remote client's GPU/render timing through that report.
 Existing broad hydraulic pump/lift test failures are documented separately.
+
+Follow-up polish:
+
+- Shadow opacity is capped at 56/255 (about 22%) instead of 144/255 (56%).
+  The same continuous footprint and fades remain, with roughly 61% less opacity.
+- Shadow footprint queries return immediately in the fully covered interior or
+  beyond the outside boundary, avoiding square roots there. Overlapping coverage
+  stops at saturation; invisible receivers skip render-edge math and zero-opacity
+  tiles skip redundant easing. Departing coverage still fades smoothly to zero.
+- Per-cloud color bias is evaluated once per cloud/frame instead of per face.
+  This preserves the tint while removing repeated hash calculations.

@@ -10,7 +10,10 @@ public final class CloudStormMath {
     /** Stable broad footprint; independent of voxel rebuilds and sun direction. */
     public static double downwardShadowDensity(double dx,double dz,double radius){
         if(radius<=0)return 0;
-        double edge=clamp((1.04-Math.sqrt(dx*dx+dz*dz)/radius)/.44,0,1);
+        double squared=dx*dx+dz*dz,inner=radius*.60,outer=radius*1.04;
+        if(squared<=inner*inner)return 1;
+        if(squared>=outer*outer)return 0;
+        double edge=clamp((1.04-Math.sqrt(squared)/radius)/.44,0,1);
         return edge*edge*(3-2*edge);
     }
     public static double shadowEdge(double distance,double radius){
@@ -18,7 +21,7 @@ public final class CloudStormMath {
         return edge*edge*(3-2*edge);
     }
     public static double shadowAlpha(double density){
-        return 144*Math.sqrt(clamp(density,0,1));
+        return 56*Math.sqrt(clamp(density,0,1));
     }
     public static double approachShadow(double current,double target){
         return current+(target-current)*.14;

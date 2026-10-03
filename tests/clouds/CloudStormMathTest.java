@@ -5,7 +5,7 @@ public final class CloudStormMathTest {
         check(CloudStormMath.downwardShadowDensity(0,0,200)==1,"dense coverage directly below cloud");
         check(CloudStormMath.downwardShadowDensity(100,0,200)==1,"continuous dense inner canopy");
         check(CloudStormMath.downwardShadowDensity(220,0,200)==0,"outside canopy stays clear");
-        check(CloudStormMath.shadowAlpha(.2)>60,"thin canopy still visibly shades terrain");
+        check(CloudStormMath.shadowAlpha(.2)>20,"thin canopy still visibly shades terrain");
         check(CloudStormMath.shadowEdge(0,56)==1,"full shadow near player");
         check(CloudStormMath.shadowEdge(56,56)==0,"soft bounded receiver edge");
         double alpha=100;

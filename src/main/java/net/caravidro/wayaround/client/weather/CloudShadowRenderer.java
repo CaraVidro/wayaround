@@ -95,6 +95,7 @@ public final class CloudShadowRenderer {
                     // distant mesh is created, rebuilt, culled, or changes LOD.
                     double cover=CloudStormMath.downwardShadowDensity(x+.5-cell.x(),z+.5-cell.z(),cell.radius());
                     density=1-(1-density)*(1-cover);
+                    if(density==1)break;
                 }
                 tile.target=CloudStormMath.shadowAlpha(density);
             }
@@ -103,7 +104,9 @@ public final class CloudShadowRenderer {
             if(tile==null)continue;
             tile.previousAlpha=tile.alpha;
             if(time-tile.sampled>WIDTH/ROWS_PER_TICK+8)tile.target=0;
+            if(tile.alpha==0&&tile.target==0)continue;
             tile.alpha=CloudStormMath.approachShadow(tile.alpha,tile.target);
+            if(tile.target==0&&tile.alpha<.01)tile.alpha=0;
         }
     }
     @SubscribeEvent public static void render(RenderLevelStageEvent e){
@@ -112,7 +115,7 @@ public final class CloudShadowRenderer {
         try{draw(e);}finally{PerformanceProfiler.end(PerformanceProfiler.Section.CLOUD_SHADOW_RENDER,started);}
     }
     private static int alpha(Tile tile,Vec3 camera,float partial){
-        if(tile==null)return 0;
+        if(tile==null||(tile.alpha<=1&&tile.previousAlpha<=1))return 0;
         double edge=CloudStormMath.shadowEdge(Math.max(Math.abs(tile.x+.5-camera.x),Math.abs(tile.z+.5-camera.z)),RADIUS);
         return (int)Math.round((tile.previousAlpha+(tile.alpha-tile.previousAlpha)*partial)*edge);
     }
