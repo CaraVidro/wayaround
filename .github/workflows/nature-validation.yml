@@ -27,7 +27,16 @@ jobs:
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/nature/NatureMath.java tests/nature/NatureMathTest.java
           java -cp /tmp/nature-classes NatureMathTest
       - name: Orchard lifecycle and bird attributes on dedicated server
-        run: bash gradlew runNatureGameTestServer --console=plain
+        shell: bash
+        run: |
+          set -o pipefail
+          bash gradlew runNatureGameTestServer --console=plain | tee nature-server-tests.log
+          python - <<'PYTESTS'
+          from pathlib import Path
+          text=Path('nature-server-tests.log').read_text(errors='replace')
+          assert '2 required tests passed' in text or 'All 2 required tests passed' in text,text[-16000:]
+          assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
+          PYTESTS
       - name: Client boot and mixin application
         env:
           ALSOFT_DRIVERS: 'null'
@@ -65,4 +74,6 @@ jobs:
         if: always()
         with:
           name: nature-client-runtime
-          path: nature-client-smoke.log
+          path: |
+            nature-client-smoke.log
+            nature-server-tests.log

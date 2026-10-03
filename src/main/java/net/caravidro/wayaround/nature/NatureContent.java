@@ -23,7 +23,7 @@ public final class NatureContent {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES=DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE,WayAround.MODID);
     public static final DeferredRegister<CreativeModeTab> TABS=DeferredRegister.create(Registries.CREATIVE_MODE_TAB,WayAround.MODID);
     public static final DeferredBlock<AppleTreeBlock> APPLE_SAPLING=BLOCKS.register("apple_sapling",()->new AppleTreeBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_SAPLING)));
-    public static final DeferredBlock<AppleTreeBlock> APPLE_LOG=BLOCKS.register("apple_tree_log",()->new AppleTreeBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_LOG)));
+    public static final DeferredBlock<AppleTreeBlock> APPLE_LOG=BLOCKS.register("apple_tree_log",()->new AppleTreeBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_LOG).mapColor(net.minecraft.world.level.material.MapColor.WOOD)));
     public static final DeferredBlock<AppleLeavesBlock> APPLE_LEAVES=BLOCKS.register("apple_leaves",()->new AppleLeavesBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_LEAVES)));
     public static final DeferredItem<BlockItem> APPLE_SAPLING_ITEM=ITEMS.registerSimpleBlockItem(APPLE_SAPLING);
     public static final DeferredItem<BlockItem> APPLE_LOG_ITEM=ITEMS.registerSimpleBlockItem(APPLE_LOG);
