@@ -4,6 +4,7 @@ import net.caravidro.wayaround.ecology.KrakenMotion;
 public final class KrakenMotionTest {
     public static void main(String[] args) {
         check(KrakenMotion.smooth(-1)==0 && KrakenMotion.smooth(2)==1,"clamped phases");
+        check(KrakenMotion.waterSurface(62)>63&&KrakenMotion.waterSurface(-20)>-19,"foam and contact are above the top water face");
         double peak=0;
         for(int kind:new int[]{0,2}) {
             for(int age=0;age<=KrakenMotion.duration(kind);age++) {

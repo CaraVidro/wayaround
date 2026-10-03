@@ -51,7 +51,7 @@ public final class KrakenSceneRenderer {
     }
     private static void clear() { scene = null; splashes.clear(); owner = null; lastAge = -1; }
     private static double age() { return clock.age(); }
-    private static Vec3 origin() { return new Vec3(scene.x()+0.5, scene.surface()+0.5, scene.z()+0.5); }
+    private static Vec3 origin() { return new Vec3(scene.x()+0.5, KrakenMotion.waterSurface(scene.surface()), scene.z()+0.5); }
     private static Vec3 direction() { return new Vec3(scene.dx(),0,scene.dz()).normalize(); }
     private static Vec3 world(KrakenMotion.Point p) {
         Vec3 d = direction();
@@ -76,7 +76,7 @@ public final class KrakenSceneRenderer {
             }
             if (!submerged && lastAge < fallAt && age >= fallAt) {
                 Vec3 end = scene.kind()==1 ? origin() : world(KrakenMotion.tentacle(1,fallAt,scene.kind()));
-                splashes.add(new Splash(new Vec3(end.x,scene.surface()+.5,end.z), owner.getGameTime(), scene.kind()==1?42:48));
+                splashes.add(new Splash(new Vec3(end.x,KrakenMotion.waterSurface(scene.surface()),end.z), owner.getGameTime(), scene.kind()==1?42:48));
                 submerged = true;
             }
         } else if (age % 4 == 0 && mc.options.particles().get() != net.minecraft.client.ParticleStatus.MINIMAL) {

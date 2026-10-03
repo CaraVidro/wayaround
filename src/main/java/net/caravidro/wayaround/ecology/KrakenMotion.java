@@ -4,6 +4,8 @@ package net.caravidro.wayaround.ecology;
 public final class KrakenMotion {
     private KrakenMotion() {}
     public record Point(double x, double y, double z, double radius) {}
+    /** The packet carries the top water block, not its visible upper surface. */
+    public static double waterSurface(int topWaterBlock) { return topWaterBlock + 1.02; }
     public static int duration(int kind) { return kind == 1 ? 280 : kind >= 3 ? 200 : 340; }
     public static double smooth(double t) { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); }
     public static double emergence(double age, int kind) {
