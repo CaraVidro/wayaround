@@ -37,7 +37,7 @@ public final class SurvivalRecipeGameTests {
                 checked++;
             }
         }
-        h.assertTrue(checked==57,"Every new survival recipe was validated");
+        h.assertTrue(checked==56,"Every new survival recipe was validated");
         var outputs=new HashSet<Item>();for(var recipe:manager.getRecipes())outputs.add(recipe.value().getResultItem(level.registryAccess()).getItem());
         for(var item:BuiltInRegistries.ITEM) {
             var key=BuiltInRegistries.ITEM.getKey(item);

@@ -14,12 +14,12 @@ public abstract class RegionLightTextureMixin {
     @Shadow @Final private NativeImage lightPixels;
     @Unique private final int[] wayaround$previous=new int[256];
     @Unique private long wayaround$last;
-    @Unique private Object wayaround$level;
+    @Unique private java.lang.ref.WeakReference<Object> wayaround$level=new java.lang.ref.WeakReference<>(null);
     @Inject(method="updateLightTexture",at=@At(value="INVOKE",target="Lnet/minecraft/client/renderer/texture/DynamicTexture;upload()V",shift=At.Shift.BEFORE))
     private void wayaround$adapt(float partial,CallbackInfo ci) {
         var level=Minecraft.getInstance().level;if(level==null)return;
-        long now=Util.getMillis();boolean reset=wayaround$level!=level || wayaround$last==0 || net.caravidro.wayaround.daybreak.client.DaysBreakClient.active();
-        float factor=(float)(1-Math.exp(-Math.min(250,now-wayaround$last)/750.0));wayaround$last=now;wayaround$level=level;
+        long now=Util.getMillis();boolean reset=wayaround$level.get()!=level || wayaround$last==0 || net.caravidro.wayaround.daybreak.client.DaysBreakClient.active();
+        float factor=(float)(1-Math.exp(-Math.min(250,now-wayaround$last)/750.0));wayaround$last=now;if(wayaround$level.get()!=level)wayaround$level=new java.lang.ref.WeakReference<>(level);
         for(int sky=0;sky<16;sky++)for(int block=0;block<16;block++) {
             int index=sky*16+block,target=lightPixels.getPixelRGBA(block,sky),previous=wayaround$previous[index];
             int color=target;

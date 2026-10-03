@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "P  ",
+    "P L",
     "PPP",
     "S S"
   ],
@@ -12,6 +12,9 @@
     },
     "S": {
       "item": "minecraft:stick"
+    },
+    "L": {
+      "item": "minecraft:leather"
     }
   },
   "result": {
