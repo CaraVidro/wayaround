@@ -34,21 +34,24 @@ public final class NatureContent {
     public static final DeferredHolder<EntityType<?>,EntityType<WoodlandBirdEntity>> HUMMINGBIRD=bird("hummingbird",.22F,.28F);
     public static final DeferredHolder<EntityType<?>,EntityType<WoodlandBirdEntity>> THRUSH=bird("woodland_thrush",.36F,.44F);
     public static final DeferredHolder<EntityType<?>,EntityType<WoodlandBirdEntity>> PARROT=bird("mimic_parrot",.50F,.78F);
+    public static final DeferredHolder<EntityType<?>,EntityType<WoodlandBirdEntity>> CROW=bird("crow",.48F,.62F);
     private static DeferredHolder<EntityType<?>,EntityType<WoodlandBirdEntity>> bird(String name,float w,float h){
         return ENTITIES.register(name,()->EntityType.Builder.of(WoodlandBirdEntity::new,MobCategory.CREATURE).sized(w,h).clientTrackingRange(8).updateInterval(3).build("wayaround:"+name));
     }
     public static final DeferredItem<SpawnEggItem> HUMMINGBIRD_EGG=egg("hummingbird",HUMMINGBIRD,0x3C8B65,0xC75572);
     public static final DeferredItem<SpawnEggItem> THRUSH_EGG=egg("woodland_thrush",THRUSH,0x76543A,0xD99A50);
     public static final DeferredItem<SpawnEggItem> PARROT_EGG=egg("mimic_parrot",PARROT,0x4E963F,0xD5C64C);
+    public static final DeferredItem<SpawnEggItem> CROW_EGG=egg("crow",CROW,0x151619,0x434950);
     private static DeferredItem<SpawnEggItem> egg(String name,DeferredHolder<EntityType<?>,EntityType<WoodlandBirdEntity>> type,int a,int b){
         return ITEMS.register(name+"_spawn_egg",()->new SpawnEggItem(type.get(),a,b,new Item.Properties()));
     }
-    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> BIRDS=TABS.register("birds",()->CreativeModeTab.builder().title(Component.translatable("itemGroup.wayaround.birds")).icon(()->new ItemStack(PARROT_EGG.get())).displayItems((p,o)->{o.accept(HUMMINGBIRD_EGG);o.accept(THRUSH_EGG);o.accept(PARROT_EGG);}).build());
+    public static final DeferredHolder<CreativeModeTab,CreativeModeTab> BIRDS=TABS.register("birds",()->CreativeModeTab.builder().title(Component.translatable("itemGroup.wayaround.birds")).icon(()->new ItemStack(PARROT_EGG.get())).displayItems((p,o)->{o.accept(HUMMINGBIRD_EGG);o.accept(THRUSH_EGG);o.accept(PARROT_EGG);o.accept(CROW_EGG);o.accept(net.caravidro.wayaround.ecology.EcologyContent.SEAGULL_SPAWN_EGG);}).build());
     public static final DeferredHolder<CreativeModeTab,CreativeModeTab> AGRICULTURE=TABS.register("agriculture",()->CreativeModeTab.builder().title(Component.translatable("itemGroup.wayaround.agriculture")).icon(()->new ItemStack(APPLE_SAPLING_ITEM.get())).displayItems((p,o)->{o.accept(APPLE_SAPLING_ITEM);o.accept(APPLE_LEAVES_ITEM);o.accept(APPLE_LOG_ITEM);o.accept(Items.APPLE);}).build());
     public static void register(IEventBus bus){FEATURES.register(bus);BLOCKS.register(bus);ITEMS.register(bus);ENTITIES.register(bus);BLOCK_ENTITIES.register(bus);TABS.register(bus);}
     @SubscribeEvent public static void attributes(EntityAttributeCreationEvent e){
         e.put(HUMMINGBIRD.get(),WoodlandBirdEntity.attributes(4,.45).build());
         e.put(THRUSH.get(),WoodlandBirdEntity.attributes(8,.28).build());
         e.put(PARROT.get(),WoodlandBirdEntity.attributes(14,.25).build());
+        e.put(CROW.get(),WoodlandBirdEntity.attributes(10,.32).build());
     }
 }

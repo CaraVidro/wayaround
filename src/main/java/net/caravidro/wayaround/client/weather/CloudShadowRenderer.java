@@ -39,7 +39,7 @@ public final class CloudShadowRenderer {
                 && mc.level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)
                 && !net.caravidro.wayaround.client.AntarcticClientLighting.isAntarctic(mc)
                 && net.caravidro.wayaround.client.VoidDomainClientEffects.localInterior()==null
-                && !mc.player.isUnderWater() && WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)
+                && !net.caravidro.wayaround.ecology.client.DeepOceanClientVisibility.submerged(mc.player,mc.level,mc.gameRenderer.getMainCamera().getPosition()) && WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)
                 && WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER);
     }
     private static void clear(){

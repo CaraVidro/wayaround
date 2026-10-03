@@ -1040,5 +1040,7 @@
   "entity.wayaround.mimic_parrot": "Mimic Parrot",
   "item.wayaround.hummingbird_spawn_egg": "Hummingbird Spawn Egg",
   "item.wayaround.woodland_thrush_spawn_egg": "Woodland Thrush Spawn Egg",
-  "item.wayaround.mimic_parrot_spawn_egg": "Mimic Parrot Spawn Egg"
+  "item.wayaround.mimic_parrot_spawn_egg": "Mimic Parrot Spawn Egg",
+  "entity.wayaround.crow": "Crow",
+  "item.wayaround.crow_spawn_egg": "Crow Spawn Egg"
 }

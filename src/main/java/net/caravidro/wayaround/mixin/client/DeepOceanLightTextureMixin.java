@@ -39,7 +39,7 @@ public abstract class DeepOceanLightTextureMixin {
     ) {
         if (minecraft.level == null
                 || minecraft.player == null
-                || !minecraft.player.isUnderWater()) {
+                || !DeepOceanClientVisibility.submerged(minecraft.player, minecraft.level, minecraft.gameRenderer.getMainCamera().getPosition())) {
             return;
         }
 
@@ -133,9 +133,9 @@ public abstract class DeepOceanLightTextureMixin {
                                 visibleLight
                         );
 
-                red = clamp255(red * abyssFactor);
-                green = clamp255(green * abyssFactor);
-                blue = clamp255(blue * abyssFactor);
+                red = wayaround$abyssClamp255(red * abyssFactor);
+                green = wayaround$abyssClamp255(green * abyssFactor);
+                blue = wayaround$abyssClamp255(blue * abyssFactor);
 
                 lightPixels.setPixelRGBA(
                         blockLight,
@@ -149,7 +149,7 @@ public abstract class DeepOceanLightTextureMixin {
         }
     }
 
-    private static int clamp255(float value) {
+    private static int wayaround$abyssClamp255(float value) {
         return Math.max(
                 0,
                 Math.min(

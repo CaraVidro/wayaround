@@ -1040,5 +1040,7 @@
   "entity.wayaround.mimic_parrot": "Papagaio imitador",
   "item.wayaround.hummingbird_spawn_egg": "Ovo de beija-flor",
   "item.wayaround.woodland_thrush_spawn_egg": "Ovo de sabiá",
-  "item.wayaround.mimic_parrot_spawn_egg": "Ovo de papagaio imitador"
+  "item.wayaround.mimic_parrot_spawn_egg": "Ovo de papagaio imitador",
+  "entity.wayaround.crow": "Corvo",
+  "item.wayaround.crow_spawn_egg": "Ovo de Corvo"
 }

@@ -18,10 +18,10 @@ public final class WoodlandBirdRenderer extends EntityRenderer<WoodlandBirdEntit
     public WoodlandBirdRenderer(EntityRendererProvider.Context c){super(c);blocks=c.getBlockRenderDispatcher();shadowRadius=.15F;}
     @Override public ResourceLocation getTextureLocation(WoodlandBirdEntity e){return ResourceLocation.withDefaultNamespace("textures/atlas/blocks.png");}
     @Override public void render(WoodlandBirdEntity e,float yaw,float partial,PoseStack p,MultiBufferSource b,int light){
-        int species=e.species();float scale=species==0?.40F:species==1?.65F:1;
+        int species=e.species();float scale=species==0?.40F:species==1?.65F:species==3?.85F:1;
         float age=e.tickCount+partial;
-        BlockState coat=(species==0?Blocks.GREEN_CONCRETE:species==1?Blocks.BROWN_CONCRETE:Blocks.LIME_CONCRETE).defaultBlockState();
-        BlockState belly=(species==0?Blocks.PINK_CONCRETE:species==1?Blocks.ORANGE_TERRACOTTA:Blocks.GREEN_CONCRETE).defaultBlockState();
+        BlockState coat=(species==0?Blocks.GREEN_CONCRETE:species==1?Blocks.BROWN_CONCRETE:species==3?Blocks.BLACK_CONCRETE:Blocks.LIME_CONCRETE).defaultBlockState();
+        BlockState belly=(species==0?Blocks.PINK_CONCRETE:species==1?Blocks.ORANGE_TERRACOTTA:species==3?Blocks.GRAY_CONCRETE:Blocks.GREEN_CONCRETE).defaultBlockState();
         p.pushPose();p.mulPose(Axis.YP.rotationDegrees(180-yaw));p.scale(scale,scale,scale);
         box(coat,-.15,.14,-.14,.30,.35,.35,p,b,light);
         box(belly,-.125,.18,-.185,.25,.27,.09,p,b,light);
@@ -33,7 +33,7 @@ public final class WoodlandBirdRenderer extends EntityRenderer<WoodlandBirdEntit
             p.pushPose();p.translate(side*.13,.37,.01);
             float flap=e.perched()?side*8:side*(20+(float)Math.sin(age*(species==0?2.9:.65))*45);
             p.mulPose(Axis.ZP.rotationDegrees(flap));
-            BlockState wing=(species==2?Blocks.GREEN_CONCRETE:species==0?Blocks.LIGHT_GRAY_CONCRETE:Blocks.BROWN_TERRACOTTA).defaultBlockState();
+            BlockState wing=(species==2?Blocks.GREEN_CONCRETE:species==0?Blocks.LIGHT_GRAY_CONCRETE:species==3?Blocks.BLACK_CONCRETE:Blocks.BROWN_TERRACOTTA).defaultBlockState();
             box(wing,side<0?-.29:0,-.025,-.08,.29,.07,.25,p,b,light);
             for(int feather=0;feather<3;feather++)box(species==2?Blocks.BLUE_CONCRETE.defaultBlockState():wing,side<0?-.32:0,-.035,.03+feather*.07,.32-feather*.03,.045,.065,p,b,light);
             p.popPose();
@@ -57,6 +57,11 @@ public final class WoodlandBirdRenderer extends EntityRenderer<WoodlandBirdEntit
         for(int side:new int[]{-1,1}){
             box(Blocks.WHITE_CONCRETE.defaultBlockState(),side<0?-.135:.115,.10,-.07,.02,.075,.075,p,b,light);
             box(Blocks.BLACK_CONCRETE.defaultBlockState(),side<0?-.14:.13,.12,-.055,.012,.038,.04,p,b,light);
+        }
+        if(!e.getMainHandItem().isEmpty()){
+            p.pushPose();p.translate(0,.02,-.26);p.scale(.38f,.38f,.38f);
+            Minecraft.getInstance().getItemRenderer().renderStatic(e.getMainHandItem(),net.minecraft.world.item.ItemDisplayContext.GROUND,light,OverlayTexture.NO_OVERLAY,p,b,e.level(),e.getId());
+            p.popPose();
         }
         p.popPose();
         if(species==1)for(int i=0;i<3;i++)box(Blocks.BROWN_CONCRETE.defaultBlockState(),-.08+i*.07,.29+(i%2)*.04,-.19,.025,.035,.018,p,b,light);

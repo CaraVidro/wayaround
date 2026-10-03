@@ -39,18 +39,19 @@ public final class SeagullEntity
                         true
                 );
         this.setNoGravity(true);
-        this.setPersistenceRequired();
+
     }
 
     @Override
     public boolean removeWhenFarAway(
             double distanceToClosestPlayer
     ) {
-        return false;
+        return !hasCustomName() && getMainHandItem().isEmpty() && getPassengers().isEmpty();
     }
 
     @Override
     protected void registerGoals() {
+        this.goalSelector.addGoal(2, new net.caravidro.wayaround.nature.BirdFoodTheftGoal(this));
         this.goalSelector.addGoal(
                 4,
                 new WaterAvoidingRandomFlyingGoal(
@@ -78,10 +79,9 @@ public final class SeagullEntity
     protected PathNavigation createNavigation(
             Level level
     ) {
-        return new FlyingPathNavigation(
-                this,
-                level
-        );
+        FlyingPathNavigation nav=new FlyingPathNavigation(this,level);
+        nav.setCanFloat(true);nav.setMaxVisitedNodesMultiplier(3);
+        return nav;
     }
 
     @Override

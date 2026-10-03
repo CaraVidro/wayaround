@@ -41,7 +41,10 @@ public final class EcologicalChunkHistory {
                 for(int x=p.x-1;x<=p.x+1;x++)for(int z=p.z-1;z<=p.z+1;z++)if(!l.hasChunk(x,z))ready=false;
                 if(!ready)continue;
                 it.remove();work--;
-                if(WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION))EcologicalSuccession.seedHistoricalChunk(l,p.x,p.z);
+                if(WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)){
+                    DeepOceanSurfaceRepair.repair(l,p);
+                    EcologicalSuccession.seedHistoricalChunk(l,p.x,p.z);
+                }
                 if(WorldFeatureRuntime.serverEnabled(WorldFeature.MINING_REGIONS))DeferredMiningManager.onLoadedTerrain(l,p.x,p.z);
             }
             // Rotate blocked edge entries so they cannot starve ready interior chunks.

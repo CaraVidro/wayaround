@@ -249,15 +249,6 @@ public final class DeepSeaSubmarineEntity extends Entity {
                                 )
                         );
 
-        if (pilot == null) {
-            motion =
-                    motion.add(
-                            0.0,
-                            0.008,
-                            0.0
-                    );
-        }
-
         move(
                 MoverType.SELF,
                 motion

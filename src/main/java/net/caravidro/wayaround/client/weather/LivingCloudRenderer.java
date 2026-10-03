@@ -107,6 +107,7 @@ public final class LivingCloudRenderer {
                 || !minecraft.level.dimension().equals(Level.OVERWORLD)
                 || event.getCamera().getEntity() == null
                 || event.getCamera().getEntity().isUnderWater()
+                || event.getCamera().getFluidInCamera() == net.minecraft.world.level.material.FogType.WATER
                 || AntarcticClientLighting.isAntarctic(minecraft)) {
             CACHE.clear();
             return;

@@ -90,9 +90,9 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
                 }
 
                 BlockPos.MutableBlockPos cursor =
-                        new BlockPos.MutableBlockPos(x, seaLevel, z);
+                        new BlockPos.MutableBlockPos(x, seaLevel - 1, z);
 
-                for (int y = seaLevel; y > targetFloor; y--) {
+                for (int y = seaLevel - 1; y > targetFloor; y--) {
                     cursor.setY(y);
                     BlockState old = level.getBlockState(cursor);
 

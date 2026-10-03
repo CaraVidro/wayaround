@@ -330,33 +330,7 @@ public final class DeepOceanManager {
             ServerLevel level,
             BlockPos pos
     ) {
-        return level.getBiome(
-                        pos
-                )
-                .unwrapKey()
-                .map(
-                        key -> {
-                            String path =
-                                    key.location()
-                                            .getPath();
-
-                            return path.equals(
-                                    "deep_ocean"
-                            )
-                                    || path.equals(
-                                    "deep_cold_ocean"
-                            )
-                                    || path.equals(
-                                    "deep_frozen_ocean"
-                            )
-                                    || path.equals(
-                                    "deep_lukewarm_ocean"
-                            );
-                        }
-                )
-                .orElse(
-                        false
-                );
+        return DeepOceanBiomes.contains(level,pos);
     }
 
     public static boolean isDeepOcean(

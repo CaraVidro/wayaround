@@ -8,6 +8,8 @@ on:
       - 'src/main/resources/assets/wayaround/**/apple_*'
       - 'src/main/java/net/caravidro/wayaround/ecology/Ecological*'
       - 'src/main/java/net/caravidro/wayaround/ecology/SunfishEntity.java'
+      - 'src/main/java/net/caravidro/wayaround/ecology/DeepOcean*'
+      - 'src/main/java/net/caravidro/wayaround/ecology/SeagullEntity.java'
       - 'src/main/java/net/caravidro/wayaround/industrial/mining/**'
       - 'src/main/java/net/caravidro/wayaround/mixin/PlayerStepSoundMixin.java'
       - 'src/main/resources/wayaround.mixins.json'
@@ -40,7 +42,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '5 required tests passed' in text or 'All 5 required tests passed' in text,text[-16000:]
+          assert '8 required tests passed' in text or 'All 8 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application

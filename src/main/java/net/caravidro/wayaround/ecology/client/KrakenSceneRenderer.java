@@ -37,7 +37,11 @@ public final class KrakenSceneRenderer {
         if (level == null || !p.isSane()) return;
         if (owner != level) clear();
         owner = level;
-        if (p.kind() == -1) { scene = null; return; }
+        if (p.kind() == -1) {
+            // Finish local contact/submergence even if the stop packet overtakes interpolation.
+            if (scene == null || scene.kind() >= 3 || age() >= KrakenMotion.duration(scene.kind())) scene = null;
+            return;
+        }
         boolean fresh = scene == null || scene.kind() != p.kind() || scene.x() != p.x()
                 || scene.z() != p.z() || p.age() < scene.age();
         scene = p;
@@ -47,7 +51,7 @@ public final class KrakenSceneRenderer {
     }
     private static void clear() { scene = null; splashes.clear(); owner = null; lastAge = -1; }
     private static double age() { return clock.age(); }
-    private static Vec3 origin() { return new Vec3(scene.x()+0.5, scene.surface()+0.5, scene.z()+0.5); }
+    private static Vec3 origin() { return new Vec3(scene.x()+0.5, KrakenMotion.waterSurface(scene.surface()), scene.z()+0.5); }
     private static Vec3 direction() { return new Vec3(scene.dx(),0,scene.dz()).normalize(); }
     private static Vec3 world(KrakenMotion.Point p) {
         Vec3 d = direction();
@@ -72,7 +76,7 @@ public final class KrakenSceneRenderer {
             }
             if (!submerged && lastAge < fallAt && age >= fallAt) {
                 Vec3 end = scene.kind()==1 ? origin() : world(KrakenMotion.tentacle(1,fallAt,scene.kind()));
-                splashes.add(new Splash(new Vec3(end.x,scene.surface()+.5,end.z), owner.getGameTime(), scene.kind()==1?42:48));
+                splashes.add(new Splash(new Vec3(end.x,KrakenMotion.waterSurface(scene.surface()),end.z), owner.getGameTime(), scene.kind()==1?42:48));
                 submerged = true;
             }
         } else if (age % 4 == 0 && mc.options.particles().get() != net.minecraft.client.ParticleStatus.MINIMAL) {
@@ -92,6 +96,13 @@ public final class KrakenSceneRenderer {
         double age=clock.sample(partial);
         return (float)(Math.sin(age*.17)*12 * Math.sin(Math.PI*Math.min(1,age/200)));
     }
+    private static boolean visibleScene(Vec3 camera) {
+        if (camera.distanceToSqr(origin()) < 360 * 360) return true;
+        if (scene.kind() == 0 || scene.kind() == 2)
+            for (int i = 1; i <= 4; i++)
+                if (camera.distanceToSqr(world(KrakenMotion.tentacle(i / 4.0, age(), scene.kind()))) < 360 * 360) return true;
+        return false;
+    }
     @SubscribeEvent public static void render(RenderLevelStageEvent e) {
         if(e.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || owner==null
                 || Minecraft.getInstance().level!=owner || (scene==null && splashes.isEmpty())) return;
@@ -100,7 +111,7 @@ public final class KrakenSceneRenderer {
         var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
         float partial=e.getPartialTick().getGameTimeDeltaPartialTick(true);
         int count=0;
-        if(scene!=null && camera.distanceToSqr(origin())<360*360) {
+        if(scene!=null && visibleScene(camera)) {
             double a=clock.sample(partial);
             Vec3 d=direction();
             Vec3 side=new Vec3(-d.z,0,d.x);

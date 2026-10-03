@@ -13,20 +13,22 @@ public final class DeepOceanClientVisibility {
     private DeepOceanClientVisibility() {}
 
     public static boolean isDeepOcean(ClientLevel level, BlockPos pos) {
-        return level.getBiome(pos).unwrapKey().map(key -> {
-            String path = key.location().getPath();
-            return path.equals("deep_ocean")
-                    || path.equals("deep_cold_ocean")
-                    || path.equals("deep_frozen_ocean")
-                    || path.equals("deep_lukewarm_ocean");
-        }).orElse(false);
+        return net.caravidro.wayaround.ecology.DeepOceanBiomes.contains(level,pos);
+    }
+
+    public static boolean submerged(Entity entity, ClientLevel level, Vec3 eye) {
+        if (entity == null) return false;
+        boolean vehicle = entity.getVehicle() instanceof DeepSeaSubmarineEntity
+                || entity.getVehicle() instanceof DeepSeaCapsuleEntity;
+        return entity.isUnderWater() || (vehicle && eye.y < level.getSeaLevel()
+                && level.getFluidState(BlockPos.containing(eye)).is(net.minecraft.tags.FluidTags.WATER));
     }
 
     public static boolean shouldRender(Entity target) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null
                 || minecraft.level == null
-                || !minecraft.player.isUnderWater()
+                || !submerged(minecraft.player, minecraft.level, minecraft.gameRenderer.getMainCamera().getPosition())
                 || !isDeepOcean(minecraft.level, minecraft.player.blockPosition())) {
             return true;
         }
