@@ -49,6 +49,27 @@ jobs:
           assert '10 required tests passed' in text or 'All 10 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
+      - name: Inspect cached vanilla flying path implementation
+        if: failure()
+        shell: bash
+        run: |
+          python - <<'PYFLIGHT'
+          from pathlib import Path
+          import zipfile,subprocess
+          names=['net/minecraft/world/level/pathfinder/FlyNodeEvaluator','net/minecraft/world/level/pathfinder/PathFinder','net/minecraft/world/entity/ai/navigation/FlyingPathNavigation']
+          found=False
+          for path in Path.home().joinpath('.gradle/caches').rglob('*.jar'):
+              if path.stat().st_size<10000000:continue
+              try:
+                  with zipfile.ZipFile(path) as archive:
+                      if names[0]+'.class' not in archive.namelist():continue
+                      for name in names:
+                          if name+'.java' in archive.namelist():print(archive.read(name+'.java').decode())
+                          else:print(subprocess.check_output(['javap','-c','-p','-classpath',str(path),name.replace('/','.')],text=True))
+                      found=True;break
+              except zipfile.BadZipFile:pass
+          print('Flying implementation found:',found)
+          PYFLIGHT
       - name: Client boot and mixin application
         env:
           ALSOFT_DRIVERS: 'null'
