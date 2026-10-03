@@ -81,8 +81,11 @@ public final class AbyssVoyagerGameTests {
     public static void largeOceanNoiseReachesClimateAndTerrain(GameTestHelper h) {
         // The GameTest fixture uses a flat generator with dummy zero noise.
         // Bind the actual Overworld profile, just as a normal world does.
-        var router=net.minecraft.world.level.levelgen.RandomState.create(h.getLevel().registryAccess(),
-                net.minecraft.world.level.levelgen.NoiseGeneratorSettings.OVERWORLD,42L).router();
+        var registry=h.getLevel().registryAccess();
+        var settings=registry.registryOrThrow(net.minecraft.core.registries.Registries.NOISE_SETTINGS)
+                .getHolderOrThrow(net.minecraft.world.level.levelgen.NoiseGeneratorSettings.OVERWORLD).value();
+        var router=net.minecraft.world.level.levelgen.RandomState.create(settings,
+                registry.registryOrThrow(net.minecraft.core.registries.Registries.NOISE).asLookup(),42L).router();
         int[] climate={0},terrain={0};
         router.continents().mapAll(new net.minecraft.world.level.levelgen.DensityFunction.Visitor() {
             public net.minecraft.world.level.levelgen.DensityFunction apply(net.minecraft.world.level.levelgen.DensityFunction f) {
