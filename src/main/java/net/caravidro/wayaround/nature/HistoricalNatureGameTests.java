@@ -31,6 +31,7 @@ public final class HistoricalNatureGameTests {
     public static void sunfishAlreadyBaskingAtDiscovery(GameTestHelper h){
         var l=h.getLevel();var p=h.absolutePos(new BlockPos(7,2,7));
         for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=0;y<=9;y++)l.setBlock(p.offset(x,y,z),y<4?Blocks.WATER.defaultBlockState():Blocks.AIR.defaultBlockState(),3);
+        for(int y=p.getY()+4;y<l.getMaxBuildHeight();y++)l.setBlock(new BlockPos(p.getX(),y,p.getZ()),Blocks.AIR.defaultBlockState(),3);
         var fish=net.caravidro.wayaround.ecology.EcologyContent.SUNFISH.get().create(l);
         fish.moveTo(p.getX()+.5,p.getY()+1,p.getZ()+.5,0,0);
         long offset=net.caravidro.wayaround.ecology.EcologicalHistory.phase(l.getSeed(),fish.getUUID().getMostSignificantBits(),0,8000);

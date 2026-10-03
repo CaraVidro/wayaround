@@ -252,7 +252,7 @@ public final class DeferredMiningManager {
             ServerLevel level,
             MiningRegionRules.Region region) {
 
-        if(!regionLoaded(level,new BlockPos(region.centerX(),0,region.centerZ()),region.radius()+3))return;
+        if(!regionLoaded(level,new BlockPos(region.centerX(),0,region.centerZ()),region.radius()+10))return;
         if(region.openPit()&&!level.getFluidState(new BlockPos(region.centerX(),level.getHeight(Heightmap.Types.WORLD_SURFACE,region.centerX(),region.centerZ())-1,region.centerZ())).isEmpty())return;
         BlockPos anchor = anchorPos(level, region);
 
@@ -385,7 +385,7 @@ public final class DeferredMiningManager {
                 continue;
             }
 
-            if(!regionLoaded(level,pos,anchor.radius()+3))continue;
+            if(!regionLoaded(level,pos,anchor.radius()+10))continue;
             switch (anchor.stage()) {
                 case STRUCTURE -> structureStep(level, pos, anchor, region);
                 case ORES -> oreStep(level, pos, anchor, region);
