@@ -1453,12 +1453,6 @@ public final class EcologyContent {
                                                 SEAGULL_SPAWN_EGG.get()
                                         );
                                         output.accept(
-                                                DEEP_SEA_CAPSULE_ITEM.get()
-                                        );
-                                        output.accept(
-                                                DEEP_SEA_SUBMARINE_ITEM.get()
-                                        );
-                                        output.accept(
                                                 MAGIC_FISHING_ROD.get()
                                         );
                                         output.accept(

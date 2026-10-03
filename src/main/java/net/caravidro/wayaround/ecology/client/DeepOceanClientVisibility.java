@@ -110,6 +110,8 @@ public final class DeepOceanClientVisibility {
             double depth,
             Entity rider
     ) {
+        double upward = Minecraft.getInstance().gameRenderer.getMainCamera().getLookVector().y();
+        if (depth > 38 && upward > .3) return (float)Math.max(8, Math.min(32,depth*.38));
         double t = Math.max(0.0, Math.min(1.0, (depth - 18.0) / 72.0));
         t = t * t * (3.0 - 2.0 * t);
 

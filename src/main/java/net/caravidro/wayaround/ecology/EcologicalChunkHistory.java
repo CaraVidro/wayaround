@@ -43,6 +43,7 @@ public final class EcologicalChunkHistory {
                 it.remove();work--;
                 if(WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)){
                     DeepOceanSurfaceRepair.repair(l,p);
+                    OceanFloorRemains.repair(l,p);
                     EcologicalSuccession.seedHistoricalChunk(l,p.x,p.z);
                 }
                 if(WorldFeatureRuntime.serverEnabled(WorldFeature.MINING_REGIONS))DeferredMiningManager.onLoadedTerrain(l,p.x,p.z);

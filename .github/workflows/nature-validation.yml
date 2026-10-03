@@ -35,6 +35,8 @@ jobs:
           mkdir -p /tmp/nature-classes
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/nature/NatureMath.java tests/nature/NatureMathTest.java src/main/java/net/caravidro/wayaround/ecology/EcologicalHistory.java tests/nature/EcologicalHistoryTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/daybreak/DaysBreakMath.java tests/daybreak/DaysBreakMathTest.java
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/ecology/OceanPressure.java tests/nature/OceanPressureTest.java
+          java -cp /tmp/nature-classes OceanPressureTest
           java -cp /tmp/nature-classes DaysBreakMathTest
           java -cp /tmp/nature-classes NatureMathTest
           java -cp /tmp/nature-classes EcologicalHistoryTest
@@ -46,7 +48,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '10 required tests passed' in text or 'All 10 required tests passed' in text,text[-16000:]
+          assert '14 required tests passed' in text or 'All 14 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application

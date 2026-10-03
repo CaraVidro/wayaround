@@ -1044,5 +1044,6 @@
   "entity.wayaround.crow": "Crow",
   "item.wayaround.crow_spawn_egg": "Crow Spawn Egg",
   "death.attack.then_days_break": "%1$s was consumed by the broken sun",
-  "death.attack.then_days_break.player": "%1$s was consumed by the broken sun (%2$s)"
+  "death.attack.then_days_break.player": "%1$s was consumed by the broken sun (%2$s)",
+  "container.wayaround.submarine_cargo": "Submarine cargo"
 }

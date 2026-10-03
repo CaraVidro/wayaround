@@ -92,14 +92,14 @@ public abstract class DeepSeaCapsuleCameraMixin {
                 )
                         * forward;
 
+        // At the waterline the viewport must look at the top face of water,
+        // not through its culled underside. Remain inside the roof of the cabin.
+        double cameraY = y + (submarine ? .88 : .91);
+        if (y >= entity.level().getSeaLevel()-1.05) cameraY = Math.max(cameraY, entity.level().getSeaLevel()+.04);
         setPosition(
                 new Vec3(
                         x + forwardX,
-                        y + (
-                                submarine
-                                        ? 0.88
-                                        : 0.91
-                        ),
+                        cameraY,
                         z + forwardZ
                 )
         );

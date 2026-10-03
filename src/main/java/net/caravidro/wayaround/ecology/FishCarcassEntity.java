@@ -31,6 +31,8 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class FishCarcassEntity extends PathfinderMob {
 
+    private boolean abyssalSettled;
+    public void setAbyssalSettled(boolean settled) { abyssalSettled=settled; }
     private static final EntityDataAccessor<Integer> PROFILE =
             SynchedEntityData.defineId(FishCarcassEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> COOKED =
@@ -242,7 +244,7 @@ public final class FishCarcassEntity extends PathfinderMob {
              * Bodies slowly rise instead of shooting upward. Once at the
              * surface the lift becomes tiny, so they visibly bob there.
              */
-            double lift =
+            double lift = abyssalSettled ? -0.015 :
                     deeplySubmerged
                             ? 0.030
                             : 0.0015;
@@ -400,6 +402,7 @@ public final class FishCarcassEntity extends PathfinderMob {
     ) {
         super.addAdditionalSaveData(tag);
 
+        tag.putBoolean("AbyssalSettled",abyssalSettled);
         tag.putInt("FishCarcassProfile", profile().networkId());
         tag.putBoolean("FishCarcassCooked", isCooked());
         tag.putBoolean("FishCarcassLarge", isLargeCarcass());
@@ -414,6 +417,7 @@ public final class FishCarcassEntity extends PathfinderMob {
     ) {
         super.readAdditionalSaveData(tag);
 
+        abyssalSettled=tag.getBoolean("AbyssalSettled");
         entityData.set(PROFILE, tag.getInt("FishCarcassProfile"));
         entityData.set(COOKED, tag.getBoolean("FishCarcassCooked"));
         entityData.set(LARGE, tag.getBoolean("FishCarcassLarge"));

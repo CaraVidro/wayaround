@@ -116,7 +116,9 @@ public final class KrakenManager {
 
                 if (now >= rumbleAt) {
                     deepRumble(player, false);
-                    if (random.nextInt(4) == 0) forceScene(player, player.getVehicle() instanceof net.minecraft.world.entity.vehicle.Boat ? 4 : 3);
+                    if (random.nextInt(4) == 0) forceScene(player,
+                            player.getY()<level.getSeaLevel()-40 ? (player.getVehicle() instanceof DeepSeaSubmarineEntity && random.nextBoolean()?6:5)
+                            : player.getVehicle() instanceof net.minecraft.world.entity.vehicle.Boat?4:3);
 
                     NEXT_RUMBLE.put(
                             player.getUUID(),
@@ -198,10 +200,18 @@ public final class KrakenManager {
     }
 
     public static boolean forceScene(ServerPlayer player, int kind) {
-        if (kind < 2 || kind > 4 || ACTIVE.containsKey(player.serverLevel())) return false;
+        if (kind < 2 || kind > 6 || ACTIVE.containsKey(player.serverLevel())) return false;
+        if(kind==6 && !(player.getVehicle() instanceof DeepSeaSubmarineEntity)) return false;
+        if(kind==5 && player.getY()>player.serverLevel().getSeaLevel()-35) return false;
         Site site = kind == 2 ? findTentacleSite(player) : new Site(
                 player.blockPosition().getX(), player.blockPosition().getZ(), 0,
                 player.serverLevel().getSeaLevel() - 1, 1, 0);
+        if(kind==5 || kind==6) {
+            var look=player.getLookAngle();
+            int dx=look.x>=0?1:-1,dz=look.z>=0?1:-1;
+            site=new Site(player.blockPosition().getX()+(kind==5?dx*22:0),player.blockPosition().getZ()+(kind==5?dz*22:0),0,
+                    (int)player.getY()-2,dx,dz);
+        }
         if (site == null || !player.serverLevel().getFluidState(
                 new BlockPos(site.x, site.surface - 2, site.z)).is(FluidTags.WATER)) return false;
         ACTIVE.put(player.serverLevel(), new KrakenEvent(player.serverLevel(), site, player.getUUID(), kind));
@@ -869,6 +879,17 @@ public final class KrakenManager {
                 }
             }
             age++;
+            if(kind<3 && (age==KrakenMotion.breachAge(kind) || age==170 || kind==2 && age%55==0)) {
+                level.playSound(null,new BlockPos(site.x,site.surface,site.z),SoundEvents.ELDER_GUARDIAN_AMBIENT,SoundSource.AMBIENT,5F,kind==1?.4F:.55F);
+                level.playSound(null,new BlockPos(site.x,site.surface,site.z),SoundEvents.PLAYER_ATTACK_SWEEP,SoundSource.AMBIENT,4F,.45F);
+            }
+            if(kind==5 && (age==18 || age==135 || age==230)) level.playSound(null,new BlockPos(site.x,site.surface,site.z),SoundEvents.ELDER_GUARDIAN_AMBIENT,SoundSource.AMBIENT,2.4F,.35F);
+            if(kind==6 && age%12==0 && player.getVehicle() instanceof DeepSeaSubmarineEntity submarine && submarine.inWaterColumn()) {
+                double envelope=Math.sin(Math.PI*age/(double)duration);
+                submarine.push(Math.sin(age*.31)*.045*envelope,Math.sin(age*.22)*.035*envelope,Math.cos(age*.31)*.045*envelope);
+                submarine.hurtMarked=true;submarine.shake(14,(float)(.3*envelope));
+                if(age%36==0) submarine.sound(SoundEvents.IRON_DOOR_CLOSE,1F,.35F);
+            }
             if (kind < 3 && (age == KrakenMotion.breachAge(kind) || age == KrakenMotion.impactAge(kind))) {
                 double splashX=site.x, splashZ=site.z;
                 if (kind!=1 && age==KrakenMotion.impactAge(kind)) {

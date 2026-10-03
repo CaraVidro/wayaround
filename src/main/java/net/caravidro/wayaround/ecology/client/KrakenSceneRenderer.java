@@ -116,7 +116,19 @@ public final class KrakenSceneRenderer {
             Vec3 d=direction();
             Vec3 side=new Vec3(-d.z,0,d.x);
             double shade=Math.max(.25, owner.getSkyColor(camera, partial).length()/1.73);
-            if(scene.kind()==1) {
+            if(scene.kind()==5) {
+                // A pair of eyes only: open, blink, then retreat into black water.
+                Vec3 facing=d.scale(-1);
+                double retreat=KrakenMotion.smooth((a-175)/110)*65;
+                double opening=KrakenMotion.smooth(a/55)*(1-KrakenMotion.smooth((a-260)/40));
+                for(double blink:new double[]{110,170}) if(a>=blink && a<blink+14) opening*=Math.abs((a-blink-7)/7);
+                int alpha=(int)(220*(1-KrakenMotion.smooth((a-210)/90)));
+                for(int sign:new int[]{-1,1}) {
+                    Vec3 center=origin().add(d.scale(retreat)).add(side.scale(sign*4.5));
+                    count+=eye(b,matrix,camera,center,side,3.2,.05+opening*1.6,171,129,53,alpha);
+                    count+=eye(b,matrix,camera,center.add(facing.scale(.03)),side,.40,.04+opening*1.48,7,9,7,alpha);
+                }
+            } else if(scene.kind()==1) {
                 double rise=KrakenMotion.emergence(a,1);
                 Vec3 center=origin().add(0,-70+rise*84,0);
                 // A tapered squid mantle, collar, broad fins and binocular eyes.
@@ -168,8 +180,8 @@ public final class KrakenSceneRenderer {
             // Broad moving silhouette on the water, softened with nested bands.
             double pass=scene.kind()==4?(a/200.0-.5)*140:0;
             Vec3 shadow=origin().add(d.scale(pass)).add(0,.04,0);
-            for(int ring=0;ring<5;ring++) count+=disc(b,matrix,camera,shadow,55-ring*7,0,5,12,18,12+ring*4);
-            if(scene.kind()>=3) {
+            for(int ring=0;scene.kind()<5 && ring<5;ring++) count+=disc(b,matrix,camera,shadow,55-ring*7,0,5,12,18,12+ring*4);
+            if(scene.kind()>=3 && scene.kind()<5) {
                 for(int i=0;i<18;i++) {
                     double phase=(a*.035+i*.37)%1;
                     double angle=i*2.39996;
@@ -201,6 +213,15 @@ public final class KrakenSceneRenderer {
         }
         if(count==0) { b.build(); return; }
         draw(b,false);
+    }
+    private static int eye(BufferBuilder b,Matrix4f matrix,Vec3 camera,Vec3 center,Vec3 side,double width,double height,int r,int g,int blue,int alpha) {
+        for(int i=0;i<24;i++) {
+            double a=i*Math.PI/12,n=(i+1)*Math.PI/12;
+            Vec3 p=center.add(side.scale(Math.cos(a)*width)).add(0,Math.sin(a)*height,0);
+            Vec3 q=center.add(side.scale(Math.cos(n)*width)).add(0,Math.sin(n)*height,0);
+            quad(b,matrix,camera,center,p,q,center,r,g,blue,alpha);
+        }
+        return 24;
     }
     private static void draw(BufferBuilder b,boolean opaque) {
         RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.enableDepthTest();

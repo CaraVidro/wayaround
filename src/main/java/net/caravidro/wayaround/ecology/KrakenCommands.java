@@ -21,7 +21,7 @@ public final class KrakenCommands {
         dispatcher.register(Commands.literal("kraken").requires(source -> source.hasPermission(2))
                 .then(Commands.literal("stop").executes(context ->
                         KrakenManager.stop(context.getSource().getLevel()) ? 1 : 0)));
-        String[] scenes = {"migrate", "bubbles", "passing"};
+        String[] scenes = {"migrate", "bubbles", "passing", "eyes", "submarine"};
         for (int i = 0; i < scenes.length; i++) {
             final int kind = i + 2;
             dispatcher.register(Commands.literal("kraken").requires(source -> source.hasPermission(2))

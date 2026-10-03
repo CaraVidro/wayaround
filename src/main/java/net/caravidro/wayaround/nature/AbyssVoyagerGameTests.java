@@ -1,0 +1,51 @@
+package net.caravidro.wayaround.nature;
+
+import java.util.List;
+import java.util.UUID;
+import net.caravidro.wayaround.ecology.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.gametest.framework.*;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.neoforged.neoforge.gametest.*;
+
+@GameTestHolder("wayaround_nature")
+@PrefixGameTestTemplate(false)
+public final class AbyssVoyagerGameTests {
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void cargoAndPressureReload(GameTestHelper h) {
+        var l=h.getLevel();var sub=EcologyContent.DEEP_SEA_SUBMARINE.get().create(l);
+        sub.cargo().setItem(8,new ItemStack(Items.DIAMOND,17));sub.setPressureExposure(2100);
+        var loaded=EcologyContent.DEEP_SEA_SUBMARINE.get().create(l);loaded.load(sub.saveWithoutId(new CompoundTag()));
+        h.assertTrue(loaded.cargo().getItem(8).getCount()==17 && loaded.cargo().getItem(8).is(Items.DIAMOND),"Cargo survives entity reload exactly");
+        h.assertTrue(loaded.pressureExposure()==2100,"Pressure cannot reset on chunk unload");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void capsuleCannotFly(GameTestHelper h) {
+        var l=h.getLevel();var capsule=EcologyContent.DEEP_SEA_CAPSULE.get().create(l);
+        BlockPos p=h.absolutePos(new BlockPos(5,4,5));
+        for(int y=1;y<=7;y++)l.setBlock(new BlockPos(p.getX(),h.absolutePos(new BlockPos(0,y,0)).getY(),p.getZ()),Blocks.AIR.defaultBlockState(),3);
+        capsule.setPos(p.getX()+.5,p.getY(),p.getZ()+.5);capsule.setVerticalInput(1);capsule.tick();
+        h.assertTrue(capsule.getY()<p.getY(),"Out-of-water capsule obeys gravity");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void wreckContainerConservation(GameTestHelper h) {
+        var l=h.getLevel();BlockPos from=h.absolutePos(new BlockPos(5,5,5)),to=from.below(3);
+        l.setBlock(to.below(),Blocks.STONE.defaultBlockState(),3);l.setBlock(to,Blocks.WATER.defaultBlockState(),3);l.setBlock(from,Blocks.CHEST.defaultBlockState(),3);
+        ((ChestBlockEntity)l.getBlockEntity(from)).setItem(4,new ItemStack(Items.EMERALD,13));
+        h.assertTrue(OceanFloorRemains.settle(l,from,to.getY()-1),"Unsupported chest settles onto seabed");
+        var chest=(ChestBlockEntity)l.getBlockEntity(to);
+        h.assertTrue(l.getBlockEntity(from)==null && chest.getItem(4).getCount()==13,"Every stack moves once, old container gone");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="abyss",timeoutTicks=80)
+    public static void corpseSkinAndSkeletonReload(GameTestHelper h) {
+        var l=h.getLevel();var corpse=EcologyContent.PLAYER_CORPSE.get().create(l);UUID owner=UUID.randomUUID();
+        corpse.initialize(owner,"Test",List.of(new PlayerCorpseEntity.StoredStack(0,new ItemStack(Items.BREAD,7))));
+        var tag=corpse.saveWithoutId(new CompoundTag());tag.putBoolean("Skeleton",true);
+        var reload=EcologyContent.PLAYER_CORPSE.get().create(l);reload.load(tag);
+        h.assertTrue(owner.equals(reload.owner()) && reload.isSkeleton() && reload.storedStackCount()==1,"Owner skin identity and skeletal body preserve inventory");h.succeed();
+    }
+}

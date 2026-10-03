@@ -87,8 +87,8 @@ public abstract class NoiseRouterMixin {
             return;
         }
 
-        NoiseRouter vanilla =
-                cir.getReturnValue();
+        NoiseRouter vanilla = cir.getReturnValue();
+        if (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) vanilla = net.caravidro.wayaround.worldgen.terrain.OceanContinentalness.scale(vanilla);
 
 
         /*

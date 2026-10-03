@@ -114,11 +114,8 @@ public abstract class DeepOceanLightTextureMixin {
                         minecraft.player.getVehicle()
                                 instanceof DeepSeaSubmarineEntity;
 
-                float lampFloor =
-                        realSubmarineLight
-                                ? 0.0F
-                                : lamp
-                                * 0.34F;
+                // Both pressure craft now use real, stable moving light sources.
+                float lampFloor = 0.0F;
 
                 float visibleLight =
                         Math.max(

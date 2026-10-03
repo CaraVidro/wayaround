@@ -16,7 +16,7 @@ public record KrakenSceneS2CPayload(int kind, int x, int surface, int z, int dx,
                 b.writeVarInt(p.dx); b.writeVarInt(p.dz); b.writeVarInt(p.age); },
             b -> new KrakenSceneS2CPayload(b.readVarInt(),b.readInt(),b.readInt(),b.readInt(),
                     b.readVarInt(),b.readVarInt(),b.readVarInt()));
-    public boolean isSane() { return kind >= -1 && kind <= 4 && Math.abs((long)x) <= 30_000_000
+    public boolean isSane() { return kind >= -1 && kind <= 6 && Math.abs((long)x) <= 30_000_000
             && Math.abs((long)z) <= 30_000_000 && surface >= -2048 && surface <= 2048
             && dx >= -1 && dx <= 1 && dz >= -1 && dz <= 1 && age >= 0 && age <= 340; }
     @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }

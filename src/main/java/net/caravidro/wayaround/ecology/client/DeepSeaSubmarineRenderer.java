@@ -118,8 +118,12 @@ public final class DeepSeaSubmarineRenderer
                         .defaultBlockState();
 
         // Walls surround an empty cabin instead of putting the camera in solid iron.
-        cuboid(pose, buffers, light, iron, -.76, 0, -.10, .12, .86, 2.28);
-        cuboid(pose, buffers, light, iron, .76, 0, -.10, .12, .86, 2.28);
+        for (int sign : new int[]{-1, 1}) {
+            cuboid(pose,buffers,light,iron,sign*.76,-.32,-.10,.12,.22,2.28);
+            cuboid(pose,buffers,light,iron,sign*.76,.32,-.10,.12,.22,2.28);
+            for (double z : new double[]{-.98,.08,.91}) cuboid(pose,buffers,light,iron,sign*.76,0,z,.12,.5,.10);
+            cuboid(pose,buffers,light,Blocks.GLASS.defaultBlockState(),sign*.76,0,-.10,.035,.42,1.9);
+        }
         cuboid(pose, buffers, light, dark, 0, -.40, -.10, 1.40, .10, 2.28);
         cuboid(pose, buffers, light, iron, 0, .40, -.10, 1.40, .10, 2.28);
         cuboid(pose, buffers, light, iron, 0, 0, -1.18, 1.40, .70, .12);
@@ -133,10 +137,10 @@ public final class DeepSeaSubmarineRenderer
                 light,
                 copper,
                 -0.80,
-                0.0,
+                -0.30,
                 -0.05,
                 0.12,
-                0.62,
+                0.12,
                 1.90
         );
 
@@ -146,10 +150,10 @@ public final class DeepSeaSubmarineRenderer
                 light,
                 copper,
                 0.80,
-                0.0,
+                -0.30,
                 -0.05,
                 0.12,
-                0.62,
+                0.12,
                 1.90
         );
 
