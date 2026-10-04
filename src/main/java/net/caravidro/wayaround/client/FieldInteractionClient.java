@@ -23,4 +23,5 @@ public final class FieldInteractionClient {
  }
  @SubscribeEvent public static void hands(RenderHandEvent e){var p=Minecraft.getInstance().player;if(p!=null&&EntitySpectate.holding(p))e.setCanceled(true);}
  @SubscribeEvent public static void player(RenderPlayerEvent.Pre e){if(EntitySpectate.holding(e.getEntity()))e.setCanceled(true);}
+ @SubscribeEvent public static void click(InputEvent.InteractionKeyMappingTriggered e){if(target>=0&&(e.isUseItem()||e.isAttack())){e.setCanceled(true);e.setSwingHand(false);PacketDistributor.sendToServer(new FieldControlPayload((byte)3));target=-1;clicked=true;}}
 }

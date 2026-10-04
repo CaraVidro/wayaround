@@ -203,7 +203,7 @@ public enum FishProcessingProfile {
             return SALMON;
         }
 
-        if(fish instanceof WhaleEntity || fish instanceof CleintonEntity)return null;
+        if(fish instanceof WhaleEntity)return null;
         if(fish instanceof RegionalFishEntity regional)return valueOf(regional.species().name());
         if(fish.getType()==EntityType.COD)return COD;
         if(fish.getType()==EntityType.TROPICAL_FISH)return TROPICAL;

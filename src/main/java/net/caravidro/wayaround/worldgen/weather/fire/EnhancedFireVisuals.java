@@ -3,6 +3,7 @@ package net.caravidro.wayaround.worldgen.weather.fire;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.mixin.FireBlockAccessor;

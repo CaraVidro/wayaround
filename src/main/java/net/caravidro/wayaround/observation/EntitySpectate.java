@@ -19,6 +19,7 @@ public final class EntitySpectate {
     public static boolean holding(net.minecraft.world.entity.player.Player p){return p.getMainHandItem().is(WayAroundContent.ENTITY_SPECTATE.get())||p.getOffhandItem().is(WayAroundContent.ENTITY_SPECTATE.get());}
     public static boolean active(ServerPlayer p){return VISITS.containsKey(p.getUUID());}
     public static void start(ServerPlayer p,Entity target){
+        if(p.getPersistentData().getLong("WayAroundSpectateStopUntil")>p.level().getGameTime())return;
         if(active(p)){stop(p);return;}
         if(!holding(p)||target==p||!target.isAlive()||target.level()!=p.level()||p.distanceToSqr(target)>36||!p.hasLineOfSight(target)||p.isPassenger())return;
         VISITS.put(p.getUUID(),new Visit(target,p.serverLevel(),p.position(),p.getYRot(),p.getXRot(),p.isNoGravity(),p.noPhysics,p.isInvulnerable()));
@@ -28,11 +29,12 @@ public final class EntitySpectate {
     }
     public static void stop(ServerPlayer p){
         var visit=VISITS.remove(p.getUUID());if(visit==null)return;
-        p.getPersistentData().remove("WayAroundSpectateVisit");
+        p.getPersistentData().remove("WayAroundSpectateVisit");p.getPersistentData().putLong("WayAroundSpectateStopUntil",p.level().getGameTime()+5);
         p.setCamera(p);p.setNoGravity(visit.gravity());p.noPhysics=visit.physics();p.setInvulnerable(visit.invulnerable());
         if(p.isAlive())p.teleportTo(visit.level(),visit.origin().x,visit.origin().y,visit.origin().z,Set.of(),visit.yaw(),visit.pitch());
         PacketDistributor.sendToPlayer(p,new EntitySpectateStatePayload(-1));
     }
+    @SubscribeEvent public static void specific(PlayerInteractEvent.EntityInteractSpecific e){if(holding(e.getEntity())){e.setCanceled(true);e.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);if(e.getEntity() instanceof ServerPlayer p)start(p,e.getTarget());}}
     @SubscribeEvent public static void interact(PlayerInteractEvent.EntityInteract e){if(holding(e.getEntity())){e.setCanceled(true);e.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);if(e.getEntity() instanceof ServerPlayer p)start(p,e.getTarget());}}
     @SubscribeEvent public static void tick(ServerTickEvent.Post e){for(var p:e.getServer().getPlayerList().getPlayers()){
         if(holding(p)&&p.isAlive()){if(!HIDDEN.containsKey(p.getUUID())){HIDDEN.put(p.getUUID(),p.isInvisible());p.getPersistentData().putBoolean("WayAroundSpectateWasInvisible",p.isInvisible());}p.setInvisible(true);}

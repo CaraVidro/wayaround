@@ -234,6 +234,8 @@ public final class LivingFaunaManager {
                             ItemStack stack =
                                     drop.getItem();
 
+                            var bodyProfile=FishProcessingProfile.fromFish(fish);
+                            if(bodyProfile!=null&&(stack.is(bodyProfile.rawMeat())||stack.is(bodyProfile.cookedMeat())||stack.is(Items.BONE)))return true;
                             return (fish instanceof RegionalFishEntity regional
                                     && stack.is(RegionalFishSpecies.MEAT.get(regional.species()).get()))
                                     || stack.is(

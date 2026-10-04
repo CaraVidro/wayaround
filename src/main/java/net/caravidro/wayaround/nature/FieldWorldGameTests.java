@@ -26,7 +26,7 @@ public final class FieldWorldGameTests {
  @GameTest(template="assembly_test",batch="field_world",timeoutTicks=100)
  public static void everyFishHasPhysicalProcessing(GameTestHelper h){
   int checked=0;for(var type:net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE){var id=net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(type);if(!id.getNamespace().equals("wayaround")&&type!=EntityType.COD&&type!=EntityType.SALMON&&type!=EntityType.TROPICAL_FISH&&type!=EntityType.PUFFERFISH)continue;
-   var e=type.create(h.getLevel());if(!(e instanceof AbstractFish fish)||fish instanceof WhaleEntity||fish instanceof CleintonEntity)continue;
+   var e=type.create(h.getLevel());if(!(e instanceof AbstractFish fish)||fish instanceof WhaleEntity)continue;
    var profile=FishProcessingProfile.fromFish(fish);h.assertTrue(profile!=null,"Processable carcass profile "+id);h.assertTrue(profile.rawMeat()!=Items.AIR&&profile.cookedMeat()!=Items.AIR&&profile.wholeItem(false,false)!=Items.AIR,"Whole body and meat registry "+id);checked++;
   }h.assertTrue(checked>=24,"All current fish species included");h.assertTrue(FishProcessingProfile.JELLYFISH.boneCount(true)==0,"Jellyfish have no invented bones");h.succeed();
  }
