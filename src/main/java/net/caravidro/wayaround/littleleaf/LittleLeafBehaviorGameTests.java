@@ -96,4 +96,46 @@ public final class LittleLeafBehaviorGameTests {
         h.assertTrue(c.hostile(player),"Direct attack is shared with the colony");var saved=c.saveWithFullMetadata(l.registryAccess());c.loadWithComponents(saved,l.registryAccess());h.assertTrue(c.hostile(player),"Colony remembers the attacker after reload");
         c.initialize(l.getGameTime(),0,true);var queen=LittleLeafContent.RED_ANT.get().create(l);queen.bind(p,2,false,false);queen.die(l.damageSources().generic());c.advance(l.getGameTime()+24000);h.assertTrue(c.work()==0,"Dead queen stops aggregate growth");h.succeed();
     }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1200)
+    public static void termiteCollectsLeavesAcrossAHighLedge(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();l.setBlock(p,LittleLeafContent.TERMITE_COLONY.get().defaultBlockState(),18);c=(ColonyCoreBlockEntity)l.getBlockEntity(p);c.initialize(l.getGameTime(),0,false);
+        for(int y=0;y<4;y++)l.setBlock(p.offset(4,y,0),Blocks.STONE.defaultBlockState(),18);
+        l.setBlock(p.offset(4,4,0),Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT,true),18);
+        var insect=LittleLeafContent.TERMITE.get().create(l);insect.bind(p,0,false,false);insect.moveTo(p.getX()+.5,p.getY(),p.getZ()+2.5,0,0);l.addFreshEntity(insect);final var colony=c;
+        h.succeedWhen(()->h.assertTrue(colony.work()>0&&!insect.carrying(),"A tiny termite climbs solid terrain, cuts an actual elevated leaf and returns it: "+insect.position()));
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void constructionConservesTerrainAndSavedCargo(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();c.invertColony();var insect=LittleLeafContent.BLACK_ANT.get().create(l);insect.bind(p,0,false,true);
+        var source=p.offset(9,-1,0);l.setBlock(source,Blocks.DIRT.defaultBlockState(),18);insect.moveTo(source.getX()+.5,source.getY()+1,source.getZ()+.5,0,0);
+        boolean old=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);try{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());
+            h.assertTrue(c.excavate(l,source,insect)&&l.getBlockState(source).isAir()&&insect.carryingMaterial(),"One real terrain block becomes one carried block");
+            var tag=new CompoundTag();insect.saveWithoutId(tag);var copy=LittleLeafContent.BLACK_ANT.get().create(l);copy.load(tag);h.assertTrue(copy.carryingMaterial()&&copy.material().is(Blocks.DIRT),"Actual block cargo survives entity persistence");
+            var site=p.offset(3,0,3);l.setBlock(site,Blocks.AIR.defaultBlockState(),18);insect.moveTo(site.getX()-2,site.getY(),site.getZ()+.5,0,0);
+            h.assertTrue(c.placeMaterial(l,site,insect)&&l.getBlockState(site).is(Blocks.DIRT)&&!insect.carryingMaterial(),"The transported block is physically placed outside the worker body");h.assertTrue(!c.placeMaterial(l,site,insect),"Consumed cargo cannot create another block");
+            l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(false,l.getServer());l.setBlock(source,Blocks.DIRT.defaultBlockState(),18);insect.moveTo(source.getX()+.5,source.getY()+1,source.getZ()+.5,0,0);h.assertTrue(!c.excavate(l,source,insect)&&l.getBlockState(source).is(Blocks.DIRT),"mobGriefing disables terrain removal");h.succeed();
+        }finally{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());}
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void growthDoesNotSummonWalls(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();c.invertColony();c.delivered(true);c.advance(l.getGameTime()+24000*30);
+        int before=0;for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)for(int y=0;y<5;y++)if(l.getBlockState(p.offset(x,y,z)).is(Blocks.DIRT))before++;
+        for(int i=0;i<40;i++)ColonyCoreBlockEntity.tick(l,p,c.getBlockState(),c);
+        int after=0;for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)for(int y=0;y<5;y++)if(l.getBlockState(p.offset(x,y,z)).is(Blocks.DIRT))after++;
+        h.assertTrue(after==before,"Ecological age unlocks blueprints, but only actual cargo-bearing workers build walls");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void queenDeathKillsTheCultureAndPersistsAbandonment(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos().offset(1,-3,0);l.setBlock(p,LittleLeafContent.COLONY_FUNGUS.get().defaultBlockState(),18);c.queenDied();
+        h.assertTrue(c.abandoned()&&!l.getBlockState(p).getValue(ColonyFungusBlock.ALIVE),"Queen death abandons the colony and kills its living culture");
+        var player=h.makeMockPlayer(GameType.SURVIVAL);l.getBlockState(p).useWithoutItem(l,player,new BlockHitResult(Vec3.atCenterOf(p),Direction.UP,p,false));h.assertTrue(player.getInventory().countItem(LittleLeafContent.FUNGUS_ITEM.get())==0,"Dead fungus cannot produce a brewing culture");
+        var data=ColonyTransitData.get(l.getServer());var id=GlobalPos.of(l.dimension(),c.getBlockPos());var saved=data.save(new CompoundTag(),l.registryAccess());h.assertTrue(ColonyTransitData.load(saved,l.registryAccess()).abandoned(id),"Surface/interior death link survives saved-data reload");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void invadingSpeciesPhysicallyEnterAndPersistUntilInteriorIsObserved(GameTestHelper h){
+        var victim=setup(h);var l=h.getLevel();var p=victim.getBlockPos();var invader=LittleLeafContent.RED_ANT.get().create(l);invader.bind(p.offset(20,0,0),1,false,false);invader.moveTo(p.getX()+.5,p.getY()+1,p.getZ()+.5,0,0);l.addFreshEntity(invader);
+        h.assertTrue(ColonyTravel.invade(l,victim,invader)&&invader.isRemoved(),"A rival at the entrance physically leaves the surface for the interior");
+        var data=ColonyTransitData.get(l.getServer());var id=GlobalPos.of(l.dimension(),p);var copy=ColonyTransitData.load(data.save(new CompoundTag(),l.registryAccess()),l.registryAccess());h.assertTrue(copy.pending(id).size()==1&&copy.pending(id).get(0).species()==1,"Pending invader species, caste and health persist without loading an unobserved interior");h.succeed();
+    }
+
 }

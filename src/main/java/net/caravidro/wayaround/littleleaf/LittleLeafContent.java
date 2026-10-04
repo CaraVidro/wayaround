@@ -33,7 +33,7 @@ public final class LittleLeafContent {
     private static DeferredBlock<ColonyCoreBlock> colony(String id,int species){return BLOCKS.register(id,()->new ColonyCoreBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.DIRT).strength(1.5F),species));}
     public static final DeferredItem<BlockItem> BLACK_COLONY_ITEM=ITEMS.registerSimpleBlockItem(BLACK_COLONY),RED_COLONY_ITEM=ITEMS.registerSimpleBlockItem(RED_COLONY),HONEY_COLONY_ITEM=ITEMS.registerSimpleBlockItem(HONEY_COLONY),TERMITE_COLONY_ITEM=ITEMS.registerSimpleBlockItem(TERMITE_COLONY);
     public static ColonyCoreBlock core(int species){return switch(species){case 1->RED_COLONY.get();case 2->HONEY_COLONY.get();case 3->TERMITE_COLONY.get();default->BLACK_COLONY.get();};}
-    public static final DeferredBlock<ColonyFungusBlock> COLONY_FUNGUS=BLOCKS.register("colony_fungus",()->new ColonyFungusBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(.6F).lightLevel(s->4)));
+    public static final DeferredBlock<ColonyFungusBlock> COLONY_FUNGUS=BLOCKS.register("colony_fungus",()->new ColonyFungusBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(.6F).lightLevel(s->s.getValue(ColonyFungusBlock.ALIVE)?4:0)));
     public static final DeferredItem<BlockItem> FUNGUS_ITEM=ITEMS.registerSimpleBlockItem(COLONY_FUNGUS);
     public static final DeferredBlock<ColonyExitBlock> COLONY_EXIT=BLOCKS.register("colony_exit",()->new ColonyExitBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(-1,3600000).noCollission().noOcclusion().lightLevel(s->8).noLootTable()));
     public static final DeferredItem<Item> LEAF_FRAGMENT=ITEMS.register("leaf_fragment",()->new Item(new Item.Properties()));

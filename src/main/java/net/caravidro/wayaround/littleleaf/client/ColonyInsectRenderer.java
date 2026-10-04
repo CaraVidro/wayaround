@@ -19,7 +19,7 @@ public final class ColonyInsectRenderer extends EntityRenderer<ColonyInsectEntit
         double size=e.getScale();float age=e.tickCount+partial;boolean termite=e.species()==3;
         var shell=(e.species()==1?Blocks.RED_TERRACOTTA:e.species()==2?Blocks.ORANGE_TERRACOTTA:termite?Blocks.SMOOTH_SANDSTONE:Blocks.BLACK_CONCRETE).defaultBlockState();
         var dark=(termite?Blocks.BROWN_TERRACOTTA:Blocks.GRAY_TERRACOTTA).defaultBlockState();
-        p.pushPose();p.mulPose(Axis.YP.rotationDegrees(180-yaw));p.scale((float)size,(float)size,(float)size);
+        p.pushPose();p.mulPose(Axis.YP.rotationDegrees(180-yaw));p.scale((float)size,(float)size,(float)size);if(e.climbing()){p.translate(0,.2,0);p.mulPose(Axis.XP.rotationDegrees(-75));}
         var camera=net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         if(!e.enlarged()&&camera.distanceToSqr(e.position())>12*12){
             box(shell,-.12,.14,-.10,.24,.23,.54,p,b,light);
@@ -46,6 +46,7 @@ public final class ColonyInsectRenderer extends EntityRenderer<ColonyInsectEntit
         }
         if(e.species()==2)box(Blocks.YELLOW_CONCRETE.defaultBlockState(),-.10,.21,.20,.20,.15,abdomen*.65,p,b,light);
         if(e.caste()==2)for(int i=0;i<3;i++)box(dark,-.123,.20,.20+i*.08,.246,.025,.02,p,b,light);
+        if(e.carryingMaterial())box(e.material(),-.18,.22,-.43,.36,.36,.36,p,b,light);
         if(e.carrying()){
             p.pushPose();p.translate(0,.28,-.30);p.mulPose(Axis.XP.rotationDegrees(-55+(float)Math.sin(age*.2)*3));
             var leaf=(termite?Blocks.OAK_PLANKS:Blocks.GREEN_CONCRETE).defaultBlockState();box(leaf,-.20,0,-.02,.40,.025,.38,p,b,light);box(Blocks.LIME_CONCRETE.defaultBlockState(),-.012,.026,0,.024,.008,.34,p,b,light);p.popPose();

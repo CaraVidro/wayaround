@@ -34,6 +34,10 @@ public final class ColonyTravel {
             inside.setBlock(link.core(),LittleLeafContent.core(species).defaultBlockState(),18);
             if(inside.getBlockEntity(link.core()) instanceof ColonyCoreBlockEntity c)c.makeInterior(species,stage);
         }
+        if(inside.getBlockEntity(link.core()) instanceof ColonyCoreBlockEntity c){c.linkSource(link.source());
+            // Real pantry cells replace the old air coordinate used by interior foragers.
+            if(!c.abandoned())for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++){var food=link.core().offset(28+x,0,4+z);if(ColonyCoreBlockEntity.loaded(inside,food)&&inside.getBlockState(food).isAir())inside.setBlock(food,Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT,true),18);}
+        }
     }
     public static void prepareExit(ServerLevel inside,ColonyTransitData.Link link){
         var a=link.arrival();var mouth=a.west(18);inside.getChunkAt(mouth);
@@ -44,6 +48,22 @@ public final class ColonyTravel {
             for(int y=0;y<4;y++)inside.setBlock(a.offset(x,y,z),x==-18&&y<3?LittleLeafContent.COLONY_EXIT.get().defaultBlockState():Blocks.AIR.defaultBlockState(),18);
         }
         var old=a.offset(0,0,-4);if(inside.getBlockState(old).is(LittleLeafContent.COLONY_EXIT.get()))inside.setBlock(old,Blocks.AIR.defaultBlockState(),18);
+    }
+    public static boolean invade(ServerLevel outside,ColonyCoreBlockEntity victim,ColonyInsectEntity insect){
+        if(victim.abandoned()||victim.species()==insect.species()||insect.carrying()||insect.carryingMaterial()||victim.interior()||outside.getServer().getLevel(DIMENSION)==null)return false;
+        var data=ColonyTransitData.get(outside.getServer());var source=GlobalPos.of(outside.dimension(),victim.getBlockPos());
+        if(!data.queue(source,new ColonyTransitData.Raider(insect.species(),insect.caste(),insect.getHealth()/insect.getMaxHealth())))return false;
+        ColonyEffects.work(outside,victim.getBlockPos(),Blocks.DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.GRAVEL_BREAK,insect.enlarged()?.3F:.08F);
+        // Persist arrivals instead of generating or ticking unobserved dimensions/chunks.
+        insect.discard();return true;
+    }
+    public static void releaseInvaders(ServerLevel inside,ColonyCoreBlockEntity victim){
+        if(!victim.interior()||victim.abandoned()||inside.getNearestPlayer(victim.getBlockPos().getX(),victim.getBlockPos().getY(),victim.getBlockPos().getZ(),112,false)==null)return;
+        var data=ColonyTransitData.get(inside.getServer());var pending=data.pending(victim.identity());if(pending.isEmpty())return;
+        if(victim.queen(inside)==null)victim.birth(inside);
+        var raid=pending.get(0);var e=LittleLeafContent.type(raid.species()).create(inside);if(e==null)return;e.bind(victim.getBlockPos(),raid.caste(),true,true);e.invade();e.setHealth(e.getMaxHealth()*raid.health());
+        if(!victim.placeAtEntrance(inside,e,victim.getBlockPos().offset(2,0,7)))return;
+        if(inside.addFreshEntity(e)){data.consumed(victim.identity());ColonyEffects.work(inside,e.blockPosition(),Blocks.DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.SILVERFISH_AMBIENT,.25F);}
     }
     public static void leave(ServerPlayer player){
         if(!player.level().dimension().equals(DIMENSION)||cooldown(player))return;var t=player.getPersistentData().getCompound(VISIT);
