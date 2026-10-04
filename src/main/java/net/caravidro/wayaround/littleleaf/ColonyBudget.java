@@ -12,8 +12,8 @@ public final class ColonyBudget {
     public static boolean reserveBuild(ServerLevel l,int count){var b=at(l);if(b.builds<count)return false;b.builds-=count;return true;}
     public static boolean search(ServerLevel l){return at(l).searches-->0;}
     /** Reserve physical-route probes, borrowing unused discovery capacity without exceeding 128. */
-    public static boolean route(ServerLevel l,int entityId){
-        if(Math.floorMod(l.getGameTime()+entityId,2)!=0)return false;
+    public static boolean route(ServerLevel l,int entityId,boolean tiny){
+        if(tiny&&Math.floorMod(l.getGameTime()+entityId,2)!=0)return false;
         var b=at(l);if(b.routes>0){b.routes--;return true;}return b.searches-->0;
     }
     public static boolean searchAvailable(ServerLevel l){return at(l).searches>0;}

@@ -25,7 +25,7 @@ public final class ColonySurfaceRoute {
  private void follow(ColonyInsectEntity e,BlockPos target,boolean walkToCenter){
   if(!(e.level() instanceof ServerLevel l))return;if(e.yielding())return;
   if(!target.equals(goal)||pointGoal!=walkToCenter){reset();pointGoal=walkToCenter;goal=target.immutable();var start=e.blockPosition();cost.put(start,0.0);open.add(new Node(start,0,heuristic(start)));}
-  for(int k=0;path.isEmpty()&&!open.isEmpty()&&k<8&&ColonyBudget.route(l,e.getId());k++){
+  for(int k=0;path.isEmpty()&&!open.isEmpty()&&k<(e.enlarged()?12:8)&&ColonyBudget.route(l,e.getId(),!e.enlarged());k++){
    var n=open.remove();if(n.cost>cost.getOrDefault(n.pos,Double.MAX_VALUE))continue;
    if(++visited>384){failed=true;open.clear();break;}
    var nodePoint=point(l,e,n.pos,false);if(nodePoint==null)continue;var box=e.getBoundingBox().move(nodePoint.subtract(e.position()));
