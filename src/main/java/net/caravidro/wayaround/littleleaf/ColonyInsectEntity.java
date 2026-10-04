@@ -34,7 +34,13 @@ public final class ColonyInsectEntity extends PathfinderMob {
     @Override protected PathNavigation createNavigation(Level l){return new WallClimberNavigation(this,l);}
     @Override public boolean onClimbable(){return entityData.get(CLIMB);}
     @Override protected void registerGoals(){goalSelector.addGoal(0,new FloatGoal(this));goalSelector.addGoal(1,new MeleeAttackGoal(this,1.2,false));goalSelector.addGoal(3,new ColonyGoal());}
-    @Override public void aiStep(){super.aiStep();if(!level().isClientSide){entityData.set(CLIMB,horizontalCollision&&!enlarged());if(home==null&&++unboundTicks>24000&&!hasCustomName())discard();}}
+    @Override public void aiStep(){
+        super.aiStep();if(!level().isClientSide){
+            entityData.set(CLIMB,horizontalCollision&&!enlarged());
+            var target=getTarget();if(target!=null&&(!target.isAlive()||target.level()!=level()||distanceToSqr(target)>(inside?48*48:24*24)||target instanceof Player p&&(p.isCreative()||p.isSpectator())))setTarget(null);
+            if(home==null&&++unboundTicks>24000&&!hasCustomName())discard();
+        }
+    }
     public ColonyCoreBlockEntity colony(){if(home==null||!(level() instanceof ServerLevel l)||!ColonyCoreBlockEntity.loaded(l,home))return null;return l.getBlockEntity(home) instanceof ColonyCoreBlockEntity c?c:null;}
     @Override public boolean hurt(DamageSource source,float amount){if(source.getEntity() instanceof Player p){var c=colony();if(c!=null)c.remember(p.getUUID());setTarget(p);}return super.hurt(source,amount);}
     @Override public void die(DamageSource s){var c=colony();if(caste()==2&&c!=null)c.queenDied();super.die(s);}

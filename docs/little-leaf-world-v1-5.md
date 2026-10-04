@@ -10,7 +10,7 @@ Formigas pretas, vermelhas, de mel e cupins usam trabalhadores, soldados e rainh
 
 Use o fungo numa **brewing stand vanilla**, com poção estranha, para preparar inversão. Pólvora converte o frasco em arremessável pelo preparo vanilla. A inversão é instantânea e persistente: humanos ficam minúsculos; insetos pequenos ficam grandes. Uma segunda aplicação desfaz a transformação individual. A escala usa os atributos vanilla e altera modelo, colisão e câmera, preservando o valor original.
 
-Uma formiga ampliada individualmente não entra no ninho pequeno, nem entrega diretamente ao fungo. Ela deixa fragmentos maiores ao lado, com um limite local de itens no chão. Lançar a poção arremessável perto do núcleo inverte a própria colônia: **os próximos nascimentos** adotam a escala grande. Não transforma retroativamente todos os habitantes. Uma nova dose pode reverter os próximos nascimentos. A colônia continua com seu histórico de trabalho.
+Uma formiga ampliada individualmente não entra no ninho pequeno, nem entrega diretamente ao fungo. Ela deixa fragmentos maiores ao lado, com um limite local de itens no chão. Lançar a poção arremessável no núcleo, no monte ou nas muralhas inverte a própria colônia: **os próximos nascimentos** adotam a escala grande. Não transforma retroativamente todos os habitantes. Uma nova dose pode reverter os próximos nascimentos. A colônia continua com seu histórico de trabalho.
 
 | Nível | Trabalho acumulado | Exterior |
 |---|---:|---|
@@ -22,7 +22,7 @@ Uma formiga ampliada individualmente não entra no ninho pequeno, nem entrega di
 
 Colônias sem inversão ficam limitadas ao nível maior. Cargas grandes contam oito unidades; pequenas, uma. A atividade agregada num habitat favorável soma uma unidade a cada 1.200 ticks, conservando frações entre amostras e recuperando até trinta dias por carregamento. `/timetick` também avança esse relógio, respeitando limites. Não é necessário manter entidades ou chunks distantes rodando. Estruturas novas recebem uma história inicial variada.
 
-Minúsculo, clique com a mão vazia no núcleo: o jogador entra numa **dimensão interna em escala de jogador**. Cada colônia ganha uma célula isolada e um retorno persistente. Há um fungo monumental, raízes, câmara da rainha e galerias menores conectadas. Os insetos internos são grandes, com população limitada; são neutros até uma agressão ou aproximação da câmara da rainha. A colônia salva a memória dos últimos dezesseis intrusos. A morte da rainha interrompe nascimentos e crescimento agregado.
+Minúsculo, clique com a mão vazia no núcleo: o jogador entra numa **dimensão interna em escala de jogador**. Cada colônia ganha uma célula isolada e um retorno persistente. Há um fungo monumental, raízes, câmara da rainha e galerias menores conectadas. Os insetos internos são grandes, com população limitada; são neutros até uma agressão ou aproximação da câmara da rainha. A colônia salva a memória dos últimos dezesseis intrusos. A morte da rainha interrompe nascimentos e crescimento agregado. Insetos abandonam uma perseguição distante e voltam ao trabalho, mantendo a memória do intruso.
 
 Clique no bloco luminoso de saída no vestíbulo para retornar minúsculo. Morrer dentro mantém o vínculo e volta ao vestíbulo; logout/reinício não perde as coordenadas. Destruir o núcleo exterior não apaga a saída. Um retorno vedado recebe uma pequena saída de emergência acima do antigo núcleo. O interior é gerado uma vez, e revisitas preservam alterações.
 

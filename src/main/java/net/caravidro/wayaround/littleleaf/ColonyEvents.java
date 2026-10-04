@@ -24,9 +24,18 @@ public final class ColonyEvents {
         dose(l,e.getRayTraceResult().getLocation());
     }
     public static void dose(ServerLevel l,Vec3 impact){
-        var center=BlockPos.containing(impact);
-        // One impact, at most 147 already-loaded block probes; lingering clouds do not repeatedly toggle a nest.
-        for(var p:BlockPos.betweenClosed(center.offset(-3,-1,-3),center.offset(3,1,3)))if(ColonyCoreBlockEntity.loaded(l,p)&&l.getBlockEntity(p) instanceof ColonyCoreBlockEntity core)core.invertColony();
+        var center=BlockPos.containing(impact);int inspected=0,changed=0;
+        // A roof/wall hit belongs to its mound too. Inspect only nine existing chunks and capped block entities.
+        for(int x=(center.getX()>>4)-1;x<=(center.getX()>>4)+1;x++)for(int z=(center.getZ()>>4)-1;z<=(center.getZ()>>4)+1;z++){
+            var chunk=l.getChunkSource().getChunkNow(x,z);if(chunk==null)continue;
+            for(var be:chunk.getBlockEntities().values()){
+                if(++inspected>256)return;if(!(be instanceof ColonyCoreBlockEntity core)||core.interior())continue;
+                var home=core.getBlockPos();double dx=impact.x-home.getX()-.5,dz=impact.z-home.getZ()-.5;
+                int radius=ColonyRules.radius(core.stage(),core.species()==3)+3,height=ColonyRules.height(core.stage(),core.species()==3)+2;
+                if(dx*dx+dz*dz>radius*radius||impact.y<home.getY()-4||impact.y>home.getY()+height)continue;
+                core.invertColony();if(++changed>=8)return;
+            }
+        }
     }
     @SubscribeEvent public static void eggOnCore(PlayerInteractEvent.RightClickBlock e){
         if(!(e.getLevel() instanceof ServerLevel l)||!(l.getBlockEntity(e.getPos()) instanceof ColonyCoreBlockEntity core))return;

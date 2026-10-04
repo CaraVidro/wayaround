@@ -36,7 +36,7 @@ public final class LittleLeafBehaviorGameTests {
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
     public static void colonyDoseChangesBirthScaleAndLargeDelivery(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var ant=LittleLeafContent.TERMITE.get().create(l);
-        ColonyEvents.dose(l,Vec3.atCenterOf(c.getBlockPos()));h.assertTrue(c.giant(),"Splash at the core changes colony inversion");
+        ColonyEvents.dose(l,Vec3.atCenterOf(c.getBlockPos()).add(0,3,0));h.assertTrue(c.giant(),"Splash on the mound roof changes colony inversion");
         ant.bind(c.getBlockPos(),0,false,c.giant());ant.moveTo(c.getBlockPos().getX()+3,c.getBlockPos().getY(),c.getBlockPos().getZ(),0,0);ant.carry(true);
         long before=c.work();h.assertTrue(ant.getScale()>=3&&c.acceptLoad(ant)&&c.work()==before+8,"New giant inhabitants feed the enhanced colony with larger loads");
         ColonyEvents.dose(l,Vec3.atCenterOf(c.getBlockPos()));h.assertTrue(!c.giant(),"Second colony splash reverses future births");h.succeed();
