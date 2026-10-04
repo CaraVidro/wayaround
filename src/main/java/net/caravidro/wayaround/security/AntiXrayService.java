@@ -20,7 +20,7 @@ import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/** No ore scans, remote chunks, continuous image analysis, or client-selected player identities. */
+/** Shared trust verdicts: no remote chunks, continuous image analysis, or client-selected player identities. */
 @EventBusSubscriber(modid=WayAround.MODID)
 public final class AntiXrayService {
     private static final SecureRandom RANDOM=new SecureRandom();
@@ -81,7 +81,7 @@ public final class AntiXrayService {
         s.pending=false;s.unansweredSince=0;s.missingNotified=false;
         AntiXrayData data=AntiXrayData.get(player.server); AntiXrayData.Case c=data.get(player.getUUID());
         c.name=player.getGameProfile().getName();
-        boolean approved=data.approved(evidence.fingerprint()) || AntiXrayConfig.APPROVED.get().contains(evidence.fingerprint());
+        boolean approved=approved(player,evidence.fingerprint());
         double elapsed=s.previousStrong && evidence.strong() && !approved && s.lastAccepted!=0 && now-s.lastAccepted<=8_000_000_000L
                 ? Math.min(5,(now-s.lastAccepted)/1_000_000_000.0):0;
         s.lastAccepted=now; s.previousStrong=evidence.strong() && !approved;
@@ -92,7 +92,7 @@ public final class AntiXrayService {
             owner(player,"Pack com alterações suspeitas: "+evidence.summary()+". Ainda sem punição; /wayanticheat inspect "+player.getUUID());
         }
         if(evidence.clean() && !s.notifiedFingerprint.isEmpty()) {
-            s.notifiedFingerprint=""; audit(player,"CLEAN terrain restored; active accumulation paused; history retained");
+            s.notifiedFingerprint=""; audit(player,"RESOURCE_CLEAN terrain passed resource audit; independent visual audit continues; history retained");
             player.sendSystemMessage(Component.literal("[WayAround] O pack atual passou na análise de terreno. As evidências anteriores permanecem no histórico."));
         }
         if(approved)s.notifiedFingerprint="";
@@ -103,11 +103,12 @@ public final class AntiXrayService {
         if(value>0)s.lastCredited=now;
         return value;
     }
+    static boolean approved(ServerPlayer player,String fingerprint) { return AntiXrayData.get(player.server).approved(fingerprint)||AntiXrayConfig.APPROVED.get().contains(fingerprint); }
     static void visualAudit(ServerPlayer player,String message) { audit(player,message);owner(player,message); }
     static void visualConfirmed(ServerPlayer player,double seconds,String summary,long now) {
         Session s=SESSIONS.get(player.getUUID());if(s==null||s.previousStrong)return;
         var data=AntiXrayData.get(player.server);var c=data.get(player.getUUID());
-        boolean approved=data.approved(c.fingerprint)||AntiXrayConfig.APPROVED.get().contains(c.fingerprint);
+        boolean approved=approved(player,c.fingerprint);
         if(approved)return;
         applyEvidence(player,c,true,credit(s,now,seconds),false,"VISUAL "+summary);
     }
@@ -131,12 +132,12 @@ public final class AntiXrayService {
         switch(action) {
             case PRIVATE_WARNING -> {
                 audit(player,"PRIVATE_WARNING "+summary);
-                player.sendSystemMessage(Component.literal("[WayAround Anti-Xray] Foram acumuladas evidências de terreno ocultado e minérios preservados. Remova o pack suspeito agora. Se continuar, seu nome será avisado no servidor, seguido de expulsão; a terceira expulsão resulta em banimento permanente. O responsável já recebeu o relatório."));
+                player.sendSystemMessage(Component.literal("[WayAround Anti-Xray] Foram acumuladas evidências de terreno ocultado e minérios preservados. Desative os recursos de x-ray agora. Se continuar, seu nome será avisado no servidor, seguido de expulsão; a terceira expulsão resulta em banimento permanente. O responsável já recebeu o relatório."));
                 owner(player,"Aviso privado enviado; uso confirmado acumulado="+(int)c.history.evidenceSeconds+"s; expulsões="+c.history.kicks);
             }
             case PUBLIC_WARNING -> {
                 audit(player,"PUBLIC_WARNING continued after private warning "+summary);
-                player.server.getPlayerList().broadcastSystemMessage(Component.literal("[WayAround Anti-Xray] "+c.name+" continuou com recursos classificados como x-ray após o aviso. Remova o pack para evitar expulsão."),false);
+                player.server.getPlayerList().broadcastSystemMessage(Component.literal("[WayAround Anti-Xray] "+c.name+" continuou com evidências classificadas como x-ray após o aviso. Desative o x-ray para evitar expulsão."),false);
             }
             case KICK -> punish(player,c);
             default -> {}
@@ -151,7 +152,7 @@ public final class AntiXrayService {
             player.server.getPlayerList().getBans().add(new UserBanListEntry(player.getGameProfile(),new Date(),"WayAround Anti-Xray",null,reason));
         }
         // The history is dirty before logout; reconnect never resets active evidence/round or strikes.
-        SESSIONS.remove(player.getUUID());player.connection.disconnect(Component.literal(reason+(result==TrustHistory.Action.BAN?". Banimento permanente; contate o responsável pelo servidor.":". Remova o pack antes de voltar.")));
+        SESSIONS.remove(player.getUUID());player.connection.disconnect(Component.literal(reason+(result==TrustHistory.Action.BAN?". Banimento permanente; contate o responsável pelo servidor.":". Desative o x-ray antes de voltar.")));
     }
     private static void owner(ServerPlayer player,String message) {
         Component text=Component.literal("[AntiXray privado] "+player.getGameProfile().getName()+" ("+player.getUUID()+"): "+message);

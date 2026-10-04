@@ -5,7 +5,9 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.security.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
-import org.joml.*;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.lwjgl.opengl.*;
 
 /** Explicit CI-only fixture: actual framebuffer/depth readback, then the same server-side voxel math. */
@@ -25,7 +27,7 @@ final class VisibilityGpuValidation {
             Vector4f point=new Vector4f(0,0,-9,1).mul(projection);
             GL11.glClearColor(0,1,1,1);GL11.glClearDepth((point.z/point.w+1)/2);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
             var sample=VisibilityFrameCapture.readback(target,inverse,new Vec3(.5,.5,0),new Vector3f(0,0,-1),42);
-            require(VisibilityAuditService.valid(sample),"GPU readback has finite normalized rays/distances");
+            require(sample.available()&&VisibilityAuditService.valid(sample),"GPU readback has finite normalized rays/distances");
             int covered=0,missing=0,ores=0;var distinct=new java.util.HashSet<String>();
             for(int i=0;i<32;i++) {
                 var ray=VisibilityMath.trace(sample.x(),sample.y(),sample.z(),sample.directions()[i*3],sample.directions()[i*3+1],sample.directions()[i*3+2],sample.distances()[i],Byte.toUnsignedInt(sample.brightness()[i]),
@@ -42,6 +44,8 @@ final class VisibilityGpuValidation {
             }
             require(GL11.glGetInteger(GL30.GL_READ_FRAMEBUFFER_BINDING)==target.frameBufferId&&GL11.glGetInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING)==target.frameBufferId,"Readback restores framebuffer bindings");
             int[] restored=new int[4];GL11.glGetIntegerv(GL11.GL_VIEWPORT,restored);require(restored[2]==128&&restored[3]==72,"Readback restores source viewport");
+            require(Math.abs(GL11.glGetDouble(GL11.GL_DEPTH_CLEAR_VALUE)-(point.z/point.w+1)/2)<.000001,"Readback restores depth clear state");
+            float[] restoredClear=new float[4];GL11.glGetFloatv(GL11.GL_COLOR_CLEAR_VALUE,restoredClear);require(restoredClear[0]==0&&restoredClear[1]==1&&restoredClear[2]==1&&restoredClear[3]==1,"Readback restores clear color");
             WayAround.LOGGER.info("[AntiXray] VISUAL GPU FIXTURES PASSED: real small color/depth capture, opaque wall vs hidden ores, normal view, finite rays, framebuffer/viewport restore; no image saved");
         } finally {
             if(target!=null)target.destroyBuffers();

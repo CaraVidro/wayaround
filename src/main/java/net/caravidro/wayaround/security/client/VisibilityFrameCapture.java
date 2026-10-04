@@ -13,7 +13,9 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.joml.*;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.MemoryUtil;
 
@@ -69,6 +71,9 @@ public final class VisibilityFrameCapture {
         int alignment=GL11.glGetInteger(GL11.GL_PACK_ALIGNMENT),row=GL11.glGetInteger(GL11.GL_PACK_ROW_LENGTH);
         int skipRows=GL11.glGetInteger(GL11.GL_PACK_SKIP_ROWS),skipPixels=GL11.glGetInteger(GL11.GL_PACK_SKIP_PIXELS);
         int[] viewport=new int[4];GL11.glGetIntegerv(GL11.GL_VIEWPORT,viewport);
+        float[] clear=new float[4];GL11.glGetFloatv(GL11.GL_COLOR_CLEAR_VALUE,clear);
+        double clearDepth=GL11.glGetDouble(GL11.GL_DEPTH_CLEAR_VALUE);
+        boolean depthMask=GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
         TextureTarget image=null;ByteBuffer color=null;FloatBuffer depth=null;
         try {
             image=new TextureTarget(VisibilityMath.WIDTH,VisibilityMath.HEIGHT,true,Minecraft.ON_OSX);
@@ -111,6 +116,7 @@ public final class VisibilityFrameCapture {
             GL11.glPixelStorei(GL11.GL_PACK_ALIGNMENT,alignment);GL11.glPixelStorei(GL11.GL_PACK_ROW_LENGTH,row);
             GL11.glPixelStorei(GL11.GL_PACK_SKIP_ROWS,skipRows);GL11.glPixelStorei(GL11.GL_PACK_SKIP_PIXELS,skipPixels);
             GlStateManager._bindTexture(texture);RenderSystem.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
+            RenderSystem.clearColor(clear[0],clear[1],clear[2],clear[3]);GlStateManager._clearDepth(clearDepth);RenderSystem.depthMask(depthMask);
         }
     }
     private VisibilityFrameCapture() {}

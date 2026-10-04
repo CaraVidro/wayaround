@@ -114,6 +114,7 @@ public final class VisibilityAuditService {
         boolean strong=VisibilityMath.strong(covered,missing,ores,distinct.size());
         String summary="covered="+covered+"/32 missing="+missing+" oreBehind="+ores+" distinctOres="+distinct.size()+" unknown="+unknown;
         var data=AntiXrayData.get(player.server);var c=data.get(player.getUUID());c.name=player.getGameProfile().getName();c.visualFrames=Math.min(1000000,c.visualFrames+1);c.lastVisual=summary;data.setDirty();
+        if(AntiXrayService.approved(player,c.fingerprint)){v.streak=0;v.lastPositive=0;v.notified=false;return;}
         if(!strong){v.streak=0;v.lastPositive=0;if(covered>=12)v.notified=false;return;}
         if(v.lastPositive!=0&&now-v.lastPositive>30_000_000_000L)v.streak=0;
         v.streak++;v.lastPositive=now;c.visualContradictions=Math.min(1000000,c.visualContradictions+1);
