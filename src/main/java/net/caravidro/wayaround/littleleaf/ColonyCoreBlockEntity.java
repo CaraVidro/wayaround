@@ -139,8 +139,8 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         if(food!=null&&availableFood(l,food))return food;
         var origin=insect.blockPosition();
         for(int n=0;n<4&&ColonyBudget.search(l);n++){
-            int phase=(insect.tickCount/20)%3;int ring=phase+1;var d=Direction.from2DDataValue((n+insect.getId())%4);var q=origin.relative(d,ring);
-            for(int y=0;y>=-1;y--){var p=q.offset(0,y,0);if(availableFood(l,p))return p;}
+            var offset=FOOD_COLUMNS.get(insect.nextForageColumn(FOOD_COLUMNS.size()));var q=origin.offset(offset);
+            for(int y=1;y>=-1;y--){var p=q.offset(0,y,0);if(availableFood(l,p))return p;}
         }
         return food(l);
     }

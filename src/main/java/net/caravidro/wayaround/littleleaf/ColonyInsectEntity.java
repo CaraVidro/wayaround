@@ -46,7 +46,8 @@ public final class ColonyInsectEntity extends PathfinderMob {
     public void routeClimbing(boolean b){routeClimbing=b;entityData.set(CLIMB,b||horizontalCollision);}
     public boolean climbing(){return entityData.get(CLIMB);}
     public void invade(){invading=true;}
-    private BlockPos home;private boolean inside;private int unboundTicks,gardenMode;
+    private BlockPos home;private boolean inside;private int unboundTicks,gardenMode,forageColumn;
+    public int nextForageColumn(int count){return Math.floorMod(forageColumn++,count);}
     public boolean sheltered(){return gardenMode==2||weatherWaiting;}
     public ColonyInsectEntity(EntityType<? extends ColonyInsectEntity> type,Level level){super(type,level);}
     public int species(){return getType()==LittleLeafContent.RED_ANT.get()?1:getType()==LittleLeafContent.HONEY_ANT.get()?2:getType()==LittleLeafContent.TERMITE.get()?3:0;}
@@ -187,7 +188,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 if(c==null||c.abandoned())destination=blockPosition().offset(random.nextInt(7)-3,0,random.nextInt(7)-3);
                 else if(caste()==1)destination=home.offset(random.nextInt(13)-6,0,random.nextInt(13)-6);
                 else {if((carrying()||carryingBody())&&!inside&&!enlarged()){gardenMode=1;destination=null;route.reset();return;}destination=carrying()?dropSite(c):c.food(l,ColonyInsectEntity.this);}
-                if(destination==null){wait=ColonyBudget.searchAvailable(l)?20:2;return;}route.reset();stuck=0;
+                if(destination==null){wait=ColonyBudget.searchAvailable(l)?8:2;return;}route.reset();stuck=0;
             }
             if(!ColonyCoreBlockEntity.loaded(l,destination)){destination=null;wait=40;return;}
             if(c!=null&&!c.abandoned()&&caste()==0&&!carrying()&&c.cut(l,destination,ColonyInsectEntity.this)){getNavigation().stop();destination=null;route.reset();wait=15;return;}

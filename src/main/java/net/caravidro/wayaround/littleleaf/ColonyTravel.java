@@ -85,12 +85,16 @@ public final class ColonyTravel {
     public static BlockPos safeReturn(ServerLevel l,BlockPos p){
         // Search existing ground in a bounded, loaded neighborhood. Never
         // fabricate a dirt platform or erase a player's block on return.
+        // Prefer the original ground elevation across the neighborhood before
+        // considering nearby roof tops or slopes.
+        for(int attempt=0;attempt<7;attempt++){
+        int dy=attempt==0?0:attempt<=2?attempt:2-attempt;
         for(int r=1;r<=12;r++)for(int x=-r;x<=r;x++)for(int z=-r;z<=r;z++){
             if(Math.max(Math.abs(x),Math.abs(z))!=r)continue;
-            for(int dy=2;dy>=-4;dy--){if(dy<0&&Math.max(Math.abs(x),Math.abs(z))<=2)continue;var q=p.offset(x,dy,z);
+            if(dy<0&&Math.max(Math.abs(x),Math.abs(z))<=2)continue;var q=p.offset(x,dy,z);
                 if(!ColonyCoreBlockEntity.loaded(l,q)||!ColonyCoreBlockEntity.loaded(l,q.above())||!ColonyCoreBlockEntity.loaded(l,q.below()))continue;
                 if(l.getBlockState(q).getCollisionShape(l,q).isEmpty()&&l.getBlockState(q.above()).getCollisionShape(l,q.above()).isEmpty()&&l.getFluidState(q).isEmpty()&&l.getFluidState(q.above()).isEmpty()&&l.getBlockState(q.below()).isFaceSturdy(l,q.below(),Direction.UP))return q;
-            }
+        }
         }
         // The visit remains saved, so a sealed colony can be reopened and retried.
         return null;

@@ -55,7 +55,7 @@ public final class LittleLeafBehaviorGameTests {
         if(tree){for(int y=0;y<3;y++)l.setBlock(p.offset(4,y,0),Blocks.OAK_LOG.defaultBlockState(),18);for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)l.setBlock(leaf.offset(x,0,z),Blocks.OAK_LEAVES.defaultBlockState(),18);}
         else l.setBlock(leaf,Blocks.OAK_LEAVES.defaultBlockState(),18);
         var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+2.5,0,0);l.addFreshEntity(ant);
-        h.succeedWhen(()->h.assertTrue(c.work()>0&&!ant.carrying(),"Real AI found a leaf, reached it, cut a load and returned it to the fungus; ant="+ant.position()+", load="+ant.carrying()+", work="+c.work()));
+        h.succeedWhen(()->h.assertTrue(c.work()>0&&!ant.carrying(),"Real AI found a leaf, reached it, cut a load and returned it to the fungus; ant="+ant.position()+", load="+ant.carrying()+", work="+c.work()+", "+ant.workStatus()));
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=120)
     public static void speciesCoresAndSupportedBirth(GameTestHelper h){
