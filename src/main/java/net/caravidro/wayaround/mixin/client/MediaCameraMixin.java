@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Camera.class)
 public abstract class MediaCameraMixin {
+    @Shadow private boolean detached;
 
     @Shadow
     protected abstract void move(
@@ -44,6 +45,8 @@ public abstract class MediaCameraMixin {
             float partialTick,
             CallbackInfo ci
     ) {
+        var drone=net.caravidro.wayaround.war.outpost.client.OutpostClient.drone();
+        if(drone!=null){this.detached=true;setPosition(drone.getPosition(partialTick).add(0,.14,.27));setRotation(drone.getYRot(),drone.getXRot());return;}
         if (!MediaRecorder.isRecording()) {
             return;
         }

@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/field_barricade",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "wayaround:block/field_barricade",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/field_barricade",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/field_barricade",
+      "y": 270
+    }
+  }
+}

@@ -37,6 +37,7 @@ public final class SimpleDynamicLights {
     }
     private static Source source(Entity e){
         int light=e.isOnFire()?15:0;
+        if(e instanceof net.caravidro.wayaround.war.outpost.FieldCanisterEntity c&&c.flare()&&c.active())light=15;
         if(e instanceof LivingEntity living)light=Math.max(light,Math.max(emission(living.getMainHandItem()),emission(living.getOffhandItem())));
         if(e instanceof ItemEntity item)light=Math.max(light,emission(item.getItem()));
         return light>0?new Source(e.position().add(0,e.getBbHeight()*.65,0),light):null;

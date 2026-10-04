@@ -1,0 +1,71 @@
+name: Warfare Outpost runtime validation
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/net/caravidro/wayaround/war/**'
+      - 'src/main/java/net/caravidro/wayaround/media/**'
+      - 'src/main/java/net/caravidro/wayaround/network/**'
+      - 'src/main/java/net/caravidro/wayaround/mixin/client/MediaCameraMixin.java'
+      - 'src/main/resources/assets/wayaround/**'
+      - 'src/main/resources/data/wayaround/recipe/**'
+      - 'build.gradle'
+      - 'scripts/validate_outpost_assets.py'
+      - '.github/workflows/outpost-validation.yml'
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Recipes and resources
+        run: python scripts/validate_outpost_assets.py
+      - name: Physical field equipment on dedicated server
+        shell: bash
+        run: |
+          set -o pipefail
+          bash gradlew runOutpostGameTestServer --console=plain | tee outpost-tests.log
+          python - <<'PYTEST'
+          from pathlib import Path
+          text=Path('outpost-tests.log').read_text(errors='replace')
+          assert 'All 16 required tests passed' in text,text[-16000:]
+          PYTEST
+      - name: Client boot and resources
+        env:
+          ALSOFT_DRIVERS: 'null'
+        shell: bash
+        run: |
+          python - <<'PYCLIENT'
+          import os,re,signal,subprocess,time
+          from pathlib import Path
+          path=Path('outpost-client.log');ready=False
+          with path.open('w') as log:
+              process=subprocess.Popen(['xvfb-run','-a','bash','gradlew','runClient','--console=plain'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+              try:
+                  deadline=time.monotonic()+240
+                  while process.poll() is None and time.monotonic()<deadline:
+                      text=path.read_text(errors='replace')
+                      if ('OpenAL initialized' in text or 'Sound engine started' in text) and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                          ready=True;break
+                      time.sleep(1)
+              finally:
+                  if process.poll() is None:os.killpg(process.pid,signal.SIGTERM)
+                  try:process.wait(timeout=15)
+                  except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
+          text=path.read_text(errors='replace')
+          bad=[line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',line) and 'wayaround:' in line]
+          assert ready and not bad and not re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text),text[-16000:]+'\n'.join(bad)
+          assert 'Mixing client.MediaCameraMixin from wayaround.mixins.json' in text,'Drone/media camera mixin was not applied'
+          print('Client boot, outpost renderers/models and drone/media camera mixin passed; gameplay visual QA remains manual')
+          PYCLIENT
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: warfare-outpost-runtime
+          path: |
+            outpost-tests.log
+            outpost-client.log

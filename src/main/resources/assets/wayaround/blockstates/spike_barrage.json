@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/spike_barrage",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "wayaround:block/spike_barrage",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/spike_barrage",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/spike_barrage",
+      "y": 270
+    }
+  }
+}

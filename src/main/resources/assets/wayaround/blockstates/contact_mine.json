@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "wayaround:block/contact_mine",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "wayaround:block/contact_mine",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "wayaround:block/contact_mine",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "wayaround:block/contact_mine",
+      "y": 270
+    }
+  }
+}

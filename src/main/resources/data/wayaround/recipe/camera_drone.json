@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "P P",
+    " C ",
+    " D "
+  ],
+  "key": {
+    "P": {
+      "item": "wayaround:clockwork_propeller"
+    },
+    "C": {
+      "item": "wayaround:camera"
+    },
+    "D": {
+      "item": "wayaround:drone_chassis"
+    }
+  },
+  "result": {
+    "id": "wayaround:camera_drone",
+    "count": 1
+  }
+}

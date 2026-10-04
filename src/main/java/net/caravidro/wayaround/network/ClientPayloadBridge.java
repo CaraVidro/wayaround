@@ -83,6 +83,7 @@ public final class ClientPayloadBridge {
 
         default void fireFrame(FireFrameS2CPayload payload) {}
         default void entitySpectate(int target) {}
+        default void outpostView(int target,long mount) {}
 
         default void krakenScene(KrakenSceneS2CPayload payload) {}
 
@@ -674,5 +675,6 @@ public final class ClientPayloadBridge {
                 )
         );
     }
+    public static void outpostView(int target,long mount){realtimeHandlers.outpostView(target,mount);}
     public static void entitySpectate(int target){realtimeHandlers.entitySpectate(target);}
 }
