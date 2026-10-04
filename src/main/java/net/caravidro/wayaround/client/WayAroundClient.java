@@ -57,6 +57,7 @@ public final class WayAroundClient {
 
         ClientPayloadBridge.installRealtime(
                 new ClientPayloadBridge.RealtimeClientHandlers() {
+                    @Override public void visibilityChallenge(long nonce) { net.caravidro.wayaround.security.client.VisibilityFrameCapture.request(nonce); }
                     @Override public void xrayChallenge(long nonce) { net.caravidro.wayaround.security.client.XrayResourceAudit.challenge(nonce); }
 
                     @Override

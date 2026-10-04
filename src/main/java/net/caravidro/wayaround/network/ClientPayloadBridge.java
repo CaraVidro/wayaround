@@ -24,6 +24,7 @@ public final class ClientPayloadBridge {
     private static volatile Consumer<BlizzardStatePayload> blizzardHandler = NOOP_BLIZZARD;
     private static volatile Consumer<CalvingNetwork.CalvingShakePayload> calvingHandler = NOOP_CALVING;
 
+    public static void visibilityChallenge(long nonce) { realtimeHandlers.visibilityChallenge(nonce); }
     public static void xrayChallenge(long nonce) { realtimeHandlers.xrayChallenge(nonce); }
 
     public interface RealtimeClientHandlers {
@@ -87,6 +88,7 @@ public final class ClientPayloadBridge {
         default void entitySpectate(int target) {}
         default void outpostView(int target,long mount) {}
         default void xrayChallenge(long nonce) {}
+        default void visibilityChallenge(long nonce) {}
 
         default void krakenScene(KrakenSceneS2CPayload payload) {}
 

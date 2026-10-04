@@ -9,10 +9,10 @@ import net.minecraft.world.level.saveddata.SavedData;
 /** UUID histories and a bounded per-player audit trail, saved with the overworld. */
 public final class AntiXrayData extends SavedData {
     public static final class Case {
-        public String name="", fingerprint="", lastEvidence="";
+        public String name="", fingerprint="", lastEvidence="", lastVisual="";
         public final TrustHistory history=new TrustHistory();
         public final ArrayDeque<String> audit=new ArrayDeque<>();
-        public int oreAlerts;
+        public int oreAlerts, visualFrames, visualContradictions;
     }
     private final Map<UUID,Case> cases=new HashMap<>();
     private final Set<String> approvals=new HashSet<>();
@@ -36,7 +36,7 @@ public final class AntiXrayData extends SavedData {
             UUID id;
             try { id=UUID.fromString(key); } catch (IllegalArgumentException exception) { continue; }
             CompoundTag t=all.getCompound(key); Case c=data.get(id); TrustHistory h=c.history;
-            c.name=t.getString("name"); c.fingerprint=t.getString("fingerprint"); c.lastEvidence=t.getString("evidence");
+            c.name=t.getString("name"); c.fingerprint=t.getString("fingerprint"); c.lastEvidence=t.getString("evidence");c.lastVisual=t.getString("visual");c.visualFrames=Math.max(0,t.getInt("visualFrames"));c.visualContradictions=Math.max(0,t.getInt("visualContradictions"));
             h.evidenceSeconds=finite(t.getDouble("seconds"),86400); h.roundSeconds=finite(t.getDouble("round"),86400);
             h.lifetimeSeconds=finite(t.getDouble("lifetime"),31536000); h.updatedAt=t.getLong("updated");
             h.privateRound=finite(t.getDouble("privateRound"),86400);h.publicRound=finite(t.getDouble("publicRound"),86400);
@@ -55,7 +55,7 @@ public final class AntiXrayData extends SavedData {
         CompoundTag all=new CompoundTag();
         cases.forEach((id,c)-> {
             TrustHistory h=c.history; CompoundTag t=new CompoundTag();
-            t.putString("name",c.name);t.putString("fingerprint",c.fingerprint);t.putString("evidence",c.lastEvidence);
+            t.putString("name",c.name);t.putString("fingerprint",c.fingerprint);t.putString("evidence",c.lastEvidence);t.putString("visual",c.lastVisual);t.putInt("visualFrames",c.visualFrames);t.putInt("visualContradictions",c.visualContradictions);
             t.putDouble("seconds",h.evidenceSeconds);t.putDouble("round",h.roundSeconds);t.putDouble("lifetime",h.lifetimeSeconds);t.putLong("updated",h.updatedAt);
             t.putDouble("privateRound",h.privateRound);t.putDouble("publicRound",h.publicRound);
             t.putInt("kicks",h.kicks);t.putInt("stage",h.stage);t.putBoolean("banned",h.banned);t.putInt("ores",h.oreBreaks);t.putInt("enclosed",h.enclosedOreBreaks);t.putInt("oreAlerts",c.oreAlerts);

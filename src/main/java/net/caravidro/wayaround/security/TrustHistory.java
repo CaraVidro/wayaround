@@ -11,8 +11,11 @@ public final class TrustHistory {
     public int oreBreaks, enclosedOreBreaks;
 
     public Action observe(ResourceEvidence evidence, double seconds, boolean approved, int privateAt, int publicAt, int kickAt) {
+        return observeConfirmed(evidence.strong(),seconds,approved,privateAt,publicAt,kickAt);
+    }
+    public Action observeConfirmed(boolean confirmed, double seconds, boolean approved, int privateAt, int publicAt, int kickAt) {
         // Caller authenticates the session/nonce. Unknown, clean, approved and mining-only never add evidence.
-        if (approved || !evidence.strong()) return Action.NONE;
+        if (approved || !confirmed) return Action.NONE;
         double elapsed = Double.isFinite(seconds) ? Math.max(0, Math.min(5, seconds)) : 0;
         evidenceSeconds = Math.min(86400, evidenceSeconds + elapsed);
         lifetimeSeconds = Math.min(31536000, lifetimeSeconds + elapsed);

@@ -30,7 +30,7 @@ jobs:
           python - <<'PYTEST'
           from pathlib import Path
           text=Path('security-tests.log').read_text(errors='replace')
-          assert 'All 6 required tests passed' in text,text[-16000:]
+          assert 'All 9 required tests passed' in text,text[-16000:]
           PYTEST
       - name: Client reload and real PNG/model fixtures
         env:
@@ -48,7 +48,7 @@ jobs:
                   deadline=time.monotonic()+240
                   while process.poll() is None and time.monotonic()<deadline:
                       text=path.read_text(errors='replace')
-                      if 'CLIENT RESOURCE FIXTURES PASSED' in text and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                      if 'CLIENT RESOURCE FIXTURES PASSED' in text and 'VISUAL GPU FIXTURES PASSED' in text and 'minecraft:textures/atlas/gui.png-atlas' in text:
                           ready=True;break
                       if 'XrayResourceAuditValidation' in text and 'Caused by: java.lang.AssertionError' in text:
                           break
@@ -59,7 +59,7 @@ jobs:
                   except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
           text=path.read_text(errors='replace')
           assert ready and not re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text),text[-16000:]
-          print('Client boot and actual resource audit fixtures passed')
+          print('Client boot, actual resource fixtures and real GPU color/depth-to-voxel comparison passed')
           PYCLIENT
       - uses: actions/upload-artifact@v4
         if: always()

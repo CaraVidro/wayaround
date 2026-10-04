@@ -27,12 +27,12 @@ public final class AntiXrayService {
     private static final Map<UUID,Session> SESSIONS=new HashMap<>();
     private static int cursor, oreBudget=64;
     private static final class Session {
-        long nonce, sent, next, lastAccepted, unansweredSince;
+        long nonce, sent, next, lastAccepted, unansweredSince, lastCredited;
         boolean pending, previousStrong, missingNotified;
         String notifiedFingerprint="";
         int reviewStage;
     }
-    private static boolean enabled(MinecraftServer server) { return AntiXrayConfig.ENABLED.get() && (!server.isSingleplayer() || server.isPublished()); }
+    static boolean enabled(MinecraftServer server) { return AntiXrayConfig.ENABLED.get() && (!server.isSingleplayer() || server.isPublished()); }
 
     @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !enabled(player.server)) return;
@@ -96,12 +96,30 @@ public final class AntiXrayService {
             player.sendSystemMessage(Component.literal("[WayAround] O pack atual passou na análise de terreno. As evidências anteriores permanecem no histórico."));
         }
         if(approved)s.notifiedFingerprint="";
+        applyEvidence(player,c,evidence.strong(),credit(s,now,elapsed),approved,evidence.summary());
+    }
+    private static double credit(Session s,long now,double requested) {
+        double value=s.lastCredited==0?requested:Math.min(requested,Math.max(0,(now-s.lastCredited)/1_000_000_000.0));
+        if(value>0)s.lastCredited=now;
+        return value;
+    }
+    static void visualAudit(ServerPlayer player,String message) { audit(player,message);owner(player,message); }
+    static void visualConfirmed(ServerPlayer player,double seconds,String summary,long now) {
+        Session s=SESSIONS.get(player.getUUID());if(s==null||s.previousStrong)return;
+        var data=AntiXrayData.get(player.server);var c=data.get(player.getUUID());
+        boolean approved=data.approved(c.fingerprint)||AntiXrayConfig.APPROVED.get().contains(c.fingerprint);
+        if(approved)return;
+        applyEvidence(player,c,true,credit(s,now,seconds),false,"VISUAL "+summary);
+    }
+    private static void applyEvidence(ServerPlayer player,AntiXrayData.Case c,boolean confirmed,double elapsed,boolean approved,String summary) {
+        Session s=SESSIONS.get(player.getUUID());if(s==null)return;
+        var data=AntiXrayData.get(player.server);
         int privateAt=AntiXrayConfig.PRIVATE_SECONDS.get();
         int publicAt=Math.max(privateAt+20,AntiXrayConfig.PUBLIC_SECONDS.get());
         int kickAt=Math.max(publicAt+20,AntiXrayConfig.KICK_SECONDS.get());
         int previousStage=c.history.stage;
         double previousPrivate=c.history.privateRound,previousPublic=c.history.publicRound;
-        TrustHistory.Action action=c.history.observe(evidence,elapsed,approved,privateAt,publicAt,kickAt);
+        TrustHistory.Action action=c.history.observeConfirmed(confirmed,elapsed,approved,privateAt,publicAt,kickAt);
         data.setDirty();
         if(!AntiXrayConfig.ENFORCE.get()) {
             c.history.stage=previousStage;c.history.privateRound=previousPrivate;c.history.publicRound=previousPublic;
@@ -112,12 +130,12 @@ public final class AntiXrayService {
         }
         switch(action) {
             case PRIVATE_WARNING -> {
-                audit(player,"PRIVATE_WARNING "+evidence.summary());
+                audit(player,"PRIVATE_WARNING "+summary);
                 player.sendSystemMessage(Component.literal("[WayAround Anti-Xray] Foram acumuladas evidências de terreno ocultado e minérios preservados. Remova o pack suspeito agora. Se continuar, seu nome será avisado no servidor, seguido de expulsão; a terceira expulsão resulta em banimento permanente. O responsável já recebeu o relatório."));
                 owner(player,"Aviso privado enviado; uso confirmado acumulado="+(int)c.history.evidenceSeconds+"s; expulsões="+c.history.kicks);
             }
             case PUBLIC_WARNING -> {
-                audit(player,"PUBLIC_WARNING continued after private warning "+evidence.summary());
+                audit(player,"PUBLIC_WARNING continued after private warning "+summary);
                 player.server.getPlayerList().broadcastSystemMessage(Component.literal("[WayAround Anti-Xray] "+c.name+" continuou com recursos classificados como x-ray após o aviso. Remova o pack para evitar expulsão."),false);
             }
             case KICK -> punish(player,c);
@@ -127,7 +145,7 @@ public final class AntiXrayService {
     private static void punish(ServerPlayer player,AntiXrayData.Case c) {
         TrustHistory.Action result=c.history.expelled();
         String reason="WayAround Anti-Xray: uso continuado após avisos; expulsão "+c.history.kicks+"/3";
-        audit(player,result+" "+reason+" "+c.lastEvidence);
+        audit(player,result+" "+reason+" "+c.lastEvidence+" VISUAL "+c.lastVisual);
         owner(player,reason+(result==TrustHistory.Action.BAN?"; banimento permanente; somente /pardon pelo responsável.":""));
         if(result==TrustHistory.Action.BAN) {
             player.server.getPlayerList().getBans().add(new UserBanListEntry(player.getGameProfile(),new Date(),"WayAround Anti-Xray",null,reason));
@@ -172,7 +190,7 @@ public final class AntiXrayService {
                 UUID id;try{id=UUID.fromString(StringArgumentType.getString(c,"uuid"));}catch(IllegalArgumentException e){c.getSource().sendFailure(Component.literal("UUID inválido."));return 0;}
                 var saved=AntiXrayData.get(c.getSource().getServer()).find(id);
                 if(saved==null){c.getSource().sendFailure(Component.literal("Sem histórico para esse UUID."));return 0;}
-                c.getSource().sendSuccess(()->Component.literal(saved.name+" "+id+" active="+(int)saved.history.evidenceSeconds+"s round="+(int)saved.history.roundSeconds+"s lifetime="+(int)saved.history.lifetimeSeconds+"s kicks="+saved.history.kicks+" stage="+saved.history.stage+" banned="+saved.history.banned+" ores="+saved.history.oreBreaks+" enclosed="+saved.history.enclosedOreBreaks+"\n"+saved.lastEvidence+"\n"+String.join("\n",saved.audit)),false);return 1;
+                c.getSource().sendSuccess(()->Component.literal(saved.name+" "+id+" active="+(int)saved.history.evidenceSeconds+"s round="+(int)saved.history.roundSeconds+"s lifetime="+(int)saved.history.lifetimeSeconds+"s kicks="+saved.history.kicks+" stage="+saved.history.stage+" banned="+saved.history.banned+" ores="+saved.history.oreBreaks+" enclosed="+saved.history.enclosedOreBreaks+"\n"+saved.lastEvidence+"\nvisualFrames="+saved.visualFrames+" contradictions="+saved.visualContradictions+" "+saved.lastVisual+"\n"+String.join("\n",saved.audit)),false);return 1;
             })))
             .then(Commands.literal("approve").then(Commands.argument("fingerprint",StringArgumentType.word()).executes(c->approval(c.getSource(),StringArgumentType.getString(c,"fingerprint"),true))))
             .then(Commands.literal("revoke").then(Commands.argument("fingerprint",StringArgumentType.word()).executes(c->approval(c.getSource(),StringArgumentType.getString(c,"fingerprint"),false)))));

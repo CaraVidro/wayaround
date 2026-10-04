@@ -9,6 +9,36 @@ import net.neoforged.neoforge.gametest.*;
 public final class AntiXrayGameTests {
     private static ResourceEvidence strong() { return new ResourceEvidence(255,0,15,ResourceEvidence.ALL_MASK,"a".repeat(64)); }
     @GameTest(template="assembly_test",batch="security",timeoutTicks=20)
+    public static void visualCodecIsFixedAndDoesNotContainImage(GameTestHelper h) {
+        float[] rays=new float[96],depth=new float[32];byte[] light=new byte[32];
+        for(int i=0;i<32;i++){rays[i*3+2]=1;depth[i]=9.5F;light[i]=100;}
+        var sent=new VisibilityReportPayload(43,true,1,2,3,0,0,1,rays,depth,light);
+        var buffer=new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(),h.getLevel().registryAccess());
+        try {
+            VisibilityReportPayload.STREAM_CODEC.encode(buffer,sent);h.assertTrue(buffer.readableBytes()<640,"Measures only, bounded packet without screenshot");
+            var restored=VisibilityReportPayload.STREAM_CODEC.decode(buffer);
+            h.assertTrue(VisibilityAuditService.valid(restored)&&java.util.Arrays.equals(restored.distances(),sent.distances()),"Finite wire measurements round trip");
+            restored.directions()[0]=Float.NaN;h.assertTrue(!VisibilityAuditService.valid(restored),"Invalid client rays rejected before world queries");
+        } finally {buffer.release();}h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="security",timeoutTicks=20)
+    public static void actualServerTerrainExplainsHiddenOre(GameTestHelper h) {
+        var level=h.getLevel();var start=h.absolutePos(new net.minecraft.core.BlockPos(7,5,1));
+        for(int z=0;z<=12;z++)level.setBlock(start.offset(0,0,z),z>=3&&z<=5?net.minecraft.world.level.block.Blocks.STONE.defaultBlockState():z==10?net.minecraft.world.level.block.Blocks.DIAMOND_ORE.defaultBlockState():net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(),18);
+        var eye=net.minecraft.world.phys.Vec3.atCenterOf(start);
+        var ray=VisibilityMath.trace(eye.x,eye.y,eye.z,0,0,1,9.5,100,(x,y,z)->VisibilityAuditService.material(level,new net.minecraft.core.BlockPos(x,y,z)));
+        h.assertTrue(ray.hiddenOre()&&ray.covered(),"Server's actual three stone blocks contradict visible diamond depth");
+        ray=VisibilityMath.trace(eye.x,eye.y,eye.z,0,0,1,2.5,100,(x,y,z)->VisibilityAuditService.material(level,new net.minecraft.core.BlockPos(x,y,z)));
+        h.assertTrue(!ray.hiddenOre()&&!ray.missingWall(),"Actual foreground terrain viewed normally is legitimate");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="security",timeoutTicks=20)
+    public static void visualHistoryPersistsWithoutPixels(GameTestHelper h) {
+        var data=new AntiXrayData();var id=UUID.randomUUID();var c=data.get(id);c.visualFrames=20;c.visualContradictions=4;c.lastVisual="covered=24 missing=18 oreBehind=4 distinctOres=3";
+        var tag=data.save(new CompoundTag(),h.getLevel().registryAccess());var loaded=AntiXrayData.load(tag,h.getLevel().registryAccess()).find(id);
+        h.assertTrue(loaded.visualFrames==20&&loaded.visualContradictions==4&&loaded.lastVisual.equals(c.lastVisual),"Numeric visual proof survives save");
+        h.assertTrue(!tag.toString().contains("brightness")&&!tag.toString().contains("directions")&&!tag.toString().contains("pixels"),"Image and frame measurements are never persisted");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="security",timeoutTicks=20)
     public static void savedHistoryKeepsWarningsAndStrikes(GameTestHelper h) {
         var data=new AntiXrayData();var id=UUID.randomUUID();var c=data.get(id);
         c.name="EvidenceTest";c.fingerprint="a".repeat(64);c.lastEvidence=strong().summary();
