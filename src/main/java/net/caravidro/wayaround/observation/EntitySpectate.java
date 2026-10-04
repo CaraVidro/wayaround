@@ -51,7 +51,7 @@ public final class EntitySpectate {
         p.getPersistentData().remove("WayAroundSpectateVisit");p.getPersistentData().putLong("WayAroundSpectateStopUntil",p.level().getGameTime()+5);
         Vec3 exit=visit.target().level()==p.level()?viewpoint(p,visit.target()).add(0,-p.getEyeHeight(),0):p.position();
         p.setCamera(p);p.setDeltaMovement(Vec3.ZERO);p.fallDistance=0;
-        if(p.isAlive())p.teleportTo(p.serverLevel(),exit.x,exit.y,exit.z,Set.of(),p.getYRot(),p.getXRot());
+        if(p.isAlive()){p.setPos(exit.x,exit.y,exit.z);p.teleportTo(p.serverLevel(),exit.x,exit.y,exit.z,Set.of(),p.getYRot(),p.getXRot());}
         // Leaving the camera does not restore the physical body while the item is still held.
         if(holding(p))protect(p);
         PacketDistributor.sendToPlayer(p,new EntitySpectateStatePayload(-1));
