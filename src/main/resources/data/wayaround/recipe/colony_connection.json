@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "LFL",
+    "CDC",
+    " L "
+  ],
+  "key": {
+    "L": {
+      "item": "wayaround:leaf_fragment"
+    },
+    "F": {
+      "item": "wayaround:colony_fungus"
+    },
+    "C": {
+      "item": "minecraft:clay_ball"
+    },
+    "D": {
+      "item": "minecraft:dirt"
+    }
+  },
+  "result": {
+    "id": "wayaround:colony_connection",
+    "count": 1
+  }
+}

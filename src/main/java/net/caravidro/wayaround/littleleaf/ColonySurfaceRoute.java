@@ -16,7 +16,7 @@ public final class ColonySurfaceRoute {
  public void followPoint(ColonyInsectEntity e,BlockPos target){follow(e,target,true);}
  public void follow(ColonyInsectEntity e,BlockPos target){follow(e,target,false);}
  private void follow(ColonyInsectEntity e,BlockPos target,boolean walkToCenter){
-  if(!(e.level() instanceof ServerLevel l))return;
+  if(!(e.level() instanceof ServerLevel l))return;if(e.yielding())return;
   if(!target.equals(goal)||pointGoal!=walkToCenter){reset();pointGoal=walkToCenter;goal=target.immutable();var start=e.blockPosition();cost.put(start,0.0);open.add(new Node(start,0,heuristic(start)));}
   for(int k=0;path.isEmpty()&&!open.isEmpty()&&k<12&&ColonyBudget.search(l);k++){
    var n=open.remove();if(n.cost>cost.getOrDefault(n.pos,Double.MAX_VALUE))continue;
@@ -34,6 +34,7 @@ public final class ColonySurfaceRoute {
    var p=path.get(at);boolean vertical=(at>0&&path.get(at-1).getY()!=p.getY())||(at+1<path.size()&&path.get(at+1).getY()!=p.getY());Vec3 point=point(l,e,p,vertical);if(point==null){retry(e,p);return;}double tolerance=e.enlarged()?.06:.055;
    if(e.position().distanceToSqr(point)<tolerance*tolerance){at++;stationary=0;progress=e.position();continue;}
    if(progress==null||e.position().distanceToSqr(progress)>.025*.025){progress=e.position();stationary=0;}else if(++stationary>60){retry(e,p);return;}
+   if(!ColonyTraffic.permit(e,point))return;
    var delta=point.subtract(e.position());boolean up=Math.abs(delta.y)>(e.enlarged()?.15:.015);
    double speed=e.enlarged()?.13:.045;Vec3 horizontal=new Vec3(delta.x,0,delta.z);if(horizontal.length()>speed)horizontal=horizontal.normalize().scale(speed);
    double dy=up?Math.clamp(delta.y+(delta.y>0&&!e.enlarged()?.08:0),-.12,e.enlarged()?.12:.20):e.getDeltaMovement().y;

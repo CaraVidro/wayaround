@@ -17,7 +17,8 @@ import net.minecraft.world.phys.*;
 public final class ColonyCoreBlockEntity extends BlockEntity {
     private static final Map<ServerLevel,Set<ColonyCoreBlockEntity>> ACTIVE=new WeakHashMap<>();
     private long last=-1,work,workClock;private boolean habitat=true,interior,queenBorn,gardenPrepared,queenDead;private UUID queenId;
-    private GlobalPos source;private int decayCursor,soilCursor;private final Map<UUID,BlockPos> assignments=new HashMap<>();
+    private final LinkedHashSet<Long> connections=new LinkedHashSet<>();private final ArrayDeque<BlockPos> accessSites=new ArrayDeque<>();private BlockPos satelliteSite;
+    private int interiorProfile,layoutCursor;private GlobalPos source;private int decayCursor,soilCursor;private final Map<UUID,BlockPos> assignments=new HashMap<>();
     private int buildStage=-1,buildCursor,clearCursor;private boolean clearing;private final ArrayList<Long> owned=new ArrayList<>();
     private final LinkedHashMap<BlockPos,Long> rejectedFood=new LinkedHashMap<>();
     private final LinkedHashSet<UUID> enemies=new LinkedHashSet<>();private BlockPos food,foodCandidate;private int foodColumn,foodY=Integer.MIN_VALUE;
@@ -50,14 +51,27 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     public void makeInterior(int species,int stage){interior=true;work=ColonyRules.THRESHOLDS[stage];level.setBlock(worldPosition,getBlockState().setValue(ColonyCoreBlock.SPECIES,species).setValue(ColonyCoreBlock.GIANT,true).setValue(ColonyCoreBlock.STAGE,stage),3);setChanged();}
     public static void tick(Level l,BlockPos p,BlockState state,ColonyCoreBlockEntity c){
-        if(!(l instanceof ServerLevel s)||l.getGameTime()%20!=Math.floorMod(p.asLong(),20))return;
+        if(!(l instanceof ServerLevel s))return;if(c.interior)c.expandInterior(s);if(l.getGameTime()%20!=Math.floorMod(p.asLong(),20))return;
         if(!net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.serverEnabled(net.caravidro.wayaround.worldconfig.WorldFeature.LITTLE_LEAF_WORLD))return;
-        c.syncAbandonment();c.advance(s.getGameTime());
+        c.syncAbandonment();c.advance(s.getGameTime());if(c.connections.removeIf(q->loaded(s,BlockPos.of(q))&&!(s.getBlockEntity(BlockPos.of(q)) instanceof ColonyConnectionBlockEntity)))c.setChanged();
         if(c.queenDead){c.decayGarden(s);return;}
         if(!c.interior)c.prepareGarden(s);
-        else ColonyTravel.releaseInvaders(s,c);
+        else {ColonyTravel.releaseInvaders(s,c);ColonyTravel.releaseBodies(s,c);}
         if(s.getNearestPlayer(p.getX(),p.getY(),p.getZ(),c.interior?96:48,false)==null)return;
         if((s.getGameTime()/20)%6==0)c.birth(s);
+    }
+    public void configureInterior(int profile){profile=Math.clamp(profile,0,4);if(profile>interiorProfile){interiorProfile=profile;layoutCursor=0;setChanged();}}
+    public int interiorProfile(){return interiorProfile;}
+    /** Only observed, loaded gallery cells expand, sharing the ordinary block budget. */
+    public void expandInterior(ServerLevel l){
+        if(!interior||interiorProfile==0||queenDead||layoutCursor>=128*128*28||l.getNearestPlayer(worldPosition.getX(),worldPosition.getY(),worldPosition.getZ(),112,false)==null)return;
+        int cellX=Math.floorDiv(worldPosition.getX(),128)*128,cellZ=Math.floorDiv(worldPosition.getZ(),128)*128;
+        for(int n=0;n<256&&layoutCursor<128*128*28;n++){
+            int index=layoutCursor;var p=new BlockPos(cellX+index%128,32+index/(128*128),cellZ+(index/128)%128);
+            var target=net.caravidro.wayaround.littleleaf.world.ColonyLayout.sample(p.getX(),p.getY(),p.getZ(),interiorProfile);
+            if(target!=net.caravidro.wayaround.littleleaf.world.ColonyLayout.Material.AIR){layoutCursor++;continue;}
+            if(!loaded(l,p)){layoutCursor++;continue;}var state=l.getBlockState(p);if(state.is(Blocks.ROOTED_DIRT)||state.is(Blocks.OAK_WOOD)){if(!ColonyBudget.build(l))return;l.setBlock(p,Blocks.AIR.defaultBlockState(),18);}layoutCursor++;
+        }setChanged();
     }
     public void advance(long now){
         long dt=last<0?0:Math.max(0,now-last);last=now;
@@ -77,7 +91,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
             if(loaded(l,f)&&l.getBlockState(f).is(LittleLeafContent.COLONY_FUNGUS.get()))l.setBlock(f,l.getBlockState(f).setValue(ColonyFungusBlock.RIPE,true),3);
             if(species()==2&&l.random.nextInt(16)==0)insect.spawnAtLocation(LittleLeafContent.HONEYDEW.get());
         }
-        insect.carry(false);ColonyEffects.work(l,insect.blockPosition(),Blocks.OAK_LEAVES.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_FILL_SUCCESS,enlargedVolume(insect));return true;
+        insect.carry(false);ColonyTransitData.get(l.getServer()).feed(identity(),insect.enlarged()?8:1);ColonyEffects.work(l,insect.blockPosition(),Blocks.OAK_LEAVES.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_FILL_SUCCESS,enlargedVolume(insect));return true;
     }
     public void delivered(boolean large){if(queenDead)return;work=Math.min(4096,work+(large?8:1));setChanged();}
     public void remember(UUID id){if(enemies.contains(id))return;if(enemies.size()>=16)enemies.remove(enemies.iterator().next());enemies.add(id);setChanged();}
@@ -127,7 +141,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         Long until=rejectedFood.get(p);if(until!=null){if(until>l.getGameTime())return false;rejectedFood.remove(p);}
         if(l.getBlockState(p).is(Blocks.GRASS_BLOCK)){var above=p.above();return loaded(l,above)&&l.getFluidState(above).isEmpty()&&l.getBlockState(above).getCollisionShape(l,above).isEmpty();}return true;
     }
-    public boolean wetWeather(ServerLevel l){return l.isRaining()&&l.canSeeSky(worldPosition.above(Math.max(6,ColonyRules.height(stage(),species()==3)+1)));}
+    public boolean wetWeather(ServerLevel l){return !interior&&(l.isRaining()||net.caravidro.wayaround.industrial.ship.ShipWind.sample(l,Vec3.atCenterOf(worldPosition)).length()>.036||net.caravidro.wayaround.worldgen.weather.local.WindTestManager.strengthAt(worldPosition.getX(),worldPosition.getZ(),l.getGameTime())>.6)&&l.canSeeSky(worldPosition.above(Math.max(16,ColonyRules.height(stage(),species()==3)+2)));}
     public BlockPos gardenEntry(){return worldPosition.offset(0,-3,1);}
     public BlockPos gardenExit(){return worldPosition.above();}
     /** Repair old/crafted dirt entrances without deleting roots, buildings or the core. */
@@ -141,17 +155,67 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         insect.carry(true); // A cut is a fragment, not a whole disappearing leaf or trunk.
         ColonyEffects.work(l,p,l.getBlockState(p),net.minecraft.sounds.SoundEvents.GRASS_BREAK,enlargedVolume(insect));return true;
     }
-    void birth(ServerLevel l){
+    void birth(ServerLevel l){birthAt(l,null);}
+    void birthAt(ServerLevel l,BlockPos entrance){
         if(queenDead||!ColonyBudget.birth(l))return;
         var nearby=l.getEntitiesOfClass(ColonyInsectEntity.class,new AABB(worldPosition).inflate(interior?112:48));
-        long own=nearby.stream().filter(e->worldPosition.equals(e.home())).count();
-        if(own>=ColonyRules.population(stage(),interior)||nearby.size()>=64)return;
+        long own=nearby.stream().filter(e->worldPosition.equals(e.home())&&!e.corpse()).count();
+        if(own>=capacity()||nearby.stream().filter(e->!e.corpse()).count()>=64)return;
         int role=!queenBorn?2:own%4==0?1:0;
         var e=LittleLeafContent.type(species()).create(l);if(e==null)return;
         e.bind(worldPosition,role,interior,giant());
         var preferred=interior?(role==2?worldPosition.offset(64,0,4):worldPosition.offset(8+(int)(own%3)*3,0,4)):worldPosition.above();
+        if(entrance!=null&&role!=2)preferred=entrance;
+        if(role!=2){e.makeLarva();e.assignJob((int)(own%4));if(interior)preferred=nursery();}
         if(!placeAtEntrance(l,e,preferred))return;
         if(l.addFreshEntity(e)){if(role==2){queenBorn=true;queenId=e.getUUID();}setChanged();}
+    }
+    public int capacity(){return Math.min(48,ColonyRules.population(stage(),interior)+connections.size()*3);}
+    public int connectionCount(){return connections.size();}
+    public boolean addConnection(BlockPos p){if(!giant()||interior||queenDead||p.distSqr(worldPosition)>48*48||connections.size()>=8&&!connections.contains(p.asLong()))return false;connections.add(p.asLong());setChanged();return true;}
+    public int physicalStage(){return giant()?Math.min(4,Math.min(stage(),owned.size()/32+connections.size()/2)):0;}
+    public BlockPos nursery(){return interior?worldPosition.offset(28,0,39):worldPosition.offset(0,0,3);}
+    public BlockPos cemetery(){return interior?worldPosition.offset(28,0,-25):gardenEntry().west();}
+    public ColonyInsectEntity hungryLarva(ServerLevel l){int n=0;for(var e:l.getEntitiesOfClass(ColonyInsectEntity.class,new AABB(worldPosition).inflate(interior?112:48),e->worldPosition.equals(e.home())&&e.larva()&&e.feeds()<3)){if(n++>=64)break;return e;}return null;}
+    public boolean nurse(ServerLevel l,ColonyInsectEntity worker,ColonyInsectEntity child){
+        if(queenDead||!worldPosition.equals(child.home())||!child.larva()||!worker.getBoundingBox().inflate(worker.enlarged()?1:.25).intersects(child.getBoundingBox())||!ColonyTransitData.get(l.getServer()).takeFood(identity()))return false;
+        child.feed();ColonyEffects.work(l,child.blockPosition(),Blocks.OAK_LEAVES.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_FILL_SUCCESS,worker.enlarged()?.2F:.04F);return true;
+    }
+    public boolean mature(ServerLevel l,ColonyInsectEntity child){
+        if(queenDead||!child.larva()||child.feeds()<3||l.getGameTime()-child.born()<400)return false;var previous=child.position();
+        child.grow();if(!placeAtEntrance(l,child,interior?nursery():worldPosition.above())){child.makeLarva();child.setPos(previous);return false;}
+        ColonyEffects.work(l,child.blockPosition(),Blocks.ROOTED_DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_READY,.15F);return true;
+    }
+    public boolean bury(ServerLevel l,ColonyInsectEntity worker){
+        var body=worker.carriedBody();if(body==null||!body.corpse()||queenDead)return false;
+        if(interior){body.releaseBody();body.bury();worker.clearBody();return true;}
+        var data=ColonyTransitData.get(l.getServer());if(!data.queueBody(identity(),new ColonyTransitData.Body(body.getUUID(),body.species(),body.caste())))return false;
+        body.discard();worker.clearBody();ColonyEffects.work(l,worker.blockPosition(),Blocks.ROOTED_DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.GRAVEL_PLACE,.12F);return true;
+    }
+    /** Access plans contain supported real placements, not a generated free staircase. */
+    public void requestAccess(ServerLevel l,ColonyInsectEntity worker,BlockPos goal){
+        if(!giant()||interior||queenDead||wetWeather(l)||accessSites.size()>96||goal.distSqr(worldPosition)>48*48)return;
+        var start=worker.blockPosition();var d=Direction.getNearest(goal.getX()-worker.getX(),0,goal.getZ()-worker.getZ());int rise=Math.clamp(goal.getY()-start.getY(),0,6),length=Math.min(12,Math.max(rise+2,(int)Math.sqrt(start.distSqr(goal))));
+        for(int step=0;step<=length&&ColonyBudget.search(l);step++){
+            var column=start.relative(d,step);if(!loaded(l,column)||!loaded(l,column.below()))break;int level=rise>0?Math.min(rise,step/2):0;
+            boolean gap=l.getFluidState(column.below()).isEmpty()&&l.getBlockState(column.below()).getCollisionShape(l,column.below()).isEmpty();
+            if(rise==0&&!gap&&l.getFluidState(column.below()).isEmpty()&&step>0)continue;
+            for(int y=0;y<=level;y++){var p=column.above(y);if(loaded(l,p)&&l.getBlockState(p).isAir()&&l.getFluidState(p).isEmpty()&&!accessSites.contains(p)&&accessSites.size()<128)accessSites.add(p);}
+        }setChanged();
+    }
+    private BlockPos accessSite(ServerLevel l,ColonyInsectEntity insect){
+        for(var p:accessSites){if(!loaded(l,p)||!l.getBlockState(p).isAir()||assignments.containsValue(p))continue;
+            boolean supported=!l.getBlockState(p.below()).getCollisionShape(l,p.below()).isEmpty();if(!supported)for(var d:Direction.Plane.HORIZONTAL)if(owned.contains(p.relative(d).asLong())){supported=true;break;}
+            if(supported){assignments.put(insect.getUUID(),p);return p;}
+        }return null;
+    }
+    private BlockPos connectionSite(ServerLevel l,ColonyInsectEntity insect){
+        if(stage()<1||connections.size()>=8||ColonyTransitData.get(l.getServer()).food(identity())<4)return null;
+        if(satelliteSite!=null&&loaded(l,satelliteSite)&&l.getBlockState(satelliteSite).isAir()&&!assignments.containsValue(satelliteSite)){assignments.put(insect.getUUID(),satelliteSite);return satelliteSite;}
+        int r=Math.min(32,ColonyRules.radius(stage(),species()==3)+5+connections.size()*3);
+        for(var d:Direction.Plane.HORIZONTAL){var col=worldPosition.relative(d,r);if(!loaded(l,col))continue;var p=new BlockPos(col.getX(),l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,col.getX(),col.getZ()),col.getZ());if(Math.abs(p.getY()-worldPosition.getY())>5||!l.getBlockState(p).isAir()||!l.getFluidState(p).isEmpty()||l.getBlockState(p.below()).getCollisionShape(l,p.below()).isEmpty())continue;
+            boolean close=false;for(long other:connections)if(BlockPos.of(other).distSqr(p)<16){close=true;break;}if(!close){satelliteSite=p;assignments.put(insect.getUUID(),p);return p;}
+        }return null;
     }
     /** Births require a real supporting surface and a clear body, never an arbitrary air coordinate. */
     boolean placeAtEntrance(ServerLevel l,ColonyInsectEntity e,BlockPos preferred){
@@ -186,6 +250,8 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         var assigned=assignments.get(insect.getUUID());if(assigned!=null&&loaded(l,assigned)&&l.getBlockState(assigned).isAir())return assigned;assignments.remove(insect.getUUID());
         assignments.entrySet().removeIf(e->l.getEntity(e.getKey())==null);
         if(buildStage!=stage()){buildStage=stage();buildCursor=0;setChanged();}
+        connections.removeIf(p->loaded(l,BlockPos.of(p))&&!(l.getBlockEntity(BlockPos.of(p)) instanceof ColonyConnectionBlockEntity));
+        var access=accessSite(l,insect);if(access!=null)return access;var satellite=connectionSite(l,insect);if(satellite!=null)return satellite;
         int r=ColonyRules.radius(stage(),species()==3),h=ColonyRules.height(stage(),species()==3),extent=r+3,side=extent*2+1,total=side*side*(h+1);
         for(int n=0;n<32&&ColonyBudget.build(l);n++){
             if(buildCursor>=total){buildCursor=0;break;}
@@ -219,8 +285,10 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     public boolean placeMaterial(ServerLevel l,BlockPos p,ColonyInsectEntity insect){
         if(queenDead||!giant()||!insect.carryingMaterial()||!l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)||!loaded(l,p)||!l.getBlockState(p).isAir()||!l.getFluidState(p).isEmpty()||!insect.getBoundingBox().inflate(.85).intersects(new AABB(p))||insect.getBoundingBox().intersects(new AABB(p))||!ColonyBudget.build(l))return false;
         var expected=assignments.get(insect.getUUID());if(expected!=null&&!expected.equals(p))return false;
-        if(p.distSqr(worldPosition)>Math.pow(ColonyRules.radius(stage(),species()==3)+8,2))return false;
-        var state=insect.material();if(!l.setBlock(p,state,3))return false;
+        if(p.distSqr(worldPosition)>48*48)return false;
+        var state=insect.material();boolean satellite=p.equals(satelliteSite)&&connections.size()<8&&ColonyTransitData.get(l.getServer()).food(identity())>=4;
+        if(satellite)state=LittleLeafContent.CONNECTION.get().defaultBlockState().setValue(ColonyCoreBlock.SPECIES,species());if(!l.setBlock(p,state,3))return false;
+        accessSites.remove(p);if(satellite&&l.getBlockEntity(p) instanceof ColonyConnectionBlockEntity link){link.bind(this);for(int n=0;n<4;n++)ColonyTransitData.get(l.getServer()).takeFood(identity());satelliteSite=null;}
         insect.material(null);assignments.remove(insect.getUUID());if(owned.size()<8192)owned.add(p.asLong());setChanged();ColonyEffects.work(l,p,state,net.minecraft.sounds.SoundEvents.GRAVEL_PLACE,.35F);return true;
     }
     public ColonyCoreBlockEntity rivalColony(ServerLevel l){
@@ -231,6 +299,6 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         }return best;
     }
     public static boolean loaded(ServerLevel l,BlockPos p){return l.getChunkSource().getChunkNow(p.getX()>>4,p.getZ()>>4)!=null;}
-    @Override protected void saveAdditional(CompoundTag t,HolderLookup.Provider r){super.saveAdditional(t,r);t.putLong("Clock",last);t.putInt("DecayCursor",decayCursor);if(source!=null){t.putString("SourceDimension",source.dimension().location().toString());t.putLong("SourcePos",source.pos().asLong());}t.putLong("Work",work);t.putLong("WorkClock",workClock);t.putBoolean("Habitat",habitat);t.putBoolean("Interior",interior);t.putBoolean("QueenBorn",queenBorn);t.putBoolean("QueenDead",queenDead);t.putBoolean("GardenPrepared",gardenPrepared);if(queenId!=null)t.putUUID("QueenId",queenId);t.putInt("BuildStage",buildStage);t.putInt("BuildCursor",buildCursor);t.putInt("ClearCursor",clearCursor);t.putBoolean("Clearing",clearing);t.putLongArray("Owned",owned.stream().mapToLong(Long::longValue).toArray());var list=new ListTag();for(var id:enemies){var q=new CompoundTag();q.putUUID("Id",id);list.add(q);}t.put("Enemies",list);}
-    @Override protected void loadAdditional(CompoundTag t,HolderLookup.Provider r){super.loadAdditional(t,r);decayCursor=Math.max(0,t.getInt("DecayCursor"));var sourceId=net.minecraft.resources.ResourceLocation.tryParse(t.getString("SourceDimension"));source=sourceId==null?null:GlobalPos.of(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,sourceId),BlockPos.of(t.getLong("SourcePos")));last=t.contains("Clock")?t.getLong("Clock"):-1;work=Math.max(0,Math.min(4096,t.getLong("Work")));workClock=Math.floorMod(t.getLong("WorkClock"),1200);habitat=!t.contains("Habitat")||t.getBoolean("Habitat");interior=t.getBoolean("Interior");queenBorn=t.getBoolean("QueenBorn");queenDead=t.getBoolean("QueenDead");gardenPrepared=t.getBoolean("GardenPrepared");queenId=t.hasUUID("QueenId")?t.getUUID("QueenId"):null;buildStage=t.contains("BuildStage")?t.getInt("BuildStage"):-1;buildCursor=Math.max(0,t.getInt("BuildCursor"));clearCursor=Math.max(0,t.getInt("ClearCursor"));clearing=t.getBoolean("Clearing");owned.clear();for(long p:t.getLongArray("Owned")){if(owned.size()>=8192)break;owned.add(p);}clearCursor=Math.min(clearCursor,owned.size());enemies.clear();for(var q:t.getList("Enemies",Tag.TAG_COMPOUND)){var c=(CompoundTag)q;if(c.hasUUID("Id")&&enemies.size()<16)enemies.add(c.getUUID("Id"));}}
+    @Override protected void saveAdditional(CompoundTag t,HolderLookup.Provider r){super.saveAdditional(t,r);t.putLong("Clock",last);t.putInt("InteriorProfile",interiorProfile);t.putInt("LayoutCursor",layoutCursor);t.putLongArray("Connections",connections.stream().mapToLong(Long::longValue).toArray());t.putLongArray("Access",accessSites.stream().mapToLong(BlockPos::asLong).toArray());t.putInt("DecayCursor",decayCursor);if(source!=null){t.putString("SourceDimension",source.dimension().location().toString());t.putLong("SourcePos",source.pos().asLong());}t.putLong("Work",work);t.putLong("WorkClock",workClock);t.putBoolean("Habitat",habitat);t.putBoolean("Interior",interior);t.putBoolean("QueenBorn",queenBorn);t.putBoolean("QueenDead",queenDead);t.putBoolean("GardenPrepared",gardenPrepared);if(queenId!=null)t.putUUID("QueenId",queenId);t.putInt("BuildStage",buildStage);t.putInt("BuildCursor",buildCursor);t.putInt("ClearCursor",clearCursor);t.putBoolean("Clearing",clearing);t.putLongArray("Owned",owned.stream().mapToLong(Long::longValue).toArray());var list=new ListTag();for(var id:enemies){var q=new CompoundTag();q.putUUID("Id",id);list.add(q);}t.put("Enemies",list);}
+    @Override protected void loadAdditional(CompoundTag t,HolderLookup.Provider r){super.loadAdditional(t,r);interiorProfile=Math.clamp(t.getInt("InteriorProfile"),0,4);layoutCursor=Math.clamp(t.getInt("LayoutCursor"),0,128*128*28);connections.clear();for(long p:t.getLongArray("Connections")){if(connections.size()>=8)break;connections.add(p);}accessSites.clear();for(long p:t.getLongArray("Access")){if(accessSites.size()>=128)break;accessSites.add(BlockPos.of(p));}decayCursor=Math.max(0,t.getInt("DecayCursor"));var sourceId=net.minecraft.resources.ResourceLocation.tryParse(t.getString("SourceDimension"));source=sourceId==null?null:GlobalPos.of(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,sourceId),BlockPos.of(t.getLong("SourcePos")));last=t.contains("Clock")?t.getLong("Clock"):-1;work=Math.max(0,Math.min(4096,t.getLong("Work")));workClock=Math.floorMod(t.getLong("WorkClock"),1200);habitat=!t.contains("Habitat")||t.getBoolean("Habitat");interior=t.getBoolean("Interior");queenBorn=t.getBoolean("QueenBorn");queenDead=t.getBoolean("QueenDead");gardenPrepared=t.getBoolean("GardenPrepared");queenId=t.hasUUID("QueenId")?t.getUUID("QueenId"):null;buildStage=t.contains("BuildStage")?t.getInt("BuildStage"):-1;buildCursor=Math.max(0,t.getInt("BuildCursor"));clearCursor=Math.max(0,t.getInt("ClearCursor"));clearing=t.getBoolean("Clearing");owned.clear();for(long p:t.getLongArray("Owned")){if(owned.size()>=8192)break;owned.add(p);}clearCursor=Math.min(clearCursor,owned.size());enemies.clear();for(var q:t.getList("Enemies",Tag.TAG_COMPOUND)){var c=(CompoundTag)q;if(c.hasUUID("Id")&&enemies.size()<16)enemies.add(c.getUUID("Id"));}}
 }

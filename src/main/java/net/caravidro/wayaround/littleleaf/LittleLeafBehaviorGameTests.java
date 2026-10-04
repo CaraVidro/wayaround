@@ -142,7 +142,7 @@ public final class LittleLeafBehaviorGameTests {
     public static void giantWorkerActuallyExtractsCarriesAndBuilds(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();boolean original=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());h.runAtTickTime(1790,()->l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(original,l.getServer()));var p=c.getBlockPos();for(int x=-14;x<=14;x++)for(int z=-14;z<=14;z++)l.setBlock(p.offset(x,-1,z),Blocks.DIRT.defaultBlockState(),18);c.invertColony();
         var worker=LittleLeafContent.BLACK_ANT.get().create(l);if((worker.getId()&1)!=0)worker=LittleLeafContent.BLACK_ANT.get().create(l);
-        worker.bind(p,0,false,true);worker.moveTo(p.getX()+.5,p.getY(),p.getZ()+8.5,0,0);l.addFreshEntity(worker);final var insect=worker;
+        worker.bind(p,0,false,true);worker.assignJob(ColonyInsectEntity.BUILDER);worker.moveTo(p.getX()+.5,p.getY(),p.getZ()+8.5,0,0);l.addFreshEntity(worker);final var insect=worker;
         h.succeedWhen(()->{int placed=0;for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)if(l.getBlockState(p.offset(x,0,z)).is(Blocks.DIRT))placed++;
             h.assertTrue(placed>0,"Real giant worker must find soil, remove it, carry it along its path and place a wall: worker="+insect.position()+", material="+insect.material()+", "+insect.workStatus());l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(original,l.getServer());});
     }
