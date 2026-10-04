@@ -153,7 +153,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     public boolean wetWeather(ServerLevel l){return !interior&&(l.isRaining()||net.caravidro.wayaround.industrial.ship.ShipWind.sample(l,Vec3.atCenterOf(worldPosition)).length()>.036||net.caravidro.wayaround.worldgen.weather.local.WindTestManager.strengthAt(worldPosition.getX(),worldPosition.getZ(),l.getGameTime())>.6)&&l.canSeeSky(worldPosition.above(Math.max(16,ColonyRules.height(stage(),species()==3)+2)));}
     public BlockPos gardenEntry(){return worldPosition.offset(0,-3,1);}
-    public BlockPos gardenExit(){return worldPosition.offset(0,0,2);}
+    public BlockPos gardenExit(){return worldPosition.offset(0,0,species()==3?4:3);}
     /** Workers use an existing passage; tiny traffic never excavates surrounding soil. */
     public boolean openEntrance(ServerLevel l){
         for(int y=-3;y<=0;y++){

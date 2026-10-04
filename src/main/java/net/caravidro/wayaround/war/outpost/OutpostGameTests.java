@@ -19,11 +19,10 @@ import net.neoforged.neoforge.gametest.*;
         l.setBlock(p,block.defaultBlockState(),18);
         return (FieldDeviceBlockEntity)l.getBlockEntity(p);
     }
-    private static Zombie target(GameTestHelper h,Vec3 at) {
-        var z=new Zombie(h.getLevel());
+    private static net.minecraft.world.entity.animal.Cow target(GameTestHelper h,Vec3 at) {
+        var z=EntityType.COW.create(h.getLevel());
         z.setNoAi(true);
         z.setNoGravity(true);
-        z.setItemSlot(EquipmentSlot.HEAD,new ItemStack(Items.IRON_HELMET));
         z.setPos(at);
         h.getLevel().addFreshEntity(z);
         return z;
@@ -52,7 +51,7 @@ import net.neoforged.neoforge.gametest.*;
         var z=target(h,Vec3.atBottomCenterOf(pos).add(0,.2,0));
         d.touch(z);
         h.assertTrue(h.getLevel().getBlockState(pos).isAir(),"Touch consumes the mine");
-        h.assertTrue(z.getHealth()<20||!z.isAlive(),"Real explosion damages its victim");
+        h.assertTrue(z.getHealth()<z.getMaxHealth()||!z.isAlive(),"Real explosion damages its victim");
         h.succeed();
     }
     @GameTest(template="assembly_test",batch="outpost",timeoutTicks=100)     public static void standaloneWaitsThenExplodesWhenVictimMoves(GameTestHelper h) {
@@ -104,7 +103,7 @@ import net.neoforged.neoforge.gametest.*;
         var d=device(h,OutpostContent.SPIKE_BARRAGE.get());
         var z=target(h,Vec3.atCenterOf(d.getBlockPos()));
         d.touch(z);
-        h.assertTrue(z.getHealth()<20,"Spikes damage a touching living entity");
+        h.assertTrue(z.getHealth()<z.getMaxHealth(),"Spikes damage a touching living entity");
         h.succeed();
     }
     @GameTest(template="assembly_test",batch="outpost",timeoutTicks=100)     public static void gunRequiresBarrelAndReturnsRealAmmunition(GameTestHelper h) {

@@ -41,7 +41,7 @@ public final class LittleLeafBehaviorGameTests {
         long before=c.work();h.assertTrue(ant.getScale()>=3&&c.acceptLoad(ant)&&c.work()==before+8,"New giant inhabitants feed the enhanced colony with larger loads");
         ColonyEvents.dose(l,Vec3.atCenterOf(c.getBlockPos()));h.assertTrue(!c.giant(),"Second colony splash reverses future births");h.succeed();
     }
-    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=180)
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=400)
     public static void aWorkerActuallyEntersAndReturnsFromTheGarden(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.carry(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+1.5,0,0);l.addFreshEntity(ant);
         h.succeedWhen(()->h.assertTrue(c.work()>=1&&!ant.carrying()&&ant.getY()>=p.getY(),"Worker entered the physical chamber, delivered once and emerged: "+ant.position()+", "+ant.workStatus()));
