@@ -430,11 +430,11 @@ public final class LocalWeatherField {
 
         if (heightRoll < 0.14) {
             /*
-             * Low dramatic banks, occasionally close enough to hills and
-             * mountains for the player to enter them.
+             * Lower banks still vary, but stay above ordinary hills even with
+             * the large vertical extent of a storm cloud.
              */
             height =
-                    138.0
+                    314.0
                             + heightRoll / 0.14
                                     * 32.0;
         } else if (heightRoll > 0.86) {
@@ -442,14 +442,14 @@ public final class LocalWeatherField {
              * High thin-looking masses break the old perfectly level ceiling.
              */
             height =
-                    222.0
+                    398.0
                             + (
                             heightRoll - 0.86
                     ) / 0.14
                                     * 40.0;
         } else {
             height =
-                    168.0
+                    344.0
                             + (
                             heightRoll - 0.14
                     ) / 0.72
@@ -476,7 +476,7 @@ public final class LocalWeatherField {
          */
         height =
                 Math.max(
-                        148.0,
+                        324.0,
                         height
                 );
 

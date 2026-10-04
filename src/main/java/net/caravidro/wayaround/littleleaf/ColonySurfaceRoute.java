@@ -13,6 +13,13 @@ public final class ColonySurfaceRoute {
  public void reset(){open.clear();cost.clear();parent.clear();path=List.of();goal=null;at=visited=stationary=replans=0;failed=false;progress=null;blocked.clear();}
  public String status(){return "nodes="+visited+", queue="+open.size()+", path="+at+"/"+path.size()+", failed="+failed;}
  public boolean failed(){return failed;}
+ /** Arrival is measured at the same voxel surface used by the route, not the integer block floor. */
+ public boolean reached(ColonyInsectEntity e,BlockPos target,double tolerance){
+  if(!(e.level() instanceof ServerLevel l))return false;
+  var surface=point(l,e,target,false);
+  return surface!=null&&e.position().distanceToSqr(surface)<tolerance*tolerance;
+ }
+
  public void followPoint(ColonyInsectEntity e,BlockPos target){follow(e,target,true);}
  public void follow(ColonyInsectEntity e,BlockPos target){follow(e,target,false);}
  private void follow(ColonyInsectEntity e,BlockPos target,boolean walkToCenter){

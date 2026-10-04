@@ -127,7 +127,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 if(gardenMode!=0){
                     if(!c.openEntrance(l)){destination=null;route.reset();return;}
                     destination=gardenMode==1?c.gardenEntry():c.gardenExit();
-                    if(position().distanceToSqr(Vec3.atBottomCenterOf(destination))<.30*.30){
+                    if(route.reached(ColonyInsectEntity.this,destination,.30)){
                         if(gardenMode==1){if(carrying()){c.acceptLoad(ColonyInsectEntity.this);cycles++;}if(carryingBody()&&!c.bury(l,ColonyInsectEntity.this))return;gardenMode=c.wetWeather(l)||tickCount<fleeUntil?2:3;}else gardenMode=0;
                         destination=null;route.reset();wait=15;return;
                     }route.followPoint(ColonyInsectEntity.this,destination);if(route.failed()){route.reset();destination=null;}return;

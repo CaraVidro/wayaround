@@ -1,4 +1,5 @@
 {
+  "message.wayaround.colony.exit_blocked": "A saída está bloqueada. Abra um caminho até o terreno fora da colônia.",
   "block.wayaround.contact_mine": "Mina de toque",
   "block.wayaround.standalone_mine": "Mina standalone",
   "block.wayaround.spike_barrage": "Barragem de espinhos",

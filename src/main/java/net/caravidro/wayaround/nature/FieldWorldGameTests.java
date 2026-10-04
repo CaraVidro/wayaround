@@ -70,4 +70,25 @@ public final class FieldWorldGameTests {
   h.runAtTickTime(20,()->{h.assertTrue(l.getFluidState(p.east()).is(net.minecraft.tags.FluidTags.WATER),"Water keeps flowing across the pebble cell");h.succeed();});
  }
 
+
+ @GameTest(template="assembly_test",batch="field_world",timeoutTicks=100)
+ public static void oceanRemnantsPreserveExistingKelpAndItsFloor(GameTestHelper h){
+  var l=h.getLevel();var p=h.absolutePos(new BlockPos(5,4,5));l.setBlock(p.below(),Blocks.DEEPSLATE.defaultBlockState(),18);
+  for(int y=0;y<3;y++)l.setBlock(p.above(y),y==2?Blocks.KELP.defaultBlockState():Blocks.KELP_PLANT.defaultBlockState(),18);
+  for(int y=0;y<3;y++)net.caravidro.wayaround.worldgen.feature.DeepOceanTrenchFeature.setIfWater(l,p.above(y),Blocks.SPRUCE_PLANKS.defaultBlockState());
+  h.assertTrue(l.getBlockState(p).is(Blocks.KELP_PLANT)&&l.getBlockState(p.above(2)).is(Blocks.KELP)&&l.getBlockState(p.below()).is(Blocks.DEEPSLATE),"Late abyss debris cannot replace a neighboring chunk's kelp or remove its substrate");
+  l.setBlock(p.east(),Blocks.WATER.defaultBlockState(),18);net.caravidro.wayaround.worldgen.feature.DeepOceanTrenchFeature.setIfWater(l,p.east(),Blocks.SPRUCE_PLANKS.defaultBlockState());
+  h.assertTrue(l.getBlockState(p.east()).is(Blocks.SPRUCE_PLANKS),"Decoration still occupies actual unplanted water");h.succeed();
+ }
+ @GameTest(template="assembly_test",batch="field_world",timeoutTicks=100)
+ public static void oceanBasinMakesSupportedFloorBeforeVegetation(GameTestHelper h){
+  var l=h.getLevel();var p=h.absolutePos(new BlockPos(5,4,5));int oldFloor=p.getY()+20,sea=oldFloor+40,min=l.getMinBuildHeight();
+  for(int y=min;y<=oldFloor;y++)l.setBlock(new BlockPos(p.getX(),y,p.getZ()),Blocks.STONE.defaultBlockState(),18);
+  int floor=net.caravidro.wayaround.worldgen.terrain.DeepOceanTerrain.targetFloor(oldFloor,sea,min,p.getX(),p.getZ());
+  net.caravidro.wayaround.worldgen.terrain.DeepOceanTerrain.carveColumn(l,(q,state)->l.setBlock(q,state,18),p.getX(),p.getZ(),oldFloor,sea,min);
+  var root=new BlockPos(p.getX(),floor+1,p.getZ());
+  h.assertTrue(floor<oldFloor&&l.getBlockState(root).is(Blocks.WATER)&&l.getBlockState(root.below()).blocksMotion(),"The surface pass leaves water over a real solid abyss floor");
+  l.setBlock(root,Blocks.KELP.defaultBlockState(),18);
+  h.assertTrue(l.getBlockState(root).canSurvive(l,root),"Kelp planted after shaping retains real support");h.succeed();
+ }
 }

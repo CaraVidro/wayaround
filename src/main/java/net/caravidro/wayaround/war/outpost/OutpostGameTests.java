@@ -157,7 +157,7 @@ import net.neoforged.neoforge.gametest.*;
     @GameTest(template="assembly_test",batch="outpost",timeoutTicks=100)     public static void barricadeStopsProjectileClip(GameTestHelper h) {
         var d=device(h,OutpostContent.FIELD_BARRICADE.get());
         var mid=Vec3.atBottomCenterOf(d.getBlockPos()).add(0,.5,0);
-        var hit=h.getLevel().clip(new ClipContext(mid.add(0,0,2),mid.add(0,0,-2),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,(Entity)null));
+        var hit=h.getLevel().clip(new ClipContext(mid.add(0,0,2),mid.add(0,0,-2),ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,net.minecraft.world.phys.shapes.CollisionContext.empty()));
         h.assertTrue(hit.getType()==HitResult.Type.BLOCK&&hit.getBlockPos().equals(d.getBlockPos()),"Cover physically blocks the trajectory");
         h.succeed();
     }

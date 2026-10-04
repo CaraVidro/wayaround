@@ -268,7 +268,7 @@ public final class FieldDeviceBlockEntity extends BlockEntity {
                 if(!l.hasChunkAt(BlockPos.containing(next)))break;
                 end=next;
             }
-            var clip=l.clip(new ClipContext(from,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,(Entity)null));
+            var clip=l.clip(new ClipContext(from,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,net.minecraft.world.phys.shapes.CollisionContext.empty()));
             end=clip.getLocation();
             var area=new AABB(from,end).inflate(.16,.5,.16);
             if(!l.getEntitiesOfClass(LivingEntity.class,area,e->e.isAlive()&&!e.isSpectator()&&!e.getUUID().equals(d.owner)&&!net.caravidro.wayaround.observation.EntitySpectate.ghost(e)).isEmpty()) {

@@ -29,3 +29,13 @@ All equipment has distinct survival recipes. Propellers/chassis and the installe
 At most 16 drones are deployed near a launch area, 16 field canisters near a throwing area; shared server ceilings allow 64 alarm scans, 24 effect emissions and 64 shot attempts per level/tick. Each gun also checks the existing 128 nearby projectile limit. Routes/flight do not force-load chunks. Owner, battery, launched motion, camo, ammo, heat, mine state and charge binding save. Active pilot sessions are deliberately transient and cleared on logout/server stop. Network protocol is 30, requiring matching clients and servers.
 
 Focused GameTests cover real explosions, stationary pressure, item changes, cover/save state, contact damage, component/ammo conservation, mounting/firing/ejection, alarm reset, cover collision, remote charge consumption, camera/body separation, spoof rejection, saved battery, launched wall impact, range and temporary screens/lights. Automated client boot verifies renderer/mixin application and missing model/texture warnings. In-world visual balance, sound, packet latency and crowded multiplayer play remain manual QA; no measured FPS improvement is claimed.
+
+## World corrections included
+
+Cloud centers are raised by 176 blocks, with a minimum center Y of 324. Density, climate distribution and vertical terrain shadows keep their existing behavior.
+
+Deep-ocean excavation now runs at the current noise chunk's surface stage, before foliage decoration can spill in from neighboring chunks. The later trench feature only decorates; wrecks/debris accept actual water and do not overwrite kelp/seagrass. Floor detection ignores nonblocking plants so remnants do not mistake a kelp tip for the seabed. This changes newly generated terrain; loaded legacy loose debris keeps the existing bounded cleanup.
+
+Tiny workers no longer excavate a blocked surface entrance. Initial underground chamber creation remains a one-time colony bootstrap. Natural termite mounds have an actual ground doorway; workers return to that doorway instead of climbing back onto the colony core. Point arrival uses the same real voxel surface as navigation, including roots and partial blocks. Small insects are explicitly rejected by construction and placement even in an enlarged colony. Colony travel searches existing nearby loaded ground and never creates a floating dirt platform. A completely sealed exit retains the saved visit and can be retried after opening a path.
+
+Regression cases cover a carried leaf physically delivered through a tall termite mound, blocked-door preservation, tiny-worker excavation rejection, supported colony return, planted kelp preservation and the surface pass producing a plantable abyssal substrate.

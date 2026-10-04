@@ -1,4 +1,5 @@
 {
+  "message.wayaround.colony.exit_blocked": "The exit is blocked. Open a path to the ground outside the colony.",
   "block.wayaround.contact_mine": "Contact Mine",
   "block.wayaround.standalone_mine": "Standalone Mine",
   "block.wayaround.spike_barrage": "Spike Barrage",
