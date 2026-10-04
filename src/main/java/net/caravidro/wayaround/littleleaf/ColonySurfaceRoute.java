@@ -10,6 +10,7 @@ public final class ColonySurfaceRoute {
  private final Map<BlockPos,Double> cost=new HashMap<>();private final Map<BlockPos,BlockPos> parent=new HashMap<>();
  private List<BlockPos> path=List.of();private BlockPos goal;private int at,visited;private boolean failed;
  public void reset(){open.clear();cost.clear();parent.clear();path=List.of();goal=null;at=visited=0;failed=false;}
+ public String status(){return "nodes="+visited+", queue="+open.size()+", path="+at+"/"+path.size()+", failed="+failed;}
  public boolean failed(){return failed;}
  public void follow(ColonyInsectEntity e,BlockPos target){
   if(!(e.level() instanceof ServerLevel l))return;
@@ -27,7 +28,7 @@ public final class ColonySurfaceRoute {
   }
   if(path.isEmpty()){if(open.isEmpty())failed=true;return;}
   while(at<path.size()){
-   var p=path.get(at);Vec3 point=Vec3.atBottomCenterOf(p);double tolerance=e.enlarged()?.45:.14;
+   var p=path.get(at);boolean vertical=(at>0&&path.get(at-1).getY()!=p.getY())||(at+1<path.size()&&path.get(at+1).getY()!=p.getY());Vec3 point=waypoint(l,e,p,vertical);double tolerance=e.enlarged()?.45:.14;
    if(e.position().distanceToSqr(point)<tolerance*tolerance){at++;continue;}
    var delta=point.subtract(e.position());boolean up=Math.abs(delta.y)>.15;
    double speed=e.enlarged()?.13:.045;Vec3 horizontal=new Vec3(delta.x,0,delta.z);if(horizontal.length()>speed)horizontal=horizontal.normalize().scale(speed);
@@ -41,11 +42,19 @@ public final class ColonySurfaceRoute {
   }
   e.routeClimbing(false);e.setDeltaMovement(0,e.getDeltaMovement().y,0);
  }
+ private static Vec3 waypoint(ServerLevel l,ColonyInsectEntity e,BlockPos p,boolean vertical){
+  var center=Vec3.atBottomCenterOf(p);if(!vertical)return center;int range=Math.max(1,(int)Math.ceil(e.getBbWidth()*.5));
+  for(int down=0;down<=1;down++)for(var d:Direction.Plane.HORIZONTAL)for(int step=1;step<=range;step++){
+   var q=p.below(down).relative(d,step);if(!ColonyCoreBlockEntity.loaded(l,q))continue;var shape=l.getBlockState(q).getCollisionShape(l,q);if(shape.isEmpty())continue;var wall=shape.bounds().move(q.getX(),q.getY(),q.getZ());double gap=e.getBbWidth()*.5+.03;
+   var point=switch(d){case EAST->new Vec3(wall.minX-gap,center.y,center.z);case WEST->new Vec3(wall.maxX+gap,center.y,center.z);case SOUTH->new Vec3(center.x,center.y,wall.minZ-gap);case NORTH->new Vec3(center.x,center.y,wall.maxZ+gap);default->center;};
+   if(l.noCollision(e,e.getBoundingBox().move(point.subtract(e.position()))))return point;
+  }return center;
+ }
  private double heuristic(BlockPos p){return Math.abs(p.getX()-goal.getX())+Math.abs(p.getY()-goal.getY())+Math.abs(p.getZ()-goal.getZ());}
- private static boolean wall(ServerLevel l,BlockPos p){for(var d:Direction.Plane.HORIZONTAL){var q=p.relative(d);if(ColonyCoreBlockEntity.loaded(l,q)&&!l.getBlockState(q).getCollisionShape(l,q).isEmpty())return true;}return false;}
+ private static boolean wall(ServerLevel l,BlockPos p,int range){for(var d:Direction.Plane.HORIZONTAL)for(int step=1;step<=range;step++){var q=p.relative(d,step);if(ColonyCoreBlockEntity.loaded(l,q)&&!l.getBlockState(q).getCollisionShape(l,q).isEmpty())return true;}return false;}
  private static boolean valid(ServerLevel l,ColonyInsectEntity e,BlockPos p){
   if(!ColonyCoreBlockEntity.loaded(l,p)||!ColonyCoreBlockEntity.loaded(l,p.above(2))||!l.getFluidState(p).isEmpty())return false;
   var b=e.getBoundingBox().move(p.getX()+.5-e.getX(),p.getY()-e.getY(),p.getZ()+.5-e.getZ());if(!l.noCollision(e,b))return false;
-  var below=p.below();return ColonyCoreBlockEntity.loaded(l,below)&&(!l.getBlockState(below).getCollisionShape(l,below).isEmpty()||wall(l,p)||wall(l,below));
+  var below=p.below();return ColonyCoreBlockEntity.loaded(l,below)&&(!l.getBlockState(below).getCollisionShape(l,below).isEmpty()||wall(l,p,Math.max(1,(int)Math.ceil(e.getBbWidth()*.5)))||wall(l,below,Math.max(1,(int)Math.ceil(e.getBbWidth()*.5))));
  }
 }

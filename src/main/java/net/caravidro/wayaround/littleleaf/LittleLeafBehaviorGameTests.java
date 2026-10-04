@@ -144,7 +144,7 @@ public final class LittleLeafBehaviorGameTests {
         var worker=LittleLeafContent.BLACK_ANT.get().create(l);if((worker.getId()&1)!=0)worker=LittleLeafContent.BLACK_ANT.get().create(l);
         worker.bind(p,0,false,true);worker.moveTo(p.getX()+.5,p.getY(),p.getZ()+8.5,0,0);l.addFreshEntity(worker);final var insect=worker;
         h.succeedWhen(()->{int placed=0;for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)if(l.getBlockState(p.offset(x,0,z)).is(Blocks.DIRT))placed++;
-            h.assertTrue(placed>0,"Real giant worker must find soil, remove it, carry it along its path and place a wall: worker="+insect.position()+", material="+insect.material());l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(original,l.getServer());});
+            h.assertTrue(placed>0,"Real giant worker must find soil, remove it, carry it along its path and place a wall: worker="+insect.position()+", material="+insect.material()+", "+insect.workStatus());l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(original,l.getServer());});
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
     public static void abyssAmbienceHasLongIrregularIntervals(GameTestHelper h){

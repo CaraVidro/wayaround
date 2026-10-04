@@ -61,7 +61,7 @@ public final class LittleLeafRuntimeValidation {
                     for(var insect:population)if(insect.isAlive())insect.tick();
                 }
                 check(emerged,"Queued invaders physically emerge at the interior entrance");
-                check(victim.abandoned()&&transit.abandoned(link.source()),"Actual interior invaders reach and kill the queen, abandoning the linked source");
+                check(victim.abandoned()&&transit.abandoned(link.source()),"Actual interior invaders reach and kill the queen, abandoning the linked source; "+inside.getEntitiesOfClass(ColonyInsectEntity.class,new net.minecraft.world.phys.AABB(link.core()).inflate(112)).stream().map(e->e.species()+"/"+e.caste()+" at "+e.position()+" hp "+e.getHealth()+" target "+(e.getTarget()==null?"none":e.getTarget().position())).toList());
                 check(!inside.getBlockState(new BlockPos(50,32,64)).getValue(ColonyFungusBlock.ALIVE),"Actual giant culture dies with the queen");
             }finally{((net.minecraft.world.level.storage.ServerLevelData)level.getLevelData()).setGameTime(previousClock);inside.removePlayerImmediately(observer,net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);}
             WayAround.LOGGER.info("LITTLE LEAF VALIDATION: all 12 checks passed on a normal dedicated server");

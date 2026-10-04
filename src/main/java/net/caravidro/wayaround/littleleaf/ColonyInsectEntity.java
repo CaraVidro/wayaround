@@ -22,7 +22,9 @@ public final class ColonyInsectEntity extends PathfinderMob {
     private static final EntityDataAccessor<Integer> CASTE=SynchedEntityData.defineId(ColonyInsectEntity.class,EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> CARRY=SynchedEntityData.defineId(ColonyInsectEntity.class,EntityDataSerializers.BOOLEAN),CLIMB=SynchedEntityData.defineId(ColonyInsectEntity.class,EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Optional<BlockState>> MATERIAL=SynchedEntityData.defineId(ColonyInsectEntity.class,EntityDataSerializers.OPTIONAL_BLOCK_STATE);
+    private ColonyGoal workerGoal;
     private BlockPos buildSite;private boolean invading,routeClimbing;
+    public String workStatus(){return "scale="+getScale()+", width="+getBbWidth()+", site="+buildSite+", destination="+(workerGoal==null?null:workerGoal.destination)+", route="+(workerGoal==null?null:workerGoal.route.status());}
     public boolean carryingMaterial(){return entityData.get(MATERIAL).isPresent();}
     public BlockState material(){return entityData.get(MATERIAL).orElse(null);}
     public void material(BlockState state){entityData.set(MATERIAL,Optional.ofNullable(state));}
@@ -38,11 +40,11 @@ public final class ColonyInsectEntity extends PathfinderMob {
     public BlockPos home(){return home;}
     public boolean inside(){return inside;}
     public boolean enlarged(){return getScale()>.5;}
-    public void bind(BlockPos p,int role,boolean interior,boolean giant){home=p.immutable();inside=interior;entityData.set(CASTE,Math.max(0,Math.min(2,role)));getAttribute(Attributes.SCALE).setBaseValue((interior||giant?ColonyRules.GIANT:ColonyRules.TINY)*(role==2?2:role==1?1.2:1));getAttribute(Attributes.MAX_HEALTH).setBaseValue(role==2?40:role==1?16:8);getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(role==1?4:2);setHealth(getMaxHealth());}
+    public void bind(BlockPos p,int role,boolean interior,boolean giant){home=p.immutable();inside=interior;entityData.set(CASTE,Math.max(0,Math.min(2,role)));getAttribute(Attributes.SCALE).setBaseValue((interior||giant?ColonyRules.GIANT:ColonyRules.TINY)*(role==2?2:role==1?1.2:1));getAttribute(Attributes.MAX_HEALTH).setBaseValue(role==2?40:role==1?16:8);getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(role==1?4:2);setHealth(getMaxHealth());refreshDimensions();}
     @Override protected void defineSynchedData(SynchedEntityData.Builder b){super.defineSynchedData(b);b.define(CASTE,0);b.define(CARRY,false);b.define(CLIMB,false);b.define(MATERIAL,Optional.empty());}
     @Override protected PathNavigation createNavigation(Level l){return new WallClimberNavigation(this,l);}
     @Override public boolean onClimbable(){return entityData.get(CLIMB);}
-    @Override protected void registerGoals(){goalSelector.addGoal(0,new FloatGoal(this));goalSelector.addGoal(1,new MeleeAttackGoal(this,1.2,false));goalSelector.addGoal(3,new ColonyGoal());}
+    @Override protected void registerGoals(){goalSelector.addGoal(0,new FloatGoal(this));goalSelector.addGoal(1,new MeleeAttackGoal(this,1.2,false));workerGoal=new ColonyGoal();goalSelector.addGoal(3,workerGoal);}
     @Override public void aiStep(){
         super.aiStep();if(!level().isClientSide){
             entityData.set(CLIMB,horizontalCollision||routeClimbing);
