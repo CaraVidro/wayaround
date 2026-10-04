@@ -152,4 +152,43 @@ public final class LittleLeafBehaviorGameTests {
     }
 
 
+
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=2200)
+    public static void antHarvestsAndReturnsAcrossRealRootGeometry(GameTestHelper h){rootForage(h,false);}
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=2200)
+    public static void termiteHarvestsAndReturnsAcrossRealRootGeometry(GameTestHelper h){rootForage(h,true);}
+    private static void rootForage(GameTestHelper h,boolean termite){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();if(termite){l.setBlock(p,LittleLeafContent.TERMITE_COLONY.get().defaultBlockState(),18);c=(ColonyCoreBlockEntity)l.getBlockEntity(p);c.initialize(l.getGameTime(),0,false);}
+        for(int x=-2;x<=2;x++)for(int z=-2;z<=2;z++)for(int y=0;y<2;y++)if(x*x+z*z<=4&&!(x==0&&(z==0||z==1)))l.setBlock(p.offset(x,y,z),Blocks.DIRT.defaultBlockState(),18);
+        var root=net.caravidro.wayaround.ecology.EcologyContent.OAK_TREE_SEGMENT.get().defaultBlockState().setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.ROOT,true).setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.THICKNESS,4);
+        for(int n=-3;n<=3;n++){l.setBlock(p.offset(3,0,n),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.Z),18);l.setBlock(p.offset(-3,0,n),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.Z),18);l.setBlock(p.offset(n,0,3),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.X),18);l.setBlock(p.offset(n,0,-3),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.X),18);}
+        var leaf=p.offset(5,1,0);l.setBlock(leaf.below(),Blocks.STONE.defaultBlockState(),18);l.setBlock(leaf,Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT,true),18);
+        var ant=(termite?LittleLeafContent.TERMITE:LittleLeafContent.BLACK_ANT).get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY()+1,p.getZ()+.5,0,0);l.addFreshEntity(ant);final var colony=c;
+        h.succeedWhen(()->h.assertTrue(colony.work()>0&&!ant.carrying()&&!ant.sheltered()&&ant.getY()>=p.getY(),"Actual mod roots and a dirt mound permit a complete harvest, physical garden delivery and emergence: "+ant.position()+", "+ant.workStatus()));
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1200)
+    public static void workerHarvestsGrassBlockAndReturns(GameTestHelper h){groundForage(h,false);}
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1200)
+    public static void workerHarvestsNewModFoliageAndReturns(GameTestHelper h){groundForage(h,true);}
+    private static void groundForage(GameTestHelper h,boolean plant){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var source=p.offset(4,plant?0:-1,0);l.setBlock(source,plant?net.caravidro.wayaround.ecology.EcologyContent.DAMP_FERN.get().defaultBlockState():Blocks.GRASS_BLOCK.defaultBlockState(),18);
+        var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+2.5,0,0);l.addFreshEntity(ant);
+        h.succeedWhen(()->{h.assertTrue(c.work()>0&&!ant.carrying()&&ant.getY()>=p.getY(),"Forager gathers actual ground foliage and physically returns it: "+ant.position()+", "+ant.workStatus());h.assertTrue(!l.getBlockState(source).isAir(),"Fragment collection keeps the supporting grass/plant");});
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void tinyAntsSurviveNormalFalls(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(c.getBlockPos(),0,false,false);float health=ant.getHealth();
+        ant.causeFallDamage(20,1,l.damageSources().fall());h.assertTrue(ant.getHealth()==health,"A twenty-block tumble does not kill a tiny insect");ant.causeFallDamage(64,1,l.damageSources().fall());h.assertTrue(ant.getHealth()<health,"Only a much higher fall damages the insect");h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="colony_weather",timeoutTicks=1000)
+    public static void rainPrioritizesDeliveryAndShelterUntilDry(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();boolean old=l.isRaining();l.setWeatherParameters(0,10000,true,false);h.runAtTickTime(950,()->l.setWeatherParameters(10000,0,old,false));
+        var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.carry(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+3.5,0,0);l.addFreshEntity(ant);final boolean[] saw={false};
+        h.succeedWhen(()->{if(ant.sheltered()){h.assertTrue(c.work()>0&&ant.getY()<p.getY()&&!ant.carrying(),"Rain sends the carried leaf into the garden before sheltering");saw[0]=true;l.setWeatherParameters(10000,0,false,false);}h.assertTrue(saw[0]&&!ant.sheltered()&&ant.getY()>=p.getY(),"Worker physically emerges when weather clears: "+ant.position()+", "+ant.workStatus());l.setWeatherParameters(10000,0,old,false);});
+    }
+    @GameTest(template="assembly_test",batch="colony_water",timeoutTicks=220)
+    public static void submergedAntDrownsQuickly(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos().offset(3,0,3);for(int y=0;y<3;y++)l.setBlock(p.above(y),Blocks.WATER.defaultBlockState(),18);var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(c.getBlockPos(),0,false,false);ant.setNoAi(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+.5,0,0);l.addFreshEntity(ant);
+        h.succeedWhen(()->h.assertTrue(!ant.isAlive(),"A submerged insect has a short air reserve rather than surviving underwater indefinitely"));
+    }
 }

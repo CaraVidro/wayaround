@@ -1,0 +1,28 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:grass_block",
+    "minecraft:short_grass",
+    "minecraft:tall_grass",
+    "minecraft:fern",
+    "minecraft:large_fern",
+    "#minecraft:flowers",
+    "wayaround:river_sprig",
+    "wayaround:woodland_sorrel",
+    "wayaround:damp_fern",
+    "wayaround:meadow_sedge",
+    "wayaround:creek_clover",
+    "wayaround:shade_nettle",
+    "wayaround:bracken_fern",
+    "wayaround:wild_reeds",
+    "wayaround:forest_shrub",
+    "wayaround:flowering_shrub",
+    "wayaround:dry_shrub",
+    "wayaround:marsh_cattails",
+    "wayaround:broadleaf_fern",
+    "wayaround:moss_tuft",
+    "wayaround:thorn_bush",
+    "wayaround:wildflower_cluster",
+    "wayaround:marsh_grass_clump"
+  ]
+}

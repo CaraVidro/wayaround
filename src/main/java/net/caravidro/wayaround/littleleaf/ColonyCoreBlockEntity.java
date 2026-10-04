@@ -19,7 +19,8 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     private long last=-1,work,workClock;private boolean habitat=true,interior,queenBorn,gardenPrepared,queenDead;private UUID queenId;
     private GlobalPos source;private int decayCursor,soilCursor;private final Map<UUID,BlockPos> assignments=new HashMap<>();
     private int buildStage=-1,buildCursor,clearCursor;private boolean clearing;private final ArrayList<Long> owned=new ArrayList<>();
-    private final LinkedHashSet<UUID> enemies=new LinkedHashSet<>();private BlockPos food,foodCandidate,climbSource,climbPoint;private int foodColumn,foodY=Integer.MIN_VALUE;
+    private final LinkedHashMap<BlockPos,Long> rejectedFood=new LinkedHashMap<>();
+    private final LinkedHashSet<UUID> enemies=new LinkedHashSet<>();private BlockPos food,foodCandidate;private int foodColumn,foodY=Integer.MIN_VALUE;
     private static final List<BlockPos> FOOD_COLUMNS=new ArrayList<>(),SOIL_COLUMNS=new ArrayList<>();
     static {for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)FOOD_COLUMNS.add(new BlockPos(x,0,z));FOOD_COLUMNS.sort(Comparator.comparingInt(p->p.getX()*p.getX()+p.getZ()*p.getZ()));}
     static {for(int x=-24;x<=24;x++)for(int z=-24;z<=24;z++)SOIL_COLUMNS.add(new BlockPos(x,0,z));SOIL_COLUMNS.sort(Comparator.comparingInt(p->p.getX()*p.getX()+p.getZ()*p.getZ()));}
@@ -96,7 +97,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     public BlockPos food(ServerLevel l){
         if(queenDead)return null;
         if(interior)return worldPosition.offset(28,0,4);
-        if(food!=null&&loaded(l,food)&&edible(l.getBlockState(food)))return food;
+        if(food!=null&&availableFood(l,food))return food;
         food=null;
         for(int i=0;i<48&&ColonyBudget.search(l);i++){
             var offset=FOOD_COLUMNS.get(foodColumn);var column=worldPosition.offset(offset);
@@ -104,29 +105,39 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
             if(foodY==Integer.MIN_VALUE){foodY=Math.min(worldPosition.getY()+32,l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,column.getX(),column.getZ())-1);continue;}
             if(foodY<worldPosition.getY()-2){if(foodCandidate!=null){food=foodCandidate;nextFoodColumn();break;}nextFoodColumn();continue;}
             var p=new BlockPos(column.getX(),foodY--,column.getZ());
-            if(edible(l.getBlockState(p)))foodCandidate=p;
+            if(availableFood(l,p))foodCandidate=p;
             else if(foodCandidate!=null){food=foodCandidate;nextFoodColumn();break;}
         }
         return food;
     }
-    public BlockPos approach(ServerLevel l,BlockPos source,ColonyInsectEntity insect){
-        if(interior||insect.enlarged()||source.getY()-insect.getY()<1.1)return source.above();
-        if(!source.equals(climbSource)){
-            climbSource=source.immutable();climbPoint=null;double best=Double.MAX_VALUE;
-            // Shared climb route: a short, budgeted scan for the supporting trunk near the lower canopy.
-            for(int y=1;y<=3;y++)for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++){
-                if(!ColonyBudget.search(l)){if(climbPoint==null)climbSource=null;return climbPoint!=null?climbPoint:source.above();}var p=source.offset(x,-y,z);
-                if(!loaded(l,p)||!l.getBlockState(p).is(BlockTags.LOGS))continue;
-                double d=x*x+z*z+y*.2;if(d<best){best=d;climbPoint=p.above(y+1);}
-            }
+    /** Near-ground forage gives a blocked canopy a real, reachable alternative. */
+    public BlockPos food(ServerLevel l,ColonyInsectEntity insect){
+        var origin=insect.blockPosition();
+        for(int n=0;n<12&&ColonyBudget.search(l);n++){
+            int ring=n/4+1;var d=Direction.from2DDataValue((n+insect.getId())%4);var q=origin.relative(d,ring);
+            for(int y=0;y>=-1;y--){var p=q.offset(0,y,0);if(availableFood(l,p))return p;}
         }
-        return climbPoint!=null?climbPoint:source.above();
+        return food(l);
     }
     private void nextFoodColumn(){foodColumn=(foodColumn+1)%FOOD_COLUMNS.size();foodY=Integer.MIN_VALUE;foodCandidate=null;}
-    public void rejectFood(BlockPos p){if(p!=null&&p.equals(food)){food=null;nextFoodColumn();}}
-    private boolean edible(BlockState s){return s.is(BlockTags.LEAVES)||(species()==3&&s.is(BlockTags.LOGS));}
+    public void rejectFood(BlockPos p){if(p==null)return;if(rejectedFood.size()>=24)rejectedFood.remove(rejectedFood.keySet().iterator().next());rejectedFood.put(p,level.getGameTime()+1200);if(p.equals(food)){food=null;nextFoodColumn();}}
+    private boolean edible(BlockState s){return s.is(BlockTags.LEAVES)||s.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK,net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("wayaround","colony_forage")))||(species()==3&&s.is(BlockTags.LOGS));}
+    private boolean availableFood(ServerLevel l,BlockPos p){
+        if(!loaded(l,p)||!edible(l.getBlockState(p))||!l.getFluidState(p).isEmpty())return false;
+        Long until=rejectedFood.get(p);if(until!=null){if(until>l.getGameTime())return false;rejectedFood.remove(p);}
+        if(l.getBlockState(p).is(Blocks.GRASS_BLOCK)){var above=p.above();return loaded(l,above)&&l.getFluidState(above).isEmpty()&&l.getBlockState(above).getCollisionShape(l,above).isEmpty();}return true;
+    }
+    public boolean wetWeather(ServerLevel l){return l.isRaining()&&l.canSeeSky(worldPosition.above(Math.max(6,ColonyRules.height(stage(),species()==3)+1)));}
+    public BlockPos gardenEntry(){return worldPosition.offset(0,-3,1);}
+    public BlockPos gardenExit(){return worldPosition.above();}
+    /** Repair old/crafted dirt entrances without deleting roots, buildings or the core. */
+    public boolean openEntrance(ServerLevel l){
+        for(int y=-1;y<=1;y++){var p=worldPosition.offset(0,y,1);if(!loaded(l,p)||!l.getFluidState(p).isEmpty())return false;var state=l.getBlockState(p);
+            if(state.is(BlockTags.DIRT)){if(!ColonyBudget.build(l))return false;l.setBlock(p,Blocks.AIR.defaultBlockState(),18);}else if(!state.getCollisionShape(l,p).isEmpty())return false;
+        }return true;
+    }
     public boolean cut(ServerLevel l,BlockPos p,ColonyInsectEntity insect){
-        if(queenDead||insect.carrying()||!loaded(l,p)||!edible(l.getBlockState(p))||!insect.getBoundingBox().inflate(insect.enlarged()?.65:.20).intersects(new AABB(p)))return false;
+        if(queenDead||insect.carrying()||!loaded(l,p)||!availableFood(l,p)||!insect.getBoundingBox().inflate(insect.enlarged()?.65:.20).intersects(new AABB(p)))return false;
         insect.carry(true); // A cut is a fragment, not a whole disappearing leaf or trunk.
         ColonyEffects.work(l,p,l.getBlockState(p),net.minecraft.sounds.SoundEvents.GRASS_BREAK,enlargedVolume(insect));return true;
     }
