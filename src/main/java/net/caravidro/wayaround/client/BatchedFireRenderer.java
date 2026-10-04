@@ -64,12 +64,17 @@ public final class BatchedFireRenderer {
             }
         }
         for(var patch:BLAZES){var p=BlockPos.of(patch.pos());double cx=p.getX()+patch.width()*.5,cz=p.getZ()+patch.depth()*.5;
-            if(camera.distanceToSqr(cx,p.getY(),cz)<56*56)continue;
+            double distance=camera.distanceToSqr(cx,p.getY(),cz);if(distance<48*48)continue;
             double y=p.getY()-camera.y,h=patch.height()*(.96+.04*Math.sin(now*.15));
-            for(int plane=0;plane<2;plane++){
-                double dx=patch.width()*.5,dz=patch.depth()*.5*(plane==0?1:-1);double x=cx-camera.x,z=cz-camera.z;
-                vertex(b,matrix,x-dx,y,z-dz,texture.getU0(),texture.getV1());vertex(b,matrix,x+dx,y,z+dz,texture.getU1(),texture.getV1());
-                vertex(b,matrix,x+dx,y+h,z+dz,texture.getU1(),texture.getV0());vertex(b,matrix,x-dx,y+h,z-dz,texture.getU0(),texture.getV0());count++;
+            // Mid distance uses several unstretched flame panels; far distance is one growing silhouette.
+            int panels=distance<160*160?Math.min(8,Math.max(1,(int)Math.ceil(Math.max(patch.width(),patch.depth())/5.0))):1;
+            for(int plane=0;plane<2;plane++)for(int panel=0;panel<panels;panel++){
+                double t0=(double)panel/panels,t1=(double)(panel+1)/panels;
+                double dx=patch.width()*.5,dz=patch.depth()*.5*(plane==0?1:-1),x=cx-camera.x,z=cz-camera.z;
+                double x0=x-dx+2*dx*t0,z0=z-dz+2*dz*t0,x1=x-dx+2*dx*t1,z1=z-dz+2*dz*t1;
+                double peak=h*(.85+.15*Math.sin(panel*2.4+now*.1));
+                vertex(b,matrix,x0,y,z0,texture.getU0(),texture.getV1());vertex(b,matrix,x1,y,z1,texture.getU1(),texture.getV1());
+                vertex(b,matrix,x1,y+peak,z1,texture.getU1(),texture.getV0());vertex(b,matrix,x0,y+peak,z0,texture.getU0(),texture.getV0());count++;
             }
         }
         if(count==0){b.build();return;}

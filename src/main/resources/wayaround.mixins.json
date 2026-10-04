@@ -22,7 +22,9 @@
     "FireBlockAccessor",
     "PlayerStepSoundMixin",
     "ContinentalNoiseAccessor",
-    "EcologyHookAccessor"
+    "EcologyHookAccessor",
+    "EntitySpectatePlayerMixin",
+    "EntitySpectateEffectsMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
@@ -56,7 +58,8 @@
     "client.RegionLightTextureMixin",
     "client.RegionFogMixin",
     "client.NexusDimensionSkyMixin",
-    "client.EntitySpectateCameraMixin"
+    "client.EntitySpectateCameraMixin",
+    "client.EntitySpectatePlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

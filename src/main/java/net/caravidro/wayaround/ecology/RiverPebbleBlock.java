@@ -138,6 +138,22 @@ public final class RiverPebbleBlock
                 || super.canBeReplaced(state, context);
     }
 
+    /** Generated dry stones also accept flowing water, not just the WATER source fluid. */
+    @Override
+    public boolean canPlaceLiquid(net.minecraft.world.entity.player.Player player, BlockGetter level, BlockPos pos, BlockState state, net.minecraft.world.level.material.Fluid fluid) {
+        return !state.getValue(WATERLOGGED) && (fluid == Fluids.WATER || fluid == Fluids.FLOWING_WATER);
+    }
+
+    @Override
+    public boolean placeLiquid(LevelAccessor level, BlockPos pos, BlockState state, FluidState fluid) {
+        if (state.getValue(WATERLOGGED) || !fluid.is(FluidTags.WATER)) return false;
+        if (!level.isClientSide()) {
+            level.setBlock(pos, state.setValue(WATERLOGGED, true), 3);
+            level.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
+        }
+        return true;
+    }
+
     @Override
     protected FluidState getFluidState(BlockState state) {
         return state.getValue(WATERLOGGED)

@@ -15,8 +15,9 @@ public abstract class EntitySpectateCameraMixin {
  @Shadow protected abstract void move(float x,float y,float z);
  @Shadow private float getMaxZoom(float zoom){return 0;}
  @Inject(method="setup",at=@At("TAIL")) private void orbit(BlockGetter level,Entity entity,boolean detached,boolean reverse,float partial,CallbackInfo ci){
-  var mc=Minecraft.getInstance();if(mc.player==null||net.caravidro.wayaround.client.FieldInteractionClient.target!=entity.getId())return;
+  var mc=Minecraft.getInstance();if(mc.player==null||mc.level==null)return;
+  Entity observed=mc.level.getEntity(net.caravidro.wayaround.client.FieldInteractionClient.target);if(observed==null||!observed.isAlive())return;
   this.detached=true;
-  setPosition(entity.getPosition(partial).add(0,entity.getBbHeight()*.5,0));setRotation(mc.player.getYRot(),mc.player.getXRot());move(-getMaxZoom(Math.max(3,Math.min(16,entity.getBbWidth()*2+2))),0,0);
+  setPosition(observed.getPosition(partial).add(0,observed.getBbHeight()*.5,0));setRotation(mc.player.getYRot(),mc.player.getXRot());move(-getMaxZoom(Math.max(3,Math.min(16,observed.getBbWidth()*2+2))),0,0);
  }
 }

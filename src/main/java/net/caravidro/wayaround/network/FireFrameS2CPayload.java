@@ -12,7 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 public record FireFrameS2CPayload(List<Flame> flames,List<Blaze> blazes) implements CustomPacketPayload {
     public static final int MAX_FLAMES=128;
     public record Blaze(long pos,float width,float depth,float height){
-        public boolean sane(){return Float.isFinite(width)&&width>0&&width<=256&&Float.isFinite(depth)&&depth>0&&depth<=256&&Float.isFinite(height)&&height>0&&height<=8&&Math.abs((long)BlockPos.of(pos).getX())<=30_000_000&&Math.abs((long)BlockPos.of(pos).getZ())<=30_000_000;}
+        public boolean sane(){return Float.isFinite(width)&&width>0&&width<=256&&Float.isFinite(depth)&&depth>0&&depth<=256&&Float.isFinite(height)&&height>0&&height<=32&&Math.abs((long)BlockPos.of(pos).getX())<=30_000_000&&Math.abs((long)BlockPos.of(pos).getZ())<=30_000_000;}
     }
     public FireFrameS2CPayload(List<Flame> flames){this(flames,List.of());}
     public record Flame(long pos,float offsetX,float offsetY,float offsetZ,float size) {
