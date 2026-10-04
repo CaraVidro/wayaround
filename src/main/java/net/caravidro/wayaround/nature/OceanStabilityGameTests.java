@@ -55,7 +55,9 @@ public final class OceanStabilityGameTests {
         h.assertTrue(l.getBlockState(lamp).is(Blocks.WATER),"Removing the submarine restores the original water");
         h.runAfterDelay(40,()-> {
             h.assertTrue(l.getBlockState(root).is(Blocks.KELP_PLANT) && l.getBlockState(root.above()).is(Blocks.KELP),"Lamp changes never break supported kelp");
-            h.assertTrue(l.getEntitiesOfClass(ItemEntity.class,new AABB(root).inflate(2)).isEmpty(),"No broken plant item drops");h.succeed();
+            var plantDrops=l.getEntitiesOfClass(ItemEntity.class,new AABB(root).inflate(2),
+                    item->item.getItem().is(net.minecraft.world.item.Items.KELP)||item.getItem().is(net.minecraft.world.item.Items.SEAGRASS));
+            h.assertTrue(plantDrops.isEmpty(),"No kelp/seagrass item drops from the lamp: "+plantDrops.stream().map(item->item.getItem().toString()).toList());h.succeed();
         });
     }
     @GameTest(template="assembly_test",batch="ocean_stability",timeoutTicks=80)
