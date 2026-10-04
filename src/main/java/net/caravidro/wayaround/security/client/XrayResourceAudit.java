@@ -88,7 +88,13 @@ public final class XrayResourceAudit extends SimplePreparableReloadListener<Reso
     }
     private static void collectModels(JsonElement value,Set<String> names) {
         if(value==null || names.size()>32)return;
-        if(value.isJsonArray()) { for(JsonElement entry:value.getAsJsonArray()) { collectModels(entry,names);if(names.size()>32)return; } }
+        if(value.isJsonArray()) {
+            if(value.getAsJsonArray().size()>64)throw new IllegalArgumentException("Too many model alternatives");
+            // Vanilla alternatives are flat objects. Never recurse into arbitrarily nested pack JSON.
+            for(JsonElement entry:value.getAsJsonArray()) {
+                names.add(entry.getAsJsonObject().get("model").getAsString());if(names.size()>32)return;
+            }
+        }
         else names.add(value.getAsJsonObject().get("model").getAsString());
     }
 
@@ -106,6 +112,7 @@ public final class XrayResourceAudit extends SimplePreparableReloadListener<Reso
                     textures.putIfAbsent(entry.getKey(),entry.getValue().getAsString());
                 if (elements == null && model.has("elements")) elements = model.getAsJsonArray("elements");
                 if (!model.has("parent")) break;
+                if (depth==7) return Observation.UNKNOWN;
                 current = model.get("parent").getAsString();
                 if (!current.contains(":")) current = "minecraft:"+current;
                 if (current.startsWith("minecraft:builtin/")) return Observation.UNKNOWN;

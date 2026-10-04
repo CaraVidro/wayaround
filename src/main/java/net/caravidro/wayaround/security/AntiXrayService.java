@@ -28,11 +28,11 @@ public final class AntiXrayService {
     private static int cursor, oreBudget=64;
     private static final class Session {
         long nonce, sent, next, lastAccepted, unansweredSince;
-        boolean pending, previousStrong, missingNotified, advisoryNotified;
+        boolean pending, previousStrong, missingNotified;
         String notifiedFingerprint="";
         int reviewStage;
     }
-    private static boolean enabled(MinecraftServer server) { return AntiXrayConfig.ENABLED.get() && !server.isSingleplayer(); }
+    private static boolean enabled(MinecraftServer server) { return AntiXrayConfig.ENABLED.get() && (!server.isSingleplayer() || server.isPublished()); }
 
     @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !enabled(player.server)) return;
@@ -80,6 +80,7 @@ public final class AntiXrayService {
         if(!accepts(s.pending,s.nonce,report.nonce(),now-s.sent,evidence.valid()))return;
         s.pending=false;s.unansweredSince=0;s.missingNotified=false;
         AntiXrayData data=AntiXrayData.get(player.server); AntiXrayData.Case c=data.get(player.getUUID());
+        c.name=player.getGameProfile().getName();
         boolean approved=data.approved(evidence.fingerprint()) || AntiXrayConfig.APPROVED.get().contains(evidence.fingerprint());
         double elapsed=s.previousStrong && evidence.strong() && !approved && s.lastAccepted!=0 && now-s.lastAccepted<=8_000_000_000L
                 ? Math.min(5,(now-s.lastAccepted)/1_000_000_000.0):0;
