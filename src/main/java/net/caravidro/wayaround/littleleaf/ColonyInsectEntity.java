@@ -39,14 +39,15 @@ public final class ColonyInsectEntity extends PathfinderMob {
     public boolean takeBody(ColonyInsectEntity body){if(carrying()||carryingMaterial()||carryingBody()||!body.corpse()||body.buried||body.carrier!=null||!getBoundingBox().inflate(enlarged()?1:.2).intersects(body.getBoundingBox()))return false;bodyId=body.getUUID();body.carrier=getUUID();body.setNoGravity(true);return true;}
     private ColonyGoal workerGoal;
     private BlockPos buildSite;private boolean invading,routeClimbing;
-    public String workStatus(){return "job="+job()+", life="+entityData.get(LIFE)+", garden="+gardenMode+", weather="+weatherWaiting+", target="+(getTarget()==null?null:getTarget().getType())+", scale="+getScale()+", width="+getBbWidth()+", site="+buildSite+", destination="+(workerGoal==null?null:workerGoal.destination)+", route="+(workerGoal==null?null:workerGoal.route.status());}
+    public String workStatus(){return "job="+job()+", life="+entityData.get(LIFE)+", garden="+gardenMode+", weather="+weatherWaiting+", target="+(getTarget()==null?null:getTarget().getType())+", scale="+getScale()+", width="+getBbWidth()+", site="+buildSite+", destination="+(workerGoal==null?null:workerGoal.destination)+", motion="+getDeltaMovement()+", route="+(workerGoal==null?null:workerGoal.route.status());}
     public boolean carryingMaterial(){return entityData.get(MATERIAL).isPresent();}
     public BlockState material(){return entityData.get(MATERIAL).orElse(null);}
     public void material(BlockState state){entityData.set(MATERIAL,Optional.ofNullable(state));}
     public void routeClimbing(boolean b){routeClimbing=b;entityData.set(CLIMB,b||horizontalCollision);}
     public boolean climbing(){return entityData.get(CLIMB);}
     public void invade(){invading=true;}
-    private BlockPos home;private boolean inside;private int unboundTicks,gardenMode;
+    private BlockPos home;private boolean inside;private int unboundTicks,gardenMode,forageColumn;
+    public int nextForageColumn(int count){return Math.floorMod(forageColumn++,count);}
     public boolean sheltered(){return gardenMode==2||weatherWaiting;}
     public ColonyInsectEntity(EntityType<? extends ColonyInsectEntity> type,Level level){super(type,level);}
     public int species(){return getType()==LittleLeafContent.RED_ANT.get()?1:getType()==LittleLeafContent.HONEY_ANT.get()?2:getType()==LittleLeafContent.TERMITE.get()?3:0;}
@@ -60,7 +61,33 @@ public final class ColonyInsectEntity extends PathfinderMob {
     @Override protected void defineSynchedData(SynchedEntityData.Builder b){super.defineSynchedData(b);b.define(CASTE,0);b.define(CARRY,false);b.define(CLIMB,false);b.define(MATERIAL,Optional.empty());b.define(LIFE,0);b.define(JOB,0);}
     @Override protected PathNavigation createNavigation(Level l){return new WallClimberNavigation(this,l);}
     @Override public boolean onClimbable(){return !yielding()&&entityData.get(CLIMB);}
-    @Override protected void registerGoals(){goalSelector.addGoal(0,new FloatGoal(this){@Override public boolean canUse(){return enlarged()&&super.canUse();}});goalSelector.addGoal(1,new MeleeAttackGoal(this,1.2,false));workerGoal=new ColonyGoal();goalSelector.addGoal(3,workerGoal);}
+    @Override protected void registerGoals(){
+        goalSelector.addGoal(0,new FloatGoal(this){@Override public boolean canUse(){return enlarged()&&super.canUse();}});
+        goalSelector.addGoal(1,new MeleeAttackGoal(this,1.2,false){
+            private boolean closeBody(){
+                var target=getTarget();
+                return !enlarged()&&target!=null&&target.isAlive()&&distanceToSqr(target)<=2.5*2.5&&Math.abs(target.getY()-getY())<=.3&&hasLineOfSight(target);
+            }
+            @Override public boolean canUse(){return closeBody()||super.canUse();}
+            @Override public boolean canContinueToUse(){return closeBody()||super.canContinueToUse();}
+            @Override public void tick(){
+                super.tick();
+                var target=getTarget();
+                // Vanilla navigation stops within a block of the target. An
+                // ant's scaled melee reach is much smaller, so close that last
+                // gap against the actual body rather than its integer block.
+                if(enlarged()||target==null||!target.isAlive()||distanceToSqr(target)>2.5*2.5||Math.abs(target.getY()-getY())>.3)return;
+                var delta=target.position().subtract(position());
+                var flat=new Vec3(delta.x,0,delta.z);
+                if(flat.lengthSqr()<.0025)return;
+                var step=flat.normalize().scale(Math.min(.045,flat.length()));
+                if(!level().noCollision(ColonyInsectEntity.this,getBoundingBox().move(step)))return;
+                getNavigation().stop();setDeltaMovement(step.x,getDeltaMovement().y,step.z);
+                setYRot((float)(Math.atan2(-step.x,step.z)*180/Math.PI));
+            }
+        });
+        workerGoal=new ColonyGoal();goalSelector.addGoal(3,workerGoal);
+    }
     @Override public void aiStep(){
         if(!level().isClientSide&&activeAdult()&&caste()!=2){var c=colony();if(c!=null&&c.wetWeather((ServerLevel)level()))setTarget(null);}
         super.aiStep();if(!level().isClientSide){
@@ -127,7 +154,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 if(gardenMode!=0){
                     if(!c.openEntrance(l)){destination=null;route.reset();return;}
                     destination=gardenMode==1?c.gardenEntry():c.gardenExit();
-                    if(position().distanceToSqr(Vec3.atBottomCenterOf(destination))<.30*.30){
+                    if(route.reached(ColonyInsectEntity.this,destination,.30)){
                         if(gardenMode==1){if(carrying()){c.acceptLoad(ColonyInsectEntity.this);cycles++;}if(carryingBody()&&!c.bury(l,ColonyInsectEntity.this))return;gardenMode=c.wetWeather(l)||tickCount<fleeUntil?2:3;}else gardenMode=0;
                         destination=null;route.reset();wait=15;return;
                     }route.followPoint(ColonyInsectEntity.this,destination);if(route.failed()){route.reset();destination=null;}return;
@@ -161,7 +188,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 if(c==null||c.abandoned())destination=blockPosition().offset(random.nextInt(7)-3,0,random.nextInt(7)-3);
                 else if(caste()==1)destination=home.offset(random.nextInt(13)-6,0,random.nextInt(13)-6);
                 else {if((carrying()||carryingBody())&&!inside&&!enlarged()){gardenMode=1;destination=null;route.reset();return;}destination=carrying()?dropSite(c):c.food(l,ColonyInsectEntity.this);}
-                if(destination==null){wait=20;return;}route.reset();stuck=0;
+                if(destination==null){wait=ColonyBudget.searchAvailable(l)?8:2;return;}route.reset();stuck=0;
             }
             if(!ColonyCoreBlockEntity.loaded(l,destination)){destination=null;wait=40;return;}
             if(c!=null&&!c.abandoned()&&caste()==0&&!carrying()&&c.cut(l,destination,ColonyInsectEntity.this)){getNavigation().stop();destination=null;route.reset();wait=15;return;}

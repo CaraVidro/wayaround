@@ -81,6 +81,7 @@ public class WayAround {
         net.caravidro.wayaround.littleleaf.LittleLeafContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
         WarContent.register(modEventBus);
+        net.caravidro.wayaround.war.outpost.OutpostContent.register(modEventBus);
         MediaContent.register(modEventBus);
         NexusContent.register(modEventBus);
         OldFriendContent.register(modEventBus);

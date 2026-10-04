@@ -45,7 +45,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     public void initializeMound(long now,long oldWork,int radius,int height){
         initialize(now,oldWork,true);gardenPrepared=true;
         for(int x=-radius;x<=radius;x++)for(int z=-radius;z<=radius;z++)for(int y=0;y<height;y++){
-            if(x*x+z*z>(radius-y*.45)*(radius-y*.45)||x==0&&z==0||x==0&&z==1&&y<2)continue;
+            if(x*x+z*z>(radius-y*.45)*(radius-y*.45)||x==0&&z==0||x==0&&z>=1&&z<=radius&&y<2)continue;
             owned.add(worldPosition.offset(x,y,z).asLong());
         }
         setChanged();
@@ -123,7 +123,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         if(interior)return worldPosition.offset(28,0,4);
         if(food!=null&&availableFood(l,food))return food;
         food=null;
-        for(int i=0;i<48&&ColonyBudget.search(l);i++){
+        for(int i=0;i<12&&ColonyBudget.search(l);i++){
             var offset=FOOD_COLUMNS.get(foodColumn);var column=worldPosition.offset(offset);
             if(!loaded(l,column)){nextFoodColumn();continue;}
             if(foodY==Integer.MIN_VALUE){foodY=Math.min(worldPosition.getY()+32,l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,column.getX(),column.getZ())-1);continue;}
@@ -136,10 +136,11 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     /** Near-ground forage gives a blocked canopy a real, reachable alternative. */
     public BlockPos food(ServerLevel l,ColonyInsectEntity insect){
+        if(food!=null&&availableFood(l,food))return food;
         var origin=insect.blockPosition();
-        for(int n=0;n<12&&ColonyBudget.search(l);n++){
-            int ring=n/4+1;var d=Direction.from2DDataValue((n+insect.getId())%4);var q=origin.relative(d,ring);
-            for(int y=0;y>=-1;y--){var p=q.offset(0,y,0);if(availableFood(l,p))return p;}
+        for(int n=0;n<4&&ColonyBudget.search(l);n++){
+            var offset=FOOD_COLUMNS.get(insect.nextForageColumn(FOOD_COLUMNS.size()));var q=origin.offset(offset);
+            for(int y=1;y>=-1;y--){var p=q.offset(0,y,0);if(availableFood(l,p))return p;}
         }
         return food(l);
     }
@@ -153,12 +154,14 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     public boolean wetWeather(ServerLevel l){return !interior&&(l.isRaining()||net.caravidro.wayaround.industrial.ship.ShipWind.sample(l,Vec3.atCenterOf(worldPosition)).length()>.036||net.caravidro.wayaround.worldgen.weather.local.WindTestManager.strengthAt(worldPosition.getX(),worldPosition.getZ(),l.getGameTime())>.6)&&l.canSeeSky(worldPosition.above(Math.max(16,ColonyRules.height(stage(),species()==3)+2)));}
     public BlockPos gardenEntry(){return worldPosition.offset(0,-3,1);}
-    public BlockPos gardenExit(){return worldPosition.above();}
-    /** Repair old/crafted dirt entrances without deleting roots, buildings or the core. */
+    public BlockPos gardenExit(){return worldPosition.offset(0,0,species()==3?4:3);}
+    /** Workers use an existing passage; tiny traffic never excavates surrounding soil. */
     public boolean openEntrance(ServerLevel l){
-        for(int y=-1;y<=1;y++){var p=worldPosition.offset(0,y,1);if(!loaded(l,p)||!l.getFluidState(p).isEmpty())return false;var state=l.getBlockState(p);
-            if(state.is(BlockTags.DIRT)){if(!ColonyBudget.build(l))return false;l.setBlock(p,Blocks.AIR.defaultBlockState(),18);}else if(!state.getCollisionShape(l,p).isEmpty())return false;
-        }return true;
+        for(int y=-3;y<=0;y++){
+            var p=worldPosition.offset(0,y,1);
+            if(!loaded(l,p)||!l.getFluidState(p).isEmpty()||!l.getBlockState(p).getCollisionShape(l,p).isEmpty())return false;
+        }
+        return gardenPrepared;
     }
     public boolean cut(ServerLevel l,BlockPos p,ColonyInsectEntity insect){
         if(queenDead||insect.carrying()||!loaded(l,p)||!availableFood(l,p)||!insect.getBoundingBox().inflate(insect.enlarged()?.65:.20).intersects(new AABB(p)))return false;
@@ -174,7 +177,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         int role=!queenBorn?2:own%4==0?1:0;
         var e=LittleLeafContent.type(species()).create(l);if(e==null)return;
         e.bind(worldPosition,role,interior,giant());
-        var preferred=interior?(role==2?worldPosition.offset(64,0,4):worldPosition.offset(8+(int)(own%3)*3,0,4)):worldPosition.above();
+        var preferred=interior?(role==2?worldPosition.offset(64,0,4):worldPosition.offset(8+(int)(own%3)*3,0,4)):(role==2||giant()?worldPosition.above():gardenExit());
         if(entrance!=null&&role!=2)preferred=entrance;
         boolean founder=role!=2&&foundersBorn<3;
         if(role!=2){if(founder)e.assignJob(foundersBorn==0?ColonyInsectEntity.FORAGER:foundersBorn==1?ColonyInsectEntity.NURSE:giant()?ColonyInsectEntity.BUILDER:ColonyInsectEntity.UNDERTAKER);else {e.makeLarva();e.assignJob((int)(own%4));}if(interior)preferred=nursery().offset((int)own%5-2,0,(int)(own/5)%5-2);}
@@ -195,7 +198,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     public boolean mature(ServerLevel l,ColonyInsectEntity child){
         if(queenDead||!child.larva()||child.feeds()<3||l.getGameTime()-child.born()<400)return false;var previous=child.position();
-        child.grow();if(!placeAtEntrance(l,child,interior?nursery():worldPosition.above())){child.makeLarva();child.setPos(previous);return false;}
+        child.grow();if(!placeAtEntrance(l,child,interior?nursery():giant()?worldPosition.above():gardenExit())){child.makeLarva();child.setPos(previous);return false;}
         ColonyEffects.work(l,child.blockPosition(),Blocks.ROOTED_DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_READY,.15F);return true;
     }
     public boolean bury(ServerLevel l,ColonyInsectEntity worker){
@@ -206,7 +209,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     /** Access plans contain supported real placements, not a generated free staircase. */
     public void requestAccess(ServerLevel l,ColonyInsectEntity worker,BlockPos goal){
-        if(!giant()||interior||queenDead||wetWeather(l)||accessSites.size()>96||goal.distSqr(worldPosition)>48*48)return;
+        if(!giant()||!worker.enlarged()||interior||queenDead||wetWeather(l)||accessSites.size()>96||goal.distSqr(worldPosition)>48*48)return;
         var start=worker.blockPosition();var d=Direction.getNearest(goal.getX()-worker.getX(),0,goal.getZ()-worker.getZ());if(d.getAxis()==Direction.Axis.Y)d=Direction.EAST;int rise=Math.clamp(goal.getY()-start.getY(),0,6),length=Math.min(12,Math.max(rise+2,(int)Math.sqrt(start.distSqr(goal))));
         for(int step=0;step<=length&&ColonyBudget.search(l);step++){
             var column=start.relative(d,step);if(!loaded(l,column)||!loaded(l,column.below()))break;int level=rise>0?Math.min(rise,step/2):0;
@@ -246,21 +249,24 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     private void prepareGarden(ServerLevel l){
         if(queenDead||gardenPrepared||!ColonyBudget.reserveBuild(l,38))return;
-        // A crafted core only excavates soil, with the same small chamber as natural mounds.
+        // Initial colony architecture only. No later forager may excavate an entrance.
         for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)for(int y=-3;y<=-2;y++){
             var p=worldPosition.offset(x,y,z);if(!loaded(l,p))return;var s=l.getBlockState(p);
             if(!l.getFluidState(p).isEmpty()||!(s.isAir()||s.is(BlockTags.DIRT)||s.is(LittleLeafContent.COLONY_FUNGUS.get())))return;
         }
+        var throat=worldPosition.offset(0,-1,1);
+        if(!loaded(l,throat)||!l.getFluidState(throat).isEmpty()||!(l.getBlockState(throat).isAir()||l.getBlockState(throat).is(BlockTags.DIRT)))return;
         for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)for(int y=-3;y<=-2;y++){
             var p=worldPosition.offset(x,y,z);if(l.getBlockState(p).is(BlockTags.DIRT))l.setBlock(p,Blocks.AIR.defaultBlockState(),18);
         }
+        if(l.getBlockState(throat).is(BlockTags.DIRT))l.setBlock(throat,Blocks.AIR.defaultBlockState(),18);
         var f=worldPosition.offset(1,-3,0);if(l.getBlockState(f).isAir())l.setBlock(f,LittleLeafContent.COLONY_FUNGUS.get().defaultBlockState(),18);
         gardenPrepared=true;setChanged();
     }
     private float enlargedVolume(ColonyInsectEntity insect){return insect.enlarged()?.32F:.06F;}
     /** Blueprints request work; only a carrying insect is allowed to place a block. */
     public BlockPos buildSite(ServerLevel l,ColonyInsectEntity insect){
-        if(queenDead||interior||!giant()||!l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))return null;
+        if(queenDead||interior||!giant()||!insect.enlarged()||!l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))return null;
         var assigned=assignments.get(insect.getUUID());if(assigned!=null&&loaded(l,assigned)&&l.getBlockState(assigned).isAir())return assigned;assignments.remove(insect.getUUID());
         assignments.entrySet().removeIf(e->l.getEntity(e.getKey())==null);
         if(buildStage!=stage()){buildStage=stage();buildCursor=0;setChanged();}
@@ -297,7 +303,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         insect.material(state.is(Blocks.GRASS_BLOCK)?Blocks.DIRT.defaultBlockState():state);ColonyEffects.work(l,p,state,net.minecraft.sounds.SoundEvents.GRAVEL_BREAK,.3F);return true;
     }
     public boolean placeMaterial(ServerLevel l,BlockPos p,ColonyInsectEntity insect){
-        if(queenDead||!giant()||!insect.carryingMaterial()||!l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)||!loaded(l,p)||!l.getBlockState(p).isAir()||!l.getFluidState(p).isEmpty()||!insect.getBoundingBox().inflate(.85).intersects(new AABB(p))||insect.getBoundingBox().intersects(new AABB(p))||!ColonyBudget.build(l))return false;
+        if(queenDead||interior||!giant()||!insect.enlarged()||!insect.carryingMaterial()||!l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)||!loaded(l,p)||!l.getBlockState(p).isAir()||!l.getFluidState(p).isEmpty()||!insect.getBoundingBox().inflate(.85).intersects(new AABB(p))||insect.getBoundingBox().intersects(new AABB(p))||!ColonyBudget.build(l))return false;
         var expected=assignments.get(insect.getUUID());if(expected!=null&&!expected.equals(p))return false;
         if(p.distSqr(worldPosition)>48*48)return false;
         var state=insect.material();boolean satellite=p.equals(satelliteSite)&&connections.size()<8&&ColonyTransitData.get(l.getServer()).food(identity())>=4;

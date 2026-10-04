@@ -78,17 +78,27 @@ public final class ColonyTravel {
         var id=ResourceLocation.tryParse(t.getString("Dimension"));if(id==null)return;var source=player.server.getLevel(ResourceKey.create(Registries.DIMENSION,id));if(source==null)return;
         var home=BlockPos.of(t.getLong("Source"));source.getChunkAt(home);
         var destination=safeReturn(source,home);
+        if(destination==null){player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.wayaround.colony.exit_blocked"),true);return;}
         player.getAttribute(Attributes.SCALE).setBaseValue(Math.max(.0625,Math.min(16,t.getDouble("BaseScale"))));InversionEffect.miniature(player);
         player.getPersistentData().remove(VISIT);teleport(player,source,destination);
     }
     public static BlockPos safeReturn(ServerLevel l,BlockPos p){
-        // Only the explicitly requested return neighborhood; no unbounded height/biome search.
-        for(int r=1;r<=4;r++)for(int x=-r;x<=r;x++)for(int z=-r;z<=r;z++){
-            if(Math.max(Math.abs(x),Math.abs(z))!=r)continue;var q=p.offset(x,0,z);
-            if(ColonyCoreBlockEntity.loaded(l,q)&&l.getBlockState(q).getCollisionShape(l,q).isEmpty()&&l.getFluidState(q).isEmpty()&&!l.getBlockState(q.below()).getCollisionShape(l,q.below()).isEmpty())return q;
+        // Search existing ground in a bounded, loaded neighborhood. Never
+        // fabricate a dirt platform or erase a player's block on return.
+        // Prefer the original ground elevation across the neighborhood before
+        // considering nearby roof tops or slopes.
+        for(int attempt=0;attempt<7;attempt++){
+            int dy=attempt==0?0:attempt<=2?attempt:2-attempt;
+            for(int r=1;r<=12;r++)for(int x=-r;x<=r;x++)for(int z=-r;z<=r;z++){
+                if(Math.max(Math.abs(x),Math.abs(z))!=r)continue;
+                if(dy<0&&Math.max(Math.abs(x),Math.abs(z))<=2)continue;
+                var q=p.offset(x,dy,z);
+                if(!ColonyCoreBlockEntity.loaded(l,q)||!ColonyCoreBlockEntity.loaded(l,q.above())||!ColonyCoreBlockEntity.loaded(l,q.below()))continue;
+                if(l.getBlockState(q).getCollisionShape(l,q).isEmpty()&&l.getBlockState(q.above()).getCollisionShape(l,q.above()).isEmpty()&&l.getFluidState(q).isEmpty()&&l.getFluidState(q.above()).isEmpty()&&l.getBlockState(q.below()).isFaceSturdy(l,q.below(),Direction.UP))return q;
+            }
         }
-        // Destroyed or sealed entrances still have a tiny escape pocket, keeping the saved visit usable.
-        var q=p.above(16);l.setBlock(q.below(),Blocks.DIRT.defaultBlockState(),18);l.setBlock(q,Blocks.AIR.defaultBlockState(),18);return q;
+        // The visit remains saved, so a sealed colony can be reopened and retried.
+        return null;
     }
     private static boolean cooldown(ServerPlayer p){return p.server.overworld().getGameTime()<p.getPersistentData().getLong(COOLDOWN);}
     private static void teleport(ServerPlayer p,ServerLevel l,BlockPos q){p.getPersistentData().putLong(COOLDOWN,p.server.overworld().getGameTime()+40);p.teleportTo(l,q.getX()+.5,q.getY(),q.getZ()+.5,Set.of(),p.getYRot(),p.getXRot());}

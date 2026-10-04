@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "P P",
+    " T ",
+    " D "
+  ],
+  "key": {
+    "P": {
+      "item": "wayaround:clockwork_propeller"
+    },
+    "T": {
+      "item": "minecraft:tnt"
+    },
+    "D": {
+      "item": "wayaround:drone_chassis"
+    }
+  },
+  "result": {
+    "id": "wayaround:impact_drone",
+    "count": 1
+  }
+}

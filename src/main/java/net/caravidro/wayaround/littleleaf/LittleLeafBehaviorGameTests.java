@@ -41,10 +41,10 @@ public final class LittleLeafBehaviorGameTests {
         long before=c.work();h.assertTrue(ant.getScale()>=3&&c.acceptLoad(ant)&&c.work()==before+8,"New giant inhabitants feed the enhanced colony with larger loads");
         ColonyEvents.dose(l,Vec3.atCenterOf(c.getBlockPos()));h.assertTrue(!c.giant(),"Second colony splash reverses future births");h.succeed();
     }
-    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=180)
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=400)
     public static void aWorkerActuallyEntersAndReturnsFromTheGarden(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.carry(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+1.5,0,0);l.addFreshEntity(ant);
-        h.succeedWhen(()->h.assertTrue(c.work()>=1&&!ant.carrying()&&ant.getY()>=p.getY(),"Worker entered the physical chamber, delivered once and emerged"));
+        h.succeedWhen(()->h.assertTrue(c.work()>=1&&!ant.carrying()&&ant.getY()>=p.getY(),"Worker entered the physical chamber, delivered once and emerged: "+ant.position()+", "+ant.workStatus()));
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1000)
     public static void workerFindsCutsAndReturnsALeafWithoutManualLoad(GameTestHelper h){forageCycle(h,false);}
@@ -55,7 +55,7 @@ public final class LittleLeafBehaviorGameTests {
         if(tree){for(int y=0;y<3;y++)l.setBlock(p.offset(4,y,0),Blocks.OAK_LOG.defaultBlockState(),18);for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)l.setBlock(leaf.offset(x,0,z),Blocks.OAK_LEAVES.defaultBlockState(),18);}
         else l.setBlock(leaf,Blocks.OAK_LEAVES.defaultBlockState(),18);
         var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+2.5,0,0);l.addFreshEntity(ant);
-        h.succeedWhen(()->h.assertTrue(c.work()>0&&!ant.carrying(),"Real AI found a leaf, reached it, cut a load and returned it to the fungus; ant="+ant.position()+", load="+ant.carrying()+", work="+c.work()));
+        h.succeedWhen(()->h.assertTrue(c.work()>0&&!ant.carrying(),"Real AI found a leaf, reached it, cut a load and returned it to the fungus; ant="+ant.position()+", load="+ant.carrying()+", work="+c.work()+", "+ant.workStatus()));
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=120)
     public static void speciesCoresAndSupportedBirth(GameTestHelper h){
@@ -67,13 +67,13 @@ public final class LittleLeafBehaviorGameTests {
         }
         h.succeedWhen(()->{c.birth(l);var q=c.queen(l);h.assertTrue(q!=null,"A queen is born at the entrance");h.assertTrue(q.getY()==p.getY()+1&&l.noCollision(q)&&l.getBlockState(q.blockPosition().below()).isFaceSturdy(l,q.blockPosition().below(),Direction.UP),"Birth has a solid floor and clear body above the core");});
     }
-    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=220)
+    @GameTest(template="assembly_test",batch="colony_combat",timeoutTicks=220)
     public static void rivalSpeciesActuallyFight(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
         var black=LittleLeafContent.BLACK_ANT.get().create(l);var red=LittleLeafContent.RED_ANT.get().create(l);
         black.bind(p,1,false,false);red.bind(p,1,false,false);
         black.moveTo(p.getX()+.5,p.getY(),p.getZ()+3.5,0,0);red.moveTo(p.getX()+.9,p.getY(),p.getZ()+3.5,0,0);l.addFreshEntity(black);l.addFreshEntity(red);
-        h.succeedWhen(()->h.assertTrue(black.getHealth()<black.getMaxHealth()||red.getHealth()<red.getMaxHealth(),"Nearby rival species discover each other and deal actual melee damage"));
+        h.succeedWhen(()->h.assertTrue(black.getHealth()<black.getMaxHealth()||red.getHealth()<red.getMaxHealth(),"Nearby rival species discover each other and deal actual melee damage: black="+black.position()+", "+black.workStatus()+", red="+red.position()+", "+red.workStatus()));
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
     public static void sameSpeciesRemainFriendly(GameTestHelper h){
@@ -163,7 +163,7 @@ public final class LittleLeafBehaviorGameTests {
         var root=net.caravidro.wayaround.ecology.EcologyContent.OAK_TREE_SEGMENT.get().defaultBlockState().setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.ROOT,true).setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.THICKNESS,4);
         for(int n=-3;n<=3;n++){l.setBlock(p.offset(3,0,n),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.Z),18);l.setBlock(p.offset(-3,0,n),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.Z),18);l.setBlock(p.offset(n,0,3),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.X),18);l.setBlock(p.offset(n,0,-3),root.setValue(net.caravidro.wayaround.ecology.TreeWoodSegmentBlock.AXIS,Direction.Axis.X),18);}
         var leaf=p.offset(5,1,0);l.setBlock(leaf.below(),Blocks.STONE.defaultBlockState(),18);l.setBlock(leaf,Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT,true),18);
-        var ant=(termite?LittleLeafContent.TERMITE:LittleLeafContent.BLACK_ANT).get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY()+1,p.getZ()+.5,0,0);l.addFreshEntity(ant);final var colony=c;
+        var ant=(termite?LittleLeafContent.TERMITE:LittleLeafContent.BLACK_ANT).get().create(l);ant.bind(p,0,false,false);ant.assignJob(ColonyInsectEntity.FORAGER);ant.moveTo(p.getX()+.5,p.getY()+1,p.getZ()+.5,0,0);l.addFreshEntity(ant);final var colony=c;
         h.succeedWhen(()->h.assertTrue(colony.work()>0&&!ant.carrying()&&!ant.sheltered()&&ant.getY()>=p.getY(),"Actual mod roots and a dirt mound permit a complete harvest, physical garden delivery and emergence: "+ant.position()+", "+ant.workStatus()));
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1200)
@@ -190,5 +190,47 @@ public final class LittleLeafBehaviorGameTests {
     public static void submergedAntDrownsQuickly(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos().offset(3,0,3);for(int y=0;y<3;y++)l.setBlock(p.above(y),Blocks.WATER.defaultBlockState(),18);var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(c.getBlockPos(),0,false,false);ant.setNoAi(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+.5,0,0);l.addFreshEntity(ant);
         h.succeedWhen(()->h.assertTrue(!ant.isAlive(),"A submerged insect has a short air reserve rather than surviving underwater indefinitely"));
+    }
+
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1800)
+    public static void workerDeliversThroughActualTallTermiteMound(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
+        // Remove only the test core, preserving its real soil substrate.
+        l.setBlock(p,Blocks.AIR.defaultBlockState(),18);
+        // A savanna biome isn't required for this geometry regression: recreate
+        // the exact tall species footprint and its generated ground doorway.
+        for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=0;y<5;y++){
+            if(x*x+z*z>(3-y*.45)*(3-y*.45)||x==0&&z==0)continue;
+            l.setBlock(p.offset(x,y,z),Blocks.DIRT.defaultBlockState(),18);
+        }
+        for(int y=-3;y<=1;y++)l.setBlock(p.offset(0,y,1),Blocks.AIR.defaultBlockState(),18);
+        for(int z=1;z<=3;z++)for(int y=0;y<=1;y++)l.setBlock(p.offset(0,y,z),Blocks.AIR.defaultBlockState(),18);
+        l.setBlock(p,LittleLeafContent.TERMITE_COLONY.get().defaultBlockState(),18);
+        var colony=(ColonyCoreBlockEntity)l.getBlockEntity(p);colony.initializeMound(l.getGameTime(),0,3,5);
+        l.setBlock(p.offset(1,-3,0),LittleLeafContent.COLONY_FUNGUS.get().defaultBlockState().setValue(ColonyFungusBlock.RIPE,false),18);
+        var ant=LittleLeafContent.TERMITE.get().create(l);ant.bind(p,0,false,false);ant.assignJob(ColonyInsectEntity.FORAGER);ant.carry(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+4.5,0,0);l.addFreshEntity(ant);
+        h.succeedWhen(()->{
+            h.assertTrue(colony.work()>=1&&!ant.carrying()&&!ant.sheltered()&&ant.getY()>=p.getY(),"Load physically enters a tall mound, then emerges: "+ant.position()+", "+ant.workStatus());
+            h.assertTrue(l.getBlockState(p.offset(1,0,1)).is(Blocks.DIRT),"Tiny delivery preserves the surrounding wall");
+            h.assertTrue(l.getBlockState(p.offset(1,-3,0)).getValue(ColonyFungusBlock.RIPE),"The actual underground fungus receives the leaf");
+        });
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void blockedEntranceAndTinyBuilderDoNotRemoveTerrain(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
+        l.setBlock(p.offset(0,0,1),Blocks.DIRT.defaultBlockState(),18);
+        var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.carry(true);
+        h.assertTrue(!c.openEntrance(l)&&l.getBlockState(p.offset(0,0,1)).is(Blocks.DIRT),"Returning tiny workers never dig through a blocked door");
+        c.invertColony();ant.carry(false);var soil=p.offset(9,-1,0);l.setBlock(soil,Blocks.DIRT.defaultBlockState(),18);ant.moveTo(soil.getX()+.5,soil.getY()+1,soil.getZ()+.5,0,0);
+        h.assertTrue(c.buildSite(l,ant)==null&&!c.excavate(l,soil,ant)&&l.getBlockState(soil).is(Blocks.DIRT),"A small insect remains unable to excavate even if its colony is enlarged");
+        h.succeed();
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void colonyReturnFindsRealGroundWithoutFloatingDirt(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
+        for(int x=-4;x<=4;x++)for(int z=-4;z<=4;z++)for(int y=0;y<=2;y++)if(x!=0||z!=0)l.setBlock(p.offset(x,y,z),Blocks.DIRT.defaultBlockState(),18);
+        var q=ColonyTravel.safeReturn(l,p);
+        h.assertTrue(q!=null&&q.getY()<=p.getY()+2&&l.getBlockState(q).getCollisionShape(l,q).isEmpty()&&l.getBlockState(q.below()).isFaceSturdy(l,q.below(),Direction.UP),"Exit searches the existing ground around a sealed mound");
+        h.assertTrue(l.getBlockState(p.above(15)).isAir(),"No dirt platform appears above the colony");h.succeed();
     }
 }

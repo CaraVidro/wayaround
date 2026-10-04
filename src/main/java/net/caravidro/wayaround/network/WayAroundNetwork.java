@@ -14,7 +14,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "29";
+            "30";
 
     private WayAroundNetwork() {
     }
@@ -41,6 +41,8 @@ public final class WayAroundNetwork {
         PayloadRegistrar registrar =
                 requiredRegistrar.optional();
 
+        registrar.playToServer(net.caravidro.wayaround.war.outpost.OutpostControlPayload.TYPE,net.caravidro.wayaround.war.outpost.OutpostControlPayload.STREAM_CODEC,net.caravidro.wayaround.war.outpost.OutpostControlPayload::handle);
+        registrar.playToClient(net.caravidro.wayaround.war.outpost.OutpostViewPayload.TYPE,net.caravidro.wayaround.war.outpost.OutpostViewPayload.STREAM_CODEC,(p,c)->c.enqueueWork(()->ClientPayloadBridge.outpostView(p.target(),p.mount())));
         registrar.playToServer(FieldControlPayload.TYPE,FieldControlPayload.STREAM_CODEC,FieldControlPayload::handle);
         registrar.playToClient(EntitySpectateStatePayload.TYPE,EntitySpectateStatePayload.STREAM_CODEC,(p,c)->c.enqueueWork(()->ClientPayloadBridge.entitySpectate(p.target())));
         registrar.playToServer(SpectrumInputPayload.TYPE, SpectrumInputPayload.STREAM_CODEC, SpectrumInputPayload::handle);

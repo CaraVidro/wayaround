@@ -63,7 +63,8 @@ public final class MediaRecorder {
         return isRecording()
                 && !placedCameraRecording
                 && detachedCameraPosition == null
-                && isCameraHeld();
+                && isCameraHeld()
+                && !net.caravidro.wayaround.war.outpost.client.OutpostClient.cameraAvailable();
     }
 
     public static boolean isPlacedCameraRecording() {
@@ -610,16 +611,7 @@ public final class MediaRecorder {
             return false;
         }
 
-        return minecraft.player
-                .getMainHandItem()
-                .is(
-                        MediaContent.CAMERA.get()
-                )
-                || minecraft.player
-                .getOffhandItem()
-                .is(
-                        MediaContent.CAMERA.get()
-                );
+        return net.caravidro.wayaround.war.outpost.client.OutpostClient.cameraAvailable() || minecraft.player.getMainHandItem().is(MediaContent.CAMERA.get()) || minecraft.player.getOffhandItem().is(MediaContent.CAMERA.get());
     }
 
     private static void finishRecording(

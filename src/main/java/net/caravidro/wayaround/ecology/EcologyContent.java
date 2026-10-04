@@ -1382,6 +1382,7 @@ public final class EcologyContent {
                                         output.accept(
                                                 CLEINTON_SPAWN_EGG.get()
                                         );
+                                        net.caravidro.wayaround.war.outpost.OutpostContent.fill(output);
                                     }
                             )
                             .build()

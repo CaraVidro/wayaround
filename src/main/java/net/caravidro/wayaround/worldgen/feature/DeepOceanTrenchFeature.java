@@ -14,14 +14,7 @@ import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
 
-/**
- * Rebuilds vanilla deep-ocean terrain as a broad abyssal basin.
- *
- * The old implementation dropped each deep-ocean chunk to roughly the same
- * absolute Y, which could leave a biome-border wall. This version derives the
- * abyss blend from the vanilla depth of each local column, so the transition is
- * smooth without ever reading a neighbouring chunk that may not exist yet.
- */
+/** Abyssal decoration only; basin terrain is shaped before any flora is generated. */
 public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfiguration> {
     public DeepOceanTrenchFeature(Codec<NoneFeatureConfiguration> codec) {
         super(codec);
@@ -40,96 +33,16 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
         int baseX = origin.getX() & ~15;
         int baseZ = origin.getZ() & ~15;
         int seaLevel = level.getSeaLevel();
-        int minFloor = level.getMinBuildHeight() + 4;
-        int changed = 0;
         double chunkInterior = 0.0;
-
+        // Terrain is already shaped at SURFACE, before neighboring chunks can
+        // decorate kelp here. This feature only adds supported remnants.
         for (int dx = 0; dx < 16; dx++) {
             for (int dz = 0; dz < 16; dz++) {
-                int x = baseX + dx;
-                int z = baseZ + dz;
-
-                int oldFloor = level.getHeight(
-                        Heightmap.Types.OCEAN_FLOOR_WG,
-                        x,
-                        z
-                ) - 1;
-
-                if (oldFloor >= seaLevel - 7 || !isDeepOcean(level, x, z, seaLevel - 8)) {
-                    continue;
-                }
-
-                double interior = interiorFactor(oldFloor, seaLevel, x, z);
-                chunkInterior = Math.max(chunkInterior, interior);
-
-                double waveA = Math.sin(x * 0.021 + z * 0.013);
-                double waveB = Math.sin(x * 0.008 - z * 0.019);
-                double waveC = Math.sin((x + z) * 0.0047);
-
-                int abyssFloor = Mth.clamp(
-                        -58
-                                + (int) Math.round(
-                                waveA * 2.8
-                                        + waveB * 2.4
-                                        + waveC * 1.8
-                        ),
-                        minFloor,
-                        -50
-                );
-
-                // Smoothstep removes the infamous vertical biome-border wall.
-                double blend = interior * interior * (3.0 - 2.0 * interior);
-                int targetFloor = Mth.clamp(
-                        (int) Math.round(Mth.lerp(blend, oldFloor, abyssFloor)),
-                        minFloor,
-                        oldFloor
-                );
-
-                if (oldFloor <= targetFloor + 2) {
-                    continue;
-                }
-
-                BlockPos.MutableBlockPos cursor =
-                        new BlockPos.MutableBlockPos(x, oldFloor, z);
-
-                var stranded = new java.util.ArrayList<BlockPos>();
-                for (int y = oldFloor; y > targetFloor; y--) {
-                    cursor.setY(y);
-                    BlockState old = level.getBlockState(cursor);
-
-                    // Water and terrain cannot own block entities. Avoid two
-                    // expensive BE queries at every height of every column.
-                    if (old.hasBlockEntity()) {
-                        if (level.getBlockEntity(cursor) instanceof net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity) stranded.add(cursor.immutable());
-                        continue;
-                    }
-                    if (old.is(Blocks.BEDROCK)) continue;
-
-                    if (!old.is(Blocks.WATER)) {
-                        level.setBlock(cursor, Blocks.WATER.defaultBlockState(), 50);
-                        changed++;
-                    }
-                }
-
-                cursor.setY(targetFloor);
-                BlockState floor =
-                        ((x * 31 + z * 17) & 7) == 0
-                                ? Blocks.GRAVEL.defaultBlockState()
-                                : ((x * 13 + z * 37) & 15) == 0
-                                ? Blocks.TUFF.defaultBlockState()
-                                : Blocks.DEEPSLATE.defaultBlockState();
-
-                BlockState substrate = level.getBlockState(cursor);
-                if (!substrate.hasBlockEntity() && !substrate.is(Blocks.BEDROCK)) level.setBlock(cursor, floor, 50);
-
-                for (BlockPos container : stranded) net.caravidro.wayaround.ecology.OceanFloorRemains.settle(level,container,targetFloor);
-
-                for (int depth = 1; depth <= 3; depth++) {
-                    cursor.setY(targetFloor - depth);
-                    if (!level.getBlockState(cursor).is(Blocks.BEDROCK) && !level.getBlockState(cursor).hasBlockEntity()) {
-                        level.setBlock(cursor, Blocks.DEEPSLATE.defaultBlockState(), 50);
-                    }
-                }
+                int x = baseX + dx, z = baseZ + dz;
+                if (!isDeepOcean(level, x, z, seaLevel - 8)) continue;
+                int floor = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - 1;
+                chunkInterior = Math.max(chunkInterior,
+                        Mth.clamp((seaLevel - floor - 24.0) / 80.0, 0.0, 1.0));
             }
         }
 
@@ -139,7 +52,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
          * They are procedural remnants rather than full vanilla structures,
          * so they do not force neighbouring chunks to load.
          */
-        if (changed > 0 && chunkInterior > 0.52) {
+        if (chunkInterior > 0.52) {
             if (random.nextFloat() < 0.34F) {
                 placeWreck(level, baseX, baseZ, seaLevel, random);
             } else if (random.nextFloat() < 0.30F) {
@@ -147,71 +60,18 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             }
         }
 
-        if(changed>0 && chunkInterior>.6 && random.nextInt(12)==0) {
+        if(chunkInterior>.6 && random.nextInt(12)==0) {
             int x=baseX+3+random.nextInt(10),z=baseZ+3+random.nextInt(10);
             int y=level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG,x,z);
             BlockPos p=new BlockPos(x,y,z);
             if(level.getBlockState(p).is(Blocks.WATER))level.setBlock(p,net.caravidro.wayaround.ecology.EcologyContent.ABYSSAL_SKELETON_SKULL.get().defaultBlockState().setValue(net.minecraft.world.level.block.SkullBlock.ROTATION,random.nextInt(16)),2);
         }
-        if(changed>0 && chunkInterior>.6 && random.nextInt(8)==0) {
+        if(chunkInterior>.6 && random.nextInt(8)==0) {
             int x=baseX+4+random.nextInt(8),z=baseZ+4+random.nextInt(8),y=level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG,x,z);
             var fish=net.caravidro.wayaround.ecology.EcologyContent.FISH_CARCASS.get().create(level.getLevel());
             if(fish!=null) { fish.initialize(net.caravidro.wayaround.ecology.FishProcessingProfile.SARDINE,1.2F,false);fish.setAbyssalSettled(true);fish.setPos(x+.5,y+.15,z+.5);level.addFreshEntity(fish); }
         }
-        return changed > 0;
-    }
-
-    private static double interiorFactor(
-            int oldFloor,
-            int seaLevel,
-            int x,
-            int z
-    ) {
-        /*
-         * Worldgen features are not allowed to assume neighbouring chunks are
-         * available. The previous implementation sampled biomes up to 16 blocks
-         * away and could crash with "Requested chunk unavailable during world
-         * generation".
-         *
-         * Vanilla ocean depth already contains a very useful border signal:
-         * coast/edge columns are shallower while true deep-ocean interiors are
-         * much lower. Convert that local depth into a smooth 0..1 abyss blend.
-         */
-        double vanillaDepth =
-                Math.max(
-                        0.0,
-                        seaLevel - oldFloor
-                );
-
-        double depthBlend =
-                Mth.clamp(
-                        (vanillaDepth - 10.0) / 30.0,
-                        0.0,
-                        1.0
-                );
-
-        /*
-         * A tiny continuous low-frequency variation prevents the transition
-         * from looking mathematically flat while remaining deterministic across
-         * chunk borders. No chunk/biome lookup is involved here.
-         */
-        double variation =
-                Math.sin(
-                        x * 0.031
-                                + z * 0.017
-                ) * 0.055
-                        + Math.sin(
-                        x * 0.011
-                                - z * 0.027
-                ) * 0.035;
-
-        return Mth.clamp(
-                0.08
-                        + depthBlend * 0.92
-                        + variation,
-                0.06,
-                1.0
-        );
+        return chunkInterior > 0.0;
     }
 
     private static boolean isDeepOcean(
@@ -247,7 +107,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
             cursor.setY(y);
             BlockState state = level.getBlockState(cursor);
 
-            if (!state.isAir() && !state.is(Blocks.WATER)) {
+            if (state.blocksMotion() && !state.is(Blocks.WATER)) {
                 return y;
             }
         }
@@ -340,8 +200,8 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
         }
     }
 
-    private static void setIfWater(
-            WorldGenLevel level,
+    public static void setIfWater(
+            net.minecraft.world.level.LevelAccessor level,
             BlockPos pos,
             BlockState state
     ) {
@@ -352,7 +212,7 @@ public final class DeepOceanTrenchFeature extends Feature<NoneFeatureConfigurati
         }
 
         BlockState existing = level.getBlockState(pos);
-        if (existing.is(Blocks.WATER) || existing.canBeReplaced()) {
+        if (existing.is(Blocks.WATER)) {
             level.setBlock(pos, state, 2);
         }
     }

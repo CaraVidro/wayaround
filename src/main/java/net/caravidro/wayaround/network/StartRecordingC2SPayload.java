@@ -61,7 +61,7 @@ public record StartRecordingC2SPayload()
                                             MediaContent.CAMERA.get()
                                     );
 
-                    if (!holdingCamera) {
+                    if (!holdingCamera && !net.caravidro.wayaround.war.outpost.OutpostRemote.cameraActive(player)) {
                         PacketDistributor.sendToPlayer(
                                 player,
                                 new RecordingStartResultS2CPayload(

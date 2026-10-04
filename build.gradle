@@ -390,6 +390,11 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_nature'
         }
 
+        outpostGameTestServer {
+            type = "gameTestServer"
+            systemProperty "neoforge.enabledGameTestNamespaces", "wayaround_outpost"
+        }
+
         littleLeafValidationServer {
             server()
             programArgument '--nogui'

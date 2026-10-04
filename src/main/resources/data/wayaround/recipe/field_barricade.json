@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "SIS",
+    "PPP",
+    "SIS"
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:sand"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "P": {
+      "item": "minecraft:spruce_planks"
+    }
+  },
+  "result": {
+    "id": "wayaround:field_barricade",
+    "count": 1
+  }
+}

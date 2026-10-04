@@ -13,16 +13,23 @@ public final class ColonySurfaceRoute {
  public void reset(){open.clear();cost.clear();parent.clear();path=List.of();goal=null;at=visited=stationary=replans=0;failed=false;progress=null;blocked.clear();}
  public String status(){return "nodes="+visited+", queue="+open.size()+", path="+at+"/"+path.size()+", failed="+failed;}
  public boolean failed(){return failed;}
+ /** Arrival is measured at the same voxel surface used by the route, not the integer block floor. */
+ public boolean reached(ColonyInsectEntity e,BlockPos target,double tolerance){
+  if(!(e.level() instanceof ServerLevel l))return false;
+  var surface=point(l,e,target,false);
+  return surface!=null&&e.position().distanceToSqr(surface)<tolerance*tolerance;
+ }
+
  public void followPoint(ColonyInsectEntity e,BlockPos target){follow(e,target,true);}
  public void follow(ColonyInsectEntity e,BlockPos target){follow(e,target,false);}
  private void follow(ColonyInsectEntity e,BlockPos target,boolean walkToCenter){
   if(!(e.level() instanceof ServerLevel l))return;if(e.yielding())return;
   if(!target.equals(goal)||pointGoal!=walkToCenter){reset();pointGoal=walkToCenter;goal=target.immutable();var start=e.blockPosition();cost.put(start,0.0);open.add(new Node(start,0,heuristic(start)));}
-  for(int k=0;path.isEmpty()&&!open.isEmpty()&&k<12&&ColonyBudget.search(l);k++){
+  for(int k=0;path.isEmpty()&&!open.isEmpty()&&k<(e.enlarged()?12:8)&&ColonyBudget.route(l,e.getId(),!e.enlarged());k++){
    var n=open.remove();if(n.cost>cost.getOrDefault(n.pos,Double.MAX_VALUE))continue;
    if(++visited>384){failed=true;open.clear();break;}
    var nodePoint=point(l,e,n.pos,false);if(nodePoint==null)continue;var box=e.getBoundingBox().move(nodePoint.subtract(e.position()));
-   if(pointGoal?n.pos.equals(goal):box.inflate(e.enlarged()?.75:.62,e.enlarged()?.75:1.1,e.enlarged()?.75:.62).intersects(new AABB(goal))&&(!e.carryingMaterial()||!box.intersects(new AABB(goal)))){var route=new ArrayList<BlockPos>();for(var p=n.pos;p!=null;p=parent.get(p))route.add(p);Collections.reverse(route);path=route;at=0;break;}
+   if(pointGoal?n.pos.equals(goal):box.inflate(e.carryingMaterial()?.85:e.enlarged()?.65:.20).intersects(new AABB(goal))&&(!e.carryingMaterial()||!box.intersects(new AABB(goal)))){var route=new ArrayList<BlockPos>();for(var p=n.pos;p!=null;p=parent.get(p))route.add(p);Collections.reverse(route);path=route;at=0;break;}
    for(var d:Direction.values()){
     var p=n.pos.relative(d);if(Math.abs(p.getX()-goal.getX())>(e.inside()?96:32)||Math.abs(p.getZ()-goal.getZ())>(e.inside()?96:32)||Math.abs(p.getY()-goal.getY())>40||blocked.contains(p)||!valid(l,e,p))continue;
     double next=n.cost+(d.getAxis()==Direction.Axis.Y?1.2:1);if(next>=cost.getOrDefault(p,Double.MAX_VALUE))continue;

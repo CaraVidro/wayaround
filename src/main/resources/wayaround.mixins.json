@@ -12,6 +12,7 @@
     "AntarcticSurfaceMixin",
     "VolcanicSurfaceMixin",
     "GreatRiftSurfaceMixin",
+    "DeepOceanTerrainMixin",
     "AntarcticWaterFreezingMixin",
     "TukunaMobPickupMixin",
     "InfinityPushMixin",

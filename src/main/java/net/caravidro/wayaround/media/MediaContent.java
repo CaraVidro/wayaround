@@ -551,6 +551,8 @@ public final class MediaContent {
                             .displayItems(
                                     (parameters, output) -> {
                                         output.accept(CAMERA.get());
+                                        output.accept(net.caravidro.wayaround.war.outpost.OutpostContent.CAMERA_DRONE.get());
+                                        output.accept(net.caravidro.wayaround.war.outpost.OutpostContent.CONTROLLER.get());
                                         output.accept(PHOTO_PAPER.get());
                                         output.accept(FILM_ROLL.get());
                                         output.accept(EXPOSED_FILM_ROLL.get());
