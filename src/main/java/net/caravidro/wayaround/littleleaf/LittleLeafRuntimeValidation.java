@@ -28,8 +28,8 @@ public final class LittleLeafRuntimeValidation {
             var data=new ColonyTransitData();var a=data.activate(level.dimension(),new BlockPos(100,80,100));var b=data.activate(level.dimension(),new BlockPos(101,80,100));
             check(!a.arrival().equals(b.arrival()),"Different colonies receive isolated interiors");
             var restored=ColonyTransitData.load(data.save(new CompoundTag(),level.registryAccess()),level.registryAccess());check(restored.find(level.dimension(),a.source().pos()).equals(a),"Return route persists across reload");
-            var mound=new BlockPos(24104,100,24104);level.getChunkAt(mound);
-            for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++)for(int y=-4;y<=5;y++)level.setBlock(mound.offset(x,y,z),y<0?Blocks.DIRT.defaultBlockState():Blocks.AIR.defaultBlockState(),18);
+            var mound=new BlockPos(24104,100,24104);for(int dx=-1;dx<=1;dx++)for(int dz=-1;dz<=1;dz++)level.getChunkAt(mound.offset(dx*16,0,dz*16));
+            for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)for(int y=-4;y<=5;y++)level.setBlock(mound.offset(x,y,z),y<0?Blocks.DIRT.defaultBlockState():Blocks.AIR.defaultBlockState(),18);
             boolean placed=LittleLeafContent.MOUND.get().place(new net.minecraft.world.level.levelgen.feature.FeaturePlaceContext<>(Optional.empty(),level,level.getChunkSource().getGenerator(),net.minecraft.util.RandomSource.create(42),mound,net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration.INSTANCE));
             check(placed&&level.getBlockEntity(mound) instanceof ColonyCoreBlockEntity&&level.getBlockState(mound.offset(1,-3,0)).is(LittleLeafContent.COLONY_FUNGUS.get()),"Actual natural feature creates a diggable fungus chamber");
             var natural=(ColonyCoreBlockEntity)level.getBlockEntity(mound);natural.invertColony();natural.birth(level);
