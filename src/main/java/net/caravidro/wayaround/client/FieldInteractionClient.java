@@ -13,6 +13,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public final class FieldInteractionClient {
  public static int target=-1;private static int held;private static boolean reeling,clicked;
  @SubscribeEvent public static void tick(ClientTickEvent.Post e){var mc=Minecraft.getInstance();if(mc.player==null||mc.level==null){target=-1;held=0;reeling=false;clicked=false;return;}
+  if(target>=0){var observed=mc.level.getEntity(target);if(observed!=null&&observed.isAlive()){mc.player.setPos(observed.getX(),observed.getY(),observed.getZ());mc.player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);}}
   boolean use=mc.screen==null&&mc.options.keyUse.isDown();
   boolean click=use||mc.screen==null&&(mc.options.keyAttack.isDown()||mc.options.keyShift.isDown());
   if(EntitySpectate.holding(mc.player)){mc.player.noPhysics=true;mc.player.setInvisible(true);}
