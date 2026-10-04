@@ -27,7 +27,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     public boolean interior(){return interior;}
     @Override public void onLoad(){super.onLoad();if(level instanceof ServerLevel l){ACTIVE.computeIfAbsent(l,k->new LinkedHashSet<>()).add(this);if(last<0)last=l.getGameTime();advance(l.getGameTime());}}
     @Override public void setRemoved(){if(level instanceof ServerLevel l){var a=ACTIVE.get(l);if(a!=null)a.remove(this);}super.setRemoved();}
-    public static void debugPulse(ServerLevel l,long dt){var set=ACTIVE.get(l);if(set==null)return;int n=0;for(var c:List.copyOf(set)){if(n++>=128)break;if(!c.isRemoved()){c.workClock+=Math.max(0,Math.min(dt,24000));c.advance(l.getGameTime());}}}
+    public static void debugPulse(ServerLevel l,long dt){var set=ACTIVE.get(l);if(set==null)return;int n=0;for(var c:set){if(n++>=128)break;if(!c.isRemoved()){c.workClock+=Math.max(0,Math.min(dt,24000));c.advance(l.getGameTime());}}}
     public static void clear(){ACTIVE.clear();}
     public void initialize(long now,long oldWork,boolean available){last=now;work=Math.max(0,oldWork);habitat=available;setChanged();}
     public void initializeMound(long now,long oldWork,int radius,int height){
@@ -92,7 +92,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         insect.carry(true); // A cut is a fragment, not a whole disappearing leaf or trunk.
         l.sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,l.getBlockState(p)),p.getX()+.5,p.getY()+.1,p.getZ()+.5,2,.1,.1,.1,.01);
     }
-    private void birth(ServerLevel l){
+    void birth(ServerLevel l){
         if(queenDead||!ColonyBudget.birth(l))return;
         var nearby=l.getEntitiesOfClass(ColonyInsectEntity.class,new AABB(worldPosition).inflate(interior?112:48));
         long own=nearby.stream().filter(e->worldPosition.equals(e.home())).count();

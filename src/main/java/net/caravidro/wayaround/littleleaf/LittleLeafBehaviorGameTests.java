@@ -13,7 +13,8 @@ import net.neoforged.neoforge.gametest.*;
 public final class LittleLeafBehaviorGameTests {
     private static ColonyCoreBlockEntity setup(GameTestHelper h){
         var l=h.getLevel();var p=h.absolutePos(new BlockPos(7,5,7));
-        for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)for(int y=-4;y<=5;y++)l.setBlock(p.offset(x,y,z),y==-4?Blocks.DIRT.defaultBlockState():Blocks.AIR.defaultBlockState(),18);
+        for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)for(int y=-4;y<=5;y++)l.setBlock(p.offset(x,y,z),y<0?Blocks.DIRT.defaultBlockState():Blocks.AIR.defaultBlockState(),18);
+        for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)for(int y=-3;y<=-2;y++)l.setBlock(p.offset(x,y,z),Blocks.AIR.defaultBlockState(),18);
         l.setBlock(p,LittleLeafContent.COLONY_CORE.get().defaultBlockState(),18);var c=(ColonyCoreBlockEntity)l.getBlockEntity(p);c.initialize(l.getGameTime(),0,false);return c;
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
@@ -50,6 +51,6 @@ public final class LittleLeafBehaviorGameTests {
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var soldier=LittleLeafContent.RED_ANT.get().create(l);soldier.bind(p,1,false,false);
         var player=h.makeMockPlayer(GameType.SURVIVAL);soldier.hurt(l.damageSources().playerAttack(player),1);
         h.assertTrue(c.hostile(player),"Direct attack is shared with the colony");var saved=c.saveWithFullMetadata(l.registryAccess());c.loadWithComponents(saved,l.registryAccess());h.assertTrue(c.hostile(player),"Colony remembers the attacker after reload");
-        var queen=LittleLeafContent.RED_ANT.get().create(l);queen.bind(p,2,false,false);queen.die(l.damageSources().generic());c.advance(l.getGameTime()+24000);h.assertTrue(c.work()==0,"Dead queen stops aggregate growth");h.succeed();
+        c.initialize(l.getGameTime(),0,true);var queen=LittleLeafContent.RED_ANT.get().create(l);queen.bind(p,2,false,false);queen.die(l.damageSources().generic());c.advance(l.getGameTime()+24000);h.assertTrue(c.work()==0,"Dead queen stops aggregate growth");h.succeed();
     }
 }
