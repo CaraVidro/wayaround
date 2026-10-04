@@ -20,7 +20,7 @@ public final class LittleLeafRuntimeValidation {
         var server=event.getServer();var level=server.overworld();var inside=server.getLevel(ColonyTravel.DIMENSION);
         try {
             check(inside!=null&&inside.getChunkSource().getGenerator() instanceof ColonyChunkGenerator,"Registered miniature dimension");
-            var link=new ColonyTransitData().activate(level.dimension(),new BlockPos(24000,90,24000));
+            var link=ColonyTransitData.get(server).activate(level.dimension(),new BlockPos(24000,90,24000));
             ColonyTravel.prepare(inside,link,3,4);inside.getChunkAt(link.arrival().offset(64,0,0));
             check(inside.getBlockState(link.arrival()).isAir()&&!inside.getBlockState(link.arrival().below()).isAir(),"Actual arrival is open and supported");
             check(inside.getBlockState(new BlockPos(50,32,64)).is(LittleLeafContent.COLONY_FUNGUS.get()),"Actual giant fungus garden");
@@ -47,7 +47,24 @@ public final class LittleLeafRuntimeValidation {
             }
             var player=net.neoforged.neoforge.common.util.FakePlayerFactory.getMinecraft(level);player.getAttribute(Attributes.SCALE).removeModifier(InversionEffect.SIZE);InversionEffect.invert(player);check(player.getScale()<=.063,"Human becomes ant-sized");InversionEffect.invert(player);check(player.getScale()>=.99,"Human size reversal");
             check(!LittleLeafContent.INVERSION_POTION.get().getEffects().isEmpty(),"Brewing potion contains registered inversion");
-            WayAround.LOGGER.info("LITTLE LEAF VALIDATION: all 10 checks passed on a normal dedicated server");
+            var victim=(ColonyCoreBlockEntity)inside.getBlockEntity(link.core());var transit=ColonyTransitData.get(server);
+            var observer=net.neoforged.neoforge.common.util.FakePlayerFactory.get(inside,new com.mojang.authlib.GameProfile(UUID.nameUUIDFromBytes("colony-runtime-observer".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"[ColonyObserver]"));observer.moveTo(link.arrival().getX()+.5,link.arrival().getY(),link.arrival().getZ()+.5,0,0);inside.addNewPlayer(observer);
+            long previousClock=level.getGameTime();
+            try {
+                for(int x=0;x<=80;x+=16)for(int z=-16;z<=16;z+=16)inside.getChunkAt(link.arrival().offset(x,0,z));
+                check(transit.queue(link.source(),new ColonyTransitData.Raider(0,1,1))&&transit.queue(link.source(),new ColonyTransitData.Raider(0,1,1)),"Rival arrivals recorded at a real linked colony");
+                boolean emerged=false;for(int tick=0;tick<1200&&!victim.abandoned();tick++){
+                    ((net.minecraft.world.level.storage.ServerLevelData)level.getLevelData()).setGameTime(previousClock+tick+1);
+                    ColonyTravel.releaseInvaders(inside,victim);
+                    var population=inside.getEntitiesOfClass(ColonyInsectEntity.class,new net.minecraft.world.phys.AABB(link.core()).inflate(112),e->link.core().equals(e.home()));
+                    emerged|=population.stream().anyMatch(e->e.species()==0);
+                    for(var insect:population)if(insect.isAlive())insect.tick();
+                }
+                check(emerged,"Queued invaders physically emerge at the interior entrance");
+                check(victim.abandoned()&&transit.abandoned(link.source()),"Actual interior invaders reach and kill the queen, abandoning the linked source");
+                check(!inside.getBlockState(new BlockPos(50,32,64)).getValue(ColonyFungusBlock.ALIVE),"Actual giant culture dies with the queen");
+            }finally{((net.minecraft.world.level.storage.ServerLevelData)level.getLevelData()).setGameTime(previousClock);inside.removePlayerImmediately(observer,net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);}
+            WayAround.LOGGER.info("LITTLE LEAF VALIDATION: all 12 checks passed on a normal dedicated server");
         }catch(RuntimeException e){WayAround.LOGGER.error("LITTLE LEAF VALIDATION FAILED",e);throw e;}
         finally {server.halt(false);}
     }

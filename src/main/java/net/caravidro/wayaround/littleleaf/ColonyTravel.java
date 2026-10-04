@@ -50,7 +50,7 @@ public final class ColonyTravel {
         var old=a.offset(0,0,-4);if(inside.getBlockState(old).is(LittleLeafContent.COLONY_EXIT.get()))inside.setBlock(old,Blocks.AIR.defaultBlockState(),18);
     }
     public static boolean invade(ServerLevel outside,ColonyCoreBlockEntity victim,ColonyInsectEntity insect){
-        if(victim.abandoned()||victim.species()==insect.species()||insect.carrying()||insect.carryingMaterial()||victim.interior()||outside.getServer().getLevel(DIMENSION)==null)return false;
+        if(insect.level()!=outside||insect.position().distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(victim.getBlockPos()))>(insect.enlarged()?16:3)||victim.abandoned()||victim.species()==insect.species()||insect.carrying()||insect.carryingMaterial()||victim.interior())return false;
         var data=ColonyTransitData.get(outside.getServer());var source=GlobalPos.of(outside.dimension(),victim.getBlockPos());
         if(!data.queue(source,new ColonyTransitData.Raider(insect.species(),insect.caste(),insect.getHealth()/insect.getMaxHealth())))return false;
         ColonyEffects.work(outside,victim.getBlockPos(),Blocks.DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.GRAVEL_BREAK,insect.enlarged()?.3F:.08F);
@@ -61,6 +61,7 @@ public final class ColonyTravel {
         if(!victim.interior()||victim.abandoned()||inside.getNearestPlayer(victim.getBlockPos().getX(),victim.getBlockPos().getY(),victim.getBlockPos().getZ(),112,false)==null)return;
         var data=ColonyTransitData.get(inside.getServer());var pending=data.pending(victim.identity());if(pending.isEmpty())return;
         if(victim.queen(inside)==null)victim.birth(inside);
+        if(!ColonyBudget.birth(inside))return;
         var raid=pending.get(0);var e=LittleLeafContent.type(raid.species()).create(inside);if(e==null)return;e.bind(victim.getBlockPos(),raid.caste(),true,true);e.invade();e.setHealth(e.getMaxHealth()*raid.health());
         if(!victim.placeAtEntrance(inside,e,victim.getBlockPos().offset(2,0,7)))return;
         if(inside.addFreshEntity(e)){data.consumed(victim.identity());ColonyEffects.work(inside,e.blockPosition(),Blocks.DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.SILVERFISH_AMBIENT,.25F);}

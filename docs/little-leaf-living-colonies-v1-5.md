@@ -1,0 +1,14 @@
+# Living colonies and quieter abyss
+
+Implemented on top of the fire/fishing/observation branch:
+
+- Tiny workers use incremental floor/wall routes. Each route has at most 384 expanded nodes, twelve expansions per insect per tick and a shared level work ceiling. Queries stay in existing chunks; movement avoids jumps and stuck-forager teleportation. Giant workers climb too. Final face approach brings tiny mandibles into leaf contact.
+- Giant colony growth unlocks construction blueprints instead of placing dirt automatically. Workers find nearby loaded soil outside the mound, remove one terrain block, carry the real saved/synced block and place it in a supported shell/wall/tower position. Existing mound blocks remain in place across stages. Cargo is consumed once, survives saves and drops on death. Grass soil becomes dirt when molded. mobGriefing controls terrain extraction and placement. Natural world-generation mounds and initial fungus chambers remain generated structures.
+- Leaf loads are canopy fragments; the supporting leaf/log is retained. Termites accept leaves and logs. Interior pantry cells contain actual persistent leaf blocks.
+- Rival soldiers can discover a nearby loaded foreign colony and enter its entrance. Arrivals (species, caste, health) are persisted, capped at four per colony and 1,024 waiting colonies. Unobserved interiors are not generated or force-loaded. When observed, arrivals materialize at a supported interior entrance and attack the queen.
+- Queen death stops births and growth, persists abandonment for the linked surface/interior and kills the culture. Dead fungus becomes dark, loses glow, yields no culture and cannot regenerate from its harvest timer. Ruins and exit links remain accessible.
+- Work and entry produce close-range block particles and quiet existing Minecraft sounds. Carried soil is rendered physically with its actual material. Climbing rotates the insect model.
+- Abyss horror ambience waits a randomized 2–10 minutes (typically six), varies sound/pitch/origin, avoids consecutive identical choices and suppresses nearby multiplayer repeats for at least two minutes per region. The scheduler uses saved world time and resets regional memory on server stop. Vehicle pressure/impact warnings retain their functional timing.
+- Protocol 28 requires matching client/server builds because insect synchronized data gains actual block cargo.
+
+Verification covers actual leaf harvesting/return, obstacle and elevated-canopy routes, physical building, block conservation, saved cargo, mobGriefing, dead culture, pending invader persistence and battle in the real interior dimension. In-game visual movement, local sound balance and multiplayer behavior remain manual QA. No measured performance claim.

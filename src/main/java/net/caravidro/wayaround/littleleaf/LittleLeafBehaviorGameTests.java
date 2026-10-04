@@ -111,7 +111,7 @@ public final class LittleLeafBehaviorGameTests {
         boolean old=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);try{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());
             h.assertTrue(c.excavate(l,source,insect)&&l.getBlockState(source).isAir()&&insect.carryingMaterial(),"One real terrain block becomes one carried block");
             var tag=new CompoundTag();insect.saveWithoutId(tag);var copy=LittleLeafContent.BLACK_ANT.get().create(l);copy.load(tag);h.assertTrue(copy.carryingMaterial()&&copy.material().is(Blocks.DIRT),"Actual block cargo survives entity persistence");
-            var site=p.offset(3,0,3);l.setBlock(site,Blocks.AIR.defaultBlockState(),18);insect.moveTo(site.getX()-2,site.getY(),site.getZ()+.5,0,0);
+            var site=p.offset(3,0,3);l.setBlock(site,Blocks.AIR.defaultBlockState(),18);insect.moveTo(site.getX()-1.75,site.getY(),site.getZ()+.5,0,0);
             h.assertTrue(c.placeMaterial(l,site,insect)&&l.getBlockState(site).is(Blocks.DIRT)&&!insect.carryingMaterial(),"The transported block is physically placed outside the worker body");h.assertTrue(!c.placeMaterial(l,site,insect),"Consumed cargo cannot create another block");
             l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(false,l.getServer());l.setBlock(source,Blocks.DIRT.defaultBlockState(),18);insect.moveTo(source.getX()+.5,source.getY()+1,source.getZ()+.5,0,0);h.assertTrue(!c.excavate(l,source,insect)&&l.getBlockState(source).is(Blocks.DIRT),"mobGriefing disables terrain removal");h.succeed();
         }finally{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());}
@@ -138,17 +138,18 @@ public final class LittleLeafBehaviorGameTests {
         var data=ColonyTransitData.get(l.getServer());var id=GlobalPos.of(l.dimension(),p);var copy=ColonyTransitData.load(data.save(new CompoundTag(),l.registryAccess()),l.registryAccess());h.assertTrue(copy.pending(id).size()==1&&copy.pending(id).get(0).species()==1,"Pending invader species, caste and health persist without loading an unobserved interior");h.succeed();
     }
 
-    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1800)
+    @GameTest(template="assembly_test",batch="colony_construction",timeoutTicks=1800)
     public static void giantWorkerActuallyExtractsCarriesAndBuilds(GameTestHelper h){
-        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();for(int x=-14;x<=14;x++)for(int z=-14;z<=14;z++)l.setBlock(p.offset(x,-1,z),Blocks.DIRT.defaultBlockState(),18);c.invertColony();
+        var c=setup(h);var l=h.getLevel();boolean original=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());h.runAtTickTime(1790,()->l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(original,l.getServer()));var p=c.getBlockPos();for(int x=-14;x<=14;x++)for(int z=-14;z<=14;z++)l.setBlock(p.offset(x,-1,z),Blocks.DIRT.defaultBlockState(),18);c.invertColony();
         var worker=LittleLeafContent.BLACK_ANT.get().create(l);if((worker.getId()&1)!=0)worker=LittleLeafContent.BLACK_ANT.get().create(l);
         worker.bind(p,0,false,true);worker.moveTo(p.getX()+.5,p.getY(),p.getZ()+8.5,0,0);l.addFreshEntity(worker);final var insect=worker;
         h.succeedWhen(()->{int placed=0;for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)if(l.getBlockState(p.offset(x,0,z)).is(Blocks.DIRT))placed++;
-            h.assertTrue(placed>0,"Real giant worker must find soil, remove it, carry it along its path and place a wall: worker="+insect.position()+", material="+insect.material());});
+            h.assertTrue(placed>0,"Real giant worker must find soil, remove it, carry it along its path and place a wall: worker="+insect.position()+", material="+insect.material());l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(original,l.getServer());});
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
     public static void abyssAmbienceHasLongIrregularIntervals(GameTestHelper h){
         var random=net.minecraft.util.RandomSource.create(42);var delays=new java.util.HashSet<Long>();for(int i=0;i<100;i++){long d=net.caravidro.wayaround.ecology.AbyssSoundSchedule.delay(random);h.assertTrue(d>=2400&&d<=12000,"Abyss terror leaves minutes of quiet");delays.add(d);}h.assertTrue(delays.size()>50,"Intervals vary rather than repeat on a short clock");h.succeed();
     }
+
 
 }

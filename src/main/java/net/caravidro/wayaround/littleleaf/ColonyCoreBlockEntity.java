@@ -195,8 +195,8 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         for(int n=0;n<16&&ColonyBudget.search(l);n++){
             var offset=SOIL_COLUMNS.get(soilCursor++%SOIL_COLUMNS.size());int x=offset.getX(),z=offset.getZ();if(Math.max(Math.abs(x),Math.abs(z))<exclusion)continue;
             var column=worldPosition.offset(x,0,z);if(!loaded(l,column))continue;
-            var p=new BlockPos(column.getX(),l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,column.getX(),column.getZ())-1,column.getZ());
-            for(int y=0;y<3;y++){var q=p.below(y);if(Math.abs(q.getY()-worldPosition.getY())<=12&&material(l,q))return q;}
+            var p=new BlockPos(column.getX(),Math.min(worldPosition.getY()+8,l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,column.getX(),column.getZ())-1),column.getZ());
+            for(int y=0;y<12;y++){var q=p.below(y);if(Math.abs(q.getY()-worldPosition.getY())<=12&&material(l,q))return q;}
         }return null;
     }
     private boolean material(ServerLevel l,BlockPos p){return loaded(l,p)&&l.getFluidState(p).isEmpty()&&l.getBlockEntity(p)==null&&!owned.contains(p.asLong())&&(l.getBlockState(p).is(BlockTags.DIRT)||l.getBlockState(p).is(Blocks.CLAY));}

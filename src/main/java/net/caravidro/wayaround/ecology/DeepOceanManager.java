@@ -30,6 +30,8 @@ public final class DeepOceanManager {
 
     private static final java.util.Map<net.minecraft.core.GlobalPos,Long> SOUND_REGIONS=new java.util.LinkedHashMap<>();
 
+    @SubscribeEvent public static void clearSounds(net.neoforged.neoforge.event.server.ServerStoppedEvent e){SOUND_REGIONS.clear();}
+
     private DeepOceanManager() {
     }
 
