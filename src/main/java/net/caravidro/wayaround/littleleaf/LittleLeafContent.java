@@ -33,7 +33,10 @@ public final class LittleLeafContent {
     private static DeferredBlock<ColonyCoreBlock> colony(String id,int species){return BLOCKS.register(id,()->new ColonyCoreBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.DIRT).strength(1.5F),species));}
     public static final DeferredItem<BlockItem> BLACK_COLONY_ITEM=ITEMS.registerSimpleBlockItem(BLACK_COLONY),RED_COLONY_ITEM=ITEMS.registerSimpleBlockItem(RED_COLONY),HONEY_COLONY_ITEM=ITEMS.registerSimpleBlockItem(HONEY_COLONY),TERMITE_COLONY_ITEM=ITEMS.registerSimpleBlockItem(TERMITE_COLONY);
     public static ColonyCoreBlock core(int species){return switch(species){case 1->RED_COLONY.get();case 2->HONEY_COLONY.get();case 3->TERMITE_COLONY.get();default->BLACK_COLONY.get();};}
-    public static final DeferredBlock<ColonyFungusBlock> COLONY_FUNGUS=BLOCKS.register("colony_fungus",()->new ColonyFungusBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(.6F).lightLevel(s->4)));
+    public static final DeferredBlock<ColonyConnectionBlock> CONNECTION=BLOCKS.register("colony_connection",()->new ColonyConnectionBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.ROOTED_DIRT).strength(2)) );
+    public static final DeferredItem<BlockItem> CONNECTION_ITEM=ITEMS.registerSimpleBlockItem(CONNECTION);
+    public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<ColonyConnectionBlockEntity>> CONNECTION_ENTITY=BLOCK_ENTITIES.register("colony_connection",()->BlockEntityType.Builder.of(ColonyConnectionBlockEntity::new,CONNECTION.get()).build(null));
+    public static final DeferredBlock<ColonyFungusBlock> COLONY_FUNGUS=BLOCKS.register("colony_fungus",()->new ColonyFungusBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(.6F).lightLevel(s->s.getValue(ColonyFungusBlock.ALIVE)?4:0)));
     public static final DeferredItem<BlockItem> FUNGUS_ITEM=ITEMS.registerSimpleBlockItem(COLONY_FUNGUS);
     public static final DeferredBlock<ColonyExitBlock> COLONY_EXIT=BLOCKS.register("colony_exit",()->new ColonyExitBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(-1,3600000).noCollission().noOcclusion().lightLevel(s->8).noLootTable()));
     public static final DeferredItem<Item> LEAF_FRAGMENT=ITEMS.register("leaf_fragment",()->new Item(new Item.Properties()));
@@ -47,7 +50,7 @@ public final class LittleLeafContent {
     private static DeferredItem<SpawnEggItem> egg(String id,DeferredHolder<EntityType<?>,EntityType<ColonyInsectEntity>> t,int a,int b){return ITEMS.register(id+"_spawn_egg",()->new SpawnEggItem(t.get(),a,b,new Item.Properties()));}
     public static final DeferredHolder<Feature<?>,ColonyMoundFeature> MOUND=FEATURES.register("colony_mound",ColonyMoundFeature::new);
     public static final DeferredHolder<CreativeModeTab,CreativeModeTab> LITTLE_LEAF_WORLD=TABS.register("little_leaf_world",()->CreativeModeTab.builder().title(Component.translatable("itemGroup.wayaround.little_leaf_world")).icon(()->new ItemStack(CORE_ITEM.get())).displayItems((p,o)->{
-        o.accept(BLACK_COLONY_ITEM);o.accept(RED_COLONY_ITEM);o.accept(HONEY_COLONY_ITEM);o.accept(TERMITE_COLONY_ITEM);o.accept(FUNGUS_ITEM);o.accept(LEAF_FRAGMENT);o.accept(HONEYDEW);o.accept(BLACK_EGG);o.accept(RED_EGG);o.accept(HONEY_EGG);o.accept(TERMITE_EGG);
+        o.accept(BLACK_COLONY_ITEM);o.accept(RED_COLONY_ITEM);o.accept(HONEY_COLONY_ITEM);o.accept(TERMITE_COLONY_ITEM);o.accept(CONNECTION_ITEM);o.accept(FUNGUS_ITEM);o.accept(LEAF_FRAGMENT);o.accept(HONEYDEW);o.accept(BLACK_EGG);o.accept(RED_EGG);o.accept(HONEY_EGG);o.accept(TERMITE_EGG);
         o.accept(PotionContents.createItemStack(Items.POTION,INVERSION_POTION));o.accept(PotionContents.createItemStack(Items.SPLASH_POTION,INVERSION_POTION));
     }).build());
     public static EntityType<ColonyInsectEntity> type(int species){return switch(species){case 1->RED_ANT.get();case 2->HONEY_ANT.get();case 3->TERMITE.get();default->BLACK_ANT.get();};}

@@ -17,6 +17,9 @@ public final class ColonyRulesTest {
             check(ColonyLayout.sample(cell*128+52,43,64)==ColonyLayout.Material.CAP,"Giant mushroom");
             check(ColonyLayout.sample(cell*128,40,64)==ColonyLayout.Material.SOIL,"Colonies stay isolated");
         }
+        int small=0,big=0,different=0;for(int x=4;x<124;x++)for(int z=4;z<124;z++){
+            var a=ColonyLayout.sample(x,33,z,0);var b=ColonyLayout.sample(x,33,z,4);if(a==ColonyLayout.Material.AIR)small++;if(b==ColonyLayout.Material.AIR)big++;if(ColonyLayout.sample(x+128,33,z,4)!=b)different++;
+        }check(big>small*1.3,"Physical expansion produces larger connected galleries");check(different>100,"Different colony cells have different procedural rooms");
         System.out.println("Little Leaf lifecycle and interior contracts passed");
     }
 }

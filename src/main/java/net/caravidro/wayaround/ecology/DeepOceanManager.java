@@ -28,6 +28,10 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class DeepOceanManager {
 
+    private static final java.util.Map<net.minecraft.core.GlobalPos,Long> SOUND_REGIONS=new java.util.LinkedHashMap<>();
+
+    @SubscribeEvent public static void clearSounds(net.neoforged.neoforge.event.server.ServerStoppedEvent e){SOUND_REGIONS.clear();}
+
     private DeepOceanManager() {
     }
 
@@ -145,38 +149,20 @@ public final class DeepOceanManager {
                 var data =
                         player.getPersistentData();
 
-                long nextSound =
-                        data.getLong(
-                                "WayAroundNextAbyssSound"
-                        );
-
-                if (now >= nextSound) {
-                    net.minecraft.sounds.SoundEvent sound =
-                            SoundEvents.AMBIENT_CAVE.value();
-
-                    player.serverLevel()
-                            .playSound(
-                                    null,
-                                    player.blockPosition(),
-                                    sound,
-                                    SoundSource.AMBIENT,
-                                    0.38F
-                                            + player.getRandom()
-                                                    .nextFloat()
-                                                    * 0.28F,
-                                    0.42F
-                                            + player.getRandom()
-                                                    .nextFloat()
-                                                    * 0.34F
-                            );
-
-                    data.putLong(
-                            "WayAroundNextAbyssSound",
-                            now
-                                    + 180L
-                                    + player.getRandom()
-                                            .nextInt(520)
-                    );
+                long clock=player.serverLevel().getGameTime();
+                long nextSound=data.getLong("WayAroundRareAbyssSound");
+                if(nextSound==0){data.putLong("WayAroundRareAbyssSound",clock+AbyssSoundSchedule.delay(player.getRandom()));continue;}
+                if(clock>=nextSound){
+                    var region=net.minecraft.core.GlobalPos.of(player.level().dimension(),new net.minecraft.core.BlockPos(Math.floorDiv(player.blockPosition().getX(),128),0,Math.floorDiv(player.blockPosition().getZ(),128)));
+                    long previous=SOUND_REGIONS.getOrDefault(region,Long.MIN_VALUE/2);
+                    if(clock-previous>2400){
+                        var random=player.getRandom();int choice=random.nextInt(4),last=data.getInt("WayAroundLastAbyssSound");if(choice==last)choice=(choice+1+random.nextInt(3))%4;
+                        net.minecraft.sounds.SoundEvent sound=switch(choice){case 1->SoundEvents.WARDEN_AMBIENT;case 2->SoundEvents.ELDER_GUARDIAN_AMBIENT;case 3->SoundEvents.SQUID_SQUIRT;default->SoundEvents.AMBIENT_CAVE.value();};
+                        var origin=player.blockPosition().offset(random.nextInt(13)-6,random.nextInt(5)-2,random.nextInt(13)-6);
+                        player.serverLevel().playSound(null,origin,sound,SoundSource.AMBIENT,.28F+random.nextFloat()*.18F,.35F+random.nextFloat()*.4F);
+                        data.putInt("WayAroundLastAbyssSound",choice);SOUND_REGIONS.put(region,clock);if(SOUND_REGIONS.size()>512)SOUND_REGIONS.remove(SOUND_REGIONS.keySet().iterator().next());
+                    }
+                    data.putLong("WayAroundRareAbyssSound",clock+AbyssSoundSchedule.delay(player.getRandom()));
                 }
             }
         }

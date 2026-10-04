@@ -1,7 +1,10 @@
 {
   "variants": {
-    "": {
+    "alive=true": {
       "model": "wayaround:block/colony_fungus"
+    },
+    "alive=false": {
+      "model": "wayaround:block/colony_fungus_dead"
     }
   }
 }

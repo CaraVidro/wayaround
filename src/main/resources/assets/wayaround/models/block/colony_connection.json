@@ -1,0 +1,8 @@
+{
+  "parent": "wayaround:block/black_ant_colony",
+  "textures": {
+    "side": "minecraft:block/rooted_dirt",
+    "top": "minecraft:block/moss_block",
+    "hole": "minecraft:block/black_concrete"
+  }
+}
