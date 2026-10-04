@@ -13,8 +13,9 @@ import net.neoforged.neoforge.gametest.*;
 @GameTestHolder("wayaround_nature")
 @PrefixGameTestTemplate(false)
 public final class ColonySocietyGameTests {
-    private static ColonyCoreBlockEntity nest(GameTestHelper h){
-        var l=h.getLevel();var p=h.absolutePos(new BlockPos(7,5,7));for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)for(int y=-4;y<=5;y++)l.setBlock(p.offset(x,y,z),y<0?Blocks.DIRT.defaultBlockState():Blocks.AIR.defaultBlockState(),18);
+    private static ColonyCoreBlockEntity nest(GameTestHelper h){return nest(h,0);}
+    private static ColonyCoreBlockEntity nest(GameTestHelper h,int yOffset){
+        var l=h.getLevel();var p=h.absolutePos(new BlockPos(7,5+yOffset,7));for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)for(int y=-4;y<=5;y++)l.setBlock(p.offset(x,y,z),y<0?Blocks.DIRT.defaultBlockState():Blocks.AIR.defaultBlockState(),18);
         for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)for(int y=-3;y<=-2;y++)l.setBlock(p.offset(x,y,z),Blocks.AIR.defaultBlockState(),18);
         l.setBlock(p,LittleLeafContent.BLACK_COLONY.get().defaultBlockState(),18);var core=(ColonyCoreBlockEntity)l.getBlockEntity(p);core.initialize(l.getGameTime(),0,false);return core;
     }
@@ -61,8 +62,8 @@ public final class ColonySocietyGameTests {
 
     @GameTest(template="assembly_test",batch="colony_outpost",timeoutTicks=2000)
     public static void builderConstructsASatelliteFromActualTerrain(GameTestHelper h){
-        var c=nest(h);var l=h.getLevel();var p=c.getBlockPos();for(int x=-14;x<=14;x++)for(int z=-14;z<=14;z++)l.setBlock(p.offset(x,-1,z),Blocks.DIRT.defaultBlockState(),18);c.initialize(l.getGameTime(),24,false);c.invertColony();ColonyTransitData.get(l.getServer()).feed(c.identity(),8);
+        var c=nest(h,16);var l=h.getLevel();var p=c.getBlockPos();for(int x=-14;x<=14;x++)for(int z=-14;z<=14;z++)for(int y=-1;y<7;y++)if(x!=0||z!=0||y!=0)l.setBlock(p.offset(x,y,z),y<0?Blocks.DIRT.defaultBlockState():Blocks.AIR.defaultBlockState(),18);l.setBlock(p,c.getBlockState(),18);c.initialize(l.getGameTime(),24,false);c.invertColony();h.assertTrue(!c.abandoned(),"Outpost fixture uses a fresh colony identity");ColonyTransitData.get(l.getServer()).feed(c.identity(),8);
         boolean old=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());h.runAtTickTime(1990,()->l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer()));var builder=ant(h,c,0,true,ColonyInsectEntity.BUILDER,p.offset(0,0,8));
-        h.succeedWhen(()->{h.assertTrue(c.connectionCount()>0,"A real builder extracts soil, carries it and molds an attached colony entrance: "+builder.position()+", "+builder.workStatus());h.assertTrue(ColonyTransitData.get(l.getServer()).food(c.identity())==4,"Satellite construction spends four meals");l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());});
+        h.succeedWhen(()->{h.assertTrue(c.connectionCount()>0,"A real builder extracts soil, carries it and molds an attached colony entrance: "+builder.position()+", giant="+c.giant()+", abandoned="+c.abandoned()+", stage="+c.stage()+", food="+ColonyTransitData.get(l.getServer()).food(c.identity())+", "+builder.workStatus());h.assertTrue(ColonyTransitData.get(l.getServer()).food(c.identity())==4,"Satellite construction spends four meals");l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());});
     }
 }

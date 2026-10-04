@@ -39,7 +39,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
     public boolean takeBody(ColonyInsectEntity body){if(carrying()||carryingMaterial()||carryingBody()||!body.corpse()||body.buried||body.carrier!=null||!getBoundingBox().inflate(enlarged()?1:.2).intersects(body.getBoundingBox()))return false;bodyId=body.getUUID();body.carrier=getUUID();body.setNoGravity(true);return true;}
     private ColonyGoal workerGoal;
     private BlockPos buildSite;private boolean invading,routeClimbing;
-    public String workStatus(){return "scale="+getScale()+", width="+getBbWidth()+", site="+buildSite+", destination="+(workerGoal==null?null:workerGoal.destination)+", route="+(workerGoal==null?null:workerGoal.route.status());}
+    public String workStatus(){return "job="+job()+", life="+entityData.get(LIFE)+", garden="+gardenMode+", weather="+weatherWaiting+", target="+(getTarget()==null?null:getTarget().getType())+", scale="+getScale()+", width="+getBbWidth()+", site="+buildSite+", destination="+(workerGoal==null?null:workerGoal.destination)+", route="+(workerGoal==null?null:workerGoal.route.status());}
     public boolean carryingMaterial(){return entityData.get(MATERIAL).isPresent();}
     public BlockState material(){return entityData.get(MATERIAL).orElse(null);}
     public void material(BlockState state){entityData.set(MATERIAL,Optional.ofNullable(state));}

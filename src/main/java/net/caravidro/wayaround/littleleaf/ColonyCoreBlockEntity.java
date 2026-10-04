@@ -167,7 +167,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         var preferred=interior?(role==2?worldPosition.offset(64,0,4):worldPosition.offset(8+(int)(own%3)*3,0,4)):worldPosition.above();
         if(entrance!=null&&role!=2)preferred=entrance;
         boolean founder=role!=2&&foundersBorn<3;
-        if(role!=2){if(founder)e.assignJob(foundersBorn==0?ColonyInsectEntity.FORAGER:foundersBorn==1?ColonyInsectEntity.NURSE:giant()?ColonyInsectEntity.BUILDER:ColonyInsectEntity.UNDERTAKER);else {e.makeLarva();e.assignJob((int)(own%4));}if(interior)preferred=nursery();}
+        if(role!=2){if(founder)e.assignJob(foundersBorn==0?ColonyInsectEntity.FORAGER:foundersBorn==1?ColonyInsectEntity.NURSE:giant()?ColonyInsectEntity.BUILDER:ColonyInsectEntity.UNDERTAKER);else {e.makeLarva();e.assignJob((int)(own%4));}if(interior)preferred=nursery().offset((int)own%5-2,0,(int)(own/5)%5-2);}
         if(!placeAtEntrance(l,e,preferred))return;
         if(l.addFreshEntity(e)){if(founder)foundersBorn++;if(role==2){queenBorn=true;queenId=e.getUUID();}setChanged();}
     }
@@ -215,8 +215,10 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         if(stage()<1||connections.size()>=8||ColonyTransitData.get(l.getServer()).food(identity())<4)return null;
         if(satelliteSite!=null&&loaded(l,satelliteSite)&&l.getBlockState(satelliteSite).isAir()&&!assignments.containsValue(satelliteSite)){assignments.put(insect.getUUID(),satelliteSite);return satelliteSite;}
         int r=Math.min(32,ColonyRules.radius(stage(),species()==3)+5+connections.size()*3);
-        for(var d:Direction.Plane.HORIZONTAL){var col=worldPosition.relative(d,r);if(!loaded(l,col))continue;var p=new BlockPos(col.getX(),l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,col.getX(),col.getZ()),col.getZ());if(Math.abs(p.getY()-worldPosition.getY())>5||!l.getBlockState(p).isAir()||!l.getFluidState(p).isEmpty()||l.getBlockState(p.below()).getCollisionShape(l,p.below()).isEmpty())continue;
-            boolean close=false;for(long other:connections)if(BlockPos.of(other).distSqr(p)<16){close=true;break;}if(!close){satelliteSite=p;assignments.put(insect.getUUID(),p);return p;}
+        for(var d:Direction.Plane.HORIZONTAL){var col=worldPosition.relative(d,r);if(!loaded(l,col))continue;
+            for(int dy=4;dy>=-4&&ColonyBudget.search(l);dy--){var p=col.offset(0,dy,0);if(!l.getBlockState(p).isAir()||!l.getFluidState(p).isEmpty()||!l.getBlockState(p.below()).isFaceSturdy(l,p.below(),Direction.UP))continue;
+                boolean close=false;for(long other:connections)if(BlockPos.of(other).distSqr(p)<16){close=true;break;}if(!close){satelliteSite=p;assignments.put(insect.getUUID(),p);return p;}
+            }
         }return null;
     }
     /** Births require a real supporting surface and a clear body, never an arbitrary air coordinate. */

@@ -74,7 +74,7 @@ public final class ColonySurfaceRoute {
  private double heuristic(BlockPos p){return Math.abs(p.getX()-goal.getX())+Math.abs(p.getY()-goal.getY())+Math.abs(p.getZ()-goal.getZ());}
  private static boolean wall(ServerLevel l,BlockPos p,int range){for(var d:Direction.Plane.HORIZONTAL)for(int step=1;step<=range;step++){var q=p.relative(d,step);if(ColonyCoreBlockEntity.loaded(l,q)&&!l.getBlockState(q).getCollisionShape(l,q).isEmpty())return true;}return false;}
  private static boolean valid(ServerLevel l,ColonyInsectEntity e,BlockPos p){
-  if(!ColonyCoreBlockEntity.loaded(l,p)||!ColonyCoreBlockEntity.loaded(l,p.above(2))||!l.getFluidState(p).isEmpty())return false;
+  if(!ColonyCoreBlockEntity.loaded(l,p)||!ColonyCoreBlockEntity.loaded(l,p.above(2))||!l.getFluidState(p).isEmpty()||!l.getFluidState(p.below()).isEmpty())return false;
   if(!e.enlarged())return point(l,e,p,false)!=null;
   var b=e.getBoundingBox().move(p.getX()+.5-e.getX(),p.getY()-e.getY(),p.getZ()+.5-e.getZ());if(!l.noCollision(e,b))return false;
   var below=p.below();return ColonyCoreBlockEntity.loaded(l,below)&&(!l.getBlockState(below).getCollisionShape(l,below).isEmpty()||wall(l,p,Math.max(1,(int)Math.ceil(e.getBbWidth()*.5)))||wall(l,below,Math.max(1,(int)Math.ceil(e.getBbWidth()*.5))));
