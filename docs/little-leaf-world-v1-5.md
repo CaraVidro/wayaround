@@ -22,7 +22,7 @@ Uma formiga ampliada individualmente não entra no ninho pequeno, nem entrega di
 
 Colônias sem inversão ficam limitadas ao nível maior. Cargas grandes contam oito unidades; pequenas, uma. A atividade agregada num habitat favorável soma uma unidade a cada 1.200 ticks, conservando frações entre amostras e recuperando até trinta dias por carregamento. `/timetick` também avança esse relógio, respeitando limites. Não é necessário manter entidades ou chunks distantes rodando. Estruturas novas recebem uma história inicial variada.
 
-Minúsculo, clique com a mão vazia no núcleo: o jogador entra numa **dimensão interna em escala de jogador**. Cada colônia ganha uma célula isolada e um retorno persistente. Há um fungo monumental, raízes, câmara da rainha e galerias menores conectadas. Os insetos internos são grandes, com população limitada; são neutros até uma agressão ou aproximação da câmara da rainha. A colônia salva a memória dos últimos dezesseis intrusos.
+Minúsculo, clique com a mão vazia no núcleo: o jogador entra numa **dimensão interna em escala de jogador**. Cada colônia ganha uma célula isolada e um retorno persistente. Há um fungo monumental, raízes, câmara da rainha e galerias menores conectadas. Os insetos internos são grandes, com população limitada; são neutros até uma agressão ou aproximação da câmara da rainha. A colônia salva a memória dos últimos dezesseis intrusos. A morte da rainha interrompe nascimentos e crescimento agregado.
 
 Clique no bloco luminoso de saída no vestíbulo para retornar minúsculo. Morrer dentro mantém o vínculo e volta ao vestíbulo; logout/reinício não perde as coordenadas. Destruir o núcleo exterior não apaga a saída. Um retorno vedado recebe uma pequena saída de emergência acima do antigo núcleo. O interior é gerado uma vez, e revisitas preservam alterações.
 
@@ -34,6 +34,6 @@ A população visível é uma amostra, não milhares de insetos simulados. Limit
 
 O modelo possui três segmentos, seis patas articuladas, antenas, mandíbulas e cargas. Distância reduz o detalhe das formigas minúsculas; acima de quarenta blocos elas não são desenhadas.
 
-Verificações automatizadas cobrem regras de crescimento e galerias, registro real da dimensão, fungo/saída, isolamento e persistência das rotas, relógio fracionário/carregamento tardio, níveis, memória, castas/cargas e escala/colisão/reversão. Build e inicialização cliente/servidor são executados em CI. A aparência em jogo, rotas sobre árvores e viagens em multiplayer ainda exigem conferência manual; não há afirmação de FPS medido.
+Verificações automatizadas cobrem regras de crescimento e galerias, registro real da dimensão, fungo/saída, isolamento e persistência das rotas, relógio fracionário/carregamento tardio, níveis, memória, castas/cargas e escala/colisão/reversão. Cinco GameTests adicionais exercitam colheita sem duplicação, corte e entrega de cargas, poção no núcleo, entrada/saída real de uma operária e hostilidade/morte da rainha. Build e inicialização cliente/servidor são executados em CI. A aparência em jogo, rotas sobre árvores e viagens em multiplayer ainda exigem conferência manual; não há afirmação de FPS medido.
 
 Novos formigueiros naturais aparecem em chunks gerados depois desta versão; chunks existentes não são reescritos.

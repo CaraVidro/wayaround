@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'src/main/java/net/caravidro/wayaround/nature/**'
+      - 'src/main/java/net/caravidro/wayaround/littleleaf/**'
       - 'src/main/java/net/caravidro/wayaround/voice/VoiceServer.java'
       - 'src/main/java/net/caravidro/wayaround/voice/VoiceDistanceMath.java'
       - 'src/main/java/net/caravidro/wayaround/ecology/TreeWoodSegmentBlock.java'
@@ -66,7 +67,7 @@ jobs:
           python - <<'PYTESTS'
           from pathlib import Path
           text=Path('nature-server-tests.log').read_text(errors='replace')
-          assert '29 required tests passed' in text or 'All 29 required tests passed' in text,text[-16000:]
+          assert '34 required tests passed' in text or 'All 34 required tests passed' in text,text[-16000:]
           assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
           PYTESTS
       - name: Client boot and mixin application

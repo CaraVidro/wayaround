@@ -21,7 +21,10 @@ public final class ColonyEvents {
         if(!(e.getProjectile() instanceof ThrownPotion potion)||!(potion.level() instanceof ServerLevel l)||!potion.getItem().is(Items.SPLASH_POTION))return;
         var contents=potion.getItem().getOrDefault(DataComponents.POTION_CONTENTS,PotionContents.EMPTY);
         if(java.util.stream.StreamSupport.stream(contents.getAllEffects().spliterator(),false).noneMatch(m->m.getEffect().is(LittleLeafContent.INVERSION.getKey())))return;
-        var center=BlockPos.containing(e.getRayTraceResult().getLocation());
+        dose(l,e.getRayTraceResult().getLocation());
+    }
+    public static void dose(ServerLevel l,Vec3 impact){
+        var center=BlockPos.containing(impact);
         // One impact, at most 147 already-loaded block probes; lingering clouds do not repeatedly toggle a nest.
         for(var p:BlockPos.betweenClosed(center.offset(-3,-1,-3),center.offset(3,1,3)))if(ColonyCoreBlockEntity.loaded(l,p)&&l.getBlockEntity(p) instanceof ColonyCoreBlockEntity core)core.invertColony();
     }

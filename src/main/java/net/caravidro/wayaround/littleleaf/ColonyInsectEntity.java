@@ -37,6 +37,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
     @Override public void aiStep(){super.aiStep();if(!level().isClientSide){entityData.set(CLIMB,horizontalCollision&&!enlarged());if(home==null&&++unboundTicks>24000&&!hasCustomName())discard();}}
     public ColonyCoreBlockEntity colony(){if(home==null||!(level() instanceof ServerLevel l)||!ColonyCoreBlockEntity.loaded(l,home))return null;return l.getBlockEntity(home) instanceof ColonyCoreBlockEntity c?c:null;}
     @Override public boolean hurt(DamageSource source,float amount){if(source.getEntity() instanceof Player p){var c=colony();if(c!=null)c.remember(p.getUUID());setTarget(p);}return super.hurt(source,amount);}
+    @Override public void die(DamageSource s){var c=colony();if(caste()==2&&c!=null)c.queenDied();super.die(s);}
     @Override public boolean removeWhenFarAway(double d){return false;}
     @Override public boolean shouldRenderAtSqrDistance(double d){return d<(enlarged()?128*128:40*40);}
     @Override protected SoundEvent getHurtSound(DamageSource s){return SoundEvents.SILVERFISH_HURT;}
@@ -54,14 +55,14 @@ public final class ColonyInsectEntity extends PathfinderMob {
             var c=colony();
             if(tickCount%40==0&&c!=null){
                 // Remember queen intrusion even after the player backs away or reloads the world.
-                var queen=inside?home.offset(64,0,4):home.offset(0,-3,1);
-                for(var p:l.getEntitiesOfClass(Player.class,new AABB(queen).inflate(inside?12:1.5),p->!p.isCreative()&&!p.isSpectator()))c.remember(p.getUUID());
+                var queen=c.queen(l);
+                if(queen!=null)for(var p:l.getEntitiesOfClass(Player.class,queen.getBoundingBox().inflate(inside?12:queen.enlarged()?8:1.5),p->!p.isCreative()&&!p.isSpectator()))c.remember(p.getUUID());
                 var threat=l.getEntitiesOfClass(Player.class,getBoundingBox().inflate(inside?24:12),p->p.isAlive()&&!p.isCreative()&&!p.isSpectator()&&c.hostile(p));
                 if(!threat.isEmpty()){setTarget(threat.get(0));return;}
             }
             if(caste()==2){getNavigation().stop();return;}
             if(burrowing>0){
-                if(--burrowing==0&&c!=null){c.delivered(false);carry(false);moveTo(home.getX()+.5,home.getY(),home.getZ()+ColonyRules.radius(c.stage(),species()==3)+2.5,getYRot(),0);destination=null;wait=30;}
+                if(--burrowing==0&&c!=null){c.acceptLoad(ColonyInsectEntity.this);moveTo(home.getX()+.5,home.getY(),home.getZ()+ColonyRules.radius(c.stage(),species()==3)+2.5,getYRot(),0);destination=null;wait=30;}
                 return;
             }
             if(wait-->0)return;
@@ -78,13 +79,10 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 getNavigation().stop();
                 if(c!=null&&caste()==0){
                     if(carrying()){
-                        if(enlarged()&&!c.giant()&&!inside){
-                            // Oversized outsiders leave physical fragments outside and cannot feed the inner fungus.
-                            if(random.nextInt(4)==0&&l.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new AABB(destination).inflate(3)).size()<4)spawnAtLocation(new ItemStack(LittleLeafContent.LEAF_FRAGMENT.get(),4));
-                        } else if(!enlarged()&&!inside){
+                        if(!enlarged()&&!inside){
                             moveTo(home.getX()+.5,home.getY()-3,home.getZ()+.5,getYRot(),0);getNavigation().stop();burrowing=40;destination=null;return;
-                        } else {c.delivered(enlarged());if(species()==2&&random.nextInt(16)==0)spawnAtLocation(LittleLeafContent.HONEYDEW.get());}
-                        carry(false);
+                        }
+                        c.acceptLoad(ColonyInsectEntity.this);
                     }else c.cut(l,destination,ColonyInsectEntity.this);
                 }
                 destination=null;wait=40;return;
