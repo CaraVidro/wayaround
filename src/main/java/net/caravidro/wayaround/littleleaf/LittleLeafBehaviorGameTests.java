@@ -138,4 +138,17 @@ public final class LittleLeafBehaviorGameTests {
         var data=ColonyTransitData.get(l.getServer());var id=GlobalPos.of(l.dimension(),p);var copy=ColonyTransitData.load(data.save(new CompoundTag(),l.registryAccess()),l.registryAccess());h.assertTrue(copy.pending(id).size()==1&&copy.pending(id).get(0).species()==1,"Pending invader species, caste and health persist without loading an unobserved interior");h.succeed();
     }
 
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1800)
+    public static void giantWorkerActuallyExtractsCarriesAndBuilds(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();for(int x=-14;x<=14;x++)for(int z=-14;z<=14;z++)l.setBlock(p.offset(x,-1,z),Blocks.DIRT.defaultBlockState(),18);c.invertColony();
+        var worker=LittleLeafContent.BLACK_ANT.get().create(l);if((worker.getId()&1)!=0)worker=LittleLeafContent.BLACK_ANT.get().create(l);
+        worker.bind(p,0,false,true);worker.moveTo(p.getX()+.5,p.getY(),p.getZ()+8.5,0,0);l.addFreshEntity(worker);final var insect=worker;
+        h.succeedWhen(()->{int placed=0;for(int x=-5;x<=5;x++)for(int z=-5;z<=5;z++)if(l.getBlockState(p.offset(x,0,z)).is(Blocks.DIRT))placed++;
+            h.assertTrue(placed>0,"Real giant worker must find soil, remove it, carry it along its path and place a wall: worker="+insect.position()+", material="+insect.material());});
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void abyssAmbienceHasLongIrregularIntervals(GameTestHelper h){
+        var random=net.minecraft.util.RandomSource.create(42);var delays=new java.util.HashSet<Long>();for(int i=0;i<100;i++){long d=net.caravidro.wayaround.ecology.AbyssSoundSchedule.delay(random);h.assertTrue(d>=2400&&d<=12000,"Abyss terror leaves minutes of quiet");delays.add(d);}h.assertTrue(delays.size()>50,"Intervals vary rather than repeat on a short clock");h.succeed();
+    }
+
 }

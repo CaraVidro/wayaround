@@ -32,7 +32,12 @@ public final class ColonySurfaceRoute {
    var delta=point.subtract(e.position());boolean up=Math.abs(delta.y)>.15;
    double speed=e.enlarged()?.13:.045;Vec3 horizontal=new Vec3(delta.x,0,delta.z);if(horizontal.length()>speed)horizontal=horizontal.normalize().scale(speed);
    double dy=up?Math.clamp(delta.y,-.12,.12):e.getDeltaMovement().y;
+   if(horizontal.lengthSqr()>1e-6)e.setYRot((float)(Math.atan2(-horizontal.x,horizontal.z)*180/Math.PI));
    e.routeClimbing(up);e.getNavigation().stop();e.setDeltaMovement(horizontal.x,dy,horizontal.z);e.getLookControl().setLookAt(point.x,point.y+e.getEyeHeight(),point.z,30,30);return;
+  }
+  if(!e.enlarged()){
+   var p=e.position();double x=Math.clamp(p.x,goal.getX(),goal.getX()+1),y=Math.clamp(p.y,goal.getY(),goal.getY()+1),z=Math.clamp(p.z,goal.getZ(),goal.getZ()+1);var nearest=new Vec3(x,y,z);var away=p.subtract(nearest);
+   if(away.lengthSqr()>1e-5){var desired=nearest.add(away.normalize().scale(e.getBbWidth()*.5+.055));var d=desired.subtract(p);if(d.length()>.02){var motion=d.normalize().scale(Math.min(.045,d.length()));e.setDeltaMovement(motion);e.routeClimbing(Math.abs(motion.y)>.01);if(motion.horizontalDistanceSqr()>1e-6)e.setYRot((float)(Math.atan2(-motion.x,motion.z)*180/Math.PI));return;}}
   }
   e.routeClimbing(false);e.setDeltaMovement(0,e.getDeltaMovement().y,0);
  }

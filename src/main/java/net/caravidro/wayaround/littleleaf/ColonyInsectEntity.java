@@ -52,7 +52,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
     }
     public ColonyCoreBlockEntity colony(){if(home==null||!(level() instanceof ServerLevel l)||!ColonyCoreBlockEntity.loaded(l,home))return null;return l.getBlockEntity(home) instanceof ColonyCoreBlockEntity c?c:null;}
     @Override public boolean hurt(DamageSource source,float amount){if(source.getEntity() instanceof ColonyInsectEntity rival&&rival.species()!=species())setTarget(rival);if(source.getEntity() instanceof Player p){var c=colony();if(c!=null)c.remember(p.getUUID());setTarget(p);}return super.hurt(source,amount);}
-    @Override protected void jumpFromGround(){} // Wall routes climb continuously; no hopping at every ledge.
+    @Override public void jumpFromGround(){} // Wall routes climb continuously; no hopping at every ledge.
     public void dropMaterial(){if(carryingMaterial()&&!level().isClientSide){spawnAtLocation(new ItemStack(material().getBlock()));material(null);buildSite=null;}}
     @Override public void die(DamageSource s){dropMaterial();var c=colony();if(caste()==2&&c!=null)c.queenDied();super.die(s);}
     @Override public boolean removeWhenFarAway(double d){return false;}

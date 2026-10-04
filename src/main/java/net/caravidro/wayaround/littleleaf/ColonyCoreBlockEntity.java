@@ -126,7 +126,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     public void rejectFood(BlockPos p){if(p!=null&&p.equals(food)){food=null;nextFoodColumn();}}
     private boolean edible(BlockState s){return s.is(BlockTags.LEAVES)||(species()==3&&s.is(BlockTags.LOGS));}
     public boolean cut(ServerLevel l,BlockPos p,ColonyInsectEntity insect){
-        if(queenDead||insect.carrying()||!loaded(l,p)||!edible(l.getBlockState(p))||!insect.getBoundingBox().inflate(insect.enlarged()?.65:.62).intersects(new AABB(p)))return false;
+        if(queenDead||insect.carrying()||!loaded(l,p)||!edible(l.getBlockState(p))||!insect.getBoundingBox().inflate(insect.enlarged()?.65:.20).intersects(new AABB(p)))return false;
         insect.carry(true); // A cut is a fragment, not a whole disappearing leaf or trunk.
         ColonyEffects.work(l,p,l.getBlockState(p),net.minecraft.sounds.SoundEvents.GRASS_BREAK,enlargedVolume(insect));return true;
     }
