@@ -100,7 +100,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         int role=!queenBorn?2:own%4==0?1:0;
         var e=LittleLeafContent.type(species()).create(l);if(e==null)return;
         var spawn=interior?(role==2?worldPosition.offset(64,0,4):worldPosition.offset(8+(int)(own%3)*3,0,4)):
-            role==2&&!giant()&&gardenPrepared?worldPosition.offset(0,-3,1):worldPosition.offset(0,0,ColonyRules.radius(stage(),species()==3)+2);
+            role==2&&!giant()&&gardenPrepared?worldPosition.offset(0,-3,1):worldPosition.offset(0,0,ColonyRules.radius(stage(),species()==3)+(role==2&&giant()?5:3));
         if(!loaded(l,spawn))return;
         e.bind(worldPosition,role,interior,giant());e.moveTo(spawn.getX()+.5,spawn.getY(),spawn.getZ()+.5,l.random.nextFloat()*360,0);
         if(!l.noCollision(e))return;
