@@ -36,7 +36,11 @@ final class XrayResourceAuditValidation {
             ResourceEvidence malformed=audit(base,replacements,profiler);
             require(!malformed.strong() && !malformed.clean(),"Malformed PNG is unknown without native decode");
             require(!normal.fingerprint().equals(xray.fingerprint()) && !xray.fingerprint().equals(models.fingerprint()),"Resource content fingerprint distinguishes changes");
-            WayAround.LOGGER.info("[AntiXray] CLIENT RESOURCE FIXTURES PASSED: vanilla, alpha, opaque art, single texture, empty models, unsupported loader, invalid PNG, fingerprints");
+            replacements.clear();
+            replacements.put(ResourceLocation.fromNamespaceAndPath("auditfixture","models/block/empty.json"),"{\"elements\":[]}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            for(String host:HOSTS)replacements.put(id("blockstates/"+host+".json"),"{\"variants\":{\"\":{\"model\":\"auditfixture:block/empty\"}}}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            require(audit(base,replacements,profiler).strong(),"Blockstate redirection to foreign empty model detected");
+            WayAround.LOGGER.info("[AntiXray] CLIENT RESOURCE FIXTURES PASSED: vanilla, alpha, opaque art, single texture, empty models, unsupported loader, invalid PNG, fingerprints, blockstate redirects");
         } catch(Exception exception) { throw new IllegalStateException("AntiXray client resource validation failed",exception); }
     }
     private static ResourceLocation id(String path) { return ResourceLocation.fromNamespaceAndPath("minecraft",path); }

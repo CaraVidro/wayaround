@@ -41,7 +41,7 @@ public final class XrayResourceAudit extends SimplePreparableReloadListener<Reso
         try {
             digest = MessageDigest.getInstance("SHA-256");
             for (int i=0;i<BLOCKS.length;i++) {
-                Observation observation = inspect("minecraft:block/" + BLOCKS[i]);
+                Observation observation = inspectBlock(BLOCKS[i]);
                 if (!observation.known) continue;
                 inspected |= 1 << i;
                 if (i < ResourceEvidence.HOSTS) {
@@ -64,6 +64,32 @@ public final class XrayResourceAudit extends SimplePreparableReloadListener<Reso
 
     private record Observation(boolean known, boolean transparent, boolean hidden) {
         static final Observation UNKNOWN = new Observation(false,false,false);
+    }
+
+    private Observation inspectBlock(String block) {
+        try {
+            byte[] data=read(ResourceLocation.fromNamespaceAndPath("minecraft","blockstates/"+block+".json"),65536);
+            if(data==null)return Observation.UNKNOWN;
+            JsonObject state=JsonParser.parseString(new String(data,StandardCharsets.UTF_8)).getAsJsonObject();
+            Set<String> names=new LinkedHashSet<>();
+            if(state.has("variants"))for(var entry:state.getAsJsonObject("variants").entrySet())collectModels(entry.getValue(),names);
+            if(state.has("multipart"))for(JsonElement part:state.getAsJsonArray("multipart"))collectModels(part.getAsJsonObject().get("apply"),names);
+            if(names.isEmpty() || names.size()>32)return Observation.UNKNOWN;
+            int alpha=0,hidden=0;
+            for(String name:names) {
+                Observation result=inspect(name.contains(":")?name:"minecraft:"+name);
+                if(!result.known)return Observation.UNKNOWN;
+                if(result.transparent)alpha++;
+                if(result.hidden)hidden++;
+            }
+            // Changes must affect most effective variants, not one rare decorative state.
+            return new Observation(true,alpha>=Math.ceil(names.size()*.75),hidden>=Math.ceil(names.size()*.75));
+        } catch(Exception exception) { return Observation.UNKNOWN; }
+    }
+    private static void collectModels(JsonElement value,Set<String> names) {
+        if(value==null || names.size()>32)return;
+        if(value.isJsonArray()) { for(JsonElement entry:value.getAsJsonArray()) { collectModels(entry,names);if(names.size()>32)return; } }
+        else names.add(value.getAsJsonObject().get("model").getAsString());
     }
 
     private Observation inspect(String name) {
@@ -119,6 +145,7 @@ public final class XrayResourceAudit extends SimplePreparableReloadListener<Reso
 
     private JsonObject model(String name) throws IOException {
         if (models.containsKey(name)) return models.get(name);
+        if (models.size()>=256) return null;
         ResourceLocation id=ResourceLocation.parse(name);
         byte[] data=read(ResourceLocation.fromNamespaceAndPath(id.getNamespace(),"models/"+id.getPath()+".json"),65536);
         JsonObject result=data==null?null:JsonParser.parseString(new String(data,StandardCharsets.UTF_8)).getAsJsonObject();
