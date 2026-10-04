@@ -1,0 +1,37 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    },
+    {
+      "item": "wayaround:leaf_fragment"
+    }
+  ],
+  "result": {
+    "id": "minecraft:moss_block",
+    "count": 1
+  }
+}

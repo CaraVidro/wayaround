@@ -30,6 +30,9 @@ public final class WorldgenRegistry {
     public static final Supplier<MapCodec<net.caravidro.wayaround.nexus.world.NexusChunkGenerator>> NEXUS_COMPLEX =
             CHUNK_GENERATORS.register("nexus_complex",()->net.caravidro.wayaround.nexus.world.NexusChunkGenerator.CODEC);
 
+    public static final Supplier<MapCodec<net.caravidro.wayaround.littleleaf.world.ColonyChunkGenerator>> LITTLE_LEAF =
+            CHUNK_GENERATORS.register("little_leaf_colony",()->net.caravidro.wayaround.littleleaf.world.ColonyChunkGenerator.CODEC);
+
     /*
      * =========================================================
      * DENSITY FUNCTIONS

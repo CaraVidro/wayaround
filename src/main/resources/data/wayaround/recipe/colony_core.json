@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "DDD",
+    "DFD",
+    "DDD"
+  ],
+  "key": {
+    "D": {
+      "item": "minecraft:dirt"
+    },
+    "F": {
+      "item": "wayaround:colony_fungus"
+    }
+  },
+  "result": {
+    "id": "wayaround:colony_core",
+    "count": 1
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "wayaround:little_leaf_world",
+  "generator": {
+    "type": "wayaround:little_leaf_colony",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "wayaround:colony_gardens"
+    }
+  }
+}
