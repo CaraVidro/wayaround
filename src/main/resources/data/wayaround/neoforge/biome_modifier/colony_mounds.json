@@ -1,0 +1,6 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": "#wayaround:colony_habitats",
+  "features": "wayaround:colony_mound",
+  "step": "vegetal_decoration"
+}

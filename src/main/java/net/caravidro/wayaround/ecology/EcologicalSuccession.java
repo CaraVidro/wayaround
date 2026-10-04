@@ -163,6 +163,7 @@ public final class EcologicalSuccession {
                  pass < steps;
                  pass++) {
                 net.caravidro.wayaround.nature.AppleTreeBlockEntity.debugPulse(level,80);
+                net.caravidro.wayaround.littleleaf.ColonyCoreBlockEntity.debugPulse(level,80);
                 mutateAroundPlayers(
                         level
                 );

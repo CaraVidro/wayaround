@@ -78,6 +78,7 @@ public class WayAround {
         Area001Content.register(modEventBus);
         EcologyContent.register(modEventBus);
         net.caravidro.wayaround.nature.NatureContent.register(modEventBus);
+        net.caravidro.wayaround.littleleaf.LittleLeafContent.register(modEventBus);
         IndustrialContent.register(modEventBus);
         WarContent.register(modEventBus);
         MediaContent.register(modEventBus);
@@ -165,6 +166,7 @@ public class WayAround {
         JusticeSenseManager.clearTransient();
         EnhancedFireVisuals.clearAll();
         KrakenManager.clearAll();
+        net.caravidro.wayaround.littleleaf.ColonyCoreBlockEntity.clear();
         DeferredMiningManager.clearAll();
         net.caravidro.wayaround.interaction.StructuralCollapseManager.clearAll();
         net.caravidro.wayaround.media.MediaTransferServer.clearAll();

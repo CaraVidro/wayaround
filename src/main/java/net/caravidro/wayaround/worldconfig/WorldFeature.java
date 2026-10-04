@@ -163,6 +163,12 @@ public enum WorldFeature {
             WorldFeatureCategory.SYSTEMS,
             "Cinematics",
             "Way Around camera locks, procedural cutscenes and cinematic poses."
+    ),
+
+    LITTLE_LEAF_WORLD(
+            WorldFeatureCategory.WORLD,
+            "Little Leaf World",
+            "Ants, termites, fungus gardens and growing colonies."
     );
 
     private final WorldFeatureCategory category;

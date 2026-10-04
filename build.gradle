@@ -390,6 +390,12 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_nature'
         }
 
+        littleLeafValidationServer {
+            server()
+            programArgument '--nogui'
+            systemProperty 'wayaround.validateLittleLeaf', 'true'
+        }
+
         nexusValidationServer {
             server()
             programArgument '--nogui'

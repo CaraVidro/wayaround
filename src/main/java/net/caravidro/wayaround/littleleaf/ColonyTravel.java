@@ -1,0 +1,63 @@
+package net.caravidro.wayaround.littleleaf;
+
+import java.util.Set;
+import net.caravidro.wayaround.WayAround;
+import net.minecraft.core.*;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.*;
+import net.minecraft.server.level.*;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+
+@EventBusSubscriber(modid=WayAround.MODID)
+public final class ColonyTravel {
+    public static final ResourceKey<Level> DIMENSION=ResourceKey.create(Registries.DIMENSION,ResourceLocation.fromNamespaceAndPath(WayAround.MODID,"little_leaf_world"));
+    private static final String VISIT="WayAroundColonyVisit",COOLDOWN="WayAroundColonyTravelCooldown";
+    public static void enter(ServerPlayer player,ColonyCoreBlockEntity core){
+        if(player.isPassenger()||player.getScale()>.2||player.level().dimension().equals(DIMENSION)||cooldown(player))return;
+        var inside=player.server.getLevel(DIMENSION);if(inside==null)return;
+        var link=ColonyTransitData.get(player.server).activate(player.level().dimension(),core.getBlockPos());
+        prepare(inside,link,core.species(),core.stage());
+        var t=new CompoundTag();t.putString("Dimension",player.level().dimension().location().toString());t.putLong("Source",core.getBlockPos().asLong());t.putDouble("BaseScale",player.getAttribute(Attributes.SCALE).getBaseValue());
+        player.getPersistentData().put(VISIT,t);player.getAttribute(Attributes.SCALE).removeModifier(InversionEffect.SIZE);player.getAttribute(Attributes.SCALE).setBaseValue(1);player.refreshDimensions();
+        teleport(player,inside,link.arrival());
+    }
+    public static void prepare(ServerLevel inside,ColonyTransitData.Link link,int species,int stage){
+        inside.getChunkAt(link.arrival());inside.getChunkAt(link.core());
+        if(!(inside.getBlockEntity(link.core()) instanceof ColonyCoreBlockEntity)){
+            inside.setBlock(link.core(),LittleLeafContent.COLONY_CORE.get().defaultBlockState(),18);
+            if(inside.getBlockEntity(link.core()) instanceof ColonyCoreBlockEntity c)c.makeInterior(species,stage);
+        }
+    }
+    public static void leave(ServerPlayer player){
+        if(!player.level().dimension().equals(DIMENSION)||cooldown(player))return;var t=player.getPersistentData().getCompound(VISIT);
+        var id=ResourceLocation.tryParse(t.getString("Dimension"));if(id==null)return;var source=player.server.getLevel(ResourceKey.create(Registries.DIMENSION,id));if(source==null)return;
+        var home=BlockPos.of(t.getLong("Source"));source.getChunkAt(home);
+        var destination=safeReturn(source,home);
+        player.getAttribute(Attributes.SCALE).setBaseValue(Math.max(.0625,Math.min(16,t.getDouble("BaseScale"))));InversionEffect.miniature(player);
+        player.getPersistentData().remove(VISIT);teleport(player,source,destination);
+    }
+    public static BlockPos safeReturn(ServerLevel l,BlockPos p){
+        // Only the explicitly requested return neighborhood; no unbounded height/biome search.
+        for(int r=1;r<=4;r++)for(int x=-r;x<=r;x++)for(int z=-r;z<=r;z++){
+            if(Math.max(Math.abs(x),Math.abs(z))!=r)continue;var q=p.offset(x,0,z);
+            if(ColonyCoreBlockEntity.loaded(l,q)&&l.getBlockState(q).getCollisionShape(l,q).isEmpty()&&l.getFluidState(q).isEmpty()&&!l.getBlockState(q.below()).getCollisionShape(l,q.below()).isEmpty())return q;
+        }
+        // Destroyed or sealed entrances still have a tiny escape pocket, keeping the saved visit usable.
+        var q=p.above(16);l.setBlock(q.below(),Blocks.DIRT.defaultBlockState(),18);l.setBlock(q,Blocks.AIR.defaultBlockState(),18);return q;
+    }
+    private static boolean cooldown(ServerPlayer p){return p.server.overworld().getGameTime()<p.getPersistentData().getLong(COOLDOWN);}
+    private static void teleport(ServerPlayer p,ServerLevel l,BlockPos q){p.getPersistentData().putLong(COOLDOWN,p.server.overworld().getGameTime()+40);p.teleportTo(l,q.getX()+.5,q.getY(),q.getZ()+.5,Set.of(),p.getYRot(),p.getXRot());}
+    @SubscribeEvent public static void clone(PlayerEvent.Clone e){if(e.getOriginal().getPersistentData().contains(VISIT))e.getEntity().getPersistentData().put(VISIT,e.getOriginal().getPersistentData().getCompound(VISIT).copy());}
+    @SubscribeEvent public static void respawn(PlayerEvent.PlayerRespawnEvent e){
+        if(!(e.getEntity() instanceof ServerPlayer p)||!p.getPersistentData().contains(VISIT))return;
+        var t=p.getPersistentData().getCompound(VISIT);var id=ResourceLocation.tryParse(t.getString("Dimension"));var l=p.server.getLevel(DIMENSION);if(id==null||l==null)return;
+        var link=ColonyTransitData.get(p.server).find(ResourceKey.create(Registries.DIMENSION,id),BlockPos.of(t.getLong("Source")));if(link==null)return;
+        p.getAttribute(Attributes.SCALE).removeModifier(InversionEffect.SIZE);p.getAttribute(Attributes.SCALE).setBaseValue(1);prepare(l,link,0,0);teleport(p,l,link.arrival());
+    }
+}
