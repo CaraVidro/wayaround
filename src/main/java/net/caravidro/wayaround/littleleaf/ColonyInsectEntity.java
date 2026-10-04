@@ -78,7 +78,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 var threat=l.getEntitiesOfClass(Player.class,getBoundingBox().inflate(inside?24:12),p->p.isAlive()&&!p.isCreative()&&!p.isSpectator()&&c.hostile(p));if(!threat.isEmpty()){setTarget(threat.get(0));return;}
             }
             if(invading&&c!=null&&!c.abandoned()){
-                var queen=c.queen(l);if(queen!=null){setTarget(queen);return;}
+                var queen=c.queen(l);if(queen!=null){if(distanceToSqr(queen)<12*12){setTarget(queen);return;}route.follow(ColonyInsectEntity.this,queen.blockPosition());return;}
                 if(tickCount%40==0)c.birth(l);
                 destination=home.offset(64,0,4);route.follow(ColonyInsectEntity.this,destination);return;
             }

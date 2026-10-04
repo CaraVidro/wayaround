@@ -19,9 +19,9 @@ public final class ColonySurfaceRoute {
    var n=open.remove();if(n.cost>cost.getOrDefault(n.pos,Double.MAX_VALUE))continue;
    if(++visited>384){failed=true;open.clear();break;}
    var box=e.getBoundingBox().move(n.pos.getX()+.5-e.getX(),n.pos.getY()-e.getY(),n.pos.getZ()+.5-e.getZ());
-   if(box.inflate(e.enlarged()?.75:.62,e.enlarged()?.75:1.1,e.enlarged()?.75:.62).intersects(new AABB(goal))){var route=new ArrayList<BlockPos>();for(var p=n.pos;p!=null;p=parent.get(p))route.add(p);Collections.reverse(route);path=route;at=0;break;}
+   if(box.inflate(e.enlarged()?.75:.62,e.enlarged()?.75:1.1,e.enlarged()?.75:.62).intersects(new AABB(goal))&&(!e.carryingMaterial()||!box.intersects(new AABB(goal)))){var route=new ArrayList<BlockPos>();for(var p=n.pos;p!=null;p=parent.get(p))route.add(p);Collections.reverse(route);path=route;at=0;break;}
    for(var d:Direction.values()){
-    var p=n.pos.relative(d);if(Math.abs(p.getX()-goal.getX())>32||Math.abs(p.getZ()-goal.getZ())>32||Math.abs(p.getY()-goal.getY())>40||!valid(l,e,p))continue;
+    var p=n.pos.relative(d);if(Math.abs(p.getX()-goal.getX())>(e.inside()?96:32)||Math.abs(p.getZ()-goal.getZ())>(e.inside()?96:32)||Math.abs(p.getY()-goal.getY())>40||!valid(l,e,p))continue;
     double next=n.cost+(d.getAxis()==Direction.Axis.Y?1.2:1);if(next>=cost.getOrDefault(p,Double.MAX_VALUE))continue;
     cost.put(p,next);parent.put(p,n.pos);open.add(new Node(p,next,next+heuristic(p)));
    }
