@@ -3,6 +3,7 @@ package net.caravidro.wayaround.worldgen.weather.fire;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.mixin.FireBlockAccessor;
@@ -604,7 +605,7 @@ public final class EnhancedFireVisuals {
     private static boolean vanillaCanBurn(
             net.minecraft.world.level.block.state.BlockState state
     ) {
-        return ((FireBlockAccessor) (Object) Blocks.FIRE)
+        return state.is(Blocks.GRASS_BLOCK) || state.getBlock() instanceof net.caravidro.wayaround.ecology.TreeWoodSegmentBlock || state.getBlock() instanceof net.caravidro.wayaround.ecology.EcologyPlantBlock || ((FireBlockAccessor) (Object) Blocks.FIRE)
                 .wayaround$canBurn(
                         state
                 );
@@ -927,8 +928,20 @@ public final class EnhancedFireVisuals {
                 var entry=nearest.get(i);var p=entry.getKey().pos();var fire=entry.getValue();
                 flames.add(new net.caravidro.wayaround.network.FireFrameS2CPayload.Flame(p.asLong(),(float)(fire.x-p.getX()),(float)(fire.y-p.getY()),(float)(fire.z-p.getZ()),fire.size));
             }
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,new net.caravidro.wayaround.network.FireFrameS2CPayload(flames));
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,new net.caravidro.wayaround.network.FireFrameS2CPayload(flames,farBlazes(level,player)));
         }
+    }
+
+    private static List<net.caravidro.wayaround.network.FireFrameS2CPayload.Blaze> farBlazes(ServerLevel level,ServerPlayer player){
+        var points=new ArrayList<FireClusterLod.Point>();
+        for(var e:ACTIVE.entrySet()){
+            if(!e.getKey().dimension().equals(level.dimension()))continue;var p=e.getKey().pos();double d=player.distanceToSqr(p.getX()+.5,p.getY()+.5,p.getZ()+.5);
+            if(d>384*384||!ready(level,p))continue;
+            points.add(new FireClusterLod.Point(p.getX(),p.getY(),p.getZ()));
+        }
+        var result=new ArrayList<net.caravidro.wayaround.network.FireFrameS2CPayload.Blaze>();
+        for(var p:FireClusterLod.build(points,player.getX(),player.getY(),player.getZ()))result.add(new net.caravidro.wayaround.network.FireFrameS2CPayload.Blaze(BlockPos.asLong(p.x(),p.y(),p.z()),p.width(),p.depth(),p.height()));
+        return result;
     }
 
     public static void clearAll() {

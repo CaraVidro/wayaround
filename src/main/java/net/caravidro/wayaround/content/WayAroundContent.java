@@ -47,6 +47,8 @@ public final class WayAroundContent {
                     WayAround.MODID
             );
 
+    public static final DeferredItem<net.caravidro.wayaround.observation.EntitySpectateItem> ENTITY_SPECTATE=ITEMS.register("entity_spectate",()->new net.caravidro.wayaround.observation.EntitySpectateItem(new Item.Properties().stacksTo(1)));
+
     /*
      * =========================================================
      * BLOCO

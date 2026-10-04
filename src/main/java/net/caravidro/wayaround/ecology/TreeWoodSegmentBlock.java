@@ -289,4 +289,6 @@ public final class TreeWoodSegmentBlock extends Block {
                 ROOT
         );
     }
+    @Override public int getFlammability(BlockState state, BlockGetter level, BlockPos pos, net.minecraft.core.Direction face){return state.getFluidState().isEmpty()?20:0;}
+    @Override public int getFireSpreadSpeed(BlockState state, BlockGetter level, BlockPos pos, net.minecraft.core.Direction face){return state.getFluidState().isEmpty()?5:0;}
 }

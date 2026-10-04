@@ -21,7 +21,10 @@
     "FireAnimateTickMixin",
     "FireBlockAccessor",
     "PlayerStepSoundMixin",
-    "ContinentalNoiseAccessor"
+    "ContinentalNoiseAccessor",
+    "EcologyHookAccessor",
+    "EntitySpectatePlayerMixin",
+    "EntitySpectateEffectsMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",
@@ -54,7 +57,9 @@
     "client.DaysBreakLightMixin",
     "client.RegionLightTextureMixin",
     "client.RegionFogMixin",
-    "client.NexusDimensionSkyMixin"
+    "client.NexusDimensionSkyMixin",
+    "client.EntitySpectateCameraMixin",
+    "client.EntitySpectatePlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

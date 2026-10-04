@@ -140,6 +140,7 @@ public final class FishCarcassEntity extends PathfinderMob {
         setDeltaMovement(Vec3.ZERO);
     }
 
+    public void restoreBody(CompoundTag data){if(data.contains("MeatLeft"))entityData.set(MEAT_LEFT,Math.max(0,Math.min(profile().meatUnits(bodyScale()),data.getInt("MeatLeft"))));}
     public FishProcessingProfile profile() {
         return FishProcessingProfile.byNetworkId(
                 entityData.get(PROFILE)
@@ -363,6 +364,8 @@ public final class FishCarcassEntity extends PathfinderMob {
                         )
                 );
 
+        var body=new CompoundTag();body.putFloat("BodyScale",bodyScale());body.putInt("MeatLeft",meatLeft());body.putBoolean("Cooked",isCooked());body.putBoolean("Large",isLargeCarcass());
+        whole.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.of(body));
         if (isLargeCarcass()) {
             player.setItemInHand(
                     InteractionHand.MAIN_HAND,

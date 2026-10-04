@@ -1414,6 +1414,9 @@ public final class EcologyContent {
                                         output.accept(
                                                 SARDINE_SPAWN_EGG.get()
                                         );
+                                        FishRemainsItems.WHOLE.values().forEach(output::accept);
+                                        FishRemainsItems.RAW.values().forEach(output::accept);
+                                        FishRemainsItems.COOKED.values().forEach(output::accept);
                                         output.accept(
                                                 SUNFISH_SPAWN_EGG.get()
                                         );
@@ -1605,6 +1608,7 @@ public final class EcologyContent {
     public static void register(IEventBus bus) {
         bus.addListener(EcologyContent::extendSkullBlocks);
         RegionalFishSpecies.bootstrap();
+        FishRemainsItems.bootstrap();
         ENTITIES.register(bus);
         BLOCKS.register(bus);
         ITEMS.register(bus);
