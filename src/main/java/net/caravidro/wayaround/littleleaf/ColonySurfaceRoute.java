@@ -28,7 +28,7 @@ public final class ColonySurfaceRoute {
   }
   if(path.isEmpty()){if(open.isEmpty())failed=true;return;}
   while(at<path.size()){
-   var p=path.get(at);boolean vertical=(at>0&&path.get(at-1).getY()!=p.getY())||(at+1<path.size()&&path.get(at+1).getY()!=p.getY());Vec3 point=waypoint(l,e,p,vertical);double tolerance=e.enlarged()?.45:.14;
+   var p=path.get(at);boolean vertical=(at>0&&path.get(at-1).getY()!=p.getY())||(at+1<path.size()&&path.get(at+1).getY()!=p.getY());Vec3 point=waypoint(l,e,p,vertical);double tolerance=e.enlarged()?.06:.14;
    if(e.position().distanceToSqr(point)<tolerance*tolerance){at++;continue;}
    var delta=point.subtract(e.position());boolean up=Math.abs(delta.y)>.15;
    double speed=e.enlarged()?.13:.045;Vec3 horizontal=new Vec3(delta.x,0,delta.z);if(horizontal.length()>speed)horizontal=horizontal.normalize().scale(speed);
