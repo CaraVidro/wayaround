@@ -67,7 +67,7 @@ public final class LittleLeafBehaviorGameTests {
         }
         h.succeedWhen(()->{c.birth(l);var q=c.queen(l);h.assertTrue(q!=null,"A queen is born at the entrance");h.assertTrue(q.getY()==p.getY()+1&&l.noCollision(q)&&l.getBlockState(q.blockPosition().below()).isFaceSturdy(l,q.blockPosition().below(),Direction.UP),"Birth has a solid floor and clear body above the core");});
     }
-    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=220)
+    @GameTest(template="assembly_test",batch="colony_combat",timeoutTicks=220)
     public static void rivalSpeciesActuallyFight(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
         var black=LittleLeafContent.BLACK_ANT.get().create(l);var red=LittleLeafContent.RED_ANT.get().create(l);

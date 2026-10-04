@@ -123,7 +123,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         if(interior)return worldPosition.offset(28,0,4);
         if(food!=null&&availableFood(l,food))return food;
         food=null;
-        for(int i=0;i<48&&ColonyBudget.search(l);i++){
+        for(int i=0;i<12&&ColonyBudget.search(l);i++){
             var offset=FOOD_COLUMNS.get(foodColumn);var column=worldPosition.offset(offset);
             if(!loaded(l,column)){nextFoodColumn();continue;}
             if(foodY==Integer.MIN_VALUE){foodY=Math.min(worldPosition.getY()+32,l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,column.getX(),column.getZ())-1);continue;}
@@ -136,9 +136,10 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     /** Near-ground forage gives a blocked canopy a real, reachable alternative. */
     public BlockPos food(ServerLevel l,ColonyInsectEntity insect){
+        if(food!=null&&availableFood(l,food))return food;
         var origin=insect.blockPosition();
-        for(int n=0;n<12&&ColonyBudget.search(l);n++){
-            int ring=n/4+1;var d=Direction.from2DDataValue((n+insect.getId())%4);var q=origin.relative(d,ring);
+        for(int n=0;n<4&&ColonyBudget.search(l);n++){
+            int phase=(insect.tickCount/20)%3;int ring=phase+1;var d=Direction.from2DDataValue((n+insect.getId())%4);var q=origin.relative(d,ring);
             for(int y=0;y>=-1;y--){var p=q.offset(0,y,0);if(availableFood(l,p))return p;}
         }
         return food(l);
