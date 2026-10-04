@@ -153,7 +153,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     public boolean wetWeather(ServerLevel l){return !interior&&(l.isRaining()||net.caravidro.wayaround.industrial.ship.ShipWind.sample(l,Vec3.atCenterOf(worldPosition)).length()>.036||net.caravidro.wayaround.worldgen.weather.local.WindTestManager.strengthAt(worldPosition.getX(),worldPosition.getZ(),l.getGameTime())>.6)&&l.canSeeSky(worldPosition.above(Math.max(16,ColonyRules.height(stage(),species()==3)+2)));}
     public BlockPos gardenEntry(){return worldPosition.offset(0,-3,1);}
-    public BlockPos gardenExit(){return worldPosition.offset(0,0,1);}
+    public BlockPos gardenExit(){return worldPosition.offset(0,0,2);}
     /** Workers use an existing passage; tiny traffic never excavates surrounding soil. */
     public boolean openEntrance(ServerLevel l){
         for(int y=-3;y<=0;y++){
@@ -197,7 +197,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     }
     public boolean mature(ServerLevel l,ColonyInsectEntity child){
         if(queenDead||!child.larva()||child.feeds()<3||l.getGameTime()-child.born()<400)return false;var previous=child.position();
-        child.grow();if(!placeAtEntrance(l,child,interior?nursery():worldPosition.above())){child.makeLarva();child.setPos(previous);return false;}
+        child.grow();if(!placeAtEntrance(l,child,interior?nursery():giant()?worldPosition.above():gardenExit())){child.makeLarva();child.setPos(previous);return false;}
         ColonyEffects.work(l,child.blockPosition(),Blocks.ROOTED_DIRT.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_READY,.15F);return true;
     }
     public boolean bury(ServerLevel l,ColonyInsectEntity worker){

@@ -60,7 +60,27 @@ public final class ColonyInsectEntity extends PathfinderMob {
     @Override protected void defineSynchedData(SynchedEntityData.Builder b){super.defineSynchedData(b);b.define(CASTE,0);b.define(CARRY,false);b.define(CLIMB,false);b.define(MATERIAL,Optional.empty());b.define(LIFE,0);b.define(JOB,0);}
     @Override protected PathNavigation createNavigation(Level l){return new WallClimberNavigation(this,l);}
     @Override public boolean onClimbable(){return !yielding()&&entityData.get(CLIMB);}
-    @Override protected void registerGoals(){goalSelector.addGoal(0,new FloatGoal(this){@Override public boolean canUse(){return enlarged()&&super.canUse();}});goalSelector.addGoal(1,new MeleeAttackGoal(this,1.2,false));workerGoal=new ColonyGoal();goalSelector.addGoal(3,workerGoal);}
+    @Override protected void registerGoals(){
+        goalSelector.addGoal(0,new FloatGoal(this){@Override public boolean canUse(){return enlarged()&&super.canUse();}});
+        goalSelector.addGoal(1,new MeleeAttackGoal(this,1.2,false){
+            @Override public void tick(){
+                super.tick();
+                var target=getTarget();
+                // Vanilla navigation stops within a block of the target. An
+                // ant's scaled melee reach is much smaller, so close that last
+                // gap against the actual body rather than its integer block.
+                if(enlarged()||target==null||!target.isAlive()||distanceToSqr(target)>2.5*2.5||Math.abs(target.getY()-getY())>.3)return;
+                var delta=target.position().subtract(position());
+                var flat=new Vec3(delta.x,0,delta.z);
+                if(flat.lengthSqr()<.0025)return;
+                var step=flat.normalize().scale(Math.min(.045,flat.length()));
+                if(!level().noCollision(ColonyInsectEntity.this,getBoundingBox().move(step)))return;
+                getNavigation().stop();setDeltaMovement(step.x,getDeltaMovement().y,step.z);
+                setYRot((float)(Math.atan2(-step.x,step.z)*180/Math.PI));
+            }
+        });
+        workerGoal=new ColonyGoal();goalSelector.addGoal(3,workerGoal);
+    }
     @Override public void aiStep(){
         if(!level().isClientSide&&activeAdult()&&caste()!=2){var c=colony();if(c!=null&&c.wetWeather((ServerLevel)level()))setTarget(null);}
         super.aiStep();if(!level().isClientSide){

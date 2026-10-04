@@ -29,7 +29,10 @@ import net.neoforged.neoforge.gametest.*;
         return z;
     }
     private static ServerPlayer player(GameTestHelper h) {
-        var p=h.makeMockServerPlayerInLevel();
+        // Build a physical test player without a fake login/unsupported mod handshake.
+        var p=new ServerPlayer(h.getLevel().getServer(),h.getLevel(),
+                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(),"[OutpostTest]"),
+                net.minecraft.server.level.ClientInformation.createDefault());
         var c=new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND);
         new io.netty.channel.embedded.EmbeddedChannel(c);
         p.connection=new net.minecraft.server.network.ServerGamePacketListenerImpl(h.getLevel().getServer(),c,p,net.minecraft.server.network.CommonListenerCookie.createInitial(p.getGameProfile(),false)) {
@@ -40,6 +43,7 @@ import net.neoforged.neoforge.gametest.*;
         }
         ;
         p.setGameMode(GameType.SURVIVAL);
+        h.getLevel().addNewPlayer(p);
         return p;
     }
     @GameTest(template="assembly_test",batch="outpost",timeoutTicks=100)     public static void contactMinePhysicallyExplodesOnTouch(GameTestHelper h) {

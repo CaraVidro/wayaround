@@ -44,7 +44,7 @@ public final class LittleLeafBehaviorGameTests {
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=180)
     public static void aWorkerActuallyEntersAndReturnsFromTheGarden(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.carry(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+1.5,0,0);l.addFreshEntity(ant);
-        h.succeedWhen(()->h.assertTrue(c.work()>=1&&!ant.carrying()&&ant.getY()>=p.getY(),"Worker entered the physical chamber, delivered once and emerged"));
+        h.succeedWhen(()->h.assertTrue(c.work()>=1&&!ant.carrying()&&ant.getY()>=p.getY(),"Worker entered the physical chamber, delivered once and emerged: "+ant.position()+", "+ant.workStatus()));
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1000)
     public static void workerFindsCutsAndReturnsALeafWithoutManualLoad(GameTestHelper h){forageCycle(h,false);}
@@ -73,7 +73,7 @@ public final class LittleLeafBehaviorGameTests {
         var black=LittleLeafContent.BLACK_ANT.get().create(l);var red=LittleLeafContent.RED_ANT.get().create(l);
         black.bind(p,1,false,false);red.bind(p,1,false,false);
         black.moveTo(p.getX()+.5,p.getY(),p.getZ()+3.5,0,0);red.moveTo(p.getX()+.9,p.getY(),p.getZ()+3.5,0,0);l.addFreshEntity(black);l.addFreshEntity(red);
-        h.succeedWhen(()->h.assertTrue(black.getHealth()<black.getMaxHealth()||red.getHealth()<red.getMaxHealth(),"Nearby rival species discover each other and deal actual melee damage"));
+        h.succeedWhen(()->h.assertTrue(black.getHealth()<black.getMaxHealth()||red.getHealth()<red.getMaxHealth(),"Nearby rival species discover each other and deal actual melee damage: black="+black.position()+", "+black.workStatus()+", red="+red.position()+", "+red.workStatus()));
     }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
     public static void sameSpeciesRemainFriendly(GameTestHelper h){
