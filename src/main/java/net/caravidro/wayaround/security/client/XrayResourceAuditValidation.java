@@ -26,10 +26,10 @@ final class XrayResourceAuditValidation {
             require(audit(base,replacements,profiler).clean(),"Opaque artistic replacements are allowed");
             replacements.clear();replacements.put(id("textures/block/stone.png"),clear);
             require(!audit(base,replacements,profiler).strong(),"One transparent texture cannot convict");
-            replacements.clear();for(String host:HOSTS)replacements.put(id("models/block/"+host+".json"),"{\"elements\":[]}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            replacements.clear();replaceHostVariants(base,replacements,"{\"elements\":[]}");
             ResourceEvidence models=audit(base,replacements,profiler);
-            require(models.strong() && Integer.bitCount(models.hiddenModels())==8,"Model-only x-ray detected");
-            replacements.clear();for(String host:HOSTS)replacements.put(id("models/block/"+host+".json"),"{\"loader\":\"other:custom\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            require(models.strong() && Integer.bitCount(models.hiddenModels())==8,"Model-only x-ray detected: "+models.summary());
+            replacements.clear();replaceHostVariants(base,replacements,"{\"loader\":\"other:custom\"}");
             ResourceEvidence unsupported=audit(base,replacements,profiler);
             require(!unsupported.strong() && !unsupported.clean(),"Unsupported model loader is unknown, never proof");
             replacements.clear();for(String host:HOSTS)replacements.put(id("textures/block/"+host+".png"),new byte[40]);
@@ -44,6 +44,23 @@ final class XrayResourceAuditValidation {
         } catch(Exception exception) { throw new IllegalStateException("AntiXray client resource validation failed",exception); }
     }
     private static ResourceLocation id(String path) { return ResourceLocation.fromNamespaceAndPath("minecraft",path); }
+    private static void replaceHostVariants(ResourceManager base,Map<ResourceLocation,byte[]> replacements,String model) throws IOException {
+        byte[] bytes=model.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        for(String host:HOSTS) {
+            com.google.gson.JsonObject state;
+            try(Reader reader=base.getResource(id("blockstates/"+host+".json")).orElseThrow().openAsReader()) {
+                state=com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+            }
+            for(var variant:state.getAsJsonObject("variants").entrySet()) {
+                var value=variant.getValue();
+                List<com.google.gson.JsonElement> models=value.isJsonArray()?value.getAsJsonArray().asList():List.of(value);
+                for(var entry:models) {
+                    ResourceLocation target=ResourceLocation.parse(entry.getAsJsonObject().get("model").getAsString());
+                    replacements.put(ResourceLocation.fromNamespaceAndPath(target.getNamespace(),"models/"+target.getPath()+".json"),bytes);
+                }
+            }
+        }
+    }
     private static ResourceEvidence audit(ResourceManager base,Map<ResourceLocation,byte[]> overrides,ProfilerFiller profiler) {
         ResourceManager manager=(ResourceManager)Proxy.newProxyInstance(ResourceManager.class.getClassLoader(),new Class<?>[]{ResourceManager.class},(proxy,method,args)-> {
             if(method.getName().equals("getResource") && args!=null && overrides.containsKey(args[0])) {
