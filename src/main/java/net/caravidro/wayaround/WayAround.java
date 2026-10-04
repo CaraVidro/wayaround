@@ -96,6 +96,8 @@ public class WayAround {
          */
         net.neoforged.fml.ModLoadingContext.get().getActiveContainer().registerConfig(
                 net.neoforged.fml.config.ModConfig.Type.COMMON, net.caravidro.wayaround.dream.DreamConfig.SPEC);
+        net.neoforged.fml.ModLoadingContext.get().getActiveContainer().registerConfig(
+                net.neoforged.fml.config.ModConfig.Type.COMMON, net.caravidro.wayaround.security.AntiXrayConfig.SPEC, "wayaround-antixray.toml");
         WorldgenRegistry.register(modEventBus);
         WayAroundFeatures.register(modEventBus);
         WayAroundSounds.register(modEventBus);
