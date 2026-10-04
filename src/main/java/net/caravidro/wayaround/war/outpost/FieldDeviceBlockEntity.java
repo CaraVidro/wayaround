@@ -90,8 +90,8 @@ public final class FieldDeviceBlockEntity extends BlockEntity {
         if(!d.enabled())return;
         if(d.victim!=null){var e=s.getEntity(d.victim);if(e instanceof LivingEntity living&&disturbed(living,d.trigger,d.slot,d.held,d.offhand))d.explode(3.5F);}
         if(d.kind()==FieldDeviceBlock.Kind.ALARM&&l.getGameTime()%5==Math.floorMod(pos.asLong(),5)&&OutpostBudget.sensor(s)){
-            Vec3 dir=Vec3.atLowerCornerOf(state.getValue(FieldDeviceBlock.FACING).getNormal());Vec3 from=Vec3.atCenterOf(pos).add(dir.scale(.55));Vec3 end=from.add(dir.scale(8));
-            var clip=l.clip(new ClipContext(from,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,null));end=clip.getLocation();var area=new AABB(from,end).inflate(.16,.5,.16);
+            Vec3 dir=Vec3.atLowerCornerOf(state.getValue(FieldDeviceBlock.FACING).getNormal());Vec3 from=Vec3.atCenterOf(pos).add(dir.scale(.55));Vec3 end=from;for(int step=1;step<=8;step++){var next=from.add(dir.scale(step));if(!l.hasChunkAt(BlockPos.containing(next)))break;end=next;}
+            var clip=l.clip(new ClipContext(from,end,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,(Entity)null));end=clip.getLocation();var area=new AABB(from,end).inflate(.16,.5,.16);
             if(!l.getEntitiesOfClass(LivingEntity.class,area,e->e.isAlive()&&!e.isSpectator()&&!e.getUUID().equals(d.owner)&&!net.caravidro.wayaround.observation.EntitySpectate.ghost(e)).isEmpty()){d.alarmUntil=l.getGameTime()+40;d.active(true);if(l.getGameTime()%20==0)d.sound(SoundEvents.NOTE_BLOCK_BELL.value(),1.5F,.6F);d.setChanged();}
             else if(l.getGameTime()>=d.alarmUntil)d.active(false);
             if(state.getValue(FieldDeviceBlock.ACTIVE))s.sendParticles(ParticleTypes.ELECTRIC_SPARK,end.x,end.y,end.z,1,.05,.05,.05,0);

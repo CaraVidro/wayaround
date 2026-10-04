@@ -58,11 +58,12 @@ public final class SimpleDynamicLights {
         if(owner==null||mc.player==null)return;
         if(owner.getGameTime()%8==0){
             var next=new ArrayList<Source>(4);
-            Source player=source(mc.player);if(player!=null)next.add(player);
+            Vec3 viewpoint=mc.gameRenderer.getMainCamera().getPosition();
+            Source player=source(mc.player);if(player!=null&&mc.player.position().distanceToSqr(viewpoint)<24*24)next.add(player);
             int inspected=0;
             for(Entity entity:owner.entitiesForRendering()){
                 if(++inspected>128||next.size()>=4)break;
-                if(entity==mc.player||entity.distanceToSqr(mc.player)>24*24)continue;
+                if(entity==mc.player||entity.position().distanceToSqr(viewpoint)>24*24)continue;
                 Source s=source(entity);if(s!=null)next.add(s);
             }
             List<Source> updated=List.copyOf(next);

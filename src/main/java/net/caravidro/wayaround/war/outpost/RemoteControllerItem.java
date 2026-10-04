@@ -15,6 +15,7 @@ public final class RemoteControllerItem extends Item {
     public static void bindDrone(ItemStack s,OutpostDroneEntity d){var n=new CompoundTag();n.putUUID("Drone",d.getUUID());n.putString("World",d.level().dimension().location().toString());s.set(DataComponents.CUSTOM_DATA,CustomData.of(n));}
     public static void bindCharge(ItemStack s,BlockPos p,Level l){var n=new CompoundTag();n.putLong("Charge",p.asLong());n.putString("World",l.dimension().location().toString());s.set(DataComponents.CUSTOM_DATA,CustomData.of(n));}
     public static boolean holds(Player p){return p.getMainHandItem().is(OutpostContent.CONTROLLER.get())||p.getOffhandItem().is(OutpostContent.CONTROLLER.get());}
+    public static boolean boundTo(Player p,OutpostDroneEntity d){for(var stack:java.util.List.of(p.getMainHandItem(),p.getOffhandItem())){if(!stack.is(OutpostContent.CONTROLLER.get()))continue;var n=data(stack);if(n.hasUUID("Drone")&&n.getUUID("Drone").equals(d.getUUID())&&n.getString("World").equals(d.level().dimension().location().toString()))return true;}return false;}
     @Override public InteractionResult interactLivingEntity(ItemStack stack,Player p,LivingEntity target,InteractionHand hand){return InteractionResult.PASS;}
     @Override public InteractionResultHolder<ItemStack> use(Level l,Player player,InteractionHand hand){
         var stack=player.getItemInHand(hand);if(l.isClientSide)return InteractionResultHolder.success(stack);if(!(player instanceof ServerPlayer p))return InteractionResultHolder.pass(stack);

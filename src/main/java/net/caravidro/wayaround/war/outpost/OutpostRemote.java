@@ -15,9 +15,9 @@ public final class OutpostRemote {
     private static final Map<UUID,Session> SESSIONS=new HashMap<>();
     private static final Map<UUID,Long> INPUTS=new HashMap<>();
     public static boolean active(ServerPlayer p){return SESSIONS.containsKey(p.getUUID());}
-    public static boolean controls(ServerPlayer p,OutpostDroneEntity d){var s=SESSIONS.get(p.getUUID());return s!=null&&s.drone==d&&p.level()==d.level()&&p.distanceToSqr(d)<=96*96&&RemoteControllerItem.holds(p)&&d.owned(p);}
+    public static boolean controls(ServerPlayer p,OutpostDroneEntity d){var s=SESSIONS.get(p.getUUID());return s!=null&&s.drone==d&&p.level()==d.level()&&p.distanceToSqr(d)<=96*96&&RemoteControllerItem.boundTo(p,d)&&d.owned(p);}
     public static boolean controlled(OutpostDroneEntity d){return SESSIONS.values().stream().anyMatch(s->s.drone==d);}
-    public static boolean cameraActive(ServerPlayer p){var s=SESSIONS.get(p.getUUID());return s!=null&&!s.drone.impact()&&controls(p,s.drone);}
+    public static boolean cameraActive(ServerPlayer p){var s=SESSIONS.get(p.getUUID());return s!=null&&!s.drone.impact()&&OutpostDroneEntity.enabled(p.level(),false)&&controls(p,s.drone);}
     public static void start(ServerPlayer p,OutpostDroneEntity d){if(!d.owned(p)||d.launched()||d.battery()<=0||p.isPassenger()||p.isSpectator()||net.caravidro.wayaround.observation.EntitySpectate.holding(p)||!RemoteControllerItem.holds(p)||d.level()!=p.level()||p.distanceToSqr(d)>96*96||!OutpostDroneEntity.enabled(p.level(),d.impact()))return;stop(p);SESSIONS.put(p.getUUID(),new Session(d,p.position(),p.getHealth()));PacketDistributor.sendToPlayer(p,new OutpostViewPayload(d.getId()));}
     public static void stop(ServerPlayer p){if(SESSIONS.remove(p.getUUID())!=null){PacketDistributor.sendToPlayer(p,new OutpostViewPayload(-1));}INPUTS.remove(p.getUUID());}
     public static void input(ServerPlayer p,OutpostControlPayload c){
