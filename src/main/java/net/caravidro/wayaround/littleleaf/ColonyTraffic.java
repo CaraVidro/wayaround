@@ -16,7 +16,7 @@ public final class ColonyTraffic {
             var backwards=delta.normalize().scale(e.enlarged()?-.16:-.025);if(e.climbing()&&delta.y>0)backwards=new Vec3(backwards.x,-.10,backwards.z);
             var retreat=e.position().add(backwards);var floor=net.minecraft.core.BlockPos.containing(retreat).below();
             if(ColonyCoreBlockEntity.loaded(l,floor)&&l.getFluidState(floor).isEmpty()&&!l.getBlockState(floor).getCollisionShape(l,floor).isEmpty()&&l.noCollision(e,e.getBoundingBox().move(backwards)))e.setDeltaMovement(backwards);
-            else e.setDeltaMovement(0,Math.min(0,e.getDeltaMovement().y),0);
+            else e.setDeltaMovement(Vec3.ZERO);
             e.yieldFor(10);return false;
         }return true;
     }

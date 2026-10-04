@@ -29,7 +29,7 @@ public final class LittleLeafBehaviorGameTests {
         var c=setup(h);var l=h.getLevel();var leaf=c.getBlockPos().offset(3,0,0);l.setBlock(leaf,Blocks.OAK_LEAVES.defaultBlockState(),18);
         var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(c.getBlockPos(),0,false,false);ant.moveTo(leaf.getX()+.5,leaf.getY(),leaf.getZ()+.5,0,0);
         c.cut(l,leaf,ant);h.assertTrue(ant.carrying()&&l.getBlockState(leaf).is(Blocks.OAK_LEAVES),"Cut a fragment while retaining canopy support");
-        InversionEffect.invert(ant);long before=c.work();h.assertTrue(c.acceptLoad(ant)&&c.work()==before&&!ant.carrying(),"An enlarged outsider cannot feed the small inner garden");
+        InversionEffect.invert(ant);long before=c.work();int stockBefore=ColonyTransitData.get(l.getServer()).food(c.identity());h.assertTrue(c.acceptLoad(ant)&&c.work()==before&&!ant.carrying(),"An enlarged outsider cannot feed the small inner garden");h.assertTrue(ColonyTransitData.get(l.getServer()).food(c.identity())==stockBefore,"Loads left outside do not silently feed the brood");
         h.assertTrue(l.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new AABB(leaf).inflate(4)).stream().anyMatch(i->i.getItem().is(LittleLeafContent.LEAF_FRAGMENT.get())&&i.getItem().getCount()==4),"Larger real load left outside");
         h.assertTrue(!c.acceptLoad(ant),"The same load cannot be deposited twice");h.succeed();
     }

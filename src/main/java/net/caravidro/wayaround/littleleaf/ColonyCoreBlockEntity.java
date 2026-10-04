@@ -101,7 +101,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
             if(loaded(l,f)&&l.getBlockState(f).is(LittleLeafContent.COLONY_FUNGUS.get()))l.setBlock(f,l.getBlockState(f).setValue(ColonyFungusBlock.RIPE,true),3);
             if(species()==2&&l.random.nextInt(16)==0)insect.spawnAtLocation(LittleLeafContent.HONEYDEW.get());
         }
-        insect.carry(false);ColonyTransitData.get(l.getServer()).feed(identity(),insect.enlarged()?8:1);ColonyEffects.work(l,insect.blockPosition(),Blocks.OAK_LEAVES.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_FILL_SUCCESS,enlargedVolume(insect));return true;
+        insect.carry(false);if(!insect.enlarged()||giant()||interior)ColonyTransitData.get(l.getServer()).feed(identity(),insect.enlarged()?8:1);ColonyEffects.work(l,insect.blockPosition(),Blocks.OAK_LEAVES.defaultBlockState(),net.minecraft.sounds.SoundEvents.COMPOSTER_FILL_SUCCESS,enlargedVolume(insect));return true;
     }
     public void delivered(boolean large){if(queenDead)return;work=Math.min(4096,work+(large?8:1));setChanged();}
     public void remember(UUID id){if(enemies.contains(id))return;if(enemies.size()>=16)enemies.remove(enemies.iterator().next());enemies.add(id);setChanged();}
