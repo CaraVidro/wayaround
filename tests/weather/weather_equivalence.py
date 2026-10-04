@@ -1,5 +1,6 @@
 # Differential check against the pre-optimization field, using registry-free stubs.
-# This checks field math/search equivalence, not actual biome terrain or runtime FPS.
+# This checks field math/search equivalence with the deliberate 176-block altitude lift,
+# not actual biome terrain or runtime FPS.
 from pathlib import Path
 import tempfile,subprocess
 root=Path(__file__).resolve().parents[2]
@@ -32,9 +33,9 @@ public class WeatherDifferential {
  eq(old.cloud(),now.cloud());eq(old.rain(),now.rain());eq(old.warning(),now.warning());eq(old.windX(),now.windX());eq(old.windZ(),now.windZ());
  var a=LegacyWeatherField.nearbyCells(l,x,z,t,range);var b=LocalWeatherField.nearbyCells(l,x,z,t,range);
  if(a.size()!=b.size())throw new AssertionError("cell count");
- for(int j=0;j<a.size();j++){var c=a.get(j);var d=b.get(j);if(c.id()!=d.id()||c.x()!=d.x()||c.z()!=d.z()||c.y()!=d.y()||c.radius()!=d.radius()||c.storm()!=d.storm())throw new AssertionError("cell mismatch");}
+ for(int j=0;j<a.size();j++){var c=a.get(j);var d=b.get(j);if(c.id()!=d.id()||c.x()!=d.x()||c.z()!=d.z()||Math.abs(c.y()+176.0-d.y())>1e-9||d.y()<324.0||c.radius()!=d.radius()||c.storm()!=d.storm())throw new AssertionError("cell mismatch");}
  }
- System.out.println("3000 sample + nearby queries identical; climate adaptations "+oldCalls+" -> "+newCalls);
+ System.out.println("3000 weather queries unchanged; cloud centers raised 176 blocks with floor 324; climate adaptations "+oldCalls+" -> "+newCalls);
  }
 }''')
 files=[str(p) for p in work.rglob('*.java')]
