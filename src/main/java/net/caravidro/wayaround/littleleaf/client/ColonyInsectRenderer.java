@@ -16,7 +16,7 @@ public final class ColonyInsectRenderer extends EntityRenderer<ColonyInsectEntit
     public ColonyInsectRenderer(EntityRendererProvider.Context c){super(c);blocks=c.getBlockRenderDispatcher();shadowRadius=.04F;}
     @Override public ResourceLocation getTextureLocation(ColonyInsectEntity e){return ResourceLocation.withDefaultNamespace("textures/atlas/blocks.png");}
     @Override public void render(ColonyInsectEntity e,float yaw,float partial,PoseStack p,MultiBufferSource b,int light){
-        double size=e.getScale();float age=e.tickCount+partial;boolean termite=e.species()==3;
+        double size=e.getScale();float age=e.corpse()?0:e.tickCount+partial;boolean termite=e.species()==3;
         var shell=(e.species()==1?Blocks.RED_TERRACOTTA:e.species()==2?Blocks.ORANGE_TERRACOTTA:termite?Blocks.SMOOTH_SANDSTONE:Blocks.BLACK_CONCRETE).defaultBlockState();
         var dark=(termite?Blocks.BROWN_TERRACOTTA:Blocks.GRAY_TERRACOTTA).defaultBlockState();
         p.pushPose();p.mulPose(Axis.YP.rotationDegrees(180-yaw));p.scale((float)size,(float)size,(float)size);if(e.corpse()){p.translate(0,.14,0);p.mulPose(Axis.ZP.rotationDegrees(165));}if(e.climbing()&&!e.corpse()){p.translate(0,.2,0);p.mulPose(Axis.XP.rotationDegrees(-75));}

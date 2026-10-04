@@ -58,4 +58,11 @@ public final class ColonySocietyGameTests {
         var c=nest(h);var l=h.getLevel();var p=c.getBlockPos();c.invertColony();var worker=ant(h,c,0,true,ColonyInsectEntity.BUILDER,p.offset(4,0,0));var source=p.offset(9,-1,0);l.setBlock(source,Blocks.DIRT.defaultBlockState(),18);worker.moveTo(source.getX()+.5,source.getY()+1,source.getZ()+.5,0,0);
         boolean old=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);try{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());h.assertTrue(c.excavate(l,source,worker),"Access work extracts an actual source block");worker.moveTo(p.getX()+4.5,p.getY(),p.getZ()+.5,0,0);c.requestAccess(l,worker,p.offset(8,4,0));var site=c.buildSite(l,worker);h.assertTrue(site!=null,"A height objective produces an accessible staircase foundation");worker.moveTo(site.getX()-1.75,site.getY(),site.getZ()+.5,0,0);h.assertTrue(c.placeMaterial(l,site,worker)&&!worker.carryingMaterial()&&l.getBlockState(source).isAir(),"The staircase placement spends the carried terrain block");h.succeed();}finally{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());}
     }
+
+    @GameTest(template="assembly_test",batch="colony_outpost",timeoutTicks=2000)
+    public static void builderConstructsASatelliteFromActualTerrain(GameTestHelper h){
+        var c=nest(h);var l=h.getLevel();var p=c.getBlockPos();for(int x=-14;x<=14;x++)for(int z=-14;z<=14;z++)l.setBlock(p.offset(x,-1,z),Blocks.DIRT.defaultBlockState(),18);c.initialize(l.getGameTime(),24,false);c.invertColony();ColonyTransitData.get(l.getServer()).feed(c.identity(),8);
+        boolean old=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());h.runAtTickTime(1990,()->l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer()));var builder=ant(h,c,0,true,ColonyInsectEntity.BUILDER,p.offset(0,0,8));
+        h.succeedWhen(()->{h.assertTrue(c.connectionCount()>0,"A real builder extracts soil, carries it and molds an attached colony entrance: "+builder.position()+", "+builder.workStatus());h.assertTrue(ColonyTransitData.get(l.getServer()).food(c.identity())==4,"Satellite construction spends four meals");l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());});
+    }
 }

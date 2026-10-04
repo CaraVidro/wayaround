@@ -35,9 +35,9 @@ public final class ColonySurfaceRoute {
    if(e.position().distanceToSqr(point)<tolerance*tolerance){at++;stationary=0;progress=e.position();continue;}
    if(progress==null||e.position().distanceToSqr(progress)>.025*.025){progress=e.position();stationary=0;}else if(++stationary>60){retry(e,p);return;}
    if(!ColonyTraffic.permit(e,point))return;
-   var delta=point.subtract(e.position());boolean up=Math.abs(delta.y)>(e.enlarged()?.15:.015);
+   var delta=point.subtract(e.position());boolean up=Math.abs(delta.y)>.015;
    double speed=e.enlarged()?.13:.045;Vec3 horizontal=new Vec3(delta.x,0,delta.z);if(horizontal.length()>speed)horizontal=horizontal.normalize().scale(speed);
-   double dy=up?Math.clamp(delta.y+(delta.y>0&&!e.enlarged()?.08:0),-.12,e.enlarged()?.12:.20):e.getDeltaMovement().y;
+   double dy=up?Math.clamp(delta.y+(delta.y>0?.08:0),-.12,.20):e.getDeltaMovement().y;
    if(horizontal.lengthSqr()>1e-6)e.setYRot((float)(Math.atan2(-horizontal.x,horizontal.z)*180/Math.PI));
    e.routeClimbing(up);e.getNavigation().stop();e.setDeltaMovement(horizontal.x,dy,horizontal.z);e.getLookControl().setLookAt(point.x,point.y+e.getEyeHeight(),point.z,30,30);return;
   }

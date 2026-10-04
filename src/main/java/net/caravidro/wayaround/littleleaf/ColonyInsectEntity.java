@@ -26,7 +26,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
     public static final int FORAGER=0,BUILDER=1,NURSE=2,UNDERTAKER=3;
     private UUID bodyId,carrier;private int fed,yieldUntil;private long born;private boolean buried,bodyCreated,weatherWaiting;private int fleeUntil;
     public int job(){return entityData.get(JOB);}public void assignJob(int job){entityData.set(JOB,Math.clamp(job,0,3));}
-    public boolean larva(){return entityData.get(LIFE)==1;}public boolean corpse(){return entityData.get(LIFE)==2;}public boolean activeAdult(){return isAlive()&&!larva()&&!corpse();}
+    public boolean larva(){return entityData!=null&&entityData.get(LIFE)==1;}public boolean corpse(){return entityData!=null&&entityData.get(LIFE)==2;}public boolean activeAdult(){return isAlive()&&!larva()&&!corpse();}
     public boolean emergency(){return gardenMode==1||weatherWaiting||tickCount<fleeUntil;}
     public boolean carryingBody(){return bodyId!=null;}public int feeds(){return fed;}public long born(){return born;}
     public void feed(){fed=Math.min(3,fed+1);}
@@ -84,6 +84,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
         if(corpse())return;dropMaterial();var carried=carriedBody();if(carried!=null)carried.releaseBody();clearBody();var c=colony();if(caste()==2&&c!=null)c.queenDied();
         if(!bodyCreated&&!level().isClientSide){bodyCreated=true;var body=LittleLeafContent.type(species()).create(level());if(body!=null){body.bind(home==null?blockPosition():home,caste(),inside,enlarged());body.getAttribute(Attributes.SCALE).setBaseValue(getScale());body.refreshDimensions();body.moveTo(getX(),getY(),getZ(),getYRot(),0);body.makeCorpse();level().addFreshEntity(body);}}super.die(s);
     }
+    @Override public void push(Entity other){if(other instanceof ColonyInsectEntity ally&&ally.species()==species()&&Objects.equals(home,ally.home))return;super.push(other);}
     @Override public boolean isPushable(){return caste()==1&&activeAdult()&&!emergency();}
     @Override public boolean removeWhenFarAway(double d){return false;}
     @Override public boolean shouldRenderAtSqrDistance(double d){return d<(enlarged()?128*128:40*40);}
@@ -101,7 +102,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
         @Override public void tick(){
             if(!(level() instanceof ServerLevel l))return;var c=colony();
             if(c!=null&&c.abandoned()){carry(false);dropMaterial();invading=false;raid=null;}
-            if(tickCount%40==0&&c!=null&&!c.abandoned()){
+            if(tickCount%40==0&&c!=null&&!c.abandoned()&&!c.wetWeather(l)){
                 var threat=l.getEntitiesOfClass(Player.class,getBoundingBox().inflate(inside?24:12),p->p.isAlive()&&!p.isCreative()&&!p.isSpectator()&&c.hostile(p));if(!threat.isEmpty()){setTarget(threat.get(0));return;}
             }
             if(invading&&c!=null&&!c.abandoned()){
@@ -109,7 +110,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 if(tickCount%40==0)c.birth(l);
                 destination=home.offset(64,0,4);route.follow(ColonyInsectEntity.this,destination);return;
             }
-            if(caste()==1&&tickCount%20==0&&raid==null){
+            if(caste()==1&&tickCount%20==0&&raid==null&&(c==null||!c.wetWeather(l))){
                 double range=enlarged()?16:4;var rivals=l.getEntitiesOfClass(LivingEntity.class,getBoundingBox().inflate(range),e->e!=ColonyInsectEntity.this&&e.isAlive()&&(e instanceof net.minecraft.world.entity.monster.Enemy||e instanceof ColonyInsectEntity insect&&insect.activeAdult()&&insect.species()!=species()));
                 LivingEntity closest=null;double distance=range*range;int checked=0;for(var rival:rivals){if(checked++>=64)break;double d=distanceToSqr(rival);if(d<distance&&hasLineOfSight(rival)){closest=rival;distance=d;}}if(closest!=null){setTarget(closest);return;}
             }
@@ -152,7 +153,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                         if(destination==null)return;
                         if(c.excavate(l,destination,ColonyInsectEntity.this)){destination=buildSite;route.reset();wait=15;return;}
                     }
-                    route.follow(ColonyInsectEntity.this,destination);if(route.failed()){c.requestAccess(l,ColonyInsectEntity.this,destination);destination=null;wait=40;route.reset();}return;
+                    route.follow(ColonyInsectEntity.this,destination);if(route.failed()){c.requestAccess(l,ColonyInsectEntity.this,destination);c.releaseWork(ColonyInsectEntity.this);buildSite=null;destination=null;wait=40;route.reset();}return;
                 }
             }
             if(destination==null){
