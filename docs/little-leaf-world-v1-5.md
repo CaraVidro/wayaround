@@ -37,3 +37,16 @@ O modelo possui três segmentos, seis patas articuladas, antenas, mandíbulas e 
 Verificações automatizadas cobrem regras de crescimento e galerias, registro real da dimensão, fungo/saída, isolamento e persistência das rotas, relógio fracionário/carregamento tardio, níveis, memória, castas/cargas e escala/colisão/reversão. Sete GameTests adicionais exercitam colheita sem duplicação, corte e entrega de cargas, poção no núcleo, entrada/saída real de uma operária e hostilidade/morte da rainha, coleta completa por IA e escalada de uma copa elevada. Build e inicialização cliente/servidor são executados em CI. A aparência em jogo, rotas sobre árvores e viagens em multiplayer ainda exigem conferência manual; não há afirmação de FPS medido.
 
 Novos formigueiros naturais aparecem em chunks gerados depois desta versão; chunks existentes não são reescritos.
+
+
+### Species entrances and encounters
+
+Black, red and honey ants and termites have separate craftable colony blocks with distinct surfaces and a visible entrance. Natural mounds and new interior colonies use the species block; the old `colony_core` remains registered for saved worlds and as the crafting ingredient. Each specific core keeps its species when placed and drops its own item.
+
+Exterior births begin above the core. When that location is obstructed, a bounded local search requires a solid supporting face, dry feet and a collision-free body; failed births wait instead of materializing in midair. Workers returning from the fungus chamber use the same supported entrance. Giant inhabitants use a wider local search.
+
+A worker stalled for a second attempts a lateral route. After a sustained stall it searches only its nearby loaded terrain for a supported free position and abandons an unreachable food route without losing a carried fragment.
+
+Workers and defenders periodically detect visible rival species nearby (4 blocks for tiny insects, 16 for giants) and fight with actual melee damage. Queens retaliate when attacked; same-species neighbors remain friendly. Encounters are local, with capped candidate checks and no remote chunk loads.
+
+Four additional GameTests cover species defaults/shared block-entity compatibility, supported births, actual rival damage, friendly same-species neighbors and obstacle-to-delivery behavior (birth/registration share one test). The nature suite now has 40 required tests.

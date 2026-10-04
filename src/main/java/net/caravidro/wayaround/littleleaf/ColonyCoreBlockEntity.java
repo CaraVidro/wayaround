@@ -117,12 +117,23 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         if(own>=ColonyRules.population(stage(),interior)||nearby.size()>=64)return;
         int role=!queenBorn?2:own%4==0?1:0;
         var e=LittleLeafContent.type(species()).create(l);if(e==null)return;
-        var spawn=interior?(role==2?worldPosition.offset(64,0,4):worldPosition.offset(8+(int)(own%3)*3,0,4)):
-            role==2&&!giant()&&gardenPrepared?worldPosition.offset(0,-3,1):worldPosition.offset(0,0,ColonyRules.radius(stage(),species()==3)+(role==2&&giant()?5:3));
-        if(!loaded(l,spawn))return;
-        e.bind(worldPosition,role,interior,giant());e.moveTo(spawn.getX()+.5,spawn.getY(),spawn.getZ()+.5,l.random.nextFloat()*360,0);
-        if(!l.noCollision(e))return;
+        e.bind(worldPosition,role,interior,giant());
+        var preferred=interior?(role==2?worldPosition.offset(64,0,4):worldPosition.offset(8+(int)(own%3)*3,0,4)):worldPosition.above();
+        if(!placeAtEntrance(l,e,preferred))return;
         if(l.addFreshEntity(e)){if(role==2){queenBorn=true;queenId=e.getUUID();}setChanged();}
+    }
+    /** Births require a real supporting surface and a clear body, never an arbitrary air coordinate. */
+    boolean placeAtEntrance(ServerLevel l,ColonyInsectEntity e,BlockPos preferred){
+        int radius=e.enlarged()?6:2;
+        for(int r=0;r<=radius;r++)for(int x=-r;x<=r;x++)for(int z=-r;z<=r;z++){
+            if(Math.max(Math.abs(x),Math.abs(z))!=r)continue;
+            for(int dy=0;dy>=-3;dy--){var q=preferred.offset(x,dy,z);
+                if(!loaded(l,q)||!loaded(l,q.below())||!l.getFluidState(q).isEmpty()||!l.getBlockState(q.below()).isFaceSturdy(l,q.below(),Direction.UP))continue;
+                e.moveTo(q.getX()+.5,q.getY(),q.getZ()+.5,l.random.nextFloat()*360,0);
+                if(l.noCollision(e))return true;
+            }
+        }
+        return false;
     }
     private void prepareGarden(ServerLevel l){
         if(gardenPrepared||!ColonyBudget.reserveBuild(l,38))return;

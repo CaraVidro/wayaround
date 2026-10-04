@@ -42,7 +42,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
         }
     }
     public ColonyCoreBlockEntity colony(){if(home==null||!(level() instanceof ServerLevel l)||!ColonyCoreBlockEntity.loaded(l,home))return null;return l.getBlockEntity(home) instanceof ColonyCoreBlockEntity c?c:null;}
-    @Override public boolean hurt(DamageSource source,float amount){if(source.getEntity() instanceof Player p){var c=colony();if(c!=null)c.remember(p.getUUID());setTarget(p);}return super.hurt(source,amount);}
+    @Override public boolean hurt(DamageSource source,float amount){if(source.getEntity() instanceof ColonyInsectEntity rival&&rival.species()!=species())setTarget(rival);if(source.getEntity() instanceof Player p){var c=colony();if(c!=null)c.remember(p.getUUID());setTarget(p);}return super.hurt(source,amount);}
     @Override public void die(DamageSource s){var c=colony();if(caste()==2&&c!=null)c.queenDied();super.die(s);}
     @Override public boolean removeWhenFarAway(double d){return false;}
     @Override public boolean shouldRenderAtSqrDistance(double d){return d<(enlarged()?128*128:40*40);}
@@ -66,9 +66,16 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 var threat=l.getEntitiesOfClass(Player.class,getBoundingBox().inflate(inside?24:12),p->p.isAlive()&&!p.isCreative()&&!p.isSpectator()&&c.hostile(p));
                 if(!threat.isEmpty()){setTarget(threat.get(0));return;}
             }
+            if(caste()!=2&&tickCount%40==0){
+                double range=enlarged()?16:4;
+                var rivals=l.getEntitiesOfClass(ColonyInsectEntity.class,getBoundingBox().inflate(range),e->e!=ColonyInsectEntity.this&&e.isAlive()&&e.species()!=species());
+                ColonyInsectEntity closest=null;double distance=range*range;int checked=0;
+                for(var rival:rivals){if(checked++>=64)break;double d=distanceToSqr(rival);if(d<distance&&hasLineOfSight(rival)){closest=rival;distance=d;}}
+                if(closest!=null){setTarget(closest);return;}
+            }
             if(caste()==2){getNavigation().stop();return;}
             if(burrowing>0){
-                if(--burrowing==0&&c!=null){c.acceptLoad(ColonyInsectEntity.this);moveTo(home.getX()+.5,home.getY(),home.getZ()+ColonyRules.radius(c.stage(),species()==3)+2.5,getYRot(),0);destination=null;wait=30;}
+                if(--burrowing==0&&c!=null){c.acceptLoad(ColonyInsectEntity.this);c.placeAtEntrance(l,ColonyInsectEntity.this,home.above());destination=null;wait=30;}
                 return;
             }
             if(wait-->0)return;
@@ -96,7 +103,17 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 destination=null;wait=40;return;
             }
             if(previous!=null&&position().distanceToSqr(previous)<.0002)stuck++;else stuck=0;previous=position();
-            if(stuck>80){if(c!=null&&!carrying())c.rejectFood(destination);destination=null;wait=80;getNavigation().stop();return;}
+            if(stuck==20){
+                // Repath around the obstructed face instead of repeatedly pushing into it.
+                for(var side:net.minecraft.core.Direction.Plane.HORIZONTAL){var q=blockPosition().relative(side);
+                    if(!ColonyCoreBlockEntity.loaded(l,q)||!l.getFluidState(q).isEmpty())continue;
+                    var box=getBoundingBox().move(q.getX()+.5-getX(),0,q.getZ()+.5-getZ());
+                    if(l.noCollision(ColonyInsectEntity.this,box)&&l.getBlockState(q.below()).isFaceSturdy(l,q.below(),net.minecraft.core.Direction.UP)){
+                        getNavigation().moveTo(q.getX()+.5,getY(),q.getZ()+.5,1);repath=tickCount+30;break;
+                    }
+                }
+            }
+            if(stuck>80){if(c!=null)c.placeAtEntrance(l,ColonyInsectEntity.this,blockPosition().above());if(c!=null&&!carrying())c.rejectFood(destination);destination=null;wait=80;getNavigation().stop();return;}
             if(tickCount>=repath){getNavigation().moveTo(target.x,target.y,target.z,carrying()?.8:1);repath=tickCount+30;}
             getLookControl().setLookAt(target.x,target.y,target.z,20,20);
         }

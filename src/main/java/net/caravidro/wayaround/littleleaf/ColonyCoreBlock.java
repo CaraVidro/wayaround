@@ -16,7 +16,8 @@ public final class ColonyCoreBlock extends BaseEntityBlock {
     public static final MapCodec<ColonyCoreBlock> CODEC=simpleCodec(ColonyCoreBlock::new);
     public static final IntegerProperty STAGE=IntegerProperty.create("stage",0,4),SPECIES=IntegerProperty.create("species",0,3);
     public static final BooleanProperty GIANT=BooleanProperty.create("giant");
-    public ColonyCoreBlock(Properties p){super(p);registerDefaultState(stateDefinition.any().setValue(STAGE,0).setValue(SPECIES,0).setValue(GIANT,false));}
+    public ColonyCoreBlock(Properties p){this(p,0);}
+    public ColonyCoreBlock(Properties p,int species){super(p);registerDefaultState(stateDefinition.any().setValue(STAGE,0).setValue(SPECIES,species).setValue(GIANT,false));}
     @Override protected MapCodec<? extends BaseEntityBlock> codec(){return CODEC;}
     @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block,BlockState> b){b.add(STAGE,SPECIES,GIANT);}
     @Override protected RenderShape getRenderShape(BlockState s){return RenderShape.MODEL;}

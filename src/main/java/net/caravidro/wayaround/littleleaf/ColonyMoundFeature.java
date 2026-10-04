@@ -25,7 +25,7 @@ public final class ColonyMoundFeature extends Feature<NoneFeatureConfiguration> 
         for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)for(int y=-3;y<=-2;y++)l.setBlock(p.offset(x,y,z),Blocks.AIR.defaultBlockState(),2);
         for(int y=-2;y<=1;y++)l.setBlock(p.offset(0,y,1),Blocks.AIR.defaultBlockState(),2);
         l.setBlock(p.offset(1,-3,0),LittleLeafContent.COLONY_FUNGUS.get().defaultBlockState(),2);
-        l.setBlock(p,LittleLeafContent.COLONY_CORE.get().defaultBlockState().setValue(ColonyCoreBlock.SPECIES,species),2);
+        l.setBlock(p,LittleLeafContent.core(species).defaultBlockState(),2);
         if(l.getBlockEntity(p) instanceof ColonyCoreBlockEntity core)core.initializeMound(l.getLevel().getGameTime(),c.random().nextInt(40),radius,height);
         return true;
     }

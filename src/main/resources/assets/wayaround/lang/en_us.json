@@ -1079,5 +1079,9 @@
   "colony.wayaround.stage.4": "Colony fortress",
   "item.minecraft.potion.effect.inversion": "Potion of Inversion",
   "item.minecraft.splash_potion.effect.inversion": "Splash Potion of Inversion",
-  "item.minecraft.lingering_potion.effect.inversion": "Lingering Potion of Inversion"
+  "item.minecraft.lingering_potion.effect.inversion": "Lingering Potion of Inversion",
+  "block.wayaround.black_ant_colony": "Black Ant Colony",
+  "block.wayaround.red_ant_colony": "Red Ant Colony",
+  "block.wayaround.honey_ant_colony": "Honey Ant Colony",
+  "block.wayaround.termite_colony": "Termite Colony"
 }

@@ -57,6 +57,38 @@ public final class LittleLeafBehaviorGameTests {
         var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+2.5,0,0);l.addFreshEntity(ant);
         h.succeedWhen(()->h.assertTrue(c.work()>0&&!ant.carrying(),"Real AI found a leaf, reached it, cut a load and returned it to the fungus; ant="+ant.position()+", load="+ant.carrying()+", work="+c.work()));
     }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=120)
+    public static void speciesCoresAndSupportedBirth(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
+        for(int species=0;species<4;species++){
+            var state=LittleLeafContent.core(species).defaultBlockState();
+            h.assertTrue(state.getValue(ColonyCoreBlock.SPECIES)==species,"Dedicated core retains its species on placement");
+            h.assertTrue(LittleLeafContent.CORE_ENTITY.get().isValid(state),"All species cores support the shared colony block entity");
+        }
+        h.succeedWhen(()->{c.birth(l);var q=c.queen(l);h.assertTrue(q!=null,"A queen is born at the entrance");h.assertTrue(q.getY()==p.getY()+1&&l.noCollision(q)&&l.getBlockState(q.blockPosition().below()).isFaceSturdy(l,q.blockPosition().below(),Direction.UP),"Birth has a solid floor and clear body above the core");});
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=220)
+    public static void rivalSpeciesActuallyFight(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
+        var black=LittleLeafContent.BLACK_ANT.get().create(l);var red=LittleLeafContent.RED_ANT.get().create(l);
+        black.bind(p,1,false,false);red.bind(p,1,false,false);
+        black.moveTo(p.getX()+.5,p.getY(),p.getZ()+3.5,0,0);red.moveTo(p.getX()+.9,p.getY(),p.getZ()+3.5,0,0);l.addFreshEntity(black);l.addFreshEntity(red);
+        h.succeedWhen(()->h.assertTrue(black.getHealth()<black.getMaxHealth()||red.getHealth()<red.getMaxHealth(),"Nearby rival species discover each other and deal actual melee damage"));
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
+    public static void sameSpeciesRemainFriendly(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var a=LittleLeafContent.BLACK_ANT.get().create(l);var b=LittleLeafContent.BLACK_ANT.get().create(l);
+        a.bind(p,1,false,false);b.bind(p,1,false,false);a.moveTo(p.getX()+.5,p.getY(),p.getZ()+3.5,0,0);b.moveTo(p.getX()+.9,p.getY(),p.getZ()+3.5,0,0);l.addFreshEntity(a);l.addFreshEntity(b);
+        h.runAfterDelay(80,()->{h.assertTrue(a.getTarget()==null&&b.getTarget()==null&&a.getHealth()==a.getMaxHealth()&&b.getHealth()==b.getMaxHealth(),"Same-species neighbors do not attack one another");h.succeed();});
+    }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1800)
+    public static void workerGetsPastAnObstacleAndDelivers(GameTestHelper h){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();
+        for(int z=-3;z<=3;z++)for(int y=0;y<2;y++)l.setBlock(p.offset(2,y,z),Blocks.STONE.defaultBlockState(),18);
+        l.setBlock(p.offset(4,0,0),Blocks.OAK_LEAVES.defaultBlockState().setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT,true),18);
+        var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+2.5,0,0);l.addFreshEntity(ant);
+        h.succeedWhen(()->h.assertTrue(c.work()>0&&!ant.carrying(),"Worker passes the obstruction and delivers a real leaf; ant="+ant.position()));
+    }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
     public static void attackingPersistsColonyHostilityAndQueenDeath(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var soldier=LittleLeafContent.RED_ANT.get().create(l);soldier.bind(p,1,false,false);

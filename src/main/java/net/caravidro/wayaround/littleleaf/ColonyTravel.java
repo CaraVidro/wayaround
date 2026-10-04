@@ -31,7 +31,7 @@ public final class ColonyTravel {
         inside.getChunkAt(link.arrival());inside.getChunkAt(link.core());
         prepareExit(inside,link);
         if(!(inside.getBlockEntity(link.core()) instanceof ColonyCoreBlockEntity)){
-            inside.setBlock(link.core(),LittleLeafContent.COLONY_CORE.get().defaultBlockState(),18);
+            inside.setBlock(link.core(),LittleLeafContent.core(species).defaultBlockState(),18);
             if(inside.getBlockEntity(link.core()) instanceof ColonyCoreBlockEntity c)c.makeInterior(species,stage);
         }
     }

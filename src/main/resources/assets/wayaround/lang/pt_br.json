@@ -1079,5 +1079,9 @@
   "colony.wayaround.stage.4": "Fortaleza da colônia",
   "item.minecraft.potion.effect.inversion": "Poção de inversão",
   "item.minecraft.splash_potion.effect.inversion": "Poção arremessável de inversão",
-  "item.minecraft.lingering_potion.effect.inversion": "Poção prolongada de inversão"
+  "item.minecraft.lingering_potion.effect.inversion": "Poção prolongada de inversão",
+  "block.wayaround.black_ant_colony": "Colônia de formigas pretas",
+  "block.wayaround.red_ant_colony": "Colônia de formigas vermelhas",
+  "block.wayaround.honey_ant_colony": "Colônia de formigas de mel",
+  "block.wayaround.termite_colony": "Colônia de cupins"
 }
