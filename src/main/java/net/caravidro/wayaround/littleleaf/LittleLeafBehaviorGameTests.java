@@ -46,6 +46,17 @@ public final class LittleLeafBehaviorGameTests {
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.carry(true);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+1.5,0,0);l.addFreshEntity(ant);
         h.succeedWhen(()->h.assertTrue(c.work()>=1&&!ant.carrying()&&ant.getY()>=p.getY(),"Worker entered the physical chamber, delivered once and emerged"));
     }
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1000)
+    public static void workerFindsCutsAndReturnsALeafWithoutManualLoad(GameTestHelper h){forageCycle(h,false);}
+    @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=1800)
+    public static void workerClimbsATrunkToHarvestAnElevatedCanopy(GameTestHelper h){forageCycle(h,true);}
+    private static void forageCycle(GameTestHelper h,boolean tree){
+        var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var leaf=p.offset(4,tree?3:0,0);
+        if(tree){for(int y=0;y<3;y++)l.setBlock(p.offset(4,y,0),Blocks.OAK_LOG.defaultBlockState(),18);for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)l.setBlock(leaf.offset(x,0,z),Blocks.OAK_LEAVES.defaultBlockState(),18);}
+        else l.setBlock(leaf,Blocks.OAK_LEAVES.defaultBlockState(),18);
+        var ant=LittleLeafContent.BLACK_ANT.get().create(l);ant.bind(p,0,false,false);ant.moveTo(p.getX()+.5,p.getY(),p.getZ()+2.5,0,0);l.addFreshEntity(ant);
+        h.succeedWhen(()->h.assertTrue(c.work()>0&&!ant.carrying(),"Real AI found a leaf, reached it, cut a load and returned it to the fungus; ant="+ant.position()+", load="+ant.carrying()+", work="+c.work()));
+    }
     @GameTest(template="assembly_test",batch="littleleaf",timeoutTicks=100)
     public static void attackingPersistsColonyHostilityAndQueenDeath(GameTestHelper h){
         var c=setup(h);var l=h.getLevel();var p=c.getBlockPos();var soldier=LittleLeafContent.RED_ANT.get().create(l);soldier.bind(p,1,false,false);

@@ -18,7 +18,9 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
     private static final Map<ServerLevel,Set<ColonyCoreBlockEntity>> ACTIVE=new WeakHashMap<>();
     private long last=-1,work,workClock;private boolean habitat=true,interior,queenBorn,gardenPrepared,queenDead;private UUID queenId;
     private int buildStage=-1,buildCursor,clearCursor;private boolean clearing;private final ArrayList<Long> owned=new ArrayList<>();
-    private final LinkedHashSet<UUID> enemies=new LinkedHashSet<>();private BlockPos food;
+    private final LinkedHashSet<UUID> enemies=new LinkedHashSet<>();private BlockPos food,foodCandidate,climbSource,climbPoint;private int foodColumn,foodY=Integer.MIN_VALUE;
+    private static final List<BlockPos> FOOD_COLUMNS=new ArrayList<>();
+    static {for(int x=-12;x<=12;x++)for(int z=-12;z<=12;z++)FOOD_COLUMNS.add(new BlockPos(x,0,z));FOOD_COLUMNS.sort(Comparator.comparingInt(p->p.getX()*p.getX()+p.getZ()*p.getZ()));}
     public ColonyCoreBlockEntity(BlockPos p,BlockState s){super(LittleLeafContent.CORE_ENTITY.get(),p,s);}
     public int species(){return getBlockState().getValue(ColonyCoreBlock.SPECIES);}
     public boolean giant(){return getBlockState().getValue(ColonyCoreBlock.GIANT);}
@@ -67,7 +69,7 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         }
         insect.carry(false);return true;
     }
-    public void delivered(boolean large){work=Math.min(4096,work+(large?8:1));food=null;setChanged();}
+    public void delivered(boolean large){work=Math.min(4096,work+(large?8:1));setChanged();}
     public void remember(UUID id){if(enemies.contains(id))return;if(enemies.size()>=16)enemies.remove(enemies.iterator().next());enemies.add(id);setChanged();}
     public void queenDied(){queenDead=true;setChanged();}
     public ColonyInsectEntity queen(ServerLevel l){return queenId!=null&&l.getEntity(queenId) instanceof ColonyInsectEntity q&&q.isAlive()?q:null;}
@@ -77,20 +79,36 @@ public final class ColonyCoreBlockEntity extends BlockEntity {
         if(food!=null&&loaded(l,food)&&edible(l.getBlockState(food)))return food;
         food=null;
         for(int i=0;i<48&&ColonyBudget.search(l);i++){
-            int x=worldPosition.getX()+l.random.nextInt(25)-12,z=worldPosition.getZ()+l.random.nextInt(25)-12;
-            var column=new BlockPos(x,worldPosition.getY(),z);if(!loaded(l,column))continue;
-            int y=l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,x,z)-1;
-            if(y<worldPosition.getY()||y>worldPosition.getY()+16)continue;
-            var p=new BlockPos(x,y,z);
-            if(loaded(l,p)&&edible(l.getBlockState(p))){food=p.immutable();break;}
+            var offset=FOOD_COLUMNS.get(foodColumn);var column=worldPosition.offset(offset);
+            if(!loaded(l,column)){nextFoodColumn();continue;}
+            if(foodY==Integer.MIN_VALUE){foodY=Math.min(worldPosition.getY()+32,l.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING,column.getX(),column.getZ())-1);continue;}
+            if(foodY<worldPosition.getY()-2){if(foodCandidate!=null){food=foodCandidate;nextFoodColumn();break;}nextFoodColumn();continue;}
+            var p=new BlockPos(column.getX(),foodY--,column.getZ());
+            if(edible(l.getBlockState(p)))foodCandidate=p;
+            else if(foodCandidate!=null){food=foodCandidate;nextFoodColumn();break;}
         }
         return food;
     }
+    public BlockPos approach(ServerLevel l,BlockPos source,ColonyInsectEntity insect){
+        if(interior||insect.enlarged()||source.getY()-insect.getY()<1.1)return source.above();
+        if(!source.equals(climbSource)){
+            climbSource=source.immutable();climbPoint=null;double best=Double.MAX_VALUE;
+            // Shared climb route: a short, budgeted scan for the supporting trunk near the lower canopy.
+            for(int y=1;y<=3;y++)for(int x=-3;x<=3;x++)for(int z=-3;z<=3;z++){
+                if(!ColonyBudget.search(l)){if(climbPoint==null)climbSource=null;return climbPoint!=null?climbPoint:source.above();}var p=source.offset(x,-y,z);
+                if(!loaded(l,p)||!l.getBlockState(p).is(BlockTags.LOGS))continue;
+                double d=x*x+z*z+y*.2;if(d<best){best=d;climbPoint=p.above(y+1);}
+            }
+        }
+        return climbPoint!=null?climbPoint:source.above();
+    }
+    private void nextFoodColumn(){foodColumn=(foodColumn+1)%FOOD_COLUMNS.size();foodY=Integer.MIN_VALUE;foodCandidate=null;}
+    public void rejectFood(BlockPos p){if(p!=null&&p.equals(food)){food=null;nextFoodColumn();}}
     private boolean edible(BlockState s){return s.is(BlockTags.LEAVES)||(species()==3&&s.is(BlockTags.LOGS));}
-    public void cut(ServerLevel l,BlockPos p,ColonyInsectEntity insect){
-        if(!loaded(l,p)||(!interior&&!edible(l.getBlockState(p))))return;
+    public boolean cut(ServerLevel l,BlockPos p,ColonyInsectEntity insect){
+        if(insect.carrying()||!loaded(l,p)||(!interior&&!edible(l.getBlockState(p)))||!insect.getBoundingBox().inflate(.20).intersects(new AABB(p)))return false;
         insect.carry(true); // A cut is a fragment, not a whole disappearing leaf or trunk.
-        l.sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,l.getBlockState(p)),p.getX()+.5,p.getY()+.1,p.getZ()+.5,2,.1,.1,.1,.01);
+        l.sendParticles(new net.minecraft.core.particles.BlockParticleOption(net.minecraft.core.particles.ParticleTypes.BLOCK,l.getBlockState(p)),p.getX()+.5,p.getY()+.1,p.getZ()+.5,2,.1,.1,.1,.01);return true;
     }
     void birth(ServerLevel l){
         if(queenDead||!ColonyBudget.birth(l))return;

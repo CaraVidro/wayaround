@@ -80,8 +80,10 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 if(destination==null){wait=60;return;}
             }
             if(!ColonyCoreBlockEntity.loaded(l,destination)){destination=null;wait=60;return;}
-            Vec3 target=Vec3.atBottomCenterOf(destination);double reach=enlarged()?3:1.2;
-            if(position().distanceToSqr(target)<reach*reach){
+            if(c!=null&&caste()==0&&!carrying()&&c.cut(l,destination,ColonyInsectEntity.this)){getNavigation().stop();destination=null;wait=20;return;}
+            // Leaves are solid: approach their top, harvesting as soon as any face is actually within reach.
+            Vec3 target=Vec3.atBottomCenterOf(c!=null&&caste()==0&&!carrying()?c.approach(l,destination,ColonyInsectEntity.this):destination);double reach=enlarged()?3:1.2;
+            if((carrying()||caste()!=0||c==null)&&position().distanceToSqr(target)<reach*reach){
                 getNavigation().stop();
                 if(c!=null&&caste()==0){
                     if(carrying()){
@@ -94,7 +96,7 @@ public final class ColonyInsectEntity extends PathfinderMob {
                 destination=null;wait=40;return;
             }
             if(previous!=null&&position().distanceToSqr(previous)<.0002)stuck++;else stuck=0;previous=position();
-            if(stuck>80){destination=null;wait=80;getNavigation().stop();return;}
+            if(stuck>80){if(c!=null&&!carrying())c.rejectFood(destination);destination=null;wait=80;getNavigation().stop();return;}
             if(tickCount>=repath){getNavigation().moveTo(target.x,target.y,target.z,carrying()?.8:1);repath=tickCount+30;}
             getLookControl().setLookAt(target.x,target.y,target.z,20,20);
         }

@@ -24,7 +24,9 @@ public final class LittleLeafRuntimeValidation {
             ColonyTravel.prepare(inside,link,3,4);inside.getChunkAt(link.arrival().offset(64,0,0));
             check(inside.getBlockState(link.arrival()).isAir()&&!inside.getBlockState(link.arrival().below()).isAir(),"Actual arrival is open and supported");
             check(inside.getBlockState(new BlockPos(50,32,64)).is(LittleLeafContent.COLONY_FUNGUS.get()),"Actual giant fungus garden");
-            check(inside.getBlockState(new BlockPos(24,32,60)).is(LittleLeafContent.COLONY_EXIT.get()),"Physical exit generated");
+            check(inside.getBlockState(new BlockPos(6,32,64)).is(LittleLeafContent.COLONY_EXIT.get()),"Physical exit generated");
+            check(inside.getBlockState(new BlockPos(6,32,64)).getCollisionShape(inside,new BlockPos(6,32,64)).isEmpty(),"Exit threshold has no blocking collision");
+            for(int x=7;x<24;x++)check(inside.getBlockState(new BlockPos(x,33,64)).isAir(),"Escape tunnel connects to the vestibule");
             var data=new ColonyTransitData();var a=data.activate(level.dimension(),new BlockPos(100,80,100));var b=data.activate(level.dimension(),new BlockPos(101,80,100));
             check(!a.arrival().equals(b.arrival()),"Different colonies receive isolated interiors");
             var restored=ColonyTransitData.load(data.save(new CompoundTag(),level.registryAccess()),level.registryAccess());check(restored.find(level.dimension(),a.source().pos()).equals(a),"Return route persists across reload");

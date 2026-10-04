@@ -10,7 +10,8 @@ public final class ColonyRulesTest {
         for(int cell=-4;cell<4;cell++){
             for(int x=24;x<=88;x++)check(ColonyLayout.sample(cell*128+x,32,64)!=ColonyLayout.Material.SOIL,"Connected main route");
             for(int z=32;z<=96;z++)check(ColonyLayout.sample(cell*128+52,32,z)!=ColonyLayout.Material.SOIL,"Connected smaller tunnels");
-            check(ColonyLayout.sample(cell*128+24,32,60)==ColonyLayout.Material.EXIT,"Exit is stable across signed cells");
+            check(ColonyLayout.sample(cell*128+6,32,64)==ColonyLayout.Material.EXIT,"Exit is stable across signed cells");
+            for(int x=4;x<24;x++)check(ColonyLayout.sample(cell*128+x,33,64)!=ColonyLayout.Material.SOIL,"Walkable escape tunnel");
             check(ColonyLayout.sample(cell*128+24,31,64)==ColonyLayout.Material.SOIL,"Safe supported arrival");
             check(ColonyLayout.sample(cell*128+50,32,64)==ColonyLayout.Material.FUNGUS,"Harvestable fungus culture");
             check(ColonyLayout.sample(cell*128+52,43,64)==ColonyLayout.Material.CAP,"Giant mushroom");

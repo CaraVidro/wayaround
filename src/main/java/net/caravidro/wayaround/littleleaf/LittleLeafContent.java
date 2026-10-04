@@ -31,7 +31,7 @@ public final class LittleLeafContent {
     public static final DeferredItem<BlockItem> CORE_ITEM=ITEMS.registerSimpleBlockItem(COLONY_CORE);
     public static final DeferredBlock<ColonyFungusBlock> COLONY_FUNGUS=BLOCKS.register("colony_fungus",()->new ColonyFungusBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(.6F).lightLevel(s->4)));
     public static final DeferredItem<BlockItem> FUNGUS_ITEM=ITEMS.registerSimpleBlockItem(COLONY_FUNGUS);
-    public static final DeferredBlock<ColonyExitBlock> COLONY_EXIT=BLOCKS.register("colony_exit",()->new ColonyExitBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(-1,3600000).lightLevel(s->8).noLootTable()));
+    public static final DeferredBlock<ColonyExitBlock> COLONY_EXIT=BLOCKS.register("colony_exit",()->new ColonyExitBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.MUSHROOM_STEM).strength(-1,3600000).noCollission().noOcclusion().lightLevel(s->8).noLootTable()));
     public static final DeferredItem<Item> LEAF_FRAGMENT=ITEMS.register("leaf_fragment",()->new Item(new Item.Properties()));
     public static final DeferredItem<Item> HONEYDEW=ITEMS.register("ant_honeydew",()->new Item(new Item.Properties().food(new net.minecraft.world.food.FoodProperties.Builder().nutrition(2).saturationModifier(.3F).build())));
     public static final DeferredHolder<BlockEntityType<?>,BlockEntityType<ColonyCoreBlockEntity>> CORE_ENTITY=BLOCK_ENTITIES.register("colony_core",()->BlockEntityType.Builder.of(ColonyCoreBlockEntity::new,COLONY_CORE.get()).build(null));
