@@ -148,7 +148,7 @@ public final class OutpostDroneEntity extends Entity {
             var hit=level().clip(new ClipContext(from,to,ClipContext.Block.COLLIDER,ClipContext.Fluid.ANY,this));
             boolean entityHit=false;
             for(var e:level().getEntities(this,getBoundingBox().expandTowards(getDeltaMovement()).inflate(.12),e->e.isAlive()&&e.isPickable()&&!e.getUUID().equals(owner))) {
-                if(e.getBoundingBox().inflate(.2).clip(from,to).isPresent()) {
+                if(e.getBoundingBox().inflate(getBbWidth()*.5,getBbHeight()*.5,getBbWidth()*.5).clip(from,to).isPresent()) {
                     entityHit=true;
                     break;
                 }
@@ -159,6 +159,13 @@ public final class OutpostDroneEntity extends Entity {
                 return;
             }
             move(MoverType.SELF,getDeltaMovement());
+            // The wings/body can hit before the center ray reaches a wall.
+            // Collision may also zero velocity; do not leave a launched drone
+            // stuck against the surface until its flight timeout.
+            if(horizontalCollision||verticalCollision) {
+                detonate();
+                return;
+            }
         }
         else {
             var desired=battery>0&&level().getGameTime()-inputAt<=8&&enabled(level(),impact())?input.scale(.48):Vec3.ZERO;

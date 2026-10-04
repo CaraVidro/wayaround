@@ -239,13 +239,15 @@ import net.neoforged.neoforge.gametest.*;
         var d=drone(h,p,true);
         d.setYRot(0);
         d.setXRot(0);
-        var wall=d.blockPosition().offset(0,0,3);
+        // The center ray clears this wall; a physical wing catches its edge.
+        d.setPos(d.getX()+.3,d.getY(),d.getZ());
+        var wall=d.blockPosition().offset(1,0,3);
         h.getLevel().setBlock(wall,Blocks.STONE.defaultBlockState(),18);
         OutpostRemote.start(p,d);
         d.launch(p);
         h.assertTrue(d.launched()&&!OutpostRemote.active(p),"Launch releases the operator, missile continues physically");
         h.runAfterDelay(8,()-> {
-            h.assertTrue(d.isRemoved(),"Actual swept collision consumes the impact drone");
+            h.assertTrue(d.isRemoved(),"Actual wing/body collision consumes the impact drone even when its center ray clears the wall");
             h.succeed();
         }
         );
