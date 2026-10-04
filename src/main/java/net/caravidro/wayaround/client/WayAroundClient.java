@@ -48,6 +48,7 @@ import net.neoforged.fml.common.Mod;
 public final class WayAroundClient {
 
     public WayAroundClient(IEventBus modEventBus) {
+        modEventBus.addListener(net.caravidro.wayaround.security.client.XrayResourceAudit::register);
         ClientPayloadBridge.install(
                 FrostRenderer::receive,
                 payload -> ClientBlizzardState.receive(payload.intensity()),
@@ -56,6 +57,8 @@ public final class WayAroundClient {
 
         ClientPayloadBridge.installRealtime(
                 new ClientPayloadBridge.RealtimeClientHandlers() {
+                    @Override public void visibilityChallenge(long nonce) { net.caravidro.wayaround.security.client.VisibilityFrameCapture.request(nonce); }
+                    @Override public void xrayChallenge(long nonce) { net.caravidro.wayaround.security.client.XrayResourceAudit.challenge(nonce); }
 
                     @Override
                     public void broadcastImage(

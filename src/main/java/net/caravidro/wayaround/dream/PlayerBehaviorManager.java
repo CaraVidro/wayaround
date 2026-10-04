@@ -24,6 +24,8 @@ public final class PlayerBehaviorManager {
     private static final Map<UUID,HomeDetector.HomeRegion> homes=new HashMap<>();
     private static boolean observe(ServerPlayer p) { return !DreamManager.active(p)&&!p.isSpectator()&&!p.level().dimension().equals(DreamContent.DIMENSION); }
     public static PlayerBehaviorProfile profile(ServerPlayer p) { return BehaviorData.get(p.server).profile(p.getUUID()); }
+    /** Read-only cached estimate; performance-sensitive systems must not rerun the quadratic detector. */
+    public static HomeDetector.HomeRegion knownHome(ServerPlayer p) { return homes.get(p.getUUID()); }
     public static HomeDetector.HomeRegion home(ServerPlayer p) {
         return homes.computeIfAbsent(p.getUUID(),id->HomeDetector.detect(profile(p)));
     }

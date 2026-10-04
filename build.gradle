@@ -390,6 +390,11 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_nature'
         }
 
+        securityGameTestServer {
+            type = "gameTestServer"
+            systemProperty "neoforge.enabledGameTestNamespaces", "wayaround_security"
+        }
+
         outpostGameTestServer {
             type = "gameTestServer"
             systemProperty "neoforge.enabledGameTestNamespaces", "wayaround_outpost"

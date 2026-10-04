@@ -1,0 +1,70 @@
+name: Anti-Xray trust validation
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/net/caravidro/wayaround/security/**'
+      - 'src/main/java/net/caravidro/wayaround/network/**'
+      - 'src/main/java/net/caravidro/wayaround/WayAround.java'
+      - 'src/main/java/net/caravidro/wayaround/client/WayAroundClient.java'
+      - 'tests/security/**'
+      - 'build.gradle'
+      - '.github/workflows/security-validation.yml'
+jobs:
+  trust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Pure policy and adversarial cases
+        run: python tests/security/run_policy.py
+      - name: Dedicated server persistence, codec, nonce and vanilla bans
+        shell: bash
+        run: |
+          set -o pipefail
+          bash gradlew runSecurityGameTestServer --console=plain | tee security-tests.log
+          python - <<'PYTEST'
+          from pathlib import Path
+          text=Path('security-tests.log').read_text(errors='replace')
+          assert 'All 9 required tests passed' in text,text[-16000:]
+          PYTEST
+      - name: Client reload and real PNG/model fixtures
+        env:
+          ALSOFT_DRIVERS: 'null'
+          JAVA_TOOL_OPTIONS: '-Dwayaround.validateAntixray=true'
+        shell: bash
+        run: |
+          python - <<'PYCLIENT'
+          import os,re,signal,subprocess,time
+          from pathlib import Path
+          path=Path('security-client.log');ready=False
+          with path.open('w') as log:
+              process=subprocess.Popen(['xvfb-run','-a','bash','gradlew','runClient','--console=plain'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+              try:
+                  deadline=time.monotonic()+240
+                  while process.poll() is None and time.monotonic()<deadline:
+                      text=path.read_text(errors='replace')
+                      if 'CLIENT RESOURCE FIXTURES PASSED' in text and 'VISUAL GPU FIXTURES PASSED' in text and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                          ready=True;break
+                      if 'XrayResourceAuditValidation' in text and 'Caused by: java.lang.AssertionError' in text:
+                          break
+                      time.sleep(1)
+              finally:
+                  if process.poll() is None:os.killpg(process.pid,signal.SIGTERM)
+                  try:process.wait(timeout=15)
+                  except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
+          text=path.read_text(errors='replace')
+          assert ready and not re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text),text[-16000:]
+          print('Client boot, actual resource fixtures and real GPU color/depth-to-voxel comparison passed')
+          PYCLIENT
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: antixray-runtime
+          path: |
+            security-tests.log
+            security-client.log

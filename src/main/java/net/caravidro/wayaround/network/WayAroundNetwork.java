@@ -14,7 +14,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "30";
+            "32";
 
     private WayAroundNetwork() {
     }
@@ -37,6 +37,12 @@ public final class WayAroundNetwork {
                 WayAroundProtocolPayload.STREAM_CODEC,
                 WayAroundProtocolPayload::handle
         );
+
+        requiredRegistrar.playToServer(net.caravidro.wayaround.security.XrayReportPayload.TYPE, net.caravidro.wayaround.security.XrayReportPayload.STREAM_CODEC, net.caravidro.wayaround.security.XrayReportPayload::handle);
+        requiredRegistrar.playToClient(net.caravidro.wayaround.security.XrayChallengePayload.TYPE, net.caravidro.wayaround.security.XrayChallengePayload.STREAM_CODEC, (p,c) -> c.enqueueWork(() -> ClientPayloadBridge.xrayChallenge(p.nonce())));
+
+        requiredRegistrar.playToServer(net.caravidro.wayaround.security.VisibilityReportPayload.TYPE, net.caravidro.wayaround.security.VisibilityReportPayload.STREAM_CODEC, net.caravidro.wayaround.security.VisibilityReportPayload::handle);
+        requiredRegistrar.playToClient(net.caravidro.wayaround.security.VisibilityChallengePayload.TYPE, net.caravidro.wayaround.security.VisibilityChallengePayload.STREAM_CODEC, (p,c) -> c.enqueueWork(() -> ClientPayloadBridge.visibilityChallenge(p.nonce())));
 
         PayloadRegistrar registrar =
                 requiredRegistrar.optional();
