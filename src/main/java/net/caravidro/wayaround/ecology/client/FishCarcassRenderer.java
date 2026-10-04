@@ -124,12 +124,25 @@ public final class FishCarcassRenderer
                                 buffers,
                                 light
                         );
+                default -> renderOther(carcass,pose,buffers,light);
             }
         }
 
         pose.popPose();
     }
 
+    private void renderOther(FishCarcassEntity c,PoseStack pose,MultiBufferSource buffers,int light){
+        var profile=c.profile();
+        boolean flat=profile==FishProcessingProfile.MANTA||profile==FishProcessingProfile.SUNFISH;
+        boolean longBody=profile==FishProcessingProfile.OARFISH||profile==FishProcessingProfile.MORAY_EEL;
+        var skin=(c.isCooked()?Blocks.BROWN_TERRACOTTA:switch(profile){case CLOWNFISH,TROPICAL->Blocks.ORANGE_CONCRETE;case ICEFISH,MANTA->Blocks.LIGHT_GRAY_CONCRETE;case PERCH,CARP,CATFISH->Blocks.GREEN_TERRACOTTA;case LANTERNFISH,ANGLERFISH,MORAY_EEL->Blocks.BLACK_TERRACOTTA;case SUNFISH,SHARK->Blocks.GRAY_CONCRETE;case JELLYFISH->Blocks.PINK_STAINED_GLASS;default->Blocks.CYAN_TERRACOTTA;}).defaultBlockState();
+        float length=longBody?1.8F:flat?.75F:.7F,height=flat?.4F:profile==FishProcessingProfile.PUFFER?.35F:.2F,depth=profile==FishProcessingProfile.MANTA?.8F:.2F;
+        cuboid(skin,-length*.5,-height*.5,-depth*.5,length,height,depth,pose,buffers,light);
+        if(profile==FishProcessingProfile.JELLYFISH){for(int t=0;t<5;t++)cuboid(skin,-.25+t*.1,-.45,-.02,.025F,.35F,.025F,pose,buffers,light);return;}
+        cuboid(skin,length*.5,-height*.6,-depth*.65,.18F,height*1.2F,depth*1.3F,pose,buffers,light);
+        cuboid(Blocks.BLACK_CONCRETE.defaultBlockState(),-length*.45,height*.05,-depth*.52,.04F,.04F,.015F,pose,buffers,light);
+        if(!c.isCutOpen())cuboid(skin,-.1,height*.4,-depth*.15,.25F,height*.6F,depth*.3F,pose,buffers,light);
+    }
     private void renderSardine(
             FishCarcassEntity carcass,
             PoseStack pose,

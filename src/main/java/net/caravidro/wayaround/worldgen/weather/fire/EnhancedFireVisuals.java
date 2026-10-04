@@ -604,7 +604,7 @@ public final class EnhancedFireVisuals {
     private static boolean vanillaCanBurn(
             net.minecraft.world.level.block.state.BlockState state
     ) {
-        return ((FireBlockAccessor) (Object) Blocks.FIRE)
+        return state.is(Blocks.GRASS_BLOCK) || state.getBlock() instanceof net.caravidro.wayaround.ecology.TreeWoodSegmentBlock || state.getBlock() instanceof net.caravidro.wayaround.ecology.EcologyPlantBlock || ((FireBlockAccessor) (Object) Blocks.FIRE)
                 .wayaround$canBurn(
                         state
                 );
@@ -927,10 +927,32 @@ public final class EnhancedFireVisuals {
                 var entry=nearest.get(i);var p=entry.getKey().pos();var fire=entry.getValue();
                 flames.add(new net.caravidro.wayaround.network.FireFrameS2CPayload.Flame(p.asLong(),(float)(fire.x-p.getX()),(float)(fire.y-p.getY()),(float)(fire.z-p.getZ()),fire.size));
             }
-            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,new net.caravidro.wayaround.network.FireFrameS2CPayload(flames));
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,new net.caravidro.wayaround.network.FireFrameS2CPayload(flames,farBlazes(level,player)));
         }
     }
 
+    private static List<net.caravidro.wayaround.network.FireFrameS2CPayload.Blaze> farBlazes(ServerLevel level,ServerPlayer player){
+        // Coarse connected cells merge the visible footprint without creating an entity per flame.
+        var cells=new HashMap<BlockPos,int[]>();
+        for(var e:ACTIVE.entrySet()){
+            if(!e.getKey().dimension().equals(level.dimension()))continue;var p=e.getKey().pos();double distance=player.distanceToSqr(p.getX()+.5,p.getY()+.5,p.getZ()+.5);
+            if(distance<48*48||distance>256*256)continue;
+            var cell=new BlockPos(p.getX()>>3,p.getY()>>3,p.getZ()>>3);var box=cells.computeIfAbsent(cell,k->new int[]{p.getX(),p.getY(),p.getZ(),p.getX()+1,p.getZ()+1,0});
+            box[0]=Math.min(box[0],p.getX());box[1]=Math.min(box[1],p.getY());box[2]=Math.min(box[2],p.getZ());box[3]=Math.max(box[3],p.getX()+1);box[4]=Math.max(box[4],p.getZ()+1);box[5]++;
+        }
+        var result=new ArrayList<net.caravidro.wayaround.network.FireFrameS2CPayload.Blaze>();
+        var keys=new ArrayList<>(cells.keySet());keys.sort(java.util.Comparator.comparingDouble(p->player.distanceToSqr(p.getX()*8.,p.getY()*8.,p.getZ()*8.)));
+        for(var key:keys){if(result.size()>=16)break;var bounds=cells.remove(key);if(bounds==null)continue;var queue=new java.util.ArrayDeque<BlockPos>();queue.add(key);
+            while(!queue.isEmpty()){var c=queue.remove();for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++){
+                var next=c.offset(x,0,z);var b=cells.get(next);if(b==null)continue;
+                if(Math.max(bounds[3],b[3])-Math.min(bounds[0],b[0])>128||Math.max(bounds[4],b[4])-Math.min(bounds[2],b[2])>128)continue;
+                cells.remove(next);queue.add(next);bounds[0]=Math.min(bounds[0],b[0]);bounds[1]=Math.min(bounds[1],b[1]);bounds[2]=Math.min(bounds[2],b[2]);bounds[3]=Math.max(bounds[3],b[3]);bounds[4]=Math.max(bounds[4],b[4]);bounds[5]+=b[5];
+            }}
+            if(bounds[5]<3)continue;
+            result.add(new net.caravidro.wayaround.network.FireFrameS2CPayload.Blaze(BlockPos.asLong(bounds[0],bounds[1],bounds[2]),bounds[3]-bounds[0],bounds[4]-bounds[2],Math.min(5,1.5F+(float)Math.sqrt(bounds[5])*.12F)));
+        }
+        return result;
+    }
     public static void clearAll() {
         ACTIVE.clear();
         SPREAD.clear();PROBES.clear();SMOKE.clear();SOUNDS.clear();SMOKE_CELLS.clear();FireTickLimiter.clear();

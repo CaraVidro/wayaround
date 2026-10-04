@@ -27,7 +27,29 @@ public enum FishProcessingProfile {
             0.82F,
             1.36F,
             4.2F
-    );
+    ),
+    COD(2,1.1F,1.0F,.6F,1.1F,4.0F),
+    TROPICAL(3,1.1F,1.0F,.6F,1.1F,4.0F),
+    PUFFER(4,1.1F,1.0F,.6F,1.1F,4.0F),
+    SUNFISH(5,1.1F,1.0F,.6F,1.1F,6.0F),
+    SHARK(6,1.1F,1.0F,.6F,1.1F,6.0F),
+    MANTA(7,1.1F,1.0F,.6F,1.1F,6.0F),
+    BARRACUDA(8,1.1F,1.0F,.6F,1.1F,4.0F),
+    SEAHORSE(9,1.1F,1.0F,.6F,1.1F,4.0F),
+    JELLYFISH(10,1.1F,1.0F,.6F,1.1F,4.0F),
+    OARFISH(11,1.1F,1.0F,.6F,1.1F,6.0F),
+    CLOWNFISH(12,1.1F,1.0F,.6F,1.1F,4.0F),
+    FLYING_FISH(13,1.1F,1.0F,.6F,1.1F,4.0F),
+    LANTERNFISH(14,1.1F,1.0F,.6F,1.1F,4.0F),
+    MORAY_EEL(15,1.1F,1.0F,.6F,1.1F,4.0F),
+    CARP(16,1.1F,1.0F,.6F,1.1F,4.0F),
+    PERCH(17,1.1F,1.0F,.6F,1.1F,4.0F),
+    TROUT(18,1.1F,1.0F,.6F,1.1F,4.0F),
+    CATFISH(19,1.1F,1.0F,.6F,1.1F,4.0F),
+    ARCHERFISH(20,1.1F,1.0F,.6F,1.1F,4.0F),
+    ICEFISH(21,1.1F,1.0F,.6F,1.1F,4.0F),
+    TOOTHFISH(22,1.1F,1.0F,.6F,1.1F,6.0F),
+    ANGLERFISH(23,1.1F,1.0F,.6F,1.1F,4.0F);
 
     private final int networkId;
     private final float largeThreshold;
@@ -97,6 +119,7 @@ public enum FishProcessingProfile {
                                     base
                             )
                     );
+            default -> Math.max(1,Math.min(12,base));
         };
     }
 
@@ -110,6 +133,8 @@ public enum FishProcessingProfile {
                     large
                             ? 4
                             : 2;
+            case JELLYFISH -> 0;
+            default -> large?3:1;
         };
     }
 
@@ -119,6 +144,7 @@ public enum FishProcessingProfile {
                     EcologyContent.RAW_SARDINE_MEAT.get();
             case SALMON ->
                     EcologyContent.RAW_SALMON_MEAT.get();
+            default -> FishRemainsItems.raw(this);
         };
     }
 
@@ -128,6 +154,7 @@ public enum FishProcessingProfile {
                     EcologyContent.COOKED_SARDINE_MEAT.get();
             case SALMON ->
                     EcologyContent.COOKED_SALMON_MEAT.get();
+            default -> FishRemainsItems.COOKED.get(this).get();
         };
     }
 
@@ -161,6 +188,7 @@ public enum FishProcessingProfile {
                                     ? EcologyContent.LARGE_WHOLE_SALMON.get()
                                     : EcologyContent.WHOLE_SALMON.get()
                     );
+            default -> FishRemainsItems.WHOLE.get(this).get();
         };
     }
 
@@ -175,6 +203,22 @@ public enum FishProcessingProfile {
             return SALMON;
         }
 
+        if(fish instanceof WhaleEntity || fish instanceof CleintonEntity)return null;
+        if(fish instanceof RegionalFishEntity regional)return valueOf(regional.species().name());
+        if(fish.getType()==EntityType.COD)return COD;
+        if(fish.getType()==EntityType.TROPICAL_FISH)return TROPICAL;
+        if(fish.getType()==EntityType.PUFFERFISH)return PUFFER;
+        if(fish instanceof SunfishEntity)return SUNFISH;
+        if(fish instanceof ReefSharkEntity)return SHARK;
+        if(fish instanceof MantaRayEntity)return MANTA;
+        if(fish instanceof BarracudaEntity)return BARRACUDA;
+        if(fish instanceof SeahorseEntity)return SEAHORSE;
+        if(fish instanceof JellyfishEntity)return JELLYFISH;
+        if(fish instanceof OarfishEntity)return OARFISH;
+        if(fish instanceof ClownfishEntity)return CLOWNFISH;
+        if(fish instanceof FlyingFishEntity)return FLYING_FISH;
+        if(fish instanceof LanternfishEntity)return LANTERNFISH;
+        if(fish instanceof MorayEelEntity)return MORAY_EEL;
         return null;
     }
 

@@ -63,6 +63,7 @@ public final class DeepOceanManager {
             }
 
             if (cleanupBudget-- > 0) {
+                sinkLooseDecor(player.serverLevel(),player.blockPosition());
                 cleanLegacyFloatingOceanDecor(
                         player.serverLevel(),
                         player.blockPosition()
@@ -280,7 +281,7 @@ public final class DeepOceanManager {
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(x, surface, z);
         if (!level.hasChunkAt(cursor) || !isDeepOcean(level, cursor)) return;
         int floor = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.OCEAN_FLOOR, x, z) - 1;
-        int bottom = Math.max(level.getMinBuildHeight() + 1, floor + 1);
+        int bottom = level.getMinBuildHeight() + 1;
         int edits = 0;
         for (int y = surface; y >= bottom; y--) {
             cursor.setY(y);
@@ -307,10 +308,23 @@ public final class DeepOceanManager {
                     edits++; y--;
                 }
             }
+            if((state.getBlock() instanceof RiverPebbleBlock || state.getBlock() instanceof AquaticFloorLifeBlock || state.getBlock() instanceof AbyssalSkeletonSkullBlock)&&!state.canSurvive(level,cursor)){
+                level.setBlock(cursor,Blocks.WATER.defaultBlockState(),50);edits++;
+            }
             if (edits >= 48) return;
         }
     }
 
+    public static void sinkLooseDecor(ServerLevel l,BlockPos center){
+        int n=0;
+        for(var item:l.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,new AABB(center).inflate(32),e->e.isInWater()&&e.tickCount>100)){
+            if(n++>=48)break;
+            var stack=item.getItem();var block=net.minecraft.world.level.block.Block.byItem(stack.getItem());
+            boolean decor=stack.is(net.minecraft.world.item.Items.KELP)||stack.is(net.minecraft.world.item.Items.SEAGRASS)||block instanceof RiverPebbleBlock||block instanceof AquaticFloorLifeBlock||block instanceof AbyssalSkeletonSkullBlock;
+            if(!decor)continue;
+            item.setNoGravity(false);item.setDeltaMovement(item.getDeltaMovement().multiply(.7,0,.7).add(0,-.18,0));item.hasImpulse=true;
+        }
+    }
     public static boolean isDeepOcean(
             ServerLevel level,
             BlockPos pos

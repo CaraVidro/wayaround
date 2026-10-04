@@ -296,6 +296,8 @@ public final class WayAroundClient {
                     }
 
                     @Override
+                    public void entitySpectate(int target){FieldInteractionClient.target=target;}
+                    @Override
                     public void fireFrame(net.caravidro.wayaround.network.FireFrameS2CPayload payload) {
                         BatchedFireRenderer.receive(payload);
                     }

@@ -99,14 +99,10 @@ public final class WholeFishItem
                 0.0F
         );
 
-        carcass.initialize(
-                profile,
-                profile.carryScale(
-                        large
-                ),
-                cooked,
-                large
-        );
+        var body=stack.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+        carcass.initialize(profile,body.contains("BodyScale")?body.getFloat("BodyScale"):profile.carryScale(large),body.contains("Cooked")?body.getBoolean("Cooked"):cooked,body.contains("Large")?body.getBoolean("Large"):large);
+        carcass.restoreBody(body);
+
 
         server.addFreshEntity(
                 carcass

@@ -30,4 +30,6 @@ public final class EcologyPlantBlock extends BushBlock {
         return state.isSolidRender(level, pos)
                 || super.mayPlaceOn(state, level, pos);
     }
+    @Override public int getFlammability(BlockState state, BlockGetter level, BlockPos pos, net.minecraft.core.Direction face){return state.getFluidState().isEmpty()?100:0;}
+    @Override public int getFireSpreadSpeed(BlockState state, BlockGetter level, BlockPos pos, net.minecraft.core.Direction face){return state.getFluidState().isEmpty()?60:0;}
 }

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "ingredient": {
+    "item": "wayaround:raw_shark_meat"
+  },
+  "result": {
+    "id": "wayaround:cooked_shark_meat"
+  },
+  "experience": 0.35,
+  "cookingtime": 200
+}

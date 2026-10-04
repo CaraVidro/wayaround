@@ -902,6 +902,7 @@ public final class LivingFaunaManager {
                     continue;
                 }
 
+                if(fish.getPersistentData().getLong("WayAroundFishingOwnsUntil")>level.getGameTime())continue;
                 if (fish.getVehicle()
                         instanceof SeagullEntity) {
                     fish.setAirSupply(

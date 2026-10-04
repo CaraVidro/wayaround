@@ -66,7 +66,7 @@ public final class EcologyFishingManager {
         boolean attractionTick =
                 event.getServer()
                         .getTickCount()
-                        % 5
+                        % 2
                         == 0;
 
         for (ServerLevel level :
@@ -90,6 +90,10 @@ public final class EcologyFishingManager {
                     continue;
                 }
 
+                if(player.getPersistentData().getLong("WayAroundReelUntil")>=level.getGameTime()){
+                    if(player.distanceToSqr(hook)<2.5*2.5){hook.discard();player.getPersistentData().remove("WayAroundReelUntil");continue;}
+                    if(level.getGameTime()%4==0)pullLine(level,player,hook,true);
+                }
                 boolean hooked =
                         hook.getPersistentData()
                                 .getBoolean(
@@ -137,7 +141,7 @@ public final class EcologyFishingManager {
                 );
     }
 
-    private static void tickHook(
+    public static void tickHook(
             ServerLevel level,
             ServerPlayer player,
             FishingHook hook
@@ -154,9 +158,9 @@ public final class EcologyFishingManager {
             data.putLong(
                     BITE_READY,
                     now
-                            + 35L
+                            + 15L
                             + level.random.nextInt(
-                            90
+                            25
                     )
             );
         }
@@ -213,11 +217,13 @@ public final class EcologyFishingManager {
         }
 
         if (target == null) {
+            if(data.getLong("WayAroundNextFishSearch")>now)return;
+            data.putLong("WayAroundNextFishSearch",now+20);
             target =
                     nearestFish(
                             level,
                             hook.position(),
-                            6.0
+                            10.0
                     );
 
             if (target == null) {
@@ -236,6 +242,9 @@ public final class EcologyFishingManager {
         if (data.getBoolean(
                 HOOKED
         )) {
+            target.getPersistentData().putLong("WayAroundFishingOwnsUntil",now+12);
+            target.getNavigation().stop();
+            if(now%20==0){level.sendParticles(ParticleTypes.SPLASH,hook.getX(),hook.getY(),hook.getZ(),6,.15,.1,.15,.03);}
             attachHookToFish(
                     hook,
                     target
@@ -261,6 +270,7 @@ public final class EcologyFishingManager {
             return;
         }
 
+        target.getPersistentData().putLong("WayAroundFishingOwnsUntil",now+12);
         double distance =
                 target.distanceTo(
                         hook
@@ -287,15 +297,12 @@ public final class EcologyFishingManager {
                                 * 0.72
                 );
 
-        target.getNavigation()
-                .moveTo(
-                        hook.getX(),
-                        hook.getY(),
-                        hook.getZ(),
-                        speed
-                );
-
-        if (distance <= 0.62
+        // Aim inside the water, below the surface bobber. Native swimming cannot path into air.
+        Vec3 aim=hook.position().add(0,-Math.max(.35,target.getBbHeight()*.4),0);
+        Vec3 delta=aim.subtract(target.position());
+        target.getNavigation().stop();
+        if(delta.lengthSqr()>.04){target.getMoveControl().setWantedPosition(aim.x,aim.y,aim.z,speed);target.setDeltaMovement(target.getDeltaMovement().scale(.65).add(delta.normalize().scale(.045)));}
+        if (distance <= Math.max(1.25,target.getBbWidth()*.75)
                 && now >= data.getLong(
                 BITE_READY
         )) {
@@ -421,18 +428,11 @@ public final class EcologyFishingManager {
             return;
         }
 
-        pullLine(
-                level,
-                player,
-                hook
-        );
+        if(level.getGameTime()-hook.getPersistentData().getLong(LAST_TUG)<8)return;
+        pullLine(level,player,hook,false);
     }
 
-    private static void pullLine(
-            ServerLevel level,
-            ServerPlayer player,
-            FishingHook hook
-    ) {
+    private static void pullLine(ServerLevel level,ServerPlayer player,FishingHook hook,boolean steady) {
         CompoundTag data =
                 hook.getPersistentData();
 
@@ -492,7 +492,7 @@ public final class EcologyFishingManager {
                         nearestFish(
                                 level,
                                 hook.position(),
-                                6.5
+                                10.0
                         );
             }
 
@@ -526,13 +526,14 @@ public final class EcologyFishingManager {
                         HOOKED
                 )
                         || (
-                        biteDistance <= 0.82
+                        biteDistance <= Math.max(1.25,target.getBbWidth()*.75)
                                 && now >= data.getLong(
                                 BITE_READY
                         )
                 );
 
         if (!biting) {
+            if(steady){pullLooseLine(player,hook);return;}
             if (streak >= 3) {
                 frighten(
                         level,
@@ -667,7 +668,7 @@ public final class EcologyFishingManager {
                         now + 160L
                 );
 
-        level.playSound(
+        if(!steady||now%20==0)level.playSound(
                 null,
                 target.blockPosition(),
                 SoundEvents.FISHING_BOBBER_RETRIEVE,
@@ -692,6 +693,7 @@ public final class EcologyFishingManager {
             FishingHook hook,
             AbstractFish fish
     ) {
+        ((net.caravidro.wayaround.mixin.EcologyHookAccessor)(Object)hook).wayaround$setHookedEntity(fish);
         Vec3 forward =
                 fish.getLookAngle();
 
@@ -851,7 +853,7 @@ public final class EcologyFishingManager {
                                             ? 1.0
                                             : -1.0
                             )
-                                            * 0.22
+                                            * 0.045
                                             * Math.min(
                                             2.0F,
                                             size
@@ -865,7 +867,7 @@ public final class EcologyFishingManager {
                                 + size
                                         * 0.050,
                         0.06,
-                        0.28
+                        0.12
                 );
 
         fish.setDeltaMovement(

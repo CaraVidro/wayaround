@@ -85,8 +85,16 @@ public class WayAround {
         NexusContent.register(modEventBus);
         OldFriendContent.register(modEventBus);
         net.caravidro.wayaround.dream.DreamContent.register(modEventBus);
+        /*
+         * Dream tuning is consumed exclusively by logical-server code.
+         * SERVER configs are synchronized during NeoForge's CONFIGURATION
+         * phase; that transfer is unnecessary here and used to add another
+         * join-time dependency for remote clients. COMMON keeps the values
+         * available to the dedicated server without injecting a config-sync
+         * payload into every login.
+         */
         net.neoforged.fml.ModLoadingContext.get().getActiveContainer().registerConfig(
-                net.neoforged.fml.config.ModConfig.Type.SERVER, net.caravidro.wayaround.dream.DreamConfig.SPEC);
+                net.neoforged.fml.config.ModConfig.Type.COMMON, net.caravidro.wayaround.dream.DreamConfig.SPEC);
         WorldgenRegistry.register(modEventBus);
         WayAroundFeatures.register(modEventBus);
         WayAroundSounds.register(modEventBus);

@@ -82,6 +82,7 @@ public final class ClientPayloadBridge {
         default void natureAmbient(net.caravidro.wayaround.nature.NatureAmbientPayload payload) {}
 
         default void fireFrame(FireFrameS2CPayload payload) {}
+        default void entitySpectate(int target) {}
 
         default void krakenScene(KrakenSceneS2CPayload payload) {}
 
@@ -673,4 +674,5 @@ public final class ClientPayloadBridge {
                 )
         );
     }
+    public static void entitySpectate(int target){realtimeHandlers.entitySpectate(target);}
 }
