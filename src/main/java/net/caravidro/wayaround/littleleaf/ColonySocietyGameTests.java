@@ -66,4 +66,18 @@ public final class ColonySocietyGameTests {
         boolean old=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());h.runAtTickTime(1990,()->l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer()));var builder=ant(h,c,0,true,ColonyInsectEntity.BUILDER,p.offset(0,0,8));
         h.succeedWhen(()->{h.assertTrue(c.connectionCount()>0,"A real builder extracts soil, carries it and molds an attached colony entrance: "+builder.position()+", giant="+c.giant()+", abandoned="+c.abandoned()+", stage="+c.stage()+", food="+ColonyTransitData.get(l.getServer()).food(c.identity())+", "+builder.workStatus());h.assertTrue(ColonyTransitData.get(l.getServer()).food(c.identity())==4,"Satellite construction spends four meals");l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());});
     }
+
+    @GameTest(template="assembly_test",batch="colony_wind",timeoutTicks=1000)
+    public static void strongWindSendsWorkersBackBeforeTheyResume(GameTestHelper h){
+        var c=nest(h,16);var l=h.getLevel();var p=c.getBlockPos();var worker=ant(h,c,0,false,0,p.offset(0,0,3));net.caravidro.wayaround.worldgen.weather.local.WindTestManager.acceptRemote(true,p.getX(),p.getZ(),32,l.getGameTime()-20,20,1000,1);h.runAtTickTime(950,()->net.caravidro.wayaround.worldgen.weather.local.WindTestManager.stop(l));final boolean[] returned={false};
+        h.succeedWhen(()->{if(worker.sheltered()){h.assertTrue(worker.getY()<p.getY(),"Strong shared wind puts the insect into the physical shelter");returned[0]=true;net.caravidro.wayaround.worldgen.weather.local.WindTestManager.stop(l);}h.assertTrue(returned[0]&&!worker.sheltered()&&worker.getY()>=p.getY(),"Worker waits through the gust and physically emerges when it ends");});
+    }
+    @GameTest(template="assembly_test",batch="colony_society",timeoutTicks=100)
+    public static void cargoBuildsAnAnchoredBridgeAboveWater(GameTestHelper h){
+        var c=nest(h);var l=h.getLevel();var p=c.getBlockPos();c.invertColony();for(int x=5;x<=6;x++)l.setBlock(p.offset(x,-1,0),Blocks.WATER.defaultBlockState(),18);var worker=ant(h,c,0,true,ColonyInsectEntity.BUILDER,p.offset(4,0,0));boolean old=l.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
+        try{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(true,l.getServer());c.requestAccess(l,worker,p.offset(8,0,0));
+            for(int n=0;n<2;n++){var source=p.offset(9,-1,n);l.setBlock(source,Blocks.DIRT.defaultBlockState(),18);worker.moveTo(source.getX()+.5,source.getY()+1,source.getZ()+.5,0,0);h.assertTrue(c.excavate(l,source,worker),"Bridge worker extracts one physical source per placement");var site=c.buildSite(l,worker);h.assertTrue(site!=null,"The bridge has an anchored next placement");if(n==0)worker.moveTo(site.getX()-1.75,site.getY(),site.getZ()+.5,0,0);else worker.moveTo(p.getX()+4.5,p.getY()+1,p.getZ()+.5,0,0);h.assertTrue(c.placeMaterial(l,site,worker),"One carried block extends the bridge from its dry anchor");}
+            h.assertTrue(l.getBlockState(p.offset(5,0,0)).is(Blocks.DIRT)&&l.getFluidState(p.offset(5,-1,0)).is(net.minecraft.tags.FluidTags.WATER),"The physical bridge crosses above the water rather than replacing it");h.succeed();
+        }finally{l.getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(old,l.getServer());}
+    }
 }

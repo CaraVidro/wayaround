@@ -52,6 +52,9 @@ public final class LittleLeafRuntimeValidation {
             long previousClock=level.getGameTime();
             try {
                 for(int x=0;x<=80;x+=16)for(int z=-16;z<=16;z+=16)inside.getChunkAt(link.arrival().offset(x,0,z));
+                var cemeteryId=UUID.randomUUID();check(transit.queueBody(link.source(),new ColonyTransitData.Body(cemeteryId,3,0)),"Saved cemetery arrival accepts the actual body identity");inside.getChunkAt(victim.cemetery());ColonyTravel.releaseBodies(inside,victim);
+                check(inside.getEntity(cemeteryId) instanceof ColonyInsectEntity body&&body.corpse()&&body.buried()&&body.blockPosition().distSqr(victim.cemetery())<64,"Carried surface body materializes in the actual interior cemetery");
+                var interiorCopy=new ColonyCoreBlockEntity(victim.getBlockPos(),victim.getBlockState());interiorCopy.loadWithComponents(victim.saveWithFullMetadata(inside.registryAccess()),inside.registryAccess());check(interiorCopy.interiorProfile()==4,"Physical growth profile persists with the actual interior");
                 check(transit.queue(link.source(),new ColonyTransitData.Raider(0,1,1))&&transit.queue(link.source(),new ColonyTransitData.Raider(0,1,1)),"Rival arrivals recorded at a real linked colony");
                 boolean emerged=false;for(int tick=0;tick<1200&&!victim.abandoned();tick++){
                     ((net.minecraft.world.level.storage.ServerLevelData)level.getLevelData()).setGameTime(previousClock+tick+1);
@@ -64,7 +67,7 @@ public final class LittleLeafRuntimeValidation {
                 check(victim.abandoned()&&transit.abandoned(link.source()),"Actual interior invaders reach and kill the queen, abandoning the linked source; "+inside.getEntitiesOfClass(ColonyInsectEntity.class,new net.minecraft.world.phys.AABB(link.core()).inflate(112)).stream().map(e->e.species()+"/"+e.caste()+" at "+e.position()+" hp "+e.getHealth()+" target "+(e.getTarget()==null?"none":e.getTarget().position())).toList());
                 check(!inside.getBlockState(new BlockPos(50,32,64)).getValue(ColonyFungusBlock.ALIVE),"Actual giant culture dies with the queen");
             }finally{((net.minecraft.world.level.storage.ServerLevelData)level.getLevelData()).setGameTime(previousClock);inside.removePlayerImmediately(observer,net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);}
-            WayAround.LOGGER.info("LITTLE LEAF VALIDATION: all 12 checks passed on a normal dedicated server");
+            WayAround.LOGGER.info("LITTLE LEAF VALIDATION: all 14 checks passed on a normal dedicated server");
         }catch(RuntimeException e){WayAround.LOGGER.error("LITTLE LEAF VALIDATION FAILED",e);throw e;}
         finally {server.halt(false);}
     }

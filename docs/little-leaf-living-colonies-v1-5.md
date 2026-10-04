@@ -9,7 +9,7 @@ Implemented on top of the fire/fishing/observation branch:
 - Queen death stops births and growth, persists abandonment for the linked surface/interior and kills the culture. Dead fungus becomes dark, loses glow, yields no culture and cannot regenerate from its harvest timer. Ruins and exit links remain accessible.
 - Work and entry produce close-range block particles and quiet existing Minecraft sounds. Carried soil is rendered physically with its actual material. Climbing rotates the insect model.
 - Abyss horror ambience waits a randomized 2–10 minutes (typically six), varies sound/pitch/origin, avoids consecutive identical choices and suppresses nearby multiplayer repeats for at least two minutes per region. The scheduler uses saved world time and resets regional memory on server stop. Vehicle pressure/impact warnings retain their functional timing.
-- Protocol 28 requires matching client/server builds because insect synchronized data gains actual block cargo.
+- Protocol 29 requires matching client/server builds because insect synchronized data gains actual block cargo.
 
 Verification covers actual leaf harvesting/return, obstacle and elevated-canopy routes, physical building, block conservation, saved cargo, mobGriefing, dead culture, pending invader persistence and battle in the real interior dimension. In-game visual movement, local sound balance and multiplayer behavior remain manual QA. No measured performance claim.
 
@@ -25,3 +25,5 @@ Follow-up from in-world feedback: ground grass and terrestrial mod foliage also 
 - Functional interior rooms include fungus, nursery, cemetery and queen; gallery shapes vary deterministically per cell. Physical mound material and connections determine the interior growth profile. Expansion only carves generated soil/root material in observed loaded chunks, incrementally with the shared build budget, preserving placed objects and exit links.
 - Rain or strong shared wind overrides work; carried food/bodies return first and workers shelter. Search, births, particles, traffic probes and construction remain bounded.
 - Protocol 29 adds synchronized life stage and worker assignment, requiring matching client/server versions. In-world crowd behavior, sounds and presentation still need manual play testing.
+
+Late-loaded interior chunks remain pending for bounded repair; they are never force-loaded by expansion. Player placements are recorded and protected from gallery carving. Runtime validation also exercises cemetery materialization in the actual registered dimension, alongside wind retreat and a terrain-paid bridge above preserved water.
