@@ -3,6 +3,7 @@ package net.caravidro.wayaround.weaponry;
 import java.util.Comparator;
 
 import net.caravidro.wayaround.WayAround;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -15,11 +16,65 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 @EventBusSubscriber(modid = WayAround.MODID)
 public final class WeaponCombatEvents {
 
+    private static final ResourceLocation DUAL_DAGGER_SPEED =
+            ResourceLocation.fromNamespaceAndPath(
+                    WayAround.MODID,
+                    "dual_dagger_speed"
+            );
+
     private WeaponCombatEvents() {
+    }
+
+    @SubscribeEvent
+    public static void playerTick(
+            PlayerTickEvent.Post event
+    ) {
+        Player player =
+                event.getEntity();
+
+        if (player.level().isClientSide) {
+            return;
+        }
+
+        var speed =
+                player.getAttribute(
+                        Attributes.ATTACK_SPEED
+                );
+
+        if (speed == null) {
+            return;
+        }
+
+        boolean dual =
+                player.getMainHandItem().getItem()
+                        instanceof WayWeaponItem main
+                        && main.family() == WeaponFamily.DAGGER
+                        && player.getOffhandItem().getItem()
+                        instanceof WayWeaponItem off
+                        && off.family() == WeaponFamily.DAGGER;
+
+        if (dual) {
+            if (!speed.hasModifier(
+                    DUAL_DAGGER_SPEED
+            )) {
+                speed.addTransientModifier(
+                        new net.minecraft.world.entity.ai.attributes.AttributeModifier(
+                                DUAL_DAGGER_SPEED,
+                                0.85,
+                                net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE
+                        )
+                );
+            }
+        } else {
+            speed.removeModifier(
+                    DUAL_DAGGER_SPEED
+            );
+        }
     }
 
     @SubscribeEvent
@@ -162,6 +217,29 @@ public final class WeaponCombatEvents {
         WeaponFamily family =
                 WeaponFamily.SCYTHE;
 
+        float attackStrength =
+                player.getAttackStrengthScale(
+                        0.5F
+                );
+
+        /*
+         * The area strike is a heavy reap, not a free full-damage pulse on
+         * every mouse click. Weakly recharged clicks keep their primary vanilla
+         * hit but do not trigger the secondary arc.
+         */
+        if (attackStrength < 0.72F) {
+            player.serverLevel()
+                    .playSound(
+                            null,
+                            player.blockPosition(),
+                            SoundEvents.PLAYER_ATTACK_WEAK,
+                            SoundSource.PLAYERS,
+                            0.62F,
+                            0.70F
+                    );
+            return;
+        }
+
         double radius =
                 family.sweepRadius();
 
@@ -262,11 +340,18 @@ public final class WeaponCombatEvents {
                                 return;
                             }
 
+                            float rechargeDamage =
+                                    0.20F
+                                            + attackStrength
+                                                    * attackStrength
+                                                    * 0.80F;
+
                             float damage =
                                     (float) player.getAttributeValue(
                                             Attributes.ATTACK_DAMAGE
                                     )
-                                            * (float) family.sweepDamageFactor();
+                                            * (float) family.sweepDamageFactor()
+                                            * rechargeDamage;
 
                             living.hurt(
                                     player.damageSources()
