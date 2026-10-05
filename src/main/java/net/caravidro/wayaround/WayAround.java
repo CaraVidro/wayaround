@@ -154,6 +154,7 @@ public class WayAround {
         NeoForge.EVENT_BUS.addListener(PerformanceCommands::register);
         NeoForge.EVENT_BUS.addListener(MiningCommands::register);
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.interaction.StructuralCollapseCommands::register);
+        NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.physical.PhysicalDebugCommands::register);
 
         // Assembly objects: procedural interaction against moving machine parts.
         NeoForge.EVENT_BUS.addListener(net.caravidro.wayaround.industrial.assembly.AssemblyInteractionEvents::onRightClickBlock);

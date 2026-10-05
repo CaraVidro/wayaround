@@ -56,18 +56,34 @@ Goal: one canonical answer to "what is this made of and what phase is it in?"
 
 This step deliberately does NOT simulate global temperature, pressure or flow.
 
-## 2. Physical regions, volumes and boundaries
+## 2. Physical regions, volumes and boundaries — IMPLEMENTED IN THIS BRANCH
 
 Goal: describe where matter can exist.
 
-Introduce bounded region/cavity contracts:
+Implemented foundation:
 
-- volume and occupied fraction;
-- openings and connection faces;
-- boundary material/thickness;
-- inside/outside;
-- sealed vs vented;
-- adjacency graph.
+- PhysicalVolume shared geometry contract.
+- PhysicalBoundaryFace with wall material, area and approximate thickness.
+- PhysicalOpening for known atmosphere/world-edge connections.
+- PhysicalRegionSnapshot with SEALED / VENTED / INDETERMINATE closure.
+- PhysicalRegionScanner:
+  - bounded flood fill;
+  - never loads remote chunks;
+  - records free volume instead of assuming every traversable cell is empty;
+  - returns INDETERMINATE when cell/radius/chunk limits prevent a safe answer.
+- PhysicalBlockGeometry adapts ordinary Minecraft collision geometry into the
+  coarse regional model.
+- openable vanilla blocks participate through their OPEN state.
+- a debug command, /wayaroundphysics region [radius] [maxCells], inspects the
+  player's current cavity and marks known atmosphere openings.
+- GameTests build a real vanilla stone room with an oak fence gate: closed is
+  sealed, open is vented.
+- PipeSpec now derives internal cross-section and volume from its existing
+  radius so later pressure/flow work does not invent a second pipe geometry.
+
+This is intentionally cell-scale topology, not a CFD solver. Open connected
+spaces become one region; thin/sub-block topology can be refined later without
+changing the PhysicalVolume contract.
 
 This becomes the common substrate for tanks, rooms, pipes, boilers, caves,
 submarines, ship compartments and atmosphere cells.
