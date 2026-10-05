@@ -412,9 +412,31 @@ public final class UniversalFlow {
                 UniversalPressure.regionAt(
                         level,
                         region,
-                        opening.interiorCell()
+                        region.seed()
                 );
 
+        FlowState wind =
+                atmosphereAt(
+                        level,
+                        Vec3.atCenterOf(
+                                region.seed()
+                        )
+                );
+
+        return ventilationAt(
+                level,
+                opening,
+                insideModel,
+                wind
+        );
+    }
+
+    public static FlowState ventilationAt(
+            ServerLevel level,
+            PhysicalOpening opening,
+            RegionPressureModel insideModel,
+            FlowState wind
+    ) {
         PressureState outside =
                 UniversalPressure.naturalAt(
                         level,
@@ -428,14 +450,6 @@ public final class UniversalFlow {
                         insideModel.pressure(),
                         outside,
                         opening
-                );
-
-        FlowState wind =
-                atmosphereAt(
-                        level,
-                        Vec3.atCenterOf(
-                                opening.outsideCell()
-                        )
                 );
 
         Vec3 outward =
