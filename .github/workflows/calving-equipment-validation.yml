@@ -11,6 +11,7 @@ on:
       - 'src/main/java/net/caravidro/wayaround/client/AccessoryRenderer.java'
       - 'src/main/java/net/caravidro/wayaround/client/FlyingTopHatRenderer.java'
       - 'src/main/java/net/caravidro/wayaround/client/EyewearOverlay.java'
+      - 'src/main/java/net/caravidro/wayaround/client/LensRenderType.java'
       - 'src/main/java/net/caravidro/wayaround/client/EquipmentVisualValidation.java'
       - 'tests/equipment/**'
       - '.github/workflows/calving-equipment-validation.yml'

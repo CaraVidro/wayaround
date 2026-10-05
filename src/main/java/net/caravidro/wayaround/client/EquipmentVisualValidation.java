@@ -66,6 +66,10 @@ public final class EquipmentVisualValidation {
                 violet.writeToFile(folder.resolve("aero-lenses.png"));
                 int p=violet.getPixelRGBA(480,25);require(((p>>>16)&255)>((p>>>8)&255),"Aero tint follows violet tinted-glass model");
             }
+            try(var darkness=lens(mc,target,AccessoryKind.ENGINEER_GOGGLES,0,0,0)) {
+                for(int y=0;y<540;y++)for(int x=0;x<960;x++)
+                    require((darkness.getPixelRGBA(x,y)&0xFFFFFF)==0,"Colored lenses never illuminate a pitch-black scene");
+            }
             // The same procedural mesh used by worn and flying hats, with actual baked block textures.
             target.bindWrite(true);GL11.glClearColor(.08F,.1F,.12F,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
             var graphics=new GuiGraphics(mc,mc.renderBuffers().bufferSource());
@@ -103,7 +107,10 @@ public final class EquipmentVisualValidation {
         }
     }
     private static NativeImage lens(Minecraft mc,TextureTarget target,AccessoryKind kind,int mode,int damage) {
-        target.bindWrite(true);GL11.glClearColor(.25F,.25F,.25F,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
+        return lens(mc,target,kind,mode,damage,.25F);
+    }
+    private static NativeImage lens(Minecraft mc,TextureTarget target,AccessoryKind kind,int mode,int damage,float background) {
+        target.bindWrite(true);GL11.glClearColor(background,background,background,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
         var graphics=new GuiGraphics(mc,mc.renderBuffers().bufferSource());
         EyewearOverlay.draw(graphics,kind,mode,damage);graphics.flush();
         return Screenshot.takeScreenshot(target);

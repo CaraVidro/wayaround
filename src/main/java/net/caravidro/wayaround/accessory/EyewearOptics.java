@@ -10,7 +10,10 @@ public final class EyewearOptics {
     public static int tint(AccessoryKind kind, int mode, int damage) {
         if (!coversEyes(kind, mode)) return 0;
         int rgb = kind == AccessoryKind.AERO_GOGGLES ? 0x706384 : 0x639ECD;
-        int alpha = damage >= 2 ? 8 : damage == 1 ? 22 : 36;
-        return alpha << 24 | rgb;
+        int strength = damage >= 2 ? 24 : damage == 1 ? 64 : 110;
+        int red = 255 - (255 - (rgb >> 16 & 255)) * strength / 255;
+        int green = 255 - (255 - (rgb >> 8 & 255)) * strength / 255;
+        int blue = 255 - (255 - (rgb & 255)) * strength / 255;
+        return 0xFF000000 | red << 16 | green << 8 | blue;
     }
 }

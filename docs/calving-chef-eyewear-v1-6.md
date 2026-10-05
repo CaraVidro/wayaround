@@ -34,7 +34,8 @@ Equipped accessories also preserve full stack components through transfer and
 player cloning, so names/other metadata are not rebuilt away.
 
 First-person lenses tint the scene in the same blue/violet colors as their
-models. A cracked right lens appears at damage stage 1; both lenses have cracks
+models. The filter multiplies incoming light, so glasses cannot make a black
+night or deep-sea scene glow. A cracked right lens appears at damage stage 1; both lenses have cracks
 at stage 2. The fixed small crack mesh persists while worn, even after relog or
 unequip/re-equip because damage belongs to the stack. Removing lenses clears
 tint/cracks; lifting spectral glasses onto the head clears them too. The overlay

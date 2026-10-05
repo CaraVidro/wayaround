@@ -44,7 +44,7 @@ public final class EyewearOverlay {
         int tint = EyewearOptics.tint(kind, mode, damage);
         if (tint == 0) return;
         int width = graphics.guiWidth(), height = graphics.guiHeight();
-        graphics.fill(0, 0, width, height, tint);
+        graphics.fill(LensRenderType.FILTER, 0, 0, width, height, tint);
         if (damage <= 0) return;
         var vertices = graphics.bufferSource().getBuffer(RenderType.gui());
         var matrix = graphics.pose().last().pose();
