@@ -51,7 +51,18 @@ public final class PhysicalRegionGameTests {
         helper.assertTrue(
                 snapshot.closure()
                         == PhysicalRegionSnapshot.Closure.SEALED,
-                "A closed vanilla stone room must resolve as sealed"
+                "A closed vanilla stone room must resolve as sealed; got "
+                        + snapshot.closure()
+                        + " cells="
+                        + snapshot.cells().size()
+                        + " openings="
+                        + snapshot.openings().size()
+                        + " cellLimit="
+                        + snapshot.hitCellLimit()
+                        + " distanceLimit="
+                        + snapshot.hitDistanceLimit()
+                        + " unloaded="
+                        + snapshot.touchedUnloadedChunk()
         );
 
         helper.assertTrue(
