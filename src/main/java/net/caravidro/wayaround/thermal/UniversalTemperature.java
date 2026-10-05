@@ -7,6 +7,8 @@ import java.util.Optional;
 import net.caravidro.wayaround.physical.PhysicalBlockGeometry;
 import net.caravidro.wayaround.physical.PhysicalRegionScanner;
 import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
@@ -39,6 +41,12 @@ public final class UniversalTemperature {
             BlockPos sourcePos,
             BlockState sourceState
     ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.THERMAL_SYSTEM
+        )) {
+            return false;
+        }
+
         Optional<ThermalSourceProfile> optional =
                 ThermalSourceProfile.forBlock(
                         sourceState
