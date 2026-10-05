@@ -2,6 +2,8 @@ package net.caravidro.wayaround.ecology;
 
 import java.util.*;
 import net.caravidro.wayaround.network.KrakenShakeS2CPayload;
+import net.caravidro.wayaround.pressure.NaturalPressure;
+import net.caravidro.wayaround.pressure.PressureMath;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -63,7 +65,15 @@ public abstract class AbyssVehicleEntity extends Entity {
         }
         ServerLevel server=(ServerLevel)level();
         boolean water=inWaterColumn();
-        int exposure=OceanPressure.advance(pressureExposure(), level().getSeaLevel()-getY(), water,capsule());
+        double outsidePressureKPa=water
+                ? NaturalPressure.at(server,blockPosition()).absoluteKPa()
+                : PressureMath.STANDARD_ATMOSPHERE_KPA;
+        int exposure=OceanPressure.advancePressure(
+                pressureExposure(),
+                outsidePressureKPa,
+                PressureMath.STANDARD_ATMOSPHERE_KPA,
+                water,
+                capsule());
         setPressureExposure(exposure);
         if (exposure >= OceanPressure.FAILURE) {
             sound(SoundEvents.ANVIL_DESTROY, 2.3F, .35F);
