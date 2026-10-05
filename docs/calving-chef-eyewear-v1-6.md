@@ -7,7 +7,8 @@ from the visual snapshot, groups use frustum culling and one light sample per
 group, and calving keeps only its server-owned powder/splash instead of
 duplicating the demolition smoke particles. Original block states, including the full
 ice slab, move outward with shared analytical gravity and settle on the actual
-terrain. Warning snow chips remain real individual falling blocks. Buildings
+terrain. The same broad-support percentile as demolition prevents a single
+fence/post from suspending a whole glacier. Warning snow chips remain real individual falling blocks. Buildings
 settle as their original blocks instead of becoming a flood of item drops;
 container contents and block-entity NBT retain the existing one-owner capture,
 empty-before-removal and restore-once path. Edits during the warning abort the

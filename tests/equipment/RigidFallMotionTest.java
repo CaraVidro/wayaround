@@ -18,6 +18,13 @@ public final class RigidFallMotionTest {
             if (RigidFallMotion.drift(distance, distance) != 1) throw new AssertionError("Drift misses final world placement");
             checks += 2;
         }
+        if (RigidFallMotion.supportedDrop(java.util.List.of(0,20,20,20,20,20,20,20,20,20),512) != 20)
+            throw new AssertionError("One voxel cannot catch an entire glacier/building");
+        if (RigidFallMotion.supportedDrop(java.util.List.of(0,0,0,0,20,20,20,20,20,20),512) != 0)
+            throw new AssertionError("Broad support must stop a rigid fragment");
+        if (RigidFallMotion.supportedDrop(java.util.List.of(3,20),512) != 3)
+            throw new AssertionError("Small fragments still respect their highest support");
+        checks += 3;
         System.out.println("RIGID FALL: " + checks + " gravity, interpolation and landing checks passed");
     }
 }

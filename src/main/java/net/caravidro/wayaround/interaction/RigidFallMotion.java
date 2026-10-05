@@ -16,6 +16,14 @@ public final class RigidFallMotion {
             if (calvingDrop(tick, distance) >= distance) return tick;
         throw new IllegalArgumentException("Calving fall exceeds bounded world height");
     }
+    /** A wide rigid section needs broad support; one post cannot suspend an entire slab. */
+    public static int supportedDrop(java.util.List<Integer> clearances, int maximum) {
+        if (clearances.isEmpty()) return 0;
+        var sorted = new java.util.ArrayList<>(clearances);
+        sorted.sort(Integer::compareTo);
+        int index = sorted.size() <= 4 ? 0 : (int)Math.floor((sorted.size() - 1) * .30);
+        return Math.max(0, Math.min(maximum, sorted.get(index)));
+    }
     public static double drift(double drop, double distance) {
         if (distance <= 0) return 1;
         double t = Math.max(0, Math.min(1, drop / distance));

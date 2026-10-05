@@ -1704,7 +1704,7 @@ public final class CalvingManager {
                         if (!level.hasChunkAt(pos)) return true;
                         if (source.contains(pos)) return false;
                         BlockState state = level.getBlockState(pos);
-                        return !state.isAir() && state.getFluidState().isEmpty() && !state.canBeReplaced();
+                        return !state.isAir() && state.isFaceSturdy(level, pos, Direction.UP);
                     });
         }
 

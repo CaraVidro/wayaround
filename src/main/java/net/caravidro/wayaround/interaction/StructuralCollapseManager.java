@@ -1570,46 +1570,7 @@ public final class StructuralCollapseManager {
             );
         }
 
-        if (clearances.isEmpty()) {
-            return 0;
-        }
-
-        clearances.sort(
-                Integer::compareTo
-        );
-
-        int index;
-
-        if (clearances.size() <= 4) {
-            index =
-                    0;
-        } else {
-            // A broad section needs meaningful support before its entire
-            // rigid body stops. One fence/post/odd voxel no longer catches a
-            // whole building in mid-air.
-            index =
-                    Math.min(
-                            clearances.size() - 1,
-                            Math.max(
-                                    0,
-                                    (int) Math.floor(
-                                            (
-                                                    clearances.size()
-                                                            - 1
-                                            )
-                                                    * 0.30
-                                    )
-                            )
-                    );
-        }
-
-        return Mth.clamp(
-                clearances.get(
-                        index
-                ),
-                0,
-                MAX_FALL_DISTANCE
-        );
+        return RigidFallMotion.supportedDrop(clearances, MAX_FALL_DISTANCE);
     }
 
     private static boolean isBroadObstacle(
