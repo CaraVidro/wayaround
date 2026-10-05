@@ -42,11 +42,17 @@ public abstract class CampfireBlockEntityMixin {
              * opportunistic nearby-player sampling. UniversalTemperature
              * de-duplicates repeated applications within the same second.
              */
-            EnvironmentalTemperature.applyBlockSource(
-                    serverLevel,
-                    pos,
-                    state
-            );
+            if (Math.floorMod(
+                    serverLevel.getGameTime()
+                            + pos.asLong(),
+                    20L
+            ) == 0L) {
+                EnvironmentalTemperature.applyBlockSource(
+                        serverLevel,
+                        pos,
+                        state
+                );
+            }
         }
     }
 }
