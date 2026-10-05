@@ -1,6 +1,6 @@
 package net.caravidro.wayaround.ecology;
 
-import net.caravidro.wayaround.worldgen.water.WaterDynamics;
+import net.caravidro.wayaround.flow.UniversalFlow;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -38,7 +38,7 @@ public final class DeepSeaSubmarineEntity extends AbyssVehicleEntity implements 
         turnSpeed=Mth.lerp(.12F,turnSpeed,steering*2.1F);setYRot(getYRot()+turnSpeed);
         if(pilot!=null)setXRot(Mth.lerp(.15F,getXRot(),Mth.clamp(pilot.getXRot(),-70,70)));
         Vec3 forward=Vec3.directionFromRotation(0,getYRot());
-        Vec3 target=forward.scale(throttle*.20).add(0,vertical*.14,0).add(WaterDynamics.currentAround(level(),blockPosition()).scale(.035));
+        Vec3 target=forward.scale(throttle*.20).add(0,vertical*.14,0).add(UniversalFlow.waterAround(level(),blockPosition()).velocityPerTick().scale(.035));
         Vec3 motion=constrainAscent(getDeltaMovement().scale(.86).add(target.scale(.14)));
         move(MoverType.SELF,motion);impact(motion);setDeltaMovement(new Vec3(horizontalCollision?0:motion.x,verticalCollision?0:motion.y,horizontalCollision?0:motion.z).scale(.96));
     }
