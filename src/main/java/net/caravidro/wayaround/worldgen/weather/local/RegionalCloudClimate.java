@@ -3,6 +3,9 @@ package net.caravidro.wayaround.worldgen.weather.local;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import net.caravidro.wayaround.environment.EnvironmentalFieldClientCache;
+import net.caravidro.wayaround.environment.EnvironmentalFields;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.FluidTags;
@@ -13,9 +16,17 @@ import net.minecraft.world.level.levelgen.Heightmap;
 public final class RegionalCloudClimate {
     private record Climate(float humidity,long sampled) {}
     private static final Map<Level,LinkedHashMap<Long,Climate>> CACHE=new WeakHashMap<>();
+    private static java.lang.ref.WeakReference<Level> CLIENT_LEVEL=new java.lang.ref.WeakReference<>(null);
     private RegionalCloudClimate() {}
     public static synchronized float humidity(Level level,double x,double z){
         if(level==null)return .55F;
+        if(level instanceof ServerLevel server)return EnvironmentalFields.humidity(server,x,z);
+        if(CLIENT_LEVEL.get()!=level){
+            CLIENT_LEVEL=new java.lang.ref.WeakReference<>(level);
+            EnvironmentalFieldClientCache.clear();
+        }
+        var synced=EnvironmentalFieldClientCache.get(x,z);
+        if(synced!=null)return synced.humidity();
         int gx=Math.floorDiv((int)Math.floor(x),64),gz=Math.floorDiv((int)Math.floor(z),64);
         long key=((long)gx<<32)^(gz&0xffffffffL);
         var cache=CACHE.computeIfAbsent(level,unused->new LinkedHashMap<>());
@@ -46,10 +57,19 @@ public final class RegionalCloudClimate {
     public static LocalWeatherField.CloudCell adapt(Level level,LocalWeatherField.CloudCell cell){
         if(level==null)return cell;
         float humidity=humidity(level,cell.x(),cell.z());
+        var synced=level instanceof ServerLevel?null:EnvironmentalFieldClientCache.get(cell.x(),cell.z());
+        float cloudWater=level instanceof ServerLevel server
+                ? EnvironmentalFields.cloudWater(server,cell.x(),cell.z())
+                : synced!=null
+                ? synced.cloudWater()
+                : Math.max(0.02F,humidity*.58F-.16F);
+        float effective=(float)CloudStormMath.clamp(humidity*.62+cloudWater*.62,0,1);
         long hash=cell.id()^(cell.id()>>>29)^0x71D67FFFEDA60000L;
         double roll=(hash&0x1fffffffffffffL)/(double)0x20000000000000L;
-        if(roll>CloudStormMath.cover(humidity))return null;
+        if(roll>CloudStormMath.cover(effective))return null;
+        double waterBody=.78+.42*cloudWater;
         return new LocalWeatherField.CloudCell(cell.id(),cell.x(),cell.z(),cell.y(),
-                cell.radius()*CloudStormMath.size(humidity),CloudStormMath.storm(cell.storm(),humidity));
+                cell.radius()*CloudStormMath.size(effective)*waterBody,
+                CloudStormMath.storm(cell.storm(),effective));
     }
 }

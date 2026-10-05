@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.steam;
 
+import net.caravidro.wayaround.environment.EnvironmentalFields;
 import net.caravidro.wayaround.industrial.assembly.AssemblyItemData;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
 import net.caravidro.wayaround.industrial.power.PowerContent;
@@ -447,6 +448,14 @@ public final class SteamBoilerBlockEntity
         );
 
         if (lit) {
+            EnvironmentalFields.addPollution(
+                    server,
+                    worldPosition,
+                    0.0025
+                            + heat
+                                    * 0.000025
+            );
+
             EnvironmentalTemperature.pulseAbsolute(
                     server,
                     Vec3.atCenterOf(

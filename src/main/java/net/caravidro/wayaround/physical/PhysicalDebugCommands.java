@@ -4,6 +4,7 @@ import java.util.Locale;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
+import net.caravidro.wayaround.environment.EnvironmentalFields;
 import net.caravidro.wayaround.flow.FlowState;
 import net.caravidro.wayaround.flow.RegionVentilationModel;
 import net.caravidro.wayaround.flow.UniversalFlow;
@@ -128,7 +129,72 @@ public final class PhysicalDebugCommands {
                                                                 )
                                                 )
                                 )
+                                .then(
+                                        Commands.literal(
+                                                        "environment"
+                                                )
+                                                .executes(
+                                                        context ->
+                                                                inspectEnvironment(
+                                                                        context.getSource()
+                                                                )
+                                                )
+                                )
                 );
+    }
+
+
+    private static int inspectEnvironment(
+            CommandSourceStack source
+    ) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player =
+                source.getPlayerOrException();
+
+        ServerLevel level =
+                player.serverLevel();
+
+        var field =
+                EnvironmentalFields.sample(
+                        level,
+                        player.blockPosition()
+                );
+
+        source.sendSuccess(
+                () -> Component.literal(
+                        "AMBIENTE REGIONAL | umidade "
+                                + percent(field.humidity())
+                                + " | aguaNuvem "
+                                + percent(field.cloudWater())
+                                + " | solo "
+                                + percent(field.soilMoisture())
+                                + " | neve "
+                                + percent(field.snowBudget())
+                                + " | aguaDisponivel "
+                                + percent(field.waterAvailability())
+                                + " | fumaca "
+                                + percent(field.smoke())
+                                + " | poluicao "
+                                + percent(field.pollution())
+                ),
+                false
+        );
+
+        return 1;
+    }
+
+    private static String percent(
+            float value
+    ) {
+        return String.format(
+                Locale.ROOT,
+                "%.1f%%",
+                Math.clamp(
+                        value,
+                        0.0F,
+                        1.0F
+                )
+                        * 100.0F
+        );
     }
 
 

@@ -255,6 +255,74 @@ Important boundary:
 - mass conservation across all representations and steam/liquid phase transfer
   belongs to step 6.
 
+## 5.5 Environmental fields — IMPLEMENTED EARLY IN THIS BRANCH
+
+A sparse 64x64 regional layer now turns the universal matter/temperature/
+pressure/flow foundation into low-cost environmental memory before the later
+full atmosphere step.
+
+Implemented fields:
+- humidity;
+- cloud water;
+- soil moisture;
+- snow budget;
+- smoke load;
+- persistent air pollution;
+- surface-water availability.
+
+Simulation rules:
+- only cells around players actively evolve;
+- distant cells keep persisted summary state;
+- no remote chunk is loaded for environmental simulation;
+- open water + warmth + dry air + wind -> regional evaporation;
+- humidity above a temperature-dependent saturation threshold -> cloud water;
+- rain consumes cloud water rather than being a free timer effect;
+- warm precipitation increases soil moisture/water availability;
+- cold precipitation increases an abstract snow budget;
+- snow is only materialized near players with a strict block-edit budget;
+- no ordinary rain puddle blocks are simulated;
+- snow melt feeds soil moisture;
+- soil dries according to heat, humidity and wind;
+- humidity/cloud water/smoke/pollution advect to the downwind neighboring cell;
+- rain washes smoke and pollution;
+- actual oceans/lakes periodically pull water-availability back toward loaded
+  world geometry, so evaporation never deletes ocean blocks.
+
+Cloud/weather integration:
+- RegionalCloudClimate uses server environmental humidity/cloud water;
+- nearby environmental cells are quantized to 7 bytes per cell and synced every
+  two seconds to clients;
+- client clouds use synchronized cloud water when available and retain the old
+  deterministic loaded-world climate as a fallback;
+- existing LocalWeatherField cloud bodies still migrate with their wind field;
+- after precipitation removes cloud water, later samples reduce cloud size/
+  storm density naturally rather than keeping an infinite rain reservoir.
+
+Cross-system applications already connected:
+- dynamic wildfire size/spread is suppressed by wet soil;
+- EcologyPlantBlock flammability/fire-spread responds to soil moisture;
+- SmokeVolumeEntity drifts through UniversalFlow and deposits regional smoke/
+  pollution; rain shortens smoke lifetime;
+- coal SteamBoilers emit pollution where fuel is actually burned;
+- regional smoke/pollution/humidity tint the existing client fog, providing
+  cheap haze/mist without global volumetric particles;
+- exposed Pipework material memory receives humidity/rain/salt exposure, so
+  coastal/wet machinery can corrode through the existing MaterialMemory path;
+- /wayaroundphysics environment exposes all seven regional fields.
+
+This deliberately does not model every raindrop, puddle, snowflake or smoke
+particle. High-resolution manifestations are only created where they matter
+visually/gameplay-wise.
+
+Deferred to later physical steps:
+- exact conserved water mass across ocean -> vapor -> cloud -> rain belongs to
+  conservation/phase-change step 6;
+- oxygen composition, flashover and true smoke-gas mixtures belong to
+  combustion step 7;
+- snow structural load belongs to structural step 8;
+- fully coupled pressure-gradient atmosphere, terrain uplift/rain-shadow and
+  deep-ocean thermohaline circulation remain step 12.
+
 ## 6. Conservation and phase change
 
 - mass is conserved across representation changes;

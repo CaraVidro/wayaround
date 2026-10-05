@@ -3,6 +3,7 @@ name: Steam Age validation
 on:
   pull_request:
     paths:
+      - 'src/main/java/net/caravidro/wayaround/environment/**'
       - 'src/main/java/net/caravidro/wayaround/flow/**'
       - 'src/main/java/net/caravidro/wayaround/pressure/**'
       - 'src/main/java/net/caravidro/wayaround/industrial/steam/**'
