@@ -12,6 +12,7 @@ import javax.annotation.Nullable;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.flow.UniversalFlow;
 import net.caravidro.wayaround.industrial.assembly.AssemblyAdvancements;
 import net.caravidro.wayaround.industrial.assembly.AssemblyConnection;
 import net.caravidro.wayaround.industrial.assembly.AssemblyEngine;
@@ -24,7 +25,6 @@ import net.caravidro.wayaround.interaction.StructuralDamage;
 import net.caravidro.wayaround.interaction.StructuralReceiver;
 import net.caravidro.wayaround.interaction.WorldForce;
 import net.caravidro.wayaround.industrial.mechanical.IRotationalPower;
-import net.caravidro.wayaround.worldgen.water.WaterDynamics;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -107,7 +107,7 @@ public final class WaterWheelHubBlockEntity
      * it once per paddle was redundant. Reuse results for this simulation
      * pass, keyed by packed BlockPos.
      */
-    private final Long2ObjectOpenHashMap<WaterDynamics.MechanicalFlow> flowCache =
+    private final Long2ObjectOpenHashMap<UniversalFlow.MechanicalWaterFlow> flowCache =
             new Long2ObjectOpenHashMap<>();
 
     private final IRotationalPower rotationOutput =
@@ -962,14 +962,14 @@ public final class WaterWheelHubBlockEntity
         return burnIntensity;
     }
 
-    private WaterDynamics.MechanicalFlow flowAt(
+    private UniversalFlow.MechanicalWaterFlow flowAt(
             ServerLevel level,
             BlockPos pos
     ) {
         long key =
                 pos.asLong();
 
-        WaterDynamics.MechanicalFlow cached =
+        UniversalFlow.MechanicalWaterFlow cached =
                 flowCache.get(
                         key
                 );
@@ -978,8 +978,8 @@ public final class WaterWheelHubBlockEntity
             return cached;
         }
 
-        WaterDynamics.MechanicalFlow sampled =
-                WaterDynamics.mechanicalFlow(
+        UniversalFlow.MechanicalWaterFlow sampled =
+                UniversalFlow.mechanicalWaterAt(
                         level,
                         pos
                 );
@@ -1167,8 +1167,8 @@ public final class WaterWheelHubBlockEntity
 
             if (!plate.nailed) {
                 if (wetNow) {
-                    WaterDynamics.MechanicalFlow looseFlow =
-                            WaterDynamics.mechanicalFlow(
+                    UniversalFlow.MechanicalWaterFlow looseFlow =
+                            UniversalFlow.mechanicalWaterAt(
                                     level,
                                     samplePos
                             );
@@ -1230,8 +1230,8 @@ public final class WaterWheelHubBlockEntity
                 continue;
             }
 
-            WaterDynamics.MechanicalFlow flow =
-                    WaterDynamics.mechanicalFlow(
+            UniversalFlow.MechanicalWaterFlow flow =
+                    UniversalFlow.mechanicalWaterAt(
                             level,
                             samplePos
                     );
