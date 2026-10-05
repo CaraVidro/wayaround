@@ -1,0 +1,8 @@
+{
+  "parent": "wayaround:item/weapon/scythe_base",
+  "textures": {
+    "blade": "minecraft:block/netherite_block",
+    "handle": "minecraft:block/polished_blackstone",
+    "accent": "minecraft:block/gilded_blackstone"
+  }
+}
