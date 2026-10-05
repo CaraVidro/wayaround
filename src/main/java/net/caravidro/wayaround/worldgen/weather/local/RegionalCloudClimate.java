@@ -16,10 +16,15 @@ import net.minecraft.world.level.levelgen.Heightmap;
 public final class RegionalCloudClimate {
     private record Climate(float humidity,long sampled) {}
     private static final Map<Level,LinkedHashMap<Long,Climate>> CACHE=new WeakHashMap<>();
+    private static java.lang.ref.WeakReference<Level> CLIENT_LEVEL=new java.lang.ref.WeakReference<>(null);
     private RegionalCloudClimate() {}
     public static synchronized float humidity(Level level,double x,double z){
         if(level==null)return .55F;
         if(level instanceof ServerLevel server)return EnvironmentalFields.humidity(server,x,z);
+        if(CLIENT_LEVEL.get()!=level){
+            CLIENT_LEVEL=new java.lang.ref.WeakReference<>(level);
+            EnvironmentalFieldClientCache.clear();
+        }
         var synced=EnvironmentalFieldClientCache.get(x,z);
         if(synced!=null)return synced.humidity();
         int gx=Math.floorDiv((int)Math.floor(x),64),gz=Math.floorDiv((int)Math.floor(z),64);
