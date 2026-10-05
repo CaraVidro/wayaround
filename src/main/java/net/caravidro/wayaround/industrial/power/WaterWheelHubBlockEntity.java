@@ -1168,7 +1168,7 @@ public final class WaterWheelHubBlockEntity
             if (!plate.nailed) {
                 if (wetNow) {
                     UniversalFlow.MechanicalWaterFlow looseFlow =
-                            UniversalFlow.mechanicalWaterAt(
+                            flowAt(
                                     level,
                                     samplePos
                             );
@@ -1231,10 +1231,10 @@ public final class WaterWheelHubBlockEntity
             }
 
             UniversalFlow.MechanicalWaterFlow flow =
-                    UniversalFlow.mechanicalWaterAt(
-                            level,
-                            samplePos
-                    );
+                    flowAt(
+                                    level,
+                                    samplePos
+                            );
 
             if (!flow.stable()
                     || flow.vector()
