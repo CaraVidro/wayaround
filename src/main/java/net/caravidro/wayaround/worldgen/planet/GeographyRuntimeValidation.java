@@ -34,13 +34,17 @@ public final class GeographyRuntimeValidation {
                 String type=height<35?"ocean":height>225?"massif":height>=76&&height<118?"lowland":null;
                 if(type==null||FOUND.contains(type))continue;
                 FOUND.add(type);final BlockPos position=new BlockPos(x,64,z);
+                WayAround.LOGGER.info("GEOGRAPHY REQUEST {} x={} z={} predicted={}",type,x,z,height);
                 var batch=TravelChunks.request(level,x,z,1,ok->{
+                    try {
                     require(ok,"Actual chunk generation completed asynchronously for "+type);
                     var p=position;int top=level.getHeight(type.equals("ocean")?Heightmap.Types.OCEAN_FLOOR:Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,p.getX(),p.getZ());
+                    WayAround.LOGGER.info("GEOGRAPHY ARRIVAL {} ok={} actual={} predicted={}",type,ok,top,height);
                     require(type.equals("ocean")?top<45:type.equals("massif")?top>190:top>65&&top<145,"Generated surface agrees with large-scale climate: "+type+" height="+top+" predicted="+height);
                     if(type.equals("ocean")) {require(level.getFluidState(new BlockPos(x,62,z)).isSource(),"Deep basin is filled to Y=62");require(level.getFluidState(new BlockPos(x,64,z)).isEmpty(),"No extra water layer above sea level");}
                     else require(LostRespawnService.safeLand(level,position)!=null,"Safe random arrival exists on real supported land");
                     WayAround.LOGGER.info("GEOGRAPHY SITE {} x={} z={} predicted={} actual={}",type,x,z,height,top);completed++;
+                    } catch(RuntimeException|AssertionError failure) {WayAround.LOGGER.error("GEOGRAPHY RUNTIME FAILED: destination "+type,failure);server.halt(false);}
                 });require(batch!=null,"Travel queue accepted bounded validation request");
                 var repeat=sampler.sample((x+PlanetMath.SIZE)>>2,16,(z+PlanetMath.SIZE)>>2);
                 require(climate.temperature()==repeat.temperature()&&climate.continentalness()==repeat.continentalness(),"Seeded climate repeats across both axes");
