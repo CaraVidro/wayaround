@@ -170,7 +170,8 @@ public final class PhysicalRegionScanner {
             if (!current.equals(
                     start
             )
-                    && level.canSeeSky(
+                    && isAtmosphereOpening(
+                    level,
                     current
             )) {
                 vented =
@@ -234,7 +235,8 @@ public final class PhysicalRegionScanner {
                         next,
                         nextState
                 )) {
-                    if (level.canSeeSky(
+                    if (isAtmosphereOpening(
+                            level,
                             next
                     )) {
                         vented =
@@ -314,6 +316,54 @@ public final class PhysicalRegionScanner {
                         touchedUnloaded
                 )
         );
+    }
+
+    /**
+     * canSeeSky is fast but can briefly disagree with freshly changed local
+     * geometry/heightmaps. Confirm a short clear column so a newly built roof
+     * can never become a fake atmospheric vent.
+     */
+    private static boolean isAtmosphereOpening(
+            ServerLevel level,
+            BlockPos pos
+    ) {
+        if (!level.canSeeSky(
+                pos
+        )) {
+            return false;
+        }
+
+        int top =
+                Math.min(
+                        level.getMaxBuildHeight() - 1,
+                        pos.getY() + 8
+                );
+
+        for (int y = pos.getY() + 1;
+             y <= top;
+             y++) {
+            BlockPos probe =
+                    new BlockPos(
+                            pos.getX(),
+                            y,
+                            pos.getZ()
+                    );
+
+            BlockState state =
+                    level.getBlockState(
+                            probe
+                    );
+
+            if (!PhysicalBlockGeometry.isMatterSpace(
+                    level,
+                    probe,
+                    state
+            )) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static int chebyshevDistance(
