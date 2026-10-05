@@ -29,7 +29,7 @@ public final class EquipmentVisualValidation {
         ran=true;
         try {run(mc);}catch(Exception|AssertionError failure){WayAround.LOGGER.error("EQUIPMENT GPU FAILED",failure);}
     }
-    private static void run(Minecraft mc) throws java.io.IOException {
+    private static void run(Minecraft mc) throws Exception {
         TextureTarget target=null;
         int read=GL11.glGetInteger(GL30.GL_READ_FRAMEBUFFER_BINDING),draw=GL11.glGetInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING);
         int[] viewport=new int[4];GL11.glGetIntegerv(GL11.GL_VIEWPORT,viewport);
@@ -40,12 +40,16 @@ public final class EquipmentVisualValidation {
         var oldSort=RenderSystem.getVertexSorting();
         float oldFogStart=RenderSystem.getShaderFogStart(),oldFogEnd=RenderSystem.getShaderFogEnd();
         float[] oldColor=RenderSystem.getShaderColor().clone();
+        var oldLights=RenderSystem.getShaderLightDirections();
+        var firstLight=new org.joml.Vector3f(oldLights[0]);
+        var secondLight=new org.joml.Vector3f(oldLights[1]);
         var modelView=RenderSystem.getModelViewStack();modelView.pushMatrix();modelView.identity();RenderSystem.applyModelViewMatrix();
         var folder=java.nio.file.Path.of("equipment-captures");java.nio.file.Files.createDirectories(folder);
-        try {
+        try (var lightmap=new PreviewLightmap(mc)) {
             GL11.glDisable(GL11.GL_SCISSOR_TEST);GL11.glDepthMask(true);
             RenderSystem.setShaderFogStart(9999);RenderSystem.setShaderFogEnd(99999);
             RenderSystem.setShaderColor(1,1,1,1);
+            com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
             target=new TextureTarget(960,540,true,Minecraft.ON_OSX);
             int width=mc.getWindow().getGuiScaledWidth(),height=mc.getWindow().getGuiScaledHeight();
             RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0,width,height,0,-1000,1000),com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
@@ -80,8 +84,8 @@ public final class EquipmentVisualValidation {
             AccessoryRenderer.chefHat(0,pose,mc.getBlockRenderer(),graphics.bufferSource(),0xF000F0);
             graphics.flush();pose.popPose();
             try(var image=Screenshot.takeScreenshot(target)) {
-                require(brightPixels(image)>4000,"Actual shared chef model renders on GPU");
                 image.writeToFile(folder.resolve("chef-toque.png"));
+                require(brightPixels(image)>4000,"Actual shared chef model renders on GPU: "+brightPixels(image));
             }
             target.bindWrite(true);GL11.glClearColor(.08F,.1F,.12F,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
             pose.pushPose();pose.translate(width*.5,height*.35,0);
@@ -90,20 +94,43 @@ public final class EquipmentVisualValidation {
             AccessoryRenderer.renderChefPreview(pose,mc.getBlockRenderer(),graphics.bufferSource(),0xF000F0);
             graphics.flush();pose.popPose();
             try(var image=Screenshot.takeScreenshot(target)) {
-                require(brightPixels(image)>7000,"Actual worn-set helpers render jacket, trousers, gloves, shoes and apron");
                 image.writeToFile(folder.resolve("chef-outfit.png"));
+                require(brightPixels(image)>7000,"Actual worn-set helpers render jacket, trousers, gloves, shoes and apron: "+brightPixels(image));
             }
             WayAround.LOGGER.info("EQUIPMENT GPU PASSED: actual lens tints, 2 crack stages, lifted/removed clear, shared worn/flying chef mesh");
         } finally {
             if(target!=null)target.destroyBuffers();
             RenderSystem.setShaderFogStart(oldFogStart);RenderSystem.setShaderFogEnd(oldFogEnd);
             RenderSystem.setShaderColor(oldColor[0],oldColor[1],oldColor[2],oldColor[3]);
+            RenderSystem.setShaderLights(firstLight,secondLight);
             modelView.popMatrix();RenderSystem.applyModelViewMatrix();
             RenderSystem.setProjectionMatrix(oldProjection,oldSort);
             GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER,read);GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER,draw);
             RenderSystem.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
             GL11.glClearColor(clear[0],clear[1],clear[2],clear[3]);GL11.glClearDepth(depthClear);GL11.glDepthMask(mask);
             if(scissor)GL11.glEnable(GL11.GL_SCISSOR_TEST);else GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        }
+    }
+    /** Menu QA has no world to update the lightmap; supply full-bright inputs and restore them. */
+    private static final class PreviewLightmap implements AutoCloseable {
+        private final net.minecraft.client.renderer.texture.DynamicTexture texture;
+        private final NativeImage image;
+        private final int[] pixels;
+        private PreviewLightmap(Minecraft mc) throws ReflectiveOperationException {
+            java.lang.reflect.Field field=java.util.Arrays.stream(net.minecraft.client.renderer.LightTexture.class.getDeclaredFields())
+                    .filter(f->f.getType()==net.minecraft.client.renderer.texture.DynamicTexture.class).findFirst().orElseThrow();
+            field.setAccessible(true);
+            texture=(net.minecraft.client.renderer.texture.DynamicTexture)field.get(mc.gameRenderer.lightTexture());
+            image=java.util.Objects.requireNonNull(texture.getPixels());
+            pixels=new int[image.getWidth()*image.getHeight()];
+            for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++){
+                pixels[y*image.getWidth()+x]=image.getPixelRGBA(x,y);image.setPixelRGBA(x,y,0xFFFFFFFF);
+            }
+            texture.upload();
+        }
+        @Override public void close() {
+            for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++)image.setPixelRGBA(x,y,pixels[y*image.getWidth()+x]);
+            texture.upload();
         }
     }
     private static NativeImage lens(Minecraft mc,TextureTarget target,AccessoryKind kind,int mode,int damage) {
