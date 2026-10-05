@@ -380,6 +380,62 @@ public final class PhysicalMaterials {
                     )
             );
 
+    public static final MaterialDefinition UNKNOWN_LIQUID =
+            register(
+                    material(
+                            "unknown_liquid",
+                            MatterPhase.LIQUID,
+                            phases(
+                                    phase(
+                                            MatterPhase.LIQUID,
+                                            1000.0,
+                                            2000.0,
+                                            0.25,
+                                            5.0E-10,
+                                            0.0015
+                                    )
+                            ),
+                            transitions(
+                                    Double.NaN,
+                                    Double.NaN,
+                                    Double.NaN
+                            ),
+                            engineering(
+                                    0.0F, 0.30F, 0.55F, 1.0F,
+                                    0.0F, 0.0F, 1.0F, 1.0F, 0.02F,
+                                    1.0F, 0.0F, 1.0F, 0.0F
+                            )
+                    )
+            );
+
+    public static final MaterialDefinition UNKNOWN_GAS =
+            register(
+                    material(
+                            "unknown_gas",
+                            MatterPhase.GAS,
+                            phases(
+                                    phase(
+                                            MatterPhase.GAS,
+                                            1.2,
+                                            1000.0,
+                                            0.025,
+                                            1.0E-5,
+                                            1.8E-5
+                                    )
+                            ),
+                            transitions(
+                                    Double.NaN,
+                                    Double.NaN,
+                                    Double.NaN
+                            ),
+                            engineering(
+                                    0.0F, 0.05F, 1.0F, 1.0F,
+                                    0.0F, 0.0F, 1.0F, 1.0F, 0.0F,
+                                    1.0F, 0.0F, 1.0F, 0.0F
+                            )
+                    )
+            );
+
     public static final MaterialDefinition UNKNOWN_SOLID =
             register(
                     solid(
