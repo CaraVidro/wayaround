@@ -3,6 +3,7 @@ package net.caravidro.wayaround.pressure;
 import net.caravidro.wayaround.physical.MaterialDefinition;
 import net.caravidro.wayaround.physical.MatterPhase;
 import net.caravidro.wayaround.physical.PhysicalMaterials;
+import net.caravidro.wayaround.worldgen.WayAroundBiomes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BiomeTags;
@@ -221,10 +222,23 @@ public final class NaturalPressure {
             ServerLevel level,
             BlockPos pos
     ) {
-        return level.getBiome(
-                pos
-        ).is(
+        var biome =
+                level.getBiome(
+                        pos
+                );
+
+        return biome.is(
                 BiomeTags.IS_OCEAN
-        );
+        )
+                || biome.unwrapKey()
+                        .map(
+                                key ->
+                                        key.equals(
+                                                WayAroundBiomes.SOUTHERN_OCEAN
+                                        )
+                        )
+                        .orElse(
+                                false
+                        );
     }
 }
