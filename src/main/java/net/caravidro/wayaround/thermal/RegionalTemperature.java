@@ -627,7 +627,7 @@ public final class RegionalTemperature {
 
                             return Math.abs(
                                     temperature - ambient
-                            ) < 4.0;
+                            ) < 0.05;
                         }
                 );
 
