@@ -145,7 +145,7 @@ public final class WeaponCombatEvents {
                 .playSound(
                         null,
                         player.blockPosition(),
-                        SoundEvents.TRIDENT_THROW,
+                        SoundEvents.TRIDENT_THROW.value(),
                         SoundSource.PLAYERS,
                         0.26F,
                         1.55F
