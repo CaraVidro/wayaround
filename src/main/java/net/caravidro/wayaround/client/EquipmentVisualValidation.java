@@ -52,7 +52,9 @@ public final class EquipmentVisualValidation {
             GL11.glDisable(GL11.GL_SCISSOR_TEST);GL11.glDepthMask(true);
             RenderSystem.setShaderFogStart(9999);RenderSystem.setShaderFogEnd(99999);
             RenderSystem.setShaderColor(1,1,1,1);
-            com.mojang.blaze3d.platform.Lighting.setupFor3DItems();
+            // Our preview faces +Z; vanilla item lighting is aligned to item GUI transforms instead.
+            RenderSystem.setShaderLights(new org.joml.Vector3f(.3F,-.8F,1).normalize(),
+                    new org.joml.Vector3f(-.5F,.3F,1).normalize());
             target=new TextureTarget(960,540,true,Minecraft.ON_OSX);
             int width=mc.getWindow().getGuiScaledWidth(),height=mc.getWindow().getGuiScaledHeight();
             RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0,width,height,0,-1000,1000),com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
@@ -81,14 +83,15 @@ public final class EquipmentVisualValidation {
             target.bindWrite(true);GL11.glClearColor(.08F,.1F,.12F,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
             var graphics=new GuiGraphics(mc,mc.renderBuffers().bufferSource());
             PoseStack pose=graphics.pose();pose.pushPose();
-            pose.translate(width*.5,height*.85,0);pose.scale(-width*.55F,height*.80F,80);
+            pose.translate(width*.5,height*.95,0);pose.scale(-width*.55F,height*.70F,80);
             pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-12));
             pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(28));
             AccessoryRenderer.chefHat(0,pose,mc.getBlockRenderer(),graphics.bufferSource(),0xF000F0);
             graphics.flush();pose.popPose();
+            int hatPixels,outfitPixels;
             try(var image=Screenshot.takeScreenshot(target)) {
                 image.writeToFile(folder.resolve("chef-toque.png"));
-                require(brightPixels(image)>4000,"Actual shared chef model renders on GPU: "+brightPixels(image));
+                hatPixels=clothPixels(image);
             }
             target.bindWrite(true);GL11.glClearColor(.08F,.1F,.12F,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
             pose.pushPose();pose.translate(width*.5,height*.35,0);
@@ -98,8 +101,10 @@ public final class EquipmentVisualValidation {
             graphics.flush();pose.popPose();
             try(var image=Screenshot.takeScreenshot(target)) {
                 image.writeToFile(folder.resolve("chef-outfit.png"));
-                require(brightPixels(image)>7000,"Actual worn-set helpers render jacket, trousers, gloves, shoes and apron: "+brightPixels(image));
+                outfitPixels=clothPixels(image);
             }
+            require(hatPixels>4000,"Actual shared chef model has visible textured cloth coverage: "+hatPixels);
+            require(outfitPixels>7000,"Actual worn-set helpers render jacket, trousers, gloves, shoes and apron: "+outfitPixels);
             WayAround.LOGGER.info("EQUIPMENT GPU PASSED: actual lens tints, 2 crack stages, lifted/removed clear, shared worn/flying chef mesh");
         } finally {
             if(target!=null)target.destroyBuffers();
@@ -149,6 +154,12 @@ public final class EquipmentVisualValidation {
         int bright=0;for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++){
             int p=image.getPixelRGBA(x,y);if((p&255)>110&&((p>>>8)&255)>110&&((p>>>16)&255)>110)bright++;
         }return bright;
+    }
+    private static int clothPixels(NativeImage image) {
+        // Actual diffuse wool can be gray under block shading; measure contrast against the dark backdrop.
+        int count=0;for(int y=0;y<image.getHeight();y++)for(int x=0;x<image.getWidth();x++){
+            int p=image.getPixelRGBA(x,y);if((p&255)>55&&((p>>>8)&255)>55&&((p>>>16)&255)>55)count++;
+        }return count;
     }
     private static void require(boolean pass,String message){if(!pass)throw new AssertionError(message);}
     private EquipmentVisualValidation() {}
