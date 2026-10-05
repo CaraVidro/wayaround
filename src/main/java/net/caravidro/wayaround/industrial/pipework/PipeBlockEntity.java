@@ -196,6 +196,14 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         int temperature=fluid.getFluid().getFluidType().getTemperature()-273;
         int tolerance=getBlockState().getBlock() instanceof IndustrialPipeBlock pipe?pipe.spec().maxTemperatureC():800;
         if(temperature>tolerance)damage(Math.min(.025F,(temperature-tolerance)*.00001F));
+
+        if(level!=null&&!body.isEmpty()
+                &&Math.floorMod(level.getGameTime()+worldPosition.asLong(),20)==0){
+            var profile=AssemblyItemData.readPart(body);
+            if(profile!=null)AssemblyItemData.observeMaterialTemperature(
+                    body,profile.material(),level.getGameTime(),temperature);
+        }
+
         flow=hasValve()?flow:direction;visible=fluid.copyWithAmount(1);wetUntil=level.getGameTime()+30;sync();}
 
     public void applyHydraulicPressure(float pressureBar){
