@@ -40,7 +40,10 @@ public final class EquipmentVisualValidation {
         var oldSort=RenderSystem.getVertexSorting();
         float oldFogStart=RenderSystem.getShaderFogStart(),oldFogEnd=RenderSystem.getShaderFogEnd();
         float[] oldColor=RenderSystem.getShaderColor().clone();
-        var oldLights=RenderSystem.getShaderLightDirections();
+        var lightsField=java.util.Arrays.stream(RenderSystem.class.getDeclaredFields())
+                .filter(f->f.getType()==org.joml.Vector3f[].class).findFirst().orElseThrow();
+        lightsField.setAccessible(true);
+        var oldLights=(org.joml.Vector3f[])lightsField.get(null);
         var firstLight=new org.joml.Vector3f(oldLights[0]);
         var secondLight=new org.joml.Vector3f(oldLights[1]);
         var modelView=RenderSystem.getModelViewStack();modelView.pushMatrix();modelView.identity();RenderSystem.applyModelViewMatrix();
