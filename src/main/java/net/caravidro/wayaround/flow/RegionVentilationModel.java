@@ -2,6 +2,8 @@ package net.caravidro.wayaround.flow;
 
 import net.caravidro.wayaround.physical.PhysicalOpening;
 import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
+import net.caravidro.wayaround.pressure.RegionPressureModel;
+import net.caravidro.wayaround.pressure.UniversalPressure;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
 
@@ -20,6 +22,21 @@ public record RegionVentilationModel(
             ServerLevel level,
             PhysicalRegionSnapshot region
     ) {
+        RegionPressureModel inside =
+                UniversalPressure.regionAt(
+                        level,
+                        region,
+                        region.seed()
+                );
+
+        FlowState wind =
+                UniversalFlow.atmosphereAt(
+                        level,
+                        Vec3.atCenterOf(
+                                region.seed()
+                        )
+                );
+
         double outward =
                 0.0;
 
@@ -35,8 +52,9 @@ public record RegionVentilationModel(
             FlowState flow =
                     UniversalFlow.ventilationAt(
                             level,
-                            region,
-                            opening
+                            opening,
+                            inside,
+                            wind
                     );
 
             Vec3 outwardNormal =
