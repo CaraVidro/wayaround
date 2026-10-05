@@ -108,9 +108,15 @@ public record RegionVentilationModel(
             }
         }
 
+        /*
+         * In a balanced cross-flow the same parcel entering is matched by one
+         * leaving. Counting both would double ACH and thermal advection.
+         */
         double exchange =
-                outward
-                        + inward;
+                Math.max(
+                        outward,
+                        inward
+                );
 
         double volume =
                 Math.max(
