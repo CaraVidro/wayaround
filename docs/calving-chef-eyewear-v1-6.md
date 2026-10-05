@@ -48,5 +48,6 @@ starts a real dedicated server with `-Dwayaround.validateCalvingEquipment=true`
 for snapshot edits, exact block/chest conservation, bounded packet roundtrip,
 exposed/sheltered impacts, hat save/recovery and durable lens state. An opt-in
 client (`-Dwayaround.validateEquipmentVisuals=true`) renders the real overlay and
-shared chef mesh into a GPU framebuffer and exports captures. Multiplayer
+shared chef mesh and the complete set on a neutral mannequin into a GPU
+framebuffer and exports captures. Multiplayer
 latency, shader packs and the full worn outfit still merit in-game visual QA.

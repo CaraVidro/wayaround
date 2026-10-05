@@ -197,6 +197,29 @@ public final class AccessoryRenderer {
         pose.popPose();
     }
 
+    /** Opt-in visual QA uses exactly the worn set's bone-local rendering helpers. */
+    public static void renderChefPreview(PoseStack pose, BlockRenderDispatcher blocks,
+            MultiBufferSource buffers, int light) {
+        var model = new PlayerModel<>(Minecraft.getInstance().getEntityModels().bakeLayer(
+                net.minecraft.client.model.geom.ModelLayers.PLAYER), false);
+        String[] kinds = new String[AccessorySlot.values().length];
+        java.util.Arrays.fill(kinds, "");
+        for (var kind : new AccessoryKind[]{AccessoryKind.CHEF_HAT, AccessoryKind.CHEF_COAT,
+                AccessoryKind.CHEF_GLOVES, AccessoryKind.CHEF_TROUSERS, AccessoryKind.CHEF_SHOES,
+                AccessoryKind.CHEF_APRON}) kinds[kind.slot().ordinal()] = kind.path();
+        var state = new AccessoryClientState.State(kinds, new int[kinds.length], new int[kinds.length],
+                0, ItemStack.EMPTY, 0, 2, 0, 0, new int[kinds.length], 0);
+        // Neutral head only for the QA mannequin; equipment still uses its normal worn helpers.
+        piece(pose, blocks, buffers, light, Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
+                0, -.25, 0, .5, .5, .5, 0, 0, 0);
+        renderHead(state, pose, model, blocks, buffers, light, null);
+        renderTorso(state, pose, model, blocks, buffers, light);
+        renderHands(state, pose, model, blocks, buffers, light);
+        renderLegs(state, pose, model, blocks, buffers, light);
+        renderFeet(state, pose, model, blocks, buffers, light);
+        apron(model.body, pose, blocks, buffers, light, 0, null);
+    }
+
     private static void renderHead(
             AccessoryClientState.State state,
             PoseStack pose,
@@ -2837,10 +2860,7 @@ public final class AccessoryRenderer {
                 pose
         );
 
-        MotionSample motion =
-                motion(
-                        event
-                );
+        MotionSample motion = event == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(event);
 
         piece(pose, blocks, buffers, light,
                 Blocks.COPPER_BLOCK.defaultBlockState(),
@@ -2965,10 +2985,7 @@ public final class AccessoryRenderer {
                 pose
         );
 
-        MotionSample motion =
-                motion(
-                        event
-                );
+        MotionSample motion = event == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(event);
 
         BlockState metal =
                 kind == AccessoryKind.AERO_GEAR_CLUSTER
@@ -3108,10 +3125,7 @@ public final class AccessoryRenderer {
                 pose
         );
 
-        MotionSample motion =
-                motion(
-                        event
-                );
+        MotionSample motion = event == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(event);
 
         BlockState cloth =
                 wear == 0

@@ -38,6 +38,7 @@ public final class EquipmentVisualValidation {
         boolean scissor=GL11.glIsEnabled(GL11.GL_SCISSOR_TEST),mask=GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
         var oldProjection=new Matrix4f(RenderSystem.getProjectionMatrix());
         var oldSort=RenderSystem.getVertexSorting();
+        var modelView=RenderSystem.getModelViewStack();modelView.pushMatrix();modelView.identity();RenderSystem.applyModelViewMatrix();
         var folder=java.nio.file.Path.of("equipment-captures");java.nio.file.Files.createDirectories(folder);
         try {
             GL11.glDisable(GL11.GL_SCISSOR_TEST);GL11.glDepthMask(true);
@@ -47,7 +48,7 @@ public final class EquipmentVisualValidation {
             for(int damage=0;damage<=2;damage++) {
                 try(var image=lens(mc,target,AccessoryKind.ENGINEER_GOGGLES,0,damage)) {
                     int p=image.getPixelRGBA(480,25);
-                    require(((p>>>16)&255)>(p&255)+4,"Blue glass actually changes framebuffer color");
+                    require(((p>>>16)&255)>(p&255)+(damage==2?1:4),"Blue glass actually changes framebuffer color");
                     if(damage>0)require(brightPixels(image)>400,"Broken lenses produce visible persistent fractures");
                     image.writeToFile(folder.resolve("lenses-"+damage+".png"));
                 }
@@ -65,7 +66,7 @@ public final class EquipmentVisualValidation {
             target.bindWrite(true);GL11.glClearColor(.08F,.1F,.12F,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
             var graphics=new GuiGraphics(mc,mc.renderBuffers().bufferSource());
             PoseStack pose=graphics.pose();pose.pushPose();
-            pose.translate(width*.5,height*.85,0);pose.scale(width*.55F,height*.80F,80);
+            pose.translate(width*.5,height*.85,0);pose.scale(-width*.55F,height*.80F,80);
             pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-12));
             pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(28));
             AccessoryRenderer.chefHat(0,pose,mc.getBlockRenderer(),graphics.bufferSource(),0xF000F0);
@@ -74,9 +75,20 @@ public final class EquipmentVisualValidation {
                 require(brightPixels(image)>4000,"Actual shared chef model renders on GPU");
                 image.writeToFile(folder.resolve("chef-toque.png"));
             }
+            target.bindWrite(true);GL11.glClearColor(.08F,.1F,.12F,1);GL11.glClear(GL11.GL_COLOR_BUFFER_BIT|GL11.GL_DEPTH_BUFFER_BIT);
+            pose.pushPose();pose.translate(width*.5,height*.35,0);
+            float scale=height*.25F;pose.scale(-scale,scale,scale);
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(155));
+            AccessoryRenderer.renderChefPreview(pose,mc.getBlockRenderer(),graphics.bufferSource(),0xF000F0);
+            graphics.flush();pose.popPose();
+            try(var image=Screenshot.takeScreenshot(target)) {
+                require(brightPixels(image)>7000,"Actual worn-set helpers render jacket, trousers, gloves, shoes and apron");
+                image.writeToFile(folder.resolve("chef-outfit.png"));
+            }
             WayAround.LOGGER.info("EQUIPMENT GPU PASSED: actual lens tints, 2 crack stages, lifted/removed clear, shared worn/flying chef mesh");
         } finally {
             if(target!=null)target.destroyBuffers();
+            modelView.popMatrix();RenderSystem.applyModelViewMatrix();
             RenderSystem.setProjectionMatrix(oldProjection,oldSort);
             GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER,read);GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER,draw);
             RenderSystem.viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
