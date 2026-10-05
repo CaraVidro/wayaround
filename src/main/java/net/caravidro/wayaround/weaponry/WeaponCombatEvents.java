@@ -214,6 +214,9 @@ public final class WeaponCombatEvents {
                                         living != player
                                                 && living != mainTarget
                                                 && living.isAlive()
+                                                && player.hasLineOfSight(
+                                                living
+                                        )
                                                 && !living.isAlliedTo(
                                                 player
                                         )
