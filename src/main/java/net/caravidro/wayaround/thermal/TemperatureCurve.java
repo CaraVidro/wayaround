@@ -1,6 +1,6 @@
 package net.caravidro.wayaround.thermal;
 
-/** Gameplay degrees; rates are probabilities per sampled exposure, not real thermodynamics. */
+/** Celsius field limits plus legacy probabilistic reaction curves. */
 public final class TemperatureCurve {
     public static final double AMBIENT = 20;
     public static final double MIN = -120;
