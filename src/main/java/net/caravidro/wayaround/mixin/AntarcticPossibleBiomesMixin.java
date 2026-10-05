@@ -105,6 +105,8 @@ public abstract class AntarcticPossibleBiomesMixin {
          * =====================================================
          */
 
+        if(cir.getReturnValue().stream().noneMatch(b->b.unwrapKey().map(k->k.location().toString().equals("minecraft:plains")||k.location().toString().equals("minecraft:forest")).orElse(false)))return;
+
         Holder<Biome> antarctic =
                 antarcticaEnabled
                         ? WayAroundBiomes

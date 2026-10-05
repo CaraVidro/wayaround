@@ -136,6 +136,11 @@ public final class WorldgenRegistry {
     public static final net.neoforged.neoforge.registries.DeferredHolder<MapCodec<? extends net.minecraft.world.level.levelgen.DensityFunction>, MapCodec<net.caravidro.wayaround.worldgen.terrain.OceanContinentalness>> OCEAN_SCALE =
             DENSITY_FUNCTION_TYPES.register("ocean_continentalness", () -> net.caravidro.wayaround.worldgen.terrain.OceanContinentalness.DATA_CODEC);
 
+    public static final Supplier<MapCodec<net.caravidro.wayaround.worldgen.planet.GeographicNoise>> GEOGRAPHIC_NOISE =
+            DENSITY_FUNCTION_TYPES.register("geographic_noise",()->net.caravidro.wayaround.worldgen.planet.GeographicNoise.DATA_CODEC);
+    public static final Supplier<MapCodec<net.caravidro.wayaround.worldgen.planet.RegionalTerrainDensity>> REGIONAL_TERRAIN =
+            DENSITY_FUNCTION_TYPES.register("regional_terrain",()->net.caravidro.wayaround.worldgen.planet.RegionalTerrainDensity.DATA_CODEC);
+
     public static void register(
             IEventBus bus
     ) {

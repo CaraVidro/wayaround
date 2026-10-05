@@ -70,6 +70,7 @@ public abstract class OverworldBiomeMixin {
             Climate.Sampler sampler,
             CallbackInfoReturnable<Holder<Biome>> cir
     ) {
+        if(!net.caravidro.wayaround.worldgen.planet.GeographyBiomes.overworld((MultiNoiseBiomeSource)(Object)this))return;
         boolean antarcticaEnabled =
                 WorldFeatureRuntime.serverEnabled(
                         WorldFeature.ANTARCTICA

@@ -13,9 +13,7 @@ public final class WorldFeatureSettings {
             );
 
     public WorldFeatureSettings() {
-        setAll(
-                true
-        );
+        for(WorldFeature feature:WorldFeature.values())values.put(feature,feature.defaultEnabled());
     }
 
     public WorldFeatureSettings(
@@ -32,8 +30,11 @@ public final class WorldFeatureSettings {
         }
     }
 
+    public static WorldFeatureSettings defaults() { return new WorldFeatureSettings(); }
+    public static WorldFeatureSettings legacy() { var s=defaults();s.set(WorldFeature.LARGE_GEOGRAPHY,false);s.set(WorldFeature.FINITE_WORLD,false);return s; }
+
     public static WorldFeatureSettings allEnabled() {
-        return new WorldFeatureSettings();
+        WorldFeatureSettings settings=new WorldFeatureSettings();settings.setAll(true);return settings;
     }
 
     public static WorldFeatureSettings allDisabled() {
@@ -52,7 +53,7 @@ public final class WorldFeatureSettings {
     ) {
         return values.getOrDefault(
                 feature,
-                true
+                feature.defaultEnabled()
         );
     }
 
@@ -161,7 +162,7 @@ public final class WorldFeatureSettings {
             CompoundTag tag
     ) {
         WorldFeatureSettings settings =
-                allEnabled();
+                legacy();
 
         for (WorldFeature feature :
                 WorldFeature.values()) {

@@ -11,7 +11,7 @@ public final class WorldFeatureSavedData
             "wayaround_world_features";
 
     private WorldFeatureSettings settings =
-            WorldFeatureSettings.allEnabled();
+            WorldFeatureSettings.defaults();
 
     public WorldFeatureSavedData() {
     }
