@@ -17,6 +17,7 @@
     "TukunaMobPickupMixin",
     "InfinityPushMixin",
     "EcologyFishingHookMixin",
+    "CampfireBlockEntityMixin",
     "FireBlockMixin",
     "FireRenderShapeMixin",
     "FireAnimateTickMixin",

@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -110,11 +111,17 @@ public final class EnvironmentalHeatSources {
             return 620.0;
         }
 
-        if (state.is(
+        if ((state.is(
                 Blocks.CAMPFIRE
         )
                 || state.is(
                 Blocks.SOUL_CAMPFIRE
+        ))
+                && state.hasProperty(
+                CampfireBlock.LIT
+        )
+                && state.getValue(
+                CampfireBlock.LIT
         )) {
             return 310.0;
         }
