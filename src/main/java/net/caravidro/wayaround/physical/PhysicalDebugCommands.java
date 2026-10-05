@@ -223,6 +223,15 @@ public final class PhysicalDebugCommands {
                                 delta / 100.0
                         );
 
+                String maxWallLoad =
+                        String.format(
+                                Locale.ROOT,
+                                "%.1f",
+                                model.maxBoundaryLoadN(
+                                        region.get()
+                                )
+                        );
+
                 source.sendSuccess(
                         () -> Component.literal(
                                 "PRESSAO DA REGIAO | "
@@ -232,7 +241,9 @@ public final class PhysicalDebugCommands {
                                         + regionAbsolute
                                         + " kPa | delta vs natural "
                                         + regionGauge
-                                        + " bar | temp "
+                                        + " bar | cargaMaxParede "
+                                        + maxWallLoad
+                                        + " N | temp "
                                         + String.format(
                                         Locale.ROOT,
                                         "%.1f",
