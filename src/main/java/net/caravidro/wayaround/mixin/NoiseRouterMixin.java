@@ -86,22 +86,25 @@ public abstract class NoiseRouterMixin {
                         WorldFeature.GREAT_RIFTS
                 );
 
-        if (!antarcticaEnabled
-                && !volcanicEnabled
-                && !riftEnabled && !WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
-            return;
-        }
+        NoiseGeneratorSettings settings=(NoiseGeneratorSettings)(Object)this;
+        if(settings.seaLevel()!=63||!settings.defaultBlock().is(net.minecraft.world.level.block.Blocks.STONE)
+                ||!settings.defaultFluid().is(net.minecraft.world.level.block.Blocks.WATER))return;
+        boolean large=WorldFeatureRuntime.serverEnabled(WorldFeature.LARGE_GEOGRAPHY);
+        boolean finite=WorldFeatureRuntime.serverEnabled(WorldFeature.FINITE_WORLD);
+        if (!antarcticaEnabled && !volcanicEnabled && !riftEnabled && !large && !finite
+                && !WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION))return;
 
         NoiseRouter source = cir.getReturnValue();
         int flags = (antarcticaEnabled ? 1 : 0) | (volcanicEnabled ? 2 : 0) | (riftEnabled ? 4 : 0)
-                | (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION) ? 8 : 0);
+                | (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION) ? 8 : 0) | (large?16:0) | (finite?32:0);
         Object[] cached = wayaround$routerCache;
         if (cached != null && cached[0] == source && ((Integer) cached[1]) == flags) {
             cir.setReturnValue((NoiseRouter) cached[2]);
             return;
         }
         NoiseRouter vanilla = source;
-        if (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
+        if(large||finite)vanilla=net.caravidro.wayaround.worldgen.planet.GeographicNoise.transform(vanilla,large,finite);
+        else if (WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_VEGETATION)) {
             vanilla = net.caravidro.wayaround.worldgen.terrain.OceanContinentalness.scale(vanilla);
             cir.setReturnValue(vanilla);
         }
@@ -138,7 +141,7 @@ public abstract class NoiseRouterMixin {
                                 instanceof GreatRiftDensityFunction
                 );
 
-        if (alreadyAntarctic
+        if (!large && alreadyAntarctic
                 && alreadyVolcanic
                 && alreadyRift) {
             wayaround$routerCache = new Object[]{source, flags, vanilla};
@@ -160,6 +163,10 @@ public abstract class NoiseRouterMixin {
         DensityFunction finalDensity =
                 vanilla.finalDensity();
 
+        if(large) {
+            initialDensity=new net.caravidro.wayaround.worldgen.planet.RegionalTerrainDensity(initialDensity,vanilla.continents(),vanilla.erosion(),vanilla.ridges(),true);
+            finalDensity=new net.caravidro.wayaround.worldgen.planet.RegionalTerrainDensity(finalDensity,vanilla.continents(),vanilla.erosion(),vanilla.ridges(),false);
+        }
         if (antarcticaEnabled
                 && !(initialDensity
                 instanceof AntarcticDensityFunction)) {

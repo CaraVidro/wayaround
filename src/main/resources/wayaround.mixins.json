@@ -25,7 +25,11 @@
     "ContinentalNoiseAccessor",
     "EcologyHookAccessor",
     "EntitySpectatePlayerMixin",
-    "EntitySpectateEffectsMixin"
+    "EntitySpectateEffectsMixin",
+    "GeographyElevationBiomeMixin",
+    "WitnessedDeathMixin",
+    "LostRespawnWaitMixin",
+    "LostRespawnPositionMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",

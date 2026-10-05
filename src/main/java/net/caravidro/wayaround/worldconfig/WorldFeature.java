@@ -169,8 +169,16 @@ public enum WorldFeature {
             WorldFeatureCategory.WORLD,
             "Little Leaf World",
             "Ants, termites, fungus gardens and growing colonies."
-    );
+    ),
 
+    LARGE_GEOGRAPHY(WorldFeatureCategory.WORLD, "Continents & Massifs", "Larger climate regions, long mountain ranges, broad coasts and immense ocean basins."),
+    FINITE_WORLD(WorldFeatureCategory.WORLD, "Round World", "A 65,536-block world: crossing east/west or north/south returns to the opposite side. Height stays normal."),
+    WITNESSED_DEATHS(WorldFeatureCategory.SYSTEMS, "Unseen Expeditions", "Death messages reach only nearby players looking at the death through a clear line of sight."),
+    RANDOM_RESPAWN(WorldFeatureCategory.SYSTEMS, "Lost After Death", "Respawn on distant safe land instead of at your bed. Optional; disabled by default.", false);
+
+    private final boolean defaultEnabled;
+    public boolean defaultEnabled() { return defaultEnabled; }
+    public boolean changesGeneration() { return this==LARGE_GEOGRAPHY||this==FINITE_WORLD; }
     private final WorldFeatureCategory category;
     private final String title;
     private final String description;
@@ -180,6 +188,11 @@ public enum WorldFeature {
             String title,
             String description
     ) {
+        this(category,title,description,true);
+    }
+
+    WorldFeature(WorldFeatureCategory category,String title,String description,boolean defaultEnabled) {
+        this.defaultEnabled=defaultEnabled;
         this.category =
                 category;
         this.title =

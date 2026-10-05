@@ -95,7 +95,7 @@ public record AntarcticDensityFunction(
                 antarcticBlend >= 0.999
         ) {
 
-            return AntarcticTerrain.sampleDensity(
+            return net.caravidro.wayaround.worldgen.planet.PeriodicPolarTerrain.ice(
                     x,
                     y,
                     z
@@ -134,7 +134,7 @@ public record AntarcticDensityFunction(
                 antarcticBlend <= 0.001
         ) {
 
-            return AntarcticTerrain.sampleIcebergOceanDensity(
+            return net.caravidro.wayaround.worldgen.planet.PeriodicPolarTerrain.ocean(
                     x,
                     y,
                     z
@@ -252,7 +252,7 @@ public record AntarcticDensityFunction(
         ) {
 
             double oceanDensity =
-                    AntarcticTerrain.sampleIcebergOceanDensity(
+                    net.caravidro.wayaround.worldgen.planet.PeriodicPolarTerrain.ocean(
                             x,
                             y,
                             z
@@ -302,7 +302,7 @@ public record AntarcticDensityFunction(
         ) {
 
             double antarcticDensity =
-                    AntarcticTerrain.sampleDensity(
+                    net.caravidro.wayaround.worldgen.planet.PeriodicPolarTerrain.ice(
                             x,
                             y,
                             z
@@ -405,7 +405,7 @@ public record AntarcticDensityFunction(
             ) {
 
                 values[i] =
-                        AntarcticTerrain.sampleDensity(
+                        net.caravidro.wayaround.worldgen.planet.PeriodicPolarTerrain.ice(
                                 x,
                                 y,
                                 z
@@ -437,7 +437,7 @@ public record AntarcticDensityFunction(
             ) {
 
                 values[i] =
-                        AntarcticTerrain.sampleIcebergOceanDensity(
+                        net.caravidro.wayaround.worldgen.planet.PeriodicPolarTerrain.ocean(
                                 x,
                                 y,
                                 z

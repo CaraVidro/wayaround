@@ -20,7 +20,7 @@ public final class WorldFeatureSelectionScreen
     private final CreateWorldScreen parent;
 
     private final WorldFeatureSettings settings =
-            WorldFeatureSettings.allEnabled();
+            WorldFeatureSettings.defaults();
 
     private WorldFeatureCategory category =
             WorldFeatureCategory.POWERS;

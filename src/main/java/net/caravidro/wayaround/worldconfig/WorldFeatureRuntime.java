@@ -24,8 +24,9 @@ public final class WorldFeatureRuntime {
         }
     }
 
-    private static volatile Snapshot SERVER = Snapshot.of(WorldFeatureSettings.allEnabled());
-    private static volatile Snapshot CLIENT = Snapshot.of(WorldFeatureSettings.allEnabled());
+    private static volatile boolean attachedServer;
+    private static volatile Snapshot SERVER = Snapshot.of(WorldFeatureSettings.defaults());
+    private static volatile Snapshot CLIENT = Snapshot.of(WorldFeatureSettings.defaults());
 
     public static boolean serverEnabled(
             WorldFeature feature
@@ -74,7 +75,7 @@ public final class WorldFeatureRuntime {
     public static void applyServer(
             WorldFeatureSettings settings
     ) {
-        SERVER =
+        attachedServer=true;SERVER =
                 Snapshot.of(settings);
     }
 
@@ -83,15 +84,18 @@ public final class WorldFeatureRuntime {
     ) {
         CLIENT =
                 Snapshot.of(settings);
+        if(!attachedServer)SERVER=Snapshot.of(settings);
     }
 
     public static void resetServer() {
+        attachedServer=false;
         SERVER =
-                Snapshot.of(WorldFeatureSettings.allEnabled());
+                Snapshot.of(WorldFeatureSettings.defaults());
     }
 
     public static void resetClient() {
         CLIENT =
-                Snapshot.of(WorldFeatureSettings.allEnabled());
+                Snapshot.of(WorldFeatureSettings.defaults());
+        if(!attachedServer)SERVER=CLIENT;
     }
 }

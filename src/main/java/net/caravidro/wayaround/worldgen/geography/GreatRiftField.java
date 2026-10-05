@@ -17,6 +17,8 @@ public final class GreatRiftField {
     private static final long SEED =
             0x4752454154524946L;
 
+    private static double edgeFade(int x,int z){return net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.serverEnabled(net.caravidro.wayaround.worldconfig.WorldFeature.FINITE_WORLD)?net.caravidro.wayaround.worldgen.planet.PlanetMath.edgeFade(x,z):1;}
+
     private GreatRiftField() {
     }
 
@@ -424,7 +426,7 @@ public final class GreatRiftField {
             return 0.0;
         }
 
-        return rift.sample(
+        return edgeFade(blockX,blockZ)*rift.sample(
                 blockX,
                 blockZ
         )
@@ -445,7 +447,7 @@ public final class GreatRiftField {
             return 0.0;
         }
 
-        return rift.sample(
+        return edgeFade(blockX,blockZ)*rift.sample(
                 blockX,
                 blockZ
         )

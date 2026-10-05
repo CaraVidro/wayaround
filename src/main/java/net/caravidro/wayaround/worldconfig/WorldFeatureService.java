@@ -25,6 +25,7 @@ public final class WorldFeatureService {
     private WorldFeatureService() {}
 
     private static volatile WorldFeatureSettings pendingCreation;
+    private static WorldFeatureSettings bootSettings;
 
     public static void prepareNewWorld(
             WorldFeatureSettings settings
@@ -65,7 +66,8 @@ public final class WorldFeatureService {
              * Never leak settings from a previously closed integrated world
              * into the next server while its SavedData is loading.
              */
-            WorldFeatureRuntime.resetServer();
+            bootSettings=loadBeforeGeneration(event.getServer());
+            WorldFeatureRuntime.applyServer(bootSettings);
         }
     }
 
@@ -95,13 +97,33 @@ public final class WorldFeatureService {
             pendingCreation =
                     null;
         } else {
-            chosen =
-                    data.settings();
+            chosen = bootSettings!=null?bootSettings:data.settings();
+            data.setSettings(chosen);
         }
 
         WorldFeatureRuntime.applyServer(
                 chosen
         );
+    }
+
+    private static WorldFeatureSettings loadBeforeGeneration(MinecraftServer server) {
+        if(server instanceof net.minecraft.gametest.framework.GameTestServer)return WorldFeatureSettings.legacy();
+        java.nio.file.Path root=server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT);
+        java.nio.file.Path file=root.resolve("data").resolve(WorldFeatureSavedData.ID+".dat");
+        try {
+            if(java.nio.file.Files.isRegularFile(file)) {
+                var tag=net.minecraft.nbt.NbtIo.readCompressed(file,net.minecraft.nbt.NbtAccounter.create(4*1024*1024));
+                return WorldFeatureSettings.loadFromTag(tag.getCompound("data").getCompound("features"));
+            }
+            java.nio.file.Path region=root.resolve("region");
+            if(java.nio.file.Files.isDirectory(region))try(var files=java.nio.file.Files.newDirectoryStream(region,"*.mca")) {
+                if(files.iterator().hasNext())return WorldFeatureSettings.legacy();
+            }
+        } catch(java.io.IOException|RuntimeException e) {
+            WayAround.LOGGER.error("Cannot read world feature settings before generation; preserving legacy geography",e);
+            return WorldFeatureSettings.legacy();
+        }
+        return WorldFeatureSettings.defaults();
     }
 
     @SubscribeEvent
@@ -132,6 +154,6 @@ public final class WorldFeatureService {
     public static void stopped(
             ServerStoppedEvent event
     ) {
-        WorldFeatureRuntime.resetServer();
+        bootSettings=null;pendingCreation=null;WorldFeatureRuntime.resetServer();
     }
 }

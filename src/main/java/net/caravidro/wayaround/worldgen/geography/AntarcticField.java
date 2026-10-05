@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.worldgen.geography;
 
 public final class AntarcticField {
+    private static boolean finite(){return net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.serverEnabled(net.caravidro.wayaround.worldconfig.WorldFeature.FINITE_WORLD);}
 
     /*
      * =========================================================
@@ -25,6 +26,8 @@ public final class AntarcticField {
         int blockX,
         int blockZ
 ) {
+        if(finite()){return southernOceanEntryStrength(blockX,blockZ)*(1-sample(blockX,blockZ)*.25);}
+
 
     double z =
             geographicZ(
@@ -178,6 +181,8 @@ public final class AntarcticField {
             int blockX,
             int blockZ
     ) {
+        if(finite()){return net.caravidro.wayaround.worldgen.planet.PlanetMath.antarctica(blockX,blockZ);}
+
 
         double z =
                 geographicZ(
@@ -279,6 +284,8 @@ public final class AntarcticField {
             int blockX,
             int blockZ
     ) {
+        if(finite()){return Math.max(sample(blockX,blockZ),net.caravidro.wayaround.worldgen.planet.PlanetMath.southernOcean(blockX,blockZ)*.55);}
+
         double z =
                 geographicZ(
                         blockX,
@@ -335,6 +342,8 @@ public final class AntarcticField {
             int blockX,
             int blockZ
     ) {
+        if(finite()){return net.caravidro.wayaround.worldgen.planet.PlanetMath.southernOcean(blockX,blockZ)*(1-sample(blockX,blockZ));}
+
 
         double z =
                 geographicZ(
@@ -469,6 +478,8 @@ public final class AntarcticField {
         int blockX,
         int blockZ
 ) {
+        if(finite()){return net.caravidro.wayaround.worldgen.planet.PlanetMath.southernOcean(blockX,blockZ);}
+
 
     double z =
             geographicZ(

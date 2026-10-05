@@ -390,6 +390,18 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', 'wayaround_nature'
         }
 
+        geographyGameTestServer {
+            type = "gameTestServer"
+            systemProperty "neoforge.enabledGameTestNamespaces", "wayaround_geography"
+        }
+
+        geographyValidationServer {
+            gameDirectory = project.file("run-geography")
+            server()
+            programArgument "--nogui"
+            systemProperty "wayaround.validateGeography", "true"
+        }
+
         securityGameTestServer {
             type = "gameTestServer"
             systemProperty "neoforge.enabledGameTestNamespaces", "wayaround_security"
