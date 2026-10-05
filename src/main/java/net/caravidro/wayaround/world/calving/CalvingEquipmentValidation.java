@@ -106,6 +106,7 @@ public final class CalvingEquipmentValidation {
         var chest=base.offset(1,4,1);level.setBlock(chest,Blocks.CHEST.defaultBlockState(),18);positions.add(chest);
         ((ChestBlockEntity)level.getBlockEntity(chest)).setItem(0,new ItemStack(Items.DIAMOND,11));
         Object event=snapshotEvent(level,positions);
+        ((ChestBlockEntity)level.getBlockEntity(chest)).setItem(1,new ItemStack(Items.EMERALD,5));
         if(edited)level.setBlock(base,Blocks.GOLD_BLOCK.defaultBlockState(),18);
         var finished=event.getClass().getDeclaredField("finished");finished.setAccessible(true);
         for(int tick=0;tick<150 && !finished.getBoolean(event);tick++)call(event,"tick");
@@ -117,6 +118,8 @@ public final class CalvingEquipmentValidation {
             require(level.getBlockState(plank.offset(7,-9,0)).is(Blocks.OAK_PLANKS),"Building material settles as blocks, not scattered item drops");
             var landed=(ChestBlockEntity)level.getBlockEntity(chest.offset(7,-9,0));
             require(landed!=null&&landed.getItem(0).is(Items.DIAMOND)&&landed.getItem(0).getCount()==11,"Chest contents relocate exactly once");
+            require(landed.getItem(1).is(Items.EMERALD)&&landed.getItem(1).getCount()==5,
+                    "Inventory edits during the warning survive the final detachment snapshot");
             require(level.getEntitiesOfClass(FallingBlockEntity.class,new AABB(base).inflate(20)).isEmpty(),"Whole calving has zero falling-block shell entities");
             require(level.getEntitiesOfClass(ItemEntity.class,new AABB(base).inflate(20)).isEmpty(),"No duplicated contents or demolition item flood");
         }

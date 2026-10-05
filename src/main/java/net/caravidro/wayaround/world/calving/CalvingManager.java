@@ -1651,7 +1651,7 @@ public final class CalvingManager {
 
         private final ServerLevel level;
 
-        private final Snapshot snapshot;
+        private Snapshot snapshot;
 
 
         private int age;
@@ -1969,6 +1969,16 @@ public final class CalvingManager {
                     return;
                 }
             }
+            // Contents may change during the 4.5-second warning without changing block state.
+            // Capture the latest NBT immediately before clearing/removing its sole world owner.
+            List<SnapBlock> fresh = new ArrayList<>(snapshot.blocks().size());
+            for (SnapBlock block : snapshot.blocks()) {
+                BlockEntity entity = level.getBlockEntity(block.pos());
+                fresh.add(new SnapBlock(block.pos(), block.state(), entity == null ? null
+                        : entity.saveWithFullMetadata(level.registryAccess()), block.kind()));
+            }
+            snapshot = new Snapshot(snapshot.center(), snapshot.outward(), fresh, snapshot.fragile(),
+                    snapshot.minY(), snapshot.maxY(), snapshot.cliff());
             CalvingWear.get(level).reset(new ChunkPos(snapshot.center()).toLong());
 
             targetFall = calculateFall();

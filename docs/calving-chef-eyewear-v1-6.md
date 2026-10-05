@@ -11,7 +11,8 @@ terrain. The same broad-support percentile as demolition prevents a single
 fence/post from suspending a whole glacier. Warning snow chips remain real individual falling blocks. Buildings
 settle as their original blocks instead of becoming a flood of item drops;
 container contents and block-entity NBT retain the existing one-owner capture,
-empty-before-removal and restore-once path. Edits during the warning abort the
+empty-before-removal and restore-once path. NBT is refreshed immediately before
+detachment, so items deposited during the warning are not lost. Edits during the warning abort the
 snapshot; source/destination chunk readiness still gates the event. Ordinary
 server shutdown settles detached calving before saving; this does not add crash
 recovery for transient in-progress events. No distant chunk is loaded by scans.
