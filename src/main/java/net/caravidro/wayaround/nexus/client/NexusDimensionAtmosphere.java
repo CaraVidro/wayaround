@@ -34,46 +34,44 @@ public final class NexusDimensionAtmosphere {
         if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_SKY)sky(e);
         else if(e.getStage()==RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS)debris(e);
     }
+    private static VertexBuffer skyBuffer;
     private static void sky(RenderLevelStageEvent e) {
-        var matrix=new Matrix4f(e.getModelViewMatrix()).setTranslation(0,0,0);
-        float fogStart=RenderSystem.getShaderFogStart(),fogEnd=RenderSystem.getShaderFogEnd();
-        RenderSystem.setShaderFogStart(Float.MAX_VALUE);RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
-        RenderSystem.disableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();RenderSystem.disableBlend();
-        var model=RenderSystem.getModelViewStack();model.pushMatrix();model.identity();RenderSystem.applyModelViewMatrix();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);RenderSystem.setShaderColor(1,1,1,1);
-        try {
-            var b=Tesselator.getInstance().begin(VertexFormat.Mode.QUADS,DefaultVertexFormat.POSITION_COLOR);
-            // Lower sky burns red; the zenith approaches black. Includes the lower hemisphere.
-            for(int ring=0;ring<12;ring++)for(int sector=0;sector<32;sector++) {
-                double a=-Math.PI/2+ring*Math.PI/12,c=a+Math.PI/12,t=sector*Math.PI/16,u=t+Math.PI/16;
-                sphere(b,matrix,a,t);sphere(b,matrix,a,u);sphere(b,matrix,c,u);sphere(b,matrix,c,t);
+        drawSky(new Matrix4f(e.getModelViewMatrix()).setTranslation(0,0,0), e.getProjectionMatrix());
+    }
+    /** Also used by the opt-in offscreen GPU fixture; the projection is the actual caller's. */
+    static void drawSky(Matrix4f view, Matrix4f projection) {
+        if (skyBuffer == null) {
+            var builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+            for (var v : NexusSkyGeometry.create()) {
+                var c = v.color(); builder.addVertex(v.x(), v.y(), v.z()).setColor(c.r(), c.g(), c.b(), c.a());
             }
-            var band=new Matrix4f(matrix).rotateY(.55F).rotateZ(.18F);
-            quad(b,band,-82,12,-43,82,12,-43,82,24,-43,-82,24,-43,106,2,15);
-            // The bright band really has a hole, exposing the darker red backing.
-            quad(b,band,-80,15,-42,-5,15,-42,-3,21,-42,-80,21,-42,238,230,223);
-            quad(b,band,5,15,-42,80,15,-42,80,21,-42,3,21,-42,238,230,223);
-            // Jagged branching fractures extend far beyond the missing part of the stripe.
-            crack(b,band,new float[]{-2,16,3,11,-1,4,4,-5,1,-14},.8F);
-            crack(b,band,new float[]{2,20,-3,26,1,31,-2,39,4,48},.9F);
-            crack(b,band,new float[]{0,26,10,31,18,29,25,36},.55F);
-            crack(b,band,new float[]{1,5,-9,0,-15,3,-25,-3},.6F);
-            BufferUploader.drawWithShader(b.buildOrThrow());
+            skyBuffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
+            skyBuffer.bind(); skyBuffer.upload(builder.buildOrThrow()); VertexBuffer.unbind();
+        }
+        float fogStart=RenderSystem.getShaderFogStart(), fogEnd=RenderSystem.getShaderFogEnd();
+        float[] color=RenderSystem.getShaderColor();float r=color[0],g=color[1],b=color[2],a=color[3];
+        boolean depth=org.lwjgl.opengl.GL11.glIsEnabled(org.lwjgl.opengl.GL11.GL_DEPTH_TEST);
+        boolean cull=org.lwjgl.opengl.GL11.glIsEnabled(org.lwjgl.opengl.GL11.GL_CULL_FACE);
+        boolean blend=org.lwjgl.opengl.GL11.glIsEnabled(org.lwjgl.opengl.GL11.GL_BLEND);
+        boolean mask=org.lwjgl.opengl.GL11.glGetBoolean(org.lwjgl.opengl.GL11.GL_DEPTH_WRITEMASK);
+        int src=org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL14.GL_BLEND_SRC_RGB),dst=org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL14.GL_BLEND_DST_RGB);
+        int srcA=org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL14.GL_BLEND_SRC_ALPHA),dstA=org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL14.GL_BLEND_DST_ALPHA);
+        try {
+            RenderSystem.setShaderFogStart(Float.MAX_VALUE);RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
+            RenderSystem.disableDepthTest();RenderSystem.depthMask(false);RenderSystem.disableCull();
+            RenderSystem.enableBlend();RenderSystem.defaultBlendFunc();RenderSystem.setShaderColor(1,1,1,1);
+            skyBuffer.bind();skyBuffer.drawWithShader(new Matrix4f(view).setTranslation(0,0,0),projection,GameRenderer.getPositionColorShader());
         } finally {
-            model.popMatrix();RenderSystem.applyModelViewMatrix();RenderSystem.enableCull();RenderSystem.depthMask(true);RenderSystem.enableDepthTest();
-            RenderSystem.setShaderFogStart(fogStart);RenderSystem.setShaderFogEnd(fogEnd);
+            VertexBuffer.unbind();RenderSystem.setShaderColor(r,g,b,a);
+            RenderSystem.setShaderFogStart(fogStart);RenderSystem.setShaderFogEnd(fogEnd);RenderSystem.depthMask(mask);
+            if(depth)RenderSystem.enableDepthTest();else RenderSystem.disableDepthTest();
+            if(cull)RenderSystem.enableCull();else RenderSystem.disableCull();
+            RenderSystem.blendFuncSeparate(src,dst,srcA,dstA);
+            if(blend)RenderSystem.enableBlend();else RenderSystem.disableBlend();
         }
     }
-    private static void sphere(BufferBuilder b,Matrix4f m,double latitude,double angle) {
-        double y=Math.sin(latitude),radius=96*Math.cos(latitude);double brightness=Math.max(0,Math.min(1,(.55-y)/1.05));
-        vertex(b,m,radius*Math.cos(angle),96*y,radius*Math.sin(angle),(int)(3+brightness*74),(int)(1+brightness*2),(int)(4+brightness*5));
-    }
-    private static void crack(BufferBuilder b,Matrix4f m,float[] points,float width) {
-        for(int i=0;i+3<points.length;i+=2) {
-            double x=points[i],y=points[i+1],nx=points[i+2],ny=points[i+3],length=Math.hypot(nx-x,ny-y);
-            double dx=-(ny-y)/length*width,dy=(nx-x)/length*width;
-            quad(b,m,x-dx,y-dy,-41.8,nx-dx,ny-dy,-41.8,nx+dx,ny+dy,-41.8,x+dx,y+dy,-41.8,255,245,234);
-        }
+    @SubscribeEvent public static void logout(ClientPlayerNetworkEvent.LoggingOut e) {
+        if(skyBuffer!=null){skyBuffer.close();skyBuffer=null;}
     }
     private static void debris(RenderLevelStageEvent e) {
         var mc=Minecraft.getInstance();var c=e.getCamera().getPosition();var matrix=e.getModelViewMatrix();
