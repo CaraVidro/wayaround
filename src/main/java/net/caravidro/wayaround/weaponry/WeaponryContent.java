@@ -198,19 +198,10 @@ public final class WeaponryContent {
                                 tier,
                                 family,
                                 materialId,
-                                new Item.Properties()
-                                        .stacksTo(
-                                                1
-                                        )
-                                        .fireResistant(
-                                                tier == Tiers.NETHERITE
-                                        )
-                                        .attributes(
-                                                WayWeaponItem.attributes(
-                                                        tier,
-                                                        family
-                                                )
-                                        )
+                                properties(
+                                        tier,
+                                        family
+                                )
                         )
                 );
 
@@ -220,6 +211,29 @@ public final class WeaponryContent {
         );
 
         return item;
+    }
+
+    private static Item.Properties properties(
+            Tier tier,
+            WeaponFamily family
+    ) {
+        Item.Properties properties =
+                new Item.Properties()
+                        .stacksTo(
+                                1
+                        )
+                        .attributes(
+                                WayWeaponItem.attributes(
+                                        tier,
+                                        family
+                                )
+                        );
+
+        if (tier == Tiers.NETHERITE) {
+            properties.fireResistant();
+        }
+
+        return properties;
     }
 
     public static Map<String, DeferredItem<WayWeaponItem>> weapons() {
