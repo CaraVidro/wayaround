@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.ship;
 
+import net.caravidro.wayaround.flow.UniversalFlow;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -54,9 +55,28 @@ public abstract class SailingShipEntity extends ChestBoat {
     @Override public void tick() {
         if (!level().isClientSide && getControllingPassenger() == null && !isAnchored()
                 && level().getFluidState(BlockPos.containing(getX(), getY() - 0.05, getZ())).is(FluidTags.WATER)) {
-            // Weak prevailing current, independent of fuel and consistent across nearby ships.
-            double phase = level().getGameTime() / 2400.0;
-            setDeltaMovement(getDeltaMovement().add(0.0012 * Math.cos(phase), 0, 0.0012 * Math.sin(phase)));
+            // Weak hull coupling to the same open-water flow used by other systems.
+            Vec3 drift =
+                    UniversalFlow.waterAt(
+                            level(),
+                            BlockPos.containing(
+                                    getX(),
+                                    getY() - 0.05,
+                                    getZ()
+                            )
+                    ).velocityPerTick()
+                            .scale(
+                                    0.03
+                            );
+
+            setDeltaMovement(
+                    getDeltaMovement()
+                            .add(
+                                    drift.x,
+                                    0.0,
+                                    drift.z
+                            )
+            );
         }
         double x = getX();
         double z = getZ();
