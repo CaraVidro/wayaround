@@ -133,16 +133,55 @@ Still intentionally deferred:
 - wall thermal mass and multi-layer walls can refine ThermalRegionModel later
   without changing its public contract.
 
-## 4. Universal pressure
+## 4. Universal pressure — IMPLEMENTED IN THIS BRANCH
 
-One pressure contract for gases and liquids.
+One pressure contract now bridges natural fluids, gases and legacy machinery.
 
-- pressure belongs to matter in a volume;
-- external vs internal pressure;
-- wall stress derived from delta-P, geometry and material;
-- bridge boiler pressure, hydraulic pressure and ocean pressure;
-- no hard-coded "submarine fails at depth X" when a physical vessel description
-  is available.
+Implemented foundation:
+
+- PressureMath is dependency-free and makes kPa the canonical internal unit.
+  Bar remains a compatibility/UI unit.
+- PressureState explicitly separates absolute pressure from its reference
+  pressure and exposes gauge pressure and pressure differential.
+- PressurePhysics provides:
+  - hydrostatic pressure from density, gravity and depth;
+  - gas pressure from mass, volume, temperature and a material reference state;
+  - pressure force over area;
+  - thin-wall hoop-stress input for later structural failure;
+  - the shared bounded overpressure-damage curve used by legacy machinery.
+- PhysicalMaterials now has a simplified salt-water material (1025 kg/m3) for
+  natural ocean hydrostatics while fresh vanilla water remains its own material.
+- NaturalPressure samples the world without loading chunks:
+  - atmosphere varies gently with elevation;
+  - vanilla water columns derive pressure from their local free surface;
+  - ocean biomes below sea level use the known sea surface directly, which is
+    both cheaper and correct under overhangs.
+- UniversalPressure is the canonical facade for natural, region and gas pressure.
+- sealed PhysicalRegions couple temperature into air pressure; vented and
+  indeterminate regions remain tied to natural atmosphere until universal flow
+  tracks real gas exchange.
+- abyss capsule/submarine runtime now consumes external natural ocean pressure
+  and compares it against internal atmospheric pressure. The old 70/85-block
+  limits survive only as pressure-equivalent fallback hull ratings because those
+  vehicles do not yet expose real wall material/thickness.
+- OceanPressure keeps its old depth API only as a compatibility adapter for old
+  tests/callers; it immediately converts depth to hydrostatic delta-P.
+- SteamThermodynamics now derives boiler pressure from steam mass, effective
+  vessel volume and Celsius using the shared gas-pressure model instead of its
+  private fill/heat pressure curve.
+- HydraulicLoad pressure damage delegates to PressureMath.
+- mechanical-pump pressure pulses now travel through PipeFlow in canonical kPa;
+  bar getters/saves remain for compatibility.
+- /wayaroundphysics pressure reports natural absolute/gauge pressure, depth and
+  medium, and reports sealed-region gas pressure when applicable.
+- GameTests verify seawater pressure, a real vanilla water column, heated-gas
+  pressure and pressure force. The standalone OceanPressure regression also
+  checks the new delta-P runtime path.
+
+Still intentionally deferred:
+- exact vessel yield/failure from material strength belongs to structural step 8;
+- connected-fluid static head/backpressure topology becomes richer in flow step 5;
+- tracked gas mass transfer between rooms belongs to flow/conservation steps 5/6.
 
 ## 5. Universal flow
 

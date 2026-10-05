@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.pipework;
 
 import net.caravidro.wayaround.performance.PerformanceProfiler;
+import net.caravidro.wayaround.pressure.PressureMath;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -747,15 +748,38 @@ public final class PipeFlow {
             Direction awayFromPump,
             float pressureBar
     ) {
+        applyPressurePulseKPa(
+                level,
+                root,
+                awayFromPump,
+                PressureMath.barToKPa(
+                        pressureBar
+                )
+        );
+    }
+
+    /**
+     * Canonical hydraulic pressure transport uses kPa internally. The bar
+     * overload above is retained for older callers/UI-facing machinery.
+     */
+    public static void applyPressurePulseKPa(
+            ServerLevel level,
+            PipeBlockEntity root,
+            Direction awayFromPump,
+            double pressureKPa
+    ) {
         if (root == null
-                || pressureBar <= 0.001F
+                || !Double.isFinite(
+                pressureKPa
+        )
+                || pressureKPa <= 0.1
                 || root.owner() != null
                 || !root.complete()) {
             return;
         }
 
-        root.applyHydraulicPressure(
-                pressureBar
+        root.applyHydraulicPressureKPa(
+                pressureKPa
         );
 
         List<Outlet> outputs =
@@ -810,8 +834,8 @@ public final class PipeFlow {
                                                 path.size() - 1
                                         );
 
-                pipe.applyHydraulicPressure(
-                        pressureBar
+                pipe.applyHydraulicPressureKPa(
+                        pressureKPa
                                 * Math.max(
                                 0.78F,
                                 distanceLoss

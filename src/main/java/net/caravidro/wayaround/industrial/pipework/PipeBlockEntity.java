@@ -3,6 +3,7 @@ package net.caravidro.wayaround.industrial.pipework;
 import java.util.*;
 import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.interaction.*;
+import net.caravidro.wayaround.pressure.PressureMath;
 import net.caravidro.wayaround.worldconfig.*;
 import net.minecraft.core.*;
 import net.minecraft.core.particles.ParticleTypes;
@@ -58,6 +59,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     public int capacity(){return getBlockState().getBlock() instanceof LargePipeBlock b?(b.colossal()?64000:16000):2000;}
     public int amount(){return tank.getAmount();}
     public float hydraulicPressureBar(){return hydraulicPressureBar;}
+    public float hydraulicPressureKPa(){return (float)PressureMath.barToKPa(hydraulicPressureBar);}
     public float peakHydraulicPressureBar(){return peakHydraulicPressureBar;}
     public float rotaryLiftRpm(){return rotaryLiftRpm;}
     public float rotaryLiftAngle(){return rotaryLiftAngle;}
@@ -207,14 +209,26 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         flow=hasValve()?flow:direction;visible=fluid.copyWithAmount(1);wetUntil=level.getGameTime()+30;sync();}
 
     public void applyHydraulicPressure(float pressureBar){
+        applyHydraulicPressureKPa(
+                PressureMath.barToKPa(
+                        pressureBar
+                )
+        );
+    }
+
+    public void applyHydraulicPressureKPa(double pressureKPa){
         if(owner!=null||!complete())return;
 
-        float actual=Float.isFinite(pressureBar)?Math.max(0,pressureBar):0;
+        float actual=(float)PressureMath.kPaToBar(
+                Double.isFinite(pressureKPa)?Math.max(0,pressureKPa):0);
         hydraulicPressureBar=Math.max(hydraulicPressureBar,actual);
         peakHydraulicPressureBar=Math.max(peakHydraulicPressureBar,actual);
 
         float rating=pressureRatingBar();
-        float pressureDamage=HydraulicLoad.pressureDamage(actual,rating,integrity);
+        float pressureDamage=(float)PressureMath.overloadDamage(
+                hydraulicPressureKPa(),
+                PressureMath.barToKPa(rating),
+                integrity);
 
         boolean wearTick=
                 level==null

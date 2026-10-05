@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.pipework;
 
+import net.caravidro.wayaround.pressure.PressureMath;
 import net.minecraft.util.Mth;
 
 /**
@@ -22,6 +23,12 @@ public final class HydraulicLoad {
             float vibration,
             float hydraulicStress
     ) {
+        public float pressureKPa() {
+            return (float) PressureMath.barToKPa(
+                    pressureBar
+            );
+        }
+
         public float flowFactor() {
             if (desiredFlow <= 0.001F) {
                 return 0.0F;
@@ -322,38 +329,33 @@ public final class HydraulicLoad {
             float ratedPressure,
             float integrity
     ) {
-        float rating =
-                Math.max(
-                        0.001F,
-                        finite(ratedPressure)
-                );
-
-        float over =
-                Math.max(
-                        0.0F,
-                        finite(actualPressure)
-                                / rating
-                                - 1.0F
-                );
-
-        float weakness =
-                1.0F
-                        + (
-                        1.0F
-                                - Mth.clamp(
-                                integrity,
-                                0.0F,
-                                1.0F
+        return (float) PressureMath.overloadDamage(
+                PressureMath.barToKPa(
+                        finite(
+                                actualPressure
                         )
-                ) * 0.80F;
+                ),
+                PressureMath.barToKPa(
+                        finite(
+                                ratedPressure
+                        )
+                ),
+                integrity
+        );
+    }
 
-        return Mth.clamp(
-                over
-                        * over
-                        * 0.006F
-                        * weakness,
-                0.0F,
-                0.08F
+    public static float staticHeadBar(
+            double densityKgPerM3,
+            double verticalRiseM
+    ) {
+        return (float) PressureMath.kPaToBar(
+                PressureMath.hydrostaticGaugeKPa(
+                        densityKgPerM3,
+                        Math.max(
+                                0.0,
+                                verticalRiseM
+                        )
+                )
         );
     }
 

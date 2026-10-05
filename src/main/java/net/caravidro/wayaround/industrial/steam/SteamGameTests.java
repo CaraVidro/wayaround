@@ -66,9 +66,26 @@ public final class SteamGameTests {
                         95
                 );
 
+        float sameMassCold =
+                SteamThermodynamics.pressureBar(
+                        6_000,
+                        60
+                );
+
+        float sameMassHot =
+                SteamThermodynamics.pressureBar(
+                        6_000,
+                        95
+                );
+
         helper.assertTrue(
                 high > low,
                 "More hot steam must produce greater pressure"
+        );
+
+        helper.assertTrue(
+                sameMassHot > sameMassCold,
+                "At fixed steam mass/volume, higher Celsius must raise gas pressure"
         );
 
         float healthy =

@@ -2,6 +2,8 @@ package net.caravidro.wayaround.ecology;
 
 import java.util.*;
 import net.caravidro.wayaround.network.KrakenShakeS2CPayload;
+import net.caravidro.wayaround.pressure.PressureMath;
+import net.caravidro.wayaround.pressure.UniversalPressure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -28,6 +30,8 @@ public abstract class AbyssVehicleEntity extends Entity {
     private Vec3 lampOrigin;
     private float lampYaw, lampPitch;
     private int lastImpact = -100, lastBeep = -100;
+    private int lastPressureSample = -100;
+    private double outsidePressureKPa = PressureMath.STANDARD_ATMOSPHERE_KPA;
     private int exposureTicks;
     private int lerpSteps;
     private double targetX, targetY, targetZ;
@@ -63,7 +67,18 @@ public abstract class AbyssVehicleEntity extends Entity {
         }
         ServerLevel server=(ServerLevel)level();
         boolean water=inWaterColumn();
-        int exposure=OceanPressure.advance(pressureExposure(), level().getSeaLevel()-getY(), water,capsule());
+        if(!water) {
+            outsidePressureKPa=PressureMath.STANDARD_ATMOSPHERE_KPA;
+        } else if(tickCount-lastPressureSample>=10) {
+            outsidePressureKPa=UniversalPressure.naturalAt(server,blockPosition()).absoluteKPa();
+            lastPressureSample=tickCount;
+        }
+        int exposure=OceanPressure.advancePressure(
+                pressureExposure(),
+                outsidePressureKPa,
+                PressureMath.STANDARD_ATMOSPHERE_KPA,
+                water,
+                capsule());
         setPressureExposure(exposure);
         if (exposure >= OceanPressure.FAILURE) {
             sound(SoundEvents.ANVIL_DESTROY, 2.3F, .35F);

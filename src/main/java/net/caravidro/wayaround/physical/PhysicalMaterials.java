@@ -91,6 +91,39 @@ public final class PhysicalMaterials {
                     )
             );
 
+    /**
+     * Simplified seawater mixture used by natural ocean pressure. Keeping it as
+     * a material definition now lets density/heat/viscosity be shared without
+     * waiting for the later full mixture/composition solver.
+     */
+    public static final MaterialDefinition SALT_WATER =
+            register(
+                    material(
+                            "salt_water",
+                            MatterPhase.LIQUID,
+                            phases(
+                                    phase(
+                                            MatterPhase.LIQUID,
+                                            1025.0,
+                                            3990.0,
+                                            0.60,
+                                            4.4E-10,
+                                            0.00105
+                                    )
+                            ),
+                            transitions(
+                                    -1.9,
+                                    100.6,
+                                    Double.NaN
+                            ),
+                            engineering(
+                                    0.02F, 0.12F, 0.10F, 1.0F,
+                                    0.0F, 0.0F, 1.0F, 1.0F, 0.02F,
+                                    1.0F, 0.0F, 1.0F, 0.0F
+                            )
+                    )
+            );
+
     public static final MaterialDefinition STONE =
             register(
                     solid(

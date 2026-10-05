@@ -356,11 +356,16 @@ public final class MechanicalPumpBlockEntity
                         + worldPosition.asLong(),
                 5
         ) == 0) {
-            PipeFlow.applyPressurePulse(
+            PipeFlow.applyPressurePulseKPa(
                     level,
                     discharge,
                     facing,
-                    pressureBar
+                    actualHydraulic.pressureKPa()
+                            * Mth.clamp(
+                            operating.fulfillment(),
+                            0.0F,
+                            1.0F
+                    )
             );
         }
 

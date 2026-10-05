@@ -1,5 +1,8 @@
 package net.caravidro.wayaround.industrial.steam;
 
+import net.caravidro.wayaround.physical.PhysicalMaterials;
+import net.caravidro.wayaround.pressure.PressureMath;
+import net.caravidro.wayaround.pressure.PressurePhysics;
 import net.minecraft.util.Mth;
 
 /** Shared, bounded steam math. Values are gameplay engineering units. */
@@ -9,6 +12,13 @@ public final class SteamThermodynamics {
     public static final int STEAM_CAPACITY = 12_000;
     public static final int FUEL_TICKS_PER_COAL = 1_600;
     public static final float NOMINAL_SAFE_PRESSURE_BAR = 12.0F;
+
+    /**
+     * Effective free steam volume used by the current compact boiler gameplay
+     * representation. Future assembled vessels can supply their own volume.
+     */
+    public static final double BOILER_STEAM_VOLUME_M3 =
+            1.5;
 
     public record BoilerStep(
             int water,
@@ -186,28 +196,46 @@ public final class SteamThermodynamics {
             int steam,
             int heat
     ) {
-        float fill =
-                Mth.clamp(
-                        steam / (float) STEAM_CAPACITY,
-                        0.0F,
-                        1.0F
+        if (steam <= 0) {
+            return 0.0F;
+        }
+
+        /*
+         * The stored steam budget remains the existing gameplay amount, while
+         * its pressure is now derived from gas mass, temperature and volume.
+         * 1000 steam units map to 1 kg in this compatibility vessel model.
+         */
+        double massKg =
+                Math.clamp(
+                        steam,
+                        0,
+                        STEAM_CAPACITY
+                )
+                        / 1000.0;
+
+        double absoluteKPa =
+                PressurePhysics.gasAbsoluteKPa(
+                        PhysicalMaterials.WATER,
+                        massKg,
+                        BOILER_STEAM_VOLUME_M3,
+                        temperatureC(
+                                heat,
+                                steam
+                        )
                 );
 
-        float thermal =
-                0.62F
-                        + Mth.clamp(
-                        heat / 100.0F,
-                        0.0F,
-                        1.0F
-                )
-                        * 0.52F;
+        double gaugeKPa =
+                Math.max(
+                        0.0,
+                        PressureMath.gaugeKPa(
+                                absoluteKPa,
+                                PressureMath.STANDARD_ATMOSPHERE_KPA
+                        )
+                );
 
-        return fill <= 0.001F
-                ? 0.0F
-                : 0.35F
-                        + fill
-                                * 16.5F
-                                * thermal;
+        return (float) PressureMath.kPaToBar(
+                gaugeKPa
+        );
     }
 
     public static int temperatureC(
