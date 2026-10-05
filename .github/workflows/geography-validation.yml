@@ -30,7 +30,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           text=Path('geography-tests.log').read_text(errors='replace')
-          assert 'All 4 required tests passed' in text,text[-16000:]
+          assert 'All 5 required tests passed' in text,text[-16000:]
           PY
       - name: Real seeded terrain on a normal dedicated server
         shell: bash

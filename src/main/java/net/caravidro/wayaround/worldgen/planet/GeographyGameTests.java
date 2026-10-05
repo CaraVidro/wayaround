@@ -50,4 +50,22 @@ public final class GeographyGameTests {
         h.assertTrue(id.equals(vessel.getUUID())&&passenger.getVehicle()==vessel,"Same vessel, same rider tree after wrap");
         h.assertTrue(passenger.position().distanceToSqr(before.add(8,0,0))<.001,"Passenger moves with the ship rather than staying at the old edge");h.succeed();
     }
+    @GameTest(template="assembly_test",batch="geography",timeoutTicks=20)
+    public static void respawnSupportsThinSnowButRejectsPowderAndMagma(GameTestHelper h) {
+        var l=h.getLevel();var floor=h.absolutePos(new BlockPos(7,8,7));
+        for(int dy=1;dy<10;dy++)l.setBlock(floor.above(dy),Blocks.AIR.defaultBlockState(),18);
+        l.setBlock(floor,Blocks.STONE.defaultBlockState(),18);
+        for(int layers:new int[]{1,3,7}) {
+            l.setBlock(floor.above(),Blocks.SNOW.defaultBlockState().setValue(net.minecraft.world.level.block.SnowLayerBlock.LAYERS,layers),18);
+            var arrival=LostRespawnService.safeColumn(l,floor.getX(),floor.getZ());
+            h.assertTrue(floor.above(2).equals(arrival),"Thin/thick snow over solid terrain is a supported arrival");
+        }
+        l.setBlock(floor,Blocks.MAGMA_BLOCK.defaultBlockState(),18);
+        h.assertTrue(LostRespawnService.safeColumn(l,floor.getX(),floor.getZ())==null,"Snow cannot disguise a damaging support");
+        l.setBlock(floor,Blocks.STONE.defaultBlockState(),18);
+        l.setBlock(floor.above(),Blocks.POWDER_SNOW.defaultBlockState(),18);
+        h.assertTrue(LostRespawnService.safeColumn(l,floor.getX(),floor.getZ())==null,"Do not respawn on sinking powder snow");
+        l.setBlock(floor.above(),Blocks.AIR.defaultBlockState(),18);l.setBlock(floor,Blocks.MAGMA_BLOCK.defaultBlockState(),18);
+        h.assertTrue(LostRespawnService.safeColumn(l,floor.getX(),floor.getZ())==null,"Do not respawn on damaging magma");h.succeed();
+    }
 }

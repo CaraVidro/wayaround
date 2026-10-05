@@ -85,15 +85,26 @@ public final class LostRespawnService {
         for(int i=0;i<81;i++) {
             int x=center.getX()+(i%9-4)*2,z=center.getZ()+(i/9-4)*2;
             if(!level.hasChunk(x>>4,z>>4))continue;
-            int y=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x,z);
-            BlockPos p=new BlockPos(x,y,z);var ground=level.getBlockState(p.below());
-            if(y<=level.getMinBuildHeight()+5||y>=level.getMaxBuildHeight()-3||!level.getWorldBorder().isWithinBounds(p)
-                    ||!ground.getFluidState().isEmpty()||!ground.isCollisionShapeFullBlock(level,p.below())
-                    ||ground.is(net.minecraft.world.level.block.Blocks.MAGMA_BLOCK)||ground.is(net.minecraft.world.level.block.Blocks.CACTUS)
-                    ||!level.getBlockState(p).isAir()||!level.getBlockState(p.above()).isAir())continue;
-            return p;
+            BlockPos arrival=safeColumn(level,x,z);if(arrival!=null)return arrival;
         }
         return null;
+    }
+    static BlockPos safeColumn(ServerLevel level,int x,int z) {
+        if(!level.hasChunk(x>>4,z>>4))return null;
+        int y=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,x,z);
+        BlockPos p=new BlockPos(x,y,z);
+        // A one-layer snow cover has no collision height, but is safe over solid land.
+        if(level.getBlockState(p).is(net.minecraft.world.level.block.Blocks.SNOW)){p=p.above();y++;}
+        var ground=level.getBlockState(p.below());
+        var foundation=ground.is(net.minecraft.world.level.block.Blocks.SNOW)?level.getBlockState(p.below(2)):ground;
+        boolean supported=ground.isCollisionShapeFullBlock(level,p.below())
+                ||ground.is(net.minecraft.world.level.block.Blocks.SNOW)
+                &&level.getBlockState(p.below(2)).isCollisionShapeFullBlock(level,p.below(2));
+        if(y<=level.getMinBuildHeight()+5||y>=level.getMaxBuildHeight()-3||!level.getWorldBorder().isWithinBounds(p)
+                ||!ground.getFluidState().isEmpty()||!supported
+                ||foundation.is(net.minecraft.world.level.block.Blocks.MAGMA_BLOCK)||foundation.is(net.minecraft.world.level.block.Blocks.CACTUS)
+                ||!level.getBlockState(p).isAir()||!level.getBlockState(p.above()).isAir())return null;
+        return p;
     }
     public static DimensionTransition preparedTransition(ServerPlayer player) {
         Search s=SEARCHES.get(player.getUUID());
