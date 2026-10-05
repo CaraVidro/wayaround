@@ -135,7 +135,8 @@ public final class CalvingEquipmentValidation {
         AccessoryWear.setWear(stack,kind,27);
         player.setItemInHand(InteractionHand.MAIN_HAND,stack);
         AccessoryManager.equipFromHand(player,InteractionHand.MAIN_HAND,(AccessoryItem)stack.getItem());
-        require(player.getMainHandItem().isEmpty(),"Equipping transfers exactly one stack from inventory");
+        require(stack.isEmpty() && AccessoryManager.equipped(player,kind.slot())==kind,
+                "Equipping consumes the incoming stack; replaced gear is returned to inventory");
     }
     private static void exposedAndShelteredEquipment(ServerLevel level) {
         var player=player(level,"LensBlast");

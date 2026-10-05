@@ -38,10 +38,14 @@ public final class EquipmentVisualValidation {
         boolean scissor=GL11.glIsEnabled(GL11.GL_SCISSOR_TEST),mask=GL11.glGetBoolean(GL11.GL_DEPTH_WRITEMASK);
         var oldProjection=new Matrix4f(RenderSystem.getProjectionMatrix());
         var oldSort=RenderSystem.getVertexSorting();
+        float oldFogStart=RenderSystem.getShaderFogStart(),oldFogEnd=RenderSystem.getShaderFogEnd();
+        float[] oldColor=RenderSystem.getShaderColor().clone();
         var modelView=RenderSystem.getModelViewStack();modelView.pushMatrix();modelView.identity();RenderSystem.applyModelViewMatrix();
         var folder=java.nio.file.Path.of("equipment-captures");java.nio.file.Files.createDirectories(folder);
         try {
             GL11.glDisable(GL11.GL_SCISSOR_TEST);GL11.glDepthMask(true);
+            RenderSystem.setShaderFogStart(9999);RenderSystem.setShaderFogEnd(99999);
+            RenderSystem.setShaderColor(1,1,1,1);
             target=new TextureTarget(960,540,true,Minecraft.ON_OSX);
             int width=mc.getWindow().getGuiScaledWidth(),height=mc.getWindow().getGuiScaledHeight();
             RenderSystem.setProjectionMatrix(new Matrix4f().setOrtho(0,width,height,0,-1000,1000),com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
@@ -88,6 +92,8 @@ public final class EquipmentVisualValidation {
             WayAround.LOGGER.info("EQUIPMENT GPU PASSED: actual lens tints, 2 crack stages, lifted/removed clear, shared worn/flying chef mesh");
         } finally {
             if(target!=null)target.destroyBuffers();
+            RenderSystem.setShaderFogStart(oldFogStart);RenderSystem.setShaderFogEnd(oldFogEnd);
+            RenderSystem.setShaderColor(oldColor[0],oldColor[1],oldColor[2],oldColor[3]);
             modelView.popMatrix();RenderSystem.applyModelViewMatrix();
             RenderSystem.setProjectionMatrix(oldProjection,oldSort);
             GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER,read);GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER,draw);
