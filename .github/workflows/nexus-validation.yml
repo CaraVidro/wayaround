@@ -28,6 +28,8 @@ jobs:
           mkdir -p /tmp/nexus-classes
           javac -d /tmp/nexus-classes src/main/java/net/caravidro/wayaround/nexus/world/NexusLayout.java tests/nexus/NexusLayoutTest.java
           java -cp /tmp/nexus-classes NexusLayoutTest
+          javac -d /tmp/nexus-classes src/main/java/net/caravidro/wayaround/nexus/client/NexusSkyGeometry.java tests/nexus/NexusSkyGeometryTest.java
+          java -cp /tmp/nexus-classes NexusSkyGeometryTest
       - name: Actual dimension, furniture and saved-transit tests
         shell: bash
         run: |
@@ -45,6 +47,7 @@ jobs:
       - name: Client boot and mixin application
         env:
           ALSOFT_DRIVERS: 'null'
+          JAVA_TOOL_OPTIONS: '-Dwayaround.validateNexusSky=true'
         shell: bash
         run: |
           python - <<'PYCLIENT'
@@ -58,8 +61,10 @@ jobs:
                   deadline=time.monotonic()+240
                   while process.poll() is None and time.monotonic()<deadline:
                       text=path.read_text(errors='replace')
-                      if ('OpenAL initialized' in text or 'Sound engine started' in text) and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                      if 'NEXUS SKY GPU PASSED' in text and 'minecraft:textures/atlas/gui.png-atlas' in text:
                           ready=True
+                          break
+                      if 'NEXUS SKY GPU FAILED' in text:
                           break
                       time.sleep(1)
               finally:
@@ -73,7 +78,7 @@ jobs:
           relevant=[line for line in text.splitlines() if re.search(r'Failed to load model|Unable to load model|Failed to create model|Missing textures in model',line) and 'wayaround:' in line]
           if relevant:
               print('\n'.join(relevant));raise SystemExit(1)
-          print('Client boot and Nexus mixins/resources passed. In-world sky/room visual QA remains manual.')
+          print('Client boot, Nexus mixins/resources and actual sky GPU captures passed. In-world shaders/room visual QA remains manual.')
           PYCLIENT
       - uses: actions/upload-artifact@v4
         if: always()
@@ -82,3 +87,4 @@ jobs:
           path: |
             nexus-client-smoke.log
             nexus-server-tests.log
+            run/nexus-sky-captures/*.png
