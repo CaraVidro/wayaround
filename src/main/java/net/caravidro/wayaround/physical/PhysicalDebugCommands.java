@@ -4,6 +4,7 @@ import java.util.Locale;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
+import net.caravidro.wayaround.flow.RegionVentilationModel;
 import net.caravidro.wayaround.pressure.PressureState;
 import net.caravidro.wayaround.pressure.RegionPressureModel;
 import net.caravidro.wayaround.pressure.UniversalPressure;
@@ -345,6 +346,7 @@ public final class PhysicalDebugCommands {
 
         ThermalRegionModel thermal =
                 ThermalRegionModel.from(
+                        level,
                         snapshot
                 );
 
@@ -382,6 +384,26 @@ public final class PhysicalDebugCommands {
                         thermal.timeConstantSeconds()
                 );
 
+        RegionVentilationModel ventilation =
+                RegionVentilationModel.from(
+                        level,
+                        snapshot
+                );
+
+        String airExchange =
+                String.format(
+                        Locale.ROOT,
+                        "%.3f",
+                        ventilation.totalExchangeM3PerS()
+                );
+
+        String airChanges =
+                String.format(
+                        Locale.ROOT,
+                        "%.1f",
+                        ventilation.airChangesPerHour()
+                );
+
         source.sendSuccess(
                 () -> Component.literal(
                         "REGIAO FISICA | "
@@ -407,7 +429,11 @@ public final class PhysicalDebugCommands {
                                 + thermalLoss
                                 + " W/K | tau "
                                 + thermalTau
-                                + " s"
+                                + " s | ventilacao "
+                                + airExchange
+                                + " m3/s ("
+                                + airChanges
+                                + " ACH)"
                                 + " | limiteCelulas="
                                 + snapshot.hitCellLimit()
                                 + " limiteDistancia="
