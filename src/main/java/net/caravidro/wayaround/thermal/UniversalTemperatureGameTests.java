@@ -163,7 +163,10 @@ public final class UniversalTemperatureGameTests {
         helper.assertTrue(
                 closed.openingConductanceWPerK()
                         == 0.0,
-                "Closed room must have no opening heat exchange"
+                "Closed room must have no opening heat exchange; closure="
+                        + closedRegion.closure()
+                        + " openings="
+                        + closedRegion.openings().size()
         );
 
         helper.assertTrue(
