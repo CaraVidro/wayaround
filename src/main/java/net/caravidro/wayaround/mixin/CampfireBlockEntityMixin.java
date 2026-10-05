@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.mixin;
 
 import net.caravidro.wayaround.physical.VanillaMatterInteractions;
+import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -31,6 +32,17 @@ public abstract class CampfireBlockEntityMixin {
     ) {
         if (level instanceof ServerLevel serverLevel) {
             VanillaMatterInteractions.tickLitCampfire(
+                    serverLevel,
+                    pos,
+                    state
+            );
+
+            /*
+             * Campfires are reliable thermal sources rather than relying on
+             * opportunistic nearby-player sampling. UniversalTemperature
+             * de-duplicates repeated applications within the same second.
+             */
+            EnvironmentalTemperature.applyBlockSource(
                     serverLevel,
                     pos,
                     state
