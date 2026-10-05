@@ -74,6 +74,21 @@ public final class WayWeaponItem
                                 EquipmentSlotGroup.MAINHAND
                         );
 
+        if (family == WeaponFamily.DAGGER) {
+            builder.add(
+                    Attributes.ATTACK_SPEED,
+                    new AttributeModifier(
+                            ResourceLocation.fromNamespaceAndPath(
+                                    WayAround.MODID,
+                                    "dual_dagger_speed"
+                            ),
+                            0.85,
+                            AttributeModifier.Operation.ADD_VALUE
+                    ),
+                    EquipmentSlotGroup.OFFHAND
+            );
+        }
+
         if (Math.abs(
                 family.reach()
         ) > 1.0E-6) {
