@@ -542,7 +542,8 @@ public final class PipeFlow {
                 if (!drained.isEmpty()) {
                     markSuctionPath(
                             step,
-                            drained
+                            drained,
+                            drained.getAmount()
                     );
 
                     return drained;
@@ -927,7 +928,8 @@ public final class PipeFlow {
 
                 pipe.markFlow(
                         marking,
-                        direction
+                        direction,
+                        visualStrength
                 );
             }
 
@@ -1412,7 +1414,8 @@ public final class PipeFlow {
 
                 pipe.markFlow(
                         marking,
-                        direction
+                        direction,
+                        consumed
                 );
             }
         }
@@ -1422,7 +1425,8 @@ public final class PipeFlow {
 
     private static void markSuctionPath(
             SuctionStep terminal,
-            FluidStack fluid
+            FluidStack fluid,
+            int milliBucketsPerTick
     ) {
         FluidStack marking =
                 fluid.copyWithAmount(
@@ -1464,7 +1468,8 @@ public final class PipeFlow {
 
             pipe.markFlow(
                     marking,
-                    direction
+                    direction,
+                    milliBucketsPerTick
             );
         }
     }
