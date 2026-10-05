@@ -407,6 +407,48 @@ public final class StructuralCollapseManager {
         );
     }
 
+    /** A known detached slab reuses demolition's bounded connected partition and renderer.
+     * The caller owns removal, NBT and settlement; no second authority may drop these blocks. */
+    public record DetachedBlock(BlockPos pos, BlockState state) {}
+
+    public static StructuralCollapseS2CPayload calvingVisuals(List<DetachedBlock> blocks,
+            int fallDistance, int driftX, int driftZ, long seed) {
+        if (blocks.size() > MAX_NODES || fallDistance < 0 || fallDistance > 512
+                || Math.abs((long) driftX) > 24 || Math.abs((long) driftZ) > 24)
+            throw new IllegalArgumentException("Unbounded calving snapshot");
+        Map<Long, Node> nodes = new java.util.LinkedHashMap<>();
+        for (DetachedBlock block : blocks) nodes.put(block.pos.asLong(),
+                new Node(block.pos.immutable(), block.state, 1, 1, false));
+        List<List<Node>> connected = partition(new Scan(nodes, 0), nodes.keySet(), MAX_RIGID_CLUSTER);
+        // Pack short disconnected pieces together; don't silently lose isolated blocks at the cap.
+        List<Node> ordered = new ArrayList<>(nodes.size());
+        Set<Long> seen = new HashSet<>();
+        for (List<Node> group : connected) for (Node node : group) {
+            ordered.add(node); seen.add(node.pos.asLong());
+        }
+        for (Node node : nodes.values()) if (seen.add(node.pos.asLong())) ordered.add(node);
+        List<StructuralCollapseS2CPayload.Cluster> clusters = new ArrayList<>();
+        for (int start = 0; start < ordered.size(); start += MAX_RIGID_CLUSTER) {
+            int size = Math.min(MAX_RIGID_CLUSTER, ordered.size() - start);
+            long[] positions = new long[size]; int[] states = new int[size];
+            for (int i = 0; i < size; i++) {
+                Node node = ordered.get(start + i);
+                positions[i] = node.pos.asLong(); states[i] = Block.getId(node.state);
+            }
+            clusters.add(new StructuralCollapseS2CPayload.Cluster(fallDistance,
+                    RigidFallMotion.calvingTicks(fallDistance), seed + start, positions, states,
+                    driftX, driftZ, true));
+        }
+        return new StructuralCollapseS2CPayload(UUID.randomUUID(), clusters);
+    }
+
+    public static void sendCalvingVisuals(ServerLevel level, BlockPos center,
+            List<DetachedBlock> blocks, int fallDistance, int driftX, int driftZ) {
+        PacketDistributor.sendToPlayersNear(level, null, center.getX() + .5, center.getY() + .5,
+                center.getZ() + .5, VISUAL_RANGE,
+                calvingVisuals(blocks, fallDistance, driftX, driftZ, level.getGameTime() ^ center.asLong()));
+    }
+
     public static void onServerTick(
             ServerTickEvent.Post event
     ) {

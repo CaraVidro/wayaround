@@ -7,6 +7,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.interaction.RigidFallMotion;
 import net.caravidro.wayaround.network.StructuralCollapseS2CPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -146,7 +147,7 @@ public final class StructuralCollapseClient {
                             states,
                             encoded.fallDistance(),
                             encoded.fallTicks(),
-                            encoded.seed()
+                            encoded.seed(), encoded.driftX(), encoded.driftZ(), encoded.calving()
                     );
 
             ACTIVE.add(
@@ -254,10 +255,8 @@ public final class StructuralCollapseClient {
                 continue;
             }
 
-            double drop =
-                    cluster.drop(
-                            partialTick
-                    );
+            double drop = cluster.drop(partialTick);
+            double drift = RigidFallMotion.drift(drop, cluster.fallDistance);
 
             int stride =
                     rendered > 2600
@@ -277,7 +276,9 @@ public final class StructuralCollapseClient {
                         pos.getY()
                                 - drop;
 
-                double dx=pos.getX()+.5-camera.x,dy=worldY+.5-camera.y,dz=pos.getZ()+.5-camera.z;
+                double worldX = pos.getX() + cluster.driftX * drift;
+                double worldZ = pos.getZ() + cluster.driftZ * drift;
+                double dx=worldX+.5-camera.x,dy=worldY+.5-camera.y,dz=worldZ+.5-camera.z;
                 if(dx*dx+dy*dy+dz*dz>RENDER_DISTANCE_SQR)continue;
 
                 event.getPoseStack()
@@ -285,21 +286,17 @@ public final class StructuralCollapseClient {
 
                 event.getPoseStack()
                         .translate(
-                                pos.getX()
-                                        - camera.x,
+                                worldX - camera.x,
                                 worldY
                                         - camera.y,
-                                pos.getZ()
-                                        - camera.z
+                                worldZ - camera.z
                         );
 
                 int packedLight =
                         LevelRenderer.getLightColor(
                                 minecraft.level,
                                 BlockPos.containing(
-                                        pos.getX(),
-                                        worldY,
-                                        pos.getZ()
+                                        worldX, worldY, worldZ
                                 )
                         );
 
@@ -413,23 +410,23 @@ public final class StructuralCollapseClient {
              i++) {
             BlockPos pos =
                     cluster.positions[
-                            cluster.random.nextInt(
+                            cluster.calving ? ParticleTypes.SNOWFLAKE : cluster.random.nextInt(
                                     cluster.positions.length
                             )
                             ];
 
             minecraft.level.addParticle(
-                    cluster.random.nextInt(
+                    cluster.calving ? ParticleTypes.SNOWFLAKE : cluster.random.nextInt(
                             4
                     ) == 0
                             ? ParticleTypes.CAMPFIRE_COSY_SMOKE
                             : ParticleTypes.POOF,
-                    pos.getX()
+                    pos.getX() + cluster.driftX * RigidFallMotion.drift(drop, cluster.fallDistance)
                             + cluster.random.nextDouble(),
                     pos.getY()
                             - drop
                             + 0.35,
-                    pos.getZ()
+                    pos.getZ() + cluster.driftZ * RigidFallMotion.drift(drop, cluster.fallDistance)
                             + cluster.random.nextDouble(),
                     (
                             cluster.random.nextDouble()
@@ -489,16 +486,14 @@ public final class StructuralCollapseClient {
                                     * 0.18;
 
             minecraft.level.addParticle(
-                    i % 5 == 0
+                    cluster.calving ? ParticleTypes.SNOWFLAKE : i % 5 == 0
                             ? ParticleTypes.CAMPFIRE_COSY_SMOKE
                             : ParticleTypes.POOF,
-                    pos.getX()
-                            + 0.5,
+                    pos.getX() + cluster.driftX + 0.5,
                     pos.getY()
                             - cluster.fallDistance
                             + 0.15,
-                    pos.getZ()
-                            + 0.5,
+                    pos.getZ() + cluster.driftZ + 0.5,
                     Math.cos(
                             angle
                     )
@@ -521,6 +516,8 @@ public final class StructuralCollapseClient {
         private final int fallDistance;
         private final int fallTicks;
         private final long seed;
+        private final int driftX, driftZ;
+        private final boolean calving;
         private final Vec3 center;
         private final Random random;
 
@@ -533,7 +530,7 @@ public final class StructuralCollapseClient {
                 BlockState[] states,
                 int fallDistance,
                 int fallTicks,
-                long seed
+                long seed, int driftX, int driftZ, boolean calving
         ) {
             this.eventId = eventId;
             this.positions = positions;
@@ -544,6 +541,7 @@ public final class StructuralCollapseClient {
                     fallTicks
             );
             this.seed = seed;
+            this.driftX = driftX; this.driftZ = driftZ; this.calving = calving;
             this.center = computeCenter(
                     positions
             );
@@ -555,6 +553,7 @@ public final class StructuralCollapseClient {
         private double drop(
                 float partialTick
         ) {
+            if (calving) return RigidFallMotion.calvingDrop(age + partialTick, fallDistance);
             double t =
                     Mth.clamp(
                             (

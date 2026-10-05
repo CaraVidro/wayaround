@@ -15,8 +15,9 @@ O desgaste natural só avança com jogadores próximos em chunks carregados.
 
 Na ruptura, uma fatia de gelo e construções apoiadas nela se desprendem.
 A queda usa o solo real sob a área de destino, tanto em terra quanto no mar.
-O gelo é recolocado como destroços; blocos estruturais de construções viram
-drops, peças frágeis quebram e contêineres são deslocados com seu conteúdo.
+O gelo e blocos estruturais são recolocados como destroços; peças frágeis
+quebram e contêineres são deslocados com seu conteúdo. A animação usa grupos
+rígidos do sistema de demolição, sem entidades para a casca de gelo.
 A nuvem de partículas acompanha a queda. Ao fechar o mundo normalmente,
 quedas já iniciadas são concluídas antes do salvamento final.
 
@@ -33,3 +34,5 @@ antecipa a ruptura e não valida o tempo de desgaste.
 `gradlew checkCalving` testa frequência dos campos de terreno, paredes,
 saliências e cálculo de pouso. A aparência das partículas, a captura de
 construções e a geração interpolada do Minecraft precisam de conferência no jogo.
+
+Detalhes e validação da integração: [calving-chef-eyewear-v1-6.md](calving-chef-eyewear-v1-6.md).

@@ -588,7 +588,7 @@ public final class AccessoryRenderer {
                     case AERO_TROUSERS ->
                             Blocks.BLUE_WOOL.defaultBlockState();
                     case CHEF_TROUSERS ->
-                            Blocks.LIGHT_GRAY_WOOL.defaultBlockState();
+                            Blocks.GRAY_WOOL.defaultBlockState();
                     default ->
                             Blocks.BROWN_WOOL.defaultBlockState();
                 };
@@ -2164,62 +2164,38 @@ public final class AccessoryRenderer {
      * rat system can use AccessoryKind#ratHost and place a passenger in that
      * cavity without the hat model needing to be rebuilt.
      */
-    private static void chefHat(
-            int wear,
-            PoseStack pose,
-            BlockRenderDispatcher blocks,
-            MultiBufferSource buffers,
-            int light
-    ) {
-        BlockState white =
-                wear == 0
-                        ? Blocks.WHITE_WOOL.defaultBlockState()
-                        : wear == 1
-                        ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
-                        : Blocks.GRAY_WOOL.defaultBlockState();
-
-        piece(pose, blocks, buffers, light, white,
-                0.0, -0.54, 0.0,
-                0.57, 0.13, 0.57,
-                0, 0, wear == 2 ? 6 : 0);
-
-        double y =
-                wear == 2
-                        ? -0.69
-                        : -0.75;
-
-        double spread =
-                0.20;
-
-        piece(pose, blocks, buffers, light, white,
-                -spread, y, -spread,
-                0.34, 0.30, 0.34,
-                0, 0, -4);
-
-        piece(pose, blocks, buffers, light, white,
-                spread, y, -spread,
-                wear == 2 ? 0.25 : 0.34, 0.30, 0.34,
-                0, 0, wear == 2 ? 15 : 4);
-
-        piece(pose, blocks, buffers, light, white,
-                -spread, y - 0.02, spread,
-                0.34, wear == 1 ? 0.27 : 0.31, 0.34,
-                0, 0, 3);
-
-        if (wear < 2) {
-            piece(pose, blocks, buffers, light, white,
-                    spread, y - 0.03, spread,
-                    0.34, 0.32, 0.34,
-                    0, 0, -3);
+    /** Shared worn/flying toque: tall pleated cylinder and a softly lobed crown. */
+    public static void chefHat(int wear, PoseStack pose, BlockRenderDispatcher blocks,
+            MultiBufferSource buffers, int light) {
+        BlockState cloth = (wear == 0 ? Blocks.WHITE_WOOL : wear == 1
+                ? Blocks.LIGHT_GRAY_WOOL : Blocks.GRAY_WOOL).defaultBlockState();
+        BlockState seam = Blocks.LIGHT_GRAY_WOOL.defaultBlockState();
+        // Band has an open interior rather than a solid cube through the player's head.
+        for (int side : new int[]{-1, 1}) {
+            piece(pose, blocks, buffers, light, cloth, side * .263, -.535, 0,
+                    .065, .12, .59, 0, 0, 0);
+            piece(pose, blocks, buffers, light, cloth, 0, -.535, side * .263,
+                    .49, .12, .065, 0, 0, 0);
         }
-
-        if (wear >= 1) {
-            piece(pose, blocks, buffers, light,
-                    Blocks.BROWN_WOOL.defaultBlockState(),
-                    -0.17, -0.57, -0.31,
-                    0.12, 0.06, 0.08,
-                    0, 0, 0);
+        double height = wear == 2 ? .30 : .43;
+        for (int pleat = 0; pleat < 12; pleat++) {
+            double angle = pleat * Math.PI / 6;
+            double x = Math.sin(angle) * .255, z = Math.cos(angle) * .255;
+            piece(pose, blocks, buffers, light, cloth, x, -.60 - height * .5, z,
+                    .135, height, .075, (float)(pleat * 30), 0, wear == 2 ? 5 : 0);
+            piece(pose, blocks, buffers, light, seam, x * 1.005, -.60 - height * .46, z * 1.005,
+                    .012, height * .77, .079, (float)(pleat * 30), 0, 0);
         }
+        for (int lobe = 0; lobe < 8; lobe++) {
+            double angle = lobe * Math.PI / 4;
+            piece(pose, blocks, buffers, light, cloth,
+                    Math.sin(angle) * .195, -.65 - height - .012 * (lobe % 3), Math.cos(angle) * .195,
+                    .26, .17, .26, (float)(lobe * 45), 0, wear == 2 ? 8 : 0);
+        }
+        piece(pose, blocks, buffers, light, cloth, 0, -.70 - height, 0,
+                .33, .15, .33, 0, 0, 0);
+        if (wear > 0) piece(pose, blocks, buffers, light, Blocks.BROWN_WOOL.defaultBlockState(),
+                -.17, -.535, -.299, .10, .045, .009, 0, 0, -4);
     }
 
     private static void goggles(
@@ -2486,6 +2462,26 @@ public final class AccessoryRenderer {
                 0.0, 0.34, 0.15,
                 0.54, 0.70, 0.07,
                 0, 0, 0);
+
+        BlockState seam = Blocks.LIGHT_GRAY_WOOL.defaultBlockState();
+        for (int side : new int[]{-1, 1}) {
+            piece(pose, blocks, buffers, light, cloth, side * .255, .345, 0,
+                    .055, .70, .36, 0, 0, 0);
+            piece(pose, blocks, buffers, light, cloth, side * .105, .045, -.205,
+                    .14, .15, .04, 0, 0, side * -24);
+            piece(pose, blocks, buffers, light, seam, side * .27, .37, -.201,
+                    .012, .52, .011, 0, 0, 0);
+        }
+        // Overlapping placket and stitched breast pocket.
+        piece(pose, blocks, buffers, light, seam, .045, .38, -.205,
+                .012, .57, .009, 0, 0, 0);
+        piece(pose, blocks, buffers, light, cloth, -.18, .26, -.212,
+                .115, .10, .014, 0, 0, 0);
+        piece(pose, blocks, buffers, light, seam, -.18, .22, -.222,
+                .115, .012, .009, 0, 0, 0);
+        for (int side : new int[]{-1, 1})
+            piece(pose, blocks, buffers, light, Blocks.RED_WOOL.defaultBlockState(),
+                    side * .043, .16, -.226, .065, .11, .018, 0, 0, side * 18);
 
         // Double-breasted buttons.
         for (int i = 0;
@@ -3124,6 +3120,18 @@ public final class AccessoryRenderer {
                         ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
                         : Blocks.GRAY_WOOL.defaultBlockState();
 
+        BlockState seams = Blocks.LIGHT_GRAY_WOOL.defaultBlockState();
+        piece(pose, blocks, buffers, light, cloth, 0, .235, -.236,
+                .31, .27, .025, 0, 0, 0);
+        for (int side : new int[]{-1, 1}) {
+            piece(pose, blocks, buffers, light, cloth, side * .145, .09, -.228,
+                    .045, .20, .025, 0, 0, side * 12);
+            piece(pose, blocks, buffers, light, cloth, side * .24, .43, .188,
+                    .25, .045, .035, 0, 0, side * 17);
+            piece(pose, blocks, buffers, light, cloth, side * .047, .50, .209,
+                    .05, .18, .025, 0, 0, side * 18);
+        }
+
         // Waist strap.
         piece(pose, blocks, buffers, light,
                 Blocks.RED_WOOL.defaultBlockState(),
@@ -3134,7 +3142,7 @@ public final class AccessoryRenderer {
         pose.translate(
                 0.0,
                 0.44,
-                -0.205
+                -0.248
         );
 
         pose.mulPose(
@@ -3155,6 +3163,15 @@ public final class AccessoryRenderer {
                 0.04,
                 0, 0,
                 wear == 2 ? -5 : 0);
+
+        piece(pose, blocks, buffers, light, seams, 0, .392, -.024,
+                .47, .016, .010, 0, 0, 0);
+        for (int side : new int[]{-1, 1}) {
+            piece(pose, blocks, buffers, light, cloth, side * .105, .15, -.035,
+                    .17, .12, .02, 0, 0, 0);
+            piece(pose, blocks, buffers, light, seams, side * .105, .10, -.048,
+                    .17, .012, .008, 0, 0, 0);
+        }
 
         if (wear >= 1) {
             piece(pose, blocks, buffers, light,

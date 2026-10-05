@@ -94,6 +94,10 @@ public final class FlyingTopHatRenderer
                 0.0
         );
 
+        if (entity.hatKind() == AccessoryKind.CHEF_HAT) {
+            AccessoryRenderer.chefHat(AccessoryWear.stage(AccessoryKind.CHEF_HAT, entity.wear()),
+                    pose, blocks, buffers, light);
+        } else {
         TopHatModelRenderer.render(
                 pose,
                 blocks,
@@ -111,6 +115,8 @@ public final class FlyingTopHatRenderer
                 entity.size(),
                 entity.extras()
         );
+
+        }
 
         pose.popPose();
 

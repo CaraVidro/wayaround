@@ -260,23 +260,11 @@ public final class TopHatManager {
                         );
 
         if (hat == null) {
-            player.getInventory()
-                    .add(
-                            stack
-                    );
+            if (!player.getInventory().add(stack)) player.drop(stack, false);
             return;
         }
 
-        hat.setWear(
-                stack.getDamageValue()
-        );
-
-        hat.setCustomization(
-                AccessoryCustomizationData.read(
-                        stack,
-                        AccessoryKind.ENGINEER_CAP
-                )
-        );
+        hat.setHatStack(stack);
 
         hat.moveTo(
                 player.getX(),
@@ -340,10 +328,9 @@ public final class TopHatManager {
                 launch
         );
 
-        player.serverLevel()
-                .addFreshEntity(
-                        hat
-                );
+        if (!player.serverLevel().addFreshEntity(hat)) {
+            if (!player.getInventory().add(stack)) player.drop(stack, false);
+        }
     }
 
     private static float instability(
