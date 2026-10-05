@@ -11,6 +11,7 @@ public final class PlanetMath {
     public static double delta(double from,double to) { return wrap(to-from); }
     public static boolean outside(double x,double z) { return x<-HALF||x>=HALF||z<-HALF||z>=HALF; }
     public static double smooth(double x) { x=Math.max(0,Math.min(1,x));return x*x*(3-2*x); }
+    public static double edgeFade(int x,int z) { return smooth((HALF-Math.max(Math.abs((long)wrap(x)),Math.abs((long)wrap(z))))/2048.0); }
     public static double latitude(int z) { return Math.sin(wrap(z)*Math.PI*2/SIZE); }
     public static double polarRadius(int x,int z) {
         double dx=delta(0,x)/14500, dz=delta(22528,z)/6200;

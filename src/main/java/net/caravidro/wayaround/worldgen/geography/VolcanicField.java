@@ -35,6 +35,8 @@ public final class VolcanicField {
     private static final long SEED_DETAIL =
             0x94D049BB1L;
 
+    private static double edgeFade(int x,int z){return net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.serverEnabled(net.caravidro.wayaround.worldconfig.WorldFeature.FINITE_WORLD)?net.caravidro.wayaround.worldgen.planet.PlanetMath.edgeFade(x,z):1;}
+
     private VolcanicField() {
     }
 
@@ -402,12 +404,12 @@ public final class VolcanicField {
                 )
                         / volcano.radius();
 
-        return 1.0
+        return edgeFade(blockX,blockZ)*(1.0
                 - smoothstep(
                 0.86,
                 1.24,
                 normalized
-        );
+        ));
     }
 
     /**
@@ -434,12 +436,12 @@ public final class VolcanicField {
                 )
                         / volcano.radius();
 
-        return 1.0
+        return edgeFade(blockX,blockZ)*(1.0
                 - smoothstep(
                 0.90,
                 1.16,
                 normalized
-        );
+        ));
     }
 
     public static boolean isVolcanic(
@@ -472,7 +474,7 @@ public final class VolcanicField {
                         blockZ
                 );
 
-        return 1.0
+        return edgeFade(blockX,blockZ)*(1.0
                 - smoothstep(
                 volcano.craterRadius()
                         * 0.20,

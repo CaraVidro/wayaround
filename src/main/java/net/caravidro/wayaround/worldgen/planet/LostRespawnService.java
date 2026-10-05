@@ -43,11 +43,11 @@ public final class LostRespawnService {
             Search s=entry.getValue();ServerPlayer p=server.getPlayerList().getPlayer(entry.getKey());
             if(p==null||p!=s.original||!WorldFeatureRuntime.serverEnabled(WorldFeature.RANDOM_RESPAWN)) {release(s);SEARCHES.remove(entry.getKey());continue;}
             if(s.destination!=null) {
-                if(s.requested) {s.requested=false;p.connection.player=server.getPlayerList().respawn(p,false);}
+                if(s.requested) {s.requested=false;p.connection.player=server.getPlayerList().respawn(p,false,net.minecraft.world.entity.Entity.RemovalReason.KILLED);}
                 continue;
             }
             if(s.failed) {
-                if(s.requested){s.requested=false;p.sendSystemMessage(net.minecraft.network.chat.Component.literal("[WayAround] Não foi possível encontrar terra segura neste mundo; o renascimento normal será usado."));p.connection.player=server.getPlayerList().respawn(p,false);}
+                if(s.requested){s.requested=false;p.sendSystemMessage(net.minecraft.network.chat.Component.literal("[WayAround] Não foi possível encontrar terra segura neste mundo; o renascimento normal será usado."));p.connection.player=server.getPlayerList().respawn(p,false,net.minecraft.world.entity.Entity.RemovalReason.KILLED);}
                 continue;
             }
             if(s.waiting)continue;
