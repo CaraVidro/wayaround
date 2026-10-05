@@ -161,6 +161,7 @@ public final class UniversalTemperature {
         if (region.isPresent()) {
             ThermalRegionModel model =
                     ThermalRegionModel.from(
+                            level,
                             region.get()
                     );
 
@@ -202,6 +203,7 @@ public final class UniversalTemperature {
     ) {
         ThermalRegionModel model =
                 ThermalRegionModel.from(
+                        level,
                         region
                 );
 

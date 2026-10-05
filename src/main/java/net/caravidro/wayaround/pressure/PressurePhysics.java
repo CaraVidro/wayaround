@@ -82,6 +82,43 @@ public final class PressurePhysics {
         );
     }
 
+    public static double gasDensityKgPerM3(
+            MaterialDefinition material,
+            double absolutePressureKPa,
+            double temperatureC
+    ) {
+        var phase =
+                material.phase(
+                        MatterPhase.GAS
+                );
+
+        double referenceTemperature =
+                material.transitions()
+                        .hasBoilingPoint()
+                        ? material.transitions()
+                                .boilingPointC()
+                        : 20.0;
+
+        double pressureRatio =
+                Math.max(
+                        0.0,
+                        absolutePressureKPa
+                )
+                        / PressureMath.STANDARD_ATMOSPHERE_KPA;
+
+        double temperatureRatio =
+                PressureMath.celsiusToKelvin(
+                        referenceTemperature
+                )
+                        / PressureMath.celsiusToKelvin(
+                        temperatureC
+                );
+
+        return phase.densityKgPerM3()
+                * pressureRatio
+                * temperatureRatio;
+    }
+
     public static double gasGaugeKPa(
             MaterialDefinition material,
             double massKg,

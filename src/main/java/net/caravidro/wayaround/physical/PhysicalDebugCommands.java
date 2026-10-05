@@ -4,6 +4,9 @@ import java.util.Locale;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
+import net.caravidro.wayaround.flow.FlowState;
+import net.caravidro.wayaround.flow.RegionVentilationModel;
+import net.caravidro.wayaround.flow.UniversalFlow;
 import net.caravidro.wayaround.pressure.PressureState;
 import net.caravidro.wayaround.pressure.RegionPressureModel;
 import net.caravidro.wayaround.pressure.UniversalPressure;
@@ -16,6 +19,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 /**
@@ -113,7 +117,156 @@ public final class PhysicalDebugCommands {
                                                                 )
                                                 )
                                 )
+                                .then(
+                                        Commands.literal(
+                                                        "flow"
+                                                )
+                                                .executes(
+                                                        context ->
+                                                                inspectFlow(
+                                                                        context.getSource()
+                                                                )
+                                                )
+                                )
                 );
+    }
+
+
+    private static int inspectFlow(
+            CommandSourceStack source
+    ) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player =
+                source.getPlayerOrException();
+
+        ServerLevel level =
+                player.serverLevel();
+
+        BlockPos seed =
+                BlockPos.containing(
+                        player.getX(),
+                        player.getEyeY(),
+                        player.getZ()
+                );
+
+        boolean water =
+                level.getFluidState(
+                        seed
+                ).is(
+                        FluidTags.WATER
+                );
+
+        FlowState flow =
+                water
+                        ? UniversalFlow.waterAt(
+                        level,
+                        seed
+                )
+                        : UniversalFlow.atmosphereAt(
+                        level,
+                        player.position()
+                );
+
+        source.sendSuccess(
+                () -> Component.literal(
+                        "FLUXO UNIVERSAL | "
+                                + flow.source()
+                                + " | meio "
+                                + flow.material().id()
+                                + " | velocidade "
+                                + String.format(
+                                Locale.ROOT,
+                                "%.3f",
+                                flow.speedMPerS()
+                        )
+                                + " m/s | vetor ["
+                                + String.format(
+                                Locale.ROOT,
+                                "%.3f, %.3f, %.3f",
+                                flow.velocityMPerS().x,
+                                flow.velocityMPerS().y,
+                                flow.velocityMPerS().z
+                        )
+                                + "] | densidade "
+                                + String.format(
+                                Locale.ROOT,
+                                "%.3f",
+                                flow.densityKgPerM3()
+                        )
+                                + " kg/m3 | pressao "
+                                + String.format(
+                                Locale.ROOT,
+                                "%.2f",
+                                flow.absolutePressureKPa()
+                        )
+                                + " kPa | qdin "
+                                + String.format(
+                                Locale.ROOT,
+                                "%.4f",
+                                flow.dynamicPressureKPa()
+                        )
+                                + " kPa | turbulencia "
+                                + String.format(
+                                Locale.ROOT,
+                                "%.2f",
+                                flow.turbulence()
+                        )
+                ),
+                false
+        );
+
+        if (!water) {
+            var region =
+                    PhysicalRegionScanner.scan(
+                            level,
+                            seed,
+                            PhysicalRegionScanner.DEFAULT_LIMITS
+                    );
+
+            if (region.isPresent()
+                    && !region.get()
+                    .openings()
+                    .isEmpty()) {
+
+                RegionVentilationModel ventilation =
+                        RegionVentilationModel.from(
+                                level,
+                                region.get()
+                        );
+
+                source.sendSuccess(
+                        () -> Component.literal(
+                                "VENTILACAO | troca "
+                                        + String.format(
+                                        Locale.ROOT,
+                                        "%.3f",
+                                        ventilation.totalExchangeM3PerS()
+                                )
+                                        + " m3/s | entrada "
+                                        + String.format(
+                                        Locale.ROOT,
+                                        "%.3f",
+                                        ventilation.inwardM3PerS()
+                                )
+                                        + " | saida "
+                                        + String.format(
+                                        Locale.ROOT,
+                                        "%.3f",
+                                        ventilation.outwardM3PerS()
+                                )
+                                        + " | "
+                                        + String.format(
+                                        Locale.ROOT,
+                                        "%.1f",
+                                        ventilation.airChangesPerHour()
+                                )
+                                        + " ACH"
+                        ),
+                        false
+                );
+            }
+        }
+
+        return 1;
     }
 
 
@@ -345,6 +498,7 @@ public final class PhysicalDebugCommands {
 
         ThermalRegionModel thermal =
                 ThermalRegionModel.from(
+                        level,
                         snapshot
                 );
 
@@ -382,6 +536,26 @@ public final class PhysicalDebugCommands {
                         thermal.timeConstantSeconds()
                 );
 
+        RegionVentilationModel ventilation =
+                RegionVentilationModel.from(
+                        level,
+                        snapshot
+                );
+
+        String airExchange =
+                String.format(
+                        Locale.ROOT,
+                        "%.3f",
+                        ventilation.totalExchangeM3PerS()
+                );
+
+        String airChanges =
+                String.format(
+                        Locale.ROOT,
+                        "%.1f",
+                        ventilation.airChangesPerHour()
+                );
+
         source.sendSuccess(
                 () -> Component.literal(
                         "REGIAO FISICA | "
@@ -407,7 +581,11 @@ public final class PhysicalDebugCommands {
                                 + thermalLoss
                                 + " W/K | tau "
                                 + thermalTau
-                                + " s"
+                                + " s | ventilacao "
+                                + airExchange
+                                + " m3/s ("
+                                + airChanges
+                                + " ACH)"
                                 + " | limiteCelulas="
                                 + snapshot.hitCellLimit()
                                 + " limiteDistancia="

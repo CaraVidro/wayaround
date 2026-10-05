@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.industrial.pipework;
 
+import net.caravidro.wayaround.flow.FlowMath;
 import net.caravidro.wayaround.pressure.PressureMath;
 import net.minecraft.util.Mth;
 
@@ -26,6 +27,32 @@ public final class HydraulicLoad {
         public float pressureKPa() {
             return (float) PressureMath.barToKPa(
                     pressureBar
+            );
+        }
+
+        public double volumetricFlowM3PerS() {
+            return FlowMath.minecraftFluidRateM3PerS(
+                    effectiveFlow
+            );
+        }
+
+        public double massFlowKgPerS(
+                double densityKgPerM3
+        ) {
+            return FlowMath.massRateKgPerS(
+                    volumetricFlowM3PerS(),
+                    densityKgPerM3
+            );
+        }
+
+        public double velocityMPerS(
+                PipeSpec spec
+        ) {
+            return FlowMath.velocityFromVolumetricRateMPerS(
+                    volumetricFlowM3PerS(),
+                    spec == null
+                            ? 0.0
+                            : spec.internalCrossSectionM2()
             );
         }
 

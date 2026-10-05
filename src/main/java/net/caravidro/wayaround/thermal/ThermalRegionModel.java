@@ -1,8 +1,10 @@
 package net.caravidro.wayaround.thermal;
 
+import net.caravidro.wayaround.flow.RegionVentilationModel;
 import net.caravidro.wayaround.physical.MatterPhase;
 import net.caravidro.wayaround.physical.PhysicalMaterials;
 import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
+import net.minecraft.server.level.ServerLevel;
 
 /**
  * Lumped thermal model for one bounded PhysicalRegion.
@@ -23,6 +25,13 @@ public record ThermalRegionModel(
 
     public static final double OPENING_EXCHANGE_W_PER_M2K =
             120.0;
+
+    /**
+     * Minimum natural mixing for a known opening even when the sampled wind is
+     * nearly perpendicular/quiet. Actual flow can raise this substantially.
+     */
+    public static final double PASSIVE_OPENING_EXCHANGE_W_PER_M2K =
+            35.0;
 
     private static final double MIN_CONDUCTANCE_W_PER_K =
             0.25;
@@ -72,6 +81,70 @@ public record ThermalRegionModel(
     }
 
     public static ThermalRegionModel from(
+            ServerLevel level,
+            PhysicalRegionSnapshot region
+    ) {
+        var air =
+                PhysicalMaterials.AIR.phase(
+                        MatterPhase.GAS
+                );
+
+        double airMassKg =
+                air.densityKgPerM3()
+                        * Math.max(
+                        0.05,
+                        region.volumeM3()
+                );
+
+        double heatCapacity =
+                airMassKg
+                        * air.specificHeatJPerKgK();
+
+        double wallConductance =
+                region.boundaries()
+                        .stream()
+                        .mapToDouble(
+                                ThermalPhysics::boundaryConductanceWPerK
+                        )
+                        .sum();
+
+        RegionVentilationModel ventilation =
+                RegionVentilationModel.from(
+                        level,
+                        region
+                );
+
+        double advectiveConductance =
+                ventilation.totalExchangeM3PerS()
+                        * air.densityKgPerM3()
+                        * air.specificHeatJPerKgK();
+
+        double passiveConductance =
+                region.openingAreaM2()
+                        * PASSIVE_OPENING_EXCHANGE_W_PER_M2K;
+
+        double openingConductance =
+                Math.max(
+                        passiveConductance,
+                        advectiveConductance
+                );
+
+        if (!region.fullyCharacterized()) {
+            openingConductance =
+                    Math.max(
+                            openingConductance,
+                            OPENING_EXCHANGE_W_PER_M2K
+                    );
+        }
+
+        return build(
+                heatCapacity,
+                wallConductance,
+                openingConductance
+        );
+    }
+
+    public static ThermalRegionModel from(
             PhysicalRegionSnapshot region
     ) {
         var air =
@@ -115,6 +188,18 @@ public record ThermalRegionModel(
                     );
         }
 
+        return build(
+                heatCapacity,
+                wallConductance,
+                openingConductance
+        );
+    }
+
+    private static ThermalRegionModel build(
+            double heatCapacity,
+            double wallConductance,
+            double openingConductance
+    ) {
         double totalConductance =
                 Math.max(
                         MIN_CONDUCTANCE_W_PER_K,
