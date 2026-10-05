@@ -1,9 +1,11 @@
 package net.caravidro.wayaround.environment;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.network.EnvironmentalFieldS2CPayload;
 import net.caravidro.wayaround.flow.FlowState;
 import net.caravidro.wayaround.flow.UniversalFlow;
 import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
@@ -21,6 +23,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Bounded regional environmental simulation.
@@ -148,7 +151,118 @@ public final class EnvironmentalFieldManager {
                     snowBudget--;
                 }
             }
+
+            if (event.getServer()
+                    .getTickCount()
+                    % 40L
+                    == 0L) {
+                for (var player :
+                        level.players()) {
+                    syncPlayer(
+                            level,
+                            player
+                    );
+                }
+            }
         }
+    }
+
+    private static void syncPlayer(
+            ServerLevel level,
+            net.minecraft.server.level.ServerPlayer player
+    ) {
+        int centerX =
+                EnvironmentalFields.cellX(
+                        player.getX()
+                );
+
+        int centerZ =
+                EnvironmentalFields.cellZ(
+                        player.getZ()
+                );
+
+        ArrayList<Long> keys =
+                new ArrayList<>();
+
+        ArrayList<EnvironmentalFields.Snapshot> snapshots =
+                new ArrayList<>();
+
+        for (int dx = -ACTIVE_RADIUS_CELLS;
+             dx <= ACTIVE_RADIUS_CELLS;
+             dx++) {
+
+            for (int dz = -ACTIVE_RADIUS_CELLS;
+                 dz <= ACTIVE_RADIUS_CELLS;
+                 dz++) {
+
+                int cellX =
+                        centerX + dx;
+
+                int cellZ =
+                        centerZ + dz;
+
+                BlockPos center =
+                        EnvironmentalFields.center(
+                                level,
+                                cellX,
+                                cellZ
+                        );
+
+                if (!level.hasChunkAt(
+                        center
+                )) {
+                    continue;
+                }
+
+                EnvironmentalFieldData.Cell cell =
+                        EnvironmentalFields.mutable(
+                                level,
+                                cellX,
+                                cellZ
+                        );
+
+                keys.add(
+                        EnvironmentalFields.key(
+                                cellX,
+                                cellZ
+                        )
+                );
+
+                snapshots.add(
+                        EnvironmentalFields.snapshot(
+                                cell
+                        )
+                );
+            }
+        }
+
+        if (keys.isEmpty()) {
+            return;
+        }
+
+        long[] packed =
+                new long[
+                        keys.size()
+                ];
+
+        for (int index = 0;
+             index < keys.size();
+             index++) {
+            packed[index] =
+                    keys.get(
+                            index
+                    );
+        }
+
+        PacketDistributor.sendToPlayer(
+                player,
+                EnvironmentalFieldS2CPayload.batch(
+                        packed,
+                        snapshots.toArray(
+                                EnvironmentalFields.Snapshot[]::new
+                        )
+                )
+        );
     }
 
     private static boolean updateCell(
