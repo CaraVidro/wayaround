@@ -17,6 +17,7 @@ public final class HydraulicLoadTest {
         cavitationReducesUsefulFlow();
         overpressureDamagesUnderratedPipe();
         strongerPipeAvoidsSamePressureDamage();
+        staticHeadUsesHydrostaticPressure();
 
         System.out.println(
                 "PASS: "
@@ -202,6 +203,20 @@ public final class HydraulicLoadTest {
         check(
                 weakened > over,
                 "already weakened pipe suffers more from the same overpressure"
+        );
+    }
+
+    private static void staticHeadUsesHydrostaticPressure() {
+        float head =
+                HydraulicLoad.staticHeadBar(
+                        997.0,
+                        10.0
+                );
+
+        check(
+                head > 0.97F
+                        && head < 0.99F,
+                "ten metres of fresh water creates about 0.98 bar static head"
         );
     }
 
