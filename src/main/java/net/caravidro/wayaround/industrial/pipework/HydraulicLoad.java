@@ -23,6 +23,12 @@ public final class HydraulicLoad {
             float vibration,
             float hydraulicStress
     ) {
+        public float pressureKPa() {
+            return (float) PressureMath.barToKPa(
+                    pressureBar
+            );
+        }
+
         public float flowFactor() {
             if (desiredFlow <= 0.001F) {
                 return 0.0F;
