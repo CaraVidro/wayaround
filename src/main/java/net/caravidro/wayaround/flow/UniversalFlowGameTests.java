@@ -253,6 +253,60 @@ public final class UniversalFlowGameTests {
             batch = "universal_flow",
             timeoutTicks = 100
     )
+    public static void pressurizedSteamGetsDenser(
+            GameTestHelper helper
+    ) {
+        double area =
+                PipeCatalog.INSULATED_STEAM.internalCrossSectionM2();
+
+        FlowState low =
+                UniversalFlow.steamConduit(
+                        new Vec3(
+                                1.0,
+                                0.0,
+                                0.0
+                        ),
+                        200.0,
+                        220.0,
+                        1.0,
+                        area,
+                        0.1
+                );
+
+        FlowState high =
+                UniversalFlow.steamConduit(
+                        new Vec3(
+                                1.0,
+                                0.0,
+                                0.0
+                        ),
+                        800.0,
+                        220.0,
+                        1.0,
+                        area,
+                        0.1
+                );
+
+        helper.assertTrue(
+                high.densityKgPerM3()
+                        > low.densityKgPerM3(),
+                "At equal temperature, higher absolute gas pressure must increase density"
+        );
+
+        helper.assertTrue(
+                high.volumetricRateM3PerS()
+                        < low.volumetricRateM3PerS(),
+                "The same steam mass flow occupies less volume when compressed"
+        );
+
+        helper.succeed();
+    }
+
+    @GameTest(
+            template = "assembly_test",
+            batch = "universal_flow",
+            timeoutTicks = 100
+    )
     public static void explicitDensityControlsTransportedMass(
             GameTestHelper helper
     ) {
@@ -269,7 +323,7 @@ public final class UniversalFlowGameTests {
                         400.0,
                         2.5,
                         0.1,
-                        FlowState.Source.CONDUIT_LIQUID
+                        FlowState.Source.STEAM
                 );
 
         helper.assertTrue(
