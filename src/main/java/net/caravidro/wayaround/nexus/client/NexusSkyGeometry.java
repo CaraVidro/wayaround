@@ -67,24 +67,40 @@ public final class NexusSkyGeometry {
         if(Math.abs(Math.abs(angle)-GAP)<1e-9)angle+=Math.copySign(.007*Math.sin(across*3)+across*.008,angle);
         direction(mesh, angle, center(angle) + halfWidth(angle) * across + edgeNoise(angle), DISTANCE, color, true);
     }
+    private record Stroke(double[] path, double[] x, double[] y) {}
     private static void fracture(List<Vertex> mesh, double[] path, double width, boolean split) {
-        // Draw tapered ribbons rather than wide, disconnected rectangular crack segments.
-        ribbon(mesh, path, width * 2.8, new Color(216, 32, 35, 19));
-        ribbon(mesh, path, width * 1.48, new Color(240, 167, 126, 110));
-        ribbon(mesh, path, width, split ? IVORY : new Color(246, 228, 208, 255));
-        if (split) ribbon(mesh, path, width * .72, VOID);
+        Stroke joined=join(path);
+        Color outer=new Color(226, 92, 76, 0), inner=new Color(249, 182, 147, 88);
+        stroke(mesh, joined, -width*2.8, -width, outer, inner);
+        stroke(mesh, joined, width, width*2.8, inner, outer);
+        stroke(mesh, joined, -width, width, split ? IVORY : new Color(246,228,208,255), split ? IVORY : new Color(246,228,208,255));
+        if(split)stroke(mesh, joined, -width*.72, width*.72, VOID, VOID);
     }
-    private static void ribbon(List<Vertex> mesh, double[] path, double width, Color color) {
-        int points = path.length / 2;
-        for (int i = 0; i < points - 1; i++) {
-            double a = width * taper(i, points), b = width * taper(i + 1, points);
-            double x = path[i * 2], y = path[i * 2 + 1], nx = path[i * 2 + 2], ny = path[i * 2 + 3];
-            double length = Math.hypot(nx - x, ny - y), dx = -(ny - y) / length, dy = (nx - x) / length;
-            direction(mesh, x - dx * a, y - dy * a, DISTANCE, color, true);
-            direction(mesh, nx - dx * b, ny - dy * b, DISTANCE, color, true);
-            direction(mesh, nx + dx * b, ny + dy * b, DISTANCE, color, true);
-            direction(mesh, x + dx * a, y + dy * a, DISTANCE, color, true);
+    private static Stroke join(double[] path) {
+        int points=path.length/2;double[] x=new double[points],y=new double[points];
+        for(int i=0;i<points;i++) {
+            int before=Math.max(0,i-1),after=Math.min(points-1,i+1);
+            double ax=path[i*2]-path[before*2],ay=path[i*2+1]-path[before*2+1];
+            double bx=path[after*2]-path[i*2],by=path[after*2+1]-path[i*2+1];
+            if(i==0){ax=bx;ay=by;}if(i==points-1){bx=ax;by=ay;}
+            double al=Math.hypot(ax,ay),bl=Math.hypot(bx,by);
+            double nx=-ay/al-by/bl,ny=ax/al+bx/bl,length=Math.hypot(nx,ny);
+            nx/=length;ny/=length;
+            double miter=Math.min(1.65,1/Math.max(.15,nx*(-by/bl)+ny*(bx/bl)));
+            x[i]=nx*miter;y[i]=ny*miter;
         }
+        return new Stroke(path,x,y);
+    }
+    private static void stroke(List<Vertex> mesh, Stroke stroke, double lower, double upper, Color lowColor, Color highColor) {
+        int points=stroke.path.length/2;
+        for(int i=0;i<points-1;i++) {
+            strokePoint(mesh,stroke,i,lower,lowColor);strokePoint(mesh,stroke,i+1,lower,lowColor);
+            strokePoint(mesh,stroke,i+1,upper,highColor);strokePoint(mesh,stroke,i,upper,highColor);
+        }
+    }
+    private static void strokePoint(List<Vertex> mesh,Stroke stroke,int i,double side,Color color) {
+        double width=side*taper(i,stroke.path.length/2);
+        direction(mesh,stroke.path[i*2]+stroke.x[i]*width,stroke.path[i*2+1]+stroke.y[i]*width,DISTANCE,color,true);
     }
     private static double taper(int i, int points) {
         // Near the band the cleft is broad; the distant tips become hairline fractures.
