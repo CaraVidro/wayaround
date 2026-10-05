@@ -98,34 +98,15 @@ public final class WeaponCombatEvents {
         if (!(offhand.getItem()
                 instanceof WayWeaponItem second)
                 || second.family()
-                        != WeaponFamily.DAGGER
-                || !(event.getTarget()
-                instanceof LivingEntity living)
-                || !living.isAlive()) {
+                        != WeaponFamily.DAGGER) {
             return;
         }
 
         /*
-         * The second hand adds a short secondary cut. It never extends target
-         * acquisition range; the main-hand dagger still has reduced reach.
+         * The offhand item's attribute component supplies the real attack
+         * speed bonus. Keep damage vanilla-owned so invulnerability frames,
+         * enchantments and crit math are never bypassed or pre-empted.
          */
-        float secondary =
-                (float) player.getAttributeValue(
-                        Attributes.ATTACK_DAMAGE
-                )
-                        * 0.36F;
-
-        living.hurt(
-                player.damageSources()
-                        .playerAttack(
-                                player
-                        ),
-                Math.max(
-                        0.75F,
-                        secondary
-                )
-        );
-
         player.serverLevel()
                 .playSound(
                         null,
