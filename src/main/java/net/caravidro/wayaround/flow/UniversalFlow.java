@@ -36,6 +36,21 @@ public final class UniversalFlow {
     private UniversalFlow() {
     }
 
+    public record MechanicalWaterFlow(
+            FlowState flow,
+            float coherence,
+            boolean stable,
+            int waterSamples
+    ) {
+        /**
+         * Compatibility vector in blocks/tick for the existing water-wheel
+         * mechanics. The canonical FlowState remains metres/second.
+         */
+        public Vec3 vector() {
+            return flow.velocityPerTick();
+        }
+    }
+
     public static FlowState atmosphereAt(
             ServerLevel level,
             Vec3 position
@@ -207,6 +222,31 @@ public final class UniversalFlow {
                 0.0,
                 turbulence,
                 FlowState.Source.ATMOSPHERE
+        );
+    }
+
+    public static MechanicalWaterFlow mechanicalWaterAt(
+            Level level,
+            BlockPos center
+    ) {
+        WaterDynamics.MechanicalFlow mechanical =
+                WaterDynamics.mechanicalFlow(
+                        level,
+                        center
+                );
+
+        FlowState state =
+                waterState(
+                        level,
+                        center,
+                        mechanical.vector()
+                );
+
+        return new MechanicalWaterFlow(
+                state,
+                mechanical.coherence(),
+                mechanical.stable(),
+                mechanical.waterSamples()
         );
     }
 
