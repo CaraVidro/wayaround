@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.pressure;
 
+import net.caravidro.wayaround.physical.PhysicalBoundaryFace;
 import net.caravidro.wayaround.physical.PhysicalMaterials;
 import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
 import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
@@ -18,6 +19,57 @@ public record RegionPressureModel(
         double temperatureC,
         double ambientTemperatureC
 ) {
+
+    public double differentialKPa() {
+        return pressure.absoluteKPa()
+                - pressure.referenceAbsoluteKPa();
+    }
+
+    public double forceOnBoundaryN(
+            PhysicalBoundaryFace boundary
+    ) {
+        return PressureMath.pressureForceN(
+                differentialKPa(),
+                boundary.areaM2()
+        );
+    }
+
+    public double totalBoundaryLoadN(
+            PhysicalRegionSnapshot region
+    ) {
+        double total =
+                0.0;
+
+        for (PhysicalBoundaryFace boundary :
+                region.boundaries()) {
+            total +=
+                    forceOnBoundaryN(
+                            boundary
+                    );
+        }
+
+        return total;
+    }
+
+    public double maxBoundaryLoadN(
+            PhysicalRegionSnapshot region
+    ) {
+        double maximum =
+                0.0;
+
+        for (PhysicalBoundaryFace boundary :
+                region.boundaries()) {
+            maximum =
+                    Math.max(
+                            maximum,
+                            forceOnBoundaryN(
+                                    boundary
+                            )
+                    );
+        }
+
+        return maximum;
+    }
 
     public static RegionPressureModel at(
             ServerLevel level,
