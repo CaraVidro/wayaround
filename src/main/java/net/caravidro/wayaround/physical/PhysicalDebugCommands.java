@@ -4,6 +4,9 @@ import java.util.Locale;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
+import net.caravidro.wayaround.pressure.PressureState;
+import net.caravidro.wayaround.pressure.RegionPressureModel;
+import net.caravidro.wayaround.pressure.UniversalPressure;
 import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
 import net.caravidro.wayaround.thermal.ThermalRegionModel;
 import net.minecraft.commands.CommandSourceStack;
@@ -99,7 +102,150 @@ public final class PhysicalDebugCommands {
                                                                 )
                                                 )
                                 )
+                                .then(
+                                        Commands.literal(
+                                                        "pressure"
+                                                )
+                                                .executes(
+                                                        context ->
+                                                                inspectPressure(
+                                                                        context.getSource()
+                                                                )
+                                                )
+                                )
                 );
+    }
+
+
+    private static int inspectPressure(
+            CommandSourceStack source
+    ) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer player =
+                source.getPlayerOrException();
+
+        ServerLevel level =
+                player.serverLevel();
+
+        BlockPos seed =
+                BlockPos.containing(
+                        player.getX(),
+                        player.getEyeY(),
+                        player.getZ()
+                );
+
+        PressureState natural =
+                UniversalPressure.naturalAt(
+                        level,
+                        seed
+                );
+
+        String absolute =
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        natural.absoluteKPa()
+                );
+
+        String absoluteBar =
+                String.format(
+                        Locale.ROOT,
+                        "%.3f",
+                        natural.absoluteBar()
+                );
+
+        String gaugeBar =
+                String.format(
+                        Locale.ROOT,
+                        "%.3f",
+                        natural.gaugeBar()
+                );
+
+        String depth =
+                String.format(
+                        Locale.ROOT,
+                        "%.2f",
+                        natural.depthM()
+                );
+
+        source.sendSuccess(
+                () -> Component.literal(
+                        "PRESSAO NATURAL | "
+                                + natural.source()
+                                + " | absoluta "
+                                + absolute
+                                + " kPa ("
+                                + absoluteBar
+                                + " bar) | gauge "
+                                + gaugeBar
+                                + " bar | profundidade "
+                                + depth
+                                + " m | meio "
+                                + natural.medium()
+                                        .id()
+                ),
+                false
+        );
+
+        if (natural.source()
+                == PressureState.Source.ATMOSPHERE) {
+            var region =
+                    PhysicalRegionScanner.scan(
+                            level,
+                            seed,
+                            PhysicalRegionScanner.DEFAULT_LIMITS
+                    );
+
+            if (region.isPresent()) {
+                RegionPressureModel model =
+                        UniversalPressure.regionAt(
+                                level,
+                                region.get(),
+                                seed
+                        );
+
+                double delta =
+                        model.pressure()
+                                .absoluteKPa()
+                                - natural.absoluteKPa();
+
+                String regionAbsolute =
+                        String.format(
+                                Locale.ROOT,
+                                "%.2f",
+                                model.pressure()
+                                        .absoluteKPa()
+                        );
+
+                String regionGauge =
+                        String.format(
+                                Locale.ROOT,
+                                "%.3f",
+                                delta / 100.0
+                        );
+
+                source.sendSuccess(
+                        () -> Component.literal(
+                                "PRESSAO DA REGIAO | "
+                                        + region.get()
+                                                .closure()
+                                        + " | "
+                                        + regionAbsolute
+                                        + " kPa | delta vs natural "
+                                        + regionGauge
+                                        + " bar | temp "
+                                        + String.format(
+                                        Locale.ROOT,
+                                        "%.1f",
+                                        model.temperatureC()
+                                )
+                                        + " C"
+                        ),
+                        false
+                );
+            }
+        }
+
+        return 1;
     }
 
     private static int inspect(
