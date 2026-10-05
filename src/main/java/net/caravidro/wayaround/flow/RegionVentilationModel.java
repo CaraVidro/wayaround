@@ -22,6 +22,16 @@ public record RegionVentilationModel(
             ServerLevel level,
             PhysicalRegionSnapshot region
     ) {
+        if (region.openings().isEmpty()) {
+            return new RegionVentilationModel(
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    Vec3.ZERO
+            );
+        }
+
         RegionPressureModel inside =
                 UniversalPressure.regionAt(
                         level,
