@@ -123,6 +123,14 @@ public final class PlayerAnimationController {
         }
     }
 
+    public static boolean hasActiveAnimation(
+            UUID player
+    ) {
+        return state(
+                player
+        ) != null;
+    }
+
     public static boolean isAnimation(
             UUID player,
             byte animation
