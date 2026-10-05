@@ -480,7 +480,7 @@ public final class VolcanicField {
                         * 0.20,
                 volcano.craterRadius(),
                 distance
-        );
+        ));
     }
 
     public static double detailNoise(

@@ -28,7 +28,8 @@
     "EntitySpectateEffectsMixin",
     "GeographyElevationBiomeMixin",
     "WitnessedDeathMixin",
-    "LostRespawnWaitMixin"
+    "LostRespawnWaitMixin",
+    "LostRespawnPositionMixin"
   ],
   "client": [
     "client.DreamWakeCameraMixin",

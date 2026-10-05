@@ -14,7 +14,7 @@ public final class DeathWitnessService {
                 ||observer.getCamera()!=observer||net.caravidro.wayaround.observation.EntitySpectate.active(observer))return false;
         Vec3 eye=observer.getEyePosition(),target=victim.position().add(0,victim.getBbHeight()*.65,0),ray=target.subtract(eye);
         double distance=ray.length();if(distance>48||distance<.05)return false;
-        if(observer.getLookAngle().dot(ray.scale(1/distance))<.5)return false;
+        if(observer.getLookAngle().dot(ray.scale(1/distance))<.8191520443)return false;
         // Clip only within the two already-visible entities' loaded area. Fluids do not act as stone walls.
         for(int i=0;i<=Math.ceil(distance/8);i++)if(!observer.serverLevel().hasChunkAt(net.minecraft.core.BlockPos.containing(eye.add(ray.scale(i/Math.max(1,Math.ceil(distance/8)))))))return false;
         return observer.level().clip(new ClipContext(eye,target,ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,observer)).getType()==HitResult.Type.MISS;

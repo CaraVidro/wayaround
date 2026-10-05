@@ -89,6 +89,10 @@ public final class LostRespawnService {
         }
         return null;
     }
+    public static DimensionTransition preparedTransition(ServerPlayer player) {
+        Search s=SEARCHES.get(player.getUUID());
+        return !enabled(player)||player.isAlive()||s==null||s.destination==null?null:new DimensionTransition(player.serverLevel(),Vec3.atBottomCenterOf(s.destination),Vec3.ZERO,player.getYRot(),0,DimensionTransition.DO_NOTHING);
+    }
     @SubscribeEvent(priority=EventPriority.LOWEST) public static void position(PlayerRespawnPositionEvent e) {
         if(e.isFromEndFight()||!(e.getEntity() instanceof ServerPlayer p)||!enabled(p))return;
         Search s=SEARCHES.get(p.getUUID());if(s==null||s.destination==null)return;
