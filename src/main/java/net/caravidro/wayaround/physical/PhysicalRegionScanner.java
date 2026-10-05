@@ -287,13 +287,18 @@ public final class PhysicalRegionScanner {
             }
         }
 
+        /*
+         * A confirmed opening is enough to prove the region is vented even if
+         * another frontier is outside this scan's fidelity budget. Uncertainty
+         * only prevents us from claiming SEALED.
+         */
         PhysicalRegionSnapshot.Closure closure =
-                hitCellLimit
-                        || hitDistanceLimit
-                        || touchedUnloaded
-                        ? PhysicalRegionSnapshot.Closure.INDETERMINATE
-                        : vented
-                                ? PhysicalRegionSnapshot.Closure.VENTED
+                vented
+                        ? PhysicalRegionSnapshot.Closure.VENTED
+                        : hitCellLimit
+                                || hitDistanceLimit
+                                || touchedUnloaded
+                                ? PhysicalRegionSnapshot.Closure.INDETERMINATE
                                 : PhysicalRegionSnapshot.Closure.SEALED;
 
         return Optional.of(
