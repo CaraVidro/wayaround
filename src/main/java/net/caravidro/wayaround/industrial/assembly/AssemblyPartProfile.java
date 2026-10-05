@@ -1,5 +1,7 @@
 package net.caravidro.wayaround.industrial.assembly;
 
+import net.caravidro.wayaround.physical.MaterialDefinition;
+import net.caravidro.wayaround.physical.PhysicalMaterials;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -19,28 +21,42 @@ public final class AssemblyPartProfile {
     }
 
     public enum Material {
-        STONE(0.72F, 0.48F, 0.64F),
-        WOOD(0.58F, 0.88F, 0.52F),
-        FIBER(0.34F, 0.96F, 0.44F),
-        COPPER(0.62F, 0.82F, 0.58F),
-        BRONZE(0.76F, 0.66F, 0.72F),
-        IRON(0.86F, 0.58F, 0.78F),
-        STEEL(0.96F, 0.46F, 0.90F),
-        DIAMOND(1.00F, 0.34F, 0.98F);
+        STONE,
+        WOOD,
+        FIBER,
+        COPPER,
+        BRONZE,
+        IRON,
+        STEEL,
+        DIAMOND;
 
-        private final float resistance;
-        private final float workability;
-        private final float fatigueResistance;
-
-        Material(float resistance, float workability, float fatigueResistance) {
-            this.resistance = resistance;
-            this.workability = workability;
-            this.fatigueResistance = fatigueResistance;
+        /**
+         * Compatibility bridge: Assembly keeps its stable serialized enum while
+         * physical values come from the universal material registry.
+         */
+        public MaterialDefinition physicalMaterial() {
+            return PhysicalMaterials.byLegacyName(
+                    name()
+            );
         }
 
-        float resistance() { return resistance; }
-        float workability() { return workability; }
-        float fatigueResistance() { return fatigueResistance; }
+        float resistance() {
+            return physicalMaterial()
+                    .engineering()
+                    .assemblyResistance();
+        }
+
+        float workability() {
+            return physicalMaterial()
+                    .engineering()
+                    .workability();
+        }
+
+        float fatigueResistance() {
+            return physicalMaterial()
+                    .engineering()
+                    .assemblyFatigueResistance();
+        }
 
         static Material fromName(String name) {
             try {
