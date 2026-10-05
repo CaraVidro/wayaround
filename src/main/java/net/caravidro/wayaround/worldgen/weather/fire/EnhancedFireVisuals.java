@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.List;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.environment.EnvironmentalFields;
 import net.caravidro.wayaround.mixin.FireBlockAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -262,6 +263,12 @@ public final class EnhancedFireVisuals {
          * connected fire is physically wider/taller than its original block
          * and therefore becomes progressively better at starting new fronts.
          */
+        float regionalMoisture =
+                EnvironmentalFields.soilMoisture(
+                        level,
+                        pos
+                );
+
         float targetSize =
                 Mth.clamp(
                         0.34F
@@ -276,7 +283,9 @@ public final class EnhancedFireVisuals {
                                 raining
                                         ? 0.42F
                                         : 0.0F
-                        ),
+                        )
+                                - regionalMoisture
+                                        * 0.34F,
                         0.26F,
                         2.55F
                 );
@@ -375,6 +384,18 @@ public final class EnhancedFireVisuals {
             return;
         }
 
+        float soilMoisture =
+                EnvironmentalFields.soilMoisture(
+                        level,
+                        sourcePos
+                );
+
+        if (soilMoisture > 0.82F
+                && level.random.nextFloat()
+                < soilMoisture * 0.70F) {
+            return;
+        }
+
         int attempts =
                 Mth.clamp(
                         1
@@ -385,6 +406,19 @@ public final class EnhancedFireVisuals {
                                         / 3,
                         1,
                         5
+                );
+
+        attempts =
+                Math.max(
+                        1,
+                        Math.round(
+                                attempts
+                                        * (
+                                        1.0F
+                                                - soilMoisture
+                                                        * 0.62F
+                                )
+                        )
                 );
 
         /*
