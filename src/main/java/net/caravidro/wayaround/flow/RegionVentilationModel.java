@@ -1,0 +1,106 @@
+package net.caravidro.wayaround.flow;
+
+import net.caravidro.wayaround.physical.PhysicalOpening;
+import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * Lumped ventilation summary for one physical region.
+ */
+public record RegionVentilationModel(
+        double outwardM3PerS,
+        double inwardM3PerS,
+        double totalExchangeM3PerS,
+        double airChangesPerHour,
+        Vec3 netTransportM3PerS
+) {
+
+    public static RegionVentilationModel from(
+            ServerLevel level,
+            PhysicalRegionSnapshot region
+    ) {
+        double outward =
+                0.0;
+
+        double inward =
+                0.0;
+
+        Vec3 transport =
+                Vec3.ZERO;
+
+        for (PhysicalOpening opening :
+                region.openings()) {
+
+            FlowState flow =
+                    UniversalFlow.ventilationAt(
+                            level,
+                            region,
+                            opening
+                    );
+
+            Vec3 outwardNormal =
+                    new Vec3(
+                            opening.outward()
+                                    .getStepX(),
+                            opening.outward()
+                                    .getStepY(),
+                            opening.outward()
+                                    .getStepZ()
+                    );
+
+            double signed =
+                    flow.velocityMPerS()
+                            .dot(
+                                    outwardNormal
+                            )
+                            >= 0.0
+                            ? flow.volumetricRateM3PerS()
+                            : -flow.volumetricRateM3PerS();
+
+            if (signed >= 0.0) {
+                outward +=
+                        signed;
+            } else {
+                inward +=
+                        -signed;
+            }
+
+            if (flow.velocityMPerS()
+                    .lengthSqr()
+                    > 1.0E-12) {
+                transport =
+                        transport.add(
+                                flow.velocityMPerS()
+                                        .normalize()
+                                        .scale(
+                                                flow.volumetricRateM3PerS()
+                                        )
+                        );
+            }
+        }
+
+        double exchange =
+                outward
+                        + inward;
+
+        double volume =
+                Math.max(
+                        0.05,
+                        region.volumeM3()
+                );
+
+        double airChanges =
+                exchange
+                        / volume
+                        * 3600.0;
+
+        return new RegionVentilationModel(
+                outward,
+                inward,
+                exchange,
+                airChanges,
+                transport
+        );
+    }
+}
