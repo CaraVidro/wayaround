@@ -19,7 +19,9 @@ public final class WorldWrapService {
         Entity root;Vec3 target,velocity,hold;float fall;TravelChunks.Batch batch;boolean ready,failed,crossed;
     }
     @SubscribeEvent public static void entity(EntityTickEvent.Post event) {
-        Entity e=event.getEntity();
+        advance(event.getEntity());
+    }
+    public static void advance(Entity e) {
         if(!(e.level() instanceof ServerLevel level)||!level.dimension().equals(Level.OVERWORLD)
                 ||!WorldFeatureRuntime.serverEnabled(WorldFeature.FINITE_WORLD)||e.isPassenger()||e.isRemoved()||e instanceof net.neoforged.neoforge.common.util.FakePlayer)return;
         var passage=PASSAGES.get(e.getUUID());

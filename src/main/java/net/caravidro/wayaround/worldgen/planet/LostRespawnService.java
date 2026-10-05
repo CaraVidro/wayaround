@@ -19,7 +19,8 @@ import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 /** Prepare remote safe land asynchronously while the death screen is open; never teleport via the bed. */
 @EventBusSubscriber(modid=WayAround.MODID)
 public final class LostRespawnService {
-    private static final Map<UUID,Search> SEARCHES=new HashMap<>();
+    private static final Map<UUID,Search> SEARCHES=new LinkedHashMap<>();
+    private static int cursor;
     private static final class Search {
         ServerPlayer original;Vec3 death;BlockPos bed,destination;int attempts;boolean requested,waiting,failed;
         TravelChunks.Batch batch;
@@ -39,7 +40,11 @@ public final class LostRespawnService {
         Search s=start(p);if(s.destination!=null||s.failed)return false;s.requested=true;return true;
     }
     public static void tick(MinecraftServer server) {
-        for(var entry:List.copyOf(SEARCHES.entrySet())) {
+        var entries=List.copyOf(SEARCHES.entrySet());int candidates=2;
+        if(entries.isEmpty()){cursor=0;return;}
+        int count=Math.min(16,entries.size()),begin=Math.floorMod(cursor,entries.size());cursor=begin+count;
+        for(int visited=0;visited<count;visited++) {
+            var entry=entries.get((begin+visited)%entries.size());
             Search s=entry.getValue();ServerPlayer p=server.getPlayerList().getPlayer(entry.getKey());
             if(p==null||p!=s.original||!WorldFeatureRuntime.serverEnabled(WorldFeature.RANDOM_RESPAWN)) {release(s);SEARCHES.remove(entry.getKey());continue;}
             if(s.destination!=null) {
@@ -52,7 +57,8 @@ public final class LostRespawnService {
             }
             if(s.waiting)continue;
             if(s.attempts>=32){s.failed=true;continue;}
-            // One bounded candidate selection per player per tick, at most 32 noise evaluations.
+            if(candidates==0)continue;candidates--;
+            // Global cap: two candidate rounds (64 climate evaluations) per tick, fair rotation.
             int radius=WorldFeatureRuntime.serverEnabled(WorldFeature.FINITE_WORLD)?PlanetMath.HALF-256:30000;
             BlockPos candidate=null;
             for(int i=0;i<32;i++) {
@@ -69,7 +75,7 @@ public final class LostRespawnService {
                 if(ok)s.destination=safeLand(p.serverLevel(),point);
                 if(s.destination==null){if(s.batch!=null)s.batch.release();s.batch=null;}
             });
-            if(s.batch==null)s.waiting=false;
+            if(s.batch==null){s.waiting=false;s.attempts--;}
         }
     }
     private static double distance(double ax,double az,double bx,double bz) {
@@ -102,6 +108,6 @@ public final class LostRespawnService {
     @SubscribeEvent public static void respawn(PlayerEvent.PlayerRespawnEvent e) {Search s=SEARCHES.remove(e.getEntity().getUUID());if(s!=null)release(s);}
     @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {Search s=SEARCHES.remove(e.getEntity().getUUID());if(s!=null)release(s);}
     private static void release(Search s){if(s.batch!=null)s.batch.release();}
-    public static void clear(){for(var s:SEARCHES.values())release(s);SEARCHES.clear();}
+    public static void clear(){for(var s:SEARCHES.values())release(s);SEARCHES.clear();cursor=0;}
     private LostRespawnService() {}
 }

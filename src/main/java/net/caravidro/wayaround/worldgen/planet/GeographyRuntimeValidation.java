@@ -15,6 +15,9 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 /** Opt-in CI: a real noise overworld, seeded climate, asynchronously generated coast/land/massif chunks. */
 @EventBusSubscriber(modid=WayAround.MODID)
 public final class GeographyRuntimeValidation {
+    private static net.minecraft.world.entity.Entity vessel,passenger;
+    private static java.util.UUID vesselId;private static net.minecraft.world.phys.Vec3 riderBefore;
+    private static final net.minecraft.world.phys.Vec3 VELOCITY=new net.minecraft.world.phys.Vec3(.17,0,-.23);
     private static int scanned,completed;private static long start=-1;private static final Set<String> FOUND=new HashSet<>();
     @SubscribeEvent public static void tick(ServerTickEvent.Post event) {
         if(!Boolean.getBoolean("wayaround.validateGeography"))return;
@@ -43,8 +46,26 @@ public final class GeographyRuntimeValidation {
                 require(climate.temperature()==repeat.temperature()&&climate.continentalness()==repeat.continentalness(),"Seeded climate repeats across both axes");
             }
             if(scanned>=4096&&FOUND.size()<3)throw new IllegalStateException("Missing regional variety: "+FOUND);
-            if(completed==3){WayAround.LOGGER.info("GEOGRAPHY RUNTIME PASSED: real ocean/lowland/massif chunks, saved defaults, seeded periodic climate, safe land, sea level, async travel generation");server.halt(false);}
+            if(completed==3&&crossing(level)) {
+                WayAround.LOGGER.info("GEOGRAPHY RUNTIME PASSED: real ocean/lowland/massif chunks, saved defaults, seeded periodic climate, safe land, sea level, full asynchronous diagonal vessel crossing");server.halt(false);
+            }
         } catch(RuntimeException|AssertionError e){WayAround.LOGGER.error("GEOGRAPHY RUNTIME FAILED",e);server.halt(false);throw e;}
+    }
+    private static boolean crossing(ServerLevel level) {
+        if(vessel==null) {
+            vessel=net.minecraft.world.entity.EntityType.BOAT.create(level);passenger=net.minecraft.world.entity.EntityType.COW.create(level);
+            vessel.setPos(PlanetMath.HALF+.375,300,-PlanetMath.HALF-.5);vessel.setYRot(47);vessel.setDeltaMovement(VELOCITY);
+            passenger.setPos(vessel.position());passenger.startRiding(vessel,true);riderBefore=passenger.position();vesselId=vessel.getUUID();
+        }
+        WorldWrapService.advance(vessel);
+        if(vessel.getX()>0)return false;
+        require(Math.abs(vessel.getX()-(-PlanetMath.HALF+.375))<1e-8&&Math.abs(vessel.getZ()-(PlanetMath.HALF-.5))<1e-8,"Diagonal crossing retains fractional overshoot on both axes");
+        require(vessel.getY()==300&&vessel.getYRot()==47&&vessel.getUUID().equals(vesselId),"Crossing preserves height, orientation and vessel identity");
+        require(vessel.getDeltaMovement().distanceToSqr(VELOCITY)<1e-12,"Crossing restores motion after waiting for chunks");
+        require(passenger.getVehicle()==vessel&&passenger.position().distanceToSqr(riderBefore.add(-PlanetMath.SIZE,0,PlanetMath.SIZE))<1e-8,"Async crossing keeps the passenger tree together");
+        require(level.hasChunkAt(vessel.blockPosition()),"Vessel arrives at generated chunks on the real opposite edge");
+        WayAround.LOGGER.info("GEOGRAPHY WRAP PASSED: diagonal async destination with passenger, velocity, identity and orientation");
+        vessel.discard();passenger.discard();return true;
     }
     private static double height(Climate.TargetPoint c){return PlanetMath.height(Climate.unquantizeCoord(c.continentalness()),Climate.unquantizeCoord(c.erosion()),Climate.unquantizeCoord(c.weirdness()));}
     private static void require(boolean okay,String message){if(!okay)throw new IllegalStateException(message);}
