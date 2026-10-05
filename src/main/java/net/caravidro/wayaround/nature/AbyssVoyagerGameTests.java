@@ -74,7 +74,14 @@ public final class AbyssVoyagerGameTests {
     public static void pressureImplodesCraftAndKillsRider(GameTestHelper h) {
         var l=h.getLevel();var sub=EcologyContent.DEEP_SEA_SUBMARINE.get().create(l);
         BlockPos p=h.absolutePos(new BlockPos(4,2,4));
-        l.setBlock(p,Blocks.WATER.defaultBlockState(),3);l.setBlock(p.above(),Blocks.WATER.defaultBlockState(),3);
+        /*
+         * Build an actual ~96 m water column. The old test only placed two
+         * water blocks and relied on seaLevel-Y as a magic depth proxy, which
+         * is no longer valid now that pressure belongs to the fluid column.
+         */
+        for(int dy=0;dy<=95;dy++) {
+            l.setBlock(p.above(dy),Blocks.WATER.defaultBlockState(),3);
+        }
         sub.setPos(p.getX()+.5,p.getY(),p.getZ()+.5);sub.setPressureExposure(OceanPressure.FAILURE-1);
         var rider=h.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);rider.setHealth(20);rider.startRiding(sub,true);
         sub.tick();
