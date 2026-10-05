@@ -54,6 +54,9 @@ public final class UniversalFlow {
                     PhysicalMaterials.AIR,
                     MatterPhase.GAS,
                     Vec3.ZERO,
+                    PhysicalMaterials.AIR.phase(
+                            MatterPhase.GAS
+                    ).densityKgPerM3(),
                     pressure,
                     0.0,
                     0.0,
@@ -197,6 +200,9 @@ public final class UniversalFlow {
                         directionZ
                                 * speedMPerS
                 ),
+                PhysicalMaterials.AIR.phase(
+                        MatterPhase.GAS
+                ).densityKgPerM3(),
                 pressure,
                 0.0,
                 turbulence,
@@ -283,6 +289,9 @@ public final class UniversalFlow {
                 blocksPerTick.scale(
                         FlowMath.TICKS_PER_SECOND
                 ),
+                material.phase(
+                        MatterPhase.LIQUID
+                ).densityKgPerM3(),
                 pressure,
                 0.0,
                 turbulence,
@@ -318,6 +327,9 @@ public final class UniversalFlow {
                 normalized.scale(
                         velocity
                 ),
+                material.phase(
+                        phase
+                ).densityKgPerM3(),
                 absolutePressureKPa,
                 volumetricRateM3PerS,
                 turbulence,
@@ -442,6 +454,9 @@ public final class UniversalFlow {
                 direction.scale(
                         speed
                 ),
+                PhysicalMaterials.AIR.phase(
+                        MatterPhase.GAS
+                ).densityKgPerM3(),
                 Math.max(
                         insideModel.pressure()
                                 .absoluteKPa(),
