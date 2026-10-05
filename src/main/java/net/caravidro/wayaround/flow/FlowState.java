@@ -17,6 +17,7 @@ public record FlowState(
         MaterialDefinition material,
         MatterPhase phase,
         Vec3 velocityMPerS,
+        double densityKgPerM3,
         double absolutePressureKPa,
         double volumetricRateM3PerS,
         double turbulence,
@@ -61,6 +62,11 @@ public record FlowState(
                         )
                 );
 
+        densityKgPerM3 =
+                finiteNonNegative(
+                        densityKgPerM3
+                );
+
         absolutePressureKPa =
                 finiteNonNegative(
                         absolutePressureKPa
@@ -96,12 +102,6 @@ public record FlowState(
         return velocityMPerS.scale(
                 1.0 / FlowMath.TICKS_PER_SECOND
         );
-    }
-
-    public double densityKgPerM3() {
-        return material.phase(
-                phase
-        ).densityKgPerM3();
     }
 
     public double massRateKgPerS() {
