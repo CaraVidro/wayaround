@@ -30,15 +30,15 @@ public final class WorldWrapService {
             boolean nearby=PlanetMath.HALF-Math.abs(e.getX())<128||PlanetMath.HALF-Math.abs(e.getZ())<128;
             // Only players / occupied vessels prefetch. Projectiles/items request a destination on actual crossing.
             if(!outside&&(!nearby||!(e instanceof ServerPlayer)&&e.getPassengers().stream().noneMatch(p->p instanceof ServerPlayer)))return;
-            if(PASSAGES.size()>=16)return;
+            if(PASSAGES.size()>=16){if(outside)waitForCapacity(e);return;}
             passage=new Passage();passage.root=e;
             double x=PlanetMath.wrap(e.getX()),z=PlanetMath.wrap(e.getZ());
             if(!outside){if(PlanetMath.HALF-Math.abs(x)<128)x=x>0?-PlanetMath.HALF+.5:PlanetMath.HALF-.5;if(PlanetMath.HALF-Math.abs(z)<128)z=z>0?-PlanetMath.HALF+.5:PlanetMath.HALF-.5;}
             passage.target=new Vec3(x,e.getY(),z);var p=passage;
             passage.batch=TravelChunks.request(level,(int)Math.floor(x),(int)Math.floor(z),1,ok->{p.ready=ok;p.failed=!ok;});
-            if(passage.batch==null)return;PASSAGES.put(e.getUUID(),passage);
+            if(passage.batch==null){if(outside)waitForCapacity(e);return;}PASSAGES.put(e.getUUID(),passage);
         }
-        if(passage.failed){passage.batch.release();PASSAGES.remove(e.getUUID());if(outside)hold(e,passage);return;}
+        if(passage.failed){passage.batch.release();PASSAGES.remove(e.getUUID());if(outside||passage.crossed){hold(e,passage);if(passage.velocity!=null)e.setDeltaMovement(passage.velocity);}return;}
         if(!outside&&!passage.crossed)return;
         if(!passage.crossed) {
             passage.crossed=true;passage.target=new Vec3(PlanetMath.wrap(e.getX()),e.getY(),PlanetMath.wrap(e.getZ()));
@@ -49,7 +49,7 @@ public final class WorldWrapService {
         if(passage.ready&&!level.hasChunkAt(net.minecraft.core.BlockPos.containing(passage.target))) {
             passage.batch.release();passage.ready=false;var p=passage;
             passage.batch=TravelChunks.request(level,(int)Math.floor(p.target.x),(int)Math.floor(p.target.z),1,ok->{p.ready=ok;p.failed=!ok;});
-            if(passage.batch==null){PASSAGES.remove(e.getUUID());hold(e,passage);return;}
+            if(passage.batch==null){PASSAGES.remove(e.getUUID());hold(e,passage);e.setDeltaMovement(passage.velocity);return;}
         }
         if(passage.ready) {
             moveTree(e,passage.target.subtract(e.position()));e.setDeltaMovement(passage.velocity);e.fallDistance=passage.fall;
@@ -60,6 +60,11 @@ public final class WorldWrapService {
         Vec3 hold=passage.hold;
         if(hold==null)hold=new Vec3(Math.max(-PlanetMath.HALF+.1,Math.min(PlanetMath.HALF-.1,e.getX())),e.getY(),Math.max(-PlanetMath.HALF+.1,Math.min(PlanetMath.HALF-.1,e.getZ())));
         moveTree(e,hold.subtract(e.position()));e.setDeltaMovement(Vec3.ZERO);
+    }
+    private static void waitForCapacity(Entity e) {
+        // Keep a busy queue from allowing exploration beyond the finite domain.
+        // Retain motion so a crossing is retried instead of stranding an unmanned vessel/item.
+        Vec3 velocity=e.getDeltaMovement();hold(e,new Passage());e.setDeltaMovement(velocity);
     }
     /** Same dimension, same entity UUID/inventory. Keep the passenger tree instead of recreating a vessel. */
     public static void moveTree(Entity root,Vec3 offset) {
