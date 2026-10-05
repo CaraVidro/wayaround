@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.ecology;
 
 import com.mojang.serialization.MapCodec;
+import net.caravidro.wayaround.environment.EnvironmentalFields;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.BushBlock;
@@ -30,6 +32,67 @@ public final class EcologyPlantBlock extends BushBlock {
         return state.isSolidRender(level, pos)
                 || super.mayPlaceOn(state, level, pos);
     }
-    @Override public int getFlammability(BlockState state, BlockGetter level, BlockPos pos, net.minecraft.core.Direction face){return state.getFluidState().isEmpty()?100:0;}
-    @Override public int getFireSpreadSpeed(BlockState state, BlockGetter level, BlockPos pos, net.minecraft.core.Direction face){return state.getFluidState().isEmpty()?60:0;}
+    @Override
+    public int getFlammability(
+            BlockState state,
+            BlockGetter level,
+            BlockPos pos,
+            net.minecraft.core.Direction face
+    ) {
+        if (!state.getFluidState().isEmpty()) {
+            return 0;
+        }
+
+        float moisture =
+                level instanceof ServerLevel server
+                        ? EnvironmentalFields.soilMoisture(
+                        server,
+                        pos
+                )
+                        : 0.35F;
+
+        return Math.max(
+                8,
+                Math.round(
+                        100.0F
+                                * (
+                                1.0F
+                                        - moisture
+                                                * 0.78F
+                        )
+                )
+        );
+    }
+
+    @Override
+    public int getFireSpreadSpeed(
+            BlockState state,
+            BlockGetter level,
+            BlockPos pos,
+            net.minecraft.core.Direction face
+    ) {
+        if (!state.getFluidState().isEmpty()) {
+            return 0;
+        }
+
+        float moisture =
+                level instanceof ServerLevel server
+                        ? EnvironmentalFields.soilMoisture(
+                        server,
+                        pos
+                )
+                        : 0.35F;
+
+        return Math.max(
+                4,
+                Math.round(
+                        60.0F
+                                * (
+                                1.0F
+                                        - moisture
+                                                * 0.72F
+                        )
+                )
+        );
+    }
 }
