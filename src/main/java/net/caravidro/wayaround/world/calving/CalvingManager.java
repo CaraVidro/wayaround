@@ -3,6 +3,8 @@ package net.caravidro.wayaround.world.calving;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.interaction.StructuralCollapseManager;
+import net.caravidro.wayaround.interaction.RigidFallMotion;
 import net.caravidro.wayaround.network.CalvingNetwork;
 import net.caravidro.wayaround.worldgen.geography.AntarcticField;
 import net.caravidro.wayaround.worldgen.terrain.AntarcticTerrain;
@@ -111,12 +113,6 @@ public final class CalvingManager {
      */
     private static final int MAX_ATTACHED =
             192;
-
-    /*
-     * FallingBlockEntity é SÓ renderização.
-     */
-    private static final int MAX_VISUAL_BLOCKS =
-            180;
 
     /*
      * 4,5 segundos.
@@ -378,7 +374,7 @@ public final class CalvingManager {
                         throwable
                 );
 
-                calving.cleanupVisuals();
+
 
                 iterator.remove();
             }
@@ -390,15 +386,6 @@ public final class CalvingManager {
     public static void serverStopped(
             ServerStoppedEvent event
     ) {
-
-        for (
-                CalvingEvent event1 :
-                ACTIVE
-        ) {
-
-            event1.cleanupVisuals();
-        }
-
 
         ACTIVE.clear();
     }
@@ -476,7 +463,7 @@ public final class CalvingManager {
                 }
                 active.impact();
             }
-            active.cleanupVisuals();
+
         }
         ACTIVE.clear();
     }
@@ -1664,22 +1651,16 @@ public final class CalvingManager {
 
         private final ServerLevel level;
 
-        private final Snapshot snapshot;
-
-
-        private final List<VisualBlock> visuals =
-                new ArrayList<>();
+        private Snapshot snapshot;
 
 
         private int age;
-
-
         private boolean detached;
 
         private boolean finished;
 
 
-        private double velocity;
+        private int fallingTicks;
 
         private double fallOffset;
 
@@ -1723,7 +1704,7 @@ public final class CalvingManager {
                         if (!level.hasChunkAt(pos)) return true;
                         if (source.contains(pos)) return false;
                         BlockState state = level.getBlockState(pos);
-                        return !state.isAir() && state.getFluidState().isEmpty() && !state.canBeReplaced();
+                        return !state.isAir() && state.isFaceSturdy(level, pos, Direction.UP);
                     });
         }
 
@@ -1988,6 +1969,16 @@ public final class CalvingManager {
                     return;
                 }
             }
+            // Contents may change during the 4.5-second warning without changing block state.
+            // Capture the latest NBT immediately before clearing/removing its sole world owner.
+            List<SnapBlock> fresh = new ArrayList<>(snapshot.blocks().size());
+            for (SnapBlock block : snapshot.blocks()) {
+                BlockEntity entity = level.getBlockEntity(block.pos());
+                fresh.add(new SnapBlock(block.pos(), block.state(), entity == null ? null
+                        : entity.saveWithFullMetadata(level.registryAccess()), block.kind()));
+            }
+            snapshot = new Snapshot(snapshot.center(), snapshot.outward(), fresh, snapshot.fragile(),
+                    snapshot.minY(), snapshot.maxY(), snapshot.cliff());
             CalvingWear.get(level).reset(new ChunkPos(snapshot.center()).toLong());
 
             targetFall = calculateFall();
@@ -2090,7 +2081,12 @@ public final class CalvingManager {
              * Cria casca visual.
              */
 
-            spawnVisualShell();
+            int drift = (int) Math.round(targetDrift);
+            StructuralCollapseManager.sendCalvingVisuals(level, snapshot.center(),
+                    snapshot.blocks().stream().map(block ->
+                            new StructuralCollapseManager.DetachedBlock(block.pos(), block.state())).toList(),
+                    (int) targetFall, snapshot.outward().getStepX() * drift,
+                    snapshot.outward().getStepZ() * drift);
 
 
             /*
@@ -2142,276 +2138,10 @@ public final class CalvingManager {
          * =====================================================
          */
 
-        private void spawnVisualShell() {
-
-            Set<BlockPos> positions =
-                    new HashSet<>();
-
-
-            for (
-                    SnapBlock block :
-                    snapshot.blocks()
-            ) {
-
-                positions.add(
-                        block.pos()
-                );
-            }
-
-
-            List<SnapBlock> shell =
-                    new ArrayList<>();
-
-
-            for (
-                    SnapBlock block :
-                    snapshot.blocks()
-            ) {
-
-                /*
-                 * Chest/furnace/barrel etc.
-                 * são preservados logicamente.
-                 *
-                 * FallingBlockEntity não renderiza
-                 * BlockEntities direito.
-                 */
-
-                if (
-                        block.kind()
-                                ==
-                                Kind.CONTAINER
-                ) {
-
-                    continue;
-                }
-
-
-                if (
-                        isShell(
-                                block.pos(),
-                                positions
-                        )
-                ) {
-
-                    shell.add(
-                            block
-                    );
-                }
-            }
-
-
-            if (
-                    shell.isEmpty()
-            ) {
-
-                return;
-            }
-
-
-            /*
-             * Exemplo:
-             *
-             * casca = 900
-             *
-             * stride = 5
-             *
-             * aproximadamente 180 entidades.
-             */
-
-            int stride =
-                    Math.max(
-
-                            1,
-
-                            (int) Math.ceil(
-
-                                    shell.size()
-
-                                            /
-
-                                            (double) MAX_VISUAL_BLOCKS
-
-                            )
-
-                    );
-
-
-            for (
-                    int i = 0;
-                    i < shell.size();
-                    i += stride
-            ) {
-
-                if (
-                        visuals.size()
-                                >=
-                                MAX_VISUAL_BLOCKS
-                ) {
-
-                    break;
-                }
-
-
-                SnapBlock block =
-                        shell.get(i);
-
-
-                BlockPos pos =
-                        block.pos();
-
-
-                if (
-                        !level.hasChunkAt(
-                                pos
-                        )
-                ) {
-
-                    continue;
-                }
-
-
-                FallingBlockEntity entity =
-                        FallingBlockEntity.fall(
-
-                                level,
-
-                                pos,
-
-                                block.state()
-
-                        );
-
-
-                /*
-                 * Nós controlamos a física.
-                 */
-
-                entity.setNoGravity(
-                        true
-                );
-
-
-                entity.setDeltaMovement(
-                        Vec3.ZERO
-                );
-
-
-                entity.dropItem =
-                        false;
-
-
-                entity.time =
-                        1;
-
-
-                visuals.add(
-
-                        new VisualBlock(
-                                entity,
-                                pos
-                        )
-
-                );
-            }
-        }
-
-
-        private boolean isShell(
-                BlockPos pos,
-                Set<BlockPos> all
-        ) {
-
-            for (
-                    Direction direction :
-                    Direction.values()
-            ) {
-
-                if (
-                        !all.contains(
-
-                                pos.relative(
-                                        direction
-                                )
-
-                        )
-                ) {
-
-                    return true;
-                }
-            }
-
-
-            return false;
-        }
-
-
-        /*
-         * =====================================================
-         * QUEDA
-         * =====================================================
-         */
-
         private void tickFall() {
 
-            /*
-             * Gravidade lógica.
-             */
-
-            velocity =
-                    Math.min(
-
-                            0.82,
-
-                            velocity
-                                    +
-                                    0.038
-
-                    );
-
-
-            fallOffset =
-                    Math.min(
-
-                            targetFall,
-
-                            fallOffset
-                                    +
-                                    velocity
-
-                    );
-
-
-            double progress =
-                    clamp(
-
-                            fallOffset
-                                    /
-                                    Math.max(1.0, targetFall),
-
-                            0.0,
-
-                            1.0
-
-                    );
-
-
-            /*
-             * Sai um pouco para fora da costa
-             * enquanto desce.
-             */
-
-            driftOffset =
-                    targetDrift
-
-                            *
-
-                            smoothstep(
-                                    progress
-                            );
-
-
-            moveVisuals();
-
+            fallOffset = RigidFallMotion.calvingDrop(++fallingTicks, targetFall);
+            driftOffset = targetDrift * RigidFallMotion.drift(fallOffset, targetFall);
 
             /*
              * Pó acompanhando a base.
@@ -2438,85 +2168,6 @@ public final class CalvingManager {
             }
         }
 
-
-        private void moveVisuals() {
-
-            Direction outward =
-                    snapshot.outward();
-
-
-            for (
-                    VisualBlock visual :
-                    visuals
-            ) {
-
-                FallingBlockEntity entity =
-                        visual.entity();
-
-
-                if (
-                        entity.isRemoved()
-                ) {
-
-                    continue;
-                }
-
-
-                BlockPos origin =
-                        visual.origin();
-
-
-                entity.setNoGravity(
-                        true
-                );
-
-
-                entity.setDeltaMovement(
-                        Vec3.ZERO
-                );
-
-
-                /*
-                 * Nunca deixa a entidade vanilla
-                 * decidir expirar/aterrissar.
-                 */
-
-                entity.time =
-                        1;
-
-
-                entity.setPos(
-
-                        origin.getX()
-                                +
-                                0.5
-                                +
-                                outward.getStepX()
-                                        *
-                                        driftOffset,
-
-                        origin.getY()
-                                -
-                                fallOffset,
-
-                        origin.getZ()
-                                +
-                                0.5
-                                +
-                                outward.getStepZ()
-                                        *
-                                        driftOffset
-
-                );
-            }
-        }
-
-
-        /*
-         * =====================================================
-         * IMPACTO
-         * =====================================================
-         */
 
         private void impact() {
 
@@ -2546,7 +2197,7 @@ public final class CalvingManager {
                             drift;
 
 
-            cleanupVisuals();
+
 
 
             /*
@@ -2633,10 +2284,6 @@ public final class CalvingManager {
                     destination = safe;
                 }
 
-                if (block.kind() == Kind.HEAVY) {
-                    Block.dropResources(block.state(), level, destination);
-                    continue;
-                }
                 level.setBlock(
                         destination,
                         block.state(),
@@ -2883,26 +2530,7 @@ public final class CalvingManager {
         }
 
 
-        private void cleanupVisuals() {
 
-            for (
-                    VisualBlock visual :
-                    visuals
-            ) {
-
-                if (
-                        !visual.entity()
-                                .isRemoved()
-                ) {
-
-                    visual.entity()
-                            .discard();
-                }
-            }
-
-
-            visuals.clear();
-        }
     }
 
 
@@ -2911,55 +2539,6 @@ public final class CalvingManager {
      * HELPERS
      * =========================================================
      */
-
-    private static double smoothstep(
-            double value
-    ) {
-
-        value =
-                clamp(
-                        value,
-                        0.0,
-                        1.0
-                );
-
-
-        return
-
-                value
-                        *
-                        value
-                        *
-                        (
-                                3.0
-
-                                        -
-
-                                2.0
-                                        *
-                                        value
-                        );
-    }
-
-
-    private static double clamp(
-            double value,
-            double min,
-            double max
-    ) {
-
-        return Math.max(
-
-                min,
-
-                Math.min(
-                        max,
-                        value
-                )
-
-        );
-    }
-
 
     /*
      * =========================================================
@@ -3024,12 +2603,4 @@ public final class CalvingManager {
     }
 
 
-    private record VisualBlock(
-
-            FallingBlockEntity entity,
-
-            BlockPos origin
-
-    ) {
-    }
 }

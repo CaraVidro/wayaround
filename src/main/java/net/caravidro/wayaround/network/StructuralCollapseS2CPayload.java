@@ -30,8 +30,13 @@ public record StructuralCollapseS2CPayload(
             int fallTicks,
             long seed,
             long[] positions,
-            int[] stateIds
+            int[] stateIds,
+            int driftX, int driftZ, boolean calving
     ) {
+        public Cluster(int fallDistance, int fallTicks, long seed, long[] positions, int[] stateIds) {
+            this(fallDistance, fallTicks, seed, positions, stateIds, 0, 0, false);
+        }
+
         public Cluster {
             if (positions == null
                     || stateIds == null
@@ -124,9 +129,10 @@ public record StructuralCollapseS2CPayload(
                     cluster.fallTicks()
             );
 
-            buffer.writeLong(
-                    cluster.seed()
-            );
+            buffer.writeLong(cluster.seed());
+            buffer.writeVarInt(cluster.driftX());
+            buffer.writeVarInt(cluster.driftZ());
+            buffer.writeBoolean(cluster.calving());
 
             buffer.writeVarInt(
                     blockCount
@@ -191,8 +197,10 @@ public record StructuralCollapseS2CPayload(
             long seed =
                     buffer.readLong();
 
-            int blockCount =
-                    buffer.readVarInt();
+            int driftX = buffer.readVarInt();
+            int driftZ = buffer.readVarInt();
+            boolean calving = buffer.readBoolean();
+            int blockCount = buffer.readVarInt();
 
             if (blockCount < 0
                     || totalBlocks + blockCount
@@ -231,7 +239,7 @@ public record StructuralCollapseS2CPayload(
                             fallTicks,
                             seed,
                             positions,
-                            stateIds
+                            stateIds, driftX, driftZ, calving
                     )
             );
         }
@@ -257,8 +265,10 @@ public record StructuralCollapseS2CPayload(
                     cluster.blockCount();
 
             if (blocks > MAX_BLOCKS
-                    || cluster.fallTicks() > 240
-                    || cluster.fallDistance() > 160) {
+                    || cluster.fallTicks() > (cluster.calving() ? 660 : 240)
+                    || cluster.fallDistance() > (cluster.calving() ? 512 : 160)
+                    || Math.abs((long) cluster.driftX()) > 24
+                    || Math.abs((long) cluster.driftZ()) > 24) {
                 return false;
             }
         }

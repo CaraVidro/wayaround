@@ -1,0 +1,86 @@
+name: Calving and equipment runtime validation
+on:
+  pull_request:
+    paths:
+      - 'src/main/java/net/caravidro/wayaround/world/calving/**'
+      - 'src/main/java/net/caravidro/wayaround/interaction/StructuralCollapseManager.java'
+      - 'src/main/java/net/caravidro/wayaround/interaction/RigidFallMotion.java'
+      - 'src/main/java/net/caravidro/wayaround/client/debris/StructuralCollapseClient.java'
+      - 'src/main/java/net/caravidro/wayaround/network/StructuralCollapseS2CPayload.java'
+      - 'src/main/java/net/caravidro/wayaround/accessory/**'
+      - 'src/main/java/net/caravidro/wayaround/client/AccessoryRenderer.java'
+      - 'src/main/java/net/caravidro/wayaround/client/FlyingTopHatRenderer.java'
+      - 'src/main/java/net/caravidro/wayaround/client/EyewearOverlay.java'
+      - 'src/main/java/net/caravidro/wayaround/client/LensRenderType.java'
+      - 'src/main/java/net/caravidro/wayaround/client/EquipmentVisualValidation.java'
+      - 'tests/equipment/**'
+      - '.github/workflows/calving-equipment-validation.yml'
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Shared fall motion contracts
+        run: |
+          mkdir -p /tmp/equipment-pure
+          javac -d /tmp/equipment-pure src/main/java/net/caravidro/wayaround/interaction/RigidFallMotion.java tests/equipment/RigidFallMotionTest.java
+          java -cp /tmp/equipment-pure RigidFallMotionTest
+      - name: Real block settlement, saved inventory and wearable impacts
+        env:
+          JAVA_TOOL_OPTIONS: '-Dwayaround.validateCalvingEquipment=true'
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+          printf 'level-seed=42\n' > run/server.properties
+          timeout 300s bash gradlew runServer --console=plain | tee equipment-server.log
+          python - <<'PYTESTS'
+          from pathlib import Path
+          text=Path('equipment-server.log').read_text(errors='replace')
+          assert 'CALVING EQUIPMENT PASSED: all 6' in text,text[-16000:]
+          assert 'ModLoadingException' not in text and 'Exception caught during firing event' not in text,text[-16000:]
+          PYTESTS
+      - name: Actual client framebuffer and shared chef mesh
+        env:
+          ALSOFT_DRIVERS: 'null'
+          JAVA_TOOL_OPTIONS: '-Dwayaround.validateEquipmentVisuals=true'
+        shell: bash
+        run: |
+          python - <<'PYCLIENT'
+          import os,re,signal,subprocess,time
+          from pathlib import Path
+          path=Path('equipment-client.log');ready=False
+          with path.open('w') as log:
+              process=subprocess.Popen(['xvfb-run','-a','bash','gradlew','runClient','--console=plain'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+              try:
+                  deadline=time.monotonic()+240
+                  while process.poll() is None and time.monotonic()<deadline:
+                      text=path.read_text(errors='replace')
+                      if 'EQUIPMENT GPU PASSED' in text and 'minecraft:textures/atlas/gui.png-atlas' in text:
+                          ready=True;break
+                      if 'EQUIPMENT GPU FAILED' in text:break
+                      time.sleep(1)
+              finally:
+                  if process.poll() is None:os.killpg(process.pid,signal.SIGTERM)
+                  try:process.wait(timeout=15)
+                  except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
+          text=path.read_text(errors='replace')
+          if not ready or re.search(r'Exception in thread|ReportedException|ModLoadingException|Mixin apply failed|InvalidInjectionException',text):
+              print('\n'.join(text.splitlines()[-120:]));raise SystemExit(1)
+          print('Actual lens overlays and shared chef model rendered and captured successfully.')
+          PYCLIENT
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calving-equipment-runtime
+          path: |
+            equipment-server.log
+            equipment-client.log
+            run/equipment-captures/*.png

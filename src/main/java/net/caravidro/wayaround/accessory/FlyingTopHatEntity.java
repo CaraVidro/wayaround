@@ -40,7 +40,36 @@ public final class FlyingTopHatEntity extends Entity {
                     EntityDataSerializers.INT
             );
 
+    private static final EntityDataAccessor<ItemStack> HAT_STACK =
+            SynchedEntityData.defineId(FlyingTopHatEntity.class, EntityDataSerializers.ITEM_STACK);
     private int groundedTicks;
+
+    /** Owns one real stack throughout flight, save/reload and recovery. */
+    public void setHatStack(ItemStack stack) {
+        if (!(stack.getItem() instanceof AccessoryItem item)
+                || (item.kind() != AccessoryKind.CHEF_HAT && item.kind() != AccessoryKind.ENGINEER_CAP))
+            throw new IllegalArgumentException("Only supported flying hats may be transferred");
+        entityData.set(HAT_STACK, stack.copyWithCount(1));
+        setWear(stack.getDamageValue());
+        if (item.kind() == AccessoryKind.ENGINEER_CAP)
+            setCustomization(AccessoryCustomizationData.read(stack, item.kind()));
+    }
+
+    public AccessoryKind hatKind() {
+        ItemStack stack = entityData.get(HAT_STACK);
+        return stack.getItem() instanceof AccessoryItem item ? item.kind() : AccessoryKind.ENGINEER_CAP;
+    }
+
+    public ItemStack hatStack() {
+        ItemStack stack = entityData.get(HAT_STACK);
+        if (!stack.isEmpty()) return stack.copy();
+        // Compatibility with flying engineer hats saved before complete-stack ownership.
+        stack = OddityContent.accessoryStack(AccessoryKind.ENGINEER_CAP);
+        AccessoryWear.setWear(stack, AccessoryKind.ENGINEER_CAP, wear());
+        AccessoryCustomizationData.write(stack, AccessoryKind.ENGINEER_CAP,
+                new AccessoryCustomizationData.Config(material(), size(), extras(), 4));
+        return stack;
+    }
 
     public FlyingTopHatEntity(
             EntityType<? extends FlyingTopHatEntity> type,
@@ -56,6 +85,7 @@ public final class FlyingTopHatEntity extends Entity {
     protected void defineSynchedData(
             SynchedEntityData.Builder builder
     ) {
+        builder.define(HAT_STACK, ItemStack.EMPTY);
         builder.define(
                 WEAR,
                 0
@@ -217,29 +247,8 @@ public final class FlyingTopHatEntity extends Entity {
     }
 
     private void dropHat() {
-        ItemStack stack =
-                OddityContent.accessoryStack(
-                        AccessoryKind.ENGINEER_CAP
-                );
-
+        ItemStack stack = hatStack();
         if (!stack.isEmpty()) {
-            AccessoryWear.setWear(
-                    stack,
-                    AccessoryKind.ENGINEER_CAP,
-                    wear()
-            );
-
-            AccessoryCustomizationData.write(
-                    stack,
-                    AccessoryKind.ENGINEER_CAP,
-                    new AccessoryCustomizationData.Config(
-                            material(),
-                            size(),
-                            extras(),
-                            4
-                    )
-            );
-
             ItemEntity item =
                     new ItemEntity(
                             level(),
@@ -257,9 +266,7 @@ public final class FlyingTopHatEntity extends Entity {
                             )
                 );
 
-            level().addFreshEntity(
-                    item
-            );
+            if (!level().addFreshEntity(item)) return; // Keep ownership if transfer fails.
         }
 
         discard();
@@ -269,6 +276,10 @@ public final class FlyingTopHatEntity extends Entity {
     protected void readAdditionalSaveData(
             CompoundTag tag
     ) {
+        if (tag.contains("HatStack")) {
+            ItemStack stack = ItemStack.parseOptional(registryAccess(), tag.getCompound("HatStack"));
+            if (!stack.isEmpty()) setHatStack(stack);
+        }
         setWear(
                 tag.getInt(
                         "Wear"
@@ -309,6 +320,7 @@ public final class FlyingTopHatEntity extends Entity {
     protected void addAdditionalSaveData(
             CompoundTag tag
     ) {
+        tag.put("HatStack", hatStack().save(registryAccess()));
         tag.putInt(
                 "Wear",
                 wear()

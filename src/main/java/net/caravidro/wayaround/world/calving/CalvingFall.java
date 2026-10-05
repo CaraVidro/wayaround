@@ -1,6 +1,8 @@
 package net.caravidro.wayaround.world.calving;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import net.caravidro.wayaround.interaction.RigidFallMotion;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -17,12 +19,12 @@ public final class CalvingFall {
             long key = ((long) block.x() << 32) ^ (block.z() & 0xffffffffL);
             bottoms.merge(key, block, (a, b) -> a.y() < b.y() ? a : b);
         }
-        int drop = Integer.MAX_VALUE;
+        List<Integer> clearances = new ArrayList<>();
         for (Cell bottom : bottoms.values()) {
             int y = bottom.y();
             while (y > minY && !solid.test(new Cell(bottom.x() + dx, y - 1, bottom.z() + dz))) y--;
-            drop = Math.min(drop, bottom.y() - y);
+            clearances.add(bottom.y() - y);
         }
-        return drop == Integer.MAX_VALUE ? 0 : drop;
+        return RigidFallMotion.supportedDrop(clearances, 512);
     }
 }

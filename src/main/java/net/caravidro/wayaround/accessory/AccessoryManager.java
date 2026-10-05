@@ -141,6 +141,9 @@ public final class AccessoryManager {
                 )
         );
 
+        player.getPersistentData().put(stackKey(kind.slot()),
+                held.copyWithCount(1).save(player.registryAccess()));
+
         if (kind == AccessoryKind.ENGINEER_TROUSERS) {
             setTrouserPocket(
                     player,
@@ -621,10 +624,10 @@ public final class AccessoryManager {
             return ItemStack.EMPTY;
         }
 
-        ItemStack stack =
-                OddityContent.accessoryStack(
-                        kind
-                );
+        ItemStack stack = ItemStack.parseOptional(player.registryAccess(),
+                player.getPersistentData().getCompound(stackKey(slot)));
+        if (!(stack.getItem() instanceof AccessoryItem item) || item.kind() != kind)
+            stack = OddityContent.accessoryStack(kind);
 
         AccessoryWear.setWear(
                 stack,
@@ -778,6 +781,7 @@ public final class AccessoryManager {
             int wear,
             int glass
     ) {
+        player.getPersistentData().remove(stackKey(slot));
         if (kind == null) {
             player.getPersistentData()
                     .remove(
@@ -1255,6 +1259,10 @@ public final class AccessoryManager {
                 + slot.name();
     }
 
+    private static String stackKey(AccessorySlot slot) {
+        return "WayAroundAccessoryStack_" + slot.name();
+    }
+
     private static String glassKey(
             AccessorySlot slot
     ) {
@@ -1615,6 +1623,9 @@ public final class AccessoryManager {
 
         for (AccessorySlot slot :
                 AccessorySlot.values()) {
+            String stack = stackKey(slot);
+            if (original.getPersistentData().contains(stack))
+                replacement.getPersistentData().put(stack, original.getPersistentData().getCompound(stack).copy());
             String kind =
                     original.getPersistentData()
                             .getString(
