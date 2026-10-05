@@ -3,6 +3,10 @@ package net.caravidro.wayaround.client.debris;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.AABB;
 import java.util.Random;
 import java.util.UUID;
 
@@ -70,6 +74,13 @@ public final class StructuralCollapseClient {
                         )
                         .sum();
 
+        // All calving groups share one transform. Cull completely enclosed opaque ice once,
+        // across group boundaries, rather than paying a block-model/light query every frame.
+        Set<Long> opaqueIce = new HashSet<>();
+        for (var encoded : payload.clusters()) if (encoded.calving())
+            for (int i = 0; i < encoded.blockCount(); i++)
+                if (Block.stateById(encoded.stateIds()[i]).canOcclude()) opaqueIce.add(encoded.positions()[i]);
+
         for (StructuralCollapseS2CPayload.Cluster encoded :
                 payload.clusters()) {
             if (encoded.blockCount() == 0
@@ -109,6 +120,14 @@ public final class StructuralCollapseClient {
                 if (state == null
                         || state.isAir()) {
                     continue;
+                }
+
+                BlockPos position = BlockPos.of(encoded.positions()[i]);
+                if (encoded.calving() && state.canOcclude()) {
+                    boolean enclosed = true;
+                    for (Direction side : Direction.values())
+                        if (!opaqueIce.contains(position.relative(side).asLong())) { enclosed = false; break; }
+                    if (enclosed) continue;
                 }
 
                 positions[valid] =
@@ -157,9 +176,7 @@ public final class StructuralCollapseClient {
             activeBlocks +=
                     valid;
 
-            emitFractureDust(
-                    cluster
-            );
+            if (!cluster.calving) emitFractureDust(cluster);
         }
     }
 
@@ -184,7 +201,7 @@ public final class StructuralCollapseClient {
 
             cluster.age++;
 
-            if (cluster.age <= 12
+            if (!cluster.calving && cluster.age <= 12
                     && (
                     cluster.age
                             & 1
@@ -200,9 +217,7 @@ public final class StructuralCollapseClient {
                 cluster.impactEmitted =
                         true;
 
-                emitImpactDust(
-                        cluster
-                );
+                if (!cluster.calving) emitImpactDust(cluster);
             }
 
             if (cluster.age
@@ -257,6 +272,11 @@ public final class StructuralCollapseClient {
 
             double drop = cluster.drop(partialTick);
             double drift = RigidFallMotion.drift(drop, cluster.fallDistance);
+            if (event.getFrustum() != null && !event.getFrustum().isVisible(
+                    cluster.bounds.move(cluster.driftX * drift, -drop, cluster.driftZ * drift))) continue;
+            int packedLight = LevelRenderer.getLightColor(minecraft.level,
+                    BlockPos.containing(cluster.center.x + cluster.driftX * drift,
+                            cluster.center.y - drop, cluster.center.z + cluster.driftZ * drift));
 
             int stride =
                     rendered > 2600
@@ -290,14 +310,6 @@ public final class StructuralCollapseClient {
                                 worldY
                                         - camera.y,
                                 worldZ - camera.z
-                        );
-
-                int packedLight =
-                        LevelRenderer.getLightColor(
-                                minecraft.level,
-                                BlockPos.containing(
-                                        worldX, worldY, worldZ
-                                )
                         );
 
                 minecraft.getBlockRenderer()
@@ -410,13 +422,13 @@ public final class StructuralCollapseClient {
              i++) {
             BlockPos pos =
                     cluster.positions[
-                            cluster.calving ? ParticleTypes.SNOWFLAKE : cluster.random.nextInt(
+                            cluster.random.nextInt(
                                     cluster.positions.length
                             )
                             ];
 
             minecraft.level.addParticle(
-                    cluster.calving ? ParticleTypes.SNOWFLAKE : cluster.random.nextInt(
+                    cluster.random.nextInt(
                             4
                     ) == 0
                             ? ParticleTypes.CAMPFIRE_COSY_SMOKE
@@ -519,6 +531,7 @@ public final class StructuralCollapseClient {
         private final int driftX, driftZ;
         private final boolean calving;
         private final Vec3 center;
+        private final AABB bounds;
         private final Random random;
 
         private int age;
@@ -545,6 +558,9 @@ public final class StructuralCollapseClient {
             this.center = computeCenter(
                     positions
             );
+            AABB bounds = new AABB(positions[0]);
+            for (BlockPos pos : positions) bounds = bounds.minmax(new AABB(pos));
+            this.bounds = bounds;
             this.random = new Random(
                     seed
             );

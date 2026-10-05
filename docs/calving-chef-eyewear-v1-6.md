@@ -2,7 +2,10 @@
 
 Antarctic slab detachment now calls the structural demolition manager's connected,
 bounded rigid partition and uses its client renderer. It no longer creates up to
-180 FallingBlockEntity shell entities. Original block states, including the full
+180 FallingBlockEntity shell entities. Fully enclosed opaque ice is culled once
+from the visual snapshot, groups use frustum culling and one light sample per
+group, and calving keeps only its server-owned powder/splash instead of
+duplicating the demolition smoke particles. Original block states, including the full
 ice slab, move outward with shared analytical gravity and settle on the actual
 terrain. Warning snow chips remain real individual falling blocks. Buildings
 settle as their original blocks instead of becoming a flood of item drops;

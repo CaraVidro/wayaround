@@ -374,7 +374,7 @@ public final class CalvingManager {
                         throwable
                 );
 
-                calving.cleanupVisuals();
+
 
                 iterator.remove();
             }
@@ -386,15 +386,6 @@ public final class CalvingManager {
     public static void serverStopped(
             ServerStoppedEvent event
     ) {
-
-        for (
-                CalvingEvent event1 :
-                ACTIVE
-        ) {
-
-            event1.cleanupVisuals();
-        }
-
 
         ACTIVE.clear();
     }
@@ -1663,6 +1654,7 @@ public final class CalvingManager {
         private final Snapshot snapshot;
 
 
+        private int age;
         private boolean detached;
 
         private boolean finished;
@@ -2537,55 +2529,6 @@ public final class CalvingManager {
      * HELPERS
      * =========================================================
      */
-
-    private static double smoothstep(
-            double value
-    ) {
-
-        value =
-                clamp(
-                        value,
-                        0.0,
-                        1.0
-                );
-
-
-        return
-
-                value
-                        *
-                        value
-                        *
-                        (
-                                3.0
-
-                                        -
-
-                                2.0
-                                        *
-                                        value
-                        );
-    }
-
-
-    private static double clamp(
-            double value,
-            double min,
-            double max
-    ) {
-
-        return Math.max(
-
-                min,
-
-                Math.min(
-                        max,
-                        value
-                )
-
-        );
-    }
-
 
     /*
      * =========================================================
