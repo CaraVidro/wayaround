@@ -9,10 +9,42 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
 /** Small physical mound and diggable fungus chamber; writes stay within the decoration region. */
 public final class ColonyMoundFeature extends Feature<NoneFeatureConfiguration> {
     public ColonyMoundFeature(){super(NoneFeatureConfiguration.CODEC);}
+    private static int preferredSpecies(
+            int z,
+            boolean dry,
+            net.minecraft.util.RandomSource random
+    ) {
+        String[] ids={
+                "wayaround:black_ant",
+                "wayaround:red_ant",
+                "wayaround:honey_ant",
+                "wayaround:termite"
+        };
+
+        double[] weights=new double[ids.length];
+        double total=0;
+
+        for(int i=0;i<ids.length;i++){
+            double suitability=net.caravidro.wayaround.ecology.AnimalClimateProfile.suitability(ids[i],z);
+            double biome=i==3?(dry?2.8:.24):(dry?.72:1.0);
+            weights[i]=Math.max(.001,suitability*biome);
+            total+=weights[i];
+        }
+
+        double roll=random.nextDouble()*total;
+        for(int i=0;i<weights.length;i++){
+            roll-=weights[i];
+            if(roll<=0)return i;
+        }
+        return 0;
+    }
+
     @Override public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> c){
         if(!net.caravidro.wayaround.worldconfig.WorldFeatureRuntime.serverEnabled(net.caravidro.wayaround.worldconfig.WorldFeature.LITTLE_LEAF_WORLD))return false;
         var l=c.level();var p=c.origin();if(!l.ensureCanWrite(p)||!l.getBlockState(p.below()).is(BlockTags.DIRT)||!l.getBlockState(p).canBeReplaced())return false;
-        boolean dry=l.getBiome(p).is(BiomeTags.IS_SAVANNA);int species=dry?3:c.random().nextInt(3),radius=species==3?3:2,height=species==3?5:2;
+        boolean dry=l.getBiome(p).is(BiomeTags.IS_SAVANNA);
+        int species=preferredSpecies(p.getZ(),dry,c.random());
+        int radius=species==3?3:2,height=species==3?5:2;
         // Validate the complete small footprint before touching terrain.
         for(int x=-radius;x<=radius;x++)for(int z=-radius;z<=radius;z++)for(int y=-4;y<=height;y++){
             var q=p.offset(x,y,z);if(!l.ensureCanWrite(q)||!l.getFluidState(q).isEmpty())return false;
