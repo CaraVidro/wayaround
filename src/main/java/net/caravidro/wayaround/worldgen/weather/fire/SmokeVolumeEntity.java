@@ -1,6 +1,9 @@
 package net.caravidro.wayaround.worldgen.weather.fire;
 
+import net.caravidro.wayaround.environment.EnvironmentalFields;
+import net.caravidro.wayaround.flow.UniversalFlow;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -129,12 +132,44 @@ public final class SmokeVolumeEntity
             return;
         }
 
+        ServerLevel server =
+                (ServerLevel) level();
+
+        var flow =
+                UniversalFlow.atmosphereAt(
+                        server,
+                        position()
+                );
+
         LocalWeatherField.Sample weather =
                 LocalWeatherField.sample(
+                        server,
                         getX(),
                         getZ(),
                         level().getGameTime()
                 );
+
+        if (tickCount % 20 == 0) {
+            EnvironmentalFields.emitSmoke(
+                    server,
+                    blockPosition(),
+                    0.004
+                            + baseSize()
+                                    * darkness()
+                                    * 0.006
+            );
+
+            if (weather.rain() > 0.18F) {
+                age +=
+                        Math.max(
+                                1,
+                                Math.round(
+                                        weather.rain()
+                                                * 4.0F
+                                )
+                        );
+            }
+        }
 
         float life =
                 age
@@ -145,12 +180,18 @@ public final class SmokeVolumeEntity
          * parcel expands. Weather warning is also the synchronized gust/debug
          * intensity, so /wayaround windtest visibly pushes wildfire smoke.
          */
-        double windSpeed =
-                0.020
+        double windCoupling =
+                0.68
                         + weather.warning()
-                                * 0.050
+                                * 0.34
                         + baseSize()
-                                * 0.0025;
+                                * 0.035;
+
+        var drift =
+                flow.velocityPerTick()
+                        .scale(
+                                windCoupling
+                        );
 
         double rise =
                 0.050
@@ -178,8 +219,7 @@ public final class SmokeVolumeEntity
 
         setPos(
                 getX()
-                        + weather.windX()
-                                * windSpeed
+                        + drift.x
                         + sideX,
                 getY()
                         + Math.max(
@@ -187,8 +227,7 @@ public final class SmokeVolumeEntity
                         rise
                 ),
                 getZ()
-                        + weather.windZ()
-                                * windSpeed
+                        + drift.z
                         + sideZ
         );
     }
