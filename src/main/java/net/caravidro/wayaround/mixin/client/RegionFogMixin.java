@@ -25,13 +25,20 @@ public abstract class RegionFogMixin {
             if(environment!=null){
                 float smoke=Math.clamp(environment.smoke(),0F,1F);
                 float pollution=Math.clamp(environment.pollution(),0F,1F);
+                float humidity=Math.clamp(environment.humidity(),0F,1F);
+                float cloudWater=Math.clamp(environment.cloudWater(),0F,1F);
                 float haze=Math.clamp(smoke*.55F+pollution*.32F,0F,.58F);
+                float mist=Math.clamp((humidity-.78F)*1.55F+cloudWater*.12F,0F,.28F)
+                        *(1F-haze*.65F);
                 float targetR=.34F+pollution*.08F;
                 float targetG=.33F+pollution*.02F;
                 float targetB=.32F-smoke*.04F;
                 fogRed+=(targetR-fogRed)*haze;
                 fogGreen+=(targetG-fogGreen)*haze;
                 fogBlue+=(targetB-fogBlue)*haze;
+                fogRed+=(.72F-fogRed)*mist;
+                fogGreen+=(.76F-fogGreen)*mist;
+                fogBlue+=(.80F-fogBlue)*mist;
             }
         }
 
