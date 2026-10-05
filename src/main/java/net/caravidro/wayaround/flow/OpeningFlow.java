@@ -69,6 +69,7 @@ public final class OpeningFlow {
                 direction.scale(
                         speed
                 ),
+                density,
                 Math.max(
                         inside.absoluteKPa(),
                         outside.absoluteKPa()
