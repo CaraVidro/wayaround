@@ -18,6 +18,23 @@ public abstract class RegionFogMixin {
     @Inject(method="setupColor",at=@At("TAIL"))
     private static void wayaround$fade(Camera camera,float partial,ClientLevel level,int distance,float boss,CallbackInfo ci) {
         long now=Util.getMillis();var fluid=camera.getFluidInCamera();
+
+        if(fluid==net.minecraft.world.level.material.FogType.NONE){
+            var p=camera.getPosition();
+            var environment=net.caravidro.wayaround.environment.EnvironmentalFieldClientCache.get(p.x,p.z);
+            if(environment!=null){
+                float smoke=Math.clamp(environment.smoke(),0F,1F);
+                float pollution=Math.clamp(environment.pollution(),0F,1F);
+                float haze=Math.clamp(smoke*.55F+pollution*.32F,0F,.58F);
+                float targetR=.34F+pollution*.08F;
+                float targetG=.33F+pollution*.02F;
+                float targetB=.32F-smoke*.04F;
+                fogRed+=(targetR-fogRed)*haze;
+                fogGreen+=(targetG-fogGreen)*haze;
+                fogBlue+=(targetB-fogBlue)*haze;
+            }
+        }
+
         boolean reset=wayaround$level.get()!=level || wayaround$time==0 || fluid==net.minecraft.world.level.material.FogType.LAVA
                 || fluid==net.minecraft.world.level.material.FogType.POWDER_SNOW || net.caravidro.wayaround.daybreak.client.DaysBreakClient.active();
         float factor=reset?1F:(float)(1-Math.exp(-Math.min(100,now-wayaround$time)/850.0));
