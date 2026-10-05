@@ -13,7 +13,7 @@ public final class ThermalDebugCommands {
     @SubscribeEvent public static void register(RegisterCommandsEvent event){
         event.getDispatcher().register(Commands.literal("spectrum_heat").requires(s->s.hasPermission(2))
                 .executes(c->{var p=c.getSource().getPlayerOrException();
-                    c.getSource().sendSuccess(()->Component.literal("Temperatura local: "+Math.round(RegionalTemperature.at(p.serverLevel(),p.blockPosition()))+" graus de jogo"),false);return 1;})
+                    c.getSource().sendSuccess(()->Component.literal("Temperatura local: "+Math.round(RegionalTemperature.at(p.serverLevel(),p.blockPosition()))+" C"),false);return 1;})
                 .then(Commands.argument("temperature",DoubleArgumentType.doubleArg(20,3200))
                         .then(Commands.argument("radius",DoubleArgumentType.doubleArg(1,48)).executes(c->{
                             var p=c.getSource().getPlayerOrException();

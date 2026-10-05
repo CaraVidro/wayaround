@@ -181,6 +181,7 @@ public class WayAround {
         net.caravidro.wayaround.littleleaf.ColonyCoreBlockEntity.clear();
         DeferredMiningManager.clearAll();
         net.caravidro.wayaround.interaction.StructuralCollapseManager.clearAll();
+        net.caravidro.wayaround.thermal.UniversalTemperature.clear();
         net.caravidro.wayaround.media.MediaTransferServer.clearAll();
         LOGGER.info("Caches do WayAround limpos.");
     }

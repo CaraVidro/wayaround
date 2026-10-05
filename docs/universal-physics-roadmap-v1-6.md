@@ -88,19 +88,50 @@ changing the PhysicalVolume contract.
 This becomes the common substrate for tanks, rooms, pipes, boilers, caves,
 submarines, ship compartments and atmosphere cells.
 
-## 3. Universal temperature
+## 3. Universal temperature — IMPLEMENTED IN THIS BRANCH
 
-Promote EnvironmentalTemperature from "environmental heat API" into the shared
-thermal service.
+EnvironmentalTemperature remains the canonical shared service while the old
+RegionalTemperature field is retained as the sparse/LOD storage layer.
 
-- matter/region temperature;
-- thermal energy rather than arbitrary heat bars where practical;
-- conduction through boundaries;
-- bounded convection hooks;
-- source/sink adapters for vanilla fire, campfires, lava, sunlight and machines;
-- MaterialMemory observes real thermal cycles.
+Implemented foundation:
 
-Existing RegionalTemperature remains the sparse/LOD implementation layer.
+- ThermalPhysics:
+  - joules for energy;
+  - watts for heat-source power;
+  - material/phase heat capacity;
+  - energy <-> temperature conversion;
+  - conductive wall power from material conductivity, area and thickness.
+- ThermalRegionModel:
+  - room/compartment air heat capacity comes from PhysicalRegion volume;
+  - wall heat loss comes from the materials found by step 2;
+  - openings add explicit air-exchange conductance;
+  - SEALED and VENTED regions naturally get different cooling constants;
+  - INDETERMINATE topology is never rewarded with perfect insulation.
+- RegionalTemperature thermal cells can now retain a region-specific relaxation
+  constant instead of every disturbance cooling with the old fixed 240-tick
+  curve.
+- real energy can be injected uniformly into a bounded PhysicalRegion while the
+  existing sparse 8-block field remains the runtime representation.
+- vanilla heat-source adapters now provide physical power and source temperature
+  for lava, fire, campfires and magma.
+- a lit vanilla campfire is a reliable source through its existing block entity:
+  campfire -> watts -> PhysicalRegion -> heat capacity -> sparse temperature.
+- opportunistic player-local source discovery remains bounded and now routes
+  through the same energy API.
+- /wayaroundphysics region now also reports local/ambient Celsius, enclosure
+  heat-loss conductance and thermal time constant.
+- MaterialMemory accepts real Celsius through a compatibility bridge; hot fluid
+  in existing Pipework feeds that path once per second rather than inventing a
+  separate pipe heat scale.
+- GameTests verify heat capacity, stone-vs-wood conduction, sealed-vs-vented
+  cooling and Celsius-driven MaterialMemory damage.
+
+Still intentionally deferred:
+- latent heat and phase changes (step 6);
+- pressure feedback from heated gases (step 4);
+- true convection/flow transport (step 5);
+- wall thermal mass and multi-layer walls can refine ThermalRegionModel later
+  without changing its public contract.
 
 ## 4. Universal pressure
 

@@ -1,10 +1,11 @@
 package net.caravidro.wayaround.thermal;
 
-/** Gameplay degrees; rates are probabilities per sampled exposure, not real thermodynamics. */
+/** Celsius field limits plus legacy probabilistic reaction curves. */
 public final class TemperatureCurve {
     public static final double AMBIENT = 20;
     public static final double MIN = -120;
     public static final double MAX = 3200;
+    public static final double DEFAULT_RELAXATION_TICKS = 240.0;
 
     private TemperatureCurve() {}
 
@@ -17,6 +18,20 @@ public final class TemperatureCurve {
             double temperature,
             double ambient,
             long elapsedTicks
+    ) {
+        return relax(
+                temperature,
+                ambient,
+                elapsedTicks,
+                DEFAULT_RELAXATION_TICKS
+        );
+    }
+
+    public static double relax(
+            double temperature,
+            double ambient,
+            long elapsedTicks,
+            double relaxationTicks
     ) {
         double safeAmbient =
                 clamp(
@@ -35,7 +50,14 @@ public final class TemperatureCurve {
                                 0L,
                                 elapsedTicks
                         )
-                                / 240.0
+                                / Math.max(
+                                1.0,
+                                Double.isFinite(
+                                        relaxationTicks
+                                )
+                                        ? relaxationTicks
+                                        : DEFAULT_RELAXATION_TICKS
+                        )
                 );
 
         return clamp(

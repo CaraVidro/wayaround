@@ -4,6 +4,8 @@ import java.util.Locale;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 
+import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
+import net.caravidro.wayaround.thermal.ThermalRegionModel;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
@@ -184,6 +186,45 @@ public final class PhysicalDebugCommands {
                         snapshot.openingAreaM2()
                 );
 
+        ThermalRegionModel thermal =
+                ThermalRegionModel.from(
+                        snapshot
+                );
+
+        String localTemperature =
+                String.format(
+                        Locale.ROOT,
+                        "%.1f",
+                        EnvironmentalTemperature.at(
+                                level,
+                                seed
+                        )
+                );
+
+        String ambientTemperature =
+                String.format(
+                        Locale.ROOT,
+                        "%.1f",
+                        EnvironmentalTemperature.ambientAt(
+                                level,
+                                seed
+                        )
+                );
+
+        String thermalLoss =
+                String.format(
+                        Locale.ROOT,
+                        "%.1f",
+                        thermal.totalConductanceWPerK()
+                );
+
+        String thermalTau =
+                String.format(
+                        Locale.ROOT,
+                        "%.1f",
+                        thermal.timeConstantSeconds()
+                );
+
         source.sendSuccess(
                 () -> Component.literal(
                         "REGIAO FISICA | "
@@ -201,6 +242,15 @@ public final class PhysicalDebugCommands {
                                 + " ("
                                 + openings
                                 + " m2)"
+                                + " | temp "
+                                + localTemperature
+                                + " C / ambiente "
+                                + ambientTemperature
+                                + " C | perdaTermica "
+                                + thermalLoss
+                                + " W/K | tau "
+                                + thermalTau
+                                + " s"
                                 + " | limiteCelulas="
                                 + snapshot.hitCellLimit()
                                 + " limiteDistancia="

@@ -1,12 +1,15 @@
 package net.caravidro.wayaround.thermal;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.network.ThermalGlowPayload;
+import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
@@ -89,8 +92,20 @@ public final class RegionalTemperature {
 
     private record ThermalCell(
             double degrees,
-            long time
+            long time,
+            double relaxationTicks
     ) {
+        private ThermalCell {
+            relaxationTicks =
+                    Double.isFinite(
+                            relaxationTicks
+                    )
+                            ? Math.max(
+                                    1.0,
+                                    relaxationTicks
+                            )
+                            : TemperatureCurve.DEFAULT_RELAXATION_TICKS;
+        }
     }
 
     private static Cell cell(
@@ -147,7 +162,8 @@ public final class RegionalTemperature {
                 local.degrees,
                 ambient,
                 level.getGameTime()
-                        - local.time
+                        - local.time,
+                local.relaxationTicks
         );
     }
 
@@ -305,7 +321,8 @@ public final class RegionalTemperature {
                                             old.degrees,
                                             ambient,
                                             level.getGameTime()
-                                                    - old.time
+                                                    - old.time,
+                                            old.relaxationTicks
                                     );
 
                     /*
@@ -330,7 +347,10 @@ public final class RegionalTemperature {
                                     TemperatureCurve.clamp(
                                             chosen
                                     ),
-                                    level.getGameTime()
+                                    level.getGameTime(),
+                                    old == null
+                                            ? TemperatureCurve.DEFAULT_RELAXATION_TICKS
+                                            : old.relaxationTicks
                             )
                     );
                 }
@@ -359,6 +379,195 @@ public final class RegionalTemperature {
                 )
                         + deltaCelsius
         );
+    }
+
+
+    /**
+     * Adds real thermal energy to one sparse cell while preserving the existing
+     * field as the storage/LOD implementation.
+     */
+    public static void injectLocalEnergy(
+            ServerLevel level,
+            BlockPos pos,
+            double energyJ,
+            double heatCapacityJPerK,
+            double relaxationTicks
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.THERMAL_SYSTEM
+        )
+                || !Double.isFinite(
+                energyJ
+        )
+                || !Double.isFinite(
+                heatCapacityJPerK
+        )
+                || heatCapacityJPerK <= 0.0
+                || !level.hasChunkAt(
+                pos
+        )) {
+            return;
+        }
+
+        Cell key =
+                cell(
+                        level,
+                        pos
+                );
+
+        if (!CELLS.containsKey(
+                key
+        )
+                && CELLS.size()
+                >= MAX_CELLS) {
+            return;
+        }
+
+        double ambient =
+                EnvironmentalTemperature.ambientAt(
+                        level,
+                        pos
+                );
+
+        ThermalCell old =
+                CELLS.get(
+                        key
+                );
+
+        double current =
+                old == null
+                        ? ambient
+                        : TemperatureCurve.relax(
+                                old.degrees,
+                                ambient,
+                                level.getGameTime()
+                                        - old.time,
+                                old.relaxationTicks
+                        );
+
+        double delta =
+                energyJ
+                        / heatCapacityJPerK;
+
+        CELLS.put(
+                key,
+                new ThermalCell(
+                        TemperatureCurve.clamp(
+                                current
+                                        + delta
+                        ),
+                        level.getGameTime(),
+                        relaxationTicks
+                )
+        );
+    }
+
+    /**
+     * A PhysicalRegion is treated as well mixed at this LOD. Every sparse cell
+     * touched by the region receives the same regional temperature rise; the
+     * supplied heat capacity belongs to the whole region, not to each cell.
+     */
+    public static void injectUniformRegionEnergy(
+            ServerLevel level,
+            PhysicalRegionSnapshot region,
+            double energyJ,
+            double heatCapacityJPerK,
+            double relaxationTicks
+    ) {
+        if (!WorldFeatureRuntime.serverEnabled(
+                WorldFeature.THERMAL_SYSTEM
+        )
+                || !Double.isFinite(
+                energyJ
+        )
+                || !Double.isFinite(
+                heatCapacityJPerK
+        )
+                || heatCapacityJPerK <= 0.0) {
+            return;
+        }
+
+        Set<Cell> touched =
+                new HashSet<>();
+
+        for (BlockPos pos :
+                region.cells()) {
+            if (touched.size()
+                    >= 256) {
+                break;
+            }
+
+            if (!level.hasChunkAt(
+                    pos
+            )) {
+                continue;
+            }
+
+            touched.add(
+                    cell(
+                            level,
+                            pos
+                    )
+            );
+        }
+
+        if (touched.isEmpty()) {
+            return;
+        }
+
+        double delta =
+                energyJ
+                        / heatCapacityJPerK;
+
+        for (Cell key :
+                touched) {
+            if (!CELLS.containsKey(
+                    key
+            )
+                    && CELLS.size()
+                    >= MAX_CELLS) {
+                continue;
+            }
+
+            BlockPos sample =
+                    center(
+                            key
+                    );
+
+            double ambient =
+                    EnvironmentalTemperature.ambientAt(
+                            level,
+                            sample
+                    );
+
+            ThermalCell old =
+                    CELLS.get(
+                            key
+                    );
+
+            double current =
+                    old == null
+                            ? ambient
+                            : TemperatureCurve.relax(
+                                    old.degrees,
+                                    ambient,
+                                    level.getGameTime()
+                                            - old.time,
+                                    old.relaxationTicks
+                            );
+
+            CELLS.put(
+                    key,
+                    new ThermalCell(
+                            TemperatureCurve.clamp(
+                                    current
+                                            + delta
+                            ),
+                            level.getGameTime(),
+                            relaxationTicks
+                    )
+            );
+        }
     }
 
     @SubscribeEvent
@@ -411,12 +620,14 @@ public final class RegionalTemperature {
                                             ambient,
                                             level.getGameTime()
                                                     - entry.getValue()
-                                                    .time
+                                                    .time,
+                                            entry.getValue()
+                                                    .relaxationTicks
                                     );
 
                             return Math.abs(
                                     temperature - ambient
-                            ) < 4.0;
+                            ) < 0.05;
                         }
                 );
 

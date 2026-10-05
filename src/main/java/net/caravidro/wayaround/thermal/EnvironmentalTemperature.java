@@ -4,10 +4,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -113,6 +115,36 @@ public final class EnvironmentalTemperature {
                 center,
                 radius,
                 deltaCelsius
+        );
+    }
+
+    /**
+     * Canonical energy-input API for systems that know their physical region.
+     */
+    public static void injectEnergy(
+            ServerLevel level,
+            PhysicalRegionSnapshot region,
+            double energyJ
+    ) {
+        UniversalTemperature.injectEnergy(
+                level,
+                region,
+                energyJ
+        );
+    }
+
+    /**
+     * Vanilla/mod adapter entry point for real heat-producing blocks.
+     */
+    public static boolean applyBlockSource(
+            ServerLevel level,
+            BlockPos pos,
+            BlockState state
+    ) {
+        return UniversalTemperature.applyBlockSource(
+                level,
+                pos,
+                state
         );
     }
 }

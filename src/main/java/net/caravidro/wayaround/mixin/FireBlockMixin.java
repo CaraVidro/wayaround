@@ -53,6 +53,7 @@ public abstract class FireBlockMixin {
             CallbackInfo ci
     ) {
         EnhancedFireVisuals.register(level,pos);
+        net.caravidro.wayaround.thermal.EnvironmentalTemperature.applyBlockSource(level,pos,state);
         if(!level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOFIRETICK))return;
         if(!net.caravidro.wayaround.worldgen.weather.fire.FireTickLimiter.allowTick(level)) {
             level.scheduleTick(pos,(FireBlock)(Object)this,20+(int)Math.floorMod(pos.asLong(),20));

@@ -546,6 +546,37 @@ public final class AssemblyItemData {
         );
     }
 
+    public static void observeMaterialTemperature(
+            ItemStack stack,
+            AssemblyPartProfile.Material material,
+            long gameTime,
+            double temperatureC
+    ) {
+        if (stack == null
+                || stack.isEmpty()
+                || !Double.isFinite(
+                temperatureC
+        )) {
+            return;
+        }
+
+        MaterialMemory memory =
+                materialMemoryOrCreate(
+                        stack,
+                        gameTime
+                );
+
+        memory.observeTemperatureC(
+                material,
+                temperatureC
+        );
+
+        writeMaterialMemory(
+                stack,
+                memory
+        );
+    }
+
     public static void exposeMaterialWet(
             ItemStack stack,
             AssemblyPartProfile.Material material,
