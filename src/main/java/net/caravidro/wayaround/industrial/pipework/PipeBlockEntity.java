@@ -1,8 +1,11 @@
 package net.caravidro.wayaround.industrial.pipework;
 
 import java.util.*;
+import net.caravidro.wayaround.flow.FlowState;
+import net.caravidro.wayaround.flow.UniversalFlow;
 import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.interaction.*;
+import net.caravidro.wayaround.physical.FluidMatterResolver;
 import net.caravidro.wayaround.pressure.PressureMath;
 import net.caravidro.wayaround.worldconfig.*;
 import net.minecraft.core.*;
@@ -41,6 +44,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     private float integrity=1;
     private float hydraulicPressureBar;
     private float peakHydraulicPressureBar;
+    private float recentFlowMbPerTick;
     private float rotaryLiftRpm;
     private float rotaryLiftAngle;
     private float rotaryLiftLoad;
@@ -61,6 +65,7 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     public float hydraulicPressureBar(){return hydraulicPressureBar;}
     public float hydraulicPressureKPa(){return (float)PressureMath.barToKPa(hydraulicPressureBar);}
     public float peakHydraulicPressureBar(){return peakHydraulicPressureBar;}
+    public float recentFlowMbPerTick(){return recentFlowMbPerTick;}
     public float rotaryLiftRpm(){return rotaryLiftRpm;}
     public float rotaryLiftAngle(){return rotaryLiftAngle;}
     public float rotaryLiftLoad(){return rotaryLiftLoad;}
@@ -175,6 +180,8 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
                 &&Math.floorMod(level.getGameTime()+pos.asLong(),10)==0)PipeFlow.pump(server,pipe);
         pipe.hydraulicPressureBar*=.94F;
         if(pipe.hydraulicPressureBar<.01F)pipe.hydraulicPressureBar=0;
+        pipe.recentFlowMbPerTick*=.82F;
+        if(pipe.recentFlowMbPerTick<.05F)pipe.recentFlowMbPerTick=0;
         if(pipe.wet()&&pipe.integrity<.65F&&Math.floorMod(level.getGameTime()+pos.asLong(),20)==0){
             FluidStack liquid=pipe.visualFluid();
             server.sendParticles(PipeFlow.drip(liquid),pos.getX()+.5,pos.getY()+.05,pos.getZ()+.5,1,.25,0,.25,0);
@@ -195,6 +202,10 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
     public void receive(FluidStack fluid){if(tank.isEmpty())tank=fluid.copy();else tank.grow(fluid.getAmount());sync();}
     public void used(int amount){tank.shrink(amount);sync();}
     public void markFlow(FluidStack fluid,Direction direction){
+        markFlow(fluid,direction,0.0F);
+    }
+
+    public void markFlow(FluidStack fluid,Direction direction,float milliBucketsPerTick){
         int temperature=fluid.getFluid().getFluidType().getTemperature()-273;
         int tolerance=getBlockState().getBlock() instanceof IndustrialPipeBlock pipe?pipe.spec().maxTemperatureC():800;
         if(temperature>tolerance)damage(Math.min(.025F,(temperature-tolerance)*.00001F));
@@ -206,7 +217,42 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
                     body,profile.material(),level.getGameTime(),temperature);
         }
 
+        recentFlowMbPerTick=Math.max(
+                recentFlowMbPerTick,
+                Float.isFinite(milliBucketsPerTick)?Math.max(0,milliBucketsPerTick):0);
         flow=hasValve()?flow:direction;visible=fluid.copyWithAmount(1);wetUntil=level.getGameTime()+30;sync();}
+
+    public FlowState universalFlowState(){
+        FluidStack fluid=visualFluid();
+        double crossSection=internalCrossSectionM2();
+        Vec3 direction=new Vec3(flow.getStepX(),flow.getStepY(),flow.getStepZ());
+        double absolutePressure=PressureMath.STANDARD_ATMOSPHERE_KPA+hydraulicPressureKPa();
+        double turbulence=Math.clamp(
+                (pressureRatingBar()<=.001F?0:hydraulicPressureBar/pressureRatingBar())*.30
+                        +(1.0F-integrity)*.45,
+                0.0,
+                1.0);
+
+        return UniversalFlow.minecraftLiquidConduit(
+                FluidMatterResolver.resolve(fluid),
+                direction,
+                absolutePressure,
+                recentFlowMbPerTick,
+                crossSection,
+                turbulence);
+    }
+
+    private double internalCrossSectionM2(){
+        BlockState state=getBlockState();
+        if(state.getBlock() instanceof IndustrialPipeBlock pipe){
+            return Math.max(1.0E-5,pipe.spec().internalCrossSectionM2());
+        }
+        if(state.getBlock() instanceof LargePipeBlock pipe){
+            double radius=Math.max(.20,pipe.radius()-.15);
+            return Math.PI*radius*radius;
+        }
+        return 1.0;
+    }
 
     public void applyHydraulicPressure(float pressureBar){
         applyHydraulicPressureKPa(
