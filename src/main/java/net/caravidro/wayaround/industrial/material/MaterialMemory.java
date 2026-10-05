@@ -1,6 +1,7 @@
 package net.caravidro.wayaround.industrial.material;
 
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartProfile;
+import net.caravidro.wayaround.thermal.ThermalPhysics;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 
@@ -278,6 +279,26 @@ public final class MaterialMemory {
 
         lastHeat =
                 thermal;
+    }
+
+    /**
+     * New universal-thermal entry point. Persisted MaterialMemory keeps its
+     * normalized historical representation, but callers no longer need to
+     * invent a subsystem-specific heat scale.
+     */
+    public void observeTemperatureC(
+            AssemblyPartProfile.Material material,
+            double temperatureC
+    ) {
+        observeMechanicalUse(
+                material,
+                0.0F,
+                0.0F,
+                ThermalPhysics.normalizedLegacyHeat(
+                        material.physicalMaterial(),
+                        temperatureC
+                )
+        );
     }
 
     public void exposeWet(
