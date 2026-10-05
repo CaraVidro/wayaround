@@ -26,6 +26,38 @@ public record PipeSpec(
         return media.contains(medium);
     }
 
+    /**
+     * Radius is already expressed in block units; WayAround treats one block
+     * as one metre for macroscopic engineering geometry.
+     */
+    public double internalCrossSectionM2() {
+        double radiusM =
+                Math.max(
+                        0.0,
+                        radius
+                );
+
+        return Math.PI
+                * radiusM
+                * radiusM;
+    }
+
+    public double internalVolumeM3(
+            double lengthM
+    ) {
+        if (!Double.isFinite(
+                lengthM
+        )
+                || lengthM < 0.0) {
+            throw new IllegalArgumentException(
+                    "lengthM must be finite and >= 0"
+            );
+        }
+
+        return internalCrossSectionM2()
+                * lengthM;
+    }
+
     public boolean compatible(PipeSpec other) {
         for (PipeMedium medium : media) {
             if (other.media.contains(medium)) {
