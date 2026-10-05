@@ -72,6 +72,7 @@ public class WayAround {
         LOGGER.info("Way Around V1 iniciando!");
         // Registros do mod.
         WayAroundContent.register(modEventBus);
+        net.caravidro.wayaround.weaponry.WeaponryContent.register(modEventBus);
         OddityContent.register(modEventBus);
         TopHatContent.register(modEventBus);
         FireContent.register(modEventBus);

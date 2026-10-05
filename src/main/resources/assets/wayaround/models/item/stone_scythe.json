@@ -1,0 +1,8 @@
+{
+  "parent": "wayaround:item/weapon/scythe_base",
+  "textures": {
+    "blade": "minecraft:block/stone",
+    "handle": "minecraft:block/oak_planks",
+    "accent": "minecraft:block/cobblestone"
+  }
+}

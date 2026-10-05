@@ -3,6 +3,7 @@ package net.caravidro.wayaround.mixin.client;
 import net.caravidro.wayaround.client.TopHatClientState;
 import net.caravidro.wayaround.client.TrouserPocketClientState;
 import net.caravidro.wayaround.client.cinematic.PlayerAnimationController;
+import net.caravidro.wayaround.weaponry.client.WeaponAnimationClient;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -80,6 +81,11 @@ public abstract class HumanoidAnimationMixin<T extends LivingEntity> {
                 model,
                 ageInTicks
                         - player.tickCount
+        );
+
+        WeaponAnimationClient.apply(
+                player,
+                model
         );
     }
 }
