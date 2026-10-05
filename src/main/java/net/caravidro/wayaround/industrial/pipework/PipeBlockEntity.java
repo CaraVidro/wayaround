@@ -1,11 +1,13 @@
 package net.caravidro.wayaround.industrial.pipework;
 
 import java.util.*;
+import net.caravidro.wayaround.environment.EnvironmentalFields;
 import net.caravidro.wayaround.flow.FlowState;
 import net.caravidro.wayaround.flow.UniversalFlow;
 import net.caravidro.wayaround.industrial.assembly.*;
 import net.caravidro.wayaround.interaction.*;
 import net.caravidro.wayaround.physical.FluidMatterResolver;
+import net.caravidro.wayaround.pressure.NaturalPressure;
 import net.caravidro.wayaround.pressure.PressureMath;
 import net.caravidro.wayaround.worldconfig.*;
 import net.minecraft.core.*;
@@ -182,6 +184,22 @@ public final class PipeBlockEntity extends BlockEntity implements StructuralRece
         if(pipe.hydraulicPressureBar<.01F)pipe.hydraulicPressureBar=0;
         pipe.recentFlowMbPerTick*=.82F;
         if(pipe.recentFlowMbPerTick<.05F)pipe.recentFlowMbPerTick=0;
+
+        if(!pipe.body.isEmpty()
+                &&Math.floorMod(level.getGameTime()+pos.asLong(),200)==0){
+            var profile=AssemblyItemData.readPart(pipe.body);
+            if(profile!=null){
+                var environment=EnvironmentalFields.sample(server,pos);
+                float wetness=Math.clamp(
+                        Math.max(0F,(environment.humidity()-.55F)*.55F)
+                                +(server.isRainingAt(pos.above())?.55F:0F)
+                                +(pipe.wet()?.18F:0F),
+                        0F,1F);
+                if(wetness>.01F)AssemblyItemData.exposeMaterialWet(
+                        pipe.body,profile.material(),level.getGameTime(),
+                        wetness,NaturalPressure.isOcean(server,pos));
+            }
+        }
         if(pipe.wet()&&pipe.integrity<.65F&&Math.floorMod(level.getGameTime()+pos.asLong(),20)==0){
             FluidStack liquid=pipe.visualFluid();
             server.sendParticles(PipeFlow.drip(liquid),pos.getX()+.5,pos.getY()+.05,pos.getZ()+.5,1,.25,0,.25,0);
