@@ -5,6 +5,7 @@ on:
       - 'src/main/java/net/caravidro/wayaround/nature/**'
       - 'src/main/java/net/caravidro/wayaround/physical/**'
       - 'src/main/java/net/caravidro/wayaround/thermal/**'
+      - 'src/main/java/net/caravidro/wayaround/pressure/**'
       - 'src/main/java/net/caravidro/wayaround/littleleaf/**'
       - 'src/main/java/net/caravidro/wayaround/voice/VoiceServer.java'
       - 'src/main/java/net/caravidro/wayaround/voice/VoiceDistanceMath.java'
@@ -53,7 +54,7 @@ jobs:
           mkdir -p /tmp/nature-classes
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/nature/NatureMath.java tests/nature/NatureMathTest.java src/main/java/net/caravidro/wayaround/ecology/EcologicalHistory.java tests/nature/EcologicalHistoryTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/daybreak/DaysBreakMath.java tests/daybreak/DaysBreakMathTest.java
-          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/ecology/OceanPressure.java tests/nature/OceanPressureTest.java
+          javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/pressure/PressureMath.java src/main/java/net/caravidro/wayaround/ecology/OceanPressure.java tests/nature/OceanPressureTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/voice/VoiceConstants.java src/main/java/net/caravidro/wayaround/voice/VoiceDistanceMath.java tests/voice/VoiceDistanceTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/worldgen/weather/fire/FireWorkBudget.java tests/fire/FireWorkBudgetTest.java src/main/java/net/caravidro/wayaround/nature/BirdMigrationMath.java tests/nature/BirdMigrationTest.java
           javac -d /tmp/nature-classes src/main/java/net/caravidro/wayaround/worldgen/weather/fire/FireClusterLod.java tests/fire/FireClusterLodTest.java
