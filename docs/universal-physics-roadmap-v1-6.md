@@ -183,20 +183,77 @@ Still intentionally deferred:
 - connected-fluid static head/backpressure topology becomes richer in flow step 5;
 - tracked gas mass transfer between rooms belongs to flow/conservation steps 5/6.
 
-## 5. Universal flow
+## 5. Universal flow — IMPLEMENTED IN THIS BRANCH
 
-One flow language, multiple solvers.
+One flow language now sits above the existing specialized solvers.
 
-A flow sample contains medium, direction, velocity, density and pressure state.
+Implemented foundation:
 
-Adapters:
-- atmosphere -> wind;
-- ocean -> current;
-- connected conduit -> pipe flow;
-- steam -> gas flow;
-- ventilation -> room gas exchange.
+- FlowMath provides dependency-free unit/transport math:
+  - blocks/tick <-> metres/second;
+  - legacy Minecraft mB/t <-> cubic metres/second;
+  - volume flow <-> velocity through a cross-section;
+  - volume flow -> mass flow;
+  - dynamic pressure;
+  - pressure-drop velocity;
+  - signed orifice flow from delta-P.
+- FlowState is the canonical sample:
+  - material + phase;
+  - velocity in m/s;
+  - runtime density;
+  - absolute pressure in kPa;
+  - volumetric flow in m3/s;
+  - turbulence;
+  - source/domain marker.
+- Runtime density belongs to the flow state rather than always coming from the
+  reference material table, so compressed gases/steam can be represented.
+- UniversalFlow is the compatibility facade. Different solvers remain bounded:
+  - LocalWeatherField/Blizzard remains the atmospheric solver;
+  - WaterDynamics remains the open-water/current solver;
+  - PipeFlow remains the connected liquid-routing solver;
+  - pressure/orifice math handles openings/ventilation.
+- atmosphere -> wind:
+  - ShipWind now consumes UniversalFlow atmospheric state;
+  - existing weather/blizzard direction and gust logic are preserved as the
+    current atmospheric solver rather than replaced by fake CFD.
+- ocean/water -> current:
+  - open vanilla water resolves as FlowState;
+  - ocean samples inherit salt-water material and natural pressure;
+  - submarine drift and idle ship drift consume UniversalFlow;
+  - Water Wheel mechanical current is adapted to FlowState while retaining its
+    conservative coherence/stability checks.
+- connected conduit -> pipe flow:
+  - each PipeBlockEntity remembers recently measured transferred throughput;
+  - measured mB/t becomes m3/s and velocity through the real PipeSpec area;
+  - pressure, material, direction and turbulence are exposed together;
+  - HydraulicLoad exposes physical volume flow, mass flow and conduit velocity
+    while preserving existing gameplay fields.
+- steam/gas:
+  - PressurePhysics can derive runtime gas density from pressure + Celsius;
+  - UniversalFlow gas/steam conduit adapters convert mass flow into density,
+    volume flow and velocity.
+  - SteamNetwork keeps its existing amount-routing budget until conservation
+    step 6, but no new steam-flow scale is needed.
+- ventilation:
+  - OpeningFlow moves gas from higher absolute pressure to lower pressure;
+  - external wind projection and pressure-driven transfer share one opening;
+  - RegionVentilationModel reports inward/outward m3/s, net transport and ACH;
+  - weather is sampled once per region, not once per opening.
+- thermal coupling:
+  - live ventilation mass flow now becomes advective heat conductance (W/K);
+  - open regions therefore cool/heat according to transported air mass, while a
+    small passive exchange floor keeps quiet-air openings physical.
+- /wayaroundphysics flow reports speed, vector, runtime density, pressure,
+  dynamic pressure, turbulence and region ventilation/ACH.
+- GameTests lock pressure-direction flow, unit conversion, dynamic pressure,
+  pipe cross-section velocity, vanilla-water adaptation, explicit runtime
+  density and pressure-aware steam density.
 
-The algorithms may differ by scale, but they share contracts.
+Important boundary:
+- this step unifies the *language*, not the numerical solver at every scale.
+  Full regional pressure-gradient weather/convection belongs to step 12.
+- mass conservation across all representations and steam/liquid phase transfer
+  belongs to step 6.
 
 ## 6. Conservation and phase change
 
