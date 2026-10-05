@@ -24,6 +24,14 @@ public final class UniversalTemperature {
     private static final int MAX_TRACKED_SOURCES =
             4_096;
 
+    private static final int MAX_REGION_SCANS_PER_TICK =
+            48;
+
+    private static long budgetTick =
+            Long.MIN_VALUE;
+
+    private static int scansThisTick;
+
     private static final Map<GlobalPos, Long> LAST_SOURCE_APPLICATION =
             new LinkedHashMap<>();
 
@@ -72,6 +80,12 @@ public final class UniversalTemperature {
 
         if (previous != null
                 && now - previous < 20L) {
+            return false;
+        }
+
+        if (!reserveRegionScan(
+                now
+        )) {
             return false;
         }
 
@@ -202,6 +216,30 @@ public final class UniversalTemperature {
 
     public static void clear() {
         LAST_SOURCE_APPLICATION.clear();
+        budgetTick =
+                Long.MIN_VALUE;
+        scansThisTick =
+                0;
+    }
+
+    private static boolean reserveRegionScan(
+            long gameTime
+    ) {
+        if (budgetTick
+                != gameTime) {
+            budgetTick =
+                    gameTime;
+            scansThisTick =
+                    0;
+        }
+
+        if (scansThisTick
+                >= MAX_REGION_SCANS_PER_TICK) {
+            return false;
+        }
+
+        scansThisTick++;
+        return true;
     }
 
     private static BlockPos findMatterSpace(
