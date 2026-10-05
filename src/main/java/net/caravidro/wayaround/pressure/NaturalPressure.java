@@ -123,6 +123,24 @@ public final class NaturalPressure {
             return 0.0;
         }
 
+        /*
+         * Open ocean has a known macroscopic free surface. This is both more
+         * correct under overhangs and much cheaper for deep-sea vehicles than
+         * scanning hundreds of vertical blocks every sample.
+         */
+        if (isOcean(
+                level,
+                pos
+        )
+                && pos.getY() + 0.5
+                < level.getSeaLevel()) {
+            return level.getSeaLevel()
+                    - (
+                    pos.getY()
+                            + 0.5
+            );
+        }
+
         int lastWaterY =
                 pos.getY();
 
