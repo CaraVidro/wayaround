@@ -7,6 +7,7 @@ import net.caravidro.wayaround.physical.PhysicalOpening;
 import net.caravidro.wayaround.physical.PhysicalRegionSnapshot;
 import net.caravidro.wayaround.pressure.NaturalPressure;
 import net.caravidro.wayaround.pressure.PressureMath;
+import net.caravidro.wayaround.pressure.PressurePhysics;
 import net.caravidro.wayaround.pressure.PressureState;
 import net.caravidro.wayaround.pressure.RegionPressureModel;
 import net.caravidro.wayaround.pressure.UniversalPressure;
@@ -374,6 +375,78 @@ public final class UniversalFlow {
                 volumetricRateM3PerS,
                 turbulence,
                 source
+        );
+    }
+
+    public static FlowState gasConduit(
+            MaterialDefinition material,
+            Vec3 direction,
+            double absolutePressureKPa,
+            double temperatureC,
+            double massRateKgPerS,
+            double crossSectionM2,
+            double turbulence,
+            FlowState.Source source
+    ) {
+        double density =
+                PressurePhysics.gasDensityKgPerM3(
+                        material,
+                        absolutePressureKPa,
+                        temperatureC
+                );
+
+        double volumetricRate =
+                density <= 1.0E-9
+                        ? 0.0
+                        : Math.max(
+                        0.0,
+                        massRateKgPerS
+                )
+                                / density;
+
+        Vec3 normalized =
+                direction.lengthSqr()
+                        > 1.0E-12
+                        ? direction.normalize()
+                        : Vec3.ZERO;
+
+        double velocity =
+                FlowMath.velocityFromVolumetricRateMPerS(
+                        volumetricRate,
+                        crossSectionM2
+                );
+
+        return new FlowState(
+                material,
+                MatterPhase.GAS,
+                normalized.scale(
+                        velocity
+                ),
+                density,
+                absolutePressureKPa,
+                volumetricRate,
+                turbulence,
+                source
+        );
+    }
+
+    public static FlowState steamConduit(
+            Vec3 direction,
+            double absolutePressureKPa,
+            double temperatureC,
+            double massRateKgPerS,
+            double crossSectionM2,
+            double turbulence
+    ) {
+        return gasConduit(
+                PhysicalMaterials.WATER,
+                direction,
+                absolutePressureKPa,
+                temperatureC,
+                massRateKgPerS,
+                crossSectionM2,
+                turbulence,
+                FlowState.Source.STEAM
         );
     }
 
