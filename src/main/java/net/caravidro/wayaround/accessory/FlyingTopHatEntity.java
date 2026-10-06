@@ -10,6 +10,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -47,8 +49,9 @@ public final class FlyingTopHatEntity extends Entity {
     /** Owns one real stack throughout flight, save/reload and recovery. */
     public void setHatStack(ItemStack stack) {
         if (!(stack.getItem() instanceof AccessoryItem item)
-                || (item.kind() != AccessoryKind.CHEF_HAT && item.kind() != AccessoryKind.ENGINEER_CAP))
-            throw new IllegalArgumentException("Only supported flying hats may be transferred");
+                || item.kind().slot() != AccessorySlot.HEAD
+                || !item.kind().windLoose())
+            throw new IllegalArgumentException("Only wind-loose head accessories may be transferred");
         entityData.set(HAT_STACK, stack.copyWithCount(1));
         setWear(stack.getDamageValue());
         if (item.kind() == AccessoryKind.ENGINEER_CAP)
@@ -243,6 +246,41 @@ public final class FlyingTopHatEntity extends Entity {
                         || tickCount > 260
         )) {
             dropHat();
+        }
+    }
+
+    @Override
+    public void playerTouch(
+            Player player
+    ) {
+        super.playerTouch(
+                player
+        );
+
+        if (level().isClientSide
+                || !isAlive()) {
+            return;
+        }
+
+        ItemStack stack =
+                hatStack();
+
+        if (stack.isEmpty()) {
+            discard();
+            return;
+        }
+
+        if (player.getMainHandItem().isEmpty()) {
+            player.setItemInHand(
+                    InteractionHand.MAIN_HAND,
+                    stack
+            );
+            discard();
+            return;
+        }
+
+        if (player.getInventory().add(stack)) {
+            discard();
         }
     }
 
