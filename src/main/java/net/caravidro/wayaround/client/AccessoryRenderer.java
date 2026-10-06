@@ -7,7 +7,6 @@ import java.util.UUID;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
-import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.accessory.AccessoryCustomizationData;
 import net.caravidro.wayaround.accessory.AccessoryKind;
 import net.caravidro.wayaround.accessory.AccessoryMotion;
@@ -18,6 +17,7 @@ import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -28,11 +28,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 
 /**
  * Procedural textured clothing attached directly to vanilla PlayerModel bones.
@@ -42,10 +37,6 @@ import net.neoforged.neoforge.client.event.RenderPlayerEvent;
  * debug colours. Bone-local placement makes sleeves/boots/hats follow whatever
  * pose an animation has already applied to the player model.
  */
-@EventBusSubscriber(
-        modid = WayAround.MODID,
-        value = Dist.CLIENT
-)
 public final class AccessoryRenderer {
 
     private AccessoryRenderer() {
@@ -54,20 +45,38 @@ public final class AccessoryRenderer {
     private static final Map<UUID, float[]> EYE_PUPILS =
             new HashMap<>();
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public static void render(
-            RenderPlayerEvent.Post event
+    private record RenderContext(
+            AbstractClientPlayer player,
+            float partialTick
+    ) {
+    }
+
+    /**
+     * Third-person entry point used by AccessoryPlayerLayer.
+     *
+     * The incoming pose stack is already inside LivingEntityRenderer's player
+     * transform. Do not re-apply body yaw, the -Y model flip or the vanilla
+     * 1.501 body translation here: doing that was the reason accessories
+     * floated during swimming, fall-flying and cinematic rotations.
+     */
+    public static void renderAttached(
+            AbstractClientPlayer player,
+            PlayerModel<?> model,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light,
+            float partialTick
     ) {
         if (!WorldFeatureRuntime.clientEnabled(
                 WorldFeature.ACCESSORIES
-        )) {
+        )
+                || player.isInvisible()) {
             return;
         }
 
         AccessoryClientState.State state =
                 AccessoryClientState.get(
-                        event.getEntity()
-                                .getUUID()
+                        player.getUUID()
                 );
 
         if (state == null
@@ -75,49 +84,17 @@ public final class AccessoryRenderer {
             return;
         }
 
-        PoseStack pose =
-                event.getPoseStack();
-
-        PlayerModel<?> model =
-                event.getRenderer()
-                        .getModel();
-
         BlockRenderDispatcher blocks =
                 Minecraft.getInstance()
                         .getBlockRenderer();
 
-        MultiBufferSource buffers =
-                event.getMultiBufferSource();
-
-        int light =
-                event.getPackedLight();
-
-        pose.pushPose();
-
-        float bodyYaw =
-                Mth.rotLerp(
-                        event.getPartialTick(),
-                        event.getEntity().yBodyRotO,
-                        event.getEntity().yBodyRot
+        RenderContext context =
+                new RenderContext(
+                        player,
+                        partialTick
                 );
 
-        pose.mulPose(
-                Axis.YP.rotationDegrees(
-                        180.0F - bodyYaw
-                )
-        );
-
-        pose.scale(
-                -1.0F,
-                -1.0F,
-                1.0F
-        );
-
-        pose.translate(
-                0.0D,
-                -1.501D,
-                0.0D
-        );
+        pose.pushPose();
 
         renderHead(
                 state,
@@ -126,7 +103,7 @@ public final class AccessoryRenderer {
                 blocks,
                 buffers,
                 light,
-                event
+                context
         );
 
         renderFace(
@@ -181,7 +158,7 @@ public final class AccessoryRenderer {
                 blocks,
                 buffers,
                 light,
-                event
+                context
         );
 
         renderExtra(
@@ -191,10 +168,214 @@ public final class AccessoryRenderer {
                 blocks,
                 buffers,
                 light,
-                event
+                context
         );
 
         pose.popPose();
+    }
+
+    /**
+     * First person only renders vanilla arms, not the whole player model.
+     * Mirror every accessory component that physically belongs to the visible
+     * arm: jacket/shirt sleeves and hand-slot gloves. Head, torso core, legs,
+     * feet and back remain correctly absent because vanilla does not render
+     * those body bones in first person.
+     */
+    public static void renderFirstPersonArm(
+            AbstractClientPlayer player,
+            ModelPart arm,
+            PoseStack pose,
+            MultiBufferSource buffers,
+            int light,
+            boolean left
+    ) {
+        if (!WorldFeatureRuntime.clientEnabled(
+                WorldFeature.ACCESSORIES
+        )
+                || player.isInvisible()) {
+            return;
+        }
+
+        AccessoryClientState.State state =
+                AccessoryClientState.get(
+                        player.getUUID()
+                );
+
+        if (state == null
+                || state.empty()) {
+            return;
+        }
+
+        BlockRenderDispatcher blocks =
+                Minecraft.getInstance()
+                        .getBlockRenderer();
+
+        AccessoryKind torso =
+                state.kind(
+                        AccessorySlot.TORSO
+                );
+
+        if (torso != null) {
+            int wear =
+                    state.wearStage(
+                            AccessorySlot.TORSO
+                    );
+
+            switch (torso) {
+                case ENGINEER_JACKET -> {
+                    BlockState cloth =
+                            wear == 2
+                                    ? Blocks.BROWN_TERRACOTTA.defaultBlockState()
+                                    : Blocks.BROWN_WOOL.defaultBlockState();
+
+                    sleeve(
+                            arm,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            cloth,
+                            Blocks.CUT_COPPER.defaultBlockState(),
+                            left
+                    );
+                }
+
+                case AERO_JACKET -> {
+                    BlockState cloth =
+                            wornFabric(
+                                    Blocks.BLUE_WOOL.defaultBlockState(),
+                                    wear,
+                                    Blocks.GRAY_WOOL.defaultBlockState()
+                            );
+
+                    sleeve(
+                            arm,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            cloth,
+                            Blocks.CUT_COPPER.defaultBlockState(),
+                            left
+                    );
+                }
+
+                case DIVIN_SUIT -> {
+                    BlockState cloth =
+                            wornFabric(
+                                    Blocks.DARK_PRISMARINE.defaultBlockState(),
+                                    wear,
+                                    Blocks.GRAY_WOOL.defaultBlockState()
+                            );
+
+                    sleeve(
+                            arm,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            cloth,
+                            Blocks.SEA_LANTERN.defaultBlockState(),
+                            left
+                    );
+                }
+
+                case CHEF_COAT -> {
+                    BlockState cloth =
+                            wear == 0
+                                    ? Blocks.WHITE_WOOL.defaultBlockState()
+                                    : wear == 1
+                                    ? Blocks.LIGHT_GRAY_WOOL.defaultBlockState()
+                                    : Blocks.GRAY_WOOL.defaultBlockState();
+
+                    sleeve(
+                            arm,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            wear,
+                            cloth,
+                            Blocks.LIGHT_GRAY_WOOL.defaultBlockState(),
+                            left
+                    );
+                }
+
+                case FORMAL_JACKET ->
+                        formalSleeve(
+                                arm,
+                                pose,
+                                blocks,
+                                buffers,
+                                light,
+                                AccessoryCustomizationData.woolState(
+                                        state.customColor(
+                                                AccessorySlot.TORSO
+                                        )
+                                ),
+                                left,
+                                wear
+                        );
+
+                case CASUAL_SHIRT ->
+                        casualSleeve(
+                                arm,
+                                pose,
+                                blocks,
+                                buffers,
+                                light,
+                                AccessoryCustomizationData.woolState(
+                                        state.customColor(
+                                                AccessorySlot.TORSO
+                                        )
+                                ),
+                                left,
+                                wear
+                        );
+
+                default -> {
+                }
+            }
+        }
+
+        AccessoryKind hands =
+                state.kind(
+                        AccessorySlot.HANDS
+                );
+
+        if (hands == null) {
+            return;
+        }
+
+        int wear =
+                state.wearStage(
+                        AccessorySlot.HANDS
+                );
+
+        BlockState fabric =
+                switch (hands) {
+                    case CHEF_GLOVES ->
+                            Blocks.WHITE_WOOL.defaultBlockState();
+                    case AERO_GLOVES ->
+                            Blocks.GRAY_WOOL.defaultBlockState();
+                    default ->
+                            Blocks.BROWN_WOOL.defaultBlockState();
+                };
+
+        glove(
+                arm,
+                pose,
+                blocks,
+                buffers,
+                light,
+                wear,
+                fabric,
+                left,
+                hands
+        );
     }
 
     /** Opt-in visual QA uses exactly the worn set's bone-local rendering helpers. */
@@ -227,7 +408,7 @@ public final class AccessoryRenderer {
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
             int light,
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         AccessoryKind kind =
                 state.kind(
@@ -257,7 +438,7 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             false,
-                            event,
+                            context,
                             state.headMaterial(),
                             state.headSize(),
                             state.headExtras()
@@ -294,7 +475,7 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             true,
-                            event,
+                            context,
                             0,
                             2,
                             0
@@ -315,7 +496,7 @@ public final class AccessoryRenderer {
                             blocks,
                             buffers,
                             light,
-                            event
+                            context
                     );
 
             case CARDBOARD_BOX ->
@@ -738,7 +919,7 @@ public final class AccessoryRenderer {
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
             int light,
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         AccessoryKind kind =
                 state.kind(
@@ -769,7 +950,7 @@ public final class AccessoryRenderer {
                 light,
                 wear,
                 cloth,
-                event
+                context
         );
     }
 
@@ -780,7 +961,7 @@ public final class AccessoryRenderer {
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
             int light,
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         AccessoryKind kind =
                 state.kind(
@@ -807,7 +988,7 @@ public final class AccessoryRenderer {
                             light,
                             wear,
                             kind,
-                            event
+                            context
                     );
 
             case CHEF_APRON ->
@@ -818,7 +999,7 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             wear,
-                            event
+                            context
                     );
 
             default -> {
@@ -833,25 +1014,45 @@ public final class AccessoryRenderer {
             MultiBufferSource buffers,
             int light,
             boolean aero,
-            RenderPlayerEvent.Post event,
+            RenderContext context,
             int material,
             int size,
             int extras
     ) {
         if (!aero) {
             MotionSample motion =
-                    motion(
-                            event
-                    );
+                    context == null
+                            ? new MotionSample(0, 0, 0, 0, 0, 0)
+                            : motion(
+                                    context
+                            );
+
+            if (context == null) {
+                TopHatModelRenderer.render(
+                        pose,
+                        blocks,
+                        buffers,
+                        light,
+                        wear,
+                        0.0F,
+                        0.0F,
+                        0.0F,
+                        0.0F,
+                        material,
+                        size,
+                        extras
+                );
+                return;
+            }
 
             float instability =
                     TopHatClientState.instability(
-                            event.getEntity()
+                            context.player()
                                     .getUUID()
                     );
 
             if (TopHatClientState.warningActive(
-                    event.getEntity()
+                    context.player()
                             .getUUID()
             )) {
                 instability =
@@ -988,7 +1189,7 @@ public final class AccessoryRenderer {
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
             int light,
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         BlockState white =
                 Blocks.QUARTZ_BLOCK.defaultBlockState();
@@ -1039,7 +1240,7 @@ public final class AccessoryRenderer {
 
         float[] offset =
                 eyePupilOffset(
-                        event
+                        context
                 );
 
         double pupilX =
@@ -1069,7 +1270,7 @@ public final class AccessoryRenderer {
     }
 
     private static float[] eyePupilOffset(
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         Minecraft minecraft =
                 Minecraft.getInstance();
@@ -1080,7 +1281,7 @@ public final class AccessoryRenderer {
                         .getPosition();
 
         Vec3 eye =
-                event.getEntity()
+                context.player()
                         .getEyePosition();
 
         double dx =
@@ -1110,7 +1311,7 @@ public final class AccessoryRenderer {
         float relativeYaw =
                 Mth.wrapDegrees(
                         targetYaw
-                                - event.getEntity()
+                                - context.player()
                                 .getYHeadRot()
                 );
 
@@ -1128,7 +1329,7 @@ public final class AccessoryRenderer {
         float relativePitch =
                 Mth.wrapDegrees(
                         targetPitch
-                                - event.getEntity()
+                                - context.player()
                                 .getXRot()
                 );
 
@@ -1157,7 +1358,7 @@ public final class AccessoryRenderer {
 
         float[] current =
                 EYE_PUPILS.computeIfAbsent(
-                        event.getEntity()
+                        context.player()
                                 .getUUID(),
                         ignored ->
                                 new float[]{
@@ -1167,7 +1368,7 @@ public final class AccessoryRenderer {
                 );
 
         float time =
-                event.getEntity()
+                context.player()
                         .tickCount;
 
         wantedX +=
@@ -2853,14 +3054,14 @@ public final class AccessoryRenderer {
             int light,
             int wear,
             BlockState cloth,
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         pose.pushPose();
         body.translateAndRotate(
                 pose
         );
 
-        MotionSample motion = event == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(event);
+        MotionSample motion = context == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(context);
 
         piece(pose, blocks, buffers, light,
                 Blocks.COPPER_BLOCK.defaultBlockState(),
@@ -2978,14 +3179,14 @@ public final class AccessoryRenderer {
             int light,
             int wear,
             AccessoryKind kind,
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         pose.pushPose();
         body.translateAndRotate(
                 pose
         );
 
-        MotionSample motion = event == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(event);
+        MotionSample motion = context == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(context);
 
         BlockState metal =
                 kind == AccessoryKind.AERO_GEAR_CLUSTER
@@ -3118,14 +3319,14 @@ public final class AccessoryRenderer {
             MultiBufferSource buffers,
             int light,
             int wear,
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         pose.pushPose();
         body.translateAndRotate(
                 pose
         );
 
-        MotionSample motion = event == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(event);
+        MotionSample motion = context == null ? new MotionSample(0, 0, 0, 0, 0, 0) : motion(context);
 
         BlockState cloth =
                 wear == 0
@@ -3244,10 +3445,10 @@ public final class AccessoryRenderer {
     }
 
     private static MotionSample motion(
-            RenderPlayerEvent.Post event
+            RenderContext context
     ) {
         Vec3 velocity =
-                event.getEntity()
+                context.player()
                         .getDeltaMovement();
 
         float speed =
@@ -3269,9 +3470,9 @@ public final class AccessoryRenderer {
                 );
 
         float time =
-                event.getEntity()
+                context.player()
                         .tickCount
-                        + event.getPartialTick();
+                        + context.partialTick();
 
         float wind =
                 0.0F;
@@ -3282,7 +3483,7 @@ public final class AccessoryRenderer {
         float windSide =
                 0.0F;
 
-        if (event.getEntity()
+        if (context.player()
                 .level()
                 .dimension()
                 .equals(
@@ -3290,11 +3491,11 @@ public final class AccessoryRenderer {
                 )) {
             LocalWeatherField.Sample sample =
                     LocalWeatherField.sample(
-                            event.getEntity()
+                            context.player()
                                     .getX(),
-                            event.getEntity()
+                            context.player()
                                     .getZ(),
-                            event.getEntity()
+                            context.player()
                                     .level()
                                     .getGameTime()
                     );
@@ -3304,7 +3505,7 @@ public final class AccessoryRenderer {
 
             double yaw =
                     Math.toRadians(
-                            event.getEntity()
+                            context.player()
                                     .getYRot()
                     );
 
