@@ -94,28 +94,50 @@ public final class FlyingTopHatRenderer
                 0.0
         );
 
-        if (entity.hatKind() == AccessoryKind.CHEF_HAT) {
-            AccessoryRenderer.chefHat(AccessoryWear.stage(AccessoryKind.CHEF_HAT, entity.wear()),
-                    pose, blocks, buffers, light);
-        } else {
-        TopHatModelRenderer.render(
-                pose,
-                blocks,
-                buffers,
-                light,
-                AccessoryWear.stage(
-                        AccessoryKind.ENGINEER_CAP,
-                        entity.wear()
-                ),
-                0.0F,
-                0.0F,
-                0.0F,
-                time,
-                entity.material(),
-                entity.size(),
-                entity.extras()
-        );
+        AccessoryKind kind =
+                entity.hatKind();
 
+        if (kind == AccessoryKind.CHEF_HAT) {
+            AccessoryRenderer.chefHat(
+                    AccessoryWear.stage(
+                            AccessoryKind.CHEF_HAT,
+                            entity.wear()
+                    ),
+                    pose,
+                    blocks,
+                    buffers,
+                    light
+            );
+        } else if (kind == AccessoryKind.ENGINEER_CAP) {
+            TopHatModelRenderer.render(
+                    pose,
+                    blocks,
+                    buffers,
+                    light,
+                    AccessoryWear.stage(
+                            AccessoryKind.ENGINEER_CAP,
+                            entity.wear()
+                    ),
+                    0.0F,
+                    0.0F,
+                    0.0F,
+                    time,
+                    entity.material(),
+                    entity.size(),
+                    entity.extras()
+            );
+        } else {
+            AccessoryRenderer.renderLooseKitHat(
+                    kind,
+                    AccessoryWear.stage(
+                            kind,
+                            entity.wear()
+                    ),
+                    pose,
+                    blocks,
+                    buffers,
+                    light
+            );
         }
 
         pose.popPose();
