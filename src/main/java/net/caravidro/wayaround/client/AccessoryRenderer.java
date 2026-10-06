@@ -350,7 +350,7 @@ public final class AccessoryRenderer {
                 case STORM_COAT ->
                         sleeve(arm, pose, blocks, buffers, light, wear,
                                 Blocks.LIGHT_BLUE_WOOL.defaultBlockState(),
-                                Blocks.LIGHTNING_ROD.defaultBlockState(), left);
+                                Blocks.CUT_COPPER.defaultBlockState(), left);
 
                 case NATURALIST_COAT ->
                         sleeve(arm, pose, blocks, buffers, light, wear,
@@ -655,7 +655,7 @@ public final class AccessoryRenderer {
             case STORM_VISOR ->
                     goggles(
                             pose, blocks, buffers, light, wear, glass,
-                            Blocks.LIGHTNING_ROD.defaultBlockState(),
+                            Blocks.CUT_COPPER.defaultBlockState(),
                             Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
                             true
                     );
@@ -799,7 +799,7 @@ public final class AccessoryRenderer {
                     kitCoat(
                             model, pose, blocks, buffers, light, wear, context,
                             Blocks.LIGHT_BLUE_WOOL.defaultBlockState(),
-                            Blocks.LIGHTNING_ROD.defaultBlockState(),
+                            Blocks.CUT_COPPER.defaultBlockState(),
                             1.25F,
                             2
                     );
