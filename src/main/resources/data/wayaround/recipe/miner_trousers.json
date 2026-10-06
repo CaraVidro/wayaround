@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "MMM",
+    "MAM",
+    "M M"
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:gray_wool"
+    },
+    "A": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "id": "wayaround:miner_trousers",
+    "count": 1
+  }
+}

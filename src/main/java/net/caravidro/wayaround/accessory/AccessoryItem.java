@@ -151,6 +151,35 @@ public final class AccessoryItem
                 )
         );
 
+        if (kind.windLoose()) {
+            tooltip.add(
+                    Component.translatable(
+                            "accessory.wind_loose"
+                    ).withStyle(
+                            ChatFormatting.GRAY
+                    )
+            );
+        }
+
+        String optics =
+                switch (kind) {
+                    case RAILWAY_GOGGLES -> "accessory.optics.railway";
+                    case MINER_GOGGLES -> "accessory.optics.miner";
+                    case STORM_VISOR -> "accessory.optics.storm";
+                    case ARCTIC_GOGGLES -> "accessory.optics.arctic";
+                    default -> null;
+                };
+
+        if (optics != null) {
+            tooltip.add(
+                    Component.translatable(
+                            optics
+                    ).withStyle(
+                            ChatFormatting.DARK_AQUA
+                    )
+            );
+        }
+
         if (kind.breakableGlass()) {
             int glass =
                     AccessoryWear.glassState(

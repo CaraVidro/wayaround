@@ -6,6 +6,11 @@ public enum AccessoryKit {
     COOK("cook"),
     CONVENTIONAL("conventional"),
     OBJECT_HEADS("object_heads"),
+    RAILWAY_WORKER("railway_worker"),
+    DEEP_MINER("deep_miner"),
+    STORM_CHASER("storm_chaser"),
+    FIELD_NATURALIST("field_naturalist"),
+    ARCTIC_EXPEDITION("arctic_expedition"),
     UTILITY("utility");
 
     private final String path;

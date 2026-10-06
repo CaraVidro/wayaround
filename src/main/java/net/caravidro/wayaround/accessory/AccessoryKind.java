@@ -336,7 +336,36 @@ public enum AccessoryKind {
             false,
             false,
             500
-    );
+    ),
+
+    // Railway worker.
+    RAILWAY_CAP("railway_cap", AccessoryKit.RAILWAY_WORKER, AccessorySlot.HEAD, AccessoryMotion.NONE, false, false, 520),
+    RAILWAY_GOGGLES("railway_goggles", AccessoryKit.RAILWAY_WORKER, AccessorySlot.FACE, AccessoryMotion.NONE, true, false, 500),
+    RAILWAY_COAT("railway_coat", AccessoryKit.RAILWAY_WORKER, AccessorySlot.TORSO, AccessoryMotion.CLOTH, false, false, 760),
+    RAILWAY_TROUSERS("railway_trousers", AccessoryKit.RAILWAY_WORKER, AccessorySlot.LEGS, AccessoryMotion.NONE, false, false, 700),
+
+    // Deep miner.
+    MINER_HELMET("miner_helmet", AccessoryKit.DEEP_MINER, AccessorySlot.HEAD, AccessoryMotion.NONE, false, false, 760),
+    MINER_GOGGLES("miner_goggles", AccessoryKit.DEEP_MINER, AccessorySlot.FACE, AccessoryMotion.NONE, true, false, 620),
+    MINER_JACKET("miner_jacket", AccessoryKit.DEEP_MINER, AccessorySlot.TORSO, AccessoryMotion.NONE, false, false, 900),
+    MINER_TROUSERS("miner_trousers", AccessoryKit.DEEP_MINER, AccessorySlot.LEGS, AccessoryMotion.NONE, false, false, 820),
+
+    // Storm chaser.
+    STORM_HAT("storm_hat", AccessoryKit.STORM_CHASER, AccessorySlot.HEAD, AccessoryMotion.CLOTH, false, false, 480),
+    STORM_VISOR("storm_visor", AccessoryKit.STORM_CHASER, AccessorySlot.FACE, AccessoryMotion.NONE, true, false, 560),
+    STORM_COAT("storm_coat", AccessoryKit.STORM_CHASER, AccessorySlot.TORSO, AccessoryMotion.CLOTH, false, false, 740),
+    STORM_TROUSERS("storm_trousers", AccessoryKit.STORM_CHASER, AccessorySlot.LEGS, AccessoryMotion.NONE, false, false, 680),
+
+    // Field naturalist.
+    NATURALIST_HAT("naturalist_hat", AccessoryKit.FIELD_NATURALIST, AccessorySlot.HEAD, AccessoryMotion.CLOTH, false, false, 500),
+    NATURALIST_COAT("naturalist_coat", AccessoryKit.FIELD_NATURALIST, AccessorySlot.TORSO, AccessoryMotion.CLOTH, false, false, 700),
+    NATURALIST_TROUSERS("naturalist_trousers", AccessoryKit.FIELD_NATURALIST, AccessorySlot.LEGS, AccessoryMotion.NONE, false, false, 660),
+
+    // Arctic expedition.
+    ARCTIC_CAP("arctic_cap", AccessoryKit.ARCTIC_EXPEDITION, AccessorySlot.HEAD, AccessoryMotion.NONE, false, false, 620),
+    ARCTIC_GOGGLES("arctic_goggles", AccessoryKit.ARCTIC_EXPEDITION, AccessorySlot.FACE, AccessoryMotion.NONE, true, false, 620),
+    ARCTIC_PARKA("arctic_parka", AccessoryKit.ARCTIC_EXPEDITION, AccessorySlot.TORSO, AccessoryMotion.CLOTH, false, false, 980),
+    ARCTIC_TROUSERS("arctic_trousers", AccessoryKit.ARCTIC_EXPEDITION, AccessorySlot.LEGS, AccessoryMotion.NONE, false, false, 900);
 
     private final String path;
     private final AccessoryKit kit;
@@ -396,6 +425,19 @@ public enum AccessoryKind {
     public int maxWear() {
         return maxWear;
     }
+
+    public boolean windLoose() {
+        return switch (this) {
+            case ENGINEER_CAP,
+                 CHEF_HAT,
+                 RAILWAY_CAP,
+                 STORM_HAT,
+                 NATURALIST_HAT,
+                 ARCTIC_CAP -> true;
+            default -> false;
+        };
+    }
+
 
     public String translationKey() {
         return "item.wayaround."

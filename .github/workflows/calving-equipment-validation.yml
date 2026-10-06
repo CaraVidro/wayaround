@@ -31,6 +31,17 @@ jobs:
           mkdir -p /tmp/equipment-pure
           javac -d /tmp/equipment-pure src/main/java/net/caravidro/wayaround/interaction/RigidFallMotion.java tests/equipment/RigidFallMotionTest.java
           java -cp /tmp/equipment-pure RigidFallMotionTest
+      - name: Accessory kit and optics contracts
+        run: |
+          mkdir -p /tmp/accessory-kit-pure
+          javac -d /tmp/accessory-kit-pure \
+            src/main/java/net/caravidro/wayaround/accessory/AccessorySlot.java \
+            src/main/java/net/caravidro/wayaround/accessory/AccessoryMotion.java \
+            src/main/java/net/caravidro/wayaround/accessory/AccessoryKit.java \
+            src/main/java/net/caravidro/wayaround/accessory/AccessoryKind.java \
+            src/main/java/net/caravidro/wayaround/accessory/EyewearOptics.java \
+            tests/equipment/AccessoryKitContractTest.java
+          java -cp /tmp/accessory-kit-pure net.caravidro.wayaround.accessory.AccessoryKitContractTest
       - name: Real block settlement, saved inventory and wearable impacts
         env:
           JAVA_TOOL_OPTIONS: '-Dwayaround.validateCalvingEquipment=true'

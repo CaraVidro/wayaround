@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "MMM",
+    "MAM",
+    "   "
+  ],
+  "key": {
+    "M": {
+      "item": "minecraft:brown_wool"
+    },
+    "A": {
+      "item": "minecraft:string"
+    }
+  },
+  "result": {
+    "id": "wayaround:naturalist_hat",
+    "count": 1
+  }
+}

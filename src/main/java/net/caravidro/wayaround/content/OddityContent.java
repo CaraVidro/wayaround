@@ -197,6 +197,49 @@ public final class OddityContent {
     public static final DeferredItem<AccessoryItem> CHEF_APRON =
             accessory(AccessoryKind.CHEF_APRON);
 
+    public static final DeferredItem<AccessoryItem> RAILWAY_CAP =
+            accessory(AccessoryKind.RAILWAY_CAP);
+    public static final DeferredItem<AccessoryItem> RAILWAY_GOGGLES =
+            accessory(AccessoryKind.RAILWAY_GOGGLES);
+    public static final DeferredItem<AccessoryItem> RAILWAY_COAT =
+            accessory(AccessoryKind.RAILWAY_COAT);
+    public static final DeferredItem<AccessoryItem> RAILWAY_TROUSERS =
+            accessory(AccessoryKind.RAILWAY_TROUSERS);
+
+    public static final DeferredItem<AccessoryItem> MINER_HELMET =
+            accessory(AccessoryKind.MINER_HELMET);
+    public static final DeferredItem<AccessoryItem> MINER_GOGGLES =
+            accessory(AccessoryKind.MINER_GOGGLES);
+    public static final DeferredItem<AccessoryItem> MINER_JACKET =
+            accessory(AccessoryKind.MINER_JACKET);
+    public static final DeferredItem<AccessoryItem> MINER_TROUSERS =
+            accessory(AccessoryKind.MINER_TROUSERS);
+
+    public static final DeferredItem<AccessoryItem> STORM_HAT =
+            accessory(AccessoryKind.STORM_HAT);
+    public static final DeferredItem<AccessoryItem> STORM_VISOR =
+            accessory(AccessoryKind.STORM_VISOR);
+    public static final DeferredItem<AccessoryItem> STORM_COAT =
+            accessory(AccessoryKind.STORM_COAT);
+    public static final DeferredItem<AccessoryItem> STORM_TROUSERS =
+            accessory(AccessoryKind.STORM_TROUSERS);
+
+    public static final DeferredItem<AccessoryItem> NATURALIST_HAT =
+            accessory(AccessoryKind.NATURALIST_HAT);
+    public static final DeferredItem<AccessoryItem> NATURALIST_COAT =
+            accessory(AccessoryKind.NATURALIST_COAT);
+    public static final DeferredItem<AccessoryItem> NATURALIST_TROUSERS =
+            accessory(AccessoryKind.NATURALIST_TROUSERS);
+
+    public static final DeferredItem<AccessoryItem> ARCTIC_CAP =
+            accessory(AccessoryKind.ARCTIC_CAP);
+    public static final DeferredItem<AccessoryItem> ARCTIC_GOGGLES =
+            accessory(AccessoryKind.ARCTIC_GOGGLES);
+    public static final DeferredItem<AccessoryItem> ARCTIC_PARKA =
+            accessory(AccessoryKind.ARCTIC_PARKA);
+    public static final DeferredItem<AccessoryItem> ARCTIC_TROUSERS =
+            accessory(AccessoryKind.ARCTIC_TROUSERS);
+
     public static final DeferredBlock<AccessoryWorkshopBlock> ACCESSORY_WORKSHOP =
             BLOCKS.register(
                     "accessory_workshop",
