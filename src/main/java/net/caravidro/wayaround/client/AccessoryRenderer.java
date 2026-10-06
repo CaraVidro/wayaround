@@ -438,7 +438,7 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             false,
-                            event,
+                            context,
                             state.headMaterial(),
                             state.headSize(),
                             state.headExtras()
@@ -475,7 +475,7 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             true,
-                            event,
+                            context,
                             0,
                             2,
                             0
@@ -496,7 +496,7 @@ public final class AccessoryRenderer {
                             blocks,
                             buffers,
                             light,
-                            event
+                            context
                     );
 
             case CARDBOARD_BOX ->
@@ -950,7 +950,7 @@ public final class AccessoryRenderer {
                 light,
                 wear,
                 cloth,
-                event
+                context
         );
     }
 
@@ -988,7 +988,7 @@ public final class AccessoryRenderer {
                             light,
                             wear,
                             kind,
-                            event
+                            context
                     );
 
             case CHEF_APRON ->
@@ -999,7 +999,7 @@ public final class AccessoryRenderer {
                             buffers,
                             light,
                             wear,
-                            event
+                            context
                     );
 
             default -> {
@@ -1021,9 +1021,29 @@ public final class AccessoryRenderer {
     ) {
         if (!aero) {
             MotionSample motion =
-                    motion(
-                            event
-                    );
+                    context == null
+                            ? new MotionSample(0, 0, 0, 0, 0, 0)
+                            : motion(
+                                    context
+                            );
+
+            if (context == null) {
+                TopHatModelRenderer.render(
+                        pose,
+                        blocks,
+                        buffers,
+                        light,
+                        wear,
+                        0.0F,
+                        0.0F,
+                        0.0F,
+                        0.0F,
+                        material,
+                        size,
+                        extras
+                );
+                return;
+            }
 
             float instability =
                     TopHatClientState.instability(
@@ -1220,7 +1240,7 @@ public final class AccessoryRenderer {
 
         float[] offset =
                 eyePupilOffset(
-                        event
+                        context
                 );
 
         double pupilX =
