@@ -45,6 +45,29 @@ public final class EyewearOverlay {
         if (tint == 0) return;
         int width = graphics.guiWidth(), height = graphics.guiHeight();
         graphics.fill(LensRenderType.FILTER, 0, 0, width, height, tint);
+
+        // Cheap kit-specific optics. These are deliberately simple GUI masks,
+        // not post-processing shaders, so eyewear stays inexpensive.
+        if (kind == AccessoryKind.MINER_GOGGLES) {
+            int edge = Math.max(18, height / 7);
+            graphics.fill(0, 0, width, edge, 0x66070B0C);
+            graphics.fill(0, height - edge, width, height, 0x66070B0C);
+            int side = Math.max(20, width / 11);
+            graphics.fill(0, edge, side, height - edge, 0x45070B0C);
+            graphics.fill(width - side, edge, width, height - edge, 0x45070B0C);
+        } else if (kind == AccessoryKind.STORM_VISOR) {
+            int band = Math.max(3, height / 160);
+            int center = height / 2;
+            graphics.fill(0, center - band, width, center + band, 0x1FCEEEFF);
+            graphics.fill(0, 0, width, Math.max(10, height / 12), 0x260A1C28);
+        } else if (kind == AccessoryKind.ARCTIC_GOGGLES) {
+            int edge = Math.max(12, height / 14);
+            graphics.fill(0, 0, width, edge, 0x25FFF4D0);
+            graphics.fill(0, height - edge, width, height, 0x24170F08);
+        } else if (kind == AccessoryKind.RAILWAY_GOGGLES) {
+            graphics.fill(0, 0, width, Math.max(3, height / 90), 0x22E9A84B);
+        }
+
         if (damage <= 0) return;
         var vertices = graphics.bufferSource().getBuffer(RenderType.gui());
         var matrix = graphics.pose().last().pose();
