@@ -121,7 +121,8 @@ public final class AccessoryRenderer {
                 model,
                 blocks,
                 buffers,
-                light
+                light,
+                context
         );
 
         renderHands(
@@ -336,6 +337,31 @@ public final class AccessoryRenderer {
                                 wear
                         );
 
+                case RAILWAY_COAT ->
+                        sleeve(arm, pose, blocks, buffers, light, wear,
+                                Blocks.BLUE_WOOL.defaultBlockState(),
+                                Blocks.IRON_BLOCK.defaultBlockState(), left);
+
+                case MINER_JACKET ->
+                        sleeve(arm, pose, blocks, buffers, light, wear,
+                                Blocks.GRAY_WOOL.defaultBlockState(),
+                                Blocks.CUT_COPPER.defaultBlockState(), left);
+
+                case STORM_COAT ->
+                        sleeve(arm, pose, blocks, buffers, light, wear,
+                                Blocks.LIGHT_BLUE_WOOL.defaultBlockState(),
+                                Blocks.LIGHTNING_ROD.defaultBlockState(), left);
+
+                case NATURALIST_COAT ->
+                        sleeve(arm, pose, blocks, buffers, light, wear,
+                                Blocks.GREEN_WOOL.defaultBlockState(),
+                                Blocks.BROWN_TERRACOTTA.defaultBlockState(), left);
+
+                case ARCTIC_PARKA ->
+                        sleeve(arm, pose, blocks, buffers, light, wear,
+                                Blocks.WHITE_WOOL.defaultBlockState(),
+                                Blocks.LIGHT_GRAY_WOOL.defaultBlockState(), left);
+
                 default -> {
                 }
             }
@@ -394,7 +420,7 @@ public final class AccessoryRenderer {
         piece(pose, blocks, buffers, light, Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
                 0, -.25, 0, .5, .5, .5, 0, 0, 0);
         renderHead(state, pose, model, blocks, buffers, light, null);
-        renderTorso(state, pose, model, blocks, buffers, light);
+        renderTorso(state, pose, model, blocks, buffers, light, null);
         renderHands(state, pose, model, blocks, buffers, light);
         renderLegs(state, pose, model, blocks, buffers, light);
         renderFeet(state, pose, model, blocks, buffers, light);
@@ -488,6 +514,21 @@ public final class AccessoryRenderer {
                             blocks,
                             buffers,
                             light
+                    );
+
+            case RAILWAY_CAP,
+                 MINER_HELMET,
+                 STORM_HAT,
+                 NATURALIST_HAT,
+                 ARCTIC_CAP ->
+                    kitHat(
+                            kind,
+                            wear,
+                            pose,
+                            blocks,
+                            buffers,
+                            light,
+                            context
                     );
 
             case WATCHING_EYE ->
@@ -595,6 +636,38 @@ public final class AccessoryRenderer {
                             true
                     );
 
+            case RAILWAY_GOGGLES ->
+                    goggles(
+                            pose, blocks, buffers, light, wear, glass,
+                            Blocks.IRON_BLOCK.defaultBlockState(),
+                            Blocks.ORANGE_STAINED_GLASS.defaultBlockState(),
+                            false
+                    );
+
+            case MINER_GOGGLES ->
+                    goggles(
+                            pose, blocks, buffers, light, wear, glass,
+                            Blocks.POLISHED_DEEPSLATE.defaultBlockState(),
+                            Blocks.CYAN_STAINED_GLASS.defaultBlockState(),
+                            true
+                    );
+
+            case STORM_VISOR ->
+                    goggles(
+                            pose, blocks, buffers, light, wear, glass,
+                            Blocks.LIGHTNING_ROD.defaultBlockState(),
+                            Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(),
+                            true
+                    );
+
+            case ARCTIC_GOGGLES ->
+                    goggles(
+                            pose, blocks, buffers, light, wear, glass,
+                            Blocks.BROWN_WOOL.defaultBlockState(),
+                            Blocks.ORANGE_STAINED_GLASS.defaultBlockState(),
+                            true
+                    );
+
             case GAS_MASK ->
                     gasMask(
                             wear,
@@ -617,7 +690,8 @@ public final class AccessoryRenderer {
             PlayerModel<?> model,
             BlockRenderDispatcher blocks,
             MultiBufferSource buffers,
-            int light
+            int light,
+            RenderContext context
     ) {
         AccessoryKind kind =
                 state.kind(
@@ -701,6 +775,51 @@ public final class AccessoryRenderer {
                                             AccessorySlot.TORSO
                                     )
                             )
+                    );
+
+            case RAILWAY_COAT ->
+                    kitCoat(
+                            model, pose, blocks, buffers, light, wear, context,
+                            Blocks.BLUE_WOOL.defaultBlockState(),
+                            Blocks.IRON_BLOCK.defaultBlockState(),
+                            0.45F,
+                            0
+                    );
+
+            case MINER_JACKET ->
+                    kitCoat(
+                            model, pose, blocks, buffers, light, wear, context,
+                            Blocks.GRAY_WOOL.defaultBlockState(),
+                            Blocks.CUT_COPPER.defaultBlockState(),
+                            0.18F,
+                            1
+                    );
+
+            case STORM_COAT ->
+                    kitCoat(
+                            model, pose, blocks, buffers, light, wear, context,
+                            Blocks.LIGHT_BLUE_WOOL.defaultBlockState(),
+                            Blocks.LIGHTNING_ROD.defaultBlockState(),
+                            1.25F,
+                            2
+                    );
+
+            case NATURALIST_COAT ->
+                    kitCoat(
+                            model, pose, blocks, buffers, light, wear, context,
+                            Blocks.GREEN_WOOL.defaultBlockState(),
+                            Blocks.BROWN_TERRACOTTA.defaultBlockState(),
+                            0.70F,
+                            3
+                    );
+
+            case ARCTIC_PARKA ->
+                    kitCoat(
+                            model, pose, blocks, buffers, light, wear, context,
+                            Blocks.WHITE_WOOL.defaultBlockState(),
+                            Blocks.LIGHT_GRAY_WOOL.defaultBlockState(),
+                            0.22F,
+                            4
                     );
 
             default -> {
@@ -793,6 +912,16 @@ public final class AccessoryRenderer {
                             Blocks.BLUE_WOOL.defaultBlockState();
                     case CHEF_TROUSERS ->
                             Blocks.GRAY_WOOL.defaultBlockState();
+                    case RAILWAY_TROUSERS ->
+                            Blocks.BLUE_WOOL.defaultBlockState();
+                    case MINER_TROUSERS ->
+                            Blocks.GRAY_WOOL.defaultBlockState();
+                    case STORM_TROUSERS ->
+                            Blocks.DARK_PRISMARINE.defaultBlockState();
+                    case NATURALIST_TROUSERS ->
+                            Blocks.GREEN_WOOL.defaultBlockState();
+                    case ARCTIC_TROUSERS ->
+                            Blocks.WHITE_WOOL.defaultBlockState();
                     default ->
                             Blocks.BROWN_WOOL.defaultBlockState();
                 };
@@ -2420,6 +2549,227 @@ public final class AccessoryRenderer {
                 .33, .15, .33, 0, 0, 0);
         if (wear > 0) piece(pose, blocks, buffers, light, Blocks.BROWN_WOOL.defaultBlockState(),
                 -.17, -.535, -.299, .10, .045, .009, 0, 0, -4);
+    }
+
+    private static void kitHat(
+            AccessoryKind kind,
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            RenderContext context
+    ) {
+        MotionSample motion =
+                context == null
+                        ? new MotionSample(0, 0, 0, 0, 0, 0)
+                        : motion(context);
+
+        BlockState primary;
+        BlockState accent;
+        double crownHeight;
+        double brimX;
+        double brimZ;
+        float flutterScale;
+
+        switch (kind) {
+            case RAILWAY_CAP -> {
+                primary = Blocks.BLUE_WOOL.defaultBlockState();
+                accent = Blocks.IRON_BLOCK.defaultBlockState();
+                crownHeight = 0.20;
+                brimX = 0.44;
+                brimZ = 0.27;
+                flutterScale = 0.25F;
+            }
+            case MINER_HELMET -> {
+                primary = Blocks.YELLOW_WOOL.defaultBlockState();
+                accent = Blocks.IRON_BLOCK.defaultBlockState();
+                crownHeight = 0.29;
+                brimX = 0.55;
+                brimZ = 0.48;
+                flutterScale = 0.0F;
+            }
+            case STORM_HAT -> {
+                primary = Blocks.LIGHT_BLUE_WOOL.defaultBlockState();
+                accent = Blocks.CYAN_WOOL.defaultBlockState();
+                crownHeight = 0.18;
+                brimX = 0.62;
+                brimZ = 0.52;
+                flutterScale = 1.0F;
+            }
+            case NATURALIST_HAT -> {
+                primary = Blocks.BROWN_WOOL.defaultBlockState();
+                accent = Blocks.GREEN_WOOL.defaultBlockState();
+                crownHeight = 0.25;
+                brimX = 0.68;
+                brimZ = 0.60;
+                flutterScale = 0.65F;
+            }
+            case ARCTIC_CAP -> {
+                primary = Blocks.WHITE_WOOL.defaultBlockState();
+                accent = Blocks.LIGHT_GRAY_WOOL.defaultBlockState();
+                crownHeight = 0.31;
+                brimX = 0.50;
+                brimZ = 0.46;
+                flutterScale = 0.12F;
+            }
+            default -> {
+                return;
+            }
+        }
+
+        float wobble =
+                (motion.side() * 7.0F
+                        + Mth.sin(motion.time() * 0.28F)
+                        * motion.wind() * 5.0F)
+                        * flutterScale;
+
+        pose.pushPose();
+        pose.mulPose(Axis.ZP.rotationDegrees(wobble));
+
+        piece(pose, blocks, buffers, light, primary,
+                0.0, -0.54 - crownHeight * 0.5, 0.0,
+                0.50, crownHeight, 0.47,
+                0, 0, wear >= 2 ? -4 : 0);
+
+        piece(pose, blocks, buffers, light, primary,
+                0.0, -0.50, -0.015,
+                brimX, 0.055, brimZ,
+                0, motion.back() * 3.0F * flutterScale, 0);
+
+        piece(pose, blocks, buffers, light, accent,
+                0.0, -0.53, -0.26,
+                Math.min(brimX * 0.55, 0.34), 0.055, 0.07,
+                0, 0, 0);
+
+        if (kind == AccessoryKind.MINER_HELMET) {
+            piece(pose, blocks, buffers, light, Blocks.SEA_LANTERN.defaultBlockState(),
+                    0.0, -0.66, -0.29,
+                    0.12, 0.12, 0.08,
+                    0, 0, 0);
+        }
+
+        if (kind == AccessoryKind.ARCTIC_CAP) {
+            for (int side : new int[]{-1, 1}) {
+                piece(pose, blocks, buffers, light, accent,
+                        side * 0.24, -0.39, 0.0,
+                        0.10, 0.34, 0.30,
+                        0, 0, side * 5);
+            }
+        }
+
+        pose.popPose();
+    }
+
+    /** Shared by worn and wind-detached versions of the new hats. */
+    public static void renderLooseKitHat(
+            AccessoryKind kind,
+            int wear,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light
+    ) {
+        kitHat(kind, wear, pose, blocks, buffers, light, null);
+    }
+
+    private static void kitCoat(
+            PlayerModel<?> model,
+            PoseStack pose,
+            BlockRenderDispatcher blocks,
+            MultiBufferSource buffers,
+            int light,
+            int wear,
+            RenderContext context,
+            BlockState cloth,
+            BlockState accent,
+            float motionStrength,
+            int style
+    ) {
+        jacket(
+                model, pose, blocks, buffers, light, wear,
+                cloth, accent, false
+        );
+
+        MotionSample motion =
+                context == null
+                        ? new MotionSample(0, 0, 0, 0, 0, 0)
+                        : motion(context);
+
+        pose.pushPose();
+        model.body.translateAndRotate(pose);
+
+        // Each kit gets a readable front detail.
+        if (style == 0) { // Railway crossing straps.
+            for (int side : new int[]{-1, 1}) {
+                piece(pose, blocks, buffers, light, accent,
+                        side * 0.14, 0.34, -0.215,
+                        0.055, 0.56, 0.026,
+                        0, 0, side * 18);
+            }
+        } else if (style == 1) { // Miner reinforced belly plate.
+            piece(pose, blocks, buffers, light, accent,
+                    0.0, 0.42, -0.215,
+                    0.38, 0.25, 0.035,
+                    0, 0, 0);
+        } else if (style == 3) { // Naturalist field pockets.
+            for (int side : new int[]{-1, 1}) {
+                piece(pose, blocks, buffers, light, Blocks.BROWN_TERRACOTTA.defaultBlockState(),
+                        side * 0.18, 0.46, -0.215,
+                        0.18, 0.16, 0.055,
+                        0, 0, side * 4);
+            }
+        } else if (style == 4) { // Arctic fur collar.
+            piece(pose, blocks, buffers, light, Blocks.QUARTZ_BLOCK.defaultBlockState(),
+                    0.0, 0.05, -0.205,
+                    0.48, 0.12, 0.07,
+                    0, 0, 0);
+        }
+
+        // Lower back flap / hanging strap. Same lightweight motion language as
+        // cape/apron, but attached directly to the torso slot.
+        float flap =
+                motionStrength
+                        * (
+                        motion.back() * 18.0F
+                                + motion.speed() * 16.0F
+                                + motion.wind() * Mth.sin(motion.time() * 0.31F) * 8.0F
+                );
+
+        if (motionStrength > 0.0F) {
+            pose.pushPose();
+            pose.translate(0.0, 0.61, 0.18);
+            pose.mulPose(Axis.XP.rotationDegrees(flap));
+
+            double width =
+                    style == 2
+                            ? 0.52
+                            : style == 4
+                            ? 0.46
+                            : 0.34;
+
+            double length =
+                    style == 2
+                            ? 0.34
+                            : 0.22;
+
+            piece(pose, blocks, buffers, light, cloth,
+                    0.0, length * 0.5, 0.0,
+                    width, length, 0.04,
+                    0, 0, wear >= 2 ? 6 : 0);
+
+            if (style == 3) {
+                // Naturalist shoulder strap / sample bag pendulum.
+                piece(pose, blocks, buffers, light, Blocks.BROWN_TERRACOTTA.defaultBlockState(),
+                        0.22, 0.17, 0.02,
+                        0.18, 0.20, 0.10,
+                        0, 0, -motion.side() * 12.0F);
+            }
+
+            pose.popPose();
+        }
+
+        pose.popPose();
     }
 
     private static void goggles(
