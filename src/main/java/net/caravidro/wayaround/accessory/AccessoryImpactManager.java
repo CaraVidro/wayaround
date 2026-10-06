@@ -50,11 +50,12 @@ public final class AccessoryImpactManager {
                     SoundSource.PLAYERS, .7F, 1.2F);
         Vec3 outward = player.getEyePosition().subtract(origin);
         if (outward.lengthSqr() < .001) outward = new Vec3(1, 0, 0);
-        flyChefHat(player, outward.normalize().scale(.35 + exposure * .55).add(0, .38, 0));
+        flyLooseHat(player, outward.normalize().scale(.35 + exposure * .55).add(0, .38, 0));
     }
 
-    public static boolean flyChefHat(ServerPlayer player, Vec3 impulse) {
-        if (AccessoryManager.equipped(player, AccessorySlot.HEAD) != AccessoryKind.CHEF_HAT) return false;
+    public static boolean flyLooseHat(ServerPlayer player, Vec3 impulse) {
+        AccessoryKind kind = AccessoryManager.equipped(player, AccessorySlot.HEAD);
+        if (kind == null || !kind.windLoose()) return false;
         var hat = TopHatContent.FLYING_TOP_HAT.get().create(player.serverLevel());
         if (hat == null) return false;
         var stack = AccessoryManager.takeEquipped(player, AccessorySlot.HEAD);
@@ -78,19 +79,20 @@ public final class AccessoryImpactManager {
         Vec3 direction = event.getSource().getSourcePosition();
         direction = direction == null ? player.getLookAngle().scale(-1)
                 : player.position().subtract(direction).normalize();
-        flyChefHat(player, direction.scale(.4).add(0, .4, 0));
+        flyLooseHat(player, direction.scale(.4).add(0, .4, 0));
     }
 
     @SubscribeEvent public static void wind(ServerTickEvent.Post event) {
         if (event.getServer().getTickCount() % 40 != 0
                 || !WorldFeatureRuntime.serverEnabled(WorldFeature.ACCESSORIES)) return;
         for (var player : event.getServer().getPlayerList().getPlayers()) {
-            if (AccessoryManager.equipped(player, AccessorySlot.HEAD) != AccessoryKind.CHEF_HAT
+            AccessoryKind kind = AccessoryManager.equipped(player, AccessorySlot.HEAD);
+            if (kind == null || !kind.windLoose() || kind == AccessoryKind.ENGINEER_CAP
                     || !player.level().dimension().equals(net.minecraft.world.level.Level.OVERWORLD)
                     || !player.level().canSeeSky(player.blockPosition())) continue;
             var wind = LocalWeatherField.sample(player.getX(), player.getZ(), player.level().getGameTime());
             if (wind.warning() > .8F && player.getRandom().nextFloat() < .06F)
-                flyChefHat(player, new Vec3(wind.windX() * .5, .4, wind.windZ() * .5));
+                flyLooseHat(player, new Vec3(wind.windX() * .5, .4, wind.windZ() * .5));
         }
     }
 }
