@@ -46,6 +46,7 @@
     "client.CinematicCameraMixin",
     "client.CinematicLookLockMixin",
     "client.HumanoidAnimationMixin",
+    "client.PlayerFirstPersonAccessoryMixin",
     "client.TukunaPossessionSkinMixin",
     "client.CreateWorldScreenInvoker",
     "client.CreateWorldScreenFeatureMixin",
