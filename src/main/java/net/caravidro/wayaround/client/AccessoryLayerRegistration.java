@@ -32,11 +32,9 @@ public final class AccessoryLayerRegistration {
                     );
 
             if (renderer != null) {
-                renderer.addLayer(
-                        new AccessoryPlayerLayer(
-                                renderer
-                        )
-                );
+                // Tattoos are skin paint; clothing layers render afterwards.
+                renderer.addLayer(new TukunaMarkLayer(renderer));
+                renderer.addLayer(new AccessoryPlayerLayer(renderer));
             }
         }
     }

@@ -148,6 +148,12 @@ public final class WorldFeatureService {
                                 .toMask()
                 )
         );
+        net.caravidro.wayaround.worldgen.weather.local.CloudRainOverrides.sync(player);
+    }
+
+    @SubscribeEvent
+    public static void changedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) sync(player);
     }
 
     @SubscribeEvent
@@ -155,5 +161,6 @@ public final class WorldFeatureService {
             ServerStoppedEvent event
     ) {
         bootSettings=null;pendingCreation=null;WorldFeatureRuntime.resetServer();
+        net.caravidro.wayaround.worldgen.weather.local.CloudRainOverrides.clear();
     }
 }

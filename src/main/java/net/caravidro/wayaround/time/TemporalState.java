@@ -23,6 +23,11 @@ public final class TemporalState {
     public float organicGrowth() { return organicGrowth; }
     public float moistureMemory() { return moistureMemory; }
     public boolean abandonmentRecorded() { return abandonmentRecorded; }
+
+    /** Operator-only presentation test; does not reset the material's history. */
+    public void setCorrosion(float value) {
+        corrosion = Mth.clamp(value, 0.0F, 1.0F);
+    }
     public void markAbandonmentRecorded(boolean value) { abandonmentRecorded = value; }
 
     void advance(

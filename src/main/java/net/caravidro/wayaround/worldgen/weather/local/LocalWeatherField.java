@@ -141,6 +141,7 @@ public final class LocalWeatherField {
                 if(rawDx*rawDx+rawDz*rawDz>influence*influence)continue;
                 CloudCell cell=RegionalCloudClimate.adapt(level,raw);
                 if(cell==null)continue;
+                cell=CloudRainOverrides.apply(level,cell,gameTime);
 
                 double dx =
                         x
@@ -335,6 +336,7 @@ public final class LocalWeatherField {
                 if(rawDx*rawDx+rawDz*rawDz>influence*influence)continue;
                 CloudCell cell=RegionalCloudClimate.adapt(level,raw);
                 if(cell==null)continue;
+                cell=CloudRainOverrides.apply(level,cell,gameTime);
 
                 double dx = x - cell.x;
                 double dz = z - cell.z;
