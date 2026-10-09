@@ -89,6 +89,7 @@ public final class SurfaceAppearanceRenderer {
                     ticks / 8, i);
             int x = cx + Math.floorMod(seed, RADIUS * 2 + 1) - RADIUS;
             int z = cz + Math.floorMod(seed >>> 8, RADIUS * 2 + 1) - RADIUS;
+            if (!owner.hasChunkAt(new BlockPos(x, cy, z))) continue;
             int y = owner.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
             if (Math.abs(y - cy) > 8) continue;
             BlockPos pos = new BlockPos(x, y, z);
@@ -200,42 +201,41 @@ public final class SurfaceAppearanceRenderer {
         float y = (float) (pos.getY() - camera.y);
         float z = (float) (pos.getZ() - camera.z);
         float epsilon = 0.006F;
-        float[][] vertices = switch (face) {
-            case UP -> new float[][] {
-                    {x + u, y + 1 + epsilon, z + v},
-                    {x + u, y + 1 + epsilon, z + v + height},
-                    {x + u + width, y + 1 + epsilon, z + v + height},
-                    {x + u + width, y + 1 + epsilon, z + v}
-            };
-            case NORTH -> new float[][] {
-                    {x + u, y + v, z - epsilon},
-                    {x + u, y + v + height, z - epsilon},
-                    {x + u + width, y + v + height, z - epsilon},
-                    {x + u + width, y + v, z - epsilon}
-            };
-            case SOUTH -> new float[][] {
-                    {x + u, y + v, z + 1 + epsilon},
-                    {x + u, y + v + height, z + 1 + epsilon},
-                    {x + u + width, y + v + height, z + 1 + epsilon},
-                    {x + u + width, y + v, z + 1 + epsilon}
-            };
-            case EAST -> new float[][] {
-                    {x + 1 + epsilon, y + v, z + u},
-                    {x + 1 + epsilon, y + v + height, z + u},
-                    {x + 1 + epsilon, y + v + height, z + u + width},
-                    {x + 1 + epsilon, y + v, z + u + width}
-            };
-            case WEST -> new float[][] {
-                    {x - epsilon, y + v, z + u},
-                    {x - epsilon, y + v + height, z + u},
-                    {x - epsilon, y + v + height, z + u + width},
-                    {x - epsilon, y + v, z + u + width}
-            };
-            default -> throw new IllegalArgumentException("Unsupported surface face");
-        };
-        for (float[] vertex : vertices) {
-            b.addVertex(pose, vertex[0], vertex[1], vertex[2])
-                    .setColor(r, g, blue, a);
+        // Axis-aligned basis vectors avoid thousands of temporary float[4][3]
+        // arrays every frame when hundreds of pixels are visible.
+        float bx, by, bz, ux, uy, uz, vx, vy, vz;
+        switch (face) {
+            case UP -> {
+                bx = x + u; by = y + 1 + epsilon; bz = z + v;
+                ux = width; uy = 0; uz = 0;
+                vx = 0; vy = 0; vz = height;
+            }
+            case NORTH -> {
+                bx = x + u; by = y + v; bz = z - epsilon;
+                ux = width; uy = 0; uz = 0;
+                vx = 0; vy = height; vz = 0;
+            }
+            case SOUTH -> {
+                bx = x + u; by = y + v; bz = z + 1 + epsilon;
+                ux = width; uy = 0; uz = 0;
+                vx = 0; vy = height; vz = 0;
+            }
+            case EAST -> {
+                bx = x + 1 + epsilon; by = y + v; bz = z + u;
+                ux = 0; uy = 0; uz = width;
+                vx = 0; vy = height; vz = 0;
+            }
+            case WEST -> {
+                bx = x - epsilon; by = y + v; bz = z + u;
+                ux = 0; uy = 0; uz = width;
+                vx = 0; vy = height; vz = 0;
+            }
+            default -> { return; }
         }
+        b.addVertex(pose, bx, by, bz).setColor(r, g, blue, a);
+        b.addVertex(pose, bx + vx, by + vy, bz + vz).setColor(r, g, blue, a);
+        b.addVertex(pose, bx + ux + vx, by + uy + vy, bz + uz + vz)
+                .setColor(r, g, blue, a);
+        b.addVertex(pose, bx + ux, by + uy, bz + uz).setColor(r, g, blue, a);
     }
 }
