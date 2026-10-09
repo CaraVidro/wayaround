@@ -14,7 +14,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "36";
+            "37";
 
     private WayAroundNetwork() {
     }
@@ -97,6 +97,8 @@ public final class WayAroundNetwork {
 
         registrar.playToClient(net.caravidro.wayaround.nature.NatureAmbientPayload.TYPE,net.caravidro.wayaround.nature.NatureAmbientPayload.STREAM_CODEC,ClientPayloadBridge::handleNatureAmbient);
         registrar.playToClient(CloudStormS2CPayload.TYPE,CloudStormS2CPayload.STREAM_CODEC,ClientPayloadBridge::handleCloudStorm);
+        registrar.playToClient(CloudRainS2CPayload.TYPE,
+                CloudRainS2CPayload.STREAM_CODEC, CloudRainS2CPayload::handle);
         registrar.playToClient(
                 EnvironmentalFieldS2CPayload.TYPE,
                 EnvironmentalFieldS2CPayload.STREAM_CODEC,

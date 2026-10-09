@@ -22,6 +22,8 @@ public final class WorldFeatureClientEvents {
         net.caravidro.wayaround.client.water.WaterSurfaceRenderer.clearCache();
         net.caravidro.wayaround.client.water.WaterEffectsClient.clearCache();
         WorldFeatureRuntime.resetClient();
+        net.caravidro.wayaround.worldgen.weather.local.CloudRainOverrides.clear();
+        net.caravidro.wayaround.appearance.SurfaceAppearanceClientCache.clear();
         WorldFeatureCreationFlow.clearApproval();
     }
 }
