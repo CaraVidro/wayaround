@@ -15,8 +15,7 @@ database or rewriting resource-pack PNGs mid-game.
 - **Rain puddles:** sampled solid ground receives local translucent patches with
   gradual fade after the rain. Puddles are visual-only (no fluid or collision).
 - **Operator tool:** look at an iron/raw-iron block and enter
-  `/wayappearance rust 80` (requires permission level 2). The new persistent
-  strength reaches viewers on the next coarse aging sync (~10 seconds).
+  `/wayappearance rust 80` (requires permission level 2). The operator change is pushed to nearby viewers immediately, including zero to clear old rust; the existing coarse sync remains for natural aging.
 
 ## Architecture
 
@@ -32,7 +31,7 @@ they do not flicker between frames. Only close-by samples are rendered.
 
 Temporary rain puddles are client-local; persistent rust is server-owned.
 The `Time & Aging` and `Living Weather` world feature toggles control the
-respective visuals.
+respective visuals. Local precipitation uses the procedural cloud weather field even when vanilla global rain is clear.
 
 ## How to test on Windows 11 / VS Code
 
@@ -47,10 +46,10 @@ git pull --ff-only origin feature/runtime-surface-appearance-v1-6
 ```
 
 In a creative singleplayer world with cheats, place an iron block, aim at it,
-then run `/wayappearance rust 80`; expect irregular brown flecks on exposed
-faces after the next aging-sync pass. Repeat with `rust 0` to remove them.
-Use `/weather rain` over supported stone/concrete to observe puddles and
-`/weather clear` to see them evaporate. Test Tukuna possession and swimming /
+then run `/wayappearance rust 80`; expect visible brown rust patches on exposed faces immediately. Repeat with `rust 0` to remove them.
+For global vanilla rain, use `/weather rain` over supported stone/concrete to observe puddles and `/weather clear` to see them evaporate. For local weather, aim at any visible WayAround cloud and use `/raincloud` (or `/cloudstorm rain`). The chosen cloud turns into a storm for 5 minutes and produces localized raindrop particles and puddles under its footprint; `/raincloud clear` removes its temporary override. The same field is used on dedicated servers and synced to clients. Both `Procedural Clouds` and `Living Weather` must be enabled.
+
+Disable `Procedural Clouds` in your world configuration to see vanilla clouds again. The old Overworld cloud mixin cancelled vanilla rendering unconditionally; it now cancels only when the replacement renderer is actually enabled. Disable `Time & Aging` to hide all rust overlays; the rust command now explicitly warns when this toggle is off. Test Tukuna possession and swimming /
 fall-flying to check bone-attached marks.
 
 For the dedicated-server boundary and compile smoke:
@@ -75,3 +74,10 @@ requires an arm-specific hook before it can be called complete.
 Keep per-frame CPU and GPU limits in mind when extending this: do not allocate
 new `DynamicTexture` objects per block or update the entire texture atlas every
 world tick.
+
+## Diagnostics and boundaries
+
+- If `/wayappearance rust 80` does not change the iron block, check that `Time & Aging` is ON, cheats/op permission is level 2, the block is within eight blocks, and you are running this feature branch (not the older main build).
+- The original implementation sent rust at most once per 200 ticks, had tiny sparsely scattered pixels, and the sky mixin did not honor the clouds toggle. All three were corrected in this follow-up.
+- These are rendered decals over the source block, **not mutations of the PNG atlas**. Rust is persisted; raincloud overrides and puddles are temporary; water/metal block types remain unchanged.
+- Worldgen changes already baked into saved chunks generally cannot be reverted by toggling a feature off; the vanilla fallback rule here covers live rendering and local weather behavior.
