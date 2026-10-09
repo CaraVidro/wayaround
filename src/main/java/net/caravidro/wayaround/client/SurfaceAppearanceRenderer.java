@@ -13,6 +13,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.appearance.SurfaceAppearance;
 import net.caravidro.wayaround.appearance.SurfaceAppearanceClientCache;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -61,6 +62,10 @@ public final class SurfaceAppearanceRenderer {
         if (owner == null || mc.player == null || mc.isPaused()) return;
         if (++ticks % 8 != 0) return;
 
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER)) {
+            PUDDLES.clear();
+            return; // Disabling the effect restores vanilla block surfaces.
+        }
         Iterator<Map.Entry<Long, Float>> it = PUDDLES.entrySet().iterator();
         while (it.hasNext()) {
             var entry = it.next();
@@ -70,8 +75,7 @@ public final class SurfaceAppearanceRenderer {
                 it.remove();
                 continue;
             }
-            float goal = WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER)
-                    && owner.isRainingAt(pos.above()) ? 1.0F : 0.0F;
+            float goal = rainingOn(pos) ? 1.0F : 0.0F;
             float next = goal > 0
                     ? Math.min(1.0F, entry.getValue() + 0.10F)
                     : Math.max(0.0F, entry.getValue() - 0.008F);
@@ -79,8 +83,10 @@ public final class SurfaceAppearanceRenderer {
             else entry.setValue(next);
         }
 
-        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER)
-                || !owner.isRaining()) return;
+        if (!owner.isRaining()
+                && (!WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)
+                || LocalWeatherField.sample(owner, mc.player.getX(),
+                        mc.player.getZ(), owner.getGameTime()).rain() < 0.08F)) return;
 
         int cx = mc.player.getBlockX(), cz = mc.player.getBlockZ();
         int cy = mc.player.getBlockY();
@@ -94,7 +100,7 @@ public final class SurfaceAppearanceRenderer {
             if (Math.abs(y - cy) > 8) continue;
             BlockPos pos = new BlockPos(x, y, z);
             if (!owner.hasChunkAt(pos)
-                    || !owner.isRainingAt(pos.above())
+                    || !rainingOn(pos)
                     || !SurfaceAppearance.supportsPuddles(owner.getBlockState(pos))
                     || !owner.getBlockState(pos.above()).isAir()
                     || !owner.getBlockState(pos).isSolidRender(owner, pos)) continue;
@@ -130,14 +136,14 @@ public final class SurfaceAppearanceRenderer {
                         || !SurfaceAppearance.isFerrous(owner.getBlockState(pos))) continue;
                 for (Direction face : FACES) {
                     if (!owner.getBlockState(pos.relative(face)).isAir()) continue;
-                    int flecks = 2 + (int) (strength * 6.0F);
+                    int flecks = 5 + (int) (strength * 28.0F);
                     for (int i = 0; i < flecks; i++) {
                         int h = SurfaceAppearance.hash(pos.asLong(), face.ordinal(), i);
                         float u = 0.06F + SurfaceAppearance.unit(h) * 0.76F;
                         float v = 0.06F + SurfaceAppearance.unit(h * 31 + 17) * 0.76F;
-                        float size = (0.045F + SurfaceAppearance.unit(h ^ 0x6AD4) * 0.13F)
-                                * (0.4F + strength * 0.6F);
-                        int alpha = Math.min(210, (int) (strength * 230.0F));
+                        float size = (0.060F + SurfaceAppearance.unit(h ^ 0x6AD4) * 0.19F)
+                                * (0.45F + strength * 0.55F);
+                        int alpha = Math.min(245, (int) (strength * 270.0F));
                         int red = 90 + (h & 31);
                         int green = 35 + ((h >>> 5) & 19);
                         surfaceQuad(buffer, pose, cam, pos, face,
@@ -184,6 +190,16 @@ public final class SurfaceAppearanceRenderer {
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();
         }
+    }
+
+    private static boolean rainingOn(BlockPos pos) {
+        BlockPos sky = pos.above();
+        if (!owner.hasChunkAt(pos) || !owner.canSeeSky(sky)) return false;
+        if (owner.isRainingAt(sky)) return true;
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)
+                || !WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER)) return false;
+        return LocalWeatherField.sample(owner, pos.getX() + .5, pos.getZ() + .5,
+                owner.getGameTime()).rain() >= 0.16F;
     }
 
     private static boolean near(BlockPos pos, Vec3 camera) {

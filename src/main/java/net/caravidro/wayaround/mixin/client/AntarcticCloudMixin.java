@@ -1,5 +1,8 @@
 package net.caravidro.wayaround.mixin.client;
 
+import net.caravidro.wayaround.client.AntarcticClientLighting;
+import net.caravidro.wayaround.worldconfig.WorldFeature;
+import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.level.Level;
@@ -16,10 +19,14 @@ public abstract class AntarcticCloudMixin {
 
         /*
          * Vanilla's single flat cloud sheet is replaced by Way Around's
-         * local moving cloud cells throughout the Overworld.
+         * local moving cloud cells only while that world feature is active.
+         * Disabled / other sky scenes must fall through to vanilla rendering.
          */
         if (minecraft.level != null
-                && minecraft.level.dimension().equals(Level.OVERWORLD)) {
+                && minecraft.level.dimension().equals(Level.OVERWORLD)
+                && WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)
+                && !AntarcticClientLighting.isAntarctic(minecraft)
+                && !net.caravidro.wayaround.daybreak.client.DaysBreakClient.active()) {
             ci.cancel();
         }
     }
