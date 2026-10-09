@@ -81,3 +81,12 @@ world tick.
 - The original implementation sent rust at most once per 200 ticks, had tiny sparsely scattered pixels, and the sky mixin did not honor the clouds toggle. All three were corrected in this follow-up.
 - These are rendered decals over the source block, **not mutations of the PNG atlas**. Rust is persisted; raincloud overrides and puddles are temporary; water/metal block types remain unchanged.
 - Worldgen changes already baked into saved chunks generally cannot be reverted by toggling a feature off; the vanilla fallback rule here covers live rendering and local weather behavior.
+
+
+## Pixel-art puddle revamp (2026-10-09)
+
+- Puddles are now rendered as deterministic **32-column, 24-row painted silhouettes** rather than two rectangles: a staggered nonlinear outline, a darker rim, layered translucent water, occasional small reflective streaks and subtle animated rain rings. Interior spans form one connected puddle; no chunky individual pixel sprites.
+- Rain sampling now checks a 7×7 area around the player every 8 client ticks, the directly looked-at surface and 16 additional bounded random columns. Before this, 24 attempts in a 45×45 area could miss a small floor for a long time.
+- Full grass/dirt, sand, gravel, bricks, mud, deepslate and other solid floors now qualify, in addition to iron and paving.
+- `/wayappearance puddle`: look at an uncovered eligible solid floor within 8 blocks, then run the operator command to force a 30-second test puddle even in clear weather. `/wayappearance puddle clear` removes the test puddle under your crosshair. Requires **Living Weather** enabled, but not `/weather rain`. This test is intentionally visual-only and client-local after server authorization.
+- Both natural and debug puddles are transient: they never place water blocks or modify collision. Runtime appearance is one bounded client buffer pass, with no new textures uploaded.

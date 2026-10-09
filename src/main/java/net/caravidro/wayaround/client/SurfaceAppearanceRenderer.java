@@ -61,7 +61,8 @@ public final class SurfaceAppearanceRenderer {
             owner = mc.level;
             PUDDLES.clear();
             DEBUG_UNTIL.clear();
-            PuddleDebugClientCache.clear();
+            // Keep the network mailbox through the first client-level tick.
+            // Packets can arrive before owner is assigned on world join.
             SurfaceAppearanceClientCache.clear();
             ticks = 0;
         }
