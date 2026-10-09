@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.time.TemporalAgingData;
 import net.caravidro.wayaround.network.SurfaceAppearanceS2CPayload;
+import net.caravidro.wayaround.network.PuddleDebugS2CPayload;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -65,6 +66,42 @@ public final class SurfaceAppearanceCommands {
                                                             + "% at " + blockHit.getBlockPos().toShortString()),
                                                     false);
                                             return 1;
-                                        }))));
+                                        })))
+                        .then(Commands.literal("puddle")
+                                .executes(ctx -> setPuddle(ctx.getSource().getPlayerOrException(), true))
+                                .then(Commands.literal("clear")
+                                        .executes(ctx -> setPuddle(ctx.getSource().getPlayerOrException(), false)))));
+    }
+
+    private static int setPuddle(ServerPlayer player, boolean spawn) {
+        if (!WorldFeatureRuntime.serverEnabled(WorldFeature.LIVING_WEATHER)) {
+            player.sendSystemMessage(Component.literal(
+                    "Enable Living Weather in the world settings to render puddles."));
+            return 0;
+        }
+        HitResult ray = player.pick(8.0D, 0.0F, false);
+        if (!(ray instanceof BlockHitResult hit) || ray.getType() != HitResult.Type.BLOCK) {
+            player.sendSystemMessage(Component.literal("Aim at a solid ground block within 8 blocks."));
+            return 0;
+        }
+        var pos = hit.getBlockPos();
+        var world = player.serverLevel();
+        if (!SurfaceAppearance.supportsPuddles(world.getBlockState(pos))
+                || !world.getBlockState(pos).isSolidRender(world, pos)
+                || !world.getBlockState(pos.above()).isAir()) {
+            player.sendSystemMessage(Component.literal(
+                    "Choose uncovered stone, iron, grass, dirt, sand or another solid ground surface."));
+            return 0;
+        }
+        var packet = new PuddleDebugS2CPayload(pos.asLong(), spawn ? 600 : 0);
+        for (ServerPlayer viewer : world.players()) {
+            if (viewer.distanceToSqr(pos.getX() + .5, pos.getY() + .5, pos.getZ() + .5) <= 48 * 48) {
+                PacketDistributor.sendToPlayer(viewer, packet);
+            }
+        }
+        player.sendSystemMessage(Component.literal(
+                spawn ? "Test puddle created for 30 seconds at " + pos.toShortString()
+                        : "Test puddle removed at " + pos.toShortString()));
+        return 1;
     }
 }

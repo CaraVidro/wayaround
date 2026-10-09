@@ -12,6 +12,8 @@ import java.util.Map;
 import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.appearance.SurfaceAppearance;
 import net.caravidro.wayaround.appearance.SurfaceAppearanceClientCache;
+import net.caravidro.wayaround.appearance.PuddleDebugClientCache;
+import net.caravidro.wayaround.appearance.PuddleSilhouette;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -22,6 +24,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -42,9 +45,10 @@ public final class SurfaceAppearanceRenderer {
     private static final Direction[] FACES = {
             Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST
     };
-    private static final int MAX_PUDDLES = 240;
-    private static final int RADIUS = 22;
+    private static final int MAX_PUDDLES = 144;
+    private static final int RADIUS = 12;
     private static final LinkedHashMap<Long, Float> PUDDLES = new LinkedHashMap<>();
+    private static final LinkedHashMap<Long, Long> DEBUG_UNTIL = new LinkedHashMap<>();
     private static ClientLevel owner;
     private static int ticks;
 
@@ -56,16 +60,33 @@ public final class SurfaceAppearanceRenderer {
         if (owner != mc.level) {
             owner = mc.level;
             PUDDLES.clear();
+            DEBUG_UNTIL.clear();
+            PuddleDebugClientCache.clear();
             SurfaceAppearanceClientCache.clear();
             ticks = 0;
         }
         if (owner == null || mc.player == null || mc.isPaused()) return;
-        if (++ticks % 8 != 0) return;
-
         if (!WorldFeatureRuntime.clientEnabled(WorldFeature.LIVING_WEATHER)) {
             PUDDLES.clear();
-            return; // Disabling the effect restores vanilla block surfaces.
+            DEBUG_UNTIL.clear();
+            PuddleDebugClientCache.clear();
+            return; // Disabling the mechanic restores vanilla surfaces.
         }
+        long time = owner.getGameTime();
+        for (var update : PuddleDebugClientCache.drain().entrySet()) {
+            if (update.getValue() <= 0) {
+                DEBUG_UNTIL.remove(update.getKey());
+                PUDDLES.remove(update.getKey());
+            } else {
+                if (DEBUG_UNTIL.size() >= 48 && !DEBUG_UNTIL.containsKey(update.getKey())) {
+                    DEBUG_UNTIL.remove(DEBUG_UNTIL.keySet().iterator().next());
+                }
+                DEBUG_UNTIL.put(update.getKey(), time + update.getValue());
+                PUDDLES.put(update.getKey(), 1.0F);
+            }
+        }
+        if (++ticks % 8 != 0) return;
+        DEBUG_UNTIL.entrySet().removeIf(entry -> entry.getValue() <= time);
         Iterator<Map.Entry<Long, Float>> it = PUDDLES.entrySet().iterator();
         while (it.hasNext()) {
             var entry = it.next();
@@ -75,7 +96,7 @@ public final class SurfaceAppearanceRenderer {
                 it.remove();
                 continue;
             }
-            float goal = rainingOn(pos) ? 1.0F : 0.0F;
+            float goal = DEBUG_UNTIL.containsKey(entry.getKey()) || rainingOn(pos) ? 1.0F : 0.0F;
             float next = goal > 0
                     ? Math.min(1.0F, entry.getValue() + 0.10F)
                     : Math.max(0.0F, entry.getValue() - 0.008F);
@@ -90,25 +111,51 @@ public final class SurfaceAppearanceRenderer {
 
         int cx = mc.player.getBlockX(), cz = mc.player.getBlockZ();
         int cy = mc.player.getBlockY();
-        for (int i = 0; i < 24; i++) {
-            int seed = SurfaceAppearance.hash(BlockPos.asLong(cx, cy, cz),
-                    ticks / 8, i);
-            int x = cx + Math.floorMod(seed, RADIUS * 2 + 1) - RADIUS;
-            int z = cz + Math.floorMod(seed >>> 8, RADIUS * 2 + 1) - RADIUS;
-            if (!owner.hasChunkAt(new BlockPos(x, cy, z))) continue;
-            int y = owner.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
-            if (Math.abs(y - cy) > 8) continue;
-            BlockPos pos = new BlockPos(x, y, z);
-            if (!owner.hasChunkAt(pos)
-                    || !rainingOn(pos)
-                    || !SurfaceAppearance.supportsPuddles(owner.getBlockState(pos))
-                    || !owner.getBlockState(pos.above()).isAir()
-                    || !owner.getBlockState(pos).isSolidRender(owner, pos)) continue;
-            long key = pos.asLong();
-            PUDDLES.put(key, Math.min(1.0F, PUDDLES.getOrDefault(key, 0.0F) + 0.13F));
-            while (PUDDLES.size() > MAX_PUDDLES) {
-                PUDDLES.remove(PUDDLES.keySet().iterator().next());
+
+        // Dense coverage close to the player, then a few distant samples.
+        // The old 24 random probes in a 45x45 square missed small walkways.
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                sampleColumn(cx + dx, cz + dz, cy);
             }
+        }
+        // When testing a small structure, guarantee its looked-at floor is checked.
+        if (mc.hitResult instanceof BlockHitResult hit) {
+            var pos = hit.getBlockPos();
+            if (Math.abs(pos.getX() - cx) <= 12
+                    && Math.abs(pos.getZ() - cz) <= 12) {
+                sampleColumn(pos.getX(), pos.getZ(), cy);
+            }
+        }
+        for (int i = 0; i < 16; i++) {
+            int seed = SurfaceAppearance.hash(BlockPos.asLong(cx, cy, cz), ticks / 8, i);
+            int dx = Math.floorMod(seed, RADIUS * 2 + 1) - RADIUS;
+            int dz = Math.floorMod(seed >>> 8, RADIUS * 2 + 1) - RADIUS;
+            sampleColumn(cx + dx, cz + dz, cy);
+        }
+    }
+
+    private static void sampleColumn(int x, int z, int playerY) {
+        BlockPos column = new BlockPos(x, playerY, z);
+        if (!owner.hasChunkAt(column)) return;
+        int y = owner.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - 1;
+        if (Math.abs(y - playerY) > 8) return;
+        BlockPos pos = new BlockPos(x, y, z);
+        if (!SurfaceAppearance.supportsPuddles(owner.getBlockState(pos))
+                || !owner.getBlockState(pos).isSolidRender(owner, pos)
+                || !owner.getBlockState(pos.above()).isAir()
+                || !rainingOn(pos)) return;
+        long key = pos.asLong();
+        PUDDLES.put(key, Math.min(1.0F, PUDDLES.getOrDefault(key, 0.0F) + 0.22F));
+        while (PUDDLES.size() > MAX_PUDDLES) {
+            long oldest = PUDDLES.keySet().iterator().next();
+            if (DEBUG_UNTIL.containsKey(oldest)) {
+                // Debug puddles must remain visible throughout their short lifetime.
+                PUDDLES.remove(oldest);
+                PUDDLES.put(oldest, 1.0F);
+                continue;
+            }
+            PUDDLES.remove(oldest);
         }
     }
 
@@ -157,20 +204,9 @@ public final class SurfaceAppearanceRenderer {
         if (puddles) {
             for (var entry : PUDDLES.entrySet()) {
                 BlockPos pos = BlockPos.of(entry.getKey());
-                if (!near(pos, cam) || !owner.hasChunkAt(pos)) continue;
-                float wetness = entry.getValue();
-                int hash = SurfaceAppearance.hash(pos.asLong(), 9, 0);
-                float x = 0.10F + SurfaceAppearance.unit(hash) * 0.30F;
-                float z = 0.10F + SurfaceAppearance.unit(hash ^ 0x5F27) * 0.30F;
-                float size = 0.20F + SurfaceAppearance.unit(hash >>> 3) * 0.26F;
-                surfaceQuad(buffer, pose, cam, pos, Direction.UP,
-                        x, z, size, size * 0.65F, 23, 50, 70,
-                        (int) (wetness * 98));
-                surfaceQuad(buffer, pose, cam, pos, Direction.UP,
-                        x + size * 0.15F, z + size * 0.18F,
-                        size * 0.56F, size * 0.22F, 89, 132, 149,
-                        (int) (wetness * 78));
-                count += 2;
+                if (!near(pos, cam) || !owner.hasChunkAt(pos)
+                        || !SurfaceAppearance.supportsPuddles(owner.getBlockState(pos))) continue;
+                count += drawPuddle(buffer, pose, cam, pos, entry.getValue(), owner.getGameTime());
             }
         }
         if (count == 0) {
@@ -190,6 +226,87 @@ public final class SurfaceAppearanceRenderer {
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();
         }
+    }
+
+    /**
+     * Painted 32-column silhouette: irregular full-body scanlines, a darker
+     * edge halo and translucent blue-gray interior. No tiled square patches,
+     * runtime image files, dynamic texture atlas or new per-block entities.
+     */
+    private static int drawPuddle(BufferBuilder buffer, Matrix4f pose, Vec3 camera,
+            BlockPos pos, float wetness, long worldTime) {
+        if (wetness <= 0.001F) return 0;
+        int shapes = 0;
+        long seed = pos.asLong();
+        float growth = 0.40F + 0.60F * Math.min(1F, wetness * 1.6F);
+        float originZ = .10F;
+        float rowHeight = .80F / PuddleSilhouette.ROWS;
+        float baseA = Math.min(1F, wetness);
+        for (int row = 0; row < PuddleSilhouette.ROWS; row++) {
+            int packed = PuddleSilhouette.span(seed, row);
+            if (packed == 0) continue;
+            float min = ((packed >>> 8) & 255) / (float) PuddleSilhouette.PIXELS;
+            float max = (packed & 255) / (float) PuddleSilhouette.PIXELS;
+            float x = .5F + (min - .5F) * growth;
+            float z = .5F + (originZ + row * rowHeight - .5F) * growth;
+            float width = (max - min) * growth;
+            float depth = rowHeight * growth;
+            int noise = PuddleSilhouette.hash(seed + row * 0x9E3779B97F4A7C15L);
+            int shade = (noise >>> 17) & 15;
+            // Silhouette border first, darker and a little wider.
+            topQuad(buffer, pose, camera, pos,
+                    x - .015F, z - .012F, width + .030F, depth + .024F,
+                    12 + shade / 3, 24 + shade / 2, 39 + shade,
+                    (int) (baseA * 165F), .0045F);
+            // A continuous water body with modest tonal differences per row.
+            topQuad(buffer, pose, camera, pos, x, z, width, depth,
+                    31 + shade, 65 + shade, 90 + shade,
+                    (int) (baseA * 190F), .007F);
+            shapes += 2;
+            // Pixel-art reflections: short bright streaks inside the silhouette.
+            if (row > 3 && row < PuddleSilhouette.ROWS - 4
+                    && (noise & 7) <= 2 && width > .18F) {
+                float u = ((noise >>> 8) & 15) / 32.0F;
+                float start = x + width * (.18F + u);
+                float glintWidth = Math.min(width * .32F, .08F + ((noise >>> 22) & 3) * .016F);
+                if (start + glintWidth < x + width - .025F) {
+                    topQuad(buffer, pose, camera, pos, start, z + depth * .23F,
+                            glintWidth, depth * .38F, 138, 183, 194,
+                            (int) (baseA * 130F), .009F);
+                    shapes++;
+                }
+            }
+        }
+        // Low-intensity moving rain rings, three tiny glints instead of a
+        // particle entity on every square of wet terrain.
+        if (wetness > .42F) {
+            int phase = (int) ((worldTime / 9L + (PuddleSilhouette.hash(seed) & 63)) % 60L);
+            float ripple = phase / 60F;
+            int opacity = (int) (baseA * (1F - ripple) * 100F);
+            if (opacity > 3) {
+                float half = .035F + ripple * .16F;
+                topQuad(buffer, pose, camera, pos,
+                        .5F - half, .45F - half * .65F,
+                        half * .75F, .010F, 155, 192, 204, opacity, .010F);
+                topQuad(buffer, pose, camera, pos,
+                        .5F + half * .35F, .45F + half * .65F,
+                        half * .65F, .010F, 155, 192, 204, opacity, .010F);
+                shapes += 2;
+            }
+        }
+        return shapes;
+    }
+
+    private static void topQuad(BufferBuilder b, Matrix4f pose, Vec3 cam,
+            BlockPos pos, float u, float v, float width, float depth,
+            int r, int g, int blue, int a, float offset) {
+        float x = (float) (pos.getX() - cam.x) + u;
+        float y = (float) (pos.getY() - cam.y) + 1F + offset;
+        float z = (float) (pos.getZ() - cam.z) + v;
+        b.addVertex(pose, x, y, z).setColor(r, g, blue, a);
+        b.addVertex(pose, x, y, z + depth).setColor(r, g, blue, a);
+        b.addVertex(pose, x + width, y, z + depth).setColor(r, g, blue, a);
+        b.addVertex(pose, x + width, y, z).setColor(r, g, blue, a);
     }
 
     private static boolean rainingOn(BlockPos pos) {

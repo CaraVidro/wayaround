@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.appearance;
 
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -17,6 +18,17 @@ public final class SurfaceAppearance {
 
     public static boolean supportsPuddles(BlockState state) {
         return isFerrous(state)
+                || state.is(BlockTags.DIRT)
+                || state.is(Blocks.GRASS_BLOCK)
+                || state.is(Blocks.DIRT_PATH)
+                || state.is(Blocks.MUD)
+                || state.is(Blocks.GRAVEL)
+                || state.is(Blocks.SAND)
+                || state.is(Blocks.RED_SAND)
+                || state.is(Blocks.DEEPSLATE)
+                || state.is(Blocks.COBBLED_DEEPSLATE)
+                || state.is(Blocks.TUFF)
+                || state.is(Blocks.BRICKS)
                 || state.is(Blocks.STONE)
                 || state.is(Blocks.SMOOTH_STONE)
                 || state.is(Blocks.COBBLESTONE)

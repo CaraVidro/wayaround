@@ -24,6 +24,7 @@ public final class WorldFeatureClientEvents {
         WorldFeatureRuntime.resetClient();
         net.caravidro.wayaround.worldgen.weather.local.CloudRainOverrides.clear();
         net.caravidro.wayaround.appearance.SurfaceAppearanceClientCache.clear();
+        net.caravidro.wayaround.appearance.PuddleDebugClientCache.clear();
         WorldFeatureCreationFlow.clearApproval();
     }
 }

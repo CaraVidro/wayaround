@@ -14,7 +14,7 @@ public final class WayAroundNetwork {
      * packet layouts after login.
      */
     public static final String PROTOCOL_VERSION =
-            "37";
+            "38";
 
     private WayAroundNetwork() {
     }
@@ -109,6 +109,8 @@ public final class WayAroundNetwork {
                 SurfaceAppearanceS2CPayload.STREAM_CODEC,
                 SurfaceAppearanceS2CPayload::handle
         );
+        registrar.playToClient(PuddleDebugS2CPayload.TYPE,
+                PuddleDebugS2CPayload.STREAM_CODEC, PuddleDebugS2CPayload::handle);
 
         registrar.playToClient(FireFrameS2CPayload.TYPE, FireFrameS2CPayload.STREAM_CODEC, ClientPayloadBridge::handleFireFrame);
 
