@@ -4,6 +4,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.caravidro.wayaround.WayAround;
+import net.caravidro.wayaround.appearance.SurfaceAppearance;
+import net.caravidro.wayaround.network.SurfaceAppearanceS2CPayload;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldstate.WorldEventTypes;
@@ -45,6 +48,7 @@ public final class TimeAgingTicker {
         for (ServerLevel level : event.getServer().getAllLevels()) {
             tickMachines(level);
             tickWorldWeathering(level);
+            syncSurfaceAppearance(level);
         }
     }
 
@@ -223,9 +227,53 @@ public final class TimeAgingTicker {
         return payload;
     }
 
+    /**
+     * Send quantized corrosion only from already-persisted temporal samples,
+     * never entire textures or full chunks. The client creates the pixels.
+     */
+    private static void syncSurfaceAppearance(ServerLevel level) {
+        TemporalAgingData data = TemporalAgingData.get(level);
+        for (ServerPlayer player : level.players()) {
+            long[] positions = new long[SurfaceAppearanceS2CPayload.MAX_ENTRIES];
+            byte[] strengths = new byte[positions.length];
+            int[] count = {0};
+            data.visitNearby(player.blockPosition(), 32, positions.length,
+                    (pos, corrosion) -> {
+                        if (count[0] >= positions.length
+                                || !level.hasChunkAt(pos)
+                                || !SurfaceAppearance.isFerrous(level.getBlockState(pos))) {
+                            return false;
+                        }
+                        int index = count[0]++;
+                        positions[index] = pos.asLong();
+                        strengths[index] = (byte) Math.round(
+                                Math.clamp(corrosion, 0.0F, 1.0F) * 255.0F);
+                        return true;
+                    });
+            if (count[0] > 0) {
+                PacketDistributor.sendToPlayer(player,
+                        new SurfaceAppearanceS2CPayload(
+                                java.util.Arrays.copyOf(positions, count[0]),
+                                java.util.Arrays.copyOf(strengths, count[0])));
+            }
+        }
+    }
+
     private static void tickWorldWeathering(ServerLevel level) {
         for (ServerPlayer player : level.players()) {
             BlockPos origin = player.blockPosition();
+
+            // Prefer surfaces near feet so constructed iron floors have a
+            // realistic chance of aging, rather than probing empty air.
+            for (int probe = 0; probe < 12; probe++) {
+                BlockPos floor = origin.offset(
+                        level.random.nextInt(25) - 12, -1,
+                        level.random.nextInt(25) - 12);
+                if (level.hasChunkAt(floor)
+                        && SurfaceAppearance.isFerrous(level.getBlockState(floor))) {
+                    TimeAgingEngine.sampleWorldSurface(level, floor, false);
+                }
+            }
 
             for (int sampleIndex = 0;
                  sampleIndex < WORLD_SAMPLES_PER_PLAYER;
@@ -246,7 +294,8 @@ public final class TimeAgingTicker {
                         state.is(Blocks.COBBLESTONE)
                                 || state.is(Blocks.STONE_BRICKS)
                                 || state.is(Blocks.COBBLESTONE_WALL)
-                                || state.is(Blocks.STONE_BRICK_WALL);
+                                || state.is(Blocks.STONE_BRICK_WALL)
+                                || SurfaceAppearance.isFerrous(state);
 
                 if (!supported) {
                     continue;

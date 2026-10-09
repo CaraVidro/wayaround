@@ -37,6 +37,7 @@ public final class AccessoryLayerRegistration {
                                 renderer
                         )
                 );
+                renderer.addLayer(new TukunaMarkLayer(renderer));
             }
         }
     }

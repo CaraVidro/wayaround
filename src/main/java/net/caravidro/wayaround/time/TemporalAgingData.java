@@ -54,7 +54,7 @@ public final class TemporalAgingData extends SavedData {
      * syncing a client; callers may filter materials without chunk loads.
      */
     public void visitNearby(BlockPos origin, int radius, int limit,
-                            java.util.function.BiConsumer<BlockPos, Float> consumer) {
+                            java.util.function.BiPredicate<BlockPos, Float> consumer) {
         int sent = 0;
         for (Map.Entry<Long, TemporalState> entry : entries.entrySet()) {
             BlockPos pos = BlockPos.of(entry.getKey());
@@ -62,9 +62,7 @@ public final class TemporalAgingData extends SavedData {
                     || Math.abs(pos.getZ() - origin.getZ()) > radius
                     || Math.abs(pos.getY() - origin.getY()) > 24) continue;
             float amount = entry.getValue().corrosion();
-            if (amount <= 0.005F) continue;
-            consumer.accept(pos, amount);
-            if (++sent >= limit) break;
+            if (consumer.test(pos, amount) && ++sent >= limit) break;
         }
     }
 
