@@ -20,14 +20,14 @@ public final class PuddleField {
     public static Shape describe(long seed, int blockX, int blockZ, float wetness) {
         long a = mix(seed ^ 0x8A5CD789635D2DFFL);
         long b = mix(a ^ 0x6381ABDDC4B18521L);
-        double theta = fraction(a >>> 3) * Math.PI * 2.0D;
+        double theta = fraction(mix(a ^ 0xB72A318FE33D2B85L)) * Math.PI * 2.0D;
         // Different position, orientation, aspect ratio and size for every puddle.
         double growth = .42D + .58D * Math.min(1D, wetness * 1.65D);
-        return new Shape(blockX + .5D + (fraction(b >>> 10) - .5D) * .12D,
-                blockZ + .5D + (fraction(a >>> 15) - .5D) * .12D,
+        return new Shape(blockX + .5D + (fraction(mix(b ^ 0xACBEDF557B6D71ABL)) - .5D) * .12D,
+                blockZ + .5D + (fraction(mix(a ^ 0x69DA8A71246FE49BL)) - .5D) * .12D,
                 Math.cos(theta), Math.sin(theta),
-                (.79D + fraction(b >>> 22) * .30D) * growth,
-                (.56D + fraction(a >>> 26) * .31D) * growth, seed);
+                (.79D + fraction(mix(b ^ 0xE95A4B65D72CF1B1L)) * .30D) * growth,
+                (.56D + fraction(mix(a ^ 0x5A0E83799EAB97D1L)) * .31D) * growth, seed);
     }
 
     /** >0 is wet; zero is its boundary. Continuous across integer block edges. */
@@ -48,8 +48,8 @@ public final class PuddleField {
 
         // Subtle irregular lobes, using angular harmonics rather than a fixed ellipse.
         double angle = Math.atan2(v, u);
-        double lobe = Math.sin(angle * 3D + fraction(shape.seed()) * 6.28318D) * .075D
-                + Math.cos(angle * 5D + fraction(shape.seed() >>> 16) * 6.28318D) * .038D;
+        double lobe = Math.sin(angle * 3D + fraction(mix(shape.seed() ^ 0x30BF3E1F37D2D9ECL)) * 6.28318D) * .075D
+                + Math.cos(angle * 5D + fraction(mix(shape.seed() ^ 0x78C456E281B1AB43L)) * 6.28318D) * .038D;
         return 1D - radius + n1 * .125D + n2 * .062D + lobe;
     }
 
