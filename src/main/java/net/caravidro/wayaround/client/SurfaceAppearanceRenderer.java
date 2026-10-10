@@ -13,7 +13,7 @@ import net.caravidro.wayaround.WayAround;
 import net.caravidro.wayaround.appearance.SurfaceAppearance;
 import net.caravidro.wayaround.appearance.SurfaceAppearanceClientCache;
 import net.caravidro.wayaround.appearance.PuddleDebugClientCache;
-import net.caravidro.wayaround.appearance.PuddleSilhouette;
+import net.caravidro.wayaround.appearance.PuddleField;
 import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldgen.weather.local.LocalWeatherField;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
@@ -45,7 +45,14 @@ public final class SurfaceAppearanceRenderer {
     private static final Direction[] FACES = {
             Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST
     };
-    private static final int MAX_PUDDLES = 144;
+    private static final int MAX_PUDDLES = 88;
+    private static final int MAX_RENDER_PUDDLES = 28;
+    private static final int GRID = PuddleField.RESOLUTION;
+    private static final float[] SAMPLE = new float[(GRID + 1) * (GRID + 1)];
+    // Reuse scratch space instead of creating float arrays per mesh cell.
+    private static final float[] POLY_X = new float[8], POLY_Z = new float[8];
+    private static final float[] CORNER_X = new float[4], CORNER_Z = new float[4],
+                                 CORNER_DENSITY = new float[4];
     private static final int RADIUS = 12;
     private static final LinkedHashMap<Long, Float> PUDDLES = new LinkedHashMap<>();
     private static final LinkedHashMap<Long, Long> DEBUG_UNTIL = new LinkedHashMap<>();
@@ -147,6 +154,10 @@ public final class SurfaceAppearanceRenderer {
                 || !owner.getBlockState(pos.above()).isAir()
                 || !rainingOn(pos)) return;
         long key = pos.asLong();
+        // Deterministic, sparse anchors. Each puddle may span several blocks:
+        // creating one per ground block would bury the world in overlapping decals.
+        if (!DEBUG_UNTIL.containsKey(key)
+                && Math.floorMod(PuddleField.mix(key ^ 0xC231A96EEEDL), 7) != 0) return;
         PUDDLES.put(key, Math.min(1.0F, PUDDLES.getOrDefault(key, 0.0F) + 0.22F));
         while (PUDDLES.size() > MAX_PUDDLES) {
             long oldest = PUDDLES.keySet().iterator().next();
@@ -203,11 +214,23 @@ public final class SurfaceAppearanceRenderer {
             }
         }
         if (puddles) {
+            int rendered = 0;
+            // Explicit visual tests have priority even in a dense rainfall scene.
             for (var entry : PUDDLES.entrySet()) {
+                if (!DEBUG_UNTIL.containsKey(entry.getKey())) continue;
                 BlockPos pos = BlockPos.of(entry.getKey());
-                if (!near(pos, cam) || !owner.hasChunkAt(pos)
-                        || !SurfaceAppearance.supportsPuddles(owner.getBlockState(pos))) continue;
+                if (!near(pos, cam) || !owner.hasChunkAt(pos)) continue;
                 count += drawPuddle(buffer, pose, cam, pos, entry.getValue(), owner.getGameTime());
+                if (++rendered >= MAX_RENDER_PUDDLES) break;
+            }
+            if (rendered < MAX_RENDER_PUDDLES) {
+                for (var entry : PUDDLES.entrySet()) {
+                    if (DEBUG_UNTIL.containsKey(entry.getKey())) continue;
+                    BlockPos pos = BlockPos.of(entry.getKey());
+                    if (!near(pos, cam) || !owner.hasChunkAt(pos)) continue;
+                    count += drawPuddle(buffer, pose, cam, pos, entry.getValue(), owner.getGameTime());
+                    if (++rendered >= MAX_RENDER_PUDDLES) break;
+                }
             }
         }
         if (count == 0) {
@@ -229,85 +252,152 @@ public final class SurfaceAppearanceRenderer {
         }
     }
 
+
     /**
-     * Painted 32-column silhouette: irregular full-body scanlines, a darker
-     * edge halo and translucent blue-gray interior. No tiled square patches,
-     * runtime image files, dynamic texture atlas or new per-block entities.
+     * Project one implicit world-space decal across the anchor's solid top and
+     * up to eight adjacent exposed, coplanar full blocks. No floating bridges
+     * across missing blocks, no puddles up walls or into unloaded chunks.
+     *
+     * Each cell is clipped to an interpolated 0-isocontour (marching-squares
+     * style) before triangulation. The world field is sampled by ABSOLUTE
+     * coordinate, so the boundary is mathematically identical at block edges.
      */
-    private static int drawPuddle(BufferBuilder buffer, Matrix4f pose, Vec3 camera,
-            BlockPos pos, float wetness, long worldTime) {
-        if (wetness <= 0.001F) return 0;
-        int shapes = 0;
-        long seed = pos.asLong();
-        float growth = 0.40F + 0.60F * Math.min(1F, wetness * 1.6F);
-        float originZ = .10F;
-        float rowHeight = .80F / PuddleSilhouette.ROWS;
-        float baseA = Math.min(1F, wetness);
-        for (int row = 0; row < PuddleSilhouette.ROWS; row++) {
-            int packed = PuddleSilhouette.span(seed, row);
-            if (packed == 0) continue;
-            float min = ((packed >>> 8) & 255) / (float) PuddleSilhouette.PIXELS;
-            float max = (packed & 255) / (float) PuddleSilhouette.PIXELS;
-            float x = .5F + (min - .5F) * growth;
-            float z = .5F + (originZ + row * rowHeight - .5F) * growth;
-            float width = (max - min) * growth;
-            float depth = rowHeight * growth;
-            int noise = PuddleSilhouette.hash(seed + row * 0x9E3779B97F4A7C15L);
-            int shade = (noise >>> 17) & 15;
-            // Silhouette border first, darker and a little wider.
-            topQuad(buffer, pose, camera, pos,
-                    x - .015F, z - .012F, width + .030F, depth + .024F,
-                    12 + shade / 3, 24 + shade / 2, 39 + shade,
-                    (int) (baseA * 165F), .0045F);
-            // A continuous water body with modest tonal differences per row.
-            topQuad(buffer, pose, camera, pos, x, z, width, depth,
-                    31 + shade, 65 + shade, 90 + shade,
-                    (int) (baseA * 190F), .007F);
-            shapes += 2;
-            // Pixel-art reflections: short bright streaks inside the silhouette.
-            if (row > 3 && row < PuddleSilhouette.ROWS - 4
-                    && (noise & 7) <= 2 && width > .18F) {
-                float u = ((noise >>> 8) & 15) / 32.0F;
-                float start = x + width * (.18F + u);
-                float glintWidth = Math.min(width * .32F, .08F + ((noise >>> 22) & 3) * .016F);
-                if (start + glintWidth < x + width - .025F) {
-                    topQuad(buffer, pose, camera, pos, start, z + depth * .23F,
-                            glintWidth, depth * .38F, 138, 183, 194,
-                            (int) (baseA * 130F), .009F);
-                    shapes++;
+    private static int drawPuddle(BufferBuilder b, Matrix4f pose, Vec3 cam,
+            BlockPos anchor, float wetness, long time) {
+        if (wetness < .012F || !validPuddleFloor(anchor)) return 0;
+        PuddleField.Shape shape = PuddleField.describe(
+                anchor.asLong(), anchor.getX(), anchor.getZ(), wetness);
+        int count = 0;
+        for (int ox = -PuddleField.BLOCK_REACH; ox <= PuddleField.BLOCK_REACH; ox++) {
+            for (int oz = -PuddleField.BLOCK_REACH; oz <= PuddleField.BLOCK_REACH; oz++) {
+                BlockPos tile = anchor.offset(ox, 0, oz);
+                if (!validPuddleFloor(tile)) continue;
+                if (!canProjectFromAnchor(anchor, tile)) continue;
+                count += drawTile(b, pose, cam, tile, shape, wetness, time);
+            }
+        }
+        return count;
+    }
+
+    /** Require an unbroken cardinal route on the same y-level to a neighbor. */
+    private static boolean canProjectFromAnchor(BlockPos origin, BlockPos neighbor) {
+        int dx = neighbor.getX() - origin.getX(), dz = neighbor.getZ() - origin.getZ();
+        if (dx != 0 && dz != 0) {
+            // A diagonal only connects if both orthogonal support surfaces exist.
+            return validPuddleFloor(origin.offset(dx, 0, 0))
+                    && validPuddleFloor(origin.offset(0, 0, dz));
+        }
+        return true;
+    }
+
+    private static boolean validPuddleFloor(BlockPos pos) {
+        if (!owner.hasChunkAt(pos)) return false;
+        return SurfaceAppearance.supportsPuddles(owner.getBlockState(pos))
+                && owner.getBlockState(pos).isSolidRender(owner, pos)
+                && owner.getBlockState(pos.above()).isAir();
+    }
+
+    private static int drawTile(BufferBuilder b, Matrix4f pose, Vec3 cam,
+            BlockPos tile, PuddleField.Shape shape, float wetness, long time) {
+        int stride = GRID + 1, count = 0;
+        for (int z = 0; z <= GRID; z++) {
+            for (int x = 0; x <= GRID; x++) {
+                double worldX = tile.getX() + x / (double) GRID;
+                double worldZ = tile.getZ() + z / (double) GRID;
+                SAMPLE[z * stride + x] = (float) PuddleField.density(shape, worldX, worldZ);
+            }
+        }
+        float alpha = Math.min(1F, wetness);
+        for (int z = 0; z < GRID; z++) {
+            for (int x = 0; x < GRID; x++) {
+                float s = 1F / GRID;
+                float x0 = tile.getX() + x * s, x1 = x0 + s;
+                float z0 = tile.getZ() + z * s, z1 = z0 + s;
+                // Counterclockwise x/z rectangle; renderer disables backface culling.
+                CORNER_X[0] = x0; CORNER_Z[0] = z0;
+                CORNER_X[1] = x0; CORNER_Z[1] = z1;
+                CORNER_X[2] = x1; CORNER_Z[2] = z1;
+                CORNER_X[3] = x1; CORNER_Z[3] = z0;
+                CORNER_DENSITY[0] = SAMPLE[z * stride + x];
+                CORNER_DENSITY[1] = SAMPLE[(z + 1) * stride + x];
+                CORNER_DENSITY[2] = SAMPLE[(z + 1) * stride + x + 1];
+                CORNER_DENSITY[3] = SAMPLE[z * stride + x + 1];
+
+                float max = Math.max(Math.max(CORNER_DENSITY[0], CORNER_DENSITY[1]),
+                        Math.max(CORNER_DENSITY[2], CORNER_DENSITY[3]));
+                if (max <= -.09F) continue;
+                float centerX = (x0 + x1) * .5F, centerZ = (z0 + z1) * .5F;
+                float tint = (float) PuddleField.valueNoise(centerX * 2.4D,
+                        centerZ * 2.4D, shape.seed() ^ 0xACA49937L);
+                int shade = Math.round(tint * 13.0F);
+                // Lower dark edge is wider than the inner blue-gray water.
+                count += emitContour(b, pose, cam, tile, -.075F,
+                        16 + shade, 33 + shade, 47 + shade,
+                        Math.round(alpha * 150), .0045F);
+                count += emitContour(b, pose, cam, tile, .015F,
+                        44 + shade, 78 + shade, 103 + shade,
+                        Math.round(alpha * 194), .007F);
+
+                // Patchy pearly highlights are also contoured, never box-shaped.
+                // A small time phase makes the reflected shine subtly shift.
+                if (((PuddleField.mix(shape.seed() + (long) Math.floor(centerX * 17D) * 53L + (long) Math.floor(centerZ * 17D)) >>> 7) & 3L) == 0) {
+                    count += emitContour(b, pose, cam, tile,
+                            .46F + .045F * (float) Math.sin(time * .022D + centerX * 3.2D),
+                            147, 189, 206, Math.round(alpha * 83), .009F);
                 }
             }
         }
-        // Low-intensity moving rain rings, three tiny glints instead of a
-        // particle entity on every square of wet terrain.
-        if (wetness > .42F) {
-            int phase = (int) ((worldTime / 9L + (PuddleSilhouette.hash(seed) & 63)) % 60L);
-            float ripple = phase / 60F;
-            int opacity = (int) (baseA * (1F - ripple) * 100F);
-            if (opacity > 3) {
-                float half = .035F + ripple * .16F;
-                topQuad(buffer, pose, camera, pos,
-                        .5F - half, .45F - half * .65F,
-                        half * .75F, .010F, 155, 192, 204, opacity, .010F);
-                topQuad(buffer, pose, camera, pos,
-                        .5F + half * .35F, .45F + half * .65F,
-                        half * .65F, .010F, 155, 192, 204, opacity, .010F);
-                shapes += 2;
-            }
-        }
-        return shapes;
+        return count;
     }
 
-    private static void topQuad(BufferBuilder b, Matrix4f pose, Vec3 cam,
-            BlockPos pos, float u, float v, float width, float depth,
-            int r, int g, int blue, int a, float offset) {
-        float x = (float) (pos.getX() - cam.x) + u;
-        float y = (float) (pos.getY() - cam.y) + 1F + offset;
-        float z = (float) (pos.getZ() - cam.z) + v;
-        b.addVertex(pose, x, y, z).setColor(r, g, blue, a);
-        b.addVertex(pose, x, y, z + depth).setColor(r, g, blue, a);
-        b.addVertex(pose, x + width, y, z + depth).setColor(r, g, blue, a);
-        b.addVertex(pose, x + width, y, z).setColor(r, g, blue, a);
+    /**
+     * Clip one quad's corners against density >= threshold; interpolate edges,
+     * then fan-triangulate. Quad mode uses duplicated last corner for triangles
+     * (a degenerate quad). This preserves the existing batched rust pipeline.
+     */
+    private static int emitContour(BufferBuilder b, Matrix4f pose, Vec3 cam,
+            BlockPos tile, float threshold, int red, int green, int blue, int alpha, float lift) {
+        int n = 0;
+        for (int i = 0; i < 4; i++) {
+            int prev = (i + 3) % 4;
+            float a = CORNER_DENSITY[prev] - threshold;
+            float c = CORNER_DENSITY[i] - threshold;
+            boolean wasInside = a >= 0F, isInside = c >= 0F;
+            if (wasInside != isInside) {
+                float t = a / (a - c);
+                POLY_X[n] = CORNER_X[prev] + (CORNER_X[i] - CORNER_X[prev]) * t;
+                POLY_Z[n] = CORNER_Z[prev] + (CORNER_Z[i] - CORNER_Z[prev]) * t;
+                n++;
+            }
+            if (isInside) {
+                POLY_X[n] = CORNER_X[i];
+                POLY_Z[n] = CORNER_Z[i];
+                n++;
+            }
+        }
+        if (n < 3) return 0;
+        float y = (float) (tile.getY() + 1D + lift - cam.y);
+        if (n == 4) {
+            for (int k = 0; k < 4; k++) {
+                puddleVertex(b, pose, cam, POLY_X[k], y, POLY_Z[k], red, green, blue, alpha);
+            }
+            return 1;
+        }
+        int emitted = 0;
+        for (int k = 1; k < n - 1; k++) {
+            puddleVertex(b, pose, cam, POLY_X[0], y, POLY_Z[0], red, green, blue, alpha);
+            puddleVertex(b, pose, cam, POLY_X[k], y, POLY_Z[k], red, green, blue, alpha);
+            puddleVertex(b, pose, cam, POLY_X[k + 1], y, POLY_Z[k + 1], red, green, blue, alpha);
+            puddleVertex(b, pose, cam, POLY_X[k + 1], y, POLY_Z[k + 1], red, green, blue, alpha);
+            emitted++;
+        }
+        return emitted;
+    }
+
+    private static void puddleVertex(BufferBuilder b, Matrix4f pose, Vec3 cam,
+            float worldX, float localY, float worldZ, int red, int green, int blue, int alpha) {
+        b.addVertex(pose, (float) (worldX - cam.x), localY, (float) (worldZ - cam.z))
+                .setColor(red, green, blue, alpha);
     }
 
     private static boolean rainingOn(BlockPos pos) {
