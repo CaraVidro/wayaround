@@ -21,5 +21,6 @@ jobs:
       - name: Deterministic, bounded, irregular puddle silhouettes
         run: |
           mkdir -p /tmp/wayaround-appearance
-          javac -d /tmp/wayaround-appearance src/main/java/net/caravidro/wayaround/appearance/PuddleSilhouette.java tests/appearance/PuddleSilhouetteTest.java
+          javac -d /tmp/wayaround-appearance src/main/java/net/caravidro/wayaround/appearance/PuddleSilhouette.java src/main/java/net/caravidro/wayaround/appearance/PuddleField.java tests/appearance/PuddleSilhouetteTest.java tests/appearance/PuddleFieldTest.java
           java -cp /tmp/wayaround-appearance PuddleSilhouetteTest
+          java -cp /tmp/wayaround-appearance PuddleFieldTest

@@ -173,7 +173,7 @@ public final class SurfaceAppearanceRenderer {
 
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES
                 || owner == null || Minecraft.getInstance().level != owner) return;
 
         boolean rust = WorldFeatureRuntime.clientEnabled(WorldFeature.TIME_AGING);
