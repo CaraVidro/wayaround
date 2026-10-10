@@ -8,6 +8,7 @@ import net.caravidro.wayaround.worldconfig.WorldFeature;
 import net.caravidro.wayaround.worldconfig.WorldFeatureRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
@@ -63,10 +64,32 @@ public final class LivingWeatherClient {
 
         if (ticks % 2 == 0) {
             spawnInsideCloudFog(minecraft);
+            spawnLocalRain(minecraft);
         }
 
         if (ticks % 3 == 0) {
             reactFoliage(minecraft);
+        }
+    }
+
+    /** Local raindrops even when vanilla /weather is clear: each cloud rains independently. */
+    private static void spawnLocalRain(Minecraft minecraft) {
+        if (!WorldFeatureRuntime.clientEnabled(WorldFeature.PROCEDURAL_CLOUDS)) return;
+        var level = minecraft.level;
+        var player = minecraft.player;
+        var weather = LocalWeatherField.sample(level, player.getX(),
+                player.getZ(), level.getGameTime());
+        if (weather.rain() < 0.13F) return;
+        int attempts = 3 + (int) (weather.rain() * 13.0F);
+        for (int i = 0; i < attempts; i++) {
+            double x = player.getX() + (level.random.nextDouble() - .5D) * 24.0D;
+            double z = player.getZ() + (level.random.nextDouble() - .5D) * 24.0D;
+            double y = player.getEyeY() + 2.5D + level.random.nextDouble() * 8.0D;
+            BlockPos air = BlockPos.containing(x, y, z);
+            if (!level.hasChunkAt(air) || !level.getBlockState(air).isAir()
+                    || !level.canSeeSky(air)) continue;
+            level.addParticle(ParticleTypes.RAIN, x, y, z,
+                    weather.windX() * .03D, -.45D, weather.windZ() * .03D);
         }
     }
 

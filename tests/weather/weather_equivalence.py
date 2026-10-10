@@ -15,6 +15,9 @@ put('net/minecraft/util/Mth.java','package net.minecraft.util; public class Mth 
 put('net/minecraft/world/level/Level.java','package net.minecraft.world.level; public class Level {}')
 put('net/caravidro/wayaround/performance/PerformanceProfiler.java','package net.caravidro.wayaround.performance; public class PerformanceProfiler {public enum Section{LOCAL_WEATHER} public static long begin(Section s){return 0;} public static void end(Section s,long t){} }')
 put(package+'WindTestManager.java','package net.caravidro.wayaround.worldgen.weather.local; public class WindTestManager { public static float strengthAt(double x,double z,long t){return 0;} }')
+# No overrides are active in the equivalence fixture. Stub the new runtime hook
+# so baseline and optimized field math remain comparable without NeoForge.
+put(package+'CloudRainOverrides.java','package net.caravidro.wayaround.worldgen.weather.local; import net.minecraft.world.level.Level; public class CloudRainOverrides { public static LocalWeatherField.CloudCell apply(Level l,LocalWeatherField.CloudCell c,long t){return c;} }')
 put(package+'RegionalCloudClimate.java','''package net.caravidro.wayaround.worldgen.weather.local;
 import net.minecraft.world.level.Level;
 public class RegionalCloudClimate {

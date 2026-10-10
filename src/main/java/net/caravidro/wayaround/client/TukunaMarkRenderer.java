@@ -8,7 +8,7 @@ import java.util.UUID;
 
 import org.joml.Matrix4f;
 
-import com.mojang.math.Axis;
+import net.minecraft.client.player.AbstractClientPlayer;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -25,7 +25,6 @@ import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.util.Mth;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -193,10 +192,10 @@ public final class TukunaMarkRenderer {
         }
     }
 
-    @SubscribeEvent
-    public static void render(RenderPlayerEvent.Post event) {
+    public static void renderAttached(
+            AbstractClientPlayer player, PlayerModel<?> model, PoseStack pose) {
         UUID playerId =
-                event.getEntity()
+                player
                         .getUUID();
 
         State state =
@@ -245,44 +244,9 @@ public final class TukunaMarkRenderer {
                         )
                         : 0;
 
-        PlayerModel<?> model = event.getRenderer().getModel();
-        PoseStack pose = event.getPoseStack();
-
-        /*
-         * RenderPlayerEvent.Post fires after LivingEntityRenderer has popped
-         * its humanoid transform. Rebuild the same standing-player transform:
-         * body yaw, vanilla X/Y inversion, then the 1.501 model translation.
-         *
-         * The previous code only applied the translation. That left ModelPart
-         * +Y pointing toward world -Y, producing the unmistakable "second
-         * body reflected underneath the feet" seen in-game.
-         */
+        // The player render layer already contains swimming, gliding, crouching,
+        // sleeping and cinematic transforms. Bones are animated in this space.
         pose.pushPose();
-
-        float bodyYaw =
-                Mth.rotLerp(
-                        event.getPartialTick(),
-                        event.getEntity().yBodyRotO,
-                        event.getEntity().yBodyRot
-                );
-
-        pose.mulPose(
-                Axis.YP.rotationDegrees(
-                        180.0F - bodyYaw
-                )
-        );
-
-        pose.scale(
-                -1.0F,
-                -1.0F,
-                1.0F
-        );
-
-        pose.translate(
-                0.0D,
-                -1.501D,
-                0.0D
-        );
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();

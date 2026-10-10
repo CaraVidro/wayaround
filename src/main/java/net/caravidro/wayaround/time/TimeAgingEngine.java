@@ -1,5 +1,6 @@
 package net.caravidro.wayaround.time;
 
+import net.caravidro.wayaround.appearance.SurfaceAppearance;
 import net.caravidro.wayaround.industrial.assembly.AssemblyMachine;
 import net.caravidro.wayaround.industrial.assembly.AssemblyPartNode;
 import net.caravidro.wayaround.thermal.EnvironmentalTemperature;
@@ -180,12 +181,17 @@ public final class TimeAgingEngine {
                         * (shaded ? 0.028F : 0.010F)
                         * (0.08F + abandonment * 0.92F);
 
+        // Reuse the same persistent TemporalState rather than storing a
+        // second corrosion value just for the renderer.
+        float corrosionRate = SurfaceAppearance.isFerrous(level.getBlockState(pos))
+                ? wetness * 0.28F
+                : 0.0F;
         state.advance(
                 elapsed,
                 active,
                 wetness,
                 0.003F,
-                0.0F,
+                corrosionRate,
                 organic
         );
         state.markSample(now);
